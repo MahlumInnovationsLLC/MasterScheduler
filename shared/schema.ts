@@ -11,6 +11,8 @@ import {
   pgEnum,
   foreignKey,
   unique,
+  jsonb,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -39,14 +41,30 @@ export const manufacturingStatusEnum = pgEnum("manufacturing_status", [
   "maintenance",
 ]);
 
+// Session storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
 // Users Table
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  fullName: text("full_name"),
-  role: text("role"),
+  id: varchar("id").primaryKey().notNull(),
+  username: varchar("username").unique().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  bio: text("bio"),
+  profileImageUrl: varchar("profile_image_url"),
+  role: text("role").default("user"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Project Table
@@ -170,9 +188,13 @@ export const manufacturingSchedulesRelations = relations(manufacturingSchedules,
 // Insert Schemas
 
 export const insertUserSchema = createInsertSchema(users).pick({
+  id: true,
   username: true,
-  password: true,
-  fullName: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  bio: true,
+  profileImageUrl: true,
   role: true,
 });
 
