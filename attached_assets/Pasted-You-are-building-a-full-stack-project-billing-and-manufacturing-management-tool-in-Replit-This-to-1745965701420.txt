@@ -1,0 +1,146 @@
+You are building a full-stack project, billing, and manufacturing management tool in Replit. This tool will consist of three interconnected modules that reflect Tier IV project management, billing milestone tracking, and manufacturing bay scheduling.
+
+✅ Project Overview
+Build a Replit application using:
+
+Frontend: React with futuristic UI and responsive design
+
+Backend: Node.js + Express
+
+Database: Neon Postgres
+
+Storage: Supabase or Replit-native for Excel import/export (optional)
+
+AI Features: Add optional OpenAI integration for analytics/insights
+
+1️⃣ Module 1: Tier IV Project Status Management
+Purpose:
+Replicate and expand upon the structure from the "Tier IV Project Status" Excel to manage top-level project timelines, ownership, critical milestones, and percent complete data.
+
+Required Features:
+Import Tier IV projects from Excel into Neon DB
+
+Project List UI with:
+
+Project Number
+
+Project Name
+
+PM Owner
+
+Project Start / Est. Completion Dates
+
+% Complete (auto-colored by progress)
+
+Project Notes / Action Items
+
+Detailed project view with:
+
+Task list (editable)
+
+Milestone tracking
+
+Date fields and auto-calc duration
+
+Color indicators based on:
+
+On track / Delayed / Critical (via logic from completion vs. timeline)
+
+Ability to create, edit, archive, and filter projects
+
+2️⃣ Module 2: Billing Milestones Tracker
+Purpose:
+Tie billing status and revenue forecasting into the project tracking tool using the data structure from the "Future Billing Milestones" Excel.
+
+Required Features:
+Each project links to its billing milestones (foreign key in DB)
+
+UI Table with:
+
+Project Number (linked to Tier IV)
+
+Billing Milestone Name
+
+Value / Amount
+
+Target Invoice Date
+
+Actual Invoice Date
+
+Payment Received Date
+
+Status (Upcoming, Invoiced, Paid, Delayed)
+
+Auto-calculate days overdue or until due
+
+Monthly revenue forecasting dashboard
+
+Export billing report as Excel or PDF
+
+3️⃣ Module 3: Manufacturing Bay Scheduler
+Purpose:
+Schedule and manage production bay usage as seen in the "Production Forecast" Excel.
+
+Required Features:
+Bay scheduling interface (calendar-style view or Gantt-style)
+
+UI shows:
+
+Bay number
+
+Assigned Project
+
+Start Date
+
+End Date
+
+Status (Scheduled, In Progress, Complete)
+
+Conflict detection if overlapping projects are scheduled in the same bay
+
+Filters for:
+
+By Bay
+
+By Project
+
+By Time Frame (Weekly, Monthly)
+
+Add/edit production forecast with drag-and-drop or modal form
+
+Real-time sync with Tier IV project start/end dates
+
+🔗 Integration Logic
+A Project Number is the shared key across all three modules.
+
+Updating a project’s start/end date should optionally sync to production bay scheduling.
+
+Changing billing milestone dates should trigger timeline risk indicators in the project module.
+
+Color-code and notifications across modules based on deadline risks, late payments, or overlapping production.
+
+⚙️ Additional Technical Instructions
+Use React Context or Redux for shared state if needed.
+
+Use a Sequelize or Prisma ORM for the database models.
+
+Store and retrieve Excel data via a file upload feature or admin-only dashboard (CSV parser + schema validation).
+
+Create backend API routes for:
+
+/projects
+
+/billing
+
+/production
+
+Secure routes with auth middleware if expanded later.
+
+🧠 AI Suggestions (Optional)
+Add a “Project Health” score powered by OpenAI API that analyzes:
+
+Timeline adherence
+
+Billing progress
+
+Manufacturing readiness Display it in each project’s detailed view.
