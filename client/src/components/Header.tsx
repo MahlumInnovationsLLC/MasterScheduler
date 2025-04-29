@@ -37,10 +37,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from '@/hooks/useAuth';
+import { User as UserType } from '@shared/schema';
 
 const Header = () => {
   const { user, isLoading, isAuthenticated } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  
+  const typedUser = user as UserType | undefined;
   
   const getInitials = (name?: string) => {
     if (!name) return 'U';
@@ -56,10 +59,8 @@ const Header = () => {
     <header className="bg-darkCard border-b border-gray-800 px-6 py-3 fixed top-0 left-0 right-0 z-10">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/">
-            <a className="text-primary font-bold text-2xl font-sans">
-              <span>TIER</span><span className="text-accent">IV</span><span className="text-xs align-top ml-1">PRO</span>
-            </a>
+          <Link href="/" className="text-primary font-bold text-2xl font-sans">
+            <span>TIER</span><span className="text-accent">IV</span><span className="text-xs align-top ml-1">PRO</span>
           </Link>
           <div className="h-6 border-l border-gray-700 mx-2"></div>
           <div className="flex items-center px-3 py-1.5 bg-darkInput rounded-md">
@@ -149,11 +150,11 @@ const Header = () => {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <Label htmlFor="name">Name</Label>
-                            <div className="py-2">{user?.username || 'Not available'}</div>
+                            <div className="py-2">{typedUser?.username || 'Not available'}</div>
                           </div>
                           <div>
                             <Label htmlFor="email">Email</Label>
-                            <div className="py-2">{user?.email || 'Not available'}</div>
+                            <div className="py-2">{typedUser?.email || 'Not available'}</div>
                           </div>
                         </div>
                       </div>
@@ -232,22 +233,22 @@ const Header = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div className="flex items-center gap-2 ml-3 cursor-pointer">
-                    {user?.profileImageUrl ? (
+                    {typedUser?.profileImageUrl ? (
                       <img 
-                        src={user.profileImageUrl} 
-                        alt={user.username || "User"} 
+                        src={typedUser.profileImageUrl} 
+                        alt={typedUser.username || "User"} 
                         className="w-9 h-9 rounded-full object-cover"
                       />
                     ) : (
                       <div className="w-9 h-9 rounded-full bg-gradient-to-r from-primary to-accent flex items-center justify-center">
                         <span className="text-white font-medium">
-                          {getInitials(user?.username)}
+                          {getInitials(typedUser?.username)}
                         </span>
                       </div>
                     )}
                     <div className="text-sm">
-                      <div className="font-medium text-white">{user?.username || 'User'}</div>
-                      <div className="text-xs text-gray-400">{user?.role || 'User'}</div>
+                      <div className="font-medium text-white">{typedUser?.username || 'User'}</div>
+                      <div className="text-xs text-gray-400">{typedUser?.role || 'User'}</div>
                     </div>
                   </div>
                 </DropdownMenuTrigger>
