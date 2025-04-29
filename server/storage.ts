@@ -70,8 +70,13 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User methods
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      return undefined;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
@@ -160,7 +165,10 @@ export class DatabaseStorage implements IStorage {
   async completeTask(id: number, completedDate: Date): Promise<Task | undefined> {
     const [updatedTask] = await db
       .update(tasks)
-      .set({ isCompleted: true, completedDate })
+      .set({ 
+        isCompleted: true, 
+        completedDate: completedDate.toISOString().split('T')[0]
+      })
       .where(eq(tasks.id, id))
       .returning();
     return updatedTask;
@@ -251,10 +259,13 @@ export class DatabaseStorage implements IStorage {
       }
       
       if (filters.startDate && filters.endDate) {
+        const startDateStr = filters.startDate.toISOString().split('T')[0];
+        const endDateStr = filters.endDate.toISOString().split('T')[0];
+        
         query = query.where(
           and(
-            lte(manufacturingSchedules.startDate, filters.endDate),
-            gte(manufacturingSchedules.endDate, filters.startDate)
+            lte(manufacturingSchedules.startDate, endDateStr),
+            gte(manufacturingSchedules.endDate, startDateStr)
           )
         );
       }
