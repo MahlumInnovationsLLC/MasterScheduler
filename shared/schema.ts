@@ -1,0 +1,224 @@
+import {
+  pgTable,
+  text,
+  serial,
+  timestamp,
+  decimal,
+  integer,
+  boolean,
+  date,
+  varchar,
+  pgEnum,
+  foreignKey,
+  unique,
+} from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+import { relations } from "drizzle-orm";
+
+// Enums
+export const projectStatusEnum = pgEnum("project_status", [
+  "active",
+  "delayed",
+  "completed",
+  "archived",
+  "critical",
+]);
+
+export const billingStatusEnum = pgEnum("billing_status", [
+  "upcoming",
+  "invoiced",
+  "paid",
+  "delayed",
+]);
+
+export const manufacturingStatusEnum = pgEnum("manufacturing_status", [
+  "scheduled",
+  "in_progress",
+  "complete",
+  "maintenance",
+]);
+
+// Users Table
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  fullName: text("full_name"),
+  role: text("role"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Project Table
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  projectNumber: text("project_number").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  pmOwnerId: integer("pm_owner_id").references(() => users.id),
+  startDate: date("start_date").notNull(),
+  estimatedCompletionDate: date("estimated_completion_date").notNull(),
+  actualCompletionDate: date("actual_completion_date"),
+  percentComplete: decimal("percent_complete", { precision: 5, scale: 2 }).default("0").notNull(),
+  status: projectStatusEnum("status").default("active").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Project Relations
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  pmOwner: one(users, {
+    fields: [projects.pmOwnerId],
+    references: [users.id],
+  }),
+  tasks: many(tasks),
+  milestones: many(billingMilestones),
+  baySchedules: many(manufacturingSchedules),
+}));
+
+// Tasks Table
+export const tasks = pgTable("tasks", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .references(() => projects.id)
+    .notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  startDate: date("start_date"),
+  dueDate: date("due_date"),
+  completedDate: date("completed_date"),
+  isCompleted: boolean("is_completed").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Tasks Relations
+export const tasksRelations = relations(tasks, ({ one }) => ({
+  project: one(projects, {
+    fields: [tasks.projectId],
+    references: [projects.id],
+  }),
+}));
+
+// Billing Milestones Table
+export const billingMilestones = pgTable("billing_milestones", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .references(() => projects.id)
+    .notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  targetInvoiceDate: date("target_invoice_date").notNull(),
+  actualInvoiceDate: date("actual_invoice_date"),
+  paymentReceivedDate: date("payment_received_date"),
+  status: billingStatusEnum("status").default("upcoming").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Billing Milestones Relations
+export const billingMilestonesRelations = relations(billingMilestones, ({ one }) => ({
+  project: one(projects, {
+    fields: [billingMilestones.projectId],
+    references: [projects.id],
+  }),
+}));
+
+// Manufacturing Bay Table
+export const manufacturingBays = pgTable("manufacturing_bays", {
+  id: serial("id").primaryKey(),
+  bayNumber: integer("bay_number").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  equipment: text("equipment"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Manufacturing Schedule Table
+export const manufacturingSchedules = pgTable("manufacturing_schedules", {
+  id: serial("id").primaryKey(),
+  bayId: integer("bay_id")
+    .references(() => manufacturingBays.id)
+    .notNull(),
+  projectId: integer("project_id")
+    .references(() => projects.id)
+    .notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  status: manufacturingStatusEnum("status").default("scheduled").notNull(),
+  notes: text("notes"),
+  equipment: text("equipment"),
+  staffAssigned: text("staff_assigned"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Manufacturing Schedule Relations
+export const manufacturingSchedulesRelations = relations(manufacturingSchedules, ({ one }) => ({
+  bay: one(manufacturingBays, {
+    fields: [manufacturingSchedules.bayId],
+    references: [manufacturingBays.id],
+  }),
+  project: one(projects, {
+    fields: [manufacturingSchedules.projectId],
+    references: [projects.id],
+  }),
+}));
+
+// Insert Schemas
+
+export const insertUserSchema = createInsertSchema(users).pick({
+  username: true,
+  password: true,
+  fullName: true,
+  role: true,
+});
+
+export const insertProjectSchema = createInsertSchema(projects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBillingMilestoneSchema = createInsertSchema(billingMilestones).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertManufacturingBaySchema = createInsertSchema(manufacturingBays).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertManufacturingScheduleSchema = createInsertSchema(manufacturingSchedules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type Project = typeof projects.$inferSelect;
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+
+export type Task = typeof tasks.$inferSelect;
+export type InsertTask = z.infer<typeof insertTaskSchema>;
+
+export type BillingMilestone = typeof billingMilestones.$inferSelect;
+export type InsertBillingMilestone = z.infer<typeof insertBillingMilestoneSchema>;
+
+export type ManufacturingBay = typeof manufacturingBays.$inferSelect;
+export type InsertManufacturingBay = z.infer<typeof insertManufacturingBaySchema>;
+
+export type ManufacturingSchedule = typeof manufacturingSchedules.$inferSelect;
+export type InsertManufacturingSchedule = z.infer<typeof insertManufacturingScheduleSchema>;

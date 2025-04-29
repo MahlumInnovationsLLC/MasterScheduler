@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --primary: 217 90% 60%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 199 89% 62%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 270 74% 57%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 341 100% 50%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 240 4.9% 83.9%;
+  --radius: 0.5rem;
+
+  /* Custom colors */
+  --darkBg: 0 0% 7%;
+  --darkCard: 0 0% 12%;
+  --darkInput: 0 0% 18%;
+  --success: 163 84% 43%;
+  --warning: 32 100% 49%;
+  --danger: 341 100% 50%;
+
+  /* Chart colors */
+  --chart-1: 217 90% 60%;
+  --chart-2: 199 89% 62%;
+  --chart-3: 270 74% 57%;
+  --chart-4: 163 84% 43%;
+  --chart-5: 32 100% 49%;
+
+  /* Sidebar colors */
+  --sidebar-background: var(--background);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-darkBg text-foreground;
+  }
+}
+
+/* Gantt chart styling */
+.gantt-chart {
+  display: grid;
+  grid-template-columns: 180px repeat(30, minmax(40px, 1fr));
+  overflow-x: auto;
+}
+
+.gantt-row {
+  display: contents;
+}
+
+.gantt-row > * {
+  padding: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gantt-cell:not(:first-child) {
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--darkCard));
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+}
+
+/* Status indicator pulse effect */
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 0, 110, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 0, 110, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 0, 110, 0); }
+}
+
+.pulse-danger {
+  animation: pulse 2s infinite;
+}
+
+/* Custom background colors */
+.bg-darkBg {
+  background-color: hsl(var(--darkBg));
+}
+
+.bg-darkCard {
+  background-color: hsl(var(--darkCard));
+}
+
+.bg-darkInput {
+  background-color: hsl(var(--darkInput));
+}
+
+.bg-success {
+  background-color: hsl(var(--success));
+}
+
+.bg-warning {
+  background-color: hsl(var(--warning));
+}
+
+.bg-danger {
+  background-color: hsl(var(--danger));
+}
+
+.text-success {
+  color: hsl(var(--success));
+}
+
+.text-warning {
+  color: hsl(var(--warning));
+}
+
+.text-danger {
+  color: hsl(var(--danger));
+}
+
+.text-primary {
+  color: hsl(var(--primary));
+}
+
+.text-secondary {
+  color: hsl(var(--secondary));
+}
+
+.text-accent {
+  color: hsl(var(--accent));
+}
