@@ -73,7 +73,7 @@ export const projects = pgTable("projects", {
   projectNumber: text("project_number").notNull().unique(),
   name: text("name").notNull(),
   description: text("description"),
-  pmOwnerId: integer("pm_owner_id").references(() => users.id),
+  pmOwnerId: varchar("pm_owner_id").references(() => users.id),
   startDate: date("start_date").notNull(),
   estimatedCompletionDate: date("estimated_completion_date").notNull(),
   actualCompletionDate: date("actual_completion_date"),
