@@ -29,45 +29,37 @@ const Sidebar = () => {
           </h6>
           <ul>
             <li>
-              <Link href="/">
-                <a className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                  isActive('/') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
-                }`}>
-                  <LayoutDashboard className={`text-xl ${isActive('/') ? 'text-primary' : ''}`} />
-                  <span>Dashboard</span>
-                </a>
+              <Link href="/" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+              }`}>
+                <LayoutDashboard className={`text-xl ${isActive('/') ? 'text-primary' : ''}`} />
+                <span>Dashboard</span>
               </Link>
             </li>
             <li>
-              <Link href="/projects">
-                <a className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                  isActive('/projects') || location.startsWith('/projects/') 
-                    ? 'bg-primary bg-opacity-20 text-white' 
-                    : 'text-gray-300'
-                }`}>
-                  <ListChecks className={`text-xl ${isActive('/projects') || location.startsWith('/projects/') ? 'text-primary' : ''}`} />
-                  <span>Projects</span>
-                </a>
+              <Link href="/projects" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/projects') || location.startsWith('/projects/') 
+                  ? 'bg-primary bg-opacity-20 text-white' 
+                  : 'text-gray-300'
+              }`}>
+                <ListChecks className={`text-xl ${isActive('/projects') || location.startsWith('/projects/') ? 'text-primary' : ''}`} />
+                <span>Projects</span>
               </Link>
             </li>
             <li>
-              <Link href="/calendar">
-                <a className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                  isActive('/calendar') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
-                }`}>
-                  <Calendar className="text-xl" />
-                  <span>Calendar</span>
-                </a>
+              <Link href="/calendar" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/calendar') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+              }`}>
+                <Calendar className={`text-xl ${isActive('/calendar') ? 'text-primary' : ''}`} />
+                <span>Calendar</span>
               </Link>
             </li>
             <li>
-              <Link href="/reports">
-                <a className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                  isActive('/reports') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
-                }`}>
-                  <BarChart3 className="text-xl" />
-                  <span>Reports</span>
-                </a>
+              <Link href="/reports" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/reports') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+              }`}>
+                <BarChart3 className={`text-xl ${isActive('/reports') ? 'text-primary' : ''}`} />
+                <span>Reports</span>
               </Link>
             </li>
           </ul>
@@ -79,33 +71,27 @@ const Sidebar = () => {
           </h6>
           <ul>
             <li>
-              <Link href="/projects">
-                <a className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                  isActive('/projects') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
-                }`}>
-                  <ListChecks className="text-xl" />
-                  <span>Project Status</span>
-                </a>
+              <Link href="/projects" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/projects') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+              }`}>
+                <ListChecks className={`text-xl ${isActive('/projects') ? 'text-primary' : ''}`} />
+                <span>Project Status</span>
               </Link>
             </li>
             <li>
-              <Link href="/billing">
-                <a className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                  isActive('/billing') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
-                }`}>
-                  <DollarSign className="text-xl" />
-                  <span>Billing Milestones</span>
-                </a>
+              <Link href="/billing" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/billing') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+              }`}>
+                <DollarSign className={`text-xl ${isActive('/billing') ? 'text-primary' : ''}`} />
+                <span>Billing Milestones</span>
               </Link>
             </li>
             <li>
-              <Link href="/manufacturing">
-                <a className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                  isActive('/manufacturing') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
-                }`}>
-                  <Building2 className="text-xl" />
-                  <span>Manufacturing Bays</span>
-                </a>
+              <Link href="/manufacturing" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/manufacturing') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+              }`}>
+                <Building2 className={`text-xl ${isActive('/manufacturing') ? 'text-primary' : ''}`} />
+                <span>Manufacturing Bays</span>
               </Link>
             </li>
           </ul>
@@ -117,23 +103,19 @@ const Sidebar = () => {
           </h6>
           <ul>
             <li>
-              <Link href="/import">
-                <a className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                  isActive('/import') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
-                }`}>
-                  <Upload className="text-xl" />
-                  <span>Import Data</span>
-                </a>
+              <Link href="/import" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/import') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+              }`}>
+                <Upload className={`text-xl ${isActive('/import') ? 'text-primary' : ''}`} />
+                <span>Import Data</span>
               </Link>
             </li>
             <li>
-              <Link href="/export">
-                <a className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                  isActive('/export') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
-                }`}>
-                  <Download className="text-xl" />
-                  <span>Export Reports</span>
-                </a>
+              <Link href="/export" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/export') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+              }`}>
+                <Download className={`text-xl ${isActive('/export') ? 'text-primary' : ''}`} />
+                <span>Export Reports</span>
               </Link>
             </li>
           </ul>
@@ -145,23 +127,19 @@ const Sidebar = () => {
           </h6>
           <ul>
             <li>
-              <Link href="/settings/user">
-                <a className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                  isActive('/settings/user') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
-                }`}>
-                  <Users className="text-xl" />
-                  <span>User Preferences</span>
-                </a>
+              <Link href="/settings/user" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/settings/user') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+              }`}>
+                <Users className={`text-xl ${isActive('/settings/user') ? 'text-primary' : ''}`} />
+                <span>User Preferences</span>
               </Link>
             </li>
             <li>
-              <Link href="/settings/system">
-                <a className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                  isActive('/settings/system') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
-                }`}>
-                  <Settings className="text-xl" />
-                  <span>System Settings</span>
-                </a>
+              <Link href="/settings/system" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/settings/system') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+              }`}>
+                <Settings className={`text-xl ${isActive('/settings/system') ? 'text-primary' : ''}`} />
+                <span>System Settings</span>
               </Link>
             </li>
           </ul>

@@ -9,6 +9,8 @@ import ProjectStatus from "@/pages/ProjectStatus";
 import BillingMilestones from "@/pages/BillingMilestones";
 import ManufacturingBay from "@/pages/ManufacturingBay";
 import ProjectDetails from "@/pages/ProjectDetails";
+import CalendarPage from "@/pages/Calendar";
+import Reports from "@/pages/Reports";
 import NotFound from "@/pages/not-found";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -26,6 +28,8 @@ function Router() {
             <Route path="/projects/:id" component={ProjectDetails} />
             <Route path="/billing" component={BillingMilestones} />
             <Route path="/manufacturing" component={ManufacturingBay} />
+            <Route path="/calendar" component={CalendarPage} />
+            <Route path="/reports" component={Reports} />
             <Route component={NotFound} />
           </Switch>
         </main>
