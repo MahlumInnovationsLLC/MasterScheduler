@@ -10,6 +10,9 @@ export type ScheduleItem = {
   project: string;
   status: string;
   color: string;
+  bay?: string;
+  endDate?: Date | string;
+  notes?: string;
 };
 
 interface CalendarScheduleProps {
