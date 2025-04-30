@@ -118,8 +118,8 @@ const CalendarPage = () => {
       
       // Determine color based on project status
       const statusInfo = getProjectStatusColor(
-        project?.percentComplete || 0, 
-        project?.dueDate
+        parseFloat(project?.percentComplete || '0'), 
+        project?.estimatedCompletionDate
       );
       
       return {
@@ -139,10 +139,10 @@ const CalendarPage = () => {
   const onSubmit = async (data: ScheduleForm) => {
     // Check for schedule conflicts
     const conflictExists = checkScheduleConflict(
-      schedules,
       parseInt(data.bayId),
       data.startDate,
       data.endDate,
+      schedules,
       undefined // No ID for new schedule
     );
 
@@ -167,7 +167,7 @@ const CalendarPage = () => {
           bayId: parseInt(data.bayId),
           startDate: data.startDate,
           endDate: data.endDate,
-          status: 'Scheduled',
+          status: 'scheduled',
           notes: data.notes,
         }),
       });
@@ -291,7 +291,7 @@ const CalendarPage = () => {
                                 key={bay.id} 
                                 value={bay.id.toString()}
                               >
-                                {bay.name} - {bay.type}
+                                {bay.name} - Bay {bay.bayNumber}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -417,7 +417,7 @@ const CalendarPage = () => {
                               <Badge variant="outline">{item.project}</Badge>
                             </div>
                             <div className="text-sm text-gray-400 mt-1">
-                              {format(new Date(item.date), 'MMM d, yyyy')} - {format(new Date(item.endDate), 'MMM d, yyyy')}
+                              {format(new Date(item.date), 'MMM d, yyyy')} - {item.endDate ? format(new Date(item.endDate), 'MMM d, yyyy') : 'N/A'}
                             </div>
                           </div>
                           <div>
