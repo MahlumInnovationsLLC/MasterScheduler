@@ -18,20 +18,60 @@ const convertRowsWithHeaders = (
 ): Record<string, any>[] => {
   if (!rows || rows.length === 0) return [];
   
+  // Clean up headers - remove undefined, null, empty strings
+  const cleanHeaders = headers.filter(h => h !== undefined && h !== null && h !== '');
+  console.log('Clean headers:', cleanHeaders);
+  
+  // If no clean headers, return empty array
+  if (cleanHeaders.length === 0) {
+    console.error('No valid headers found in Excel file');
+    return [];
+  }
+  
   // Map letter-based keys (A, B, C) to header names
   return rows.map(row => {
     const newRow: Record<string, any> = {};
     
     // For each column header, find the corresponding value in the row
-    headers.forEach((header, index) => {
+    cleanHeaders.forEach((header, index) => {
       // Convert Excel column letter (A, B, C...) to index
       const colLetter = String.fromCharCode(65 + index); // A=65, B=66, etc.
-      newRow[header] = row[colLetter];
+      
+      // Add the value to the new row, replacing undefined or null with empty string
+      const value = row[colLetter];
+      newRow[header] = (value === undefined || value === null) ? '' : value;
     });
     
-    // Add extra lookups for common column variations
-    newRow['Proj #'] = newRow['Proj #'] || newRow['Project Number'] || newRow['Project #'] || '';
-    newRow['Project'] = newRow['Project'] || newRow['Project Name'] || '';
+    // Add common column aliases for better mapping - this helps with inconsistent Excel templates
+    const aliases: Record<string, string[]> = {
+      'Proj #': ['Project Number', 'Project #', 'Number', 'Project ID', 'ID'],
+      'Project': ['Project Name', 'Name'],
+      'Start Date': ['Begin Date', 'Start'],
+      'Completion Date': ['Due Date', 'Est. Completion', 'End Date'],
+      'Percent Complete': ['Progress', 'Completion %'],
+      'Status': ['Project Status', 'State'],
+      'Client': ['Customer', 'Client Name'],
+      'Notes': ['Comments', 'Description']
+    };
+    
+    // Apply all aliases
+    Object.entries(aliases).forEach(([primary, alternates]) => {
+      // If primary field doesn't exist in row, check alternates
+      if (!newRow[primary] || newRow[primary] === '') {
+        // Try each alternate name
+        for (const alt of alternates) {
+          if (newRow[alt] && newRow[alt] !== '') {
+            newRow[primary] = newRow[alt];
+            break;
+          }
+        }
+      }
+      
+      // Ensure the primary field exists even if empty
+      if (newRow[primary] === undefined) {
+        newRow[primary] = '';
+      }
+    });
     
     // Debug output for the first few rows
     if (rows.indexOf(row) < 3) {
@@ -81,20 +121,32 @@ const ImportDataPage = () => {
       const header = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0] as string[];
       console.log('Excel header row:', header);
       
-      // Use options for more forgiving parsing - header:true assumes first row is header
+      // Use options for more forgiving parsing
       const data = XLSX.utils.sheet_to_json(worksheet, { 
         header: "A", // Use A, B, C as headers initially
-        defval: null, // Set default value for empty cells
+        defval: "", // Set default value for empty cells to empty string
         raw: false,   // Convert all values to strings
         blankrows: false // Skip blank rows
       });
       
       // Print the raw data for debugging
-      console.log('Raw Excel data (first row):', data[0]);
+      console.log('Raw Excel data (first row):', data.length > 0 ? data[0] : 'No data found');
+      
+      // Check for completely empty rows (all cells empty or undefined)
+      const nonEmptyData = data.filter((row: any) => {
+        // Check if any value in the row is non-empty
+        return Object.values(row).some(value => value !== null && value !== undefined && value !== '');
+      });
+      
+      console.log(`Filtered out ${data.length - nonEmptyData.length} empty rows`);
+      
+      if (nonEmptyData.length === 0) {
+        throw new Error("No valid data found in the spreadsheet. Please check the file format and try again.");
+      }
       
       // Convert header-mapped data
-      const headerMappedData = convertRowsWithHeaders(data as Record<string, any>[], header);
-      console.log('Processed Excel data (first row):', headerMappedData[0]);
+      const headerMappedData = convertRowsWithHeaders(nonEmptyData as Record<string, any>[], header);
+      console.log('Processed Excel data (first row):', headerMappedData.length > 0 ? headerMappedData[0] : 'No data mapped');
       
       setProgressPercent(50);
 
