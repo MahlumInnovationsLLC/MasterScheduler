@@ -367,21 +367,99 @@ const ImportDataPage = () => {
     switch (type) {
       case 'projects':
         template = [
-          { 'Project Name': 'Example Project', 'Project Number': 'PRJ001', 'Start Date': '2023-01-01', 'Due Date': '2023-06-30', 'Percent Complete': 50, 'Status': 'Active', 'Client': 'Example Client', 'Description': 'Example project description', 'Notes': 'Any additional notes' }
+          { 
+            'Project': 'Example Project',
+            'Project Number': 'T4-2024-001',
+            'Start Date': '2024-01-15', 
+            'Completion Date': '2024-06-30',
+            'Percent Complete': 35,
+            'Status': 'Active',
+            'Client': 'Acme Industries',
+            'Description': 'Manufacturing automation system for customer production line',
+            'Notes': 'Specialized equipment requirements',
+            'Budget': 250000,
+            'Team Lead': 'Jane Smith',
+            'Priority': 'High',
+            'Team Size': 4,
+            'Dependencies': 'Material procurement from vendor XYZ',
+            'Risk Level': 'Medium',
+            'Project Manager': 'John Doe',
+            'Contract Type': 'Fixed Price'
+          }
         ];
-        filename = 'project_import_template.xlsx';
+        filename = 'tier4_project_import_template.xlsx';
         break;
       case 'billing':
         template = [
-          { 'Project Number': 'PRJ001', 'Milestone': 'Design Phase Complete', 'Amount': 25000, 'Target Date': '2023-03-15', 'Status': 'upcoming', 'Description': 'First billing milestone' }
+          { 
+            'Project Number': 'T4-2024-001', 
+            'Milestone': 'Design Phase Complete', 
+            'Amount': 50000, 
+            'Target Invoice Date': '2024-03-15', 
+            'Actual Invoice Date': '2024-03-17',
+            'Payment Received Date': '2024-04-12',
+            'Status': 'paid', 
+            'Description': 'Initial design phase completion milestone',
+            'Contract Reference': 'CON-2024-113',
+            'Payment Terms': 'Net 30',
+            'Invoice Number': 'INV-2024-0042',
+            'Percentage of Total': 25,
+            'Billing Contact': 'Jane Smith',
+            'Notes': 'Client requested invoice modification before payment'
+          },
+          { 
+            'Project Number': 'T4-2024-001', 
+            'Milestone': 'Equipment Delivery', 
+            'Amount': 75000, 
+            'Target Invoice Date': '2024-04-30', 
+            'Actual Invoice Date': '',
+            'Payment Received Date': '',
+            'Status': 'upcoming', 
+            'Description': 'Delivery of all manufacturing equipment',
+            'Contract Reference': 'CON-2024-113',
+            'Payment Terms': 'Net 30',
+            'Invoice Number': '',
+            'Percentage of Total': 37.5,
+            'Billing Contact': 'Jane Smith',
+            'Notes': 'Equipment order placed with vendor'
+          }
         ];
-        filename = 'billing_import_template.xlsx';
+        filename = 'billing_milestones_template.xlsx';
         break;
       case 'manufacturing':
         template = [
-          { 'Project Number': 'PRJ001', 'Bay': 1, 'Start Date': '2023-04-01', 'End Date': '2023-04-15', 'Status': 'scheduled', 'Equipment': 'CNC Mill', 'Notes': 'Manufacturing phase 1' }
+          { 
+            'Project Number': 'T4-2024-001', 
+            'Bay': 3, 
+            'Start Date': '2024-05-01', 
+            'End Date': '2024-05-15', 
+            'Status': 'scheduled', 
+            'Equipment': 'CNC Mill, Robotic Arm', 
+            'Staff Assigned': 'Engineering Team A',
+            'Materials': 'Aluminum Alloy, Steel Components',
+            'Dependencies': 'Equipment Delivery',
+            'Priority': 'High',
+            'Production Phase': 'Initial Assembly',
+            'QA Requirements': 'ISO 9001 Standards',
+            'Notes': 'Special handling required for sensitive components' 
+          },
+          { 
+            'Project Number': 'T4-2024-001', 
+            'Bay': 2, 
+            'Start Date': '2024-05-16', 
+            'End Date': '2024-05-30', 
+            'Status': 'scheduled', 
+            'Equipment': 'Testing Equipment Suite, Calibration Tools', 
+            'Staff Assigned': 'QA Team B',
+            'Materials': 'Test Materials',
+            'Dependencies': 'Initial Assembly',
+            'Priority': 'Medium',
+            'Production Phase': 'Testing and Calibration',
+            'QA Requirements': 'Full System Test',
+            'Notes': 'Client representative will be present during final testing' 
+          }
         ];
-        filename = 'manufacturing_import_template.xlsx';
+        filename = 'manufacturing_schedule_template.xlsx';
         break;
     }
 
