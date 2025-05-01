@@ -17,6 +17,12 @@ import {
   importManufacturingBays, 
   importManufacturingSchedules 
 } from "./import";
+import {
+  analyzeProjectHealth,
+  generateBillingInsights,
+  generateManufacturingInsights,
+  generateTimelineInsights
+} from "./ai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -383,6 +389,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/billing-milestones", importBillingMilestones);
   app.post("/api/import/manufacturing-bays", importManufacturingBays);
   app.post("/api/import/manufacturing-schedules", importManufacturingSchedules);
+
+  // AI analysis routes
+  app.get("/api/ai/project-health/:projectId", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Get related data
+      const tasks = await storage.getTasks(projectId);
+      const billingMilestones = await storage.getProjectBillingMilestones(projectId);
+      const manufacturingSchedules = await storage.getManufacturingSchedules({ projectId });
+      
+      // Generate AI analysis
+      const analysis = await analyzeProjectHealth(project, tasks, billingMilestones, manufacturingSchedules);
+      
+      res.json(analysis);
+    } catch (error) {
+      console.error("Error analyzing project health:", error);
+      res.status(500).json({ message: "Error analyzing project health" });
+    }
+  });
+
+  app.get("/api/ai/billing-insights", async (req, res) => {
+    try {
+      const projects = await storage.getProjects();
+      const billingMilestones = await storage.getBillingMilestones();
+      
+      // Generate AI insights
+      const insights = await generateBillingInsights(projects, billingMilestones);
+      
+      res.json(insights);
+    } catch (error) {
+      console.error("Error generating billing insights:", error);
+      res.status(500).json({ message: "Error generating billing insights" });
+    }
+  });
+
+  app.get("/api/ai/manufacturing-insights", async (req, res) => {
+    try {
+      const projects = await storage.getProjects();
+      const manufacturingSchedules = await storage.getManufacturingSchedules();
+      
+      // Generate AI insights
+      const insights = await generateManufacturingInsights(projects, manufacturingSchedules);
+      
+      res.json(insights);
+    } catch (error) {
+      console.error("Error generating manufacturing insights:", error);
+      res.status(500).json({ message: "Error generating manufacturing insights" });
+    }
+  });
+
+  app.get("/api/ai/timeline-insights", async (req, res) => {
+    try {
+      const projects = await storage.getProjects();
+      const allTasks = [];
+      
+      // For timeline insights, we fetch tasks for all projects
+      for (const project of projects) {
+        const tasks = await storage.getTasks(project.id);
+        allTasks.push(...tasks);
+      }
+      
+      // Generate AI insights
+      const insights = await generateTimelineInsights(projects, allTasks);
+      
+      res.json(insights);
+    } catch (error) {
+      console.error("Error generating timeline insights:", error);
+      res.status(500).json({ message: "Error generating timeline insights" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
