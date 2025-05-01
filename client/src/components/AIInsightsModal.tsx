@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, Check, Clock, Info, TrendingDown, TrendingUp, Zap } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Check, Clock, Info, TrendingDown, TrendingUp, Zap } from 'lucide-react';
 
 export interface AIInsight {
   type: 'timeline' | 'billing' | 'production';
@@ -121,7 +121,7 @@ export const AIInsightsModal: React.FC<AIInsightsModalProps> = ({ trigger, proje
       case 'danger':
         return <AlertCircle className="h-5 w-5 text-red-500" />;
       case 'warning':
-        return <Info className="h-5 w-5 text-amber-500" />;
+        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
       case 'success':
         return <Check className="h-5 w-5 text-green-500" />;
       default:
@@ -173,13 +173,13 @@ export const AIInsightsModal: React.FC<AIInsightsModalProps> = ({ trigger, proje
 
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {timelineInsights && (
+        {timelineInsights && typeof timelineInsights === 'object' && (
           <InsightCard insight={timelineInsights as AIInsight} />
         )}
-        {billingInsights && (
+        {billingInsights && typeof billingInsights === 'object' && (
           <InsightCard insight={billingInsights as AIInsight} />
         )}
-        {manufacturingInsights && (
+        {manufacturingInsights && typeof manufacturingInsights === 'object' && (
           <InsightCard insight={manufacturingInsights as AIInsight} />
         )}
       </div>
@@ -459,5 +459,18 @@ function getStatusColor(status: string) {
       return 'bg-blue-500';
     default:
       return 'bg-gray-500';
+  }
+}
+
+function getSeverityIcon(severity: 'danger' | 'warning' | 'success') {
+  switch (severity) {
+    case 'danger':
+      return <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />;
+    case 'warning':
+      return <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />;
+    case 'success':
+      return <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />;
+    default:
+      return <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />;
   }
 }
