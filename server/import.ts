@@ -30,7 +30,7 @@ export async function importProjects(req: Request, res: Response) {
         // Map the Excel template fields to the database schema fields
         const projectData: any = {
           name: rawProjectData.Project || rawProjectData['Project Name'],
-          projectNumber: rawProjectData['Project Number'],
+          projectNumber: rawProjectData['Proj #'] || rawProjectData['Project Number'] || rawProjectData['Project #'],
           startDate: rawProjectData['Start Date'],
           estimatedCompletionDate: rawProjectData['Completion Date'] || rawProjectData['Due Date'],
           client: rawProjectData.Client,
@@ -136,7 +136,7 @@ export async function importBillingMilestones(req: Request, res: Response) {
           paymentTerms: rawMilestoneData['Payment Terms'],
           billingContact: rawMilestoneData['Billing Contact'],
           // Store project number temporarily for lookup
-          _projectNumber: rawMilestoneData['Project Number']
+          _projectNumber: rawMilestoneData['Proj #'] || rawMilestoneData['Project Number'] || rawMilestoneData['Project #']
         };
 
         // Normalize data
@@ -290,7 +290,7 @@ export async function importManufacturingSchedules(req: Request, res: Response) 
           productionPhase: rawScheduleData['Production Phase'],
           qaRequirements: rawScheduleData['QA Requirements'],
           // Store temporarily for lookup
-          _projectNumber: rawScheduleData['Project Number'],
+          _projectNumber: rawScheduleData['Proj #'] || rawScheduleData['Project Number'] || rawScheduleData['Project #'],
           _bayNumber: rawScheduleData['Bay']
         };
 
@@ -353,7 +353,7 @@ export async function importManufacturingSchedules(req: Request, res: Response) 
       } catch (error) {
         console.error('Error importing manufacturing schedule:', rawScheduleData, error);
         results.errors++;
-        results.details.push(`Error with schedule for project ${rawScheduleData['Project Number']} in bay ${rawScheduleData['Bay']}: ${(error as Error).message}`);
+        results.details.push(`Error with schedule for project ${rawScheduleData['Proj #'] || rawScheduleData['Project Number'] || rawScheduleData['Project #']} in bay ${rawScheduleData['Bay']}: ${(error as Error).message}`);
       }
     }
 
