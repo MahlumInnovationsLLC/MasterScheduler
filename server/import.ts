@@ -105,23 +105,45 @@ export async function importProjects(req: Request, res: Response) {
         });
         
         // Skip validation if either value is 'undefined' (as a string) - convert it to empty string
-        if (projectData.name === 'undefined') projectData.name = '';
-        if (projectData.projectNumber === 'undefined') projectData.projectNumber = '';
+        if (projectData.name === 'undefined' || projectData.name === undefined || projectData.name === null) projectData.name = '';
+        if (projectData.projectNumber === 'undefined' || projectData.projectNumber === undefined || projectData.projectNumber === null) projectData.projectNumber = '';
+        
+        // Generate placeholders for missing data
+        const currentYear = new Date().getFullYear();
+        const timestamp = Date.now().toString().slice(-5);
+        
+        // Auto-assign a project name if missing but have project number
+        if ((!projectData.name || projectData.name === '') && projectData.projectNumber && projectData.projectNumber !== '') {
+          projectData.name = `Project ${projectData.projectNumber}`;
+          console.log("Generated project name:", projectData.name);
+        }
         
         // Generate project number if missing but name exists
-        if (projectData.name && (!projectData.projectNumber || projectData.projectNumber === '')) {
+        if ((projectData.name && projectData.name !== '') && (!projectData.projectNumber || projectData.projectNumber === '')) {
           // Create a simple unique ID based on name
-          projectData.projectNumber = `GEN-${projectData.name.substring(0, 5).toUpperCase()}-${Date.now().toString().slice(-5)}`;
+          const namePart = projectData.name.substring(0, 5).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+          projectData.projectNumber = `T4-${currentYear}-${timestamp}${namePart ? `-${namePart}` : ''}`;
           console.log("Generated project number:", projectData.projectNumber);
         }
         
-        // Now validate
-        if (!projectData.name) {
-          throw new Error('Project name is required');
+        // In case both name and number are missing, generate something unique
+        if ((!projectData.name || projectData.name === '') && (!projectData.projectNumber || projectData.projectNumber === '')) {
+          projectData.name = `Imported Project ${timestamp}`;
+          projectData.projectNumber = `T4-${currentYear}-${timestamp}`;
+          console.log("Generated project name and number:", projectData.name, projectData.projectNumber);
         }
         
-        if (!projectData.projectNumber) {
-          throw new Error('Project number is required');
+        // Default dates if missing
+        if (!projectData.startDate) {
+            projectData.startDate = new Date().toISOString().split('T')[0];
+        }
+        
+        if (!projectData.estimatedCompletionDate) {
+            // Default to 3 months from start date
+            const startDate = new Date(projectData.startDate);
+            const completionDate = new Date(startDate);
+            completionDate.setMonth(startDate.getMonth() + 3);
+            projectData.estimatedCompletionDate = completionDate.toISOString().split('T')[0];
         }
 
         // Helper function to convert Excel dates to ISO string format

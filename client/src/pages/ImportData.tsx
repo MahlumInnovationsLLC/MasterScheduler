@@ -11,6 +11,37 @@ import { UploadCloud, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
+// Helper function to convert Excel data with column headers
+const convertRowsWithHeaders = (
+  rows: Record<string, any>[],
+  headers: string[]
+): Record<string, any>[] => {
+  if (!rows || rows.length === 0) return [];
+  
+  // Map letter-based keys (A, B, C) to header names
+  return rows.map(row => {
+    const newRow: Record<string, any> = {};
+    
+    // For each column header, find the corresponding value in the row
+    headers.forEach((header, index) => {
+      // Convert Excel column letter (A, B, C...) to index
+      const colLetter = String.fromCharCode(65 + index); // A=65, B=66, etc.
+      newRow[header] = row[colLetter];
+    });
+    
+    // Add extra lookups for common column variations
+    newRow['Proj #'] = newRow['Proj #'] || newRow['Project Number'] || newRow['Project #'] || '';
+    newRow['Project'] = newRow['Project'] || newRow['Project Name'] || '';
+    
+    // Debug output for the first few rows
+    if (rows.indexOf(row) < 3) {
+      console.log(`Processed row ${rows.indexOf(row) + 1}:`, newRow);
+    }
+    
+    return newRow;
+  });
+};
+
 const ImportDataPage = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("projects");
@@ -45,7 +76,25 @@ const ImportDataPage = () => {
       // Convert to JSON
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
-      const data = XLSX.utils.sheet_to_json(worksheet);
+      
+      // Get the header row first to see actual column names
+      const header = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0] as string[];
+      console.log('Excel header row:', header);
+      
+      // Use options for more forgiving parsing - header:true assumes first row is header
+      const data = XLSX.utils.sheet_to_json(worksheet, { 
+        header: "A", // Use A, B, C as headers initially
+        defval: null, // Set default value for empty cells
+        raw: false,   // Convert all values to strings
+        blankrows: false // Skip blank rows
+      });
+      
+      // Print the raw data for debugging
+      console.log('Raw Excel data (first row):', data[0]);
+      
+      // Convert header-mapped data
+      const headerMappedData = convertRowsWithHeaders(data as Record<string, any>[], header);
+      console.log('Processed Excel data (first row):', headerMappedData[0]);
       
       setProgressPercent(50);
 
@@ -53,13 +102,13 @@ const ImportDataPage = () => {
       let result;
       switch (type) {
         case 'projects':
-          result = await processProjectData(data);
+          result = await processProjectData(headerMappedData);
           break;
         case 'billing':
-          result = await processBillingData(data);
+          result = await processBillingData(headerMappedData);
           break;
         case 'manufacturing':
-          result = await processManufacturingData(data);
+          result = await processManufacturingData(headerMappedData);
           break;
         default:
           throw new Error('Unknown import type');
@@ -97,19 +146,33 @@ const ImportDataPage = () => {
   // Process project data from Tier IV Project Status excel
   const processProjectData = async (data: any[]): Promise<any> => {
     try {
+      console.log("Processing projects with these fields:", 
+        data.length > 0 ? Object.keys(data[0]).join(", ") : "No data");
+      
       // Clean and validate data
-      const projects = data.map(row => ({
-        name: row['Project'] || row['Project Name'],
-        projectNumber: row['Project Number'] || row['Number'] || String(row['ID']),
-        startDate: parseExcelDate(row['Start Date']) || new Date().toISOString(),
-        estimatedCompletionDate: parseExcelDate(row['Completion Date'] || row['Due Date'] || row['Est. Completion']),
-        percentComplete: String(row['Progress'] || row['Percent Complete'] || row['Completion %'] || '0'),
-        status: mapProjectStatus(row['Status']),
-        pmOwnerId: null, // Will be set based on actual user data
-        clientName: row['Client'] || row['Customer'] || '',
-        description: row['Description'] || row['Notes'] || '',
-        notes: row['Notes'] || row['Comments'] || ''
-      }));
+      const projects = data.map(row => {
+        // Try to find project number in multiple possible fields
+        const projNumber = row['Proj #'] || row['Project Number'] || row['Project #'] || 
+                           row['Number'] || row['Project ID'] || row['ID'] || '';
+        
+        // Try to find project name in multiple possible fields
+        const projName = row['Project'] || row['Project Name'] || row['Name'] || '';
+        
+        console.log(`Found project: ${projName}, ID: ${projNumber}`);
+        
+        return {
+          name: projName,
+          projectNumber: projNumber,
+          startDate: parseExcelDate(row['Start Date']) || new Date().toISOString(),
+          estimatedCompletionDate: parseExcelDate(row['Completion Date'] || row['Due Date'] || row['Est. Completion']),
+          percentComplete: String(row['Progress'] || row['Percent Complete'] || row['Completion %'] || '0'),
+          status: mapProjectStatus(row['Status']),
+          pmOwnerId: null, // Will be set based on actual user data
+          clientName: row['Client'] || row['Customer'] || '',
+          description: row['Description'] || row['Notes'] || '',
+          notes: row['Notes'] || row['Comments'] || ''
+        };
+      });
 
       // Call API to save data
       const response = await fetch('/api/import/projects', {
