@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   Download
 } from 'lucide-react';
+import ManufacturingBayLayout from '@/components/ManufacturingBayLayout';
 
 import { Button } from '@/components/ui/button';
 import { ManufacturingCard } from '@/components/ManufacturingCard';
@@ -288,10 +289,71 @@ const ManufacturingBay = () => {
         />
       </div>
       
-      {/* Bay Schedule Gantt Chart */}
+      {/* Drag & Drop Bay Schedule Layout */}
+      <div className="mb-6">
+        <ManufacturingBayLayout 
+          schedules={manufacturingSchedules || []}
+          projects={projects || []}
+          bays={manufacturingBays || []}
+          onScheduleChange={async (scheduleId, newBayId, newStartDate, newEndDate) => {
+            try {
+              const response = await fetch(`/api/manufacturing-schedules/${scheduleId}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  bayId: newBayId,
+                  startDate: newStartDate,
+                  endDate: newEndDate
+                }),
+              });
+              
+              if (!response.ok) {
+                throw new Error('Failed to update schedule');
+              }
+              
+              // Refetch manufacturing schedules
+              window.location.reload(); // Simple way to refresh data
+            } catch (error) {
+              console.error('Error updating schedule:', error);
+              throw error;
+            }
+          }}
+          onScheduleCreate={async (projectId, bayId, startDate, endDate) => {
+            try {
+              const response = await fetch('/api/manufacturing-schedules', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  projectId,
+                  bayId,
+                  startDate,
+                  endDate,
+                  status: 'scheduled'
+                }),
+              });
+              
+              if (!response.ok) {
+                throw new Error('Failed to create schedule');
+              }
+              
+              // Refetch manufacturing schedules
+              window.location.reload(); // Simple way to refresh data
+            } catch (error) {
+              console.error('Error creating schedule:', error);
+              throw error;
+            }
+          }}
+        />
+      </div>
+      
+      {/* Traditional Gantt Chart View (Optional) */}
       <div className="bg-darkCard rounded-xl border border-gray-800 overflow-hidden mb-6">
         <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-          <h2 className="font-bold text-lg">Manufacturing Bay Schedule</h2>
+          <h2 className="font-bold text-lg">Traditional Gantt View</h2>
           <div className="flex items-center gap-3">
             <select className="bg-darkInput text-gray-300 border-none rounded-lg px-4 py-2 text-sm appearance-none pr-8 relative focus:ring-1 focus:ring-primary">
               <option>All Bays</option>
@@ -318,10 +380,6 @@ const ManufacturingBay = () => {
                 );
               })}
             </select>
-            <Button size="sm">
-              <Plus className="mr-2 h-4 w-4" />
-              Schedule Production
-            </Button>
           </div>
         </div>
         
