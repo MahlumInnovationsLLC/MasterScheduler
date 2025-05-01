@@ -389,6 +389,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/billing-milestones", importBillingMilestones);
   app.post("/api/import/manufacturing-bays", importManufacturingBays);
   app.post("/api/import/manufacturing-schedules", importManufacturingSchedules);
+  
+  // TEMPORARY ENDPOINT: Delete all projects - This is for cleanup purposes only
+  app.delete("/api/reset-all-projects", async (req, res) => {
+    try {
+      const projects = await storage.getProjects();
+      let deletedCount = 0;
+      
+      for (const project of projects) {
+        try {
+          // First remove any associated data
+          const billingMilestones = await storage.getProjectBillingMilestones(project.id);
+          for (const milestone of billingMilestones) {
+            await storage.deleteBillingMilestone(milestone.id);
+          }
+          
+          const tasks = await storage.getTasks(project.id);
+          for (const task of tasks) {
+            await storage.deleteTask(task.id);
+          }
+          
+          const schedules = await storage.getManufacturingSchedules({ projectId: project.id });
+          for (const schedule of schedules) {
+            await storage.deleteManufacturingSchedule(schedule.id);
+          }
+          
+          // Then delete the project itself
+          await storage.deleteProject(project.id);
+          deletedCount++;
+          console.log(`Deleted project ${project.id}: ${project.name} (${project.projectNumber})`);
+        } catch (error) {
+          console.error(`Failed to delete project ${project.id}:`, error);
+        }
+      }
+      
+      return res.json({ 
+        success: true, 
+        message: `Successfully deleted ${deletedCount} projects and their associated data`, 
+        totalDeleted: deletedCount 
+      });
+    } catch (error) {
+      console.error("Error deleting projects:", error);
+      return res.status(500).json({ success: false, message: "Error deleting projects" });
+    }
+  });
 
   // AI analysis routes
   app.get("/api/ai/project-health/:projectId", async (req, res) => {
