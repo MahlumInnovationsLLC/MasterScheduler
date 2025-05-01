@@ -29,22 +29,69 @@ export async function importProjects(req: Request, res: Response) {
       try {
         // Map the Excel template fields to the database schema fields
         const projectData: any = {
+          // Basic project info
           name: rawProjectData.Project || rawProjectData['Project Name'],
           projectNumber: rawProjectData['Proj #'] || rawProjectData['Project Number'] || rawProjectData['Project #'],
-          startDate: rawProjectData['Start Date'],
-          estimatedCompletionDate: rawProjectData['Completion Date'] || rawProjectData['Due Date'],
-          client: rawProjectData.Client,
           description: rawProjectData.Description,
+          notes: rawProjectData.Notes || rawProjectData.Comments,
+          
+          // Team and location
+          pmOwnerId: null, // We'll link this to user accounts later
+          team: rawProjectData.Team,
+          location: rawProjectData.Location,
+          
+          // Important dates
+          contractDate: rawProjectData['Contract Date'],
+          startDate: rawProjectData['Start Date'],
+          estimatedCompletionDate: rawProjectData['Completion Date'] || rawProjectData['Due Date'] || rawProjectData['Delivery'],
+          chassisETA: rawProjectData['Chassis ETA'],
+          fabricationStart: rawProjectData['Fabrication Start'],
+          assemblyStart: rawProjectData['Assembly Start'],
+          wrapDate: rawProjectData['Wrap'],
+          ntcTestingDate: rawProjectData['NTC Testing'],
+          qcStartDate: rawProjectData['QC START'],
+          executiveReviewDate: rawProjectData['EXECUTIVE REVIEW'],
+          shipDate: rawProjectData['Ship'],
+          deliveryDate: rawProjectData['Delivery'],
+          
+          // Progress tracking
           percentComplete: typeof rawProjectData['Percent Complete'] === 'number' 
             ? rawProjectData['Percent Complete'] 
             : parseInt(rawProjectData['Percent Complete'] || '0'),
-          status: (rawProjectData.Status || 'active').toLowerCase(),
-          notes: rawProjectData.Notes,
-          budget: typeof rawProjectData.Budget === 'number'
-            ? rawProjectData.Budget
-            : parseInt(rawProjectData.Budget || '0'),
-          pmOwnerId: null, // We'll need to link this to user accounts
-          priority: rawProjectData.Priority || 'medium',
+          status: (rawProjectData['Project Status'] || rawProjectData.Status || 'active').toLowerCase(),
+          
+          // Project specifics
+          dpasRating: rawProjectData['DPAS Rating'],
+          stretchShortenGears: rawProjectData['Stretch / Shorten / Gears'],
+          lltsOrdered: rawProjectData['LLTs Ordered'] === 'Yes' || rawProjectData['LLTs Ordered'] === true || rawProjectData['LLTs Ordered'] === 1,
+          qcDays: typeof rawProjectData['QC DAYS'] === 'number'
+            ? rawProjectData['QC DAYS']
+            : parseInt(rawProjectData['QC DAYS'] || '0'),
+          
+          // Design assignments
+          meAssigned: rawProjectData['ME Assigned'],
+          meDesignOrdersPercent: typeof rawProjectData['ME Design / Orders %'] === 'number'
+            ? rawProjectData['ME Design / Orders %']
+            : parseFloat(rawProjectData['ME Design / Orders %'] || '0'),
+          
+          eeAssigned: rawProjectData['EE Assigned'],
+          eeDesignOrdersPercent: typeof rawProjectData['EE Design / Orders %'] === 'number'
+            ? rawProjectData['EE Design / Orders %']
+            : parseFloat(rawProjectData['EE Design / Orders %'] || '0'),
+          
+          iteAssigned: rawProjectData['ITE Assigned'],
+          itDesignOrdersPercent: typeof rawProjectData['IT Design / Orders %'] === 'number'
+            ? rawProjectData['IT Design / Orders %']
+            : parseFloat(rawProjectData['IT Design / Orders %'] || '0'),
+          
+          ntcDesignOrdersPercent: typeof rawProjectData['NTC Design / Orders %'] === 'number'
+            ? rawProjectData['NTC Design / Orders %']
+            : parseFloat(rawProjectData['NTC Design / Orders %'] || '0'),
+          
+          // Flags
+          hasBillingMilestones: rawProjectData['Payment Milestones'] === 'Yes' || 
+                               rawProjectData['Payment Milestones'] === true || 
+                               rawProjectData['Payment Milestones'] === 1,
         };
 
         // Normalize data
@@ -52,18 +99,39 @@ export async function importProjects(req: Request, res: Response) {
           throw new Error('Project name and project number are required');
         }
 
-        // Format dates if they're in Excel format
-        if (projectData.startDate && typeof projectData.startDate === 'number') {
-          // Convert Excel serial date to JS date
-          const excelEpoch = new Date(1899, 11, 30);
-          projectData.startDate = new Date(excelEpoch.getTime() + projectData.startDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        }
-
-        if (projectData.estimatedCompletionDate && typeof projectData.estimatedCompletionDate === 'number') {
-          // Convert Excel serial date to JS date
-          const excelEpoch = new Date(1899, 11, 30);
-          projectData.estimatedCompletionDate = new Date(excelEpoch.getTime() + projectData.estimatedCompletionDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        }
+        // Helper function to convert Excel dates to ISO string format
+        const convertExcelDate = (excelDate: any): string | null => {
+          if (!excelDate) return null;
+          if (typeof excelDate === 'number') {
+            const excelEpoch = new Date(1899, 11, 30);
+            return new Date(excelEpoch.getTime() + excelDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          }
+          if (typeof excelDate === 'string' && excelDate.trim()) {
+            try {
+              const date = new Date(excelDate);
+              if (!isNaN(date.getTime())) {
+                return date.toISOString().split('T')[0];
+              }
+            } catch (e) {
+              // If date parsing fails, return the original string
+            }
+          }
+          return excelDate;
+        };
+        
+        // Convert all project date fields
+        projectData.contractDate = convertExcelDate(projectData.contractDate);
+        projectData.startDate = convertExcelDate(projectData.startDate);
+        projectData.estimatedCompletionDate = convertExcelDate(projectData.estimatedCompletionDate);
+        projectData.chassisETA = convertExcelDate(projectData.chassisETA);
+        projectData.fabricationStart = convertExcelDate(projectData.fabricationStart);
+        projectData.assemblyStart = convertExcelDate(projectData.assemblyStart);
+        projectData.wrapDate = convertExcelDate(projectData.wrapDate);
+        projectData.ntcTestingDate = convertExcelDate(projectData.ntcTestingDate);
+        projectData.qcStartDate = convertExcelDate(projectData.qcStartDate);
+        projectData.executiveReviewDate = convertExcelDate(projectData.executiveReviewDate);
+        projectData.shipDate = convertExcelDate(projectData.shipDate);
+        projectData.deliveryDate = convertExcelDate(projectData.deliveryDate);
 
         // Check if project with same project number already exists
         const existingProject = await storage.getProjectByNumber(projectData.projectNumber);

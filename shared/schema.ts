@@ -73,13 +73,49 @@ export const projects = pgTable("projects", {
   projectNumber: text("project_number").notNull().unique(),
   name: text("name").notNull(),
   description: text("description"),
+  
+  // PM and team information
   pmOwnerId: varchar("pm_owner_id").references(() => users.id),
+  team: text("team"),
+  location: text("location"),
+  
+  // Dates
+  contractDate: date("contract_date"),
   startDate: date("start_date").notNull(),
   estimatedCompletionDate: date("estimated_completion_date").notNull(),
   actualCompletionDate: date("actual_completion_date"),
+  chassisETA: date("chassis_eta"),
+  fabricationStart: date("fabrication_start"),
+  assemblyStart: date("assembly_start"),
+  wrapDate: date("wrap_date"),
+  ntcTestingDate: date("ntc_testing_date"),
+  qcStartDate: date("qc_start_date"),
+  executiveReviewDate: date("executive_review_date"),
+  shipDate: date("ship_date"),
+  deliveryDate: date("delivery_date"),
+  
+  // Project details
   percentComplete: decimal("percent_complete", { precision: 5, scale: 2 }).default("0").notNull(),
+  dpasRating: text("dpas_rating"),
+  stretchShortenGears: text("stretch_shorten_gears"),
+  lltsOrdered: boolean("llts_ordered").default(false),
+  qcDays: integer("qc_days"),
+  
+  // Design assignments
+  meAssigned: text("me_assigned"),
+  meDesignOrdersPercent: decimal("me_design_orders_percent", { precision: 5, scale: 2 }),
+  eeAssigned: text("ee_assigned"),
+  eeDesignOrdersPercent: decimal("ee_design_orders_percent", { precision: 5, scale: 2 }),
+  iteAssigned: text("ite_assigned"),
+  itDesignOrdersPercent: decimal("it_design_orders_percent", { precision: 5, scale: 2 }),
+  ntcDesignOrdersPercent: decimal("ntc_design_orders_percent", { precision: 5, scale: 2 }),
+  
+  // Status fields
   status: projectStatusEnum("status").default("active").notNull(),
+  hasBillingMilestones: boolean("has_billing_milestones").default(false),
   notes: text("notes"),
+  
+  // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
