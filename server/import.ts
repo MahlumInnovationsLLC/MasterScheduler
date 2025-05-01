@@ -29,71 +29,59 @@ export async function importProjects(req: Request, res: Response) {
     // Process each project
     for (const rawProjectData of projectsData) {
       try {
-        // Map the Excel template fields to the database schema fields
+        // Take ALL data directly from the client without modification
+        // This ensures we preserve the exact data from the Excel file
+        console.log("RAW PROJECT DATA FROM CLIENT:", JSON.stringify(rawProjectData, null, 2));
+        
+        // Extract the fields exactly as they are from the client
         const projectData: any = {
+          // We MUST have a project number and name - use exactly what was provided
+          projectNumber: rawProjectData.projectNumber || '',
+          name: rawProjectData.name || '',
+          
+          // Take all other fields directly as they are from the client with no transformation
           // Basic project info
-          name: rawProjectData.Project || rawProjectData['Project Name'],
-          projectNumber: rawProjectData['Proj #'] || rawProjectData['Project Number'] || rawProjectData['Project #'],
-          description: rawProjectData.Description,
-          notes: rawProjectData.Notes || rawProjectData.Comments,
+          description: rawProjectData.description,
+          notes: rawProjectData.notes,
           
           // Team and location
           pmOwnerId: null, // We'll link this to user accounts later
-          team: rawProjectData.Team,
-          location: rawProjectData.Location,
+          pmOwner: rawProjectData.pmOwner, // Store the PM name string directly
+          team: rawProjectData.team,
+          location: rawProjectData.location,
           
-          // Important dates
-          contractDate: rawProjectData['Contract Date'],
-          startDate: rawProjectData['Start Date'],
-          estimatedCompletionDate: rawProjectData['Completion Date'] || rawProjectData['Due Date'] || rawProjectData['Delivery'],
-          chassisETA: rawProjectData['Chassis ETA'],
-          fabricationStart: rawProjectData['Fabrication Start'],
-          assemblyStart: rawProjectData['Assembly Start'],
-          wrapDate: rawProjectData['Wrap'],
-          ntcTestingDate: rawProjectData['NTC Testing'],
-          qcStartDate: rawProjectData['QC START'],
-          executiveReviewDate: rawProjectData['EXECUTIVE REVIEW'],
-          shipDate: rawProjectData['Ship'],
-          deliveryDate: rawProjectData['Delivery'],
+          // Directly use date strings exactly as provided
+          contractDate: rawProjectData.contractDate,
+          startDate: rawProjectData.startDate,
+          estimatedCompletionDate: rawProjectData.estimatedCompletionDate,
+          chassisETA: rawProjectData.chassisETA,
+          fabricationStart: rawProjectData.fabricationStart,
+          assemblyStart: rawProjectData.assemblyStart,
+          wrapDate: rawProjectData.wrapDate,
+          ntcTestingDate: rawProjectData.ntcTestingDate,
+          qcStartDate: rawProjectData.qcStartDate,
+          executiveReviewDate: rawProjectData.executiveReviewDate,
+          shipDate: rawProjectData.shipDate,
+          deliveryDate: rawProjectData.deliveryDate,
           
           // Progress tracking
-          percentComplete: typeof rawProjectData['Percent Complete'] === 'number' 
-            ? rawProjectData['Percent Complete'] 
-            : parseInt(rawProjectData['Percent Complete'] || '0'),
-          status: (rawProjectData['Project Status'] || rawProjectData.Status || 'active').toLowerCase(),
+          percentComplete: rawProjectData.percentComplete,
+          status: rawProjectData.status,
           
           // Project specifics
-          dpasRating: rawProjectData['DPAS Rating'],
-          stretchShortenGears: rawProjectData['Stretch / Shorten / Gears'],
-          lltsOrdered: rawProjectData['LLTs Ordered'] === 'Yes' || rawProjectData['LLTs Ordered'] === true || rawProjectData['LLTs Ordered'] === 1,
-          qcDays: typeof rawProjectData['QC DAYS'] === 'number'
-            ? rawProjectData['QC DAYS']
-            : parseInt(rawProjectData['QC DAYS'] || '0'),
+          dpasRating: rawProjectData.dpasRating,
+          stretchShortenGears: rawProjectData.stretchShortenGears,
+          lltsOrdered: rawProjectData.lltsOrdered,
+          qcDays: rawProjectData.qcDays,
           
-          // Design assignments
-          meAssigned: rawProjectData['ME Assigned'],
-          meDesignOrdersPercent: typeof rawProjectData['ME Design / Orders %'] === 'number'
-            ? rawProjectData['ME Design / Orders %']
-            : parseFloat(rawProjectData['ME Design / Orders %'] || '0'),
-          
-          eeAssigned: rawProjectData['EE Assigned'],
-          eeDesignOrdersPercent: typeof rawProjectData['EE Design / Orders %'] === 'number'
-            ? rawProjectData['EE Design / Orders %']
-            : parseFloat(rawProjectData['EE Design / Orders %'] || '0'),
-          
-          iteAssigned: rawProjectData['ITE Assigned'],
-          itDesignOrdersPercent: typeof rawProjectData['IT Design / Orders %'] === 'number'
-            ? rawProjectData['IT Design / Orders %']
-            : parseFloat(rawProjectData['IT Design / Orders %'] || '0'),
-          
-          ntcDesignOrdersPercent: typeof rawProjectData['NTC Design / Orders %'] === 'number'
-            ? rawProjectData['NTC Design / Orders %']
-            : parseFloat(rawProjectData['NTC Design / Orders %'] || '0'),
-          
-          // Flags
-          hasBillingMilestones: rawProjectData['Payment Milestones'] === 'Yes' || 
-                               rawProjectData['Payment Milestones'] === true || 
-                               rawProjectData['Payment Milestones'] === 1,
+          // Design assignments - preserve exactly as in the Excel
+          meAssigned: rawProjectData.meAssigned,
+          meDesignOrdersPercent: rawProjectData.meDesignOrdersPercent,
+          eeAssigned: rawProjectData.eeAssigned,
+          eeDesignOrdersPercent: rawProjectData.eeDesignOrdersPercent,
+          iteAssigned: rawProjectData.iteAssigned,
+          itDesignOrdersPercent: rawProjectData.itDesignOrdersPercent,
+          ntcDesignOrdersPercent: rawProjectData.ntcDesignOrdersPercent,
         };
 
         // Normalize data

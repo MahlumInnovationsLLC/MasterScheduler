@@ -203,25 +203,76 @@ const ImportDataPage = () => {
       
       // Clean and validate data
       const projects = data.map(row => {
-        // Try to find project number in multiple possible fields
-        const projNumber = row['Proj #'] || row['Project Number'] || row['Project #'] || 
-                           row['Number'] || row['Project ID'] || row['ID'] || '';
+        // Print all available data for debugging
+        console.log("Row data:", JSON.stringify(row));
         
-        // Try to find project name in multiple possible fields
+        // For Tier IV projects, we need to use the actual project numbers from the first column
+        // The project number is typically in format 804924_OK_LawtonFD_IC34As4
+        const projNumber = row['Proj #'] || row['Project Number'] || row['Project #'] || 
+                         row['Number'] || row['Project ID'] || row['ID'] || row['Location'] || '';
+        
+        // Extract project name exactly as in the spreadsheet
         const projName = row['Project'] || row['Project Name'] || row['Name'] || '';
         
-        console.log(`Found project: ${projName}, ID: ${projNumber}`);
+        // Get PM owner name from spreadsheet
+        const pmName = row['PM'] || row['PM Owner'] || row['Project Manager'] || '';
         
+        // Extract status information
+        const statusValue = row['Status'] || row['Project Status'] || 'active';
+        
+        // Get team information
+        const teamInfo = row['Team'] || row['Teai'] || ''; // Note: 'Teai' is in the screenshot to handle typos
+        
+        // Get location information 
+        const locationInfo = row['Location'] || '';
+        
+        console.log(`Found project: ${projName}, ID: ${projNumber}, PM: ${pmName}, Team: ${teamInfo}, Status: ${statusValue}`);
+        
+        // Get all the specific Tier IV fields from your spreadsheet
         return {
-          name: projName,
-          projectNumber: projNumber,
+          projectNumber: projNumber, // Use exact project number from spreadsheet
+          name: projName,            // Use exact project name from spreadsheet
+          team: teamInfo,
+          location: locationInfo,
+          
+          // Status and completion
+          status: mapProjectStatus(statusValue),
+          percentComplete: row['Progress'] || row['Percent Complete'] || row['%'] || '0',
+          
+          // PM and team details
+          pmOwner: pmName,
+          
+          // Important dates - preserve EXACTLY as in the spreadsheet
+          contractDate: parseExcelDate(row['Contract Date']),
           startDate: parseExcelDate(row['Start Date']) || new Date().toISOString(),
           estimatedCompletionDate: parseExcelDate(row['Completion Date'] || row['Due Date'] || row['Est. Completion']),
-          percentComplete: String(row['Progress'] || row['Percent Complete'] || row['Completion %'] || '0'),
-          status: mapProjectStatus(row['Status']),
-          pmOwnerId: null, // Will be set based on actual user data
-          clientName: row['Client'] || row['Customer'] || '',
-          description: row['Description'] || row['Notes'] || '',
+          chassisETA: parseExcelDate(row['Chassis ETA']),
+          fabricationStart: parseExcelDate(row['Fabrication Start']),
+          assemblyStart: parseExcelDate(row['Assembly Start']),
+          wrapDate: parseExcelDate(row['Wrap']),
+          ntcTestingDate: parseExcelDate(row['NTC Testing']),
+          qcStartDate: parseExcelDate(row['QC START']),
+          executiveReviewDate: parseExcelDate(row['EXECUTIVE REVIEW']),
+          shipDate: parseExcelDate(row['Ship']),
+          deliveryDate: parseExcelDate(row['Delivery']),
+          
+          // Design and engineering details
+          meAssigned: row['ME Assigned'],
+          meDesignOrdersPercent: row['ME Design / Orders %'],
+          eeAssigned: row['EE Assigned'],
+          eeDesignOrdersPercent: row['EE Design / Orders %'],
+          iteAssigned: row['ITE Assigned'],
+          itDesignOrdersPercent: row['IT Design / Orders %'],
+          ntcDesignOrdersPercent: row['NTC Design / Orders %'],
+          
+          // Project specifics
+          dpasRating: row['DPAS Rating'],
+          stretchShortenGears: row['Stretch / Shorten / Gears'],
+          lltsOrdered: row['LLTs Ordered'],
+          qcDays: row['QC DAYS'],
+          
+          // Additional information fields
+          description: row['Description'] || '',
           notes: row['Notes'] || row['Comments'] || ''
         };
       });
@@ -481,25 +532,39 @@ const ImportDataPage = () => {
 
     switch (type) {
       case 'projects':
+        // Create a template that matches the exact format of the Excel file shown in the screenshot
         template = [
           { 
-            'Project': 'Example Project',
-            'Project Number': 'T4-2024-001',
-            'Start Date': '2024-01-15', 
-            'Completion Date': '2024-06-30',
-            'Percent Complete': 35,
-            'Status': 'Active',
-            'Client': 'Acme Industries',
-            'Description': 'Manufacturing automation system for customer production line',
-            'Notes': 'Specialized equipment requirements',
-            'Budget': 250000,
-            'Team Lead': 'Jane Smith',
-            'Priority': 'High',
-            'Team Size': 4,
-            'Dependencies': 'Material procurement from vendor XYZ',
-            'Risk Level': 'Medium',
-            'Project Manager': 'John Doe',
-            'Contract Type': 'Fixed Price'
+            'Location': '804924_OK_LawtonFD_IC34As4',  // This field contains the project number in the format shown in screenshot
+            'Team': 'FSW',  // Team values like 'FSW', 'JC/BH', etc.
+            'Project': 'Wildland/Brush/Type 6/Flatbed Replacement', // Project description
+            'Project Status': 'MINOR ISSUE',  // Status like 'MINOR ISSUE', 'GOOD', etc.
+            'PM': 'Matt',  // PM full name like Matt, Jason, etc.
+            'Team Owner': 'Joe Smith',  // Team owner name
+            'Percent Complete': 0,  // Numeric percentage
+            'Number of Days': 150,  // Number of days numeric
+            'Wrap': '4/24/2025',  // Date format MM/DD/YYYY for all dates
+            'NTC Testing': '4/27/2025',
+            'QC START': '5/1/2025',
+            'QC DAYS': 4,  // Numeric value
+            'EXECUTIVE REVIEW': '5/8/2025',
+            'Ship': '5/12/2025',
+            'Delivery': '5/13/2025',
+            'Contract Date': '1/15/2024',
+            'Chassis ETA': '2/28/2024',
+            'ME Assigned': 'Bob Johnson',
+            'ME Design / Orders %': 100,
+            'EE Assigned': 'Sarah Miller',
+            'EE Design / Orders %': 100,
+            'ITE Assigned': 'Mark Wilson',
+            'IT Design / Orders %': 90,
+            'NTC Design / Orders %': 75,
+            'Fabrication Start': '3/15/2024',
+            'Assembly Start': '4/1/2024',
+            'Start Date': '2024-01-15',
+            'DPAS Rating': 'DX',
+            'Stretch / Shorten / Gears': 'Yes',
+            'LLTs Ordered': 'Yes'
           }
         ];
         filename = 'tier4_project_import_template.xlsx';
