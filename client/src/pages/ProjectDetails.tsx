@@ -22,6 +22,7 @@ import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { formatDate, formatCurrency, getProjectStatusColor, getBillingStatusInfo } from '@/lib/utils';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
+import { ProjectHealthCard } from '@/components/ProjectHealthCard';
 
 const ProjectDetails = () => {
   const { id } = useParams();
@@ -195,7 +196,7 @@ const ProjectDetails = () => {
             Back to Projects
           </Button>
         </Link>
-        <AIInsightsModal />
+        <AIInsightsModal projectId={projectId} />
       </div>
       
       {/* Project Header */}
@@ -370,6 +371,9 @@ const ProjectDetails = () => {
         </div>
         
         <div className="space-y-6">
+          {/* AI-powered Project Health Analysis */}
+          <ProjectHealthCard projectId={projectId} />
+
           {/* Project Notes */}
           <Card className="bg-darkCard rounded-xl border border-gray-800">
             <div className="p-4 border-b border-gray-800">
