@@ -11,6 +11,12 @@ import {
   insertManufacturingScheduleSchema,
 } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { 
+  importProjects, 
+  importBillingMilestones, 
+  importManufacturingBays, 
+  importManufacturingSchedules 
+} from "./import";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -371,6 +377,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error deleting manufacturing schedule" });
     }
   });
+
+  // Import routes
+  app.post("/api/import/projects", importProjects);
+  app.post("/api/import/billing-milestones", importBillingMilestones);
+  app.post("/api/import/manufacturing-bays", importManufacturingBays);
+  app.post("/api/import/manufacturing-schedules", importManufacturingSchedules);
 
   const httpServer = createServer(app);
   return httpServer;
