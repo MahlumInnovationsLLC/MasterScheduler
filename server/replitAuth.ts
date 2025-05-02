@@ -3,7 +3,7 @@ import { Strategy, type VerifyFunction } from "openid-client/passport";
 
 import passport from "passport";
 import session from "express-session";
-import type { Express, RequestHandler } from "express";
+import type { Express, RequestHandler, Response, NextFunction } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
@@ -129,10 +129,26 @@ export async function setupAuth(app: Express) {
   });
 }
 
+// Optional authentication middleware that populates user info when available but doesn't require auth
+export const withAuthInfo: RequestHandler = (req, res, next) => {
+  // Continue with request whether authenticated or not
+  next();
+};
+
+// Middleware to check if user has edit permissions, but don't block if not
+export const hasEditRights = (req: any, res: Response, next: NextFunction) => {
+  // Set a flag on the request to indicate whether the user has edit rights
+  req.hasEditRights = req.isAuthenticated();
+  
+  // Continue with the request regardless of authentication
+  next();
+};
+
+// Strict authentication check - requires authentication
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!req.isAuthenticated() || !user?.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
@@ -141,6 +157,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     return next();
   }
 
+  // Try refreshing the token if expired
   const refreshToken = user.refresh_token;
   if (!refreshToken) {
     return res.redirect("/api/login");
