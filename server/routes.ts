@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { ZodError } from "zod";
 import crypto from "crypto";
+import passport from "passport";
 import {
   insertProjectSchema,
   insertTaskSchema,
@@ -489,20 +490,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Authentication routes
   
-  // Login endpoint
-  app.post("/api/login", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
+  // Login endpoint - Using Passport's authenticate middleware
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate('local', (err: Error, user: any, info: any) => {
+      if (err) {
+        console.error("Login error:", err);
+        return res.status(500).json({ message: "Login failed" });
       }
       
-      // Get user by email
-      const user = await storage.getUserByEmail(email);
-      
       if (!user) {
-        return res.status(401).json({ message: "Invalid email or password" });
+        // Authentication failed
+        return res.status(401).json({ message: info?.message || "Invalid credentials" });
       }
       
       // Check if the user is approved
@@ -510,17 +508,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Your account is pending approval" });
       }
       
-      // Compare password
-      const isMatch = user.password ? await comparePasswords(password, user.password) : false;
-      
-      if (!isMatch) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-      
-      // Update last login time
-      await storage.updateUserLastLogin(user.id);
-      
-      // Set user in session
+      // Log in the user
       req.login(user, (err) => {
         if (err) {
           console.error("Login error:", err);
@@ -531,10 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { password, passwordResetToken, passwordResetExpires, ...userInfo } = user;
         return res.json(userInfo);
       });
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ message: "Login failed" });
-    }
+    })(req, res, next);
   });
   
   // Logout endpoint
