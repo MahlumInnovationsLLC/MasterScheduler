@@ -59,29 +59,29 @@
 /* Light theme */
 .light {
   --background: 0 0% 98%; 
-  --foreground: 240 10% 3.9%;
+  --foreground: 240 10% 10%; /* Darker text for better readability */
   --muted: 240 5% 90%;
-  --muted-foreground: 240 3.7% 40%;
+  --muted-foreground: 240 3.7% 25%; /* Darker muted text */
   --popover: 0 0% 98%;
-  --popover-foreground: 240 10% 3.9%;
+  --popover-foreground: 240 10% 10%;
   --card: 0 0% 98%;
-  --card-foreground: 240 10% 3.9%;
-  --border: 240 5% 85%;
+  --card-foreground: 240 10% 10%;
+  --border: 240 5% 80%; /* Slightly darker border */
   --input: 240 5% 90%;
-  --primary: 217 90% 50%;
+  --primary: 217 90% 45%; /* Slightly darker for better contrast */
   --primary-foreground: 211 100% 99%;
-  --secondary: 199 89% 50%;
+  --secondary: 199 89% 45%;
   --secondary-foreground: 0 0% 98%;
-  --accent: 270 74% 50%;
+  --accent: 270 74% 45%;
   --accent-foreground: 0 0% 98%;
-  --destructive: 341 100% 50%;
+  --destructive: 341 100% 45%;
   --destructive-foreground: 0 0% 98%;
   --ring: 240 10% 50%;
 
   /* Custom light theme colors */
   --darkBg: 0 0% 98%;
   --darkCard: 0 0% 95%;
-  --darkInput: 0 0% 90%;
+  --darkInput: 0 0% 92%;
 
   /* Sidebar colors */
   --sidebar-background: var(--background);
@@ -186,6 +186,23 @@
 
 .bg-darkInput {
   background-color: hsl(var(--darkInput));
+}
+
+/* Table header styling for light mode */
+.light table th,
+.light thead th,
+.light [role="columnheader"] {
+  background-color: hsl(220 14% 96%);
+  color: hsl(220 25% 25%);
+  font-weight: 600;
+}
+
+/* Keep dark table headers in dark mode */
+.dark table th,
+.dark thead th,
+.dark [role="columnheader"] {
+  background-color: hsl(215 28% 17%);
+  color: hsl(210 40% 98%);
 }
 
 .bg-success {

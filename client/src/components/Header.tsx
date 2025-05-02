@@ -36,19 +36,19 @@ const Header = () => {
   };
   
   return (
-    <header className="bg-darkCard border-b border-gray-800 px-6 py-3 fixed top-0 left-0 right-0 z-10">
+    <header className="bg-darkCard border-b border-border px-6 py-3 fixed top-0 left-0 right-0 z-10">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/" className="text-primary font-bold text-2xl font-sans">
             <span>TIER</span><span className="text-accent">IV</span><span className="text-xs align-top ml-1">PRO</span>
           </Link>
-          <div className="h-6 border-l border-gray-700 mx-2"></div>
+          <div className="h-6 border-l border-border mx-2"></div>
           <div className="flex items-center px-3 py-1.5 bg-darkInput rounded-md">
-            <Search className="text-gray-400 mr-2 h-4 w-4" />
+            <Search className="text-muted-foreground mr-2 h-4 w-4" />
             <input 
               type="text" 
               placeholder="Search projects, tasks, milestones..." 
-              className="bg-transparent border-none outline-none text-sm w-56 placeholder-gray-500"
+              className="bg-transparent border-none outline-none text-sm w-56 text-foreground placeholder:text-muted-foreground"
             />
           </div>
         </div>
@@ -62,7 +62,7 @@ const Header = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5 text-gray-400" />
+                    <Bell className="h-5 w-5 text-muted-foreground" />
                     <span className="absolute -top-1 -right-1 bg-danger text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">3</span>
                   </Button>
                 </DropdownMenuTrigger>
@@ -75,7 +75,7 @@ const Header = () => {
                         <div className="h-2 w-2 rounded-full bg-danger"></div>
                         <span className="font-medium">Project PT-1025 at risk</span>
                       </div>
-                      <p className="text-gray-400 text-xs mt-1">
+                      <p className="text-muted-foreground text-xs mt-1">
                         Gamma Network Upgrade is behind schedule by 15%
                       </p>
                     </DropdownMenuItem>
@@ -84,7 +84,7 @@ const Header = () => {
                         <div className="h-2 w-2 rounded-full bg-warning"></div>
                         <span className="font-medium">Billing milestone due</span>
                       </div>
-                      <p className="text-gray-400 text-xs mt-1">
+                      <p className="text-muted-foreground text-xs mt-1">
                         Invoice #INV-1024 for Beta Platform is due in 3 days
                       </p>
                     </DropdownMenuItem>
@@ -93,7 +93,7 @@ const Header = () => {
                         <div className="h-2 w-2 rounded-full bg-success"></div>
                         <span className="font-medium">Payment received</span>
                       </div>
-                      <p className="text-gray-400 text-xs mt-1">
+                      <p className="text-muted-foreground text-xs mt-1">
                         Payment of $200,000 received for Alpha System
                       </p>
                     </DropdownMenuItem>
@@ -107,7 +107,7 @@ const Header = () => {
               
               <Button variant="ghost" size="icon" asChild>
                 <Link href="/settings/system">
-                  <Settings className="h-5 w-5 text-gray-400" />
+                  <Settings className="h-5 w-5 text-muted-foreground" />
                 </Link>
               </Button>
               
@@ -128,8 +128,8 @@ const Header = () => {
                       </div>
                     )}
                     <div className="text-sm">
-                      <div className="font-medium text-white">{typedUser?.username || 'User'}</div>
-                      <div className="text-xs text-gray-400">{typedUser?.role || 'User'}</div>
+                      <div className="font-medium text-foreground">{typedUser?.username || 'User'}</div>
+                      <div className="text-xs text-muted-foreground">{typedUser?.role || 'User'}</div>
                     </div>
                   </div>
                 </DropdownMenuTrigger>
