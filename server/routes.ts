@@ -9,6 +9,7 @@ import {
   insertBillingMilestoneSchema,
   insertManufacturingBaySchema,
   insertManufacturingScheduleSchema,
+  insertUserPreferencesSchema
 } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { 
@@ -390,6 +391,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/manufacturing-bays", importManufacturingBays);
   app.post("/api/import/manufacturing-schedules", importManufacturingSchedules);
   
+  // User Preferences routes
+  app.get("/api/user-preferences", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const preferences = await storage.getUserPreferences(userId);
+      
+      if (!preferences) {
+        return res.status(404).json({ message: "User preferences not found" });
+      }
+      
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error fetching user preferences:", error);
+      res.status(500).json({ message: "Error fetching user preferences" });
+    }
+  });
+  
+  app.post("/api/user-preferences", isAuthenticated, validateRequest(insertUserPreferencesSchema), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Check if preferences already exist
+      const existingPreferences = await storage.getUserPreferences(userId);
+      if (existingPreferences) {
+        return res.status(400).json({ message: "User preferences already exist. Use PUT to update." });
+      }
+      
+      // Create new preferences
+      const preferencesData = {
+        ...req.body,
+        userId
+      };
+      
+      const preferences = await storage.createUserPreferences(preferencesData);
+      res.status(201).json(preferences);
+    } catch (error) {
+      console.error("Error creating user preferences:", error);
+      res.status(500).json({ message: "Error creating user preferences" });
+    }
+  });
+  
+  app.put("/api/user-preferences", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Check if preferences exist, create if they don't
+      const existingPreferences = await storage.getUserPreferences(userId);
+      
+      if (!existingPreferences) {
+        // Create new preferences
+        const preferencesData = {
+          ...req.body,
+          userId
+        };
+        
+        const preferences = await storage.createUserPreferences(preferencesData);
+        return res.status(201).json(preferences);
+      }
+      
+      // Update existing preferences
+      const updatedPreferences = await storage.updateUserPreferences(userId, req.body);
+      if (!updatedPreferences) {
+        return res.status(500).json({ message: "Failed to update user preferences" });
+      }
+      
+      res.json(updatedPreferences);
+    } catch (error) {
+      console.error("Error updating user preferences:", error);
+      res.status(500).json({ message: "Error updating user preferences" });
+    }
+  });
+
   // TEMPORARY ENDPOINT: Delete all projects - This is for cleanup purposes only
   app.delete("/api/reset-all-projects", async (req, res) => {
     try {

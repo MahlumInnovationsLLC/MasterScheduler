@@ -13,6 +13,7 @@ import CalendarPage from "@/pages/Calendar";
 import Reports from "@/pages/Reports";
 import ImportData from "@/pages/ImportData";
 import SystemSettings from "@/pages/SystemSettings";
+import UserPreferences from "@/pages/UserPreferences";
 import NotFound from "@/pages/not-found";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -34,6 +35,7 @@ function Router() {
             <Route path="/reports" component={Reports} />
             <Route path="/import" component={ImportData} />
             <Route path="/settings/system" component={SystemSettings} />
+            <Route path="/settings/user" component={UserPreferences} />
             <Route component={NotFound} />
           </Switch>
         </main>
