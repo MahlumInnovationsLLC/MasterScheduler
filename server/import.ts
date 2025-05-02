@@ -110,6 +110,7 @@ export async function importProjects(req: Request, res: Response) {
           stretchShortenGears: rawProjectData.stretchShortenGears,
           lltsOrdered: convertToBoolean(rawProjectData.lltsOrdered),
           qcDays: rawProjectData.qcDays,
+          hasBillingMilestones: convertToBoolean(rawProjectData.hasBillingMilestones),
           
           // Design assignments - preserve exactly as in the Excel
           meAssigned: rawProjectData.meAssigned,
@@ -391,20 +392,26 @@ export async function importManufacturingBays(req: Request, res: Response) {
     // Process each manufacturing bay
     for (const bayData of baysData) {
       try {
+        // Process boolean fields
+        const processedBayData = {
+          ...bayData,
+          isActive: convertToBoolean(bayData.isActive)
+        };
+
         // Check if bay with same number already exists
         const existingBays = await storage.getManufacturingBays();
-        const existingBay = existingBays.find(bay => bay.bayNumber === bayData.bayNumber);
+        const existingBay = existingBays.find(bay => bay.bayNumber === processedBayData.bayNumber);
         
         if (existingBay) {
           // Update existing bay
-          await storage.updateManufacturingBay(existingBay.id, bayData);
+          await storage.updateManufacturingBay(existingBay.id, processedBayData);
           results.imported++;
-          results.details.push(`Updated manufacturing bay: ${bayData.name} (Bay ${bayData.bayNumber})`);
+          results.details.push(`Updated manufacturing bay: ${processedBayData.name} (Bay ${processedBayData.bayNumber})`);
         } else {
           // Create new bay
-          await storage.createManufacturingBay(bayData as InsertManufacturingBay);
+          await storage.createManufacturingBay(processedBayData as InsertManufacturingBay);
           results.imported++;
-          results.details.push(`Imported new manufacturing bay: ${bayData.name} (Bay ${bayData.bayNumber})`);
+          results.details.push(`Imported new manufacturing bay: ${processedBayData.name} (Bay ${processedBayData.bayNumber})`);
         }
       } catch (error) {
         console.error('Error importing manufacturing bay:', bayData, error);

@@ -270,6 +270,7 @@ const ImportDataPage = () => {
           stretchShortenGears: row['Stretch / Shorten / Gears'],
           lltsOrdered: row['LLTs Ordered'],
           qcDays: row['QC DAYS'],
+          hasBillingMilestones: row['Has Billing Milestones'] || row['Payment Milestones'] !== undefined || null,
           
           // Additional information fields
           description: row['Description'] || '',
