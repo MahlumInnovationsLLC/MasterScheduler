@@ -36,7 +36,7 @@ export default function AuthPage() {
     e.preventDefault();
     try {
       await loginMutation.mutateAsync(loginData);
-      navigate("/");
+      setLocation("/");
     } catch (error: any) {
       // Error handling is done in the mutation
     }
@@ -52,7 +52,7 @@ export default function AuthPage() {
           ? "Your account has been created and you are now logged in." 
           : "Your account has been created. An admin will review and approve your account.",
       });
-      navigate("/");
+      setLocation("/");
     } catch (error: any) {
       // Error handling is done in the mutation
     }

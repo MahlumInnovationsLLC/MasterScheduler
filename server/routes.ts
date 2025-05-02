@@ -593,10 +593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: lastName || null,
         username: email.split('@')[0], // Set username based on email
         role,
-        isApproved,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        lastLogin: null
+        isApproved
       });
       
       // If there are no existing users with admin role, make this user an admin (for the first user)

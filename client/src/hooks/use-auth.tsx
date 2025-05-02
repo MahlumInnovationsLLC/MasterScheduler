@@ -51,9 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
   } = useQuery<User | null, Error>({
     queryKey: ["/api/auth/user"],
-    queryFn: async ({ queryKey }) => {
+    queryFn: async () => {
       try {
-        const res = await apiRequest("GET", queryKey[0]);
+        const res = await fetch("/api/auth/user");
         if (!res.ok) {
           if (res.status === 401) {
             return null;
@@ -70,7 +70,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+      });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || "Login failed");
@@ -95,7 +101,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterData) => {
-      const res = await apiRequest("POST", "/api/register", data);
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || "Registration failed");
@@ -118,7 +130,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/logout");
+      const res = await fetch("/api/logout", {
+        method: "POST",
+      });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || "Logout failed");
