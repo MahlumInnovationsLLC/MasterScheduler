@@ -486,6 +486,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Authentication routes
+  
+  // Login endpoint
+  app.post("/api/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+      
+      // Get user by email
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      // Check if the user is approved
+      if (!user.isApproved) {
+        return res.status(403).json({ message: "Your account is pending approval" });
+      }
+      
+      // Compare password
+      const { comparePasswords } = require('./authService');
+      const isMatch = user.password ? await comparePasswords(password, user.password) : false;
+      
+      if (!isMatch) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      // Update last login time
+      await storage.updateUserLastLogin(user.id);
+      
+      // Set user in session
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Login error:", err);
+          return res.status(500).json({ message: "Login failed" });
+        }
+        
+        // Return user info without sensitive data
+        const { password, passwordResetToken, passwordResetExpires, ...userInfo } = user;
+        return res.json(userInfo);
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+  
+  // Logout endpoint
+  app.post("/api/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destruction error:", err);
+          return res.status(500).json({ message: "Logout failed" });
+        }
+        
+        res.json({ message: "Logged out successfully" });
+      });
+    });
+  });
+  
+  // Registration endpoint
+  app.post("/api/register", async (req, res) => {
+    try {
+      const { email, password, firstName, lastName } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+      
+      // Check if email domain is allowed
+      const emailCheck = await storage.checkIsEmailAllowed(email);
+      if (!emailCheck || !emailCheck.allowed) {
+        return res.status(403).json({ message: "Email domain not allowed" });
+      }
+      
+      // Hash password
+      const { hashPassword } = require('./authService');
+      const hashedPassword = await hashPassword(password);
+      
+      // Determine if the user should be auto-approved and set their role
+      const isApproved = emailCheck.autoApprove;
+      const role = emailCheck.defaultRole || 'viewer';
+      
+      // Create user
+      const newUser = await storage.createUser({
+        email,
+        password: hashedPassword,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        username: email.split('@')[0], // Set username based on email
+        role,
+        isApproved,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLogin: null
+      });
+      
+      // If there are no existing users with admin role, make this user an admin (for the first user)
+      const users = await storage.getUsers();
+      const hasAdmin = users.some(u => u.id !== newUser.id && u.role === 'admin');
+      
+      if (!hasAdmin) {
+        await storage.updateUserRole(newUser.id, 'admin', true);
+        const updatedUser = await storage.getUser(newUser.id);
+        if (updatedUser) {
+          const { password, passwordResetToken, passwordResetExpires, ...userInfo } = updatedUser;
+          return res.status(201).json(userInfo);
+        }
+      }
+      
+      // Return user info without sensitive data
+      const { password: pwd, passwordResetToken, passwordResetExpires, ...userInfo } = newUser;
+      res.status(201).json(userInfo);
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+  
   // Get current authenticated user
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
     try {

@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,11 +14,26 @@ import Reports from "@/pages/Reports";
 import ImportData from "@/pages/ImportData";
 import SystemSettings from "@/pages/SystemSettings";
 import UserPreferences from "@/pages/UserPreferences";
+import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "@/lib/protected-route";
 
 function Router() {
+  const [location] = useLocation();
+  const isAuthPage = location === "/auth";
+
+  // If we're on the auth page, render it without the app layout
+  if (isAuthPage) {
+    return (
+      <Switch>
+        <Route path="/auth" component={AuthPage} />
+      </Switch>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-darkBg text-white">
       <Header />
@@ -26,18 +41,19 @@ function Router() {
         <Sidebar />
         <main className="overflow-y-auto h-screen pt-16">
           <Switch>
-            <Route path="/" component={Dashboard} />
-            <Route path="/projects" component={ProjectStatus} />
-            <Route path="/projects/:id" component={ProjectDetails} />
-            <Route path="/billing" component={BillingMilestones} />
-            <Route path="/manufacturing" component={ManufacturingBay} />
-            <Route path="/calendar" component={CalendarPage} />
-            <Route path="/reports" component={Reports} />
-            <Route path="/import" component={ImportData} />
-            <Route path="/settings/system" component={SystemSettings} />
-            <Route path="/system-settings" component={SystemSettings} />
-            <Route path="/settings" component={SystemSettings} />
-            <Route path="/settings/user" component={UserPreferences} />
+            <ProtectedRoute path="/" component={Dashboard} />
+            <ProtectedRoute path="/projects" component={ProjectStatus} />
+            <ProtectedRoute path="/projects/:id" component={ProjectDetails} />
+            <ProtectedRoute path="/billing" component={BillingMilestones} />
+            <ProtectedRoute path="/manufacturing" component={ManufacturingBay} />
+            <ProtectedRoute path="/calendar" component={CalendarPage} />
+            <ProtectedRoute path="/reports" component={Reports} />
+            <ProtectedRoute path="/import" component={ImportData} />
+            <ProtectedRoute path="/settings/system" component={SystemSettings} />
+            <ProtectedRoute path="/system-settings" component={SystemSettings} />
+            <ProtectedRoute path="/settings" component={SystemSettings} />
+            <ProtectedRoute path="/settings/user" component={UserPreferences} />
+            <Route path="/auth" component={AuthPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
@@ -51,8 +67,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <Toaster />
-          <Router />
+          <AuthProvider>
+            <Toaster />
+            <Router />
+          </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
