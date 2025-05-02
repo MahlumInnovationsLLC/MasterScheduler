@@ -240,7 +240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/billing-milestones/:id", async (req, res) => {
+  app.delete("/api/billing-milestones/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const result = await storage.deleteBillingMilestone(id);
@@ -273,7 +273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/manufacturing-bays", validateRequest(insertManufacturingBaySchema), async (req, res) => {
+  app.post("/api/manufacturing-bays", isAuthenticated, validateRequest(insertManufacturingBaySchema), async (req, res) => {
     try {
       const bay = await storage.createManufacturingBay(req.body);
       res.status(201).json(bay);
@@ -282,7 +282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/manufacturing-bays/:id", async (req, res) => {
+  app.put("/api/manufacturing-bays/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const bay = await storage.updateManufacturingBay(id, req.body);
@@ -295,7 +295,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/manufacturing-bays/:id", async (req, res) => {
+  app.delete("/api/manufacturing-bays/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const result = await storage.deleteManufacturingBay(id);
@@ -353,7 +353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/manufacturing-schedules", validateRequest(insertManufacturingScheduleSchema), async (req, res) => {
+  app.post("/api/manufacturing-schedules", isAuthenticated, validateRequest(insertManufacturingScheduleSchema), async (req, res) => {
     try {
       const schedule = await storage.createManufacturingSchedule(req.body);
       res.status(201).json(schedule);
@@ -362,7 +362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/manufacturing-schedules/:id", async (req, res) => {
+  app.put("/api/manufacturing-schedules/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const schedule = await storage.updateManufacturingSchedule(id, req.body);
@@ -375,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/manufacturing-schedules/:id", async (req, res) => {
+  app.delete("/api/manufacturing-schedules/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const result = await storage.deleteManufacturingSchedule(id);
@@ -386,10 +386,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import routes
-  app.post("/api/import/projects", importProjects);
-  app.post("/api/import/billing-milestones", importBillingMilestones);
-  app.post("/api/import/manufacturing-bays", importManufacturingBays);
-  app.post("/api/import/manufacturing-schedules", importManufacturingSchedules);
+  app.post("/api/import/projects", isAuthenticated, importProjects);
+  app.post("/api/import/billing-milestones", isAuthenticated, importBillingMilestones);
+  app.post("/api/import/manufacturing-bays", isAuthenticated, importManufacturingBays);
+  app.post("/api/import/manufacturing-schedules", isAuthenticated, importManufacturingSchedules);
   
   // User Preferences routes
   app.get("/api/user-preferences", isAuthenticated, async (req: any, res) => {
@@ -464,7 +464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // TEMPORARY ENDPOINT: Delete all projects - This is for cleanup purposes only
-  app.delete("/api/reset-all-projects", async (req, res) => {
+  app.delete("/api/reset-all-projects", isAuthenticated, async (req, res) => {
     try {
       const projects = await storage.getProjects();
       let deletedCount = 0;
