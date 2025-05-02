@@ -1,5 +1,4 @@
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import crypto from "crypto";
 import { promisify } from "util";
 import { Express } from "express";
 import passport from "passport";
@@ -101,7 +100,7 @@ export function setupSession(app: Express) {
   // Make sure SESSION_SECRET exists in production
   if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
     console.error("SESSION_SECRET environment variable is required in production");
-    process.env.SESSION_SECRET = crypto.randomBytes(32).toString('hex');
+    process.env.SESSION_SECRET = randomBytes(32).toString('hex');
   }
   
   app.use(session({
