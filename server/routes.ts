@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { ZodError } from "zod";
+import crypto from "crypto";
 import {
   insertProjectSchema,
   insertTaskSchema,
@@ -12,7 +13,7 @@ import {
   insertUserPreferencesSchema,
   insertNotificationSchema
 } from "@shared/schema";
-import { setupSession, setupLocalAuth, isAuthenticated, hasEditRights, isAdmin, isEditor } from "./authService";
+import { setupSession, setupLocalAuth, isAuthenticated, hasEditRights, isAdmin, isEditor, hashPassword, comparePasswords } from "./authService";
 import { 
   importProjects, 
   importBillingMilestones, 
@@ -578,15 +579,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Hash password
-      const { hashPassword } = require('./authService');
       const hashedPassword = await hashPassword(password);
       
       // Determine if the user should be auto-approved and set their role
       const isApproved = emailCheck.autoApprove;
       const role = emailCheck.defaultRole || 'viewer';
       
-      // Create user
+      // Create user with a UUID for the ID
+      const uid = crypto.randomUUID();
       const newUser = await storage.createUser({
+        id: uid,
         email,
         password: hashedPassword,
         firstName: firstName || null,
