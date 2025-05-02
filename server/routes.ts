@@ -492,28 +492,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Login endpoint - Using Passport's authenticate middleware
   app.post("/api/login", (req, res, next) => {
+    console.log("DEBUG: Login attempt for", req.body.email);
+    
     passport.authenticate('local', (err: Error, user: any, info: any) => {
       if (err) {
-        console.error("Login error:", err);
+        console.error("DEBUG: Login error:", err);
         return res.status(500).json({ message: "Login failed" });
       }
       
       if (!user) {
         // Authentication failed
+        console.log("DEBUG: Authentication failed:", info?.message);
         return res.status(401).json({ message: info?.message || "Invalid credentials" });
       }
       
       // Check if the user is approved
       if (!user.isApproved) {
+        console.log("DEBUG: User not approved:", user.email);
         return res.status(403).json({ message: "Your account is pending approval" });
       }
       
       // Log in the user
       req.login(user, (err) => {
         if (err) {
-          console.error("Login error:", err);
+          console.error("DEBUG: Login session error:", err);
           return res.status(500).json({ message: "Login failed" });
         }
+        
+        console.log("DEBUG: Login successful for:", user.email);
         
         // Return user info without sensitive data
         const { password, passwordResetToken, passwordResetExpires, ...userInfo } = user;

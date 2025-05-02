@@ -54,14 +54,34 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 export async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
-  if (!stored || !supplied) return false;
+  if (!stored || !supplied) {
+    console.log("DEBUG: Missing password or stored hash");
+    return false;
+  }
   
   const [hashed, salt] = stored.split(".");
-  if (!hashed || !salt) return false;
+  if (!hashed || !salt) {
+    console.log("DEBUG: Invalid stored hash format (missing salt)");
+    return false;
+  }
   
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  try {
+    const hashedBuf = Buffer.from(hashed, "hex");
+    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+    
+    // Add debug info
+    console.log("DEBUG: Password comparison");
+    console.log("DEBUG: Hash length:", hashedBuf.length);
+    console.log("DEBUG: Input hash length:", suppliedBuf.length);
+    
+    const result = timingSafeEqual(hashedBuf, suppliedBuf);
+    console.log("DEBUG: Password comparison result:", result);
+    
+    return result;
+  } catch (error) {
+    console.error("DEBUG: Error in password comparison:", error);
+    return false;
+  }
 }
 
 // Auth setup
