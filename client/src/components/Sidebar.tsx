@@ -135,10 +135,10 @@ const Sidebar = () => {
               </Link>
             </li>
             <li>
-              <Link href="/settings/system" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/settings/system') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+              <Link href="/system-settings" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
               }`}>
-                <Settings className={`text-xl ${isActive('/settings/system') ? 'text-primary' : ''}`} />
+                <Settings className={`text-xl ${isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'text-primary' : ''}`} />
                 <span>System Settings</span>
               </Link>
             </li>

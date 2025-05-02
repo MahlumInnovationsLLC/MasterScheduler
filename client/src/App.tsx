@@ -35,6 +35,8 @@ function Router() {
             <Route path="/reports" component={Reports} />
             <Route path="/import" component={ImportData} />
             <Route path="/settings/system" component={SystemSettings} />
+            <Route path="/system-settings" component={SystemSettings} />
+            <Route path="/settings" component={SystemSettings} />
             <Route path="/settings/user" component={UserPreferences} />
             <Route component={NotFound} />
           </Switch>
