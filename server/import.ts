@@ -7,6 +7,43 @@ import {
   InsertManufacturingSchedule 
 } from '@shared/schema';
 
+// Helper function to convert various string values to proper boolean
+function convertToBoolean(value: any): boolean | null {
+  if (value === undefined || value === null) return null;
+  
+  // If it's already a boolean, return it
+  if (typeof value === 'boolean') return value;
+  
+  // If it's a number, 1 = true, 0 = false
+  if (typeof value === 'number') return value !== 0;
+  
+  // Handle string values
+  if (typeof value === 'string') {
+    const normalized = value.toLowerCase().trim();
+    
+    // Empty string becomes null
+    if (!normalized) return null;
+    
+    // True-like values
+    if (['true', 'yes', 'y', '1', 'on', 'done', 'complete', 'finished'].includes(normalized)) {
+      return true;
+    }
+    
+    // False-like values
+    if (['false', 'no', 'n', '0', 'off', 'incomplete', 'pending'].includes(normalized)) {
+      return false;
+    }
+    
+    // For checkboxes that might be marked with 'x' or similar
+    if (['x', '✓', '✔', '*', 'checked'].includes(normalized)) {
+      return true;
+    }
+  }
+  
+  // Default to null for any other unrecognized value
+  return null;
+}
+
 // Import Tier IV Projects
 export async function importProjects(req: Request, res: Response) {
   try {
@@ -71,7 +108,7 @@ export async function importProjects(req: Request, res: Response) {
           // Project specifics
           dpasRating: rawProjectData.dpasRating,
           stretchShortenGears: rawProjectData.stretchShortenGears,
-          lltsOrdered: rawProjectData.lltsOrdered,
+          lltsOrdered: convertToBoolean(rawProjectData.lltsOrdered),
           qcDays: rawProjectData.qcDays,
           
           // Design assignments - preserve exactly as in the Excel
