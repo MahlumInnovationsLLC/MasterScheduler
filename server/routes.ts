@@ -43,6 +43,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth routes are already defined in setupLocalAuth
   // All the /api/auth/* routes are handled there
+  
+  // Add current user endpoint to match the frontend's expected route
+  app.get("/api/user", isAuthenticated, async (req: any, res) => {
+    try {
+      // User data is already attached to req.user by isAuthenticated middleware
+      // but let's sanitize it before sending
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { password, passwordResetToken, passwordResetExpires, ...safeUser } = req.user;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+      res.status(500).json({ message: "Error fetching user data" });
+    }
+  });
 
   // Error handling middleware for Zod validation
   const validateRequest = (schema: z.ZodSchema<any>) => {
@@ -397,7 +414,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User Preferences routes
   app.get("/api/user-preferences", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Get user ID from the authenticated user
+      const userId = req.user.id;
       const preferences = await storage.getUserPreferences(userId);
       
       if (!preferences) {
@@ -413,7 +431,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/user-preferences", isAuthenticated, validateRequest(insertUserPreferencesSchema), async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Get user ID from the authenticated user
+      const userId = req.user.id;
       
       // Check if preferences already exist
       const existingPreferences = await storage.getUserPreferences(userId);
@@ -437,7 +456,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.put("/api/user-preferences", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Get user ID from the authenticated user
+      const userId = req.user.id;
       
       // Check if preferences exist, create if they don't
       const existingPreferences = await storage.getUserPreferences(userId);

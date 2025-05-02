@@ -5,7 +5,7 @@ import { InsertNotification } from '@shared/schema';
 // Get notifications for a specific user
 export async function getNotifications(req: Request, res: Response) {
   try {
-    const userId = (req.user as any)?.claims?.sub || null;
+    const userId = (req.user as any)?.id || null;
     const { unreadOnly, limit } = req.query;
 
     const options = {
