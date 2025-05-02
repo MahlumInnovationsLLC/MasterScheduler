@@ -29,13 +29,24 @@ export interface IStorage {
   // User methods
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   upsertUser(user: InsertUser): Promise<User>;
+  updateUserRole(id: string, role: string, isApproved: boolean): Promise<User | undefined>;
+  updateUserLastLogin(id: string): Promise<User | undefined>;
   
   // User Preferences methods
   getUserPreferences(userId: string): Promise<UserPreference | undefined>;
   createUserPreferences(preferences: InsertUserPreference): Promise<UserPreference>;
   updateUserPreferences(userId: string, preferences: Partial<InsertUserPreference>): Promise<UserPreference | undefined>;
+  
+  // Access Control - Allowed Emails
+  getAllowedEmails(): Promise<AllowedEmail[]>;
+  getAllowedEmail(id: number): Promise<AllowedEmail | undefined>;
+  createAllowedEmail(allowedEmail: InsertAllowedEmail): Promise<AllowedEmail>;
+  updateAllowedEmail(id: number, allowedEmail: Partial<InsertAllowedEmail>): Promise<AllowedEmail | undefined>;
+  deleteAllowedEmail(id: number): Promise<boolean>;
+  checkIsEmailAllowed(email: string): Promise<{ allowed: boolean, autoApprove: boolean, defaultRole: string } | undefined>;
   
   // Project methods
   getProjects(): Promise<Project[]>;

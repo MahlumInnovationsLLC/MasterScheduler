@@ -41,6 +41,13 @@ export const manufacturingStatusEnum = pgEnum("manufacturing_status", [
   "maintenance",
 ]);
 
+export const userRoleEnum = pgEnum("user_role", [
+  "admin",
+  "editor",
+  "viewer",
+  "pending",
+]);
+
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const sessions = pgTable(
@@ -62,7 +69,9 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   bio: text("bio"),
   profileImageUrl: varchar("profile_image_url"),
-  role: text("role").default("user"),
+  role: userRoleEnum("role").default("pending"),
+  isApproved: boolean("is_approved").default(false),
+  lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -255,6 +264,17 @@ export const manufacturingSchedulesRelations = relations(manufacturingSchedules,
   }),
 }));
 
+// Allowed Emails Table (for user access control)
+export const allowedEmails = pgTable("allowed_emails", {
+  id: serial("id").primaryKey(),
+  emailPattern: varchar("email_pattern").notNull().unique(),
+  description: text("description"),
+  autoApprove: boolean("auto_approve").default(false),
+  defaultRole: userRoleEnum("default_role").default("viewer"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert Schemas
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -266,6 +286,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   bio: true,
   profileImageUrl: true,
   role: true,
+  isApproved: true,
+  lastLogin: true,
 });
 
 export const insertProjectSchema = createInsertSchema(projects).omit({
@@ -302,6 +324,12 @@ export const insertUserPreferencesSchema = createInsertSchema(userPreferences).o
   updatedAt: true,
 });
 
+export const insertAllowedEmailSchema = createInsertSchema(allowedEmails).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -323,3 +351,6 @@ export type InsertManufacturingBay = z.infer<typeof insertManufacturingBaySchema
 
 export type ManufacturingSchedule = typeof manufacturingSchedules.$inferSelect;
 export type InsertManufacturingSchedule = z.infer<typeof insertManufacturingScheduleSchema>;
+
+export type AllowedEmail = typeof allowedEmails.$inferSelect;
+export type InsertAllowedEmail = z.infer<typeof insertAllowedEmailSchema>;
