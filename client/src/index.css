@@ -3,6 +3,23 @@
 @tailwind utilities;
 
 :root {
+  --radius: 0.5rem;
+
+  /* Chart colors - consistent across themes */
+  --chart-1: 217 90% 60%;
+  --chart-2: 199 89% 62%;
+  --chart-3: 270 74% 57%;
+  --chart-4: 163 84% 43%;
+  --chart-5: 32 100% 49%;
+
+  /* Status colors - consistent across themes */
+  --success: 163 84% 43%;
+  --warning: 32 100% 49%;
+  --danger: 341 100% 50%;
+}
+
+/* Dark theme (default) */
+.dark {
   --background: 240 10% 3.9%;
   --foreground: 0 0% 98%;
   --muted: 240 3.7% 15.9%;
@@ -22,22 +39,49 @@
   --destructive: 341 100% 50%;
   --destructive-foreground: 0 0% 98%;
   --ring: 240 4.9% 83.9%;
-  --radius: 0.5rem;
 
-  /* Custom colors */
+  /* Custom dark theme colors */
   --darkBg: 0 0% 7%;
   --darkCard: 0 0% 12%;
   --darkInput: 0 0% 18%;
-  --success: 163 84% 43%;
-  --warning: 32 100% 49%;
-  --danger: 341 100% 50%;
 
-  /* Chart colors */
-  --chart-1: 217 90% 60%;
-  --chart-2: 199 89% 62%;
-  --chart-3: 270 74% 57%;
-  --chart-4: 163 84% 43%;
-  --chart-5: 32 100% 49%;
+  /* Sidebar colors */
+  --sidebar-background: var(--background);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+/* Light theme */
+.light {
+  --background: 0 0% 98%; 
+  --foreground: 240 10% 3.9%;
+  --muted: 240 5% 90%;
+  --muted-foreground: 240 3.7% 40%;
+  --popover: 0 0% 98%;
+  --popover-foreground: 240 10% 3.9%;
+  --card: 0 0% 98%;
+  --card-foreground: 240 10% 3.9%;
+  --border: 240 5% 85%;
+  --input: 240 5% 90%;
+  --primary: 217 90% 50%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 199 89% 50%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 270 74% 50%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 341 100% 50%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 240 10% 50%;
+
+  /* Custom light theme colors */
+  --darkBg: 0 0% 98%;
+  --darkCard: 0 0% 95%;
+  --darkInput: 0 0% 90%;
 
   /* Sidebar colors */
   --sidebar-background: var(--background);
@@ -71,13 +115,23 @@
   display: contents;
 }
 
-.gantt-row > * {
+/* Gantt chart border styles */
+.dark .gantt-row > * {
   padding: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.gantt-cell:not(:first-child) {
+.dark .gantt-cell:not(:first-child) {
   border-left: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.light .gantt-row > * {
+  padding: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.light .gantt-cell:not(:first-child) {
+  border-left: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 /* Custom Scrollbar */
@@ -90,13 +144,24 @@
   background: hsl(var(--darkCard));
 }
 
-::-webkit-scrollbar-thumb {
+/* Dark theme scrollbar */
+.dark ::-webkit-scrollbar-thumb {
   background: #3a3a3a;
   border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+.dark ::-webkit-scrollbar-thumb:hover {
   background: #4a4a4a;
+}
+
+/* Light theme scrollbar */
+.light ::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 4px;
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
 }
 
 /* Status indicator pulse effect */

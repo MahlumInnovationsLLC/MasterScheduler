@@ -7,6 +7,7 @@ import {
   User,
   LogOut
 } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -53,6 +54,9 @@ const Header = () => {
         </div>
         
         <div className="flex items-center gap-4">
+          {/* Always show theme toggle regardless of auth status */}
+          <ThemeToggle />
+
           {isAuthenticated ? (
             <>
               <DropdownMenu>
