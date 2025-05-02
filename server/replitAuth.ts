@@ -57,15 +57,54 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  await storage.upsertUser({
-    id: claims["sub"],
-    username: claims["username"],
-    email: claims["email"],
-    firstName: claims["first_name"],
-    lastName: claims["last_name"],
-    bio: claims["bio"],
-    profileImageUrl: claims["profile_image_url"],
-  });
+  // Check if this is a new user or existing user
+  const existingUser = await storage.getUser(claims["sub"]);
+  const email = claims["email"];
+  
+  if (!existingUser && email) {
+    // Check if the email is in our allowed list
+    const emailCheck = await storage.checkIsEmailAllowed(email);
+    
+    // First-time login, check if we should auto-approve based on email pattern
+    const userData = {
+      id: claims["sub"],
+      username: claims["username"],
+      email: email,
+      firstName: claims["first_name"],
+      lastName: claims["last_name"],
+      bio: claims["bio"],
+      profileImageUrl: claims["profile_image_url"],
+      role: emailCheck?.defaultRole || "pending",
+      isApproved: emailCheck?.autoApprove || false,
+      lastLogin: new Date(),
+    };
+    
+    // Handle first user as admin
+    const allUsers = await storage.getUsers();
+    if (allUsers.length === 0) {
+      userData.role = "admin";
+      userData.isApproved = true;
+    }
+    
+    await storage.upsertUser(userData);
+  } else if (existingUser) {
+    // Existing user - update last login
+    await storage.updateUserLastLogin(claims["sub"]);
+  } else {
+    // Fallback for users without email
+    await storage.upsertUser({
+      id: claims["sub"],
+      username: claims["username"],
+      email: claims["email"],
+      firstName: claims["first_name"],
+      lastName: claims["last_name"],
+      bio: claims["bio"],
+      profileImageUrl: claims["profile_image_url"],
+      role: "pending",
+      isApproved: false,
+      lastLogin: new Date(),
+    });
+  }
 }
 
 export async function setupAuth(app: Express) {
@@ -136,11 +175,68 @@ export const withAuthInfo: RequestHandler = (req, res, next) => {
 };
 
 // Middleware to check if user has edit permissions, but don't block if not
-export const hasEditRights = (req: any, res: Response, next: NextFunction) => {
-  // Set a flag on the request to indicate whether the user has edit rights
-  req.hasEditRights = req.isAuthenticated();
+export const hasEditRights = async (req: any, res: Response, next: NextFunction) => {
+  // Default - no edit rights
+  req.hasEditRights = false;
+  req.userRole = null;
+  
+  // Check if authenticated
+  if (req.isAuthenticated() && req.user?.claims?.sub) {
+    // Look up the DB user to check approval status and role
+    const dbUser = await storage.getUser(req.user.claims.sub);
+    
+    if (dbUser && dbUser.isApproved) {
+      req.hasEditRights = true;
+      req.userRole = dbUser.role;
+      req.userDetails = dbUser;
+    }
+  }
   
   // Continue with the request regardless of authentication
+  next();
+};
+
+// Check if user has admin role
+export const isAdmin = async (req: any, res: Response, next: NextFunction) => {
+  // First check if authenticated and approved
+  if (!req.isAuthenticated() || !req.user?.claims?.sub) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+  
+  // Look up the DB user to check role
+  const dbUser = await storage.getUser(req.user.claims.sub);
+  
+  if (!dbUser || !dbUser.isApproved || dbUser.role !== "admin") {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+  
+  // User is admin, proceed
+  req.userRole = "admin";
+  req.userDetails = dbUser;
+  next();
+};
+
+// Check if user has at least editor role
+export const isEditor = async (req: any, res: Response, next: NextFunction) => {
+  // First check if authenticated and approved
+  if (!req.isAuthenticated() || !req.user?.claims?.sub) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+  
+  // Look up the DB user to check role
+  const dbUser = await storage.getUser(req.user.claims.sub);
+  
+  if (!dbUser || !dbUser.isApproved) {
+    return res.status(403).json({ message: "Approved user access required" });
+  }
+  
+  if (dbUser.role !== "admin" && dbUser.role !== "editor") {
+    return res.status(403).json({ message: "Editor or admin access required" });
+  }
+  
+  // User is editor or admin, proceed
+  req.userRole = dbUser.role;
+  req.userDetails = dbUser;
   next();
 };
 
@@ -154,6 +250,21 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 
   const now = Math.floor(Date.now() / 1000);
   if (now <= user.expires_at) {
+    // Check if user is approved in the database
+    if (user.claims?.sub) {
+      const dbUser = await storage.getUser(user.claims.sub);
+      if (dbUser && !dbUser.isApproved) {
+        return res.status(403).json({ 
+          message: "Your account is pending approval", 
+          status: "pending_approval" 
+        });
+      }
+      
+      // Add user details to the request
+      req.userRole = dbUser?.role || "pending";
+      req.userDetails = dbUser;
+    }
+    
     return next();
   }
 
@@ -167,6 +278,22 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     const config = await getOidcConfig();
     const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
     updateUserSession(user, tokenResponse);
+    
+    // Check if user is approved after refresh
+    if (user.claims?.sub) {
+      const dbUser = await storage.getUser(user.claims.sub);
+      if (dbUser && !dbUser.isApproved) {
+        return res.status(403).json({ 
+          message: "Your account is pending approval", 
+          status: "pending_approval" 
+        });
+      }
+      
+      // Add user details to the request
+      req.userRole = dbUser?.role || "pending";
+      req.userDetails = dbUser;
+    }
+    
     return next();
   } catch (error) {
     return res.redirect("/api/login");

@@ -11,7 +11,7 @@ import {
   insertManufacturingScheduleSchema,
   insertUserPreferencesSchema
 } from "@shared/schema";
-import { setupAuth, isAuthenticated, withAuthInfo, hasEditRights } from "./replitAuth";
+import { setupAuth, isAuthenticated, withAuthInfo, hasEditRights, isAdmin, isEditor } from "./replitAuth";
 import { 
   importProjects, 
   importBillingMilestones, 

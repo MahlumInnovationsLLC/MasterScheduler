@@ -528,7 +528,7 @@ export class DatabaseStorage implements IStorage {
       if (pattern.emailPattern === email) {
         return { 
           allowed: true, 
-          autoApprove: pattern.autoApprove, 
+          autoApprove: pattern.autoApprove === true, 
           defaultRole: pattern.defaultRole || "viewer"
         };
       }
@@ -539,7 +539,7 @@ export class DatabaseStorage implements IStorage {
         if (email.endsWith(`@${domain}`)) {
           return { 
             allowed: true, 
-            autoApprove: pattern.autoApprove, 
+            autoApprove: pattern.autoApprove === true, 
             defaultRole: pattern.defaultRole || "viewer"
           };
         }
