@@ -32,16 +32,41 @@ import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, or 
 import { PgSelectBase } from "drizzle-orm/pg-core";
 
 /**
- * Helper function to safely execute a database query and return the results with proper typing
+ * Helper functions to safely execute database queries and return results with proper typing
  * Used to address TypeScript errors with Drizzle's query builder types
  */
-async function safeQuery<T>(queryCallback: () => Promise<any[]>): Promise<T[]> {
+
+// For safely casting SQL query results to the expected type
+function castSqlResult<T>(result: any[]): T[] {
+  return result as T[];
+}
+
+// For safely casting a single SQL query result to the expected type
+function castSingleResult<T>(result: any[]): T | undefined {
+  return result[0] as T | undefined;
+}
+
+// For queries returning an array of items
+async function safeQuery<T>(queryCallback: () => Promise<any>): Promise<T[]> {
   try {
+    // Execute the query and cast the result
     const results = await queryCallback();
-    return results as T[];
+    return castSqlResult<T>(results);
   } catch (error) {
     console.error("Database query error:", error);
     return [];
+  }
+}
+
+// For queries potentially returning a single item (may be undefined)
+async function safeSingleQuery<T>(queryCallback: () => Promise<any>): Promise<T | undefined> {
+  try {
+    // Execute the query and cast the first result
+    const results = await queryCallback();
+    return castSingleResult<T>(results);
+  } catch (error) {
+    console.error("Database single item query error:", error);
+    return undefined;
   }
 }
 
@@ -120,22 +145,21 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User methods
   async getUser(id: string): Promise<User | undefined> {
-    try {
-      const [user] = await db.select().from(users).where(eq(users.id, id));
-      return user;
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      return undefined;
-    }
+    return await safeSingleQuery<User>(() => 
+      db.select().from(users).where(eq(users.id, id))
+    );
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
+    return await safeSingleQuery<User>(() =>
+      db.select().from(users).where(eq(users.username, username))
+    );
   }
   
   async getUsers(): Promise<User[]> {
-    return await db.select().from(users).orderBy(desc(users.updatedAt));
+    return await safeQuery<User>(() =>
+      db.select().from(users).orderBy(desc(users.updatedAt))
+    );
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -416,8 +440,9 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getManufacturingSchedule(id: number): Promise<ManufacturingSchedule | undefined> {
-    const [schedule] = await db.select().from(manufacturingSchedules).where(eq(manufacturingSchedules.id, id));
-    return schedule;
+    return await safeSingleQuery<ManufacturingSchedule>(() =>
+      db.select().from(manufacturingSchedules).where(eq(manufacturingSchedules.id, id))
+    );
   }
   
   async createManufacturingSchedule(schedule: InsertManufacturingSchedule): Promise<ManufacturingSchedule> {
@@ -543,16 +568,9 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getNotificationById(id: number): Promise<Notification | undefined> {
-    try {
-      const [notification] = await db
-        .select()
-        .from(notifications)
-        .where(eq(notifications.id, id));
-      return notification;
-    } catch (error) {
-      console.error("Error fetching notification:", error);
-      return undefined;
-    }
+    return await safeSingleQuery<Notification>(() =>
+      db.select().from(notifications).where(eq(notifications.id, id))
+    );
   }
   
   async createNotification(notification: InsertNotification): Promise<Notification> {
