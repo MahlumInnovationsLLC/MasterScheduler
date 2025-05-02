@@ -12,6 +12,41 @@ import { eq } from "drizzle-orm";
 import { users } from "@shared/schema";
 import type { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
+import { ParamsDictionary } from "express-serve-static-core";
+import { ParsedQs } from "qs";
+
+// Define authenticated request interface
+interface AuthenticatedRequest {
+  user: any;
+  isAuthenticated(): boolean;
+  login(user: any, callback: (err: any) => void): void;
+  logout(callback: (err: any) => void): void;
+}
+
+// Extend Express Request type
+declare global {
+  namespace Express {
+    interface Request {
+      userRole?: string;
+      userDetails?: any;
+      hasEditRights?: boolean;
+    }
+    
+    interface User {
+      id: string;
+      username: string;
+      email: string;
+      role?: string;
+      isApproved?: boolean;
+      firstName?: string;
+      lastName?: string;
+      lastLogin?: Date;
+      password?: string;
+      passwordResetToken?: string;
+      passwordResetExpires?: Date;
+    }
+  }
+}
 
 const scryptAsync = promisify(scrypt);
 
@@ -402,7 +437,7 @@ export const isAuthenticated = async (req: Request, res: Response, next: NextFun
 export const hasEditRights = async (req: Request, res: Response, next: NextFunction) => {
   // Default - no edit rights
   req.hasEditRights = false;
-  req.userRole = null;
+  req.userRole = undefined;
   
   // Check if authenticated
   if (req.isAuthenticated() && req.user) {

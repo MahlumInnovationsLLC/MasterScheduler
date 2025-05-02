@@ -12,7 +12,7 @@ import {
   insertUserPreferencesSchema,
   insertNotificationSchema
 } from "@shared/schema";
-import { setupAuth, isAuthenticated, withAuthInfo, hasEditRights, isAdmin, isEditor } from "./replitAuth";
+import { setupSession, setupLocalAuth, isAuthenticated, hasEditRights, isAdmin, isEditor } from "./authService";
 import { 
   importProjects, 
   importBillingMilestones, 
@@ -38,19 +38,11 @@ import {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
-  await setupAuth(app);
+  setupSession(app);
+  setupLocalAuth(app);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // Auth routes are already defined in setupLocalAuth
+  // All the /api/auth/* routes are handled there
 
   // Error handling middleware for Zod validation
   const validateRequest = (schema: z.ZodSchema<any>) => {
@@ -690,7 +682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Notification Routes
-  app.get("/api/notifications", withAuthInfo, getNotifications);
+  app.get("/api/notifications", hasEditRights, getNotifications);
   app.get("/api/notifications/unread/count", isAuthenticated, getUnreadNotificationCount);
   app.post("/api/notifications", isAuthenticated, isAdmin, validateRequest(insertNotificationSchema), createNotification);
   app.put("/api/notifications/:id/read", isAuthenticated, markNotificationAsRead);
