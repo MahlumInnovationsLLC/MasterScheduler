@@ -53,11 +53,11 @@ export function NotificationBell() {
       'Earlier': []
     };
     
-    (notifications as Notification[]).forEach(notification => {
+    notifications.forEach(notification => {
       const date = new Date(notification.createdAt);
       const now = new Date();
       const isToday = date.toDateString() === now.toDateString();
-      const isThisWeek = date > new Date(now.getDate() - 7);
+      const isThisWeek = date > new Date(now.setDate(now.getDate() - 7));
       
       if (isToday) {
         groups['Today'].push(notification);
@@ -72,7 +72,11 @@ export function NotificationBell() {
   }, [notifications]);
   
   // Define colors based on notification type and priority
-  const getColorByTypeAndPriority = (type: string, priority: string, isRead: boolean) => {
+  const getColorByTypeAndPriority = (
+    type: 'billing' | 'project' | 'manufacturing' | 'system', 
+    priority: 'low' | 'medium' | 'high', 
+    isRead: boolean
+  ) => {
     if (isRead) return 'bg-muted/50 hover:bg-muted';
     
     const baseClasses = 'hover:bg-muted';
@@ -100,7 +104,9 @@ export function NotificationBell() {
   };
   
   // Get badge color for notification type
-  const getBadgeVariant = (type: string): "default" | "destructive" | "outline" | "secondary" => {
+  const getBadgeVariant = (
+    type: 'billing' | 'project' | 'manufacturing' | 'system'
+  ): "default" | "destructive" | "outline" | "secondary" => {
     switch (type) {
       case 'billing': return 'destructive';
       case 'manufacturing': return 'default';

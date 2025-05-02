@@ -23,13 +23,13 @@ export function useNotifications() {
   const { isAuthenticated } = useAuth();
   
   // Get all notifications for the current user
-  const { data: notifications = [], isLoading } = useQuery({
+  const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ['/api/notifications'],
     enabled: isAuthenticated,
   });
   
   // Get unread notification count
-  const { data: unreadCount = { count: 0 } } = useQuery({
+  const { data: unreadCount = { count: 0 } } = useQuery<{ count: number }>({
     queryKey: ['/api/notifications/unread/count'],
     enabled: isAuthenticated,
   });
@@ -74,8 +74,8 @@ export function useNotifications() {
   });
 
   return {
-    notifications,
-    unreadCount: unreadCount.count || 0,
+    notifications: notifications as Notification[],
+    unreadCount: unreadCount?.count || 0,
     isLoading,
     markAsRead,
     markAllAsRead,
