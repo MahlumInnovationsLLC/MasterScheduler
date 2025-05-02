@@ -511,7 +511,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Compare password
-      const { comparePasswords } = require('./authService');
       const isMatch = user.password ? await comparePasswords(password, user.password) : false;
       
       if (!isMatch) {
