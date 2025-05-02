@@ -29,14 +29,30 @@ const UserPreferences = () => {
     error
   } = useUserPreferences();
   
+  // Use useEffect to update form values when preferences are loaded
   const [formValues, setFormValues] = useState({
-    theme: preferences?.theme || 'dark',
-    displayDensity: preferences?.displayDensity || 'comfortable',
-    defaultView: preferences?.defaultView || 'dashboard',
-    showCompletedProjects: preferences?.showCompletedProjects || true,
-    dateFormat: preferences?.dateFormat || 'MM/DD/YYYY',
-    emailNotifications: preferences?.emailNotifications || true,
+    theme: 'dark',
+    displayDensity: 'comfortable' as 'compact' | 'comfortable',
+    defaultView: 'dashboard',
+    showCompletedProjects: true,
+    dateFormat: 'MM/DD/YYYY',
+    emailNotifications: true,
   });
+  
+  // Update form values when preferences are loaded
+  React.useEffect(() => {
+    if (preferences && typeof preferences === 'object') {
+      const prefs = preferences as Record<string, any>;
+      setFormValues({
+        theme: (prefs.theme as string) || 'dark',
+        displayDensity: (prefs.displayDensity as 'compact' | 'comfortable') || 'comfortable',
+        defaultView: (prefs.defaultView as string) || 'dashboard',
+        showCompletedProjects: (prefs.showCompletedProjects as boolean) || true,
+        dateFormat: (prefs.dateFormat as string) || 'MM/DD/YYYY',
+        emailNotifications: (prefs.emailNotifications as boolean) || true,
+      });
+    }
+  }, [preferences]);
 
   const handleChange = (field: string, value: any) => {
     setFormValues(prev => ({ ...prev, [field]: value }));
@@ -278,7 +294,7 @@ const UserPreferences = () => {
                       <Label htmlFor="username">Username</Label>
                       <Input 
                         id="username" 
-                        value={user?.username || ''} 
+                        value={(user && 'username' in user) ? user.username : ''} 
                         disabled 
                         className="bg-gray-800 cursor-not-allowed"
                       />
@@ -291,7 +307,7 @@ const UserPreferences = () => {
                       <Label htmlFor="email">Email Address</Label>
                       <Input 
                         id="email" 
-                        value={user?.email || ''} 
+                        value={(user && 'email' in user) ? user.email : ''} 
                         disabled 
                         className="bg-gray-800 cursor-not-allowed"
                       />
