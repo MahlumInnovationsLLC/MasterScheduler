@@ -11,7 +11,7 @@ import {
   insertManufacturingScheduleSchema,
   insertUserPreferencesSchema
 } from "@shared/schema";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated, withAuthInfo, hasEditRights } from "./replitAuth";
 import { 
   importProjects, 
   importBillingMilestones, 
@@ -83,7 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects", validateRequest(insertProjectSchema), async (req, res) => {
+  app.post("/api/projects", isAuthenticated, validateRequest(insertProjectSchema), async (req, res) => {
     try {
       const project = await storage.createProject(req.body);
       res.status(201).json(project);
@@ -92,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/projects/:id", async (req, res) => {
+  app.put("/api/projects/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const project = await storage.updateProject(id, req.body);
@@ -105,7 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/projects/:id", async (req, res) => {
+  app.delete("/api/projects/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const result = await storage.deleteProject(id);
@@ -139,7 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/tasks", validateRequest(insertTaskSchema), async (req, res) => {
+  app.post("/api/tasks", isAuthenticated, validateRequest(insertTaskSchema), async (req, res) => {
     try {
       const task = await storage.createTask(req.body);
       res.status(201).json(task);
@@ -148,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/tasks/:id", async (req, res) => {
+  app.put("/api/tasks/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const task = await storage.updateTask(id, req.body);
@@ -161,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/tasks/:id/complete", async (req, res) => {
+  app.put("/api/tasks/:id/complete", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const completedDate = req.body.completedDate ? new Date(req.body.completedDate) : new Date();
@@ -175,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/tasks/:id", async (req, res) => {
+  app.delete("/api/tasks/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const result = await storage.deleteTask(id);
@@ -218,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/billing-milestones", validateRequest(insertBillingMilestoneSchema), async (req, res) => {
+  app.post("/api/billing-milestones", isAuthenticated, validateRequest(insertBillingMilestoneSchema), async (req, res) => {
     try {
       const milestone = await storage.createBillingMilestone(req.body);
       res.status(201).json(milestone);
@@ -227,7 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/billing-milestones/:id", async (req, res) => {
+  app.put("/api/billing-milestones/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const milestone = await storage.updateBillingMilestone(id, req.body);
