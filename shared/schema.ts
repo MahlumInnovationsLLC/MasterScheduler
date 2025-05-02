@@ -69,7 +69,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   bio: text("bio"),
   profileImageUrl: varchar("profile_image_url"),
-  role: userRoleEnum("role").default("pending"),
+  role: text("role").default("pending"),  // Using text for backward compatibility
   isApproved: boolean("is_approved").default(false),
   lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -270,7 +270,7 @@ export const allowedEmails = pgTable("allowed_emails", {
   emailPattern: varchar("email_pattern").notNull().unique(),
   description: text("description"),
   autoApprove: boolean("auto_approve").default(false),
-  defaultRole: userRoleEnum("default_role").default("viewer"),
+  defaultRole: text("default_role").default("viewer"),  // Use text for compatibility
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

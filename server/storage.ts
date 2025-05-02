@@ -6,6 +6,7 @@ import {
   manufacturingBays,
   manufacturingSchedules,
   userPreferences,
+  allowedEmails,
   type User,
   type InsertUser,
   type Project,
@@ -20,6 +21,8 @@ import {
   type InsertManufacturingSchedule,
   type UserPreference,
   type InsertUserPreference,
+  type AllowedEmail,
+  type InsertAllowedEmail,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL } from "drizzle-orm";
@@ -103,6 +106,10 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
   }
+  
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.updatedAt));
+  }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
@@ -122,6 +129,41 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+  
+  async updateUserRole(id: string, role: string, isApproved: boolean): Promise<User | undefined> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          role: role,
+          isApproved: isApproved,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, id))
+        .returning();
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      return undefined;
+    }
+  }
+  
+  async updateUserLastLogin(id: string): Promise<User | undefined> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          lastLogin: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, id))
+        .returning();
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating user last login:", error);
+      return undefined;
+    }
   }
   
   // User Preferences methods
@@ -442,6 +484,70 @@ export class DatabaseStorage implements IStorage {
   async deleteManufacturingSchedule(id: number): Promise<boolean> {
     await db.delete(manufacturingSchedules).where(eq(manufacturingSchedules.id, id));
     return true;
+  }
+
+  // Allowed Emails methods
+  async getAllowedEmails(): Promise<AllowedEmail[]> {
+    return await db.select().from(allowedEmails).orderBy(allowedEmails.emailPattern);
+  }
+  
+  async getAllowedEmail(id: number): Promise<AllowedEmail | undefined> {
+    const [pattern] = await db.select().from(allowedEmails).where(eq(allowedEmails.id, id));
+    return pattern;
+  }
+  
+  async createAllowedEmail(allowedEmail: InsertAllowedEmail): Promise<AllowedEmail> {
+    const [newPattern] = await db.insert(allowedEmails).values(allowedEmail).returning();
+    return newPattern;
+  }
+  
+  async updateAllowedEmail(id: number, allowedEmail: Partial<InsertAllowedEmail>): Promise<AllowedEmail | undefined> {
+    const [updatedPattern] = await db
+      .update(allowedEmails)
+      .set({ ...allowedEmail, updatedAt: new Date() })
+      .where(eq(allowedEmails.id, id))
+      .returning();
+    return updatedPattern;
+  }
+  
+  async deleteAllowedEmail(id: number): Promise<boolean> {
+    await db.delete(allowedEmails).where(eq(allowedEmails.id, id));
+    return true;
+  }
+  
+  async checkIsEmailAllowed(email: string): Promise<{ allowed: boolean, autoApprove: boolean, defaultRole: string } | undefined> {
+    if (!email) {
+      return { allowed: false, autoApprove: false, defaultRole: "pending" };
+    }
+    
+    // Get all allowed email patterns
+    const patterns = await this.getAllowedEmails();
+    
+    for (const pattern of patterns) {
+      // Exact match
+      if (pattern.emailPattern === email) {
+        return { 
+          allowed: true, 
+          autoApprove: pattern.autoApprove, 
+          defaultRole: pattern.defaultRole || "viewer"
+        };
+      }
+      
+      // Domain match (e.g., *@example.com)
+      if (pattern.emailPattern.startsWith('*@')) {
+        const domain = pattern.emailPattern.substring(2);
+        if (email.endsWith(`@${domain}`)) {
+          return { 
+            allowed: true, 
+            autoApprove: pattern.autoApprove, 
+            defaultRole: pattern.defaultRole || "viewer"
+          };
+        }
+      }
+    }
+    
+    // If no match found, return default behavior
+    return { allowed: false, autoApprove: false, defaultRole: "pending" };
   }
 }
 
