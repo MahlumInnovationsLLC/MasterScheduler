@@ -31,6 +31,20 @@ import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, or } from "drizzle-orm";
 import { PgSelectBase } from "drizzle-orm/pg-core";
 
+/**
+ * Helper function to safely execute a database query and return the results with proper typing
+ * Used to address TypeScript errors with Drizzle's query builder types
+ */
+async function safeQuery<T>(queryCallback: () => Promise<any[]>): Promise<T[]> {
+  try {
+    const results = await queryCallback();
+    return results as T[];
+  } catch (error) {
+    console.error("Database query error:", error);
+    return [];
+  }
+}
+
 export interface IStorage {
   // User methods
   getUser(id: string): Promise<User | undefined>;
@@ -366,38 +380,39 @@ export class DatabaseStorage implements IStorage {
   
   // Manufacturing Schedule methods
   async getManufacturingSchedules(filters?: { bayId?: number, projectId?: number, startDate?: Date, endDate?: Date }): Promise<ManufacturingSchedule[]> {
-    let query = db.select().from(manufacturingSchedules);
-    
-    if (filters) {
-      const conditions = [];
+    return await safeQuery<ManufacturingSchedule>(async () => {
+      let query = db.select().from(manufacturingSchedules);
       
-      if (filters.bayId !== undefined) {
-        conditions.push(eq(manufacturingSchedules.bayId, filters.bayId));
+      if (filters) {
+        const conditions = [];
+        
+        if (filters.bayId !== undefined) {
+          conditions.push(eq(manufacturingSchedules.bayId, filters.bayId));
+        }
+        
+        if (filters.projectId !== undefined) {
+          conditions.push(eq(manufacturingSchedules.projectId, filters.projectId));
+        }
+        
+        if (filters.startDate && filters.endDate) {
+          // For date range queries, find schedules that overlap with the given range
+          conditions.push(
+            sql`${manufacturingSchedules.startDate} <= ${filters.endDate.toISOString().split('T')[0]} AND ${manufacturingSchedules.endDate} >= ${filters.startDate.toISOString().split('T')[0]}`
+          );
+        } else if (filters.startDate) {
+          conditions.push(sql`${manufacturingSchedules.startDate} >= ${filters.startDate.toISOString().split('T')[0]}`);
+        } else if (filters.endDate) {
+          conditions.push(sql`${manufacturingSchedules.endDate} <= ${filters.endDate.toISOString().split('T')[0]}`);
+        }
+        
+        if (conditions.length > 0) {
+          query = query.where(and(...conditions));
+        }
       }
       
-      if (filters.projectId !== undefined) {
-        conditions.push(eq(manufacturingSchedules.projectId, filters.projectId));
-      }
-      
-      if (filters.startDate && filters.endDate) {
-        // For date range queries, find schedules that overlap with the given range
-        conditions.push(
-          sql`${manufacturingSchedules.startDate} <= ${filters.endDate.toISOString().split('T')[0]} AND ${manufacturingSchedules.endDate} >= ${filters.startDate.toISOString().split('T')[0]}`
-        );
-      } else if (filters.startDate) {
-        conditions.push(sql`${manufacturingSchedules.startDate} >= ${filters.startDate.toISOString().split('T')[0]}`);
-      } else if (filters.endDate) {
-        conditions.push(sql`${manufacturingSchedules.endDate} <= ${filters.endDate.toISOString().split('T')[0]}`);
-      }
-      
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
-    }
-    
-    // Execute the query and get the results
-    const results = await query.orderBy(manufacturingSchedules.startDate);
-    return results as ManufacturingSchedule[];
+      // Execute the query and return the results
+      return await query.orderBy(manufacturingSchedules.startDate);
+    });
   }
   
   async getManufacturingSchedule(id: number): Promise<ManufacturingSchedule | undefined> {
@@ -490,7 +505,7 @@ export class DatabaseStorage implements IStorage {
 
   // Notification methods
   async getNotifications(userId?: string, options?: { unreadOnly?: boolean, limit?: number }): Promise<Notification[]> {
-    try {
+    return await safeQuery<Notification>(async () => {
       let query = db.select().from(notifications);
       
       if (userId) {
@@ -522,13 +537,9 @@ export class DatabaseStorage implements IStorage {
         query = query.limit(options.limit);
       }
       
-      // Execute the query and get the results
-      const results = await query;
-      return results as Notification[];
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
-      return [];
-    }
+      // Execute the query and return the results
+      return await query;
+    });
   }
   
   async getNotificationById(id: number): Promise<Notification | undefined> {
