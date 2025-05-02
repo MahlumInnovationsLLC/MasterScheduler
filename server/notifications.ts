@@ -5,7 +5,7 @@ import { InsertNotification } from '@shared/schema';
 // Get notifications for a specific user
 export async function getNotifications(req: Request, res: Response) {
   try {
-    const userId = req.user?.claims?.sub || null;
+    const userId = (req.user as any)?.claims?.sub || null;
     const { unreadOnly, limit } = req.query;
 
     const options = {
@@ -44,7 +44,7 @@ export async function markNotificationAsRead(req: Request, res: Response) {
 // Mark all notifications as read for the current user
 export async function markAllNotificationsAsRead(req: Request, res: Response) {
   try {
-    const userId = req.user?.claims?.sub;
+    const userId = (req.user as any)?.claims?.sub;
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -84,7 +84,7 @@ export async function deleteNotification(req: Request, res: Response) {
 // Get unread notification count for the current user
 export async function getUnreadNotificationCount(req: Request, res: Response) {
   try {
-    const userId = req.user?.claims?.sub;
+    const userId = (req.user as any)?.claims?.sub;
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -136,7 +136,7 @@ export async function generateBillingNotifications() {
       if (!project) continue;
       
       // Check if notification already exists
-      const existingNotifications = await storage.getNotifications(null, { limit: 100 });
+      const existingNotifications = await storage.getNotifications(undefined, { limit: 100 });
       const exists = existingNotifications.some(n => 
         n.relatedMilestoneId === milestone.id && 
         !n.isRead &&
@@ -192,7 +192,7 @@ export async function generateManufacturingNotifications() {
       if (!project || !bay) continue;
       
       // Check if notification already exists
-      const existingNotifications = await storage.getNotifications(null, { limit: 100 });
+      const existingNotifications = await storage.getNotifications(undefined, { limit: 100 });
       const exists = existingNotifications.some(n => 
         n.relatedScheduleId === schedule.id && 
         !n.isRead &&
