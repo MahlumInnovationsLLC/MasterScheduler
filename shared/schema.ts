@@ -67,6 +67,40 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// User Relations
+export const usersRelations = relations(users, ({ one, many }) => ({
+  preferences: one(userPreferences, {
+    fields: [users.id],
+    references: [userPreferences.userId],
+    relationName: "userPreferences",
+  }),
+  projects: many(projects),
+}));
+
+// User Preferences Table
+export const userPreferences = pgTable("user_preferences", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull().unique(),
+  theme: text("theme").default("dark"),
+  dashboardLayout: jsonb("dashboard_layout"),
+  emailNotifications: boolean("email_notifications").default(true),
+  displayDensity: text("display_density").default("comfortable"),
+  defaultView: text("default_view").default("dashboard"),
+  showCompletedProjects: boolean("show_completed_projects").default(true),
+  dateFormat: text("date_format").default("MM/DD/YYYY"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User Preferences Relations
+export const userPreferencesRelations = relations(userPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userPreferences.userId],
+    references: [users.id],
+    relationName: "userPreferences",
+  }),
+}));
+
 // Project Table
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
@@ -262,9 +296,18 @@ export const insertManufacturingScheduleSchema = createInsertSchema(manufacturin
   updatedAt: true,
 });
 
+export const insertUserPreferencesSchema = createInsertSchema(userPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type UserPreference = typeof userPreferences.$inferSelect;
+export type InsertUserPreference = z.infer<typeof insertUserPreferencesSchema>;
 
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;

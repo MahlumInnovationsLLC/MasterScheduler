@@ -5,6 +5,7 @@ import {
   billingMilestones,
   manufacturingBays,
   manufacturingSchedules,
+  userPreferences,
   type User,
   type InsertUser,
   type Project,
@@ -17,6 +18,8 @@ import {
   type InsertManufacturingBay,
   type ManufacturingSchedule,
   type InsertManufacturingSchedule,
+  type UserPreference,
+  type InsertUserPreference,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike } from "drizzle-orm";
@@ -27,6 +30,11 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   upsertUser(user: InsertUser): Promise<User>;
+  
+  // User Preferences methods
+  getUserPreferences(userId: string): Promise<UserPreference | undefined>;
+  createUserPreferences(preferences: InsertUserPreference): Promise<UserPreference>;
+  updateUserPreferences(userId: string, preferences: Partial<InsertUserPreference>): Promise<UserPreference | undefined>;
   
   // Project methods
   getProjects(): Promise<Project[]>;
@@ -102,6 +110,50 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+  
+  // User Preferences methods
+  async getUserPreferences(userId: string): Promise<UserPreference | undefined> {
+    try {
+      const [preferences] = await db
+        .select()
+        .from(userPreferences)
+        .where(eq(userPreferences.userId, userId));
+      return preferences;
+    } catch (error) {
+      console.error("Error fetching user preferences:", error);
+      return undefined;
+    }
+  }
+  
+  async createUserPreferences(preferences: InsertUserPreference): Promise<UserPreference> {
+    try {
+      const [newPreferences] = await db
+        .insert(userPreferences)
+        .values(preferences)
+        .returning();
+      return newPreferences;
+    } catch (error) {
+      console.error("Error creating user preferences:", error);
+      throw error;
+    }
+  }
+  
+  async updateUserPreferences(userId: string, preferences: Partial<InsertUserPreference>): Promise<UserPreference | undefined> {
+    try {
+      const [updatedPreferences] = await db
+        .update(userPreferences)
+        .set({ 
+          ...preferences, 
+          updatedAt: new Date() 
+        })
+        .where(eq(userPreferences.userId, userId))
+        .returning();
+      return updatedPreferences;
+    } catch (error) {
+      console.error("Error updating user preferences:", error);
+      return undefined;
+    }
   }
   
   // Project methods
