@@ -22,7 +22,8 @@ import {
   type InsertUserPreference,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, like, sql, desc, asc, count, ilike } from "drizzle-orm";
+import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL } from "drizzle-orm";
+import { PgSelectBase } from "drizzle-orm/pg-core";
 
 export interface IStorage {
   // User methods
@@ -299,31 +300,113 @@ export class DatabaseStorage implements IStorage {
   
   // Manufacturing Schedule methods
   async getManufacturingSchedules(filters?: { bayId?: number, projectId?: number, startDate?: Date, endDate?: Date }): Promise<ManufacturingSchedule[]> {
-    let query = db.select().from(manufacturingSchedules);
+    // When no filters are provided, return all schedules
+    if (!filters) {
+      return await db.select().from(manufacturingSchedules).orderBy(manufacturingSchedules.startDate);
+    }
     
-    if (filters) {
-      if (filters.bayId) {
-        query = query.where(eq(manufacturingSchedules.bayId, filters.bayId));
-      }
+    // Handle individual filter cases for type safety
+    const { bayId, projectId, startDate, endDate } = filters;
+    
+    // Filter by bayId only
+    if (bayId && !projectId && !startDate && !endDate) {
+      return await db.select()
+        .from(manufacturingSchedules)
+        .where(eq(manufacturingSchedules.bayId, bayId))
+        .orderBy(manufacturingSchedules.startDate);
+    }
+    
+    // Filter by projectId only
+    if (!bayId && projectId && !startDate && !endDate) {
+      return await db.select()
+        .from(manufacturingSchedules)
+        .where(eq(manufacturingSchedules.projectId, projectId))
+        .orderBy(manufacturingSchedules.startDate);
+    }
+    
+    // Filter by date range only
+    if (!bayId && !projectId && startDate && endDate) {
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
       
-      if (filters.projectId) {
-        query = query.where(eq(manufacturingSchedules.projectId, filters.projectId));
-      }
-      
-      if (filters.startDate && filters.endDate) {
-        const startDateStr = filters.startDate.toISOString().split('T')[0];
-        const endDateStr = filters.endDate.toISOString().split('T')[0];
-        
-        query = query.where(
+      return await db.select()
+        .from(manufacturingSchedules)
+        .where(
           and(
             lte(manufacturingSchedules.startDate, endDateStr),
             gte(manufacturingSchedules.endDate, startDateStr)
           )
-        );
-      }
+        )
+        .orderBy(manufacturingSchedules.startDate);
     }
     
-    return await query.orderBy(manufacturingSchedules.startDate);
+    // Filter by bayId and projectId
+    if (bayId && projectId && !startDate && !endDate) {
+      return await db.select()
+        .from(manufacturingSchedules)
+        .where(
+          and(
+            eq(manufacturingSchedules.bayId, bayId),
+            eq(manufacturingSchedules.projectId, projectId)
+          )
+        )
+        .orderBy(manufacturingSchedules.startDate);
+    }
+    
+    // Filter by bayId and date range
+    if (bayId && !projectId && startDate && endDate) {
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      return await db.select()
+        .from(manufacturingSchedules)
+        .where(
+          and(
+            eq(manufacturingSchedules.bayId, bayId),
+            lte(manufacturingSchedules.startDate, endDateStr),
+            gte(manufacturingSchedules.endDate, startDateStr)
+          )
+        )
+        .orderBy(manufacturingSchedules.startDate);
+    }
+    
+    // Filter by projectId and date range
+    if (!bayId && projectId && startDate && endDate) {
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      return await db.select()
+        .from(manufacturingSchedules)
+        .where(
+          and(
+            eq(manufacturingSchedules.projectId, projectId),
+            lte(manufacturingSchedules.startDate, endDateStr),
+            gte(manufacturingSchedules.endDate, startDateStr)
+          )
+        )
+        .orderBy(manufacturingSchedules.startDate);
+    }
+    
+    // Filter by all criteria
+    if (bayId && projectId && startDate && endDate) {
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      return await db.select()
+        .from(manufacturingSchedules)
+        .where(
+          and(
+            eq(manufacturingSchedules.bayId, bayId),
+            eq(manufacturingSchedules.projectId, projectId),
+            lte(manufacturingSchedules.startDate, endDateStr),
+            gte(manufacturingSchedules.endDate, startDateStr)
+          )
+        )
+        .orderBy(manufacturingSchedules.startDate);
+    }
+    
+    // Default - no specific filters matched
+    return await db.select().from(manufacturingSchedules).orderBy(manufacturingSchedules.startDate);
   }
   
   async getManufacturingSchedule(id: number): Promise<ManufacturingSchedule | undefined> {

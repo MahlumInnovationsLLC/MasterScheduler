@@ -20,7 +20,7 @@ export function ProgressBadge({
       case 'On Track':
         return 'bg-success bg-opacity-10 text-success';
       case 'Delayed':
-        return 'bg-warning bg-opacity-10 text-warning';
+        return 'bg-danger bg-opacity-10 text-danger';
       case 'Completed':
         return 'bg-success bg-opacity-10 text-success';
       case 'Critical':
@@ -32,7 +32,6 @@ export function ProgressBadge({
       case 'Upcoming':
         return 'bg-gray-700 text-gray-300';
       case 'Overdue':
-      case 'Delayed':
         return 'bg-danger bg-opacity-10 text-danger';
       case 'Scheduled':
         return 'bg-success bg-opacity-10 text-success';
