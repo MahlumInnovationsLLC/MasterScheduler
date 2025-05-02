@@ -382,15 +382,12 @@ export class DatabaseStorage implements IStorage {
       if (filters.startDate && filters.endDate) {
         // For date range queries, find schedules that overlap with the given range
         conditions.push(
-          and(
-            lte(manufacturingSchedules.startDate, filters.endDate),
-            gte(manufacturingSchedules.endDate, filters.startDate)
-          )
+          sql`${manufacturingSchedules.startDate} <= ${filters.endDate.toISOString().split('T')[0]} AND ${manufacturingSchedules.endDate} >= ${filters.startDate.toISOString().split('T')[0]}`
         );
       } else if (filters.startDate) {
-        conditions.push(gte(manufacturingSchedules.startDate, filters.startDate));
+        conditions.push(sql`${manufacturingSchedules.startDate} >= ${filters.startDate.toISOString().split('T')[0]}`);
       } else if (filters.endDate) {
-        conditions.push(lte(manufacturingSchedules.endDate, filters.endDate));
+        conditions.push(sql`${manufacturingSchedules.endDate} <= ${filters.endDate.toISOString().split('T')[0]}`);
       }
       
       if (conditions.length > 0) {
@@ -475,7 +472,7 @@ export class DatabaseStorage implements IStorage {
         if (regex.test(email)) {
           return { 
             allowed: true, 
-            autoApprove: pattern.autoApprove,
+            autoApprove: pattern.autoApprove === null ? false : pattern.autoApprove,
             defaultRole: pattern.defaultRole || "viewer"
           };
         }
@@ -523,7 +520,9 @@ export class DatabaseStorage implements IStorage {
         query = query.limit(options.limit);
       }
       
-      return await query;
+      // Execute the query and get the results
+      const results = await query;
+      return results as Notification[];
     } catch (error) {
       console.error("Error fetching notifications:", error);
       return [];

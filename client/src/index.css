@@ -59,14 +59,14 @@
 /* Light theme */
 .light {
   --background: 0 0% 98%; 
-  --foreground: 240 10% 10%; /* Darker text for better readability */
+  --foreground: 240 10% 3%; /* Much darker text for better readability */
   --muted: 240 5% 90%;
-  --muted-foreground: 240 3.7% 25%; /* Darker muted text */
+  --muted-foreground: 240 3.7% 20%; /* Darker muted text for better contrast */
   --popover: 0 0% 98%;
-  --popover-foreground: 240 10% 10%;
+  --popover-foreground: 240 10% 3%;
   --card: 0 0% 98%;
-  --card-foreground: 240 10% 10%;
-  --border: 240 5% 80%; /* Slightly darker border */
+  --card-foreground: 240 10% 3%;
+  --border: 240 5% 75%; /* Darker border for better visibility */
   --input: 240 5% 90%;
   --primary: 217 90% 45%; /* Slightly darker for better contrast */
   --primary-foreground: 211 100% 99%;
