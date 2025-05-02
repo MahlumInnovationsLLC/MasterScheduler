@@ -294,7 +294,7 @@ const UserPreferences = () => {
                       <Label htmlFor="username">Username</Label>
                       <Input 
                         id="username" 
-                        value={(user && 'username' in user) ? user.username : ''} 
+                        value={user && typeof user === 'object' && 'username' in user ? (user as any).username || '' : ''} 
                         disabled 
                         className="bg-gray-800 cursor-not-allowed"
                       />
@@ -307,7 +307,7 @@ const UserPreferences = () => {
                       <Label htmlFor="email">Email Address</Label>
                       <Input 
                         id="email" 
-                        value={(user && 'email' in user) ? user.email : ''} 
+                        value={user && typeof user === 'object' && 'email' in user ? (user as any).email || '' : ''} 
                         disabled 
                         className="bg-gray-800 cursor-not-allowed"
                       />

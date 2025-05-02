@@ -41,7 +41,6 @@ import { User as UserType } from '@shared/schema';
 
 const Header = () => {
   const { user, isLoading, isAuthenticated } = useAuth();
-  const [settingsOpen, setSettingsOpen] = useState(false);
   
   const typedUser = user as UserType | undefined;
   
@@ -122,113 +121,11 @@ const Header = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Settings className="h-5 w-5 text-gray-400" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[525px]">
-                  <DialogHeader>
-                    <DialogTitle>Settings</DialogTitle>
-                    <DialogDescription>
-                      Configure your application preferences and settings
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <Tabs defaultValue="account" className="mt-4">
-                    <TabsList className="grid grid-cols-4">
-                      <TabsTrigger value="account">Account</TabsTrigger>
-                      <TabsTrigger value="appearance">Appearance</TabsTrigger>
-                      <TabsTrigger value="notifications">Notifications</TabsTrigger>
-                      <TabsTrigger value="system">System</TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="account" className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-medium">Account Information</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="name">Name</Label>
-                            <div className="py-2">{typedUser?.username || 'Not available'}</div>
-                          </div>
-                          <div>
-                            <Label htmlFor="email">Email</Label>
-                            <div className="py-2">{typedUser?.email || 'Not available'}</div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-medium">Two-Factor Authentication</h3>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="two-factor" />
-                          <Label htmlFor="two-factor">Enable two-factor authentication</Label>
-                        </div>
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="appearance" className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-medium">Theme</h3>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="dark-mode" defaultChecked />
-                          <Label htmlFor="dark-mode">Dark mode</Label>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-medium">Dashboard Layout</h3>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="compact-view" />
-                          <Label htmlFor="compact-view">Compact view</Label>
-                        </div>
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="notifications" className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-medium">Notification Preferences</h3>
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Switch id="email-notifications" defaultChecked />
-                            <Label htmlFor="email-notifications">Email notifications</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Switch id="push-notifications" defaultChecked />
-                            <Label htmlFor="push-notifications">In-app notifications</Label>
-                          </div>
-                        </div>
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="system" className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-medium">System Settings</h3>
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Switch id="auto-refresh" defaultChecked />
-                            <Label htmlFor="auto-refresh">Auto refresh data</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Switch id="ai-features" defaultChecked />
-                            <Label htmlFor="ai-features">AI-powered insights</Label>
-                          </div>
-                        </div>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                  
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setSettingsOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={() => setSettingsOpen(false)}>
-                      Save Changes
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <Button variant="ghost" size="icon" asChild>
+                <Link href="/settings/system">
+                  <Settings className="h-5 w-5 text-gray-400" />
+                </Link>
+              </Button>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -255,17 +152,18 @@ const Header = () => {
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="cursor-pointer" 
-                    onClick={() => setSettingsOpen(true)}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </DropdownMenuItem>
+                  <Link href="/settings/user">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>User Preferences</span>
+                    </DropdownMenuItem>
+                  </Link>
+                  <Link href="/settings/system">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>System Settings</span>
+                    </DropdownMenuItem>
+                  </Link>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     className="cursor-pointer"
