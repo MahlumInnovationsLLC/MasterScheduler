@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'wouter';
 import { 
-  Bell, 
   Settings, 
   Search,
   User,
@@ -19,6 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 import { User as UserType } from '@shared/schema';
+import { NotificationBell } from '@/components/ui/notification/NotificationBell';
 
 const Header = () => {
   const { user, isLoading, isAuthenticated } = useAuth();

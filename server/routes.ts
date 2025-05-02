@@ -689,6 +689,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Notification Routes
+  app.get("/api/notifications", withAuthInfo, getNotifications);
+  app.get("/api/notifications/unread/count", isAuthenticated, getUnreadNotificationCount);
+  app.post("/api/notifications", isAuthenticated, isAdmin, validateRequest(insertNotificationSchema), createNotification);
+  app.put("/api/notifications/:id/read", isAuthenticated, markNotificationAsRead);
+  app.put("/api/notifications/read-all", isAuthenticated, markAllNotificationsAsRead);
+  app.delete("/api/notifications/:id", isAuthenticated, deleteNotification);
+  
+  // Notification generation routes - typically called via cron, but can be manually triggered
+  app.post("/api/notifications/generate/billing", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const count = await generateBillingNotifications();
+      res.json({ success: true, count, message: `Generated ${count} billing notifications` });
+    } catch (error) {
+      console.error("Error generating billing notifications:", error);
+      res.status(500).json({ success: false, message: "Error generating billing notifications" });
+    }
+  });
+  
+  app.post("/api/notifications/generate/manufacturing", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const count = await generateManufacturingNotifications();
+      res.json({ success: true, count, message: `Generated ${count} manufacturing notifications` });
+    } catch (error) {
+      console.error("Error generating manufacturing notifications:", error);
+      res.status(500).json({ success: false, message: "Error generating manufacturing notifications" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
