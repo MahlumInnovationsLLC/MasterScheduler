@@ -16,22 +16,22 @@ import { useLocation } from 'wouter';
 
 export function NotificationBell() {
   const { 
-    notifications, 
-    unreadCount, 
+    notifications = [], 
+    unreadCount = 0, 
     markAsRead, 
     markAllAsRead,
     deleteNotification
   } = useNotifications();
   const [open, setOpen] = React.useState(false);
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
 
-  const handleClick = (notification: any) => {
+  const handleClick = (notification: Notification) => {
     if (!notification.isRead) {
       markAsRead.mutate(notification.id);
     }
     
     if (notification.link) {
-      navigate(notification.link);
+      setLocation(notification.link);
       setOpen(false);
     }
   };
@@ -47,17 +47,17 @@ export function NotificationBell() {
 
   // Group notifications by date
   const groupedNotifications = React.useMemo(() => {
-    const groups: Record<string, any[]> = {
+    const groups: Record<string, Notification[]> = {
       'Today': [],
       'This Week': [],
       'Earlier': []
     };
     
-    notifications.forEach(notification => {
+    (notifications as Notification[]).forEach(notification => {
       const date = new Date(notification.createdAt);
       const now = new Date();
       const isToday = date.toDateString() === now.toDateString();
-      const isThisWeek = date > new Date(now.setDate(now.getDate() - 7));
+      const isThisWeek = date > new Date(now.getDate() - 7);
       
       if (isToday) {
         groups['Today'].push(notification);
@@ -100,12 +100,12 @@ export function NotificationBell() {
   };
   
   // Get badge color for notification type
-  const getBadgeVariant = (type: string) => {
+  const getBadgeVariant = (type: string): "default" | "destructive" | "outline" | "secondary" => {
     switch (type) {
       case 'billing': return 'destructive';
-      case 'manufacturing': return 'blue';
-      case 'project': return 'green';
-      case 'system': return 'purple';
+      case 'manufacturing': return 'default';
+      case 'project': return 'default';
+      case 'system': return 'secondary';
       default: return 'secondary';
     }
   };

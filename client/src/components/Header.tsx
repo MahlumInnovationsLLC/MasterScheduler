@@ -59,51 +59,7 @@ const Header = () => {
 
           {isAuthenticated ? (
             <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5 text-muted-foreground" />
-                    <span className="absolute -top-1 -right-1 bg-danger text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">3</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80">
-                  <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <div className="max-h-80 overflow-y-auto">
-                    <DropdownMenuItem className="flex flex-col items-start py-2 cursor-pointer">
-                      <div className="flex items-center gap-2 w-full">
-                        <div className="h-2 w-2 rounded-full bg-danger"></div>
-                        <span className="font-medium">Project PT-1025 at risk</span>
-                      </div>
-                      <p className="text-muted-foreground text-xs mt-1">
-                        Gamma Network Upgrade is behind schedule by 15%
-                      </p>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="flex flex-col items-start py-2 cursor-pointer">
-                      <div className="flex items-center gap-2 w-full">
-                        <div className="h-2 w-2 rounded-full bg-warning"></div>
-                        <span className="font-medium">Billing milestone due</span>
-                      </div>
-                      <p className="text-muted-foreground text-xs mt-1">
-                        Invoice #INV-1024 for Beta Platform is due in 3 days
-                      </p>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="flex flex-col items-start py-2 cursor-pointer">
-                      <div className="flex items-center gap-2 w-full">
-                        <div className="h-2 w-2 rounded-full bg-success"></div>
-                        <span className="font-medium">Payment received</span>
-                      </div>
-                      <p className="text-muted-foreground text-xs mt-1">
-                        Payment of $200,000 received for Alpha System
-                      </p>
-                    </DropdownMenuItem>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="justify-center text-primary font-medium cursor-pointer">
-                    View all notifications
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <NotificationBell />
               
               <Button variant="ghost" size="icon" asChild>
                 <Link href="/settings/system">
