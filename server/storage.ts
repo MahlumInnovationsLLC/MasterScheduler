@@ -395,7 +395,9 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
-    return await query.orderBy(manufacturingSchedules.startDate);
+    // Execute the query and get the results
+    const results = await query.orderBy(manufacturingSchedules.startDate);
+    return results as ManufacturingSchedule[];
   }
   
   async getManufacturingSchedule(id: number): Promise<ManufacturingSchedule | undefined> {
