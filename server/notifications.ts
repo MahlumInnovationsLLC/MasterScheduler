@@ -44,7 +44,7 @@ export async function markNotificationAsRead(req: Request, res: Response) {
 // Mark all notifications as read for the current user
 export async function markAllNotificationsAsRead(req: Request, res: Response) {
   try {
-    const userId = (req.user as any)?.claims?.sub;
+    const userId = (req.user as any)?.id;
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -84,7 +84,7 @@ export async function deleteNotification(req: Request, res: Response) {
 // Get unread notification count for the current user
 export async function getUnreadNotificationCount(req: Request, res: Response) {
   try {
-    const userId = (req.user as any)?.claims?.sub;
+    const userId = (req.user as any)?.id;
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
