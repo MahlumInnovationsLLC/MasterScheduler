@@ -437,6 +437,21 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* Fix for section title contrast in light mode */
+.light h1, 
+.light h2, 
+.light h3,
+.light .page-title,
+.light .section-title {
+  color: hsl(240 10% 3%) !important; /* Ensure dark text in light mode */
+}
+
+/* Specifically fix page headers that might be white text */
+.light .text-white,
+.light .text-foreground-white {
+  color: hsl(240 10% 3%) !important;
+}
+
 /* Table enhancements for light mode */
 .light table {
   border-collapse: separate;
