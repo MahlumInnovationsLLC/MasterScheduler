@@ -110,8 +110,14 @@ export function setupSession(app: Express) {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      // Set secure based on protocol - only set to true if using HTTPS
+      secure: process.env.NODE_ENV === "production" && process.env.REPLIT_DOMAINS !== undefined,
       maxAge: sessionTtl,
+      // Add SameSite attribute to improve cookie handling across browsers
+      sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
+      // Allow cookies to be used across subdomains
+      domain: process.env.NODE_ENV === "production" ? 
+        (process.env.REPLIT_DOMAINS ? `.${process.env.REPLIT_DOMAINS.split(',')[0]}` : undefined) : undefined,
     },
   }));
   
@@ -159,15 +165,25 @@ export function setupLocalAuth(app: Express) {
   
   // Serialize user to session
   passport.serializeUser((user: any, done) => {
+    console.log('Serializing user:', user.id);
     done(null, user.id);
   });
   
   // Deserialize user from session
   passport.deserializeUser(async (id: string, done) => {
     try {
+      console.log('Deserializing user ID:', id);
       const user = await storage.getUser(id);
-      done(null, user || undefined);
+      
+      if (!user) {
+        console.log('User not found during deserialization. ID:', id);
+        return done(null, false);
+      }
+      
+      console.log('User successfully deserialized:', user.id);
+      done(null, user);
     } catch (error) {
+      console.error('Error deserializing user:', error);
       done(error);
     }
   });
