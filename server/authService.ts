@@ -9,19 +9,11 @@ import { z } from "zod";
 import { db } from "./db";
 import { storage } from "./storage";
 import { eq } from "drizzle-orm";
-import { users } from "@shared/schema";
+import { users, type User } from "@shared/schema";
 import type { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
 import { ParamsDictionary } from "express-serve-static-core";
 import { ParsedQs } from "qs";
-
-// Define authenticated request interface
-interface AuthenticatedRequest {
-  user: any;
-  isAuthenticated(): boolean;
-  login(user: any, callback: (err: any) => void): void;
-  logout(callback: (err: any) => void): void;
-}
 
 // Extend Express Request type
 declare global {
@@ -32,18 +24,22 @@ declare global {
       hasEditRights?: boolean;
     }
     
+    // SessionUser interface for session
     interface User {
       id: string;
       username: string;
-      email: string;
-      role?: string;
-      isApproved?: boolean;
-      firstName?: string;
-      lastName?: string;
-      lastLogin?: Date;
-      password?: string;
-      passwordResetToken?: string;
-      passwordResetExpires?: Date;
+      email?: string | null;
+      role?: string | null;
+      isApproved?: boolean | null;
+      firstName?: string | null;
+      lastName?: string | null;
+      lastLogin?: Date | null;
+      // Sensitive fields - will be omitted when sending to client
+      password?: string | null;
+      passwordResetToken?: string | null;
+      passwordResetExpires?: Date | null;
+      createdAt?: Date | null;
+      updatedAt?: Date | null;
     }
   }
 }

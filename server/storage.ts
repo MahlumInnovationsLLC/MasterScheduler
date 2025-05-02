@@ -157,6 +157,12 @@ export class DatabaseStorage implements IStorage {
     );
   }
   
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return await safeSingleQuery<User>(() =>
+      db.select().from(users).where(eq(users.email, email))
+    );
+  }
+  
   async getUsers(): Promise<User[]> {
     return await safeQuery<User>(() =>
       db.select().from(users).orderBy(desc(users.updatedAt))
