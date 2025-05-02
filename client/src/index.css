@@ -477,3 +477,214 @@
 .dark table.zebra-striped tbody tr:nth-child(even) {
   background-color: rgba(255, 255, 255, 0.02);
 }
+
+/* Card hover effects */
+.card {
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.12);
+}
+
+.dark .card:hover {
+  box-shadow: 0 8px 22px -8px rgba(0, 0, 0, 0.7);
+}
+
+/* Interactive elements hover */
+.button-hover-effect {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.button-hover-effect:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+
+.button-hover-effect:hover:before {
+  transform: translateX(0);
+}
+
+.dark .button-hover-effect:before {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.light .button-hover-effect:before {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+/* Form field improvements */
+.form-field-focus {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dark .form-field-focus:focus-visible {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsla(var(--primary), 0.25);
+  outline: none;
+}
+
+.light .form-field-focus:focus-visible {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsla(var(--primary), 0.15);
+  outline: none;
+}
+
+/* Button enhancements */
+.btn-primary {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background: linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.btn-primary:hover:after {
+  opacity: 1;
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+/* Custom scale animations */
+.scale-on-hover {
+  transition: transform 0.2s ease;
+}
+
+.scale-on-hover:hover {
+  transform: scale(1.03);
+}
+
+/* Entry/exit animations */
+.enter-from-right {
+  animation: enterFromRight 0.3s forwards;
+}
+
+.enter-from-left {
+  animation: enterFromLeft 0.3s forwards;
+}
+
+.enter-from-bottom {
+  animation: enterFromBottom 0.3s forwards;
+}
+
+@keyframes enterFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes enterFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes enterFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced button styling */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn svg {
+  transition: transform 0.2s ease;
+}
+
+.btn:hover svg {
+  transform: translateX(2px);
+}
+
+.btn.loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.btn.loading:before {
+  content: '';
+  position: absolute;
+  top: calc(50% - 0.5rem);
+  left: calc(50% - 0.5rem);
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: button-spin 0.6s linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Custom color variants */
+.primary-gradient {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-darker, calc(var(--primary-hue) var(--primary-saturation) 35%))));
+}
+
+.success-gradient {
+  background: linear-gradient(135deg, hsl(var(--success)), hsl(var(--success-darker, calc(var(--success-hue) var(--success-saturation) 35%))));
+}
+
+.warning-gradient {
+  background: linear-gradient(135deg, hsl(var(--warning)), hsl(var(--warning-darker, calc(var(--warning-hue) var(--warning-saturation) 35%))));
+}
+
+.danger-gradient {
+  background: linear-gradient(135deg, hsl(var(--danger)), hsl(var(--danger-darker, calc(var(--danger-hue) var(--danger-saturation) 35%))));
+}

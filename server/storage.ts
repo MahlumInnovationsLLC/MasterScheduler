@@ -404,22 +404,26 @@ export class DatabaseStorage implements IStorage {
   
   // Manufacturing Schedule methods
   async getManufacturingSchedules(filters?: { bayId?: number, projectId?: number, startDate?: Date, endDate?: Date }): Promise<ManufacturingSchedule[]> {
-    return await safeQuery<ManufacturingSchedule>(async () => {
-      let query = db.select().from(manufacturingSchedules);
+    try {
+      // Base query
+      let baseQuery = db.select().from(manufacturingSchedules);
       
       if (filters) {
         const conditions = [];
         
+        // Add bay filter
         if (filters.bayId !== undefined) {
           conditions.push(eq(manufacturingSchedules.bayId, filters.bayId));
         }
         
+        // Add project filter
         if (filters.projectId !== undefined) {
           conditions.push(eq(manufacturingSchedules.projectId, filters.projectId));
         }
         
+        // Add date range filters
         if (filters.startDate && filters.endDate) {
-          // For date range queries, find schedules that overlap with the given range
+          // Find schedules that overlap with the given range
           conditions.push(
             sql`${manufacturingSchedules.startDate} <= ${filters.endDate.toISOString().split('T')[0]} AND ${manufacturingSchedules.endDate} >= ${filters.startDate.toISOString().split('T')[0]}`
           );
@@ -429,14 +433,21 @@ export class DatabaseStorage implements IStorage {
           conditions.push(sql`${manufacturingSchedules.endDate} <= ${filters.endDate.toISOString().split('T')[0]}`);
         }
         
+        // Apply all conditions
         if (conditions.length > 0) {
-          query = query.where(and(...conditions));
+          baseQuery = baseQuery.where(and(...conditions));
         }
       }
       
-      // Execute the query and return the results
-      return await query.orderBy(manufacturingSchedules.startDate);
-    });
+      // Execute query with sorting
+      const results = await baseQuery.orderBy(manufacturingSchedules.startDate);
+      
+      // Cast and return the results
+      return castSqlResult<ManufacturingSchedule>(results);
+    } catch (error) {
+      console.error("Error fetching manufacturing schedules:", error);
+      return [];
+    }
   }
   
   async getManufacturingSchedule(id: number): Promise<ManufacturingSchedule | undefined> {
@@ -530,18 +541,20 @@ export class DatabaseStorage implements IStorage {
 
   // Notification methods
   async getNotifications(userId?: string, options?: { unreadOnly?: boolean, limit?: number }): Promise<Notification[]> {
-    return await safeQuery<Notification>(async () => {
-      let query = db.select().from(notifications);
+    try {
+      // Building the query
+      let baseQuery = db.select().from(notifications);
       
+      // Filter conditions
       if (userId) {
-        // Either get notifications for a specific user OR get global notifications (userId is null)
-        query = query.where(
+        // Get notifications for specific user OR global notifications
+        baseQuery = baseQuery.where(
           and(
             or(
               eq(notifications.userId, userId),
               isNull(notifications.userId)
             ),
-            // If expiration date is provided, only get not-expired notifications
+            // Only get non-expired notifications
             or(
               isNull(notifications.expiresAt),
               gte(notifications.expiresAt, new Date())
@@ -550,21 +563,28 @@ export class DatabaseStorage implements IStorage {
         );
       }
       
+      // Filter for unread notifications if requested
       if (options?.unreadOnly) {
-        query = query.where(eq(notifications.isRead, false));
+        baseQuery = baseQuery.where(eq(notifications.isRead, false));
       }
       
-      // Sort by creation date descending (newest first)
-      query = query.orderBy(desc(notifications.createdAt));
+      // Sorting newest first
+      baseQuery = baseQuery.orderBy(desc(notifications.createdAt));
       
-      // Apply limit if provided
+      // Add limit if provided
       if (options?.limit) {
-        query = query.limit(options.limit);
+        baseQuery = baseQuery.limit(options.limit);
       }
       
-      // Execute the query and return the results
-      return await query;
-    });
+      // Execute the query
+      const results = await baseQuery;
+      
+      // Cast and return the results
+      return castSqlResult<Notification>(results);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      return [];
+    }
   }
   
   async getNotificationById(id: number): Promise<Notification | undefined> {
