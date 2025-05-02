@@ -55,40 +55,45 @@ pathsToCheck.forEach(p => {
 });
 
 // Try to connect to the database if DATABASE_URL exists
+console.log('\n=== Database Connection Test ===');
 if (process.env.DATABASE_URL) {
-  console.log('\n=== Database Connection Test ===');
+  console.log('DATABASE_URL is present, will attempt connection');
   
-  try {
-    const { Pool } = require('@neondatabase/serverless');
-    const pool = new Pool({ 
-      connectionString: process.env.DATABASE_URL,
-      max: 1
-    });
-
-    // Test the connection
-    pool.connect()
-      .then(client => {
-        console.log('Database connection successful!');
-        client.query('SELECT NOW()')
-          .then(result => {
-            console.log('Database time:', result.rows[0].now);
-            client.release();
-            pool.end();
-          })
-          .catch(err => {
-            console.error('Error executing query:', err);
-            client.release();
-            pool.end();
+  // Using dynamic import for ESM compatibility
+  import('@neondatabase/serverless')
+    .then(({ Pool }) => {
+      try {
+        const pool = new Pool({ 
+          connectionString: process.env.DATABASE_URL,
+          max: 1
+        });
+        
+        console.log('Pool created, attempting connection...');
+        
+        // Test the connection
+        return pool.connect()
+          .then(client => {
+            console.log('Database connection successful!');
+            return client.query('SELECT NOW()')
+              .then(result => {
+                console.log('Database time:', result.rows[0].now);
+                client.release();
+                return pool.end();
+              })
+              .catch(err => {
+                console.error('Error executing query:', err);
+                client.release();
+                return pool.end();
+              });
           });
-      })
-      .catch(err => {
-        console.error('Error connecting to database:', err);
-      });
-  } catch (error) {
-    console.error('Error setting up database connection:', error);
-  }
+      } catch (error) {
+        console.error('Error setting up database connection:', error);
+      }
+    })
+    .catch(err => {
+      console.error('Error importing pool:', err);
+    });
 } else {
-  console.log('\n=== Database Connection Test ===');
   console.log('Skipping database test - DATABASE_URL not available');
 }
 
