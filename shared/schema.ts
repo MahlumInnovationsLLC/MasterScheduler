@@ -48,6 +48,20 @@ export const userRoleEnum = pgEnum("user_role", [
   "pending",
 ]);
 
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "billing",
+  "project",
+  "manufacturing",
+  "system",
+]);
+
+export const notificationPriorityEnum = pgEnum("notification_priority", [
+  "low",
+  "medium",
+  "high",
+  "critical",
+]);
+
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const sessions = pgTable(
@@ -275,6 +289,43 @@ export const allowedEmails = pgTable("allowed_emails", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Notifications Table
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: notificationTypeEnum("type").default("system").notNull(),
+  priority: notificationPriorityEnum("priority").default("low").notNull(),
+  isRead: boolean("is_read").default(false),
+  relatedProjectId: integer("related_project_id").references(() => projects.id),
+  relatedMilestoneId: integer("related_milestone_id").references(() => billingMilestones.id),
+  relatedScheduleId: integer("related_schedule_id").references(() => manufacturingSchedules.id),
+  link: text("link"), // Internal app link for navigation
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at"), // Optional expiration time
+});
+
+// Notification Relations
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  project: one(projects, {
+    fields: [notifications.relatedProjectId],
+    references: [projects.id],
+  }),
+  milestone: one(billingMilestones, {
+    fields: [notifications.relatedMilestoneId],
+    references: [billingMilestones.id],
+  }),
+  schedule: one(manufacturingSchedules, {
+    fields: [notifications.relatedScheduleId],
+    references: [manufacturingSchedules.id],
+  }),
+}));
+
 // Insert Schemas
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -330,9 +381,18 @@ export const insertAllowedEmailSchema = createInsertSchema(allowedEmails).omit({
   updatedAt: true,
 });
 
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+  isRead: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 export type UserPreference = typeof userPreferences.$inferSelect;
 export type InsertUserPreference = z.infer<typeof insertUserPreferencesSchema>;

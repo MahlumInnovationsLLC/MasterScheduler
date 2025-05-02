@@ -28,7 +28,7 @@ import {
   type InsertNotification,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, or } from "drizzle-orm";
+import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull } from "drizzle-orm";
 import { PgSelectBase } from "drizzle-orm/pg-core";
 
 export interface IStorage {
@@ -366,39 +366,113 @@ export class DatabaseStorage implements IStorage {
   
   // Manufacturing Schedule methods
   async getManufacturingSchedules(filters?: { bayId?: number, projectId?: number, startDate?: Date, endDate?: Date }): Promise<ManufacturingSchedule[]> {
-    let query = db.select().from(manufacturingSchedules);
-    
-    if (filters) {
-      const conditions = [];
-      
-      if (filters.bayId !== undefined) {
-        conditions.push(eq(manufacturingSchedules.bayId, filters.bayId));
-      }
-      
-      if (filters.projectId !== undefined) {
-        conditions.push(eq(manufacturingSchedules.projectId, filters.projectId));
-      }
-      
-      if (filters.startDate && filters.endDate) {
-        // For date range queries, find schedules that overlap with the given range
-        conditions.push(
-          and(
-            lte(manufacturingSchedules.startDate, filters.endDate),
-            gte(manufacturingSchedules.endDate, filters.startDate)
-          )
-        );
-      } else if (filters.startDate) {
-        conditions.push(gte(manufacturingSchedules.startDate, filters.startDate));
-      } else if (filters.endDate) {
-        conditions.push(lte(manufacturingSchedules.endDate, filters.endDate));
-      }
-      
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
+    // When no filters are provided, return all schedules
+    if (!filters) {
+      return await db.select().from(manufacturingSchedules).orderBy(manufacturingSchedules.startDate);
     }
     
-    return await query.orderBy(manufacturingSchedules.startDate);
+    // Handle individual filter cases for type safety
+    const { bayId, projectId, startDate, endDate } = filters;
+    
+    // Filter by bayId only
+    if (bayId && !projectId && !startDate && !endDate) {
+      return await db.select()
+        .from(manufacturingSchedules)
+        .where(eq(manufacturingSchedules.bayId, bayId))
+        .orderBy(manufacturingSchedules.startDate);
+    }
+    
+    // Filter by projectId only
+    if (!bayId && projectId && !startDate && !endDate) {
+      return await db.select()
+        .from(manufacturingSchedules)
+        .where(eq(manufacturingSchedules.projectId, projectId))
+        .orderBy(manufacturingSchedules.startDate);
+    }
+    
+    // Filter by date range only
+    if (!bayId && !projectId && startDate && endDate) {
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      return await db.select()
+        .from(manufacturingSchedules)
+        .where(
+          and(
+            lte(manufacturingSchedules.startDate, endDateStr),
+            gte(manufacturingSchedules.endDate, startDateStr)
+          )
+        )
+        .orderBy(manufacturingSchedules.startDate);
+    }
+    
+    // Filter by bayId and projectId
+    if (bayId && projectId && !startDate && !endDate) {
+      return await db.select()
+        .from(manufacturingSchedules)
+        .where(
+          and(
+            eq(manufacturingSchedules.bayId, bayId),
+            eq(manufacturingSchedules.projectId, projectId)
+          )
+        )
+        .orderBy(manufacturingSchedules.startDate);
+    }
+    
+    // Filter by bayId and date range
+    if (bayId && !projectId && startDate && endDate) {
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      return await db.select()
+        .from(manufacturingSchedules)
+        .where(
+          and(
+            eq(manufacturingSchedules.bayId, bayId),
+            lte(manufacturingSchedules.startDate, endDateStr),
+            gte(manufacturingSchedules.endDate, startDateStr)
+          )
+        )
+        .orderBy(manufacturingSchedules.startDate);
+    }
+    
+    // Filter by projectId and date range
+    if (!bayId && projectId && startDate && endDate) {
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      return await db.select()
+        .from(manufacturingSchedules)
+        .where(
+          and(
+            eq(manufacturingSchedules.projectId, projectId),
+            lte(manufacturingSchedules.startDate, endDateStr),
+            gte(manufacturingSchedules.endDate, startDateStr)
+          )
+        )
+        .orderBy(manufacturingSchedules.startDate);
+    }
+    
+    // Filter by all criteria
+    if (bayId && projectId && startDate && endDate) {
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      return await db.select()
+        .from(manufacturingSchedules)
+        .where(
+          and(
+            eq(manufacturingSchedules.bayId, bayId),
+            eq(manufacturingSchedules.projectId, projectId),
+            lte(manufacturingSchedules.startDate, endDateStr),
+            gte(manufacturingSchedules.endDate, startDateStr)
+          )
+        )
+        .orderBy(manufacturingSchedules.startDate);
+    }
+    
+    // Default - no specific filters matched
+    return await db.select().from(manufacturingSchedules).orderBy(manufacturingSchedules.startDate);
   }
   
   async getManufacturingSchedule(id: number): Promise<ManufacturingSchedule | undefined> {
@@ -424,29 +498,29 @@ export class DatabaseStorage implements IStorage {
     await db.delete(manufacturingSchedules).where(eq(manufacturingSchedules.id, id));
     return true;
   }
-  
-  // Allowed Emails
+
+  // Allowed Emails methods
   async getAllowedEmails(): Promise<AllowedEmail[]> {
     return await db.select().from(allowedEmails).orderBy(allowedEmails.emailPattern);
   }
   
   async getAllowedEmail(id: number): Promise<AllowedEmail | undefined> {
-    const [email] = await db.select().from(allowedEmails).where(eq(allowedEmails.id, id));
-    return email;
+    const [pattern] = await db.select().from(allowedEmails).where(eq(allowedEmails.id, id));
+    return pattern;
   }
   
   async createAllowedEmail(allowedEmail: InsertAllowedEmail): Promise<AllowedEmail> {
-    const [email] = await db.insert(allowedEmails).values(allowedEmail).returning();
-    return email;
+    const [newPattern] = await db.insert(allowedEmails).values(allowedEmail).returning();
+    return newPattern;
   }
   
   async updateAllowedEmail(id: number, allowedEmail: Partial<InsertAllowedEmail>): Promise<AllowedEmail | undefined> {
-    const [updatedEmail] = await db
+    const [updatedPattern] = await db
       .update(allowedEmails)
       .set({ ...allowedEmail, updatedAt: new Date() })
       .where(eq(allowedEmails.id, id))
       .returning();
-    return updatedEmail;
+    return updatedPattern;
   }
   
   async deleteAllowedEmail(id: number): Promise<boolean> {
@@ -455,40 +529,40 @@ export class DatabaseStorage implements IStorage {
   }
   
   async checkIsEmailAllowed(email: string): Promise<{ allowed: boolean, autoApprove: boolean, defaultRole: string } | undefined> {
-    try {
-      if (!email) return { allowed: false, autoApprove: false, defaultRole: "pending" };
-      
-      // Get all allowed email patterns
-      const allowedEmailsList = await this.getAllowedEmails();
-      
-      // No patterns defined, allow anyone but set to pending
-      if (allowedEmailsList.length === 0) {
-        return { allowed: true, autoApprove: false, defaultRole: "pending" };
+    if (!email) {
+      return { allowed: false, autoApprove: false, defaultRole: "pending" };
+    }
+    
+    // Get all allowed email patterns
+    const patterns = await this.getAllowedEmails();
+    
+    for (const pattern of patterns) {
+      // Exact match
+      if (pattern.emailPattern === email) {
+        return { 
+          allowed: true, 
+          autoApprove: pattern.autoApprove === true, 
+          defaultRole: pattern.defaultRole || "viewer"
+        };
       }
       
-      // Check each pattern for a match
-      for (const pattern of allowedEmailsList) {
-        // Convert pattern to regex (replace * with .*)
-        const regexPattern = pattern.emailPattern.replace(/\*/g, '.*');
-        const regex = new RegExp(`^${regexPattern}$`, 'i');
-        
-        if (regex.test(email)) {
+      // Domain match (e.g., *@example.com)
+      if (pattern.emailPattern.startsWith('*@')) {
+        const domain = pattern.emailPattern.substring(2);
+        if (email.endsWith(`@${domain}`)) {
           return { 
             allowed: true, 
-            autoApprove: pattern.autoApprove,
+            autoApprove: pattern.autoApprove === true, 
             defaultRole: pattern.defaultRole || "viewer"
           };
         }
       }
-      
-      // If no match found, return default behavior
-      return { allowed: false, autoApprove: false, defaultRole: "pending" };
-    } catch (error) {
-      console.error("Error checking allowed email:", error);
-      return { allowed: false, autoApprove: false, defaultRole: "pending" };
     }
+    
+    // If no match found, return default behavior
+    return { allowed: false, autoApprove: false, defaultRole: "pending" };
   }
-
+  
   // Notification methods
   async getNotifications(userId?: string, options?: { unreadOnly?: boolean, limit?: number }): Promise<Notification[]> {
     try {

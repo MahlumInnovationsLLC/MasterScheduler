@@ -9,7 +9,8 @@ import {
   insertBillingMilestoneSchema,
   insertManufacturingBaySchema,
   insertManufacturingScheduleSchema,
-  insertUserPreferencesSchema
+  insertUserPreferencesSchema,
+  insertNotificationSchema
 } from "@shared/schema";
 import { setupAuth, isAuthenticated, withAuthInfo, hasEditRights, isAdmin, isEditor } from "./replitAuth";
 import { 
@@ -24,6 +25,16 @@ import {
   generateManufacturingInsights,
   generateTimelineInsights
 } from "./ai";
+import {
+  getNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  deleteNotification,
+  getUnreadNotificationCount,
+  createNotification,
+  generateBillingNotifications,
+  generateManufacturingNotifications
+} from "./notifications";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
