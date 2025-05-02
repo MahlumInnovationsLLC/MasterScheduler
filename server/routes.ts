@@ -583,6 +583,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User Management routes (admin only)
+  app.get("/api/users", isAdmin, async (req, res) => {
+    try {
+      const users = await storage.getUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Error fetching users" });
+    }
+  });
+  
+  app.put("/api/users/:id/role", isAdmin, async (req, res) => {
+    try {
+      const { role, isApproved } = req.body;
+      if (!role || typeof isApproved !== 'boolean') {
+        return res.status(400).json({ message: "Role and approval status are required" });
+      }
+      
+      const updatedUser = await storage.updateUserRole(req.params.id, role, isApproved);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ message: "Error updating user role" });
+    }
+  });
+  
+  // Allowed Email patterns for auto-approval (admin only)
+  app.get("/api/allowed-emails", isAdmin, async (req, res) => {
+    try {
+      const patterns = await storage.getAllowedEmails();
+      res.json(patterns);
+    } catch (error) {
+      console.error("Error fetching allowed email patterns:", error);
+      res.status(500).json({ message: "Error fetching allowed email patterns" });
+    }
+  });
+  
+  app.post("/api/allowed-emails", isAdmin, async (req, res) => {
+    try {
+      const { emailPattern, autoApprove, defaultRole } = req.body;
+      
+      if (!emailPattern) {
+        return res.status(400).json({ message: "Email pattern is required" });
+      }
+      
+      const newPattern = await storage.createAllowedEmail({
+        emailPattern,
+        autoApprove: autoApprove === true,
+        defaultRole: defaultRole || "viewer",
+      });
+      
+      res.status(201).json(newPattern);
+    } catch (error) {
+      console.error("Error creating allowed email pattern:", error);
+      res.status(500).json({ message: "Error creating allowed email pattern" });
+    }
+  });
+  
+  app.put("/api/allowed-emails/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { emailPattern, autoApprove, defaultRole } = req.body;
+      
+      const updatedPattern = await storage.updateAllowedEmail(id, {
+        emailPattern,
+        autoApprove,
+        defaultRole,
+      });
+      
+      if (!updatedPattern) {
+        return res.status(404).json({ message: "Allowed email pattern not found" });
+      }
+      
+      res.json(updatedPattern);
+    } catch (error) {
+      console.error("Error updating allowed email pattern:", error);
+      res.status(500).json({ message: "Error updating allowed email pattern" });
+    }
+  });
+  
+  app.delete("/api/allowed-emails/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteAllowedEmail(id);
+      res.json({ success: result });
+    } catch (error) {
+      console.error("Error deleting allowed email pattern:", error);
+      res.status(500).json({ message: "Error deleting allowed email pattern" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
