@@ -5,6 +5,9 @@ import { z } from "zod";
 import { ZodError } from "zod";
 import crypto from "crypto";
 import passport from "passport";
+import { db } from "./db";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import {
   insertProjectSchema,
   insertTaskSchema,
@@ -535,7 +538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { password, passwordResetToken, passwordResetExpires, ...userInfo } = adminUser;
         
         // Send session cookie explicitly
-        res.cookie('connect.sid', req.sessionID, {
+        res.cookie('tier4.sid', req.sessionID, {
           httpOnly: true,
           secure: false,
           sameSite: 'lax',
