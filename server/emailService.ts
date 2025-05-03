@@ -74,10 +74,13 @@ export async function sendPasswordResetEmail(
 ): Promise<boolean> {
   const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
   
-  const subject = 'Tier IV Project Management - Password Reset';
+  const subject = 'Nomad GCS Project Management - Password Reset';
   
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="margin-bottom: 20px;">
+        <span style="color: #3b82f6; font-weight: bold; font-size: 24px;">TIER<span style="color: #7c3aed;">IV</span><sup style="font-size: 10px; margin-left: 2px;">PRO</sup></span>
+      </div>
       <h2 style="color: #333366;">Reset Your Password</h2>
       <p>You are receiving this email because we received a password reset request for your account.</p>
       <p>Click the button below to reset your password:</p>
@@ -87,7 +90,7 @@ export async function sendPasswordResetEmail(
       <p>If you're having trouble clicking the button, copy and paste the URL below into your web browser:</p>
       <p style="word-break: break-all; color: #666;">${resetUrl}</p>
       <hr style="border: 1px solid #eee; margin: 20px 0;" />
-      <p style="color: #999; font-size: 12px;">Tier IV Project Management System</p>
+      <p style="color: #999; font-size: 12px;">Nomad GCS Project Management System</p>
     </div>
   `;
   
@@ -103,7 +106,7 @@ export async function sendPasswordResetEmail(
     
     This password reset link is only valid for the next 60 minutes.
     
-    Tier IV Project Management System
+    Nomad GCS Project Management System
   `;
   
   return sendEmail({

@@ -111,7 +111,12 @@ export default function AuthPage() {
       <div className="flex flex-col justify-center flex-1 px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
         <div className="w-full max-w-sm mx-auto lg:w-96">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Tier IV Project Management</h1>
+            <div className="flex items-center mb-3">
+              <span className="text-primary font-bold text-3xl font-sans">
+                <span>TIER</span><span className="text-accent">IV</span><span className="text-xs align-top ml-1">PRO</span>
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Nomad GCS Project Management</h1>
             <p className="mt-2 text-sm text-muted-foreground">
               Manage manufacturing projects, billing milestones, and production schedules
             </p>
@@ -199,7 +204,7 @@ export default function AuthPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Register</CardTitle>
-                  <CardDescription>Create a new account to access Tier IV Management</CardDescription>
+                  <CardDescription>Create a new account to access Nomad GCS Project Management</CardDescription>
                 </CardHeader>
                 <form onSubmit={handleRegisterSubmit}>
                   <CardContent className="space-y-4">
