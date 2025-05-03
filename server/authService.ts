@@ -342,18 +342,26 @@ export function setupLocalAuth(app: Express) {
   
   // Get current user route
   app.get('/api/auth/user', async (req, res) => {
+    console.log("GET /api/auth/user - Authentication check:", req.isAuthenticated());
+    console.log("GET /api/auth/user - User object:", req.user);
+    console.log("GET /api/auth/user - Session:", req.session);
+    
     if (!req.isAuthenticated() || !req.user) {
+      console.log("GET /api/auth/user - User not authenticated");
       return res.status(401).json({ message: "Not authenticated" });
     }
     
     try {
       const user = req.user as any;
+      console.log("GET /api/auth/user - Processing authenticated user:", user);
       
-      // Fetch the user from the database if we have a sub claim
+      // Fetch the user from the database if we have a sub claim (Replit Auth)
       if (user.claims?.sub) {
+        console.log("GET /api/auth/user - User has claims.sub, fetching from DB:", user.claims.sub);
         const dbUser = await storage.getUser(user.claims.sub);
         
         if (dbUser) {
+          console.log("GET /api/auth/user - Found user in database:", dbUser);
           // Remove sensitive information
           const { password, passwordResetToken, passwordResetExpires, ...safeUser } = dbUser;
           
@@ -366,18 +374,22 @@ export function setupLocalAuth(app: Express) {
               expires_at: user.expires_at
             }
           });
+        } else {
+          console.log("GET /api/auth/user - User not found in database");
+          return res.status(404).json({ message: "User not found in database" });
         }
       }
       
       // If we don't have a sub claim or can't find the user in the database
-      // just return the session user info
+      // just return the session user info (Local Auth)
+      console.log("GET /api/auth/user - Returning session user info (non-Replit auth)");
       const { password, passwordResetToken, passwordResetExpires, ...safeUser } = user;
       return res.json({
         ...safeUser,
         isAuthenticated: true
       });
     } catch (error) {
-      console.error("Error retrieving user information:", error);
+      console.error("GET /api/auth/user - Error retrieving user information:", error);
       return res.status(500).json({ message: "Failed to retrieve user information" });
     }
   });
@@ -509,21 +521,44 @@ export const isAuthenticated = async (req: Request, res: Response, next: NextFun
   next();
 };
 
-// Middleware to check if user has edit permissions
+// Middleware to check if user has edit permissions, but don't block if not
 export const hasEditRights = async (req: Request, res: Response, next: NextFunction) => {
+  console.log("hasEditRights middleware: checking if user has edit rights");
+  
   // Default - no edit rights
   req.hasEditRights = false;
   req.userRole = undefined;
+  req.userDetails = undefined;
   
   // Check if authenticated
   if (req.isAuthenticated() && req.user) {
     const user = req.user as any;
+    console.log("hasEditRights middleware: user is authenticated", user);
     
-    if (user.isApproved) {
+    // If user has claims (from Replit Auth) we need to get the DB user
+    if (user.claims?.sub) {
+      console.log("hasEditRights middleware: Getting user from DB with ID", user.claims.sub);
+      const dbUser = await storage.getUser(user.claims.sub);
+      
+      if (dbUser && dbUser.isApproved) {
+        console.log("hasEditRights middleware: User is approved with role", dbUser.role);
+        req.hasEditRights = true;
+        req.userRole = dbUser.role;
+        req.userDetails = dbUser;
+      } else {
+        console.log("hasEditRights middleware: User not found in DB or not approved");
+      }
+    } else if (user.isApproved) {
+      // Regular auth (not Replit Auth)
+      console.log("hasEditRights middleware: User is approved with role", user.role);
       req.hasEditRights = true;
       req.userRole = user.role;
       req.userDetails = user;
+    } else {
+      console.log("hasEditRights middleware: User not approved");
     }
+  } else {
+    console.log("hasEditRights middleware: User is not authenticated");
   }
   
   // Continue with the request regardless of authentication
