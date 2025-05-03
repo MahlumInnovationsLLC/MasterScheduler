@@ -107,7 +107,7 @@ const Header = () => {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     className="cursor-pointer"
-                    onClick={() => window.location.href = '/api/logout'}
+                    onClick={() => window.location.href = '/api/auth/logout'}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
@@ -118,7 +118,7 @@ const Header = () => {
           ) : (
             <Button 
               variant="default"
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => window.location.href = '/api/auth/login'}
             >
               Log In
             </Button>
