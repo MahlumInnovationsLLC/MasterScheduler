@@ -70,6 +70,42 @@ export default function AuthPage() {
     );
   }
 
+  // Development-only auto-login
+  const handleDevLogin = async () => {
+    try {
+      console.log("Attempting dev auto-login...");
+      const response = await fetch("/api/dev-login", {
+        method: "GET",
+        credentials: "include"
+      });
+      
+      if (!response.ok) {
+        throw new Error("Dev login failed");
+      }
+      
+      const userData = await response.json();
+      console.log("Dev login successful:", userData);
+      
+      // Refresh the auth state to reflect the new logged in user
+      await loginMutation.mutateAsync({ email: "colter.mahlum@nomadgcs.com", password: "password" });
+      
+      // Redirect to home page
+      setLocation("/");
+      
+      toast({
+        title: "Development Login Successful",
+        description: `Auto-logged in as ${userData.email} (${userData.role})`,
+      });
+    } catch (error) {
+      console.error("Dev login error:", error);
+      toast({
+        title: "Development Login Failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      });
+    }
+  };
+  
   return (
     <div className="flex min-h-screen bg-muted">
       <div className="flex flex-col justify-center flex-1 px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
@@ -79,6 +115,18 @@ export default function AuthPage() {
             <p className="mt-2 text-sm text-muted-foreground">
               Manage manufacturing projects, billing milestones, and production schedules
             </p>
+            
+            {/* Development auto-login button */}
+            {process.env.NODE_ENV !== "production" && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2 w-full"
+                onClick={handleDevLogin}
+              >
+                DEV: Auto-login as Admin
+              </Button>
+            )}
           </div>
 
           <Tabs defaultValue="login" className="w-full">

@@ -631,6 +631,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get current authenticated user route is already defined in authService.ts
+  
+  // TEMPORARY: Special development-only route to auto-login as the admin user
+  // This will be removed in production
+  app.get("/api/dev-login", async (req, res) => {
+    if (process.env.NODE_ENV === "production") {
+      return res.status(404).json({ message: "Route not found" });
+    }
+    
+    try {
+      // Find the admin user by email
+      const [adminUser] = await db.select().from(users).where(eq(users.email, "colter.mahlum@nomadgcs.com"));
+      
+      if (!adminUser) {
+        return res.status(404).json({ message: "Admin user not found" });
+      }
+      
+      console.log("DEV-LOGIN: Found admin user:", adminUser.id);
+      
+      // Log in the user directly
+      req.login(adminUser, (err) => {
+        if (err) {
+          console.error("DEV-LOGIN ERROR:", err);
+          return res.status(500).json({ message: "Login failed", error: err.message });
+        }
+        
+        console.log("DEV-LOGIN: Session after login:", req.session);
+        console.log("DEV-LOGIN: User in session:", req.user);
+        
+        // Return user info without sensitive data
+        const { password, passwordResetToken, passwordResetExpires, ...userInfo } = adminUser;
+        
+        // Send session cookie explicitly
+        res.cookie('connect.sid', req.sessionID, {
+          httpOnly: true,
+          secure: false,
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
+        });
+        
+        return res.json({
+          ...userInfo,
+          message: "Development auto-login successful",
+          sessionID: req.sessionID
+        });
+      });
+    } catch (error) {
+      console.error("DEV-LOGIN ERROR:", error);
+      res.status(500).json({ message: "Failed to auto-login", error: error.message });
+    }
+  });
 
   // TEMPORARY ENDPOINT: Delete all projects - This is for cleanup purposes only
   app.delete("/api/reset-all-projects", isAuthenticated, async (req, res) => {
