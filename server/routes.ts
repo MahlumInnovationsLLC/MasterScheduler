@@ -24,6 +24,7 @@ import {
   importManufacturingBays, 
   importManufacturingSchedules 
 } from "./import";
+import { countWorkingDays } from "@shared/utils/date-utils";
 import {
   analyzeProjectHealth,
   generateBillingInsights,
@@ -83,7 +84,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects", async (req, res) => {
     try {
       const projects = await storage.getProjects();
-      res.json(projects);
+      
+      // Calculate QC Days for each project based on qcStartDate and shipDate
+      const projectsWithQcDays = projects.map(project => {
+        if (project.qcStartDate && project.shipDate) {
+          const qcDaysCount = countWorkingDays(project.qcStartDate, project.shipDate);
+          return { ...project, qcDays: qcDaysCount };
+        }
+        return project;
+      });
+      
+      res.json(projectsWithQcDays);
     } catch (error) {
       res.status(500).json({ message: "Error fetching projects" });
     }
@@ -96,6 +107,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
+      
+      // Calculate QC Days based on qcStartDate and shipDate (excluding weekends and US holidays)
+      if (project.qcStartDate && project.shipDate) {
+        const qcDaysCount = countWorkingDays(project.qcStartDate, project.shipDate);
+        project.qcDays = qcDaysCount;
+      }
+      
       res.json(project);
     } catch (error) {
       res.status(500).json({ message: "Error fetching project" });
@@ -104,7 +122,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/projects", isAuthenticated, validateRequest(insertProjectSchema), async (req, res) => {
     try {
-      const project = await storage.createProject(req.body);
+      const projectData = req.body;
+      
+      // Calculate QC Days only if both dates are present
+      if (projectData.qcStartDate && projectData.shipDate) {
+        const qcDaysCount = countWorkingDays(projectData.qcStartDate, projectData.shipDate);
+        // Add the calculated QC Days to the data being created
+        projectData.qcDays = qcDaysCount;
+        console.log(`Calculated QC Days for new project: ${qcDaysCount} working days`);
+      }
+      
+      const project = await storage.createProject(projectData);
       res.status(201).json(project);
     } catch (error) {
       res.status(500).json({ message: "Error creating project" });
@@ -114,10 +142,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/projects/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const project = await storage.updateProject(id, req.body);
+      
+      // Get the current project data (with proper dates)
+      const currentProject = await storage.getProject(id);
+      if (!currentProject) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Get data from request
+      const projectData = req.body;
+      
+      // Calculate QC Days only if both dates are present
+      if (projectData.qcStartDate && projectData.shipDate) {
+        const qcDaysCount = countWorkingDays(projectData.qcStartDate, projectData.shipDate);
+        // Add the calculated QC Days to the data being updated
+        projectData.qcDays = qcDaysCount;
+        console.log(`Calculated QC Days for project ${id}: ${qcDaysCount} working days`);
+      }
+      
+      // Update the project
+      const project = await storage.updateProject(id, projectData);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
+      
       res.json(project);
     } catch (error) {
       res.status(500).json({ message: "Error updating project" });
