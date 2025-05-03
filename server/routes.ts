@@ -610,24 +610,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get current authenticated user
-  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
-    try {
-      // The req.user object should already contain the user details
-      // from the authentication middleware
-      if (!req.user) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-      
-      // Send back the user details, omitting sensitive fields
-      const { password, passwordResetToken, passwordResetExpires, ...userWithoutSensitiveInfo } = req.user;
-      
-      res.json(userWithoutSensitiveInfo);
-    } catch (error) {
-      console.error("Error fetching current user:", error);
-      res.status(500).json({ message: "Error fetching current user" });
-    }
-  });
+  // Get current authenticated user route is already defined in authService.ts
 
   // TEMPORARY ENDPOINT: Delete all projects - This is for cleanup purposes only
   app.delete("/api/reset-all-projects", isAuthenticated, async (req, res) => {
