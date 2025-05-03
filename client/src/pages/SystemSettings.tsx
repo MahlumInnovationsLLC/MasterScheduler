@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from '../lib/queryClient';
 
 const SystemSettings = () => {
