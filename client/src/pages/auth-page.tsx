@@ -208,26 +208,26 @@ export default function AuthPage() {
       <div className="relative flex-1 hidden w-0 lg:block bg-zinc-900">
         <div className="absolute inset-0 flex flex-col justify-center px-10 bg-gradient-to-br from-zinc-900/90 to-zinc-900/40">
           <div className="max-w-md">
-            <h2 className="text-3xl font-bold text-white">Manufacturing Project Management</h2>
-            <p className="mt-4 text-lg text-zinc-300">
+            <h2 className="text-3xl font-bold text-white drop-shadow-md">Manufacturing Project Management</h2>
+            <p className="mt-4 text-lg text-zinc-100">
               An integrated system to manage your manufacturing projects, track billing milestones, and coordinate production schedules.
             </p>
             <div className="mt-6 space-y-2">
               <div className="flex items-center">
                 <div className="w-2 h-2 mr-2 bg-green-400 rounded-full"></div>
-                <p className="text-sm text-zinc-300">Real-time production status updates</p>
+                <p className="text-sm text-zinc-100">Real-time production status updates</p>
               </div>
               <div className="flex items-center">
                 <div className="w-2 h-2 mr-2 bg-green-400 rounded-full"></div>
-                <p className="text-sm text-zinc-300">Billing milestone tracking and forecasting</p>
+                <p className="text-sm text-zinc-100">Billing milestone tracking and forecasting</p>
               </div>
               <div className="flex items-center">
                 <div className="w-2 h-2 mr-2 bg-green-400 rounded-full"></div>
-                <p className="text-sm text-zinc-300">Automated manufacturing bay scheduling</p>
+                <p className="text-sm text-zinc-100">Automated manufacturing bay scheduling</p>
               </div>
               <div className="flex items-center">
                 <div className="w-2 h-2 mr-2 bg-green-400 rounded-full"></div>
-                <p className="text-sm text-zinc-300">AI-powered insights and recommendations</p>
+                <p className="text-sm text-zinc-100">AI-powered insights and recommendations</p>
               </div>
             </div>
           </div>
