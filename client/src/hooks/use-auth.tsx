@@ -55,7 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       try {
         console.log("Fetching current user data...");
-        const res = await fetch("/api/auth/user");
+        const res = await fetch("/api/auth/user", {
+          credentials: "include", // Critical for sending the session cookie
+        });
         if (!res.ok) {
           if (res.status === 401) {
             console.log("User not authenticated");
@@ -85,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(credentials),
+        credentials: "include" // Make sure cookies are sent with the request
       });
       if (!res.ok) {
         const errorData = await res.json();
@@ -96,7 +99,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return userData;
     },
     onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/auth/user"], user);
+      console.log("Login successful, refreshing user data in cache");
+      // Invalidate the auth user query so it will be refetched with the session cookie
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Login successful",
         description: `Welcome back${user.firstName ? `, ${user.firstName}` : ""}!`,
@@ -113,22 +118,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterData) => {
+      console.log("Attempting registration with:", data.email);
       const res = await fetch("/api/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
+        credentials: "include" // Make sure cookies are sent with the request
       });
       if (!res.ok) {
         const errorData = await res.json();
+        console.error("Registration error:", errorData);
         throw new Error(errorData.message || "Registration failed");
       }
-      return await res.json();
+      const userData = await res.json();
+      console.log("Registration successful:", userData);
+      return userData;
     },
     onSuccess: (user: User) => {
+      console.log("Registration successful, user approval status:", user.isApproved);
       if (user.isApproved) {
-        queryClient.setQueryData(["/api/auth/user"], user);
+        // Invalidate the auth user query so it will be refetched with the session cookie
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       }
     },
     onError: (error: Error) => {
@@ -142,15 +154,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
+      console.log("Attempting logout");
       const res = await fetch("/api/logout", {
         method: "POST",
+        credentials: "include" // Make sure cookies are sent with the request
       });
       if (!res.ok) {
         const errorData = await res.json();
+        console.error("Logout error:", errorData);
         throw new Error(errorData.message || "Logout failed");
       }
+      console.log("Logout successful");
     },
     onSuccess: () => {
+      console.log("Logout successful, clearing user data from cache");
       queryClient.setQueryData(["/api/auth/user"], null);
       // Invalidate and refetch any queries that might contain user-specific data
       queryClient.invalidateQueries();

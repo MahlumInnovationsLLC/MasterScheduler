@@ -104,23 +104,33 @@ export function setupSession(app: Express) {
     process.env.SESSION_SECRET = randomBytes(32).toString('hex');
   }
   
-  app.use(session({
+  // Log environment info
+  console.log("NODE_ENV:", process.env.NODE_ENV);
+  console.log("Running in Replit:", !!process.env.REPLIT_DOMAINS);
+  
+  // Configure session
+  const sessionOptions = {
     secret: process.env.SESSION_SECRET || "tier4-app-secret-key",
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      // Set secure based on protocol - only set to true if using HTTPS
-      secure: process.env.NODE_ENV === "production" && process.env.REPLIT_DOMAINS !== undefined,
       maxAge: sessionTtl,
-      // Add SameSite attribute to improve cookie handling across browsers
-      sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
-      // Allow cookies to be used across subdomains
-      domain: process.env.NODE_ENV === "production" ? 
-        (process.env.REPLIT_DOMAINS ? `.${process.env.REPLIT_DOMAINS.split(',')[0]}` : undefined) : undefined,
+      sameSite: 'lax', // Use 'lax' for development and production
+      // We're running in a development environment, secure:false is OK
+      secure: false
     },
-  }));
+  };
+  
+  console.log("Session configuration:", {
+    ...sessionOptions,
+    secret: sessionOptions.secret ? "***" : "undefined",
+    store: "PostgreSQL",
+    cookie: sessionOptions.cookie
+  });
+  
+  app.use(session(sessionOptions));
   
   app.use(passport.initialize());
   app.use(passport.session());
