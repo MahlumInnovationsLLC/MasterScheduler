@@ -25,12 +25,14 @@ import { ProtectedRoute } from "@/lib/protected-route";
 function Router() {
   const [location] = useLocation();
   const isAuthPage = location === "/auth";
+  const isResetPasswordPage = location === "/reset-password" || location.startsWith("/reset-password?");
 
-  // If we're on the auth page, render it without the app layout
-  if (isAuthPage) {
+  // If we're on the auth page or reset password page, render without the app layout
+  if (isAuthPage || isResetPasswordPage) {
     return (
       <Switch>
         <Route path="/auth" component={AuthPage} />
+        <Route path="/reset-password" component={ResetPasswordPage} />
       </Switch>
     );
   }

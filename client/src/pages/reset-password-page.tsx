@@ -33,8 +33,8 @@ export default function ResetPasswordPage() {
     
     setIsLoading(true);
     try {
-      const response = await apiRequest("POST", "/api/auth/reset-request", { email }, {});
-      const data = await response.json();
+      const response = await axios.post('/api/auth/reset-request', { email });
+      const data = response.data;
       
       toast({
         title: "Reset email sent",
@@ -84,8 +84,8 @@ export default function ResetPasswordPage() {
     
     setIsLoading(true);
     try {
-      const response = await apiRequest("POST", "/api/auth/reset-password", { token, password });
-      const data = await response.json();
+      const response = await axios.post('/api/auth/reset-password', { token, password });
+      const data = response.data;
       
       toast({
         title: "Password reset successful",
