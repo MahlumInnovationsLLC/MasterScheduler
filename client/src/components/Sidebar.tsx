@@ -87,7 +87,7 @@ const Sidebar = () => {
             </li>
             <li>
               <Link href="/billing" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/billing') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+                isActive('/billing') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`}>
                 <DollarSign className={`text-xl ${isActive('/billing') ? 'text-primary' : ''}`} />
                 <span>Billing Milestones</span>
@@ -95,7 +95,7 @@ const Sidebar = () => {
             </li>
             <li>
               <Link href="/manufacturing" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/manufacturing') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+                isActive('/manufacturing') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`}>
                 <Building2 className={`text-xl ${isActive('/manufacturing') ? 'text-primary' : ''}`} />
                 <span>Manufacturing Bays</span>
@@ -111,7 +111,7 @@ const Sidebar = () => {
           <ul>
             <li>
               <Link href="/import" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/import') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+                isActive('/import') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`}>
                 <Upload className={`text-xl ${isActive('/import') ? 'text-primary' : ''}`} />
                 <span>Import Data</span>
@@ -119,7 +119,7 @@ const Sidebar = () => {
             </li>
             <li>
               <Link href="/export" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/export') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+                isActive('/export') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`}>
                 <Download className={`text-xl ${isActive('/export') ? 'text-primary' : ''}`} />
                 <span>Export Reports</span>
@@ -135,7 +135,7 @@ const Sidebar = () => {
           <ul>
             <li>
               <Link href="/settings/user" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/settings/user') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+                isActive('/settings/user') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`}>
                 <Users className={`text-xl ${isActive('/settings/user') ? 'text-primary' : ''}`} />
                 <span>User Preferences</span>
@@ -143,7 +143,7 @@ const Sidebar = () => {
             </li>
             <li>
               <Link href="/system-settings" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+                isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`}>
                 <Settings className={`text-xl ${isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'text-primary' : ''}`} />
                 <span>System Settings</span>
