@@ -37,7 +37,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     
     await mailService.send({
       to: params.to,
-      from: 'colter.mahlum@nomadgcs.com', // Using a known verified sender from the provided account
+      from: 'colter@mahluminnovations.com', // Updated to the verified sender address provided by the user
       subject: params.subject,
       text: params.text || '',
       html: params.html || '',
