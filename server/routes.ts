@@ -45,6 +45,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   setupSession(app);
   setupLocalAuth(app);
+  
+  // Route redirections for backward compatibility
+  app.get('/api/login', (req, res) => res.redirect('/api/auth/login'));
+  app.get('/api/logout', (req, res) => res.redirect('/api/auth/logout'));
 
   // Auth routes are already defined in setupLocalAuth
   // All the /api/auth/* routes are handled there

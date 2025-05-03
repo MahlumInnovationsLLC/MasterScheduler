@@ -230,41 +230,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mutationFn: async () => {
       console.log("Attempting logout");
       
-      // First try the /api/auth/logout endpoint
+      // NOTE: We're now using a direct window navigation approach 
+      // instead of fetch requests, as our logout endpoint uses a redirect response
+      // window.location.href = '/api/auth/logout';
+      
+      // But for completeness, we'll try both GET and POST methods
+      // in case someone is using this mutation directly
       try {
-        const res = await fetch("/api/auth/logout", {
-          method: "POST",
-          credentials: "include" // Make sure cookies are sent with the request
-        });
-        
-        console.log("Logout response status:", res.status);
-        
-        if (!res.ok) {
-          const errorData = await res.json();
-          console.error("Logout failed with /api/auth/logout:", errorData);
-          throw new Error(errorData.message || "Logout failed");
-        }
-        
-        console.log("Logout successful with /api/auth/logout");
-        return;
+        // First try GET method (what the Header component uses)
+        window.location.href = '/api/auth/logout';
+        return; // This will navigate away, but needed for TypeScript
       } catch (firstError) {
-        console.log("First logout attempt failed, trying backup endpoint...");
+        console.log("Navigation approach failed, trying fetch API as fallback");
         
-        // If the first endpoint fails, try the /api/logout endpoint
-        const res = await fetch("/api/logout", {
-          method: "POST",
-          credentials: "include" // Make sure cookies are sent with the request
-        });
-        
-        console.log("Backup logout response status:", res.status);
-        
-        if (!res.ok) {
-          const errorData = await res.json();
-          console.error("Logout error with backup endpoint:", errorData);
-          throw new Error(errorData.message || "Logout failed");
+        // Try both POST and GET with fetch API as fallback
+        try {
+          const res = await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "include" // Make sure cookies are sent with the request
+          });
+          
+          console.log("Logout response status:", res.status);
+          
+          if (!res.ok) {
+            const errorData = await res.json();
+            console.error("Logout failed with POST to /api/auth/logout:", errorData);
+            throw new Error(errorData.message || "Logout failed");
+          }
+          
+          console.log("Logout successful with /api/auth/logout POST request");
+          window.location.href = '/'; // Redirect to home page
+          return;
+        } catch (secondError) {
+          console.log("POST request failed, trying GET method...");
+          
+          // Final attempt with GET method
+          const res = await fetch("/api/auth/logout", {
+            method: "GET",
+            credentials: "include"
+          });
+          
+          console.log("GET logout response status:", res.status);
+          
+          if (!res.ok) {
+            const errorData = await res.json();
+            console.error("Logout error with GET request:", errorData);
+            throw new Error(errorData.message || "Logout failed");
+          }
+          
+          console.log("Logout successful with GET request");
+          window.location.href = '/'; // Redirect to home page
         }
-        
-        console.log("Logout successful with backup endpoint");
       }
     },
     onSuccess: () => {

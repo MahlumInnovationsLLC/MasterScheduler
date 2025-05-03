@@ -341,13 +341,23 @@ export function setupLocalAuth(app: Express) {
     }
   });
   
-  // Logout route
+  // Logout routes - support both POST and GET methods
   app.post('/api/auth/logout', (req, res) => {
     req.logout((err) => {
       if (err) {
         return res.status(500).json({ message: "Logout failed" });
       }
-      res.json({ message: "Logged out successfully" });
+      return res.redirect('/');
+    });
+  });
+  
+  // Add GET method for logout to support direct URL navigation
+  app.get('/api/auth/logout', (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      return res.redirect('/');
     });
   });
   
