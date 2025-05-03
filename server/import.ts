@@ -185,7 +185,7 @@ export async function importProjects(req: Request, res: Response) {
           dpasRating: rawProjectData.dpasRating,
           stretchShortenGears: rawProjectData.stretchShortenGears,
           lltsOrdered: convertToBoolean(rawProjectData.lltsOrdered),
-          // QC Days will be calculated based on qcStartDate and shipDate
+          // QC Days field is deliberately omitted here as it will be calculated later
           hasBillingMilestones: convertToBoolean(rawProjectData.hasBillingMilestones),
           
           // Design assignments - convert to appropriate number types
@@ -282,13 +282,19 @@ export async function importProjects(req: Request, res: Response) {
         projectData.shipDate = convertExcelDate(projectData.shipDate);
         projectData.deliveryDate = convertExcelDate(projectData.deliveryDate);
 
+        // Log the QC Days value from the import if it exists (for comparison purposes)
+        if (rawProjectData.qcDays !== undefined) {
+          console.log(`Ignoring imported QC Days value: ${rawProjectData.qcDays} for project ${projectData.projectNumber}`);
+        }
+
         // Calculate QC Days based on qcStartDate and shipDate (excluding weekends and US holidays)
         if (projectData.qcStartDate && projectData.shipDate) {
           const qcDaysCount = countWorkingDays(projectData.qcStartDate, projectData.shipDate);
           projectData.qcDays = qcDaysCount;
-          console.log(`Calculated QC Days for ${projectData.projectNumber}: ${qcDaysCount} (from ${projectData.qcStartDate} to ${projectData.shipDate})`);
+          console.log(`Calculated QC Days for ${projectData.projectNumber}: ${qcDaysCount} working days (from ${projectData.qcStartDate} to ${projectData.shipDate})`);
         } else {
           projectData.qcDays = null;
+          console.log(`Could not calculate QC Days for ${projectData.projectNumber} - missing QC Start Date or Ship Date`);
         }
 
         // Check if project with same project number already exists
