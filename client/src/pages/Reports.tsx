@@ -44,7 +44,7 @@ import {
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { Download, FileText, Filter, Calendar as CalendarIcon } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/use-auth';
 import { Project, BillingMilestone, ManufacturingSchedule } from '@shared/schema';
 
 const ReportsPage = () => {

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/hooks/use-auth';
 
 export interface UserPreferences {
   id: number;

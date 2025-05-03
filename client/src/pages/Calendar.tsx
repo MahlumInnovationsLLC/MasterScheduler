@@ -51,7 +51,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { getProjectStatusColor, checkScheduleConflict } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/use-auth';
 import { Project, ManufacturingBay, ManufacturingSchedule } from '@shared/schema';
 
 // Form validation schema
