@@ -6,6 +6,7 @@ import {
   InsertManufacturingBay, 
   InsertManufacturingSchedule 
 } from '@shared/schema';
+import { countWorkingDays } from '@shared/utils/date-utils';
 
 // Helper function to convert various string values to proper boolean
 function convertToBoolean(value: any): boolean | null {
@@ -184,7 +185,7 @@ export async function importProjects(req: Request, res: Response) {
           dpasRating: rawProjectData.dpasRating,
           stretchShortenGears: rawProjectData.stretchShortenGears,
           lltsOrdered: convertToBoolean(rawProjectData.lltsOrdered),
-          qcDays: convertToInteger(rawProjectData.qcDays),
+          // QC Days will be calculated based on qcStartDate and shipDate
           hasBillingMilestones: convertToBoolean(rawProjectData.hasBillingMilestones),
           
           // Design assignments - convert to appropriate number types
@@ -280,6 +281,15 @@ export async function importProjects(req: Request, res: Response) {
         projectData.executiveReviewDate = convertExcelDate(projectData.executiveReviewDate);
         projectData.shipDate = convertExcelDate(projectData.shipDate);
         projectData.deliveryDate = convertExcelDate(projectData.deliveryDate);
+
+        // Calculate QC Days based on qcStartDate and shipDate (excluding weekends and US holidays)
+        if (projectData.qcStartDate && projectData.shipDate) {
+          const qcDaysCount = countWorkingDays(projectData.qcStartDate, projectData.shipDate);
+          projectData.qcDays = qcDaysCount;
+          console.log(`Calculated QC Days for ${projectData.projectNumber}: ${qcDaysCount} (from ${projectData.qcStartDate} to ${projectData.shipDate})`);
+        } else {
+          projectData.qcDays = null;
+        }
 
         // Check if project with same project number already exists
         const existingProject = await storage.getProjectByNumber(projectData.projectNumber);
