@@ -35,12 +35,26 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     // Debug log to see what's happening with the email attempt
     console.log(`Attempting to send email to ${params.to} using SendGrid`);
     
+    // For password reset emails, we need to disable click tracking
+    // so the reset link isn't transformed by SendGrid
     await mailService.send({
       to: params.to,
-      from: 'colter@mahluminnovations.com', // Updated to the verified sender address provided by the user
+      from: 'colter@mahluminnovations.com', // Verified sender
       subject: params.subject,
       text: params.text || '',
       html: params.html || '',
+      trackingSettings: {
+        clickTracking: {
+          enable: false,
+          enableText: false
+        },
+        openTracking: {
+          enable: false
+        },
+        subscriptionTracking: {
+          enable: false
+        }
+      }
     });
     console.log(`Email sent to ${params.to}`);
     return true;

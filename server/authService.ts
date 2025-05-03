@@ -449,7 +449,9 @@ export function setupLocalAuth(app: Express) {
         .where(eq(users.id, user.id));
       
       // Send email with reset link
-      const appBaseUrl = `${req.protocol}://${req.hostname}`;
+      // Force HTTPS for production, otherwise use the detected protocol
+      const protocol = process.env.NODE_ENV === 'production' ? 'https' : req.protocol;
+      const appBaseUrl = `${protocol}://${req.hostname}`;
       console.log(`Password reset requested for ${email}`);
       console.log(`Reset token: ${resetToken}`);
       console.log(`App base URL: ${appBaseUrl}`);
