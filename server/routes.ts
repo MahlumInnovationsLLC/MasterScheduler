@@ -46,26 +46,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes are already defined in setupLocalAuth
   // All the /api/auth/* routes are handled there
   
-  // Add current user endpoint to match the frontend's expected route
-  app.get("/api/user", isAuthenticated, async (req: any, res) => {
-    try {
-      console.log("GET /api/user - Processing authenticated user request");
-      
-      // User data is already attached to req.user by isAuthenticated middleware
-      // but let's sanitize it before sending
-      if (!req.user) {
-        console.log("GET /api/user - No user object in request despite passing isAuthenticated middleware");
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-      
-      console.log("GET /api/user - User authenticated, returning data for:", req.user.id || req.user.username || req.user.email);
-      
-      const { password, passwordResetToken, passwordResetExpires, ...safeUser } = req.user;
-      res.json(safeUser);
-    } catch (error) {
-      console.error("Error fetching current user:", error);
-      res.status(500).json({ message: "Error fetching user data" });
-    }
+  // Add current user endpoint to match the frontend's expected route 
+  app.get("/api/user", (req, res) => {
+    console.log("DEBUG: Redirecting legacy user info request to /api/auth/user");
+    // Forward the request to the proper auth endpoint
+    res.redirect(307, '/api/auth/user');
   });
 
   // Error handling middleware for Zod validation
@@ -494,140 +479,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Authentication routes
+  // Main auth routes are handled in authService.ts under /api/auth/* paths
   
-  // Login endpoint - Using Passport's authenticate middleware
-  app.post("/api/login", (req, res, next) => {
-    console.log("DEBUG: Login attempt for", req.body.email);
-    console.log("DEBUG: Session before login:", req.session);
-    
-    // Ensure we have the correct header settings for cookie sending
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    
-    passport.authenticate('local', (err: Error, user: any, info: any) => {
-      if (err) {
-        console.error("DEBUG: Login error:", err);
-        return res.status(500).json({ message: "Login failed", error: err.message });
-      }
-      
-      if (!user) {
-        // Authentication failed
-        console.log("DEBUG: Authentication failed:", info?.message);
-        return res.status(401).json({ message: info?.message || "Invalid credentials" });
-      }
-      
-      // Check if the user is approved
-      if (!user.isApproved) {
-        console.log("DEBUG: User not approved:", user.email);
-        return res.status(403).json({ message: "Your account is pending approval" });
-      }
-      
-      // Log in the user
-      req.login(user, (err) => {
-        if (err) {
-          console.error("DEBUG: Login session error:", err);
-          return res.status(500).json({ message: "Login failed", error: err.message });
-        }
-        
-        console.log("DEBUG: Login successful for:", user.email);
-        console.log("DEBUG: Session after login:", req.session);
-        console.log("DEBUG: User in session:", req.user);
-        
-        // Return user info without sensitive data
-        const { password, passwordResetToken, passwordResetExpires, ...userInfo } = user;
-        
-        // Send session cookie explicitly
-        res.cookie('connect.sid', req.sessionID, {
-          httpOnly: true,
-          secure: false,
-          sameSite: 'lax',
-          maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
-        });
-        
-        return res.json(userInfo);
-      });
-    })(req, res, next);
+  // Add redirects from legacy paths to the new auth endpoints
+  app.post("/api/login", (req, res) => {
+    console.log("DEBUG: Redirecting legacy login request to /api/auth/login");
+    // Forward the request to the proper auth endpoint
+    res.redirect(307, '/api/auth/login');
   });
   
   // Logout endpoint
   app.post("/api/logout", (req, res) => {
-    req.logout((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({ message: "Logout failed" });
-      }
-      
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Session destruction error:", err);
-          return res.status(500).json({ message: "Logout failed" });
-        }
-        
-        res.json({ message: "Logged out successfully" });
-      });
-    });
+    console.log("DEBUG: Redirecting legacy logout request to /api/auth/logout");
+    // Forward the request to the proper auth endpoint
+    res.redirect(307, '/api/auth/logout');
   });
   
   // Registration endpoint
-  app.post("/api/register", async (req, res) => {
-    try {
-      const { email, password, firstName, lastName } = req.body;
-      
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
-      }
-      
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: "Email already registered" });
-      }
-      
-      // Check if email domain is allowed
-      const emailCheck = await storage.checkIsEmailAllowed(email);
-      if (!emailCheck || !emailCheck.allowed) {
-        return res.status(403).json({ message: "Email domain not allowed" });
-      }
-      
-      // Hash password
-      const hashedPassword = await hashPassword(password);
-      
-      // Determine if the user should be auto-approved and set their role
-      const isApproved = emailCheck.autoApprove;
-      const role = emailCheck.defaultRole || 'viewer';
-      
-      // Create user with a UUID for the ID
-      const uid = crypto.randomUUID();
-      const newUser = await storage.createUser({
-        id: uid,
-        email,
-        password: hashedPassword,
-        firstName: firstName || null,
-        lastName: lastName || null,
-        username: email.split('@')[0], // Set username based on email
-        role,
-        isApproved
-      });
-      
-      // If there are no existing users with admin role, make this user an admin (for the first user)
-      const users = await storage.getUsers();
-      const hasAdmin = users.some(u => u.id !== newUser.id && u.role === 'admin');
-      
-      if (!hasAdmin) {
-        await storage.updateUserRole(newUser.id, 'admin', true);
-        const updatedUser = await storage.getUser(newUser.id);
-        if (updatedUser) {
-          const { password, passwordResetToken, passwordResetExpires, ...userInfo } = updatedUser;
-          return res.status(201).json(userInfo);
-        }
-      }
-      
-      // Return user info without sensitive data
-      const { password: pwd, passwordResetToken, passwordResetExpires, ...userInfo } = newUser;
-      res.status(201).json(userInfo);
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ message: "Registration failed" });
-    }
+  app.post("/api/register", (req, res) => {
+    console.log("DEBUG: Redirecting legacy register request to /api/auth/register");
+    // Forward the request to the proper auth endpoint
+    res.redirect(307, '/api/auth/register');
   });
   
   // Get current authenticated user route is already defined in authService.ts
