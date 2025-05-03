@@ -49,11 +49,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add current user endpoint to match the frontend's expected route
   app.get("/api/user", isAuthenticated, async (req: any, res) => {
     try {
+      console.log("GET /api/user - Processing authenticated user request");
+      
       // User data is already attached to req.user by isAuthenticated middleware
       // but let's sanitize it before sending
       if (!req.user) {
+        console.log("GET /api/user - No user object in request despite passing isAuthenticated middleware");
         return res.status(401).json({ message: "Not authenticated" });
       }
+      
+      console.log("GET /api/user - User authenticated, returning data for:", req.user.id || req.user.username || req.user.email);
       
       const { password, passwordResetToken, passwordResetExpires, ...safeUser } = req.user;
       res.json(safeUser);

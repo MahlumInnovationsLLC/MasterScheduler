@@ -501,13 +501,45 @@ export function setupLocalAuth(app: Express) {
 
 // Middleware to check if user is authenticated
 export const isAuthenticated = async (req: Request, res: Response, next: NextFunction) => {
+  console.log("isAuthenticated middleware: Checking authentication");
+  
   if (!req.isAuthenticated() || !req.user) {
+    console.log("isAuthenticated middleware: User not authenticated");
     return res.status(401).json({ message: "Unauthorized" });
   }
 
   // Check if user is approved in the database
   const user = req.user as any;
+  console.log("isAuthenticated middleware: User authenticated, checking approval", user);
+  
+  // If user has claims (from Replit Auth) we need to get the DB user
+  if (user.claims?.sub) {
+    console.log("isAuthenticated middleware: User has claims, getting from DB", user.claims.sub);
+    const dbUser = await storage.getUser(user.claims.sub);
+    
+    if (!dbUser) {
+      console.log("isAuthenticated middleware: User not found in database");
+      return res.status(403).json({ message: "User not found in database" });
+    }
+    
+    if (!dbUser.isApproved) {
+      console.log("isAuthenticated middleware: User not approved");
+      return res.status(403).json({ 
+        message: "Your account is pending approval", 
+        status: "pending_approval" 
+      });
+    }
+    
+    // User is approved, proceed
+    console.log("isAuthenticated middleware: User is approved, proceeding");
+    req.userRole = dbUser.role || undefined;
+    req.userDetails = dbUser;
+    return next();
+  }
+  
+  // Regular auth (not Replit Auth)
   if (!user.isApproved) {
+    console.log("isAuthenticated middleware: User not approved");
     return res.status(403).json({ 
       message: "Your account is pending approval", 
       status: "pending_approval" 
@@ -515,6 +547,7 @@ export const isAuthenticated = async (req: Request, res: Response, next: NextFun
   }
   
   // Add user details to the request
+  console.log("isAuthenticated middleware: User is approved, proceeding");
   req.userRole = user.role || "pending";
   req.userDetails = user;
   
@@ -543,7 +576,7 @@ export const hasEditRights = async (req: Request, res: Response, next: NextFunct
       if (dbUser && dbUser.isApproved) {
         console.log("hasEditRights middleware: User is approved with role", dbUser.role);
         req.hasEditRights = true;
-        req.userRole = dbUser.role;
+        req.userRole = dbUser.role || undefined;  // Convert null to undefined if needed
         req.userDetails = dbUser;
       } else {
         console.log("hasEditRights middleware: User not found in DB or not approved");
@@ -654,7 +687,7 @@ export const isEditor = async (req: Request, res: Response, next: NextFunction) 
     
     // User is admin or editor, proceed
     console.log("Editor check: User is admin or editor, proceeding");
-    req.userRole = dbUser.role;
+    req.userRole = dbUser.role || undefined;  // Convert null to undefined if needed
     req.userDetails = dbUser;
     return next();
   }

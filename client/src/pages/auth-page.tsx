@@ -34,10 +34,14 @@ export default function AuthPage() {
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Login form submitted with:", loginData);
     try {
-      await loginMutation.mutateAsync(loginData);
+      console.log("Calling login mutation...");
+      const result = await loginMutation.mutateAsync(loginData);
+      console.log("Login successful, user data:", result);
       setLocation("/");
     } catch (error: any) {
+      console.error("Login form submission error:", error);
       // Error handling is done in the mutation
     }
   };
