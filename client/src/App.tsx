@@ -15,6 +15,7 @@ import ImportData from "@/pages/ImportData";
 import SystemSettings from "@/pages/SystemSettings";
 import UserPreferences from "@/pages/UserPreferences";
 import AuthPage from "@/pages/auth-page";
+import ResetPasswordPage from "@/pages/reset-password-page";
 import NotFound from "@/pages/not-found";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";

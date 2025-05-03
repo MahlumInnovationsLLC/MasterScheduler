@@ -105,6 +105,14 @@ export default function AuthPage() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="password">Password</Label>
+                        <Button 
+                          type="button" 
+                          variant="link" 
+                          className="px-0 text-xs text-primary"
+                          onClick={() => setLocation("/reset-password")}
+                        >
+                          Forgot password?
+                        </Button>
                       </div>
                       <Input 
                         id="password" 
