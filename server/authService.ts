@@ -387,7 +387,10 @@ export function setupLocalAuth(app: Express) {
       
       // Send email with reset link
       const appBaseUrl = `${req.protocol}://${req.hostname}`;
-      const emailSent = await sendPasswordResetEmail(user.email, resetToken, appBaseUrl);
+      // Ensure email is not null before sending
+      const emailSent = user.email && typeof user.email === 'string'
+        ? await sendPasswordResetEmail(user.email, resetToken, appBaseUrl)
+        : false;
       
       if (process.env.NODE_ENV === "production") {
         // In production, don't expose the token
