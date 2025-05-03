@@ -450,10 +450,28 @@ export function setupLocalAuth(app: Express) {
       
       // Send email with reset link
       const appBaseUrl = `${req.protocol}://${req.hostname}`;
+      console.log(`Password reset requested for ${email}`);
+      console.log(`Reset token: ${resetToken}`);
+      console.log(`App base URL: ${appBaseUrl}`);
+      console.log(`Will send reset email to: ${user.email}`);
+      console.log(`API key environment variables available:`, {
+        SENDGRID_API_KEY: process.env.SENDGRID_API_KEY ? 'Present' : 'Not present',
+        NOMAD_SENDGRID_API_KEY: process.env.NOMAD_SENDGRID_API_KEY ? 'Present' : 'Not present'
+      });
+      
       // Ensure email is not null before sending
-      const emailSent = user.email && typeof user.email === 'string'
-        ? await sendPasswordResetEmail(user.email, resetToken, appBaseUrl)
-        : false;
+      let emailSent = false;
+      try {
+        if (user.email && typeof user.email === 'string') {
+          console.log(`Attempting to send password reset email to ${user.email}...`);
+          emailSent = await sendPasswordResetEmail(user.email, resetToken, appBaseUrl);
+          console.log(`Email sent result: ${emailSent ? 'Success' : 'Failed'}`);
+        } else {
+          console.log(`Cannot send email - user.email is invalid: ${user.email}`);
+        }
+      } catch (emailError) {
+        console.error('Error sending password reset email:', emailError);
+      }
       
       if (process.env.NODE_ENV === "production") {
         // In production, don't expose the token
