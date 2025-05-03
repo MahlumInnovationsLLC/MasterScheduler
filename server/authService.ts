@@ -114,12 +114,13 @@ export function setupSession(app: Express) {
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    name: 'tier4.sid', // Use a custom cookie name
     cookie: {
       httpOnly: true,
       maxAge: sessionTtl,
-      sameSite: 'lax' as const, // Use 'lax' for development and production
-      // We're running in a development environment, secure:false is OK
-      secure: false
+      sameSite: 'lax' as const, // 'lax' is more compatible than 'strict'
+      secure: process.env.NODE_ENV === 'production', // Only use secure in production
+      path: '/' // Ensure cookie is available on all paths
     },
   };
   
