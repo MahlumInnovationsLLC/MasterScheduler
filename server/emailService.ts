@@ -3,8 +3,13 @@ import { MailService } from '@sendgrid/mail';
 // Initialize SendGrid with API key
 const mailService = new MailService();
 
-// Make sure we have an API key or provide an empty string as fallback
-const apiKey = process.env.SENDGRID_API_KEY || '';
+// Check for both possible API key names (NOMAD_SENDGRID_API_KEY is the one provided by user)
+const apiKey = process.env.NOMAD_SENDGRID_API_KEY || process.env.SENDGRID_API_KEY || '';
+if (apiKey) {
+  console.log('SendGrid API key found, email service initialized');
+} else {
+  console.warn('No SendGrid API key found. Email functionality will not work.');
+}
 mailService.setApiKey(apiKey);
 
 export interface EmailParams {
@@ -18,17 +23,21 @@ export interface EmailParams {
  * Sends an email using SendGrid
  */
 export async function sendEmail(params: EmailParams): Promise<boolean> {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.log('SENDGRID_API_KEY not set. Email would have been sent to:', params.to);
+  // Check if we have either SendGrid API key
+  if (!process.env.NOMAD_SENDGRID_API_KEY && !process.env.SENDGRID_API_KEY) {
+    console.log('No SendGrid API key found. Email would have been sent to:', params.to);
     console.log('Subject:', params.subject);
     console.log('Content:', params.text || params.html);
     return false;
   }
 
   try {
+    // Debug log to see what's happening with the email attempt
+    console.log(`Attempting to send email to ${params.to} using SendGrid`);
+    
     await mailService.send({
       to: params.to,
-      from: 'no-reply@tier4project.com', // Change this to your verified sender
+      from: 'colter.mahlum@nomadgcs.com', // Using a known verified sender from the provided account
       subject: params.subject,
       text: params.text || '',
       html: params.html || '',
