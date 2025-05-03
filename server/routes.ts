@@ -498,11 +498,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Login endpoint - Using Passport's authenticate middleware
   app.post("/api/login", (req, res, next) => {
     console.log("DEBUG: Login attempt for", req.body.email);
+    console.log("DEBUG: Session before login:", req.session);
+    
+    // Ensure we have the correct header settings for cookie sending
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     
     passport.authenticate('local', (err: Error, user: any, info: any) => {
       if (err) {
         console.error("DEBUG: Login error:", err);
-        return res.status(500).json({ message: "Login failed" });
+        return res.status(500).json({ message: "Login failed", error: err.message });
       }
       
       if (!user) {
@@ -521,13 +525,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.login(user, (err) => {
         if (err) {
           console.error("DEBUG: Login session error:", err);
-          return res.status(500).json({ message: "Login failed" });
+          return res.status(500).json({ message: "Login failed", error: err.message });
         }
         
         console.log("DEBUG: Login successful for:", user.email);
+        console.log("DEBUG: Session after login:", req.session);
+        console.log("DEBUG: User in session:", req.user);
         
         // Return user info without sensitive data
         const { password, passwordResetToken, passwordResetExpires, ...userInfo } = user;
+        
+        // Send session cookie explicitly
+        res.cookie('connect.sid', req.sessionID, {
+          httpOnly: true,
+          secure: false,
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
+        });
+        
         return res.json(userInfo);
       });
     })(req, res, next);

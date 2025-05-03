@@ -109,7 +109,7 @@ export function setupSession(app: Express) {
   console.log("Running in Replit:", !!process.env.REPLIT_DOMAINS);
   
   // Configure session
-  const sessionOptions = {
+  const sessionOptions: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "tier4-app-secret-key",
     store: sessionStore,
     resave: false,
@@ -117,7 +117,7 @@ export function setupSession(app: Express) {
     cookie: {
       httpOnly: true,
       maxAge: sessionTtl,
-      sameSite: 'lax', // Use 'lax' for development and production
+      sameSite: 'lax' as const, // Use 'lax' for development and production
       // We're running in a development environment, secure:false is OK
       secure: false
     },

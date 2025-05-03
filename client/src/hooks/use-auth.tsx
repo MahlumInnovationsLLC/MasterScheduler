@@ -81,22 +81,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       console.log("Attempting login with:", credentials.email);
-      const res = await fetch("/api/login", {
+      
+      // Log the exact request details for debugging
+      console.log("Login Request Details:", {
+        url: "/api/auth/login",
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(credentials),
-        credentials: "include" // Make sure cookies are sent with the request
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: credentials
       });
-      if (!res.ok) {
-        const errorData = await res.json();
-        console.error("Login error:", errorData);
-        throw new Error(errorData.message || "Login failed");
+      
+      // First try the /api/auth/login endpoint (from authService.ts)
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(credentials),
+          credentials: "include" // Make sure cookies are sent with the request
+        });
+        
+        console.log("Login response status:", res.status);
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          console.error("Login failed with /api/auth/login:", errorData);
+          throw new Error(errorData.message || "Login failed");
+        }
+        
+        const userData = await res.json();
+        console.log("Login successful with /api/auth/login:", userData);
+        return userData;
+      } catch (firstError) {
+        console.log("First login attempt failed, trying backup endpoint...");
+        
+        // If the first endpoint fails, try the /api/login endpoint (from routes.ts)
+        const res = await fetch("/api/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(credentials),
+          credentials: "include" // Make sure cookies are sent with the request
+        });
+        
+        console.log("Backup login response status:", res.status);
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          console.error("Login error with backup endpoint:", errorData);
+          throw new Error(errorData.message || "Login failed");
+        }
+        
+        const userData = await res.json();
+        console.log("Login successful with backup endpoint:", userData);
+        return userData;
       }
-      const userData = await res.json();
-      console.log("Login successful:", userData);
-      return userData;
     },
     onSuccess: (user: User) => {
       console.log("Login successful, refreshing user data in cache");
@@ -119,22 +160,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterData) => {
       console.log("Attempting registration with:", data.email);
-      const res = await fetch("/api/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-        credentials: "include" // Make sure cookies are sent with the request
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        console.error("Registration error:", errorData);
-        throw new Error(errorData.message || "Registration failed");
+      
+      // First try the /api/auth/register endpoint
+      try {
+        console.log("Trying /api/auth/register endpoint");
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+          credentials: "include" // Make sure cookies are sent with the request
+        });
+        
+        console.log("Registration response status:", res.status);
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          console.error("Registration failed with /api/auth/register:", errorData);
+          throw new Error(errorData.message || "Registration failed");
+        }
+        
+        const userData = await res.json();
+        console.log("Registration successful with /api/auth/register:", userData);
+        return userData;
+      } catch (firstError) {
+        console.log("First registration attempt failed, trying backup endpoint...");
+        
+        // If the first endpoint fails, try the /api/register endpoint
+        const res = await fetch("/api/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+          credentials: "include" // Make sure cookies are sent with the request
+        });
+        
+        console.log("Backup registration response status:", res.status);
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          console.error("Registration error with backup endpoint:", errorData);
+          throw new Error(errorData.message || "Registration failed");
+        }
+        
+        const userData = await res.json();
+        console.log("Registration successful with backup endpoint:", userData);
+        return userData;
       }
-      const userData = await res.json();
-      console.log("Registration successful:", userData);
-      return userData;
     },
     onSuccess: (user: User) => {
       console.log("Registration successful, user approval status:", user.isApproved);
@@ -155,16 +229,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutMutation = useMutation({
     mutationFn: async () => {
       console.log("Attempting logout");
-      const res = await fetch("/api/logout", {
-        method: "POST",
-        credentials: "include" // Make sure cookies are sent with the request
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        console.error("Logout error:", errorData);
-        throw new Error(errorData.message || "Logout failed");
+      
+      // First try the /api/auth/logout endpoint
+      try {
+        const res = await fetch("/api/auth/logout", {
+          method: "POST",
+          credentials: "include" // Make sure cookies are sent with the request
+        });
+        
+        console.log("Logout response status:", res.status);
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          console.error("Logout failed with /api/auth/logout:", errorData);
+          throw new Error(errorData.message || "Logout failed");
+        }
+        
+        console.log("Logout successful with /api/auth/logout");
+        return;
+      } catch (firstError) {
+        console.log("First logout attempt failed, trying backup endpoint...");
+        
+        // If the first endpoint fails, try the /api/logout endpoint
+        const res = await fetch("/api/logout", {
+          method: "POST",
+          credentials: "include" // Make sure cookies are sent with the request
+        });
+        
+        console.log("Backup logout response status:", res.status);
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          console.error("Logout error with backup endpoint:", errorData);
+          throw new Error(errorData.message || "Logout failed");
+        }
+        
+        console.log("Logout successful with backup endpoint");
       }
-      console.log("Logout successful");
     },
     onSuccess: () => {
       console.log("Logout successful, clearing user data from cache");
