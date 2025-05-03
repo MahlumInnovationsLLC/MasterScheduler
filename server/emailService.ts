@@ -2,7 +2,10 @@ import { MailService } from '@sendgrid/mail';
 
 // Initialize SendGrid with API key
 const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY || '');
+
+// Make sure we have an API key or provide an empty string as fallback
+const apiKey = process.env.SENDGRID_API_KEY || '';
+mailService.setApiKey(apiKey);
 
 export interface EmailParams {
   to: string;
@@ -27,8 +30,8 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       to: params.to,
       from: 'no-reply@tier4project.com', // Change this to your verified sender
       subject: params.subject,
-      text: params.text,
-      html: params.html,
+      text: params.text || '',
+      html: params.html || '',
     });
     console.log(`Email sent to ${params.to}`);
     return true;

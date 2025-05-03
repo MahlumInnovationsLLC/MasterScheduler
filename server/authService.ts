@@ -14,6 +14,7 @@ import type { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
 import { ParamsDictionary } from "express-serve-static-core";
 import { ParsedQs } from "qs";
+import { sendPasswordResetEmail } from "./emailService";
 
 // Extend Express Request type
 declare global {
@@ -384,20 +385,23 @@ export function setupLocalAuth(app: Express) {
         })
         .where(eq(users.id, user.id));
       
-      // TODO: Send email with reset link
-      // For development, return token directly
-      const resetLink = `${req.protocol}://${req.hostname}/reset-password?token=${resetToken}`;
+      // Send email with reset link
+      const appBaseUrl = `${req.protocol}://${req.hostname}`;
+      const emailSent = await sendPasswordResetEmail(user.email, resetToken, appBaseUrl);
       
       if (process.env.NODE_ENV === "production") {
         // In production, don't expose the token
         res.json({ 
-          message: "If your email is registered, you will receive password reset instructions." 
+          message: "If your email is registered, you will receive password reset instructions.",
+          emailSent
         });
       } else {
-        // In development, return the link for easier testing
+        // In development, still return the link for easier testing
+        const resetLink = `${appBaseUrl}/reset-password?token=${resetToken}`;
         res.json({ 
-          message: "Password reset link generated", 
-          resetLink 
+          message: emailSent ? "Password reset email sent" : "Failed to send email, but reset link generated", 
+          resetLink,
+          emailSent
         });
       }
     } catch (error) {
