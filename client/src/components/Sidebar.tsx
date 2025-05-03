@@ -19,6 +19,13 @@ const Sidebar = () => {
   const isActive = (path: string) => {
     return location === path;
   };
+  
+  // Helper function for menu item classes
+  const getMenuItemClasses = (isItemActive: boolean) => {
+    return isItemActive 
+      ? 'bg-primary bg-opacity-20 text-white' 
+      : 'text-gray-700 dark:text-gray-300';
+  };
 
   return (
     <aside className="bg-darkCard border-r border-gray-800 h-screen overflow-y-auto pt-16">
@@ -30,7 +37,7 @@ const Sidebar = () => {
           <ul>
             <li>
               <Link href="/" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+                isActive('/') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`}>
                 <LayoutDashboard className={`text-xl ${isActive('/') ? 'text-primary' : ''}`} />
                 <span>Dashboard</span>
@@ -40,7 +47,7 @@ const Sidebar = () => {
               <Link href="/projects" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/projects') || location.startsWith('/projects/') 
                   ? 'bg-primary bg-opacity-20 text-white' 
-                  : 'text-gray-300'
+                  : 'text-gray-700 dark:text-gray-300'
               }`}>
                 <ListChecks className={`text-xl ${isActive('/projects') || location.startsWith('/projects/') ? 'text-primary' : ''}`} />
                 <span>Projects</span>
@@ -48,7 +55,7 @@ const Sidebar = () => {
             </li>
             <li>
               <Link href="/calendar" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/calendar') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+                isActive('/calendar') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`}>
                 <Calendar className={`text-xl ${isActive('/calendar') ? 'text-primary' : ''}`} />
                 <span>Calendar</span>
@@ -56,7 +63,7 @@ const Sidebar = () => {
             </li>
             <li>
               <Link href="/reports" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/reports') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+                isActive('/reports') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`}>
                 <BarChart3 className={`text-xl ${isActive('/reports') ? 'text-primary' : ''}`} />
                 <span>Reports</span>
@@ -72,7 +79,7 @@ const Sidebar = () => {
           <ul>
             <li>
               <Link href="/projects" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/projects') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-300'
+                isActive('/projects') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`}>
                 <ListChecks className={`text-xl ${isActive('/projects') ? 'text-primary' : ''}`} />
                 <span>Project Status</span>
