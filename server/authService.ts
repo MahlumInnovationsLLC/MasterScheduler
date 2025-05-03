@@ -534,16 +534,53 @@ export const hasEditRights = async (req: Request, res: Response, next: NextFunct
 export const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
   // First check if authenticated
   if (!req.isAuthenticated() || !req.user) {
+    console.log("Admin check: User not authenticated");
     return res.status(401).json({ message: "Authentication required" });
   }
   
   const user = req.user as any;
+  console.log("Admin check: User authenticated, checking role...", user);
   
-  if (!user.isApproved || user.role !== "admin") {
+  // If user has claims (from Replit Auth) we need to get the DB user
+  if (user.claims?.sub) {
+    console.log("Admin check: Getting user from DB with ID", user.claims.sub);
+    const dbUser = await storage.getUser(user.claims.sub);
+    
+    if (!dbUser) {
+      console.log("Admin check: User not found in database");
+      return res.status(403).json({ message: "User not found in database" });
+    }
+    
+    if (!dbUser.isApproved) {
+      console.log("Admin check: User not approved");
+      return res.status(403).json({ message: "Your account is pending approval" });
+    }
+    
+    if (dbUser.role !== "admin") {
+      console.log("Admin check: User role is not admin, it's", dbUser.role);
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    
+    // User is admin, proceed
+    console.log("Admin check: User is admin, proceeding");
+    req.userRole = "admin";
+    req.userDetails = dbUser;
+    return next();
+  }
+  
+  // Regular auth (not Replit Auth)
+  if (!user.isApproved) {
+    console.log("Admin check: User not approved");
+    return res.status(403).json({ message: "Your account is pending approval" });
+  }
+  
+  if (user.role !== "admin") {
+    console.log("Admin check: User role is not admin, it's", user.role);
     return res.status(403).json({ message: "Admin access required" });
   }
   
   // User is admin, proceed
+  console.log("Admin check: User is admin, proceeding");
   req.userRole = "admin";
   req.userDetails = user;
   next();
@@ -553,20 +590,53 @@ export const isAdmin = async (req: Request, res: Response, next: NextFunction) =
 export const isEditor = async (req: Request, res: Response, next: NextFunction) => {
   // First check if authenticated
   if (!req.isAuthenticated() || !req.user) {
+    console.log("Editor check: User not authenticated");
     return res.status(401).json({ message: "Authentication required" });
   }
   
   const user = req.user as any;
+  console.log("Editor check: User authenticated, checking role...", user);
   
+  // If user has claims (from Replit Auth) we need to get the DB user
+  if (user.claims?.sub) {
+    console.log("Editor check: Getting user from DB with ID", user.claims.sub);
+    const dbUser = await storage.getUser(user.claims.sub);
+    
+    if (!dbUser) {
+      console.log("Editor check: User not found in database");
+      return res.status(403).json({ message: "User not found in database" });
+    }
+    
+    if (!dbUser.isApproved) {
+      console.log("Editor check: User not approved");
+      return res.status(403).json({ message: "Your account is pending approval" });
+    }
+    
+    if (dbUser.role !== "admin" && dbUser.role !== "editor") {
+      console.log("Editor check: User role is not admin or editor, it's", dbUser.role);
+      return res.status(403).json({ message: "Editor or admin access required" });
+    }
+    
+    // User is admin or editor, proceed
+    console.log("Editor check: User is admin or editor, proceeding");
+    req.userRole = dbUser.role;
+    req.userDetails = dbUser;
+    return next();
+  }
+  
+  // Regular auth (not Replit Auth)
   if (!user.isApproved) {
+    console.log("Editor check: User not approved");
     return res.status(403).json({ message: "Approved user access required" });
   }
   
   if (user.role !== "admin" && user.role !== "editor") {
+    console.log("Editor check: User role is not admin or editor, it's", user.role);
     return res.status(403).json({ message: "Editor or admin access required" });
   }
   
-  // User is editor or admin, proceed
+  // User is admin or editor, proceed
+  console.log("Editor check: User is admin or editor, proceeding");
   req.userRole = user.role;
   req.userDetails = user;
   next();

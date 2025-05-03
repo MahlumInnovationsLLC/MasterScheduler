@@ -54,23 +54,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/auth/user"],
     queryFn: async () => {
       try {
+        console.log("Fetching current user data...");
         const res = await fetch("/api/auth/user");
         if (!res.ok) {
           if (res.status === 401) {
+            console.log("User not authenticated");
             return null;
           }
-          throw new Error("Failed to fetch user");
+          const errorData = await res.json();
+          console.error("Error fetching user:", errorData);
+          throw new Error(errorData.message || "Failed to fetch user");
         }
-        return await res.json();
+        const userData = await res.json();
+        console.log("User data retrieved:", userData);
+        return userData;
       } catch (error) {
-        console.error("Error fetching user:", error);
+        console.error("Exception when fetching user:", error);
         return null;
       }
     },
+    retry: false,
   });
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
+      console.log("Attempting login with:", credentials.email);
       const res = await fetch("/api/login", {
         method: "POST",
         headers: {
@@ -80,9 +88,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       if (!res.ok) {
         const errorData = await res.json();
+        console.error("Login error:", errorData);
         throw new Error(errorData.message || "Login failed");
       }
-      return await res.json();
+      const userData = await res.json();
+      console.log("Login successful:", userData);
+      return userData;
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/auth/user"], user);
