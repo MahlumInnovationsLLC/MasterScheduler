@@ -44,6 +44,81 @@ function convertToBoolean(value: any): boolean | null {
   return null;
 }
 
+// Helper function to safely convert various input formats to integers
+function convertToInteger(value: any): number | null {
+  if (value === undefined || value === null) return null;
+  
+  // If it's already a number, return it
+  if (typeof value === 'number' && !isNaN(value)) {
+    return Math.round(value); // Ensure it's an integer
+  }
+  
+  // Handle string values
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    
+    // Empty string becomes null
+    if (!normalized) return null;
+    
+    // Try to handle special cases first
+    if (normalized.toLowerCase() === 'in qc') return null;
+    if (normalized === 'QC DAYS') return null; // Column header instead of value
+    
+    // Remove any non-numeric characters except for decimal point
+    // This handles cases like "4 days" or "100%"
+    const numericPart = normalized.replace(/[^\d.-]/g, '');
+    
+    if (numericPart === '') return null;
+    
+    const parsedNumber = parseFloat(numericPart);
+    if (!isNaN(parsedNumber)) {
+      return Math.round(parsedNumber);
+    }
+  }
+  
+  // Default to null for any other unrecognized value
+  return null;
+}
+
+// Helper function to convert various formats to decimal/float
+function convertToDecimal(value: any, defaultValue: number | null = null): number | null {
+  if (value === undefined || value === null) return defaultValue;
+  
+  // If it's already a number, return it
+  if (typeof value === 'number' && !isNaN(value)) {
+    return value;
+  }
+  
+  // Handle string values
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    
+    // Empty string becomes null
+    if (!normalized) return defaultValue;
+    
+    // Handle percentage values (e.g., "100%")
+    if (normalized.endsWith('%')) {
+      const percentValue = parseFloat(normalized.replace('%', ''));
+      if (!isNaN(percentValue)) {
+        return percentValue;
+      }
+    }
+    
+    // Remove any non-numeric characters except for decimal point
+    const numericPart = normalized.replace(/[^\d.-]/g, '');
+    
+    if (numericPart === '') return defaultValue;
+    
+    const parsedNumber = parseFloat(numericPart);
+    if (!isNaN(parsedNumber)) {
+      return parsedNumber;
+    }
+  }
+  
+  // Default to provided default value for any other unrecognized value
+  return defaultValue;
+}
+
 // Import Tier IV Projects
 export async function importProjects(req: Request, res: Response) {
   try {
@@ -101,25 +176,25 @@ export async function importProjects(req: Request, res: Response) {
           shipDate: rawProjectData.shipDate,
           deliveryDate: rawProjectData.deliveryDate,
           
-          // Progress tracking
-          percentComplete: rawProjectData.percentComplete,
+          // Progress tracking - convert percent strings like "100%" to proper numbers
+          percentComplete: convertToDecimal(rawProjectData.percentComplete, 0),
           status: rawProjectData.status,
           
           // Project specifics
           dpasRating: rawProjectData.dpasRating,
           stretchShortenGears: rawProjectData.stretchShortenGears,
           lltsOrdered: convertToBoolean(rawProjectData.lltsOrdered),
-          qcDays: rawProjectData.qcDays,
+          qcDays: convertToInteger(rawProjectData.qcDays),
           hasBillingMilestones: convertToBoolean(rawProjectData.hasBillingMilestones),
           
-          // Design assignments - preserve exactly as in the Excel
+          // Design assignments - convert to appropriate number types
           meAssigned: rawProjectData.meAssigned,
-          meDesignOrdersPercent: rawProjectData.meDesignOrdersPercent,
+          meDesignOrdersPercent: convertToDecimal(rawProjectData.meDesignOrdersPercent),
           eeAssigned: rawProjectData.eeAssigned,
-          eeDesignOrdersPercent: rawProjectData.eeDesignOrdersPercent,
+          eeDesignOrdersPercent: convertToDecimal(rawProjectData.eeDesignOrdersPercent),
           iteAssigned: rawProjectData.iteAssigned,
-          itDesignOrdersPercent: rawProjectData.itDesignOrdersPercent,
-          ntcDesignOrdersPercent: rawProjectData.ntcDesignOrdersPercent,
+          itDesignOrdersPercent: convertToDecimal(rawProjectData.itDesignOrdersPercent),
+          ntcDesignOrdersPercent: convertToDecimal(rawProjectData.ntcDesignOrdersPercent),
         };
 
         // Normalize data
