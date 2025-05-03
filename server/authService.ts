@@ -341,15 +341,45 @@ export function setupLocalAuth(app: Express) {
   });
   
   // Get current user route
-  app.get('/api/auth/user', (req, res) => {
+  app.get('/api/auth/user', async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Not authenticated" });
     }
     
-    const user = req.user as any;
-    // Return user info without sensitive data
-    const { password, passwordResetToken, passwordResetExpires, ...safeUser } = user;
-    res.json(safeUser);
+    try {
+      const user = req.user as any;
+      
+      // Fetch the user from the database if we have a sub claim
+      if (user.claims?.sub) {
+        const dbUser = await storage.getUser(user.claims.sub);
+        
+        if (dbUser) {
+          // Remove sensitive information
+          const { password, passwordResetToken, passwordResetExpires, ...safeUser } = dbUser;
+          
+          // Add session info to the user object
+          return res.json({
+            ...safeUser,
+            isAuthenticated: true,
+            // Include any other session info needed
+            sessionInfo: {
+              expires_at: user.expires_at
+            }
+          });
+        }
+      }
+      
+      // If we don't have a sub claim or can't find the user in the database
+      // just return the session user info
+      const { password, passwordResetToken, passwordResetExpires, ...safeUser } = user;
+      return res.json({
+        ...safeUser,
+        isAuthenticated: true
+      });
+    } catch (error) {
+      console.error("Error retrieving user information:", error);
+      return res.status(500).json({ message: "Failed to retrieve user information" });
+    }
   });
   
   // Request password reset route
