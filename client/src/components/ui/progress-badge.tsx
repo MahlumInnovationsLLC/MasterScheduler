@@ -18,28 +18,28 @@ export function ProgressBadge({
   const getStatusStyles = () => {
     switch (status) {
       case 'On Track':
-        return 'bg-success bg-opacity-10 text-success';
+        return 'bg-green-950 text-white border border-green-600';
       case 'Delayed':
-        return 'bg-danger bg-opacity-10 text-danger';
+        return 'bg-red-950 text-white border border-red-600';
       case 'Completed':
-        return 'bg-success bg-opacity-10 text-success';
+        return 'bg-green-950 text-white border border-green-600';
       case 'Critical':
-        return 'bg-danger bg-opacity-10 text-danger';
+        return 'bg-red-950 text-white border border-red-600';
       case 'Paid':
-        return 'bg-success bg-opacity-10 text-success';
+        return 'bg-green-950 text-white border border-green-600';
       case 'Invoiced':
-        return 'bg-warning bg-opacity-10 text-warning';
+        return 'bg-yellow-950 text-white border border-yellow-600';
       case 'Upcoming':
-        return 'bg-gray-700 text-gray-300';
+        return 'bg-gray-900 text-white border border-gray-600';
       case 'Overdue':
-        return 'bg-danger bg-opacity-10 text-danger';
+        return 'bg-red-950 text-white border border-red-600';
       case 'Scheduled':
-        return 'bg-success bg-opacity-10 text-success';
+        return 'bg-green-950 text-white border border-green-600';
       case 'In Progress':
-        return 'bg-primary bg-opacity-10 text-primary';
+        return 'bg-blue-950 text-white border border-blue-600';
       case 'Inactive':
       default:
-        return 'bg-gray-700 text-gray-400';
+        return 'bg-gray-900 text-white border border-gray-600';
     }
   };
 

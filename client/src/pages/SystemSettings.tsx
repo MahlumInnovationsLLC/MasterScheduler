@@ -287,15 +287,15 @@ const SystemSettings = () => {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'admin':
-        return <Badge className="bg-red-900/20 text-red-300 border border-red-900 hover:bg-red-900/30">Admin</Badge>;
+        return <Badge className="bg-red-950 text-white border border-red-600 hover:bg-red-900 font-medium">Admin</Badge>;
       case 'editor':
-        return <Badge className="bg-blue-900/20 text-blue-300 border border-blue-900 hover:bg-blue-900/30">Editor</Badge>;
+        return <Badge className="bg-blue-950 text-white border border-blue-600 hover:bg-blue-900 font-medium">Editor</Badge>;
       case 'viewer':
-        return <Badge className="bg-green-900/20 text-green-300 border border-green-900 hover:bg-green-900/30">Viewer</Badge>;
+        return <Badge className="bg-green-950 text-white border border-green-600 hover:bg-green-900 font-medium">Viewer</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-900/20 text-yellow-300 border border-yellow-900 hover:bg-yellow-900/30">Pending</Badge>;
+        return <Badge className="bg-yellow-950 text-white border border-yellow-600 hover:bg-yellow-900 font-medium">Pending</Badge>;
       default:
-        return <Badge variant="outline">{role}</Badge>;
+        return <Badge variant="outline" className="font-medium">{role}</Badge>;
     }
   };
 
@@ -389,11 +389,11 @@ const SystemSettings = () => {
                           <TableCell>{getRoleBadge(user.role)}</TableCell>
                           <TableCell>
                             {user.isApproved ? (
-                              <Badge variant="outline" className="bg-green-900/20 text-green-300 border-green-800">
+                              <Badge variant="outline" className="bg-green-950 text-white border border-green-600 font-medium">
                                 Approved
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="bg-yellow-900/20 text-yellow-300 border-yellow-800">
+                              <Badge variant="outline" className="bg-yellow-950 text-white border border-yellow-600 font-medium">
                                 Pending
                               </Badge>
                             )}
@@ -584,12 +584,12 @@ const SystemSettings = () => {
                               <TableCell>{getRoleBadge(pattern.defaultRole)}</TableCell>
                               <TableCell>
                                 {pattern.autoApprove ? (
-                                  <Badge variant="outline" className="bg-green-900/20 text-green-300 border-green-800">
+                                  <Badge variant="outline" className="bg-green-950 text-white border border-green-600 font-medium">
                                     <CheckCircle2 className="mr-1 h-3 w-3" />
                                     Yes
                                   </Badge>
                                 ) : (
-                                  <Badge variant="outline" className="bg-gray-900/20 text-gray-300 border-gray-800">
+                                  <Badge variant="outline" className="bg-gray-950 text-white border border-gray-600 font-medium">
                                     <UserX className="mr-1 h-3 w-3" />
                                     No
                                   </Badge>
