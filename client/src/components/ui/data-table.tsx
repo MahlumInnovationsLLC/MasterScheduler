@@ -123,103 +123,125 @@ export function DataTable<TData, TValue>({
       </div>
       
       <div className="relative">
-        <div className="overflow-x-auto max-w-full">
-          <div className="inline-block min-w-full align-middle">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gray-900">
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id} className="border-gray-800">
-                      {headerGroup.headers.map((header) => {
-                        const isColumnFrozen = frozenColumns.includes(header.column.id);
-                        return (
-                          <TableHead 
-                            key={header.id}
-                            className={`py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${
-                              isColumnFrozen ? 'sticky left-0 z-10 bg-gray-900 shadow-md border-r border-gray-800' : ''
-                            }`}
-                            style={{
-                              // Calculate left position based on frozen column index
-                              ...(isColumnFrozen && {
-                                left: frozenColumns.indexOf(header.column.id) * 200 + 'px'
-                              })
-                            }}
+        <div className="overflow-x-auto" style={{ maxWidth: "100%" }}>
+          <Table className="w-full">
+            <TableHeader className="bg-gray-900">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id} className="border-gray-800">
+                  {headerGroup.headers.map((header, index) => {
+                    const isColumnFrozen = frozenColumns.includes(header.column.id);
+                    // Calculate left position for frozen columns
+                    let leftPosition = 0;
+                    if (isColumnFrozen) {
+                      const frozenIndex = frozenColumns.indexOf(header.column.id);
+                      for (let i = 0; i < frozenIndex; i++) {
+                        // Get the previous frozen column's width
+                        const prevColumnId = frozenColumns[i];
+                        const prevHeader = headerGroup.headers.find(h => h.column.id === prevColumnId);
+                        // Use a minimum width if we can't determine it
+                        leftPosition += prevHeader ? (prevHeader.getSize() || 150) : 150;
+                      }
+                    }
+                    
+                    return (
+                      <TableHead 
+                        key={header.id}
+                        className={`py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${
+                          isColumnFrozen ? 'sticky z-20 bg-gray-900 shadow-md' : ''
+                        }`}
+                        style={{
+                          minWidth: header.column.getSize() || 'auto',
+                          width: header.column.getSize() || 'auto',
+                          left: isColumnFrozen ? `${leftPosition}px` : undefined,
+                          position: isColumnFrozen ? 'sticky' : undefined
+                        }}
+                      >
+                        {header.isPlaceholder ? null : (
+                          <div
+                            className={
+                              header.column.getCanSort()
+                                ? 'flex items-center gap-1 cursor-pointer select-none'
+                                : ''
+                            }
+                            onClick={header.column.getToggleSortingHandler()}
                           >
-                            {header.isPlaceholder ? null : (
-                              <div
-                                className={
-                                  header.column.getCanSort()
-                                    ? 'flex items-center gap-1 cursor-pointer select-none'
-                                    : ''
-                                }
-                                onClick={header.column.getToggleSortingHandler()}
-                              >
-                                {flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext()
-                                )}
-                                {header.column.getCanSort() && (
-                                  <div className="inline-block">
-                                    {{
-                                      asc: <ChevronUp className="h-4 w-4" />,
-                                      desc: <ChevronDown className="h-4 w-4" />,
-                                      false: <ChevronsUpDown className="h-4 w-4 opacity-50" />,
-                                    }[header.column.getIsSorted() as string] ?? null}
-                                  </div>
-                                )}
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                            {header.column.getCanSort() && (
+                              <div className="inline-block">
+                                {{
+                                  asc: <ChevronUp className="h-4 w-4" />,
+                                  desc: <ChevronDown className="h-4 w-4" />,
+                                  false: <ChevronsUpDown className="h-4 w-4 opacity-50" />,
+                                }[header.column.getIsSorted() as string] ?? null}
                               </div>
                             )}
-                          </TableHead>
-                        );
-                      })}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {table.getRowModel().rows.length > 0 ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        className="hover:bg-gray-900/50 border-gray-800"
-                      >
-                        {row.getVisibleCells().map((cell) => {
-                          const isColumnFrozen = frozenColumns.includes(cell.column.id);
-                          return (
-                            <TableCell 
-                              key={cell.id} 
-                              className={`py-4 px-4 ${
-                                isColumnFrozen ? 'sticky left-0 z-10 bg-darkCard shadow-md border-r border-gray-800' : ''
-                              }`}
-                              style={{
-                                // Calculate left position based on frozen column index
-                                ...(isColumnFrozen && {
-                                  left: frozenColumns.indexOf(cell.column.id) * 200 + 'px'
-                                })
-                              }}
-                            >
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext()
-                              )}
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className="h-24 text-center text-gray-500"
-                      >
-                        No results found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
+                          </div>
+                        )}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.length > 0 ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    className="hover:bg-gray-900/50 border-gray-800"
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const isColumnFrozen = frozenColumns.includes(cell.column.id);
+                      // Calculate left position for frozen columns
+                      let leftPosition = 0;
+                      if (isColumnFrozen) {
+                        const frozenIndex = frozenColumns.indexOf(cell.column.id);
+                        for (let i = 0; i < frozenIndex; i++) {
+                          // Get the previous frozen column's width
+                          const prevColumnId = frozenColumns[i];
+                          const prevCell = row.getVisibleCells().find(c => c.column.id === prevColumnId);
+                          // Use a minimum width if we can't determine it
+                          leftPosition += prevCell ? (prevCell.column.getSize() || 150) : 150;
+                        }
+                      }
+                      
+                      return (
+                        <TableCell 
+                          key={cell.id} 
+                          className={`py-4 px-4 ${
+                            isColumnFrozen ? 'sticky z-10 bg-darkCard shadow-md' : ''
+                          }`}
+                          style={{
+                            minWidth: cell.column.getSize() || 'auto',
+                            width: cell.column.getSize() || 'auto',
+                            left: isColumnFrozen ? `${leftPosition}px` : undefined,
+                            position: isColumnFrozen ? 'sticky' : undefined
+                          }}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center text-gray-500"
+                  >
+                    No results found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       </div>
       
