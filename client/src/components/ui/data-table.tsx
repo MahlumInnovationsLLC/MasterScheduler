@@ -104,9 +104,9 @@ export function DataTable<TData, TValue>({
       </div>
       
       <div className="relative">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-w-full">
           <div className="inline-block min-w-full align-middle">
-            <div className="overflow-hidden">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader className="bg-gray-900">
                   {table.getHeaderGroups().map((headerGroup) => (

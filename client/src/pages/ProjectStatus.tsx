@@ -446,7 +446,7 @@ const ProjectStatus = () => {
       header: 'Actions',
       cell: ({ row }: { row: ProjectRow }) => (
         <div className="text-right space-x-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/projects/${row.original.id}`)}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/project/${row.original.id}`)}>
             <Eye className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/projects/${row.original.id}/edit`)}>
