@@ -465,10 +465,15 @@ const ProjectStatus = () => {
               <DropdownMenuItem onClick={() => navigate(`/project/${row.original.id}/edit`)}>
                 Edit Project
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate(`/project/${row.original.id}/tasks/new`)}>
+              <DropdownMenuItem>
                 Add Task
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                toast({
+                  title: "Archive functionality coming soon",
+                  description: "Project archiving will be available in a future update.",
+                });
+              }}>
                 Archive Project
               </DropdownMenuItem>
             </DropdownMenuContent>

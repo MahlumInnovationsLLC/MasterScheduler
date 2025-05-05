@@ -64,7 +64,7 @@ function ProjectEdit() {
 
   // Extract project ID from the URL
   const currentPath = window.location.pathname;
-  const projectId = currentPath.split('/').pop();
+  const projectId = currentPath.split('/')[2]; // Get proper ID part from /project/:id/edit
 
   // Fetch project data
   const { data: project, isLoading, error } = useQuery({
