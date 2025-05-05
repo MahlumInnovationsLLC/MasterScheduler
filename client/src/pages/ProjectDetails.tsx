@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams, Link } from 'wouter';
+import { queryClient } from '@/lib/queryClient';
 import { 
   ArrowLeft,
   User,
@@ -12,7 +13,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   FileText,
-  Building2
+  Building2,
+  Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -23,10 +25,44 @@ import { Separator } from '@/components/ui/separator';
 import { formatDate, formatCurrency, getProjectStatusColor, getBillingStatusInfo } from '@/lib/utils';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import { ProjectHealthCard } from '@/components/ProjectHealthCard';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { addDays } from 'date-fns';
 
 const ProjectDetails = () => {
   const { id } = useParams();
   const projectId = parseInt(id);
+  const { toast } = useToast();
+  
+  // Dialog state
+  const [isAssignBayDialogOpen, setIsAssignBayDialogOpen] = useState(false);
+  const [selectedBayId, setSelectedBayId] = useState<number | null>(null);
+  const [startDate, setStartDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
+  const [endDate, setEndDate] = useState<string>(
+    addDays(new Date(), 14).toISOString().split('T')[0]
+  );
+  const [equipment, setEquipment] = useState<string>('Standard Equipment');
+  const [staffAssigned, setStaffAssigned] = useState<string>('Team Alpha (4)');
   
   const { data: project, isLoading: isLoadingProject } = useQuery({
     queryKey: [`/api/projects/${projectId}`],
@@ -57,7 +93,38 @@ const ProjectDetails = () => {
   
   const { data: manufacturingBays } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
-    enabled: !isNaN(projectId) && manufacturingSchedules?.length > 0
+    enabled: !isNaN(projectId)
+  });
+  
+  // Create manufacturing schedule mutation
+  const assignBayMutation = useMutation({
+    mutationFn: async (scheduleData: {
+      projectId: number;
+      bayId: number;
+      startDate: string;
+      endDate: string;
+      equipment: string;
+      staffAssigned: string;
+      status: string;
+    }) => {
+      const response = await apiRequest('POST', '/api/manufacturing-schedules', scheduleData);
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Manufacturing bay assigned",
+        description: "Project has been successfully scheduled for production",
+      });
+      setIsAssignBayDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/manufacturing-schedules`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to assign bay",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   });
 
   const calculateProjectHealth = (): { score: number; change: number } => {
@@ -477,13 +544,153 @@ const ProjectDetails = () => {
                 </div>
               )}
               
-              <Button variant="outline" className="mt-3 w-full">
-                View Schedule
-              </Button>
+              <div className="flex gap-2 mt-3">
+                {!activeSchedule ? (
+                  <Button 
+                    className="flex-1" 
+                    onClick={() => setIsAssignBayDialogOpen(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Assign Manufacturing Bay
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="flex-1">
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Assignment
+                  </Button>
+                )}
+                <Button variant="outline" className="flex-1">
+                  View Schedule
+                </Button>
+              </div>
             </div>
           </Card>
         </div>
       </div>
+
+      {/* Manufacturing Bay Assignment Dialog */}
+      <Dialog open={isAssignBayDialogOpen} onOpenChange={setIsAssignBayDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Assign Manufacturing Bay</DialogTitle>
+            <DialogDescription>
+              Schedule production for {project?.name} by assigning a manufacturing bay and time period.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bay" className="text-right">
+                Bay
+              </Label>
+              <div className="col-span-3">
+                <Select
+                  value={selectedBayId?.toString() || ""}
+                  onValueChange={(value) => setSelectedBayId(parseInt(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a manufacturing bay" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {manufacturingBays?.map((bay) => (
+                      <SelectItem key={bay.id} value={bay.id.toString()}>
+                        Bay {bay.bayNumber} - {bay.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="startDate" className="text-right">
+                Start Date
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="endDate" className="text-right">
+                End Date
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="equipment" className="text-right">
+                Equipment
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="equipment"
+                  value={equipment}
+                  onChange={(e) => setEquipment(e.target.value)}
+                  placeholder="Equipment requirements"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="staff" className="text-right">
+                Staff
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="staff"
+                  value={staffAssigned}
+                  onChange={(e) => setStaffAssigned(e.target.value)}
+                  placeholder="Staff assigned"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAssignBayDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (!selectedBayId) {
+                  toast({
+                    title: "Bay selection required",
+                    description: "Please select a manufacturing bay",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                assignBayMutation.mutate({
+                  projectId,
+                  bayId: selectedBayId,
+                  startDate,
+                  endDate,
+                  equipment,
+                  staffAssigned,
+                  status: 'scheduled'
+                });
+              }}
+              disabled={assignBayMutation.isPending}
+            >
+              {assignBayMutation.isPending ? "Assigning..." : "Assign Bay"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
