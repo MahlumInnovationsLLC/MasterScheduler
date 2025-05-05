@@ -62,6 +62,13 @@ export const notificationPriorityEnum = pgEnum("notification_priority", [
   "critical",
 ]);
 
+export const delayResponsibilityEnum = pgEnum("delay_responsibility", [
+  "nomad_fault",
+  "vendor_fault",
+  "client_fault",
+  "not_applicable",
+]);
+
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const sessions = pgTable(
@@ -184,16 +191,7 @@ export const projects = pgTable("projects", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Project Relations
-export const projectsRelations = relations(projects, ({ one, many }) => ({
-  pmOwner: one(users, {
-    fields: [projects.pmOwnerId],
-    references: [users.id],
-  }),
-  tasks: many(tasks),
-  milestones: many(billingMilestones),
-  baySchedules: many(manufacturingSchedules),
-}));
+// Project Relations definition moved below after deliveryTracking table definition
 
 // Archived Projects Table - mirrors the projects table structure
 export const archivedProjects = pgTable("archived_projects", {
@@ -360,6 +358,48 @@ export const allowedEmails = pgTable("allowed_emails", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// On Time Delivery Tracking Table
+export const deliveryTracking = pgTable("delivery_tracking", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .references(() => projects.id)
+    .notNull(),
+  originalEstimatedDate: date("original_estimated_date").notNull(),
+  revisedEstimatedDate: date("revised_estimated_date"),
+  actualDeliveryDate: date("actual_delivery_date"),
+  daysLate: integer("days_late"),
+  delayResponsibility: delayResponsibilityEnum("delay_responsibility").default("not_applicable"),
+  delayReason: text("delay_reason"),
+  delayNotes: text("delay_notes"),
+  createdById: varchar("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Delivery Tracking Relations
+export const deliveryTrackingRelations = relations(deliveryTracking, ({ one }) => ({
+  project: one(projects, {
+    fields: [deliveryTracking.projectId],
+    references: [projects.id],
+  }),
+  createdBy: one(users, {
+    fields: [deliveryTracking.createdById],
+    references: [users.id],
+  }),
+}));
+
+// Update Project Relations to include delivery tracking
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  pmOwner: one(users, {
+    fields: [projects.pmOwnerId],
+    references: [users.id],
+  }),
+  tasks: many(tasks),
+  milestones: many(billingMilestones),
+  baySchedules: many(manufacturingSchedules),
+  deliveryTracking: many(deliveryTracking),
+}));
+
 // Notifications Table
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
@@ -461,6 +501,13 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   isRead: true,
 });
 
+// Create insert schema for delivery tracking
+export const insertDeliveryTrackingSchema = createInsertSchema(deliveryTracking).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Create insert schema for archived projects
 export const insertArchivedProjectSchema = createInsertSchema(archivedProjects).omit({
   id: true,
@@ -498,3 +545,6 @@ export type InsertManufacturingSchedule = z.infer<typeof insertManufacturingSche
 
 export type AllowedEmail = typeof allowedEmails.$inferSelect;
 export type InsertAllowedEmail = z.infer<typeof insertAllowedEmailSchema>;
+
+export type DeliveryTracking = typeof deliveryTracking.$inferSelect;
+export type InsertDeliveryTracking = z.infer<typeof insertDeliveryTrackingSchema>;
