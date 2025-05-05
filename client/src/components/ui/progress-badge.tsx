@@ -18,28 +18,28 @@ export function ProgressBadge({
   const getStatusStyles = () => {
     switch (status) {
       case 'On Track':
-        return 'bg-green-950 text-white border border-green-600';
+        return 'dark:bg-green-950 bg-green-100 dark:text-white text-green-800 border border-green-600';
       case 'Delayed':
-        return 'bg-red-950 text-white border border-red-600';
+        return 'dark:bg-red-950 bg-red-100 dark:text-white text-red-800 border border-red-600';
       case 'Completed':
-        return 'bg-green-950 text-white border border-green-600';
+        return 'dark:bg-green-950 bg-green-100 dark:text-white text-green-800 border border-green-600';
       case 'Critical':
-        return 'bg-red-950 text-white border border-red-600';
+        return 'dark:bg-red-950 bg-red-100 dark:text-white text-red-800 border border-red-600';
       case 'Paid':
-        return 'bg-green-950 text-white border border-green-600';
+        return 'dark:bg-green-950 bg-green-100 dark:text-white text-green-800 border border-green-600';
       case 'Invoiced':
-        return 'bg-yellow-950 text-white border border-yellow-600';
+        return 'dark:bg-yellow-950 bg-yellow-100 dark:text-white text-yellow-800 border border-yellow-600';
       case 'Upcoming':
-        return 'bg-gray-900 text-white border border-gray-600';
+        return 'dark:bg-gray-900 bg-gray-100 dark:text-white text-gray-800 border border-gray-600';
       case 'Overdue':
-        return 'bg-red-950 text-white border border-red-600';
+        return 'dark:bg-red-950 bg-red-100 dark:text-white text-red-800 border border-red-600';
       case 'Scheduled':
-        return 'bg-green-950 text-white border border-green-600';
+        return 'dark:bg-green-950 bg-green-100 dark:text-white text-green-800 border border-green-600';
       case 'In Progress':
-        return 'bg-blue-950 text-white border border-blue-600';
+        return 'dark:bg-blue-950 bg-blue-100 dark:text-white text-blue-800 border border-blue-600';
       case 'Inactive':
       default:
-        return 'bg-gray-900 text-white border border-gray-600';
+        return 'dark:bg-gray-900 bg-gray-100 dark:text-white text-gray-800 border border-gray-600';
     }
   };
 
