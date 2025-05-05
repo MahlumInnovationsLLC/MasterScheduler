@@ -196,6 +196,9 @@ export async function importProjects(req: Request, res: Response) {
           iteAssigned: rawProjectData.iteAssigned,
           itDesignOrdersPercent: convertToDecimal(rawProjectData.itDesignOrdersPercent),
           ntcDesignOrdersPercent: convertToDecimal(rawProjectData.ntcDesignOrdersPercent),
+          
+          // Store raw data from Excel in case we need to access additional fields
+          rawData: rawProjectData.rawData || {},
         };
 
         // Normalize data

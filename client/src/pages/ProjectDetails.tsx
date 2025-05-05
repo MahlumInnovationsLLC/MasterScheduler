@@ -459,6 +459,40 @@ const ProjectDetails = () => {
               </div>
             </div>
           </Card>
+
+          {/* All Excel Data */}
+          <Card className="bg-darkCard rounded-xl border border-gray-800">
+            <div className="p-4 border-b border-gray-800">
+              <h3 className="font-bold">Additional Project Data</h3>
+              <p className="text-xs text-gray-400">All original data from Excel import</p>
+            </div>
+            <div className="p-4 overflow-auto max-h-[400px]">
+              {project.rawData && Object.keys(project.rawData).length > 0 ? (
+                <div className="bg-darkInput rounded-lg p-3 text-sm">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-800">
+                        <th className="text-left p-2 font-medium">Field</th>
+                        <th className="text-left p-2 font-medium">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(project.rawData).map(([key, value]) => (
+                        <tr key={key} className="border-b border-gray-700/20 hover:bg-gray-800/20">
+                          <td className="p-2 font-medium text-gray-300">{key}</td>
+                          <td className="p-2">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="bg-darkInput rounded-lg p-3 text-sm">
+                  <p>No additional data available from Excel import.</p>
+                </div>
+              )}
+            </div>
+          </Card>
           
           {/* Linked Billing Milestones */}
           <Card className="bg-darkCard rounded-xl border border-gray-800">

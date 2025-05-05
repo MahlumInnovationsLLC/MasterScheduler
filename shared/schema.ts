@@ -136,6 +136,7 @@ export const projects = pgTable("projects", {
   
   // PM and team information
   pmOwnerId: varchar("pm_owner_id").references(() => users.id),
+  pmOwner: text("pm_owner"), // Store PM name string directly
   team: text("team"),
   location: text("location"),
   
@@ -174,6 +175,9 @@ export const projects = pgTable("projects", {
   status: projectStatusEnum("status").default("active").notNull(),
   hasBillingMilestones: boolean("has_billing_milestones").default(false),
   notes: text("notes"),
+  
+  // Store all raw data from Excel import
+  rawData: jsonb("raw_data"), // JSON field to store all original Excel columns
   
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
