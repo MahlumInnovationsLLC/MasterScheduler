@@ -8,6 +8,7 @@ import {
   userPreferences,
   allowedEmails,
   notifications,
+  archivedProjects,
   type User,
   type InsertUser,
   type Project,
@@ -26,6 +27,8 @@ import {
   type InsertAllowedEmail,
   type Notification,
   type InsertNotification,
+  type ArchivedProject,
+  type InsertArchivedProject,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, or } from "drizzle-orm";
@@ -141,6 +144,11 @@ export interface IStorage {
   deleteNotification(id: number): Promise<boolean>;
   deleteAllNotifications(userId: string): Promise<boolean>;
   getUnreadNotificationCount(userId: string): Promise<number>;
+  
+  // Archived Projects methods
+  getArchivedProjects(): Promise<ArchivedProject[]>;
+  getArchivedProject(id: number): Promise<ArchivedProject | undefined>;
+  archiveProject(projectId: number, userId: string, reason?: string): Promise<ArchivedProject | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -718,6 +726,129 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error counting unread notifications:", error);
       return 0;
+    }
+  }
+  
+  // Archived Projects methods implementation
+  async getArchivedProjects(): Promise<ArchivedProject[]> {
+    try {
+      return await db.select().from(archivedProjects).orderBy(desc(archivedProjects.archivedAt));
+    } catch (error) {
+      console.error("Error retrieving archived projects:", error);
+      return [];
+    }
+  }
+  
+  async getArchivedProject(id: number): Promise<ArchivedProject | undefined> {
+    try {
+      const [archivedProject] = await db
+        .select()
+        .from(archivedProjects)
+        .where(eq(archivedProjects.id, id));
+      return archivedProject;
+    } catch (error) {
+      console.error(`Error retrieving archived project ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async archiveProject(projectId: number, userId: string, reason?: string): Promise<ArchivedProject | undefined> {
+    try {
+      // Begin transaction
+      return await db.transaction(async (tx) => {
+        // 1. Fetch the project to be archived
+        const [project] = await tx
+          .select()
+          .from(projects)
+          .where(eq(projects.id, projectId));
+          
+        if (!project) {
+          console.error(`Project with ID ${projectId} not found for archiving`);
+          return undefined;
+        }
+        
+        // 2. Create archive entry with all project data
+        const archiveData = {
+          originalId: project.id,
+          projectNumber: project.projectNumber,
+          name: project.name,
+          description: project.description,
+          pmOwnerId: project.pmOwnerId,
+          pmOwner: project.pmOwner,
+          team: project.team,
+          location: project.location,
+          contractDate: project.contractDate,
+          startDate: project.startDate,
+          estimatedCompletionDate: project.estimatedCompletionDate,
+          actualCompletionDate: project.actualCompletionDate,
+          chassisETA: project.chassisETA,
+          fabricationStart: project.fabricationStart,
+          assemblyStart: project.assemblyStart,
+          wrapDate: project.wrapDate,
+          ntcTestingDate: project.ntcTestingDate,
+          qcStartDate: project.qcStartDate,
+          executiveReviewDate: project.executiveReviewDate,
+          shipDate: project.shipDate,
+          deliveryDate: project.deliveryDate,
+          percentComplete: project.percentComplete,
+          dpasRating: project.dpasRating,
+          stretchShortenGears: project.stretchShortenGears,
+          lltsOrdered: project.lltsOrdered,
+          qcDays: project.qcDays,
+          meAssigned: project.meAssigned,
+          meDesignOrdersPercent: project.meDesignOrdersPercent,
+          eeAssigned: project.eeAssigned,
+          eeDesignOrdersPercent: project.eeDesignOrdersPercent,
+          iteAssigned: project.iteAssigned,
+          itDesignOrdersPercent: project.itDesignOrdersPercent,
+          ntcDesignOrdersPercent: project.ntcDesignOrdersPercent,
+          status: "archived",
+          hasBillingMilestones: project.hasBillingMilestones,
+          notes: project.notes,
+          rawData: project.rawData,
+          archivedAt: new Date(),
+          archivedBy: userId,
+          archiveReason: reason || "Project archived by user",
+          originalCreatedAt: project.createdAt,
+        };
+        
+        // 3. Insert into archived_projects table
+        const [archivedProject] = await tx
+          .insert(archivedProjects)
+          .values(archiveData)
+          .returning();
+        
+        if (!archivedProject) {
+          throw new Error(`Failed to create archive record for project ${projectId}`);
+        }
+        
+        // 4. Delete the original project
+        await tx
+          .delete(projects)
+          .where(eq(projects.id, projectId));
+          
+        // 5. Create a notification about the archived project
+        await tx
+          .insert(notifications)
+          .values({
+            userId,
+            title: "Project Archived",
+            message: `Project ${project.projectNumber} (${project.name}) has been archived.`,
+            type: "system",
+            priority: "medium",
+            relatedProjectId: null, // Project is now archived, so no direct reference
+          });
+          
+        console.log(`Project ${projectId} (${project.projectNumber}) archived successfully`);
+        return archivedProject;
+      });
+    } catch (error) {
+      console.error(`Error archiving project ${projectId}:`, error);
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      return undefined;
     }
   }
 }

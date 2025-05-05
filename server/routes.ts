@@ -853,6 +853,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Archived Projects Routes
+  app.get("/api/archived-projects", async (req, res) => {
+    try {
+      const archivedProjects = await storage.getArchivedProjects();
+      res.json(archivedProjects);
+    } catch (error) {
+      console.error("Error fetching archived projects:", error);
+      res.status(500).json({ message: "Error fetching archived projects" });
+    }
+  });
+
+  app.get("/api/archived-projects/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const archivedProject = await storage.getArchivedProject(id);
+      
+      if (!archivedProject) {
+        return res.status(404).json({ message: "Archived project not found" });
+      }
+      
+      res.json(archivedProject);
+    } catch (error) {
+      console.error(`Error fetching archived project ${req.params.id}:`, error);
+      res.status(500).json({ message: "Error fetching archived project" });
+    }
+  });
+
+  app.post("/api/projects/:id/archive", isAuthenticated, hasEditRights, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const { reason } = req.body;
+      
+      const archivedProject = await storage.archiveProject(projectId, userId, reason);
+      
+      if (!archivedProject) {
+        return res.status(404).json({ message: "Project not found or could not be archived" });
+      }
+      
+      res.status(200).json({
+        success: true, 
+        message: `Project ${archivedProject.projectNumber} successfully archived`,
+        archivedProject
+      });
+    } catch (error) {
+      console.error(`Error archiving project ${req.params.id}:`, error);
+      res.status(500).json({ message: "Error archiving project" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
