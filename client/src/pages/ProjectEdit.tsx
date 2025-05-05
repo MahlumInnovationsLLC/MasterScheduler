@@ -43,6 +43,7 @@ const projectSchema = z.object({
   projectNumber: z.string().min(1, 'Project number is required'),
   name: z.string().min(1, 'Project name is required'),
   description: z.string().optional(),
+  location: z.string().optional(),
   pmOwner: z.string().optional(),
   client: z.string().optional(),
   startDate: z.date().optional(),
@@ -79,6 +80,7 @@ function ProjectEdit() {
       projectNumber: '',
       name: '',
       description: '',
+      location: '',
       pmOwner: '',
       client: '',
       status: 'active',
@@ -95,6 +97,7 @@ function ProjectEdit() {
         projectNumber: project.projectNumber || '',
         name: project.name || '',
         description: project.description || '',
+        location: project.location || '',
         pmOwner: project.pmOwner || '',
         client: project.client || '',
         startDate: project.startDate ? new Date(project.startDate) : undefined,
@@ -383,6 +386,32 @@ function ProjectEdit() {
                               <SelectItem value="medium">Medium</SelectItem>
                               <SelectItem value="high">High</SelectItem>
                               <SelectItem value="urgent">Urgent</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="location"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Location</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select location" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="CFALLS">CFALLS</SelectItem>
+                              <SelectItem value="LIBBY">LIBBY</SelectItem>
+                              <SelectItem value="FSW">FSW</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />

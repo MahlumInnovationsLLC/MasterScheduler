@@ -317,13 +317,19 @@ const ProjectStatus = () => {
 
   // Define all available columns
   const allColumns = [
+    createColumn('location', 'location', 'Location', 
+      (value) => (
+        <div className="flex items-center justify-center">
+          <div className="flex-shrink-0 h-8 w-8 rounded bg-primary flex items-center justify-center text-white font-medium">
+            {value || 'N/A'}
+          </div>
+        </div>
+      ),
+      { sortingFn: 'alphanumeric', size: 90 }),
     createColumn('projectNumber', 'projectNumber', 'Project', 
       (value, project) => (
         <div className="flex items-center">
-          <div className="flex-shrink-0 h-8 w-8 rounded bg-primary flex items-center justify-center text-white font-medium">
-            {value.slice(-2)}
-          </div>
-          <div className="ml-3">
+          <div className="ml-2">
             <div className="text-sm font-medium text-white">{value}</div>
             <div className="text-xs text-gray-400">{project.name}</div>
           </div>
@@ -401,6 +407,39 @@ const ProjectStatus = () => {
     createColumn('chassisETA', 'chassisETA', 'Chassis ETA', 
       (value) => formatDate(value),
       { size: 140 }),
+    createColumn('dpasRating', 'dpasRating', 'DPAS Rating',
+      (value) => value || 'N/A',
+      { size: 120 }),
+    createColumn('stretchShortenGears', 'stretchShortenGears', 'Stretch/Shorten Gears',
+      (value) => value || 'N/A',
+      { size: 150 }),
+    createColumn('hasBillingMilestones', 'hasBillingMilestones', 'Payment Milestones',
+      (value) => value ? 'Yes' : 'No',
+      { size: 140 }),
+    createColumn('lltsOrdered', 'lltsOrdered', 'LLTS Ordered',
+      (value) => value ? 'Yes' : 'No',
+      { size: 120 }),
+    createColumn('meAssigned', 'meAssigned', 'ME Assigned',
+      (value) => value || 'N/A',
+      { size: 120 }),
+    createColumn('meDesignOrdersPercent', 'meDesignOrdersPercent', 'ME Design %',
+      (value) => value ? `${value}%` : 'N/A',
+      { size: 120 }),
+    createColumn('eeAssigned', 'eeAssigned', 'EE Assigned',
+      (value) => value || 'N/A',
+      { size: 120 }),
+    createColumn('eeDesignOrdersPercent', 'eeDesignOrdersPercent', 'EE Design %',
+      (value) => value ? `${value}%` : 'N/A',
+      { size: 120 }),
+    createColumn('iteAssigned', 'iteAssigned', 'ITE Assigned',
+      (value) => value || 'N/A',
+      { size: 120 }),
+    createColumn('itDesignOrdersPercent', 'itDesignOrdersPercent', 'IT Design %',
+      (value) => value ? `${value}%` : 'N/A',
+      { size: 120 }),
+    createColumn('ntcDesignOrdersPercent', 'ntcDesignOrdersPercent', 'NTC Design %',
+      (value) => value ? `${value}%` : 'N/A',
+      { size: 120 }),
     createColumn('fabricationStart', 'fabricationStart', 'Fabrication Start', 
       (value) => formatDate(value),
       { size: 150 }),
@@ -438,42 +477,6 @@ const ProjectStatus = () => {
     createColumn('team', 'team', 'Team',
       (value) => value || 'N/A',
       { size: 120 }),
-    createColumn('location', 'location', 'Location',
-      (value) => value || 'N/A',
-      { size: 120 }),
-    createColumn('dpasRating', 'dpasRating', 'DPAS Rating',
-      (value) => value || 'N/A',
-      { size: 120 }),
-    createColumn('stretchShortenGears', 'stretchShortenGears', 'Stretch/Shorten Gears',
-      (value) => value || 'N/A',
-      { size: 150 }),
-    createColumn('lltsOrdered', 'lltsOrdered', 'LLTS Ordered',
-      (value) => value ? 'Yes' : 'No',
-      { size: 120 }),
-    createColumn('meAssigned', 'meAssigned', 'ME Assigned',
-      (value) => value || 'N/A',
-      { size: 120 }),
-    createColumn('meDesignOrdersPercent', 'meDesignOrdersPercent', 'ME Design %',
-      (value) => value ? `${value}%` : 'N/A',
-      { size: 120 }),
-    createColumn('eeAssigned', 'eeAssigned', 'EE Assigned',
-      (value) => value || 'N/A',
-      { size: 120 }),
-    createColumn('eeDesignOrdersPercent', 'eeDesignOrdersPercent', 'EE Design %',
-      (value) => value ? `${value}%` : 'N/A',
-      { size: 120 }),
-    createColumn('iteAssigned', 'iteAssigned', 'ITE Assigned',
-      (value) => value || 'N/A',
-      { size: 120 }),
-    createColumn('itDesignOrdersPercent', 'itDesignOrdersPercent', 'IT Design %',
-      (value) => value ? `${value}%` : 'N/A',
-      { size: 120 }),
-    createColumn('ntcDesignOrdersPercent', 'ntcDesignOrdersPercent', 'NTC Design %',
-      (value) => value ? `${value}%` : 'N/A',
-      { size: 120 }),
-    createColumn('hasBillingMilestones', 'hasBillingMilestones', 'Has Billing Milestones',
-      (value) => value ? 'Yes' : 'No',
-      { size: 150 }),
     createColumn('notes', 'notes', 'Notes',
       (value) => (
         <div className="text-sm max-w-xs truncate" title={value as string}>
@@ -882,7 +885,7 @@ const ProjectStatus = () => {
         filterColumn="status"
         filterOptions={statusOptions}
         searchPlaceholder="Search projects..."
-        frozenColumns={['projectNumber', 'pmOwner', 'timeline', 'percentComplete', 'status']} // Freeze these columns on the left as shown in the screenshot
+        frozenColumns={['location', 'projectNumber', 'pmOwner', 'timeline', 'percentComplete', 'status']} // Freeze these columns on the left
       />
       
       {/* Filters Info */}
