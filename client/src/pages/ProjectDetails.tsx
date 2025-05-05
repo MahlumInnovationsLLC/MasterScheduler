@@ -293,7 +293,11 @@ const ProjectDetails = () => {
           
           <div className="flex items-center gap-2">
             <ProgressBadge status={projectStatus} size="md" animatePulse={projectStatus === 'Critical'} />
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.location.href = `/project/${projectId}/edit`}
+            >
               <Edit className="h-4 w-4 mr-2" />
               Edit Project
             </Button>

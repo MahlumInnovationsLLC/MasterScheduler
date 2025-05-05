@@ -117,8 +117,14 @@ export function DataTable<TData, TValue>({
                           <TableHead 
                             key={header.id}
                             className={`py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${
-                              isColumnFrozen ? 'sticky left-0 z-10 bg-gray-900 shadow-md' : ''
+                              isColumnFrozen ? 'sticky left-0 z-10 bg-gray-900 shadow-md border-r border-gray-800' : ''
                             }`}
+                            style={{
+                              // Calculate left position based on frozen column index
+                              ...(isColumnFrozen && {
+                                left: frozenColumns.indexOf(header.column.id) * 200 + 'px'
+                              })
+                            }}
                           >
                             {header.isPlaceholder ? null : (
                               <div
@@ -163,8 +169,14 @@ export function DataTable<TData, TValue>({
                             <TableCell 
                               key={cell.id} 
                               className={`py-4 px-4 ${
-                                isColumnFrozen ? 'sticky left-0 z-10 bg-darkCard shadow-md' : ''
+                                isColumnFrozen ? 'sticky left-0 z-10 bg-darkCard shadow-md border-r border-gray-800' : ''
                               }`}
+                              style={{
+                                // Calculate left position based on frozen column index
+                                ...(isColumnFrozen && {
+                                  left: frozenColumns.indexOf(cell.column.id) * 200 + 'px'
+                                })
+                              }}
                             >
                               {flexRender(
                                 cell.column.columnDef.cell,

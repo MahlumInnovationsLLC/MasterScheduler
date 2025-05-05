@@ -551,11 +551,11 @@ const ProjectStatus = () => {
       });
   }, [filteredProjects, allColumns]);
   
-  // Combine standard columns with dynamic raw data columns
+  // Only use standard columns - raw data will be loaded from the project data directly
   const allAvailableColumns = React.useMemo(() => {
-    // Combine standard columns with dynamic raw data columns
-    return [...allColumns, ...dynamicRawDataColumns];
-  }, [allColumns, dynamicRawDataColumns]);
+    // We're only using the core columns for display consistency
+    return allColumns;
+  }, [allColumns]);
   
   // Filter columns based on visibility settings
   const columns = allAvailableColumns.filter(col => 
