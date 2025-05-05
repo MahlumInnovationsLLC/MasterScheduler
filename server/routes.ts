@@ -24,6 +24,14 @@ import {
   importManufacturingBays, 
   importManufacturingSchedules 
 } from "./import";
+import {
+  getProjectDeliveryTracking,
+  getAllDeliveryTracking,
+  createDeliveryTracking,
+  updateDeliveryTracking,
+  deleteDeliveryTracking,
+  getDeliveryAnalytics
+} from "./routes/deliveryTracking";
 import { countWorkingDays } from "@shared/utils/date-utils";
 import {
   analyzeProjectHealth,
@@ -457,6 +465,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/billing-milestones", isAuthenticated, importBillingMilestones);
   app.post("/api/import/manufacturing-bays", isAuthenticated, importManufacturingBays);
   app.post("/api/import/manufacturing-schedules", isAuthenticated, importManufacturingSchedules);
+  
+  // Delivery Tracking routes 
+  app.get("/api/delivery-tracking", getAllDeliveryTracking);
+  app.get("/api/delivery-tracking/analytics", getDeliveryAnalytics);
+  app.get("/api/projects/:projectId/delivery-tracking", getProjectDeliveryTracking);
+  app.post("/api/delivery-tracking", isAuthenticated, hasEditRights, createDeliveryTracking);
+  app.put("/api/delivery-tracking/:id", isAuthenticated, hasEditRights, updateDeliveryTracking);
+  app.delete("/api/delivery-tracking/:id", isAuthenticated, hasEditRights, deleteDeliveryTracking);
   
   // User Preferences routes
   app.get("/api/user-preferences", isAuthenticated, async (req: any, res) => {
