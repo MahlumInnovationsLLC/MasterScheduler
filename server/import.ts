@@ -291,38 +291,123 @@ export async function importProjects(req: Request, res: Response) {
             projectData.estimatedCompletionDate = completionDate.toISOString().split('T')[0];
         }
 
-        // Helper function to convert Excel dates to ISO string format
+        // Enhanced helper function to convert Excel dates to ISO string format with better handling
         const convertExcelDate = (excelDate: any): string | null => {
-          if (!excelDate) return null;
+          // Handle empty or null values
+          if (excelDate === undefined || excelDate === null || excelDate === '') return null;
           
-          // If it's already a date string in ISO format, just return it
-          if (typeof excelDate === 'string' && excelDate.match(/^\d{4}-\d{2}-\d{2}T/)) {
-            return excelDate;
-          }
-          
-          // Handle Excel serial dates (numbers)
-          if (typeof excelDate === 'number') {
-            // Excel dates are number of days since 1900-01-01
-            // But Excel incorrectly thinks 1900 was a leap year, so adjust for dates after Feb 28, 1900
-            const date = new Date((excelDate - (excelDate > 59 ? 1 : 0) - 25569) * 86400 * 1000);
-            return date.toISOString();
-          }
-          
-          // Handle string date formats
-          if (typeof excelDate === 'string' && excelDate.trim()) {
-            try {
-              const date = new Date(excelDate);
-              if (!isNaN(date.getTime())) {
-                return date.toISOString();
-              }
-            } catch (e) {
-              console.log(`Failed to parse date: ${excelDate}`, e);
-              // If date parsing fails, just pass it through
+          // Handle common non-date placeholder values
+          if (typeof excelDate === 'string') {
+            const normalized = excelDate.trim().toLowerCase();
+            if (['n/a', 'na', 'tbd', 'tba', 'pending', 'unknown', '-'].includes(normalized)) {
+              return null;
             }
           }
           
-          // If all else fails, return the original value
-          return excelDate;
+          // If it's already a date string in ISO format, return it
+          if (typeof excelDate === 'string' && (
+              excelDate.match(/^\d{4}-\d{2}-\d{2}/) || // ISO date YYYY-MM-DD
+              excelDate.match(/^\d{4}\/\d{2}\/\d{2}/)  // YYYY/MM/DD format
+          )) {
+            try {
+              const date = new Date(excelDate);
+              if (!isNaN(date.getTime())) {
+                // Only take the date part without time
+                const isoDate = date.toISOString().split('T')[0];
+                console.log(`Converted date string '${excelDate}' -> '${isoDate}'`);
+                return isoDate;
+              }
+            } catch (e) {
+              console.log(`Failed to parse ISO-like date: ${excelDate}`, e);
+            }
+          }
+          
+          // Handle Excel serial dates (numbers)
+          if (typeof excelDate === 'number' && !isNaN(excelDate) && excelDate > 0) {
+            try {
+              // Excel dates are number of days since 1900-01-01
+              // But Excel incorrectly thinks 1900 was a leap year, so adjust for dates after Feb 28, 1900
+              let adjustedExcelDate = excelDate;
+              if (adjustedExcelDate > 60) { // Excel's leap year bug: Feb 29, 1900 doesn't exist
+                adjustedExcelDate--;
+              }
+                
+              // Convert Excel date to JavaScript date
+              // Date in Javascript = (Excel date - 25569) * 86400 * 1000
+              // 25569 is the number of days between Jan 1, 1900 and Jan 1, 1970
+              const millisecondsPerDay = 24 * 60 * 60 * 1000;
+              const date = new Date((adjustedExcelDate - 25569) * millisecondsPerDay);
+                
+              if (!isNaN(date.getTime())) {
+                // Only take the date part without time
+                const isoDate = date.toISOString().split('T')[0];
+                console.log(`Converted Excel numeric date ${excelDate} -> '${isoDate}'`);
+                return isoDate;
+              }
+            } catch (e) {
+              console.log(`Failed to convert Excel numeric date: ${excelDate}`, e);
+            }
+          }
+          
+          // Handle various string date formats (MM/DD/YYYY, DD/MM/YYYY, etc.)
+          if (typeof excelDate === 'string' && excelDate.trim()) {
+            const normalized = excelDate.trim();
+            
+            // Try to handle MM/DD/YYYY or DD/MM/YYYY format
+            const dateRegex = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/;
+            const match = normalized.match(dateRegex);
+            
+            if (match) {
+              // Get the parts - not knowing if it's MM/DD/YYYY or DD/MM/YYYY
+              const part1 = parseInt(match[1], 10);
+              const part2 = parseInt(match[2], 10);
+              let year = parseInt(match[3], 10);
+              
+              // Adjust 2-digit years
+              if (year < 100) {
+                year += year < 50 ? 2000 : 1900;
+              }
+              
+              // Try both MM/DD and DD/MM interpretations
+              const attemptFormats = [
+                { month: part1, day: part2 }, // MM/DD
+                { month: part2, day: part1 }  // DD/MM
+              ];
+              
+              for (const format of attemptFormats) {
+                if (format.month >= 1 && format.month <= 12 && format.day >= 1 && format.day <= 31) {
+                  try {
+                    const date = new Date(year, format.month - 1, format.day);
+                    if (!isNaN(date.getTime())) {
+                      // Only take the date part
+                      const isoDate = date.toISOString().split('T')[0];
+                      console.log(`Converted string date '${excelDate}' -> '${isoDate}'`);
+                      return isoDate;
+                    }
+                  } catch (e) {
+                    // Try the next format
+                  }
+                }
+              }
+            }
+            
+            // Last resort - try standard JavaScript date parsing
+            try {
+              const date = new Date(normalized);
+              if (!isNaN(date.getTime())) {
+                // Only take the date part
+                const isoDate = date.toISOString().split('T')[0];
+                console.log(`Converted date string via JS Date '${excelDate}' -> '${isoDate}'`);
+                return isoDate;
+              }
+            } catch (e) {
+              console.log(`Failed to parse any date format: ${excelDate}`, e);
+            }
+          }
+          
+          // Store the original value in rawData but return null for the actual field
+          console.log(`Could not convert to date, storing original: ${excelDate}`);
+          return null;
         };
         
         // Convert all project date fields
@@ -446,21 +531,10 @@ export async function importBillingMilestones(req: Request, res: Response) {
           throw new Error('Milestone name is required');
         }
 
-        // Format dates if they're in Excel format
-        if (milestoneData.targetDate && typeof milestoneData.targetDate === 'number') {
-          const excelEpoch = new Date(1899, 11, 30);
-          milestoneData.targetDate = new Date(excelEpoch.getTime() + milestoneData.targetDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        }
-
-        if (milestoneData.invoiceDate && typeof milestoneData.invoiceDate === 'number') {
-          const excelEpoch = new Date(1899, 11, 30);
-          milestoneData.invoiceDate = new Date(excelEpoch.getTime() + milestoneData.invoiceDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        }
-
-        if (milestoneData.paymentReceivedDate && typeof milestoneData.paymentReceivedDate === 'number') {
-          const excelEpoch = new Date(1899, 11, 30);
-          milestoneData.paymentReceivedDate = new Date(excelEpoch.getTime() + milestoneData.paymentReceivedDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        }
+        // Format dates using our enhanced converter
+        milestoneData.targetDate = convertExcelDate(milestoneData.targetDate);
+        milestoneData.invoiceDate = convertExcelDate(milestoneData.invoiceDate);
+        milestoneData.paymentReceivedDate = convertExcelDate(milestoneData.paymentReceivedDate);
 
         let projectNumber = milestoneData._projectNumber;
         delete milestoneData._projectNumber; // Remove temporary field
