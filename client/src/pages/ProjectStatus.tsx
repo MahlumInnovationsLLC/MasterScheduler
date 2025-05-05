@@ -42,6 +42,16 @@ import { Input } from '@/components/ui/input';
 import { formatDate, getProjectStatusColor } from '@/lib/utils';
 import { Project } from '@shared/schema';
 
+// Extend Project type to ensure rawData is included
+interface ProjectWithRawData extends Project {
+  rawData?: Record<string, any>;
+}
+
+// Define a type for the row in the data table
+interface ProjectRow {
+  original: ProjectWithRawData;
+}
+
 // Define a type for the row in the data table
 interface ProjectRow {
   original: Project;
@@ -90,6 +100,28 @@ const ProjectStatus = () => {
     ntcDesignOrdersPercent: false,
     hasBillingMilestones: false,
     notes: false,
+    // All raw data columns are initially hidden
+    rawData_DPAS_Rating: false,
+    rawData_ME_Assigned: false,
+    rawData_EE_Assigned: false,
+    rawData_ITE_Assigned: false,
+    rawData_ME_Design_Orders: false,
+    rawData_EE_Design_Orders: false,
+    rawData_IT_Design_Orders: false,
+    rawData_NTC_Design_Orders: false,
+    rawData_Stretch_Shorten_Gears: false,
+    rawData_LLTs_Ordered: false,
+    rawData_QC_DAYS: false,
+    rawData_Chassis_ETA: false,
+    rawData_Fabrication_Start: false,
+    rawData_Assembly_Start: false,
+    rawData_Wrap: false,
+    rawData_NTC_Testing: false,
+    rawData_QC_START: false,
+    rawData_EXECUTIVE_REVIEW: false,
+    rawData_Ship: false,
+    rawData_Delivery: false,
+    rawData_Progress: false,
   });
   
   // Date filter state
@@ -209,6 +241,24 @@ const ProjectStatus = () => {
       accessorKey,
       header,
       cell: ({ row }: { row: ProjectRow }) => cellRenderer(row.original[accessorKey], row.original)
+    };
+  };
+  
+  // Helper function to create column definitions for raw Excel data
+  const createRawDataColumn = (
+    rawFieldKey: string,
+    header: string,
+    formatter: (value: any) => React.ReactNode = (value) => value || 'N/A'
+  ) => {
+    return {
+      id: `rawData_${rawFieldKey.replace(/\s+/g, '_')}`,
+      header,
+      cell: ({ row }: { row: ProjectRow }) => {
+        // Check if rawData exists and has the key
+        const rawData = row.original.rawData as Record<string, any> || {};
+        const value = rawData[rawFieldKey];
+        return formatter(value);
+      }
     };
   };
 
@@ -373,8 +423,36 @@ const ProjectStatus = () => {
     },
   ];
   
+  // Add raw data columns from Excel
+  const rawDataColumns = [
+    createRawDataColumn('DPAS Rating', 'DPAS Rating (Raw)'),
+    createRawDataColumn('ME Assigned', 'ME Assigned (Raw)'),
+    createRawDataColumn('EE Assigned', 'EE Assigned (Raw)'),
+    createRawDataColumn('ITE Assigned', 'ITE Assigned (Raw)'),
+    createRawDataColumn('ME Design / Orders %', 'ME Design % (Raw)'),
+    createRawDataColumn('EE Design / Orders %', 'EE Design % (Raw)'),
+    createRawDataColumn('IT Design / Orders %', 'IT Design % (Raw)'),
+    createRawDataColumn('NTC Design / Orders %', 'NTC Design % (Raw)'),
+    createRawDataColumn('Stretch / Shorten / Gears', 'SSG (Raw)'),
+    createRawDataColumn('LLTs Ordered', 'LLTs (Raw)'),
+    createRawDataColumn('QC DAYS', 'QC Days (Raw)'),
+    createRawDataColumn('Chassis ETA', 'Chassis ETA (Raw)'),
+    createRawDataColumn('Fabrication Start', 'Fab Start (Raw)'),
+    createRawDataColumn('Assembly Start', 'Assembly Start (Raw)'),
+    createRawDataColumn('Wrap', 'Wrap Date (Raw)'),
+    createRawDataColumn('NTC Testing', 'NTC Testing (Raw)'),
+    createRawDataColumn('QC START', 'QC Start (Raw)'),
+    createRawDataColumn('EXECUTIVE REVIEW', 'Exec Review (Raw)'),
+    createRawDataColumn('Ship', 'Ship Date (Raw)'),
+    createRawDataColumn('Delivery', 'Delivery Date (Raw)'),
+    createRawDataColumn('Progress', 'Progress % (Raw)'),
+  ];
+  
+  // Combine all columns
+  const allColumnsWithRawData = [...allColumns, ...rawDataColumns];
+  
   // Filter columns based on visibility settings
-  const columns = allColumns.filter(col => 
+  const columns = allColumnsWithRawData.filter(col => 
     visibleColumns[col.id as string] !== false
   );
 
@@ -559,7 +637,12 @@ const ProjectStatus = () => {
                 checked={Object.values(visibleColumns).every(Boolean)}
                 onCheckedChange={(checked) => {
                   const newVisibleColumns = {...visibleColumns};
+                  // Include all standard columns
                   allColumns.forEach(col => {
+                    newVisibleColumns[col.id as string] = checked;
+                  });
+                  // Include all raw data columns
+                  rawDataColumns.forEach(col => {
                     newVisibleColumns[col.id as string] = checked;
                   });
                   setVisibleColumns(newVisibleColumns);
@@ -569,7 +652,38 @@ const ProjectStatus = () => {
               </DropdownMenuCheckboxItem>
               <DropdownMenuSeparator />
               
+              {/* Standard Columns */}
+              <DropdownMenuCheckboxItem
+                key="standard-columns-header"
+                checked={false}
+                disabled={true}
+                className="font-semibold text-primary-foreground"
+              >
+                Standard Fields
+              </DropdownMenuCheckboxItem>
+              
               {allColumns.map(column => (
+                <DropdownMenuCheckboxItem
+                  key={column.id}
+                  checked={visibleColumns[column.id as string] !== false}
+                  onCheckedChange={() => toggleColumnVisibility(column.id as string)}
+                >
+                  {column.header as React.ReactNode}
+                </DropdownMenuCheckboxItem>
+              ))}
+              
+              {/* Raw Excel Data Columns */}
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                key="raw-data-header"
+                checked={false}
+                disabled={true}
+                className="font-semibold text-primary-foreground"
+              >
+                Excel Raw Data Fields
+              </DropdownMenuCheckboxItem>
+              
+              {rawDataColumns.map(column => (
                 <DropdownMenuCheckboxItem
                   key={column.id}
                   checked={visibleColumns[column.id as string] !== false}
