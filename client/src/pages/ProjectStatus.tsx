@@ -95,7 +95,7 @@ const ProjectStatus = () => {
     // Other columns still hidden
     description: false,
     team: false,
-    location: false,
+    location: true,  // Make the location column visible
     actualCompletionDate: false,
     notes: false,
     // All raw data columns are initially hidden
@@ -319,13 +319,13 @@ const ProjectStatus = () => {
   const allColumns = [
     createColumn('location', 'location', 'Location', 
       (value) => (
-        <div className="flex items-center justify-center">
-          <div className="flex-shrink-0 h-8 w-8 rounded bg-primary flex items-center justify-center text-white font-medium">
+        <div className="flex items-center">
+          <div className="px-3 py-1 rounded bg-primary text-white font-medium">
             {value || 'N/A'}
           </div>
         </div>
       ),
-      { sortingFn: 'alphanumeric', size: 90 }),
+      { size: 120 }),
     createColumn('projectNumber', 'projectNumber', 'Project', 
       (value, project) => (
         <div className="flex items-center">
