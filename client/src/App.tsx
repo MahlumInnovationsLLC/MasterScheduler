@@ -1,5 +1,4 @@
-import React from "react";
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -27,16 +26,9 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 
 function Router() {
-  const [location, navigate] = useLocation();
+  const [location] = useLocation();
   const isAuthPage = location === "/auth";
   const isResetPasswordPage = location === "/reset-password" || location.startsWith("/reset-password?");
-  
-  // Redirect from old archived-projects page to projects with tab
-  React.useEffect(() => {
-    if (location === "/archived-projects") {
-      navigate("/projects");
-    }
-  }, [location, navigate]);
 
   // If we're on the auth page or reset password page, render without the app layout
   if (isAuthPage || isResetPasswordPage) {
@@ -66,6 +58,9 @@ function Router() {
             <ProtectedRoute path="/reports" component={Reports} />
             <ProtectedRoute path="/import" component={ImportData} />
             <ProtectedRoute path="/settings/system" component={SystemSettings} />
+            <Route path="/archived-projects">
+              <Redirect to="/projects" />
+            </Route>
             <ProtectedRoute path="/system-settings" component={SystemSettings} />
             <ProtectedRoute path="/settings" component={SystemSettings} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
