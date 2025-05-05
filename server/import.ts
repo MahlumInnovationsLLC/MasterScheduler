@@ -197,25 +197,48 @@ export async function importProjects(req: Request, res: Response) {
           itDesignOrdersPercent: convertToDecimal(rawProjectData.itDesignOrdersPercent),
           ntcDesignOrdersPercent: convertToDecimal(rawProjectData.ntcDesignOrdersPercent),
           
-          // Store raw data from Excel in case we need to access additional fields
-          // Transfer ALL fields from rawData directly to keep all Excel data
-          rawData: rawProjectData.rawData || {},
+          // Initialize the rawData object to store ALL Excel data
+          rawData: {},
         };
         
-        // Copy all raw data fields directly into the project data
-        // This ensures any field from the Excel file gets stored in the database
-        if (rawProjectData.rawData) {
-          for (const [key, value] of Object.entries(rawProjectData.rawData)) {
-            if (value !== null && value !== undefined) {
-              // Only add this field to projectData if it's not already set
-              if (projectData[key] === undefined) {
-                projectData[key] = value;
+        // First, copy any existing raw data from the client's rawData field
+        if (rawProjectData.rawData && typeof rawProjectData.rawData === 'object') {
+          console.log("Copying raw data from client:", Object.keys(rawProjectData.rawData).length, "fields");
+          projectData.rawData = {...rawProjectData.rawData};
+        }
+        
+        // Next, copy ALL fields directly from the original source row data
+        // This ensures we capture everything from the Excel file
+        for (const [key, value] of Object.entries(rawProjectData)) {
+          if (key !== 'rawData') { // Skip the rawData object itself to avoid recursion
+            // Store the original value in rawData, even if it's null/undefined/empty
+            projectData.rawData[key] = value;
+          }
+        }
+        
+        // Track what we're saving for debugging purposes
+        console.log(`Raw data for ${projectData.projectNumber} contains ${Object.keys(projectData.rawData).length} fields`);
+        
+        // Ensure the rawData is a proper JSON object and not containing circular references
+        try {
+          // Test serialize to catch any potential JSON errors
+          JSON.stringify(projectData.rawData);
+        } catch (jsonError) {
+          console.error("Error serializing rawData:", jsonError);
+          // If there's a serialization error, create a clean copy of the raw data
+          const cleanRawData: Record<string, any> = {};
+          for (const [key, value] of Object.entries(projectData.rawData)) {
+            if (typeof value !== 'function' && key !== 'toJSON') {
+              // Only include primitive values and non-circular structures
+              try {
+                JSON.stringify(value);
+                cleanRawData[key] = value;
+              } catch {
+                cleanRawData[key] = String(value);
               }
-              
-              // Also ensure it's in the rawData field
-              projectData.rawData[key] = value;
             }
           }
+          projectData.rawData = cleanRawData;
         }
 
         // Normalize data
