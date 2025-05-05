@@ -10,6 +10,7 @@ import BillingMilestones from "@/pages/BillingMilestones";
 import ManufacturingBay from "@/pages/ManufacturingBay";
 import ProjectDetails from "@/pages/ProjectDetails";
 import ProjectEdit from "@/pages/ProjectEdit";
+import ArchivedProjects from "@/pages/ArchivedProjects";
 import CalendarPage from "@/pages/Calendar";
 import Reports from "@/pages/Reports";
 import ImportData from "@/pages/ImportData";
@@ -49,6 +50,7 @@ function Router() {
             <ProtectedRoute path="/projects" component={ProjectStatus} />
             <ProtectedRoute path="/project/:id" component={ProjectDetails} />
             <ProtectedRoute path="/project/:id/edit" component={ProjectEdit} />
+            <ProtectedRoute path="/archived-projects" component={ArchivedProjects} />
             <ProtectedRoute path="/billing" component={BillingMilestones} />
             <ProtectedRoute path="/manufacturing" component={ManufacturingBay} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />

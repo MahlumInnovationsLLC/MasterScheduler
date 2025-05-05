@@ -926,6 +926,83 @@ const ProjectDetails = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Archive Project Dialog */}
+      <Dialog open={isArchiveDialogOpen} onOpenChange={setIsArchiveDialogOpen}>
+        <DialogContent className="bg-darkBg border-gray-800 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">
+              Archive Project
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              This will archive the project and remove it from the active projects list. 
+              Archived projects can still be viewed but cannot be modified.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="flex items-start">
+              <Trash2 className="h-10 w-10 text-destructive mr-4 flex-shrink-0" />
+              <div>
+                <p className="text-white font-medium">
+                  Are you sure you want to archive <span className="font-bold">{project.projectNumber}: {project.name}</span>?
+                </p>
+                <p className="text-gray-400 text-sm mt-1">
+                  This action will move the project to the archive, along with all associated tasks, 
+                  billing milestones, and manufacturing schedules.
+                </p>
+              </div>
+            </div>
+            
+            <div className="bg-gray-900 p-3 rounded-md">
+              <Label htmlFor="archiveReason" className="text-sm font-medium mb-2 block">
+                Reason for archiving (optional)
+              </Label>
+              <Input 
+                id="archiveReason"
+                value={archiveReason}
+                onChange={(e) => setArchiveReason(e.target.value)}
+                placeholder="e.g., Project completed, Contract terminated, etc."
+                className="bg-darkInput border-gray-700 focus:border-primary text-white"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter className="sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsArchiveDialogOpen(false)}
+              className="border-gray-700 hover:bg-gray-800 hover:text-white"
+            >
+              Cancel
+            </Button>
+            
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => archiveProjectMutation.mutate({ reason: archiveReason })}
+              disabled={archiveProjectMutation.isPending}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {archiveProjectMutation.isPending ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Archiving...
+                </>
+              ) : (
+                <>
+                  <Archive className="h-4 w-4 mr-2" />
+                  Archive Project
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
