@@ -120,6 +120,125 @@ function convertToDecimal(value: any, defaultValue: number | null = null): numbe
   return defaultValue;
 }
 
+// Helper function to convert various formats to Excel dates
+function convertExcelDate(value: any): string | null {
+  // Handle empty or null values
+  if (value === undefined || value === null || value === '') return null;
+  
+  // Handle common non-date placeholder values
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['n/a', 'na', 'tbd', 'tba', 'pending', 'unknown', '-'].includes(normalized)) {
+      return null;
+    }
+  }
+  
+  // If it's already a date string in ISO format, return it
+  if (typeof value === 'string' && (
+      value.match(/^\d{4}-\d{2}-\d{2}/) || // ISO date YYYY-MM-DD
+      value.match(/^\d{4}\/\d{2}\/\d{2}/)  // YYYY/MM/DD format
+  )) {
+    try {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        // Only take the date part without time
+        const isoDate = date.toISOString().split('T')[0];
+        console.log(`Converted date string '${value}' -> '${isoDate}'`);
+        return isoDate;
+      }
+    } catch (e) {
+      console.log(`Failed to parse ISO-like date: ${value}`, e);
+    }
+  }
+  
+  // Handle Excel serial dates (numbers)
+  if (typeof value === 'number' && !isNaN(value) && value > 0) {
+    try {
+      // Excel dates are number of days since 1900-01-01
+      // But Excel incorrectly thinks 1900 was a leap year, so adjust for dates after Feb 28, 1900
+      let adjustedExcelDate = value;
+      if (adjustedExcelDate > 60) { // Excel's leap year bug: Feb 29, 1900 doesn't exist
+        adjustedExcelDate--;
+      }
+        
+      // Convert Excel date to JavaScript date
+      // Date in Javascript = (Excel date - 25569) * 86400 * 1000
+      // 25569 is the number of days between Jan 1, 1900 and Jan 1, 1970
+      const millisecondsPerDay = 24 * 60 * 60 * 1000;
+      const date = new Date((adjustedExcelDate - 25569) * millisecondsPerDay);
+        
+      if (!isNaN(date.getTime())) {
+        // Only take the date part without time
+        const isoDate = date.toISOString().split('T')[0];
+        console.log(`Converted Excel numeric date ${value} -> '${isoDate}'`);
+        return isoDate;
+      }
+    } catch (e) {
+      console.log(`Failed to convert Excel numeric date: ${value}`, e);
+    }
+  }
+  
+  // Handle various string date formats (MM/DD/YYYY, DD/MM/YYYY, etc.)
+  if (typeof value === 'string' && value.trim()) {
+    const normalized = value.trim();
+    
+    // Try to handle MM/DD/YYYY or DD/MM/YYYY format
+    const dateRegex = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/;
+    const match = normalized.match(dateRegex);
+    
+    if (match) {
+      // Get the parts - not knowing if it's MM/DD/YYYY or DD/MM/YYYY
+      const part1 = parseInt(match[1], 10);
+      const part2 = parseInt(match[2], 10);
+      let year = parseInt(match[3], 10);
+      
+      // Adjust 2-digit years
+      if (year < 100) {
+        year += year < 50 ? 2000 : 1900;
+      }
+      
+      // Try both MM/DD and DD/MM interpretations
+      const attemptFormats = [
+        { month: part1, day: part2 }, // MM/DD
+        { month: part2, day: part1 }  // DD/MM
+      ];
+      
+      for (const format of attemptFormats) {
+        if (format.month >= 1 && format.month <= 12 && format.day >= 1 && format.day <= 31) {
+          try {
+            const date = new Date(year, format.month - 1, format.day);
+            if (!isNaN(date.getTime())) {
+              // Only take the date part
+              const isoDate = date.toISOString().split('T')[0];
+              console.log(`Converted string date '${value}' -> '${isoDate}'`);
+              return isoDate;
+            }
+          } catch (e) {
+            // Try the next format
+          }
+        }
+      }
+    }
+    
+    // Last resort - try standard JavaScript date parsing
+    try {
+      const date = new Date(normalized);
+      if (!isNaN(date.getTime())) {
+        // Only take the date part
+        const isoDate = date.toISOString().split('T')[0];
+        console.log(`Converted date string via JS Date '${value}' -> '${isoDate}'`);
+        return isoDate;
+      }
+    } catch (e) {
+      console.log(`Failed to parse any date format: ${value}`, e);
+    }
+  }
+  
+  // Store the original value in rawData but return null for the actual field
+  console.log(`Could not convert to date, storing original: ${value}`);
+  return null;
+}
+
 // Import Tier IV Projects
 export async function importProjects(req: Request, res: Response) {
   try {
@@ -291,124 +410,7 @@ export async function importProjects(req: Request, res: Response) {
             projectData.estimatedCompletionDate = completionDate.toISOString().split('T')[0];
         }
 
-        // Enhanced helper function to convert Excel dates to ISO string format with better handling
-        const convertExcelDate = (excelDate: any): string | null => {
-          // Handle empty or null values
-          if (excelDate === undefined || excelDate === null || excelDate === '') return null;
-          
-          // Handle common non-date placeholder values
-          if (typeof excelDate === 'string') {
-            const normalized = excelDate.trim().toLowerCase();
-            if (['n/a', 'na', 'tbd', 'tba', 'pending', 'unknown', '-'].includes(normalized)) {
-              return null;
-            }
-          }
-          
-          // If it's already a date string in ISO format, return it
-          if (typeof excelDate === 'string' && (
-              excelDate.match(/^\d{4}-\d{2}-\d{2}/) || // ISO date YYYY-MM-DD
-              excelDate.match(/^\d{4}\/\d{2}\/\d{2}/)  // YYYY/MM/DD format
-          )) {
-            try {
-              const date = new Date(excelDate);
-              if (!isNaN(date.getTime())) {
-                // Only take the date part without time
-                const isoDate = date.toISOString().split('T')[0];
-                console.log(`Converted date string '${excelDate}' -> '${isoDate}'`);
-                return isoDate;
-              }
-            } catch (e) {
-              console.log(`Failed to parse ISO-like date: ${excelDate}`, e);
-            }
-          }
-          
-          // Handle Excel serial dates (numbers)
-          if (typeof excelDate === 'number' && !isNaN(excelDate) && excelDate > 0) {
-            try {
-              // Excel dates are number of days since 1900-01-01
-              // But Excel incorrectly thinks 1900 was a leap year, so adjust for dates after Feb 28, 1900
-              let adjustedExcelDate = excelDate;
-              if (adjustedExcelDate > 60) { // Excel's leap year bug: Feb 29, 1900 doesn't exist
-                adjustedExcelDate--;
-              }
-                
-              // Convert Excel date to JavaScript date
-              // Date in Javascript = (Excel date - 25569) * 86400 * 1000
-              // 25569 is the number of days between Jan 1, 1900 and Jan 1, 1970
-              const millisecondsPerDay = 24 * 60 * 60 * 1000;
-              const date = new Date((adjustedExcelDate - 25569) * millisecondsPerDay);
-                
-              if (!isNaN(date.getTime())) {
-                // Only take the date part without time
-                const isoDate = date.toISOString().split('T')[0];
-                console.log(`Converted Excel numeric date ${excelDate} -> '${isoDate}'`);
-                return isoDate;
-              }
-            } catch (e) {
-              console.log(`Failed to convert Excel numeric date: ${excelDate}`, e);
-            }
-          }
-          
-          // Handle various string date formats (MM/DD/YYYY, DD/MM/YYYY, etc.)
-          if (typeof excelDate === 'string' && excelDate.trim()) {
-            const normalized = excelDate.trim();
-            
-            // Try to handle MM/DD/YYYY or DD/MM/YYYY format
-            const dateRegex = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/;
-            const match = normalized.match(dateRegex);
-            
-            if (match) {
-              // Get the parts - not knowing if it's MM/DD/YYYY or DD/MM/YYYY
-              const part1 = parseInt(match[1], 10);
-              const part2 = parseInt(match[2], 10);
-              let year = parseInt(match[3], 10);
-              
-              // Adjust 2-digit years
-              if (year < 100) {
-                year += year < 50 ? 2000 : 1900;
-              }
-              
-              // Try both MM/DD and DD/MM interpretations
-              const attemptFormats = [
-                { month: part1, day: part2 }, // MM/DD
-                { month: part2, day: part1 }  // DD/MM
-              ];
-              
-              for (const format of attemptFormats) {
-                if (format.month >= 1 && format.month <= 12 && format.day >= 1 && format.day <= 31) {
-                  try {
-                    const date = new Date(year, format.month - 1, format.day);
-                    if (!isNaN(date.getTime())) {
-                      // Only take the date part
-                      const isoDate = date.toISOString().split('T')[0];
-                      console.log(`Converted string date '${excelDate}' -> '${isoDate}'`);
-                      return isoDate;
-                    }
-                  } catch (e) {
-                    // Try the next format
-                  }
-                }
-              }
-            }
-            
-            // Last resort - try standard JavaScript date parsing
-            try {
-              const date = new Date(normalized);
-              if (!isNaN(date.getTime())) {
-                // Only take the date part
-                const isoDate = date.toISOString().split('T')[0];
-                console.log(`Converted date string via JS Date '${excelDate}' -> '${isoDate}'`);
-                return isoDate;
-              }
-            } catch (e) {
-              console.log(`Failed to parse any date format: ${excelDate}`, e);
-            }
-          }
-          
-          // Store the original value in rawData but return null for the actual field
-          console.log(`Could not convert to date, storing original: ${excelDate}`);
-          return null;
-        };
+        // Using the global convertExcelDate function now
         
         // Convert all project date fields
         projectData.contractDate = convertExcelDate(projectData.contractDate);
@@ -712,16 +714,9 @@ export async function importManufacturingSchedules(req: Request, res: Response) 
           throw new Error('Start date and end date are required');
         }
 
-        // Format dates if they're in Excel format
-        if (scheduleData.startDate && typeof scheduleData.startDate === 'number') {
-          const excelEpoch = new Date(1899, 11, 30);
-          scheduleData.startDate = new Date(excelEpoch.getTime() + scheduleData.startDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        }
-
-        if (scheduleData.endDate && typeof scheduleData.endDate === 'number') {
-          const excelEpoch = new Date(1899, 11, 30);
-          scheduleData.endDate = new Date(excelEpoch.getTime() + scheduleData.endDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        }
+        // Format dates using our enhanced converter
+        scheduleData.startDate = convertExcelDate(scheduleData.startDate);
+        scheduleData.endDate = convertExcelDate(scheduleData.endDate);
 
         let projectNumber = scheduleData._projectNumber;
         let bayNumber = scheduleData._bayNumber;
