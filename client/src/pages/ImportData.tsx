@@ -229,7 +229,8 @@ const ImportDataPage = () => {
         console.log(`Found project: ${projName}, ID: ${projNumber}, PM: ${pmName}, Team: ${teamInfo}, Status: ${statusValue}`);
         
         // Get all the specific Tier IV fields from your spreadsheet
-        return {
+        // First, create the base project object with our required fields
+        const projectObj = {
           projectNumber: projNumber, // Use exact project number from spreadsheet
           name: projName,            // Use exact project name from spreadsheet
           team: teamInfo,
@@ -274,8 +275,20 @@ const ImportDataPage = () => {
           
           // Additional information fields
           description: row['Description'] || '',
-          notes: row['Notes'] || row['Comments'] || ''
+          notes: row['Notes'] || row['Comments'] || '',
+          
+          // Store all raw data fields for future reference
+          rawData: {} as Record<string, any>
         };
+        
+        // Now, add ALL original fields from the Excel into rawData to ensure no data is lost
+        for (const [key, value] of Object.entries(row)) {
+          if (value !== null && value !== undefined && value !== '') {
+            projectObj.rawData[key] = value;
+          }
+        }
+        
+        return projectObj;
       });
 
       // Call API to save data
