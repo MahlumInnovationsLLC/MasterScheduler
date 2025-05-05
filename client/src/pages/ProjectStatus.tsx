@@ -44,7 +44,7 @@ import { Project } from '@shared/schema';
 
 // Extend Project type to ensure rawData is included
 interface ProjectWithRawData extends Project {
-  rawData?: Record<string, any>;
+  rawData: Record<string, any>;
 }
 
 // Define a type for the row in the data table
@@ -159,7 +159,8 @@ const ProjectStatus = () => {
   const filteredProjects = React.useMemo(() => {
     if (!projects) return [];
     
-    return projects.filter((project: Project) => {
+    // Cast projects to ProjectWithRawData[] to ensure rawData is available
+    return (projects as ProjectWithRawData[]).filter((project: ProjectWithRawData) => {
       // Start Date Filtering
       if (dateFilters.startDateMin && new Date(project.startDate) < new Date(dateFilters.startDateMin)) {
         return false;
@@ -225,11 +226,11 @@ const ProjectStatus = () => {
   };
   
   // Helper function to create column definitions with proper typing
-  const createColumn = <T extends keyof Project>(
+  const createColumn = <T extends keyof ProjectWithRawData>(
     id: string,
     accessorKey: T,
     header: string,
-    cellRenderer: (value: Project[T], project: Project) => React.ReactNode
+    cellRenderer: (value: ProjectWithRawData[T], project: ProjectWithRawData) => React.ReactNode
   ) => {
     return {
       id,
@@ -674,7 +675,7 @@ const ProjectStatus = () => {
       {/* Project List Table */}
       <DataTable
         columns={columns}
-        data={filteredProjects}
+        data={filteredProjects as ProjectWithRawData[]}
         filterColumn="status"
         filterOptions={statusOptions}
         searchPlaceholder="Search projects..."
