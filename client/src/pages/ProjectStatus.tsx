@@ -44,6 +44,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { formatDate, getProjectStatusColor } from '@/lib/utils';
 import { Project } from '@shared/schema';
+import OnTimeDelivery from './OnTimeDelivery';
 
 // Extend Project type to ensure rawData is included
 interface ProjectWithRawData extends Project {
