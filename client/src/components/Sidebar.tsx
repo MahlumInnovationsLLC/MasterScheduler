@@ -12,7 +12,8 @@ import {
   Settings,
   Users,
   Archive,
-  FileArchive
+  FileArchive,
+  Clock
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -101,6 +102,14 @@ const Sidebar = () => {
               }`}>
                 <Building2 className={`text-xl ${isActive('/manufacturing') ? 'text-primary' : ''}`} />
                 <span>Manufacturing Bays</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/delivery-tracking" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/delivery-tracking') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
+              }`}>
+                <Clock className={`text-xl ${isActive('/delivery-tracking') ? 'text-primary' : ''}`} />
+                <span>On Time Delivery</span>
               </Link>
             </li>
             <li>
