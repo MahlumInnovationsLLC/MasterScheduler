@@ -8,7 +8,23 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatDate(date: Date | string | undefined | null): string {
   if (!date) return 'N/A';
-  return format(new Date(date), 'MMM dd, yyyy');
+  
+  try {
+    // Try to create a valid date object
+    const dateObj = new Date(date);
+    
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      console.warn(`Invalid date format: ${date}`);
+      return String(date) || 'N/A';
+    }
+    
+    // Format the date
+    return format(dateObj, 'MMM dd, yyyy');
+  } catch (error) {
+    console.error(`Error formatting date: ${date}`, error);
+    return String(date) || 'N/A';
+  }
 }
 
 export function formatCurrency(amount: number | string | undefined | null): string {

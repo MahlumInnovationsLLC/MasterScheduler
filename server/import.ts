@@ -198,8 +198,25 @@ export async function importProjects(req: Request, res: Response) {
           ntcDesignOrdersPercent: convertToDecimal(rawProjectData.ntcDesignOrdersPercent),
           
           // Store raw data from Excel in case we need to access additional fields
+          // Transfer ALL fields from rawData directly to keep all Excel data
           rawData: rawProjectData.rawData || {},
         };
+        
+        // Copy all raw data fields directly into the project data
+        // This ensures any field from the Excel file gets stored in the database
+        if (rawProjectData.rawData) {
+          for (const [key, value] of Object.entries(rawProjectData.rawData)) {
+            if (value !== null && value !== undefined) {
+              // Only add this field to projectData if it's not already set
+              if (projectData[key] === undefined) {
+                projectData[key] = value;
+              }
+              
+              // Also ensure it's in the rawData field
+              projectData.rawData[key] = value;
+            }
+          }
+        }
 
         // Normalize data
         console.log("Project Data: ", {

@@ -283,10 +283,14 @@ const ImportDataPage = () => {
         
         // Now, add ALL original fields from the Excel into rawData to ensure no data is lost
         for (const [key, value] of Object.entries(row)) {
-          if (value !== null && value !== undefined && value !== '') {
+          // Store all values including empty strings, but not null/undefined
+          if (value !== null && value !== undefined) {
             projectObj.rawData[key] = value;
           }
         }
+        
+        // Log the raw data to help debug
+        console.log(`Raw data for project ${projectObj.projectNumber}:`, projectObj.rawData);
         
         return projectObj;
       });

@@ -159,41 +159,63 @@ const ProjectStatus = () => {
   const filteredProjects = React.useMemo(() => {
     if (!projects) return [];
     
-    // Cast projects to ProjectWithRawData[] to ensure rawData is available
-    return (projects as ProjectWithRawData[]).filter((project: ProjectWithRawData) => {
-      // Start Date Filtering
-      if (dateFilters.startDateMin && new Date(project.startDate) < new Date(dateFilters.startDateMin)) {
+    // Helper to safely parse dates
+    const parseDate = (dateString: string | null | undefined): Date | null => {
+      if (!dateString) return null;
+      
+      try {
+        const date = new Date(dateString);
+        // Check if date is valid
+        return isNaN(date.getTime()) ? null : date;
+      } catch (e) {
+        console.error("Error parsing date:", dateString, e);
+        return null;
+      }
+    };
+    
+    // Helper to check date range
+    const isInDateRange = (dateValue: string | null | undefined, minDate: string, maxDate: string): boolean => {
+      if (!dateValue) return true; // Skip filtering if no date value
+      
+      const parsedDate = parseDate(dateValue);
+      if (!parsedDate) return true; // Skip if unparseable
+      
+      if (minDate && parseDate(minDate) && parsedDate < parseDate(minDate)!) {
         return false;
       }
-      if (dateFilters.startDateMax && new Date(project.startDate) > new Date(dateFilters.startDateMax)) {
+      
+      if (maxDate && parseDate(maxDate) && parsedDate > parseDate(maxDate)!) {
+        return false;
+      }
+      
+      return true;
+    };
+    
+    // Cast projects to ProjectWithRawData[] to ensure rawData is available
+    return (projects as ProjectWithRawData[]).filter((project: ProjectWithRawData) => {
+      // Check if any filter is active
+      const hasActiveFilters = Object.values(dateFilters).some(val => val !== '');
+      
+      // If no filters, return all projects
+      if (!hasActiveFilters) return true;
+      
+      // Start Date Filtering
+      if (!isInDateRange(project.startDate, dateFilters.startDateMin, dateFilters.startDateMax)) {
         return false;
       }
       
       // End Date Filtering
-      if (dateFilters.endDateMin && new Date(project.estimatedCompletionDate) < new Date(dateFilters.endDateMin)) {
-        return false;
-      }
-      if (dateFilters.endDateMax && new Date(project.estimatedCompletionDate) > new Date(dateFilters.endDateMax)) {
+      if (!isInDateRange(project.estimatedCompletionDate, dateFilters.endDateMin, dateFilters.endDateMax)) {
         return false;
       }
       
       // QC Start Date Filtering
-      if (dateFilters.qcStartDateMin && project.qcStartDate && 
-          new Date(project.qcStartDate) < new Date(dateFilters.qcStartDateMin)) {
-        return false;
-      }
-      if (dateFilters.qcStartDateMax && project.qcStartDate && 
-          new Date(project.qcStartDate) > new Date(dateFilters.qcStartDateMax)) {
+      if (!isInDateRange(project.qcStartDate, dateFilters.qcStartDateMin, dateFilters.qcStartDateMax)) {
         return false;
       }
       
       // Ship Date Filtering
-      if (dateFilters.shipDateMin && project.shipDate && 
-          new Date(project.shipDate) < new Date(dateFilters.shipDateMin)) {
-        return false;
-      }
-      if (dateFilters.shipDateMax && project.shipDate && 
-          new Date(project.shipDate) > new Date(dateFilters.shipDateMax)) {
+      if (!isInDateRange(project.shipDate, dateFilters.shipDateMin, dateFilters.shipDateMax)) {
         return false;
       }
       
@@ -382,7 +404,7 @@ const ProjectStatus = () => {
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/projects/${row.original.id}`)}>
             <Eye className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/projects/${row.original.id}/edit`)}>
             <Edit className="h-4 w-4" />
           </Button>
           <DropdownMenu>
@@ -392,10 +414,18 @@ const ProjectStatus = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>View Details</DropdownMenuItem>
-              <DropdownMenuItem>Edit Project</DropdownMenuItem>
-              <DropdownMenuItem>Add Task</DropdownMenuItem>
-              <DropdownMenuItem>Archive Project</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/projects/${row.original.id}`)}>
+                View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/projects/${row.original.id}/edit`)}>
+                Edit Project
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/projects/${row.original.id}/tasks/new`)}>
+                Add Task
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                Archive Project
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
