@@ -50,7 +50,22 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    // Custom sorting function to place N/A values at the bottom of sorted results
+    getSortedRowModel: getSortedRowModel({
+      sortingFns: {
+        alphanumeric: (rowA, rowB, columnId) => {
+          const valueA = String(rowA.getValue(columnId) || '').trim();
+          const valueB = String(rowB.getValue(columnId) || '').trim();
+          
+          // Always place 'N/A' values at the bottom regardless of sort direction
+          if (valueA === 'N/A' && valueB !== 'N/A') return 1;
+          if (valueA !== 'N/A' && valueB === 'N/A') return -1;
+          
+          // For non-N/A values, use default comparison
+          return valueA.localeCompare(valueB, undefined, { numeric: true });
+        }
+      }
+    }),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,

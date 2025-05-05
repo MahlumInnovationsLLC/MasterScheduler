@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Folders, 
   Flag, 
@@ -54,6 +55,7 @@ interface ProjectRow {
 
 const ProjectStatus = () => {
   const [, navigate] = useLocation();
+  const { toast } = useToast();
   const { data: projects, isLoading } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
@@ -322,7 +324,8 @@ const ProjectStatus = () => {
             <div className="text-xs text-gray-400">{project.name}</div>
           </div>
         </div>
-      )),
+      ),
+      { sortingFn: 'alphanumeric' }),
     createColumn('pmOwner', 'pmOwnerId', 'PM Owner', 
       (value) => <div className="text-sm">{value || 'Unassigned'}</div>),
     {
@@ -465,10 +468,14 @@ const ProjectStatus = () => {
               <DropdownMenuItem onClick={() => navigate(`/project/${row.original.id}/edit`)}>
                 Edit Project
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                const projectId = row.original.id;
+                navigate(`/project/${projectId}/task/new`);
+              }}>
                 Add Task
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => {
+                const { toast } = useToast();
                 toast({
                   title: "Archive functionality coming soon",
                   description: "Project archiving will be available in a future update.",
