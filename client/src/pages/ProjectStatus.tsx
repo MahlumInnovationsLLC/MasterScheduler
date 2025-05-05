@@ -42,6 +42,11 @@ import { Input } from '@/components/ui/input';
 import { formatDate, getProjectStatusColor } from '@/lib/utils';
 import { Project } from '@shared/schema';
 
+// Define a type for the row in the data table
+interface ProjectRow {
+  original: Project;
+}
+
 const ProjectStatus = () => {
   const [, navigate] = useLocation();
   const { data: projects, isLoading } = useQuery<Project[]>({
@@ -111,7 +116,7 @@ const ProjectStatus = () => {
     const critical = projects.filter(p => p.status === 'critical').length;
     const completed = projects.filter(p => p.status === 'completed').length;
 
-    const avgCompletion = projects.reduce((sum, p) => sum + parseFloat(p.percentComplete), 0) / projects.length;
+    const avgCompletion = projects.reduce((sum, p) => sum + Number(p.percentComplete), 0) / projects.length;
 
     return {
       total: projects.length,
@@ -127,7 +132,7 @@ const ProjectStatus = () => {
   const filteredProjects = React.useMemo(() => {
     if (!projects) return [];
     
-    return projects.filter(project => {
+    return projects.filter((project: Project) => {
       // Start Date Filtering
       if (dateFilters.startDateMin && new Date(project.startDate) < new Date(dateFilters.startDateMin)) {
         return false;
@@ -191,256 +196,147 @@ const ProjectStatus = () => {
       [column]: !prev[column]
     }));
   };
+  
+  // Helper function to create column definitions with proper typing
+  const createColumn = <T extends keyof Project>(
+    id: string,
+    accessorKey: T,
+    header: string,
+    cellRenderer: (value: Project[T], project: Project) => React.ReactNode
+  ) => {
+    return {
+      id,
+      accessorKey,
+      header,
+      cell: ({ row }: { row: ProjectRow }) => cellRenderer(row.original[accessorKey], row.original)
+    };
+  };
 
   // Define all available columns
   const allColumns = [
-    {
-      id: 'projectNumber',
-      accessorKey: 'projectNumber',
-      header: 'Project',
-      cell: ({ row }) => (
+    createColumn('projectNumber', 'projectNumber', 'Project', 
+      (value, project) => (
         <div className="flex items-center">
           <div className="flex-shrink-0 h-8 w-8 rounded bg-primary flex items-center justify-center text-white font-medium">
-            {row.original.projectNumber.slice(-2)}
+            {value.slice(-2)}
           </div>
           <div className="ml-3">
-            <div className="text-sm font-medium text-white">{row.original.projectNumber}</div>
-            <div className="text-xs text-gray-400">{row.original.name}</div>
+            <div className="text-sm font-medium text-white">{value}</div>
+            <div className="text-xs text-gray-400">{project.name}</div>
           </div>
         </div>
-      ),
-    },
-    {
-      id: 'pmOwner',
-      accessorKey: 'pmOwnerId',
-      header: 'PM Owner',
-      cell: ({ row }) => <div className="text-sm">{row.original.pmOwnerId || 'Unassigned'}</div>,
-    },
+      )),
+    createColumn('pmOwner', 'pmOwnerId', 'PM Owner', 
+      (value) => <div className="text-sm">{value || 'Unassigned'}</div>),
     {
       id: 'timeline',
-      accessorKey: 'timeline',
+      accessorKey: 'startDate',
       header: 'Timeline',
-      cell: ({ row }) => (
-        <div>
-          <div className="text-sm">
-            {formatDate(row.original.startDate)} - {formatDate(row.original.estimatedCompletionDate)}
+      cell: ({ row }: { row: ProjectRow }) => {
+        const project = row.original;
+        const durationDays = Math.ceil(
+          (new Date(project.estimatedCompletionDate).getTime() - new Date(project.startDate).getTime()) / 
+          (1000 * 60 * 60 * 24)
+        );
+        
+        return (
+          <div>
+            <div className="text-sm">
+              {formatDate(project.startDate)} - {formatDate(project.estimatedCompletionDate)}
+            </div>
+            <div className="text-xs text-gray-400">
+              {durationDays} days
+            </div>
           </div>
-          <div className="text-xs text-gray-400">
-            {Math.ceil((new Date(row.original.estimatedCompletionDate).getTime() - new Date(row.original.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
-          </div>
-        </div>
-      ),
+        );
+      },
     },
-    {
-      id: 'percentComplete',
-      accessorKey: 'percentComplete',
-      header: 'Progress',
-      cell: ({ row }) => (
+    createColumn('percentComplete', 'percentComplete', 'Progress', 
+      (value) => (
         <div className="flex items-center gap-2">
           <div className="w-full bg-gray-800 rounded-full h-2.5">
             <div 
               className="bg-success h-2.5 rounded-full" 
-              style={{ width: `${row.original.percentComplete}%` }}
+              style={{ width: `${value}%` }}
             ></div>
           </div>
-          <span className="text-xs font-medium">{row.original.percentComplete}%</span>
+          <span className="text-xs font-medium">{value}%</span>
         </div>
-      ),
-    },
-    {
-      id: 'status',
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }) => {
+      )),
+    createColumn('status', 'status', 'Status', 
+      (value, project) => {
         const { status } = getProjectStatusColor(
-          row.original.percentComplete,
-          row.original.estimatedCompletionDate
+          project.percentComplete,
+          project.estimatedCompletionDate
         );
         return <ProgressBadge status={status} animatePulse={status === 'Critical'} />;
-      },
-    },
-    {
-      id: 'contractDate',
-      accessorKey: 'contractDate',
-      header: 'Contract Date',
-      cell: ({ row }) => formatDate(row.original.contractDate),
-    },
-    {
-      id: 'startDate',
-      accessorKey: 'startDate',
-      header: 'Start Date',
-      cell: ({ row }) => formatDate(row.original.startDate),
-    },
-    {
-      id: 'estimatedCompletionDate',
-      accessorKey: 'estimatedCompletionDate',
-      header: 'Est. Completion',
-      cell: ({ row }) => formatDate(row.original.estimatedCompletionDate),
-    },
-    {
-      id: 'actualCompletionDate',
-      accessorKey: 'actualCompletionDate',
-      header: 'Actual Completion',
-      cell: ({ row }) => formatDate(row.original.actualCompletionDate),
-    },
-    {
-      id: 'chassisETA',
-      accessorKey: 'chassisETA',
-      header: 'Chassis ETA',
-      cell: ({ row }) => formatDate(row.original.chassisETA),
-    },
-    {
-      id: 'fabricationStart',
-      accessorKey: 'fabricationStart',
-      header: 'Fabrication Start',
-      cell: ({ row }) => formatDate(row.original.fabricationStart),
-    },
-    {
-      id: 'assemblyStart',
-      accessorKey: 'assemblyStart',
-      header: 'Assembly Start',
-      cell: ({ row }) => formatDate(row.original.assemblyStart),
-    },
-    {
-      id: 'wrapDate',
-      accessorKey: 'wrapDate',
-      header: 'Wrap Date',
-      cell: ({ row }) => formatDate(row.original.wrapDate),
-    },
-    {
-      id: 'ntcTestingDate',
-      accessorKey: 'ntcTestingDate',
-      header: 'NTC Testing',
-      cell: ({ row }) => formatDate(row.original.ntcTestingDate),
-    },
-    {
-      id: 'qcStartDate',
-      accessorKey: 'qcStartDate',
-      header: 'QC Start',
-      cell: ({ row }) => formatDate(row.original.qcStartDate),
-    },
-    {
-      id: 'qcDays',
-      accessorKey: 'qcDays',
-      header: 'QC Days',
-      cell: ({ row }) => row.original.qcDays !== null ? row.original.qcDays : 'N/A',
-    },
-    {
-      id: 'executiveReviewDate',
-      accessorKey: 'executiveReviewDate',
-      header: 'Exec Review',
-      cell: ({ row }) => formatDate(row.original.executiveReviewDate),
-    },
-    {
-      id: 'shipDate',
-      accessorKey: 'shipDate',
-      header: 'Ship Date',
-      cell: ({ row }) => formatDate(row.original.shipDate),
-    },
-    {
-      id: 'deliveryDate',
-      accessorKey: 'deliveryDate',
-      header: 'Delivery Date',
-      cell: ({ row }) => formatDate(row.original.deliveryDate),
-    },
-    {
-      id: 'description',
-      accessorKey: 'description',
-      header: 'Description',
-      cell: ({ row }) => (
-        <div className="text-sm max-w-xs truncate" title={row.original.description}>
-          {row.original.description || 'N/A'}
+      }),
+    createColumn('contractDate', 'contractDate', 'Contract Date', 
+      (value) => formatDate(value)),
+    createColumn('startDate', 'startDate', 'Start Date', 
+      (value) => formatDate(value)),
+    createColumn('estimatedCompletionDate', 'estimatedCompletionDate', 'Est. Completion', 
+      (value) => formatDate(value)),
+    createColumn('actualCompletionDate', 'actualCompletionDate', 'Actual Completion', 
+      (value) => formatDate(value)),
+    createColumn('chassisETA', 'chassisETA', 'Chassis ETA', 
+      (value) => formatDate(value)),
+    createColumn('fabricationStart', 'fabricationStart', 'Fabrication Start', 
+      (value) => formatDate(value)),
+    createColumn('assemblyStart', 'assemblyStart', 'Assembly Start', 
+      (value) => formatDate(value)),
+    createColumn('wrapDate', 'wrapDate', 'Wrap Date', 
+      (value) => formatDate(value)),
+    createColumn('ntcTestingDate', 'ntcTestingDate', 'NTC Testing', 
+      (value) => formatDate(value)),
+    createColumn('qcStartDate', 'qcStartDate', 'QC Start', 
+      (value) => formatDate(value)),
+    createColumn('qcDays', 'qcDays', 'QC Days', 
+      (value) => value !== null ? value : 'N/A'),
+    createColumn('executiveReviewDate', 'executiveReviewDate', 'Exec Review', 
+      (value) => formatDate(value)),
+    createColumn('shipDate', 'shipDate', 'Ship Date', 
+      (value) => formatDate(value)),
+    createColumn('deliveryDate', 'deliveryDate', 'Delivery Date', 
+      (value) => formatDate(value)),
+    createColumn('description', 'description', 'Description',
+      (value, project) => (
+        <div className="text-sm max-w-xs truncate" title={value as string}>
+          {value || 'N/A'}
         </div>
-      ),
-    },
-    {
-      id: 'team',
-      accessorKey: 'team',
-      header: 'Team',
-      cell: ({ row }) => row.original.team || 'N/A',
-    },
-    {
-      id: 'location',
-      accessorKey: 'location',
-      header: 'Location',
-      cell: ({ row }) => row.original.location || 'N/A',
-    },
-    {
-      id: 'dpasRating',
-      accessorKey: 'dpasRating',
-      header: 'DPAS Rating',
-      cell: ({ row }) => row.original.dpasRating || 'N/A',
-    },
-    {
-      id: 'stretchShortenGears',
-      accessorKey: 'stretchShortenGears',
-      header: 'Stretch/Shorten Gears',
-      cell: ({ row }) => row.original.stretchShortenGears || 'N/A',
-    },
-    {
-      id: 'lltsOrdered',
-      accessorKey: 'lltsOrdered',
-      header: 'LLTS Ordered',
-      cell: ({ row }) => row.original.lltsOrdered ? 'Yes' : 'No',
-    },
-    {
-      id: 'meAssigned',
-      accessorKey: 'meAssigned',
-      header: 'ME Assigned',
-      cell: ({ row }) => row.original.meAssigned || 'N/A',
-    },
-    {
-      id: 'meDesignOrdersPercent',
-      accessorKey: 'meDesignOrdersPercent',
-      header: 'ME Design %',
-      cell: ({ row }) => row.original.meDesignOrdersPercent ? `${row.original.meDesignOrdersPercent}%` : 'N/A',
-    },
-    {
-      id: 'eeAssigned',
-      accessorKey: 'eeAssigned',
-      header: 'EE Assigned',
-      cell: ({ row }) => row.original.eeAssigned || 'N/A',
-    },
-    {
-      id: 'eeDesignOrdersPercent',
-      accessorKey: 'eeDesignOrdersPercent',
-      header: 'EE Design %',
-      cell: ({ row }) => row.original.eeDesignOrdersPercent ? `${row.original.eeDesignOrdersPercent}%` : 'N/A',
-    },
-    {
-      id: 'iteAssigned',
-      accessorKey: 'iteAssigned',
-      header: 'ITE Assigned',
-      cell: ({ row }) => row.original.iteAssigned || 'N/A',
-    },
-    {
-      id: 'itDesignOrdersPercent',
-      accessorKey: 'itDesignOrdersPercent',
-      header: 'IT Design %',
-      cell: ({ row }) => row.original.itDesignOrdersPercent ? `${row.original.itDesignOrdersPercent}%` : 'N/A',
-    },
-    {
-      id: 'ntcDesignOrdersPercent',
-      accessorKey: 'ntcDesignOrdersPercent',
-      header: 'NTC Design %',
-      cell: ({ row }) => row.original.ntcDesignOrdersPercent ? `${row.original.ntcDesignOrdersPercent}%` : 'N/A',
-    },
-    {
-      id: 'hasBillingMilestones',
-      accessorKey: 'hasBillingMilestones',
-      header: 'Has Billing Milestones',
-      cell: ({ row }) => row.original.hasBillingMilestones ? 'Yes' : 'No',
-    },
-    {
-      id: 'notes',
-      accessorKey: 'notes',
-      header: 'Notes',
-      cell: ({ row }) => (
-        <div className="text-sm max-w-xs truncate" title={row.original.notes}>
-          {row.original.notes || 'N/A'}
+      )),
+    createColumn('team', 'team', 'Team',
+      (value) => value || 'N/A'),
+    createColumn('location', 'location', 'Location',
+      (value) => value || 'N/A'),
+    createColumn('dpasRating', 'dpasRating', 'DPAS Rating',
+      (value) => value || 'N/A'),
+    createColumn('stretchShortenGears', 'stretchShortenGears', 'Stretch/Shorten Gears',
+      (value) => value || 'N/A'),
+    createColumn('lltsOrdered', 'lltsOrdered', 'LLTS Ordered',
+      (value) => value ? 'Yes' : 'No'),
+    createColumn('meAssigned', 'meAssigned', 'ME Assigned',
+      (value) => value || 'N/A'),
+    createColumn('meDesignOrdersPercent', 'meDesignOrdersPercent', 'ME Design %',
+      (value) => value ? `${value}%` : 'N/A'),
+    createColumn('eeAssigned', 'eeAssigned', 'EE Assigned',
+      (value) => value || 'N/A'),
+    createColumn('eeDesignOrdersPercent', 'eeDesignOrdersPercent', 'EE Design %',
+      (value) => value ? `${value}%` : 'N/A'),
+    createColumn('iteAssigned', 'iteAssigned', 'ITE Assigned',
+      (value) => value || 'N/A'),
+    createColumn('itDesignOrdersPercent', 'itDesignOrdersPercent', 'IT Design %',
+      (value) => value ? `${value}%` : 'N/A'),
+    createColumn('ntcDesignOrdersPercent', 'ntcDesignOrdersPercent', 'NTC Design %',
+      (value) => value ? `${value}%` : 'N/A'),
+    createColumn('hasBillingMilestones', 'hasBillingMilestones', 'Has Billing Milestones',
+      (value) => value ? 'Yes' : 'No'),
+    createColumn('notes', 'notes', 'Notes',
+      (value) => (
+        <div className="text-sm max-w-xs truncate" title={value as string}>
+          {value || 'N/A'}
         </div>
-      ),
-    },
+      )),
     {
       id: 'actions',
       header: 'Actions',
