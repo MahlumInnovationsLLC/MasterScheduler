@@ -254,20 +254,34 @@ export async function importProjects(req: Request, res: Response) {
         // Helper function to convert Excel dates to ISO string format
         const convertExcelDate = (excelDate: any): string | null => {
           if (!excelDate) return null;
-          if (typeof excelDate === 'number') {
-            const excelEpoch = new Date(1899, 11, 30);
-            return new Date(excelEpoch.getTime() + excelDate * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          
+          // If it's already a date string in ISO format, just return it
+          if (typeof excelDate === 'string' && excelDate.match(/^\d{4}-\d{2}-\d{2}T/)) {
+            return excelDate;
           }
+          
+          // Handle Excel serial dates (numbers)
+          if (typeof excelDate === 'number') {
+            // Excel dates are number of days since 1900-01-01
+            // But Excel incorrectly thinks 1900 was a leap year, so adjust for dates after Feb 28, 1900
+            const date = new Date((excelDate - (excelDate > 59 ? 1 : 0) - 25569) * 86400 * 1000);
+            return date.toISOString();
+          }
+          
+          // Handle string date formats
           if (typeof excelDate === 'string' && excelDate.trim()) {
             try {
               const date = new Date(excelDate);
               if (!isNaN(date.getTime())) {
-                return date.toISOString().split('T')[0];
+                return date.toISOString();
               }
             } catch (e) {
-              // If date parsing fails, return the original string
+              console.log(`Failed to parse date: ${excelDate}`, e);
+              // If date parsing fails, just pass it through
             }
           }
+          
+          // If all else fails, return the original value
           return excelDate;
         };
         
