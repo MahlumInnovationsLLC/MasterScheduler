@@ -54,7 +54,6 @@ function Router() {
             <ProtectedRoute path="/archived-projects" component={ArchivedProjects} />
             <ProtectedRoute path="/billing" component={BillingMilestones} />
             <ProtectedRoute path="/manufacturing" component={ManufacturingBay} />
-            <ProtectedRoute path="/delivery-tracking" component={OnTimeDelivery} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />
             <ProtectedRoute path="/reports" component={Reports} />
             <ProtectedRoute path="/import" component={ImportData} />

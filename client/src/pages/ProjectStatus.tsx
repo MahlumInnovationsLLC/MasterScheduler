@@ -16,8 +16,10 @@ import {
   ArrowUpRight,
   Calendar,
   SearchIcon,
-  ListFilter
+  ListFilter,
+  Clock
 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
