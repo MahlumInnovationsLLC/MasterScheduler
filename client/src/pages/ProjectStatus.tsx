@@ -15,9 +15,10 @@ import {
   MoreHorizontal,
   ArrowUpRight,
   Calendar,
-  SearchIcon,
+  Search,
   ListFilter,
-  Clock
+  Clock,
+  Archive
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -352,6 +353,8 @@ const ProjectStatus = () => {
     { value: 'delayed', label: 'Delayed' },
     { value: 'critical', label: 'Critical' },
     { value: 'completed', label: 'Completed' },
+    { value: 'delivered', label: 'Delivered' },
+    { value: 'archived', label: 'Archived' },
     { value: 'on-hold', label: 'On Hold' },
     { value: 'cancelled', label: 'Cancelled' },
   ], []);
@@ -567,10 +570,18 @@ const ProjectStatus = () => {
       
       {/* Tabs Navigation */}
       <Tabs defaultValue="projects" className="w-full mb-6" onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 w-[400px] mb-4">
+        <TabsList className="grid grid-cols-4 w-[800px] mb-4">
           <TabsTrigger value="projects" className="flex items-center gap-2">
             <ListFilter className="h-4 w-4" /> 
             Projects
+          </TabsTrigger>
+          <TabsTrigger value="delivered" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" /> 
+            Delivered
+          </TabsTrigger>
+          <TabsTrigger value="archived" className="flex items-center gap-2">
+            <Archive className="h-4 w-4" /> 
+            Archived
           </TabsTrigger>
           <TabsTrigger value="delivery" className="flex items-center gap-2">
             <Clock className="h-4 w-4" /> 
@@ -647,6 +658,66 @@ const ProjectStatus = () => {
               </Button>
             </div>
           )}
+        </TabsContent>
+        
+        <TabsContent value="delivered" className="mt-0">
+          {/* Delivered Projects Tab */}
+          <div className="bg-darkCard rounded-xl border border-gray-800 p-6">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-gray-400" />
+                <h2 className="text-lg font-medium">Delivered Projects</h2>
+              </div>
+              <div className="relative w-64">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  placeholder="Search delivered projects..."
+                  className="pl-8 bg-darkInput border-gray-700"
+                />
+              </div>
+            </div>
+
+            {/* Filter for delivered projects */}
+            <DataTable 
+              columns={columns}
+              data={(filteredProjects as ProjectWithRawData[]).filter(p => p.status === 'delivered')}
+              searchPlaceholder="Filter delivered projects..."
+              filterColumn="projectNumber"
+            />
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="archived" className="mt-0">
+          {/* Archived Projects Tab */}
+          <div className="bg-darkCard rounded-xl border border-gray-800 p-6">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <Archive className="h-5 w-5 text-gray-400" />
+                <h2 className="text-lg font-medium">Archived Projects</h2>
+              </div>
+              <div className="relative w-64">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  placeholder="Search archived projects..."
+                  className="pl-8 bg-darkInput border-gray-700"
+                />
+              </div>
+            </div>
+
+            {/* Query for archived projects */}
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+              </div>
+            ) : (
+              <DataTable 
+                columns={columns}
+                data={(filteredProjects as ProjectWithRawData[]).filter(p => p.status === 'archived')}
+                searchPlaceholder="Filter archived projects..."
+                filterColumn="projectNumber"
+              />
+            )}
+          </div>
         </TabsContent>
         
         <TabsContent value="delivery" className="mt-0">
