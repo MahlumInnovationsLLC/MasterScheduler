@@ -651,7 +651,7 @@ const ProjectStatus = () => {
             Sort
           </Button>
           
-          <Button size="sm">
+          <Button size="sm" onClick={() => navigate('/projects/new')}>
             <Plus className="mr-2 h-4 w-4" />
             New Project
           </Button>

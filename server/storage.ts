@@ -284,17 +284,47 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createProject(project: InsertProject): Promise<Project> {
-    const [newProject] = await db.insert(projects).values(project).returning();
-    return newProject;
+    console.log("Creating project with data:", JSON.stringify(project, null, 2));
+    try {
+      const [newProject] = await db.insert(projects).values(project).returning();
+      console.log("Project created successfully:", newProject.id, newProject.projectNumber);
+      return newProject;
+    } catch (error) {
+      console.error("Error creating project:", error);
+      // Log the specific error for debugging
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      throw error;
+    }
   }
   
   async updateProject(id: number, project: Partial<InsertProject>): Promise<Project | undefined> {
-    const [updatedProject] = await db
-      .update(projects)
-      .set({ ...project, updatedAt: new Date() })
-      .where(eq(projects.id, id))
-      .returning();
-    return updatedProject;
+    console.log(`Updating project ID ${id} with data:`, JSON.stringify(project, null, 2));
+    try {
+      const [updatedProject] = await db
+        .update(projects)
+        .set({ ...project, updatedAt: new Date() })
+        .where(eq(projects.id, id))
+        .returning();
+      
+      if (!updatedProject) {
+        console.error(`No project found with ID ${id} for update`);
+        return undefined;
+      }
+      
+      console.log(`Project ${id} updated successfully:`, updatedProject.projectNumber);
+      return updatedProject;
+    } catch (error) {
+      console.error(`Error updating project ${id}:`, error);
+      // Log the specific error for debugging
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      return undefined;
+    }
   }
   
   async deleteProject(id: number): Promise<boolean> {
