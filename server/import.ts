@@ -297,14 +297,27 @@ export async function importProjects(req: Request, res: Response) {
           console.log(`Could not calculate QC Days for ${projectData.projectNumber} - missing QC Start Date or Ship Date`);
         }
 
-        // Check if project with same project number already exists
+        // Check if project with same project number OR (same name AND project number) already exists
         const existingProject = await storage.getProjectByNumber(projectData.projectNumber);
         
+        // Check if there's a project with the same name but different number
+        let existingProjectWithSameName;
+        if (!existingProject && projectData.name) {
+          existingProjectWithSameName = (await storage.getProjects())
+            .find(p => p.name === projectData.name);
+        }
+        
         if (existingProject) {
-          // Update existing project
+          // Update existing project with same project number
           await storage.updateProject(existingProject.id, projectData);
           results.imported++;
-          results.details.push(`Updated project: ${projectData.name} (${projectData.projectNumber})`);
+          results.details.push(`Updated existing project: ${projectData.name} (${projectData.projectNumber})`);
+        } else if (existingProjectWithSameName) {
+          // Update existing project with same name but different number
+          console.log(`Found project with same name '${projectData.name}' but different number. Updating...`);
+          await storage.updateProject(existingProjectWithSameName.id, projectData);
+          results.imported++;
+          results.details.push(`Updated existing project with matching name: ${projectData.name} (${projectData.projectNumber})`);
         } else {
           // Create new project
           await storage.createProject(projectData as InsertProject);
