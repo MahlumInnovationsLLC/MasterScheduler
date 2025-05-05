@@ -58,9 +58,7 @@ function Router() {
             <ProtectedRoute path="/reports" component={Reports} />
             <ProtectedRoute path="/import" component={ImportData} />
             <ProtectedRoute path="/settings/system" component={SystemSettings} />
-            <Route path="/archived-projects">
-              <Redirect to="/projects" />
-            </Route>
+            <Route path="/archived-projects" component={() => <Redirect to="/projects" />} />
             <ProtectedRoute path="/system-settings" component={SystemSettings} />
             <ProtectedRoute path="/settings" component={SystemSettings} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
