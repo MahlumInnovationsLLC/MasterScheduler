@@ -38,19 +38,55 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-// Define the basic project information schema
+// Define the comprehensive project information schema
 const projectSchema = z.object({
   projectNumber: z.string().min(1, 'Project number is required'),
   name: z.string().min(1, 'Project name is required'),
   description: z.string().optional(),
+  client: z.string().optional(),
   location: z.string().optional(),
   pmOwner: z.string().optional(),
-  client: z.string().optional(),
+  team: z.string().optional(),
+  
+  // New field for auto-calculation of dates
+  poDroppedToDeliveryDays: z.number().min(1).optional(),
+  
+  // Dates
+  contractDate: z.date().optional(),
   startDate: z.date().optional(),
   estimatedCompletionDate: z.date().optional(),
-  status: z.string().optional(),
+  actualCompletionDate: z.date().optional(),
+  chassisETA: z.date().optional(),
+  fabricationStart: z.date().optional(),
+  assemblyStart: z.date().optional(),
+  wrapDate: z.date().optional(),
+  ntcTestingDate: z.date().optional(),
+  qcStartDate: z.date().optional(),
+  executiveReviewDate: z.date().optional(),
+  shipDate: z.date().optional(),
+  deliveryDate: z.date().optional(),
+  
+  // Project details
+  percentComplete: z.number().min(0).max(100).default(0),
+  dpasRating: z.string().optional(),
+  stretchShortenGears: z.string().optional(),
+  lltsOrdered: z.boolean().default(false),
+  qcDays: z.number().optional(),
+  
+  // Design assignments
+  meAssigned: z.string().optional(),
+  meDesignOrdersPercent: z.number().min(0).max(100).optional(),
+  eeAssigned: z.string().optional(),
+  eeDesignOrdersPercent: z.number().min(0).max(100).optional(),
+  iteAssigned: z.string().optional(),
+  itDesignOrdersPercent: z.number().min(0).max(100).optional(),
+  ntcDesignOrdersPercent: z.number().min(0).max(100).optional(),
+  
+  // Status and notes
+  status: z.string(),
   priority: z.string().optional(),
   category: z.string().optional(),
+  hasBillingMilestones: z.boolean().default(false),
   notes: z.string().optional(),
 });
 
@@ -90,21 +126,88 @@ function ProjectEdit() {
     },
   });
 
+  // Calculate dates based on poDroppedToDeliveryDays
+  const calculateDates = (contractDate: Date | undefined, days: number | undefined) => {
+    if (!contractDate || !days) return;
+    
+    // Start date is the same as contract date
+    form.setValue('startDate', contractDate);
+    
+    // Estimated completion date is contract date + days
+    const estimatedDate = new Date(contractDate);
+    estimatedDate.setDate(estimatedDate.getDate() + (days || 30));
+    form.setValue('estimatedCompletionDate', estimatedDate);
+  };
+  
+  // Watch for changes in contractDate and poDroppedToDeliveryDays
+  const contractDate = form.watch('contractDate');
+  const poDroppedToDeliveryDays = form.watch('poDroppedToDeliveryDays');
+  
+  // Auto-calculate dates when contract date or days change
+  useEffect(() => {
+    calculateDates(contractDate, poDroppedToDeliveryDays);
+  }, [contractDate, poDroppedToDeliveryDays]);
+  
   // Update form when project data is loaded
   useEffect(() => {
     if (project) {
+      // Calculate the number of days between contract date and delivery date if available
+      let calculatedDays = 30; // Default
+      if (project.contractDate && project.deliveryDate) {
+        const contractDate = new Date(project.contractDate);
+        const deliveryDate = new Date(project.deliveryDate);
+        const diffTime = Math.abs(deliveryDate.getTime() - contractDate.getTime());
+        calculatedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      }
+      
       form.reset({
         projectNumber: project.projectNumber || '',
         name: project.name || '',
         description: project.description || '',
+        client: project.client || '',
         location: project.location || '',
         pmOwner: project.pmOwner || '',
-        client: project.client || '',
+        team: project.team || '',
+        
+        // New field with calculated days
+        poDroppedToDeliveryDays: calculatedDays,
+        
+        // Dates
+        contractDate: project.contractDate ? new Date(project.contractDate) : undefined,
         startDate: project.startDate ? new Date(project.startDate) : undefined,
         estimatedCompletionDate: project.estimatedCompletionDate ? new Date(project.estimatedCompletionDate) : undefined,
+        actualCompletionDate: project.actualCompletionDate ? new Date(project.actualCompletionDate) : undefined,
+        chassisETA: project.chassisETA ? new Date(project.chassisETA) : undefined,
+        fabricationStart: project.fabricationStart ? new Date(project.fabricationStart) : undefined,
+        assemblyStart: project.assemblyStart ? new Date(project.assemblyStart) : undefined,
+        wrapDate: project.wrapDate ? new Date(project.wrapDate) : undefined,
+        ntcTestingDate: project.ntcTestingDate ? new Date(project.ntcTestingDate) : undefined,
+        qcStartDate: project.qcStartDate ? new Date(project.qcStartDate) : undefined,
+        executiveReviewDate: project.executiveReviewDate ? new Date(project.executiveReviewDate) : undefined,
+        shipDate: project.shipDate ? new Date(project.shipDate) : undefined,
+        deliveryDate: project.deliveryDate ? new Date(project.deliveryDate) : undefined,
+        
+        // Project details
+        percentComplete: project.percentComplete ? Number(project.percentComplete) : 0,
+        dpasRating: project.dpasRating || '',
+        stretchShortenGears: project.stretchShortenGears || '',
+        lltsOrdered: project.lltsOrdered || false,
+        qcDays: project.qcDays || undefined,
+        
+        // Design assignments
+        meAssigned: project.meAssigned || '',
+        meDesignOrdersPercent: project.meDesignOrdersPercent ? Number(project.meDesignOrdersPercent) : undefined,
+        eeAssigned: project.eeAssigned || '',
+        eeDesignOrdersPercent: project.eeDesignOrdersPercent ? Number(project.eeDesignOrdersPercent) : undefined,
+        iteAssigned: project.iteAssigned || '',
+        itDesignOrdersPercent: project.itDesignOrdersPercent ? Number(project.itDesignOrdersPercent) : undefined,
+        ntcDesignOrdersPercent: project.ntcDesignOrdersPercent ? Number(project.ntcDesignOrdersPercent) : undefined,
+        
+        // Status and notes
         status: project.status || 'active',
         priority: project.priority || 'medium',
         category: project.category || '',
+        hasBillingMilestones: project.hasBillingMilestones || false,
         notes: project.notes || '',
       });
     }
@@ -198,7 +301,9 @@ function ProjectEdit() {
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Edit Project</h1>
+            <h1 className="text-2xl font-bold">
+              Edit Project {project ? `- ${project.projectNumber}: ${project.name}` : ''}
+            </h1>
             <p className="text-gray-400 text-sm">Update project details, timeline, and settings</p>
           </div>
         </div>
