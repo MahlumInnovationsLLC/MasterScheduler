@@ -831,7 +831,7 @@ const ProjectStatus = () => {
         filterColumn="status"
         filterOptions={statusOptions}
         searchPlaceholder="Search projects..."
-        frozenColumns={['projectNumber', 'pmOwner']} // Freeze Project Number and PM Owner columns on the left
+        frozenColumns={['projectNumber', 'pmOwner', 'timeline', 'percentComplete', 'status']} // Freeze these columns on the left as shown in the screenshot
       />
       
       {/* Filters Info */}
