@@ -30,6 +30,7 @@ interface DataTableProps<TData, TValue> {
   filterOptions?: { value: string; label: string }[];
   searchPlaceholder?: string;
   showPagination?: boolean;
+  frozenColumns?: string[]; // Names of column IDs to freeze
 }
 
 export function DataTable<TData, TValue>({
@@ -39,6 +40,7 @@ export function DataTable<TData, TValue>({
   filterOptions,
   searchPlaceholder = "Search...",
   showPagination = true,
+  frozenColumns = [],
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -101,74 +103,93 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
       
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader className="bg-gray-900">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="border-gray-800">
-                {headerGroup.headers.map((header) => (
-                  <TableHead 
-                    key={header.id}
-                    className="py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
-                  >
-                    {header.isPlaceholder ? null : (
-                      <div
-                        className={
-                          header.column.getCanSort()
-                            ? 'flex items-center gap-1 cursor-pointer select-none'
-                            : ''
-                        }
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                        {header.column.getCanSort() && (
-                          <div className="inline-block">
-                            {{
-                              asc: <ChevronUp className="h-4 w-4" />,
-                              desc: <ChevronDown className="h-4 w-4" />,
-                              false: <ChevronsUpDown className="h-4 w-4 opacity-50" />,
-                            }[header.column.getIsSorted() as string] ?? null}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className="hover:bg-gray-900/50 border-gray-800"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-4 px-4">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
+      <div className="relative">
+        <div className="overflow-x-auto">
+          <div className="inline-block min-w-full align-middle">
+            <div className="overflow-hidden">
+              <Table>
+                <TableHeader className="bg-gray-900">
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id} className="border-gray-800">
+                      {headerGroup.headers.map((header) => {
+                        const isColumnFrozen = frozenColumns.includes(header.column.id);
+                        return (
+                          <TableHead 
+                            key={header.id}
+                            className={`py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${
+                              isColumnFrozen ? 'sticky left-0 z-10 bg-gray-900 shadow-md' : ''
+                            }`}
+                          >
+                            {header.isPlaceholder ? null : (
+                              <div
+                                className={
+                                  header.column.getCanSort()
+                                    ? 'flex items-center gap-1 cursor-pointer select-none'
+                                    : ''
+                                }
+                                onClick={header.column.getToggleSortingHandler()}
+                              >
+                                {flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                                {header.column.getCanSort() && (
+                                  <div className="inline-block">
+                                    {{
+                                      asc: <ChevronUp className="h-4 w-4" />,
+                                      desc: <ChevronDown className="h-4 w-4" />,
+                                      false: <ChevronsUpDown className="h-4 w-4 opacity-50" />,
+                                    }[header.column.getIsSorted() as string] ?? null}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </TableHead>
+                        );
+                      })}
+                    </TableRow>
                   ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center text-gray-500"
-                >
-                  No results found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows.length > 0 ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        className="hover:bg-gray-900/50 border-gray-800"
+                      >
+                        {row.getVisibleCells().map((cell) => {
+                          const isColumnFrozen = frozenColumns.includes(cell.column.id);
+                          return (
+                            <TableCell 
+                              key={cell.id} 
+                              className={`py-4 px-4 ${
+                                isColumnFrozen ? 'sticky left-0 z-10 bg-darkCard shadow-md' : ''
+                              }`}
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center text-gray-500"
+                      >
+                        No results found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </div>
       </div>
       
       {showPagination && (
