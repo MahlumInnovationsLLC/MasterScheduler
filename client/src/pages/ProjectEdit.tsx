@@ -537,6 +537,321 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
+                    
+                    <FormField
+                      control={form.control}
+                      name="team"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Team</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Team name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="percentComplete"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Percent Complete</FormLabel>
+                          <div className="grid grid-cols-[1fr_50px] gap-2">
+                            <FormControl>
+                              <Slider 
+                                value={[field.value || 0]} 
+                                min={0} 
+                                max={100} 
+                                step={1}
+                                onValueChange={(vals) => field.onChange(vals[0])}
+                              />
+                            </FormControl>
+                            <Input 
+                              type="number" 
+                              value={field.value || 0}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                if (!isNaN(val) && val >= 0 && val <= 100) {
+                                  field.onChange(val);
+                                }
+                              }} 
+                              className="w-[60px]"
+                            />
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  <h3 className="text-md font-medium mb-2">Design & Manufacturing Details</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="dpasRating"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>DPAS Rating</FormLabel>
+                          <FormControl>
+                            <Input placeholder="DPAS Rating" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="stretchShortenGears"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Stretch/Shorten Gears</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Stretch/Shorten Gears" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="lltsOrdered"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>
+                              LLTs Ordered
+                            </FormLabel>
+                            <FormDescription>
+                              Check if Long Lead Time items have been ordered
+                            </FormDescription>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="hasBillingMilestones"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>
+                              Has Billing Milestones
+                            </FormLabel>
+                            <FormDescription>
+                              Check if project has defined billing milestones
+                            </FormDescription>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  <h3 className="text-md font-medium mb-2">Design Assignments & Progress</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="meAssigned"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>ME Assigned</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Mechanical Engineer" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="meDesignOrdersPercent"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>ME Design Orders % Complete</FormLabel>
+                            <div className="grid grid-cols-[1fr_50px] gap-2">
+                              <FormControl>
+                                <Slider 
+                                  value={[field.value || 0]} 
+                                  min={0} 
+                                  max={100} 
+                                  step={1}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                />
+                              </FormControl>
+                              <Input 
+                                type="number" 
+                                value={field.value || 0}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  if (!isNaN(val) && val >= 0 && val <= 100) {
+                                    field.onChange(val);
+                                  }
+                                }} 
+                                className="w-[60px]"
+                              />
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="eeAssigned"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>EE Assigned</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Electrical Engineer" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="eeDesignOrdersPercent"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>EE Design Orders % Complete</FormLabel>
+                            <div className="grid grid-cols-[1fr_50px] gap-2">
+                              <FormControl>
+                                <Slider 
+                                  value={[field.value || 0]} 
+                                  min={0} 
+                                  max={100} 
+                                  step={1}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                />
+                              </FormControl>
+                              <Input 
+                                type="number" 
+                                value={field.value || 0}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  if (!isNaN(val) && val >= 0 && val <= 100) {
+                                    field.onChange(val);
+                                  }
+                                }} 
+                                className="w-[60px]"
+                              />
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="iteAssigned"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>ITE Assigned</FormLabel>
+                            <FormControl>
+                              <Input placeholder="IT Engineer" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="itDesignOrdersPercent"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>IT Design Orders % Complete</FormLabel>
+                            <div className="grid grid-cols-[1fr_50px] gap-2">
+                              <FormControl>
+                                <Slider 
+                                  value={[field.value || 0]} 
+                                  min={0} 
+                                  max={100} 
+                                  step={1}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                />
+                              </FormControl>
+                              <Input 
+                                type="number" 
+                                value={field.value || 0}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  if (!isNaN(val) && val >= 0 && val <= 100) {
+                                    field.onChange(val);
+                                  }
+                                }} 
+                                className="w-[60px]"
+                              />
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="ntcDesignOrdersPercent"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>NTC Design Orders % Complete</FormLabel>
+                            <div className="grid grid-cols-[1fr_50px] gap-2">
+                              <FormControl>
+                                <Slider 
+                                  value={[field.value || 0]} 
+                                  min={0} 
+                                  max={100} 
+                                  step={1}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                />
+                              </FormControl>
+                              <Input 
+                                type="number" 
+                                value={field.value || 0}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  if (!isNaN(val) && val >= 0 && val <= 100) {
+                                    field.onChange(val);
+                                  }
+                                }} 
+                                className="w-[60px]"
+                              />
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -548,13 +863,87 @@ function ProjectEdit() {
                   <CardTitle>Timeline & Schedule</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {/* Auto-calculation settings */}
+                  <div className="bg-gray-900 p-4 rounded-lg mb-4">
+                    <h3 className="text-md font-medium mb-2">Automatic Date Calculation</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="contractDate"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Contract Date (PO Dropped)</FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant="outline"
+                                    className={cn(
+                                      "w-full pl-3 text-left font-normal",
+                                      !field.value && "text-muted-foreground"
+                                    )}
+                                  >
+                                    {field.value ? (
+                                      formatDate(field.value)
+                                    ) : (
+                                      <span>Pick a date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  disabled={(date) =>
+                                    date < new Date("1900-01-01")
+                                  }
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="poDroppedToDeliveryDays"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>PO Dropped to Delivery (Days)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="Number of days" 
+                                {...field} 
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 30)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="flex items-end">
+                        <p className="text-xs text-gray-400">
+                          Start date and estimated completion date will auto-calculate based on the contract date and number of days.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Main project dates */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
                       name="startDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Start Date</FormLabel>
+                          <FormLabel>Start Date (Auto-calculated)</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -564,11 +953,12 @@ function ProjectEdit() {
                                     "w-full pl-3 text-left font-normal",
                                     !field.value && "text-muted-foreground"
                                   )}
+                                  disabled // Make read-only since it's auto-calculated
                                 >
                                   {field.value ? (
                                     formatDate(field.value)
                                   ) : (
-                                    <span>Pick a date</span>
+                                    <span>Auto-calculated from Contract Date</span>
                                   )}
                                   <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                 </Button>
@@ -579,9 +969,7 @@ function ProjectEdit() {
                                 mode="single"
                                 selected={field.value}
                                 onSelect={field.onChange}
-                                disabled={(date) =>
-                                  date < new Date("1900-01-01")
-                                }
+                                disabled
                                 initialFocus
                               />
                             </PopoverContent>
@@ -596,7 +984,7 @@ function ProjectEdit() {
                       name="estimatedCompletionDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Estimated Completion Date</FormLabel>
+                          <FormLabel>Est. Completion Date (Auto-calculated)</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -606,11 +994,12 @@ function ProjectEdit() {
                                     "w-full pl-3 text-left font-normal",
                                     !field.value && "text-muted-foreground"
                                   )}
+                                  disabled // Make read-only since it's auto-calculated
                                 >
                                   {field.value ? (
                                     formatDate(field.value)
                                   ) : (
-                                    <span>Pick a date</span>
+                                    <span>Auto-calculated from Contract Date + Days</span>
                                   )}
                                   <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                 </Button>
