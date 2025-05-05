@@ -317,15 +317,23 @@ const ProjectStatus = () => {
 
   // Define all available columns
   const allColumns = [
-    createColumn('location', 'location', 'Location', 
-      (value) => (
-        <div className="flex items-center">
-          <div className="px-3 py-1 rounded bg-primary text-white font-medium">
-            {value || 'N/A'}
+    // Add the location column as first column to ensure it appears at the far left
+    {
+      id: 'location',
+      accessorKey: 'location',
+      header: 'Location',
+      size: 120,
+      cell: ({ row }: { row: ProjectRow }) => {
+        const value = row.original.location;
+        return (
+          <div className="flex items-center">
+            <div className="px-3 py-1 rounded bg-primary text-white font-medium">
+              {value || 'N/A'}
+            </div>
           </div>
-        </div>
-      ),
-      { size: 120 }),
+        );
+      }
+    },
     createColumn('projectNumber', 'projectNumber', 'Project', 
       (value, project) => (
         <div className="flex items-center">
