@@ -195,6 +195,70 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   baySchedules: many(manufacturingSchedules),
 }));
 
+// Archived Projects Table - mirrors the projects table structure
+export const archivedProjects = pgTable("archived_projects", {
+  id: serial("id").primaryKey(),
+  originalId: integer("original_id").notNull(), // Reference to the original project ID
+  projectNumber: text("project_number").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  
+  // PM and team information
+  pmOwnerId: varchar("pm_owner_id").references(() => users.id),
+  pmOwner: text("pm_owner"),
+  team: text("team"),
+  location: text("location"),
+  
+  // Dates
+  contractDate: date("contract_date"),
+  startDate: date("start_date").notNull(),
+  estimatedCompletionDate: date("estimated_completion_date").notNull(),
+  actualCompletionDate: date("actual_completion_date"),
+  chassisETA: date("chassis_eta"),
+  fabricationStart: date("fabrication_start"),
+  assemblyStart: date("assembly_start"),
+  wrapDate: date("wrap_date"),
+  ntcTestingDate: date("ntc_testing_date"),
+  qcStartDate: date("qc_start_date"),
+  executiveReviewDate: date("executive_review_date"),
+  shipDate: date("ship_date"),
+  deliveryDate: date("delivery_date"),
+  
+  // Project details
+  percentComplete: decimal("percent_complete", { precision: 5, scale: 2 }).default("0").notNull(),
+  dpasRating: text("dpas_rating"),
+  stretchShortenGears: text("stretch_shorten_gears"),
+  lltsOrdered: boolean("llts_ordered").default(false),
+  qcDays: integer("qc_days"),
+  
+  // Design assignments
+  meAssigned: text("me_assigned"),
+  meDesignOrdersPercent: decimal("me_design_orders_percent", { precision: 5, scale: 2 }),
+  eeAssigned: text("ee_assigned"),
+  eeDesignOrdersPercent: decimal("ee_design_orders_percent", { precision: 5, scale: 2 }),
+  iteAssigned: text("ite_assigned"),
+  itDesignOrdersPercent: decimal("it_design_orders_percent", { precision: 5, scale: 2 }),
+  ntcDesignOrdersPercent: decimal("ntc_design_orders_percent", { precision: 5, scale: 2 }),
+  
+  // Status fields - always "archived" for archived projects
+  status: projectStatusEnum("status").default("archived").notNull(),
+  hasBillingMilestones: boolean("has_billing_milestones").default(false),
+  notes: text("notes"),
+  
+  // Store all raw data from Excel import
+  rawData: jsonb("raw_data"),
+  
+  // Archive metadata
+  archivedAt: timestamp("archived_at").defaultNow(),
+  archivedBy: varchar("archived_by").references(() => users.id),
+  archiveReason: text("archive_reason"),
+  
+  // Original timestamps
+  originalCreatedAt: timestamp("original_created_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Tasks Table
 export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
@@ -397,6 +461,13 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   isRead: true,
 });
 
+// Create insert schema for archived projects
+export const insertArchivedProjectSchema = createInsertSchema(archivedProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -409,6 +480,9 @@ export type InsertUserPreference = z.infer<typeof insertUserPreferencesSchema>;
 
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
+
+export type ArchivedProject = typeof archivedProjects.$inferSelect;
+export type InsertArchivedProject = z.infer<typeof insertArchivedProjectSchema>;
 
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;

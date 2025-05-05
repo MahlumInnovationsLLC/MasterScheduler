@@ -57,11 +57,15 @@ export function DataTable<TData, TValue>({
           const valueA = String(rowA.getValue(columnId) || '').trim();
           const valueB = String(rowB.getValue(columnId) || '').trim();
           
-          // Always place 'N/A' values at the bottom regardless of sort direction
-          if (valueA === 'N/A' && valueB !== 'N/A') return 1;
-          if (valueA !== 'N/A' && valueB === 'N/A') return -1;
+          // Always place N/A, empty values, or whitespace at the bottom regardless of sort direction
+          const isEmptyA = valueA === 'N/A' || valueA === '';
+          const isEmptyB = valueB === 'N/A' || valueB === '';
           
-          // For non-N/A values, use default comparison
+          if (isEmptyA && !isEmptyB) return 1;  // A is N/A, B is not - A goes to bottom
+          if (!isEmptyA && isEmptyB) return -1; // A is not N/A, B is - B goes to bottom
+          if (isEmptyA && isEmptyB) return 0;   // Both are N/A - order doesn't matter
+          
+          // For non-N/A values, use default numeric-aware comparison
           return valueA.localeCompare(valueB, undefined, { numeric: true });
         }
       }

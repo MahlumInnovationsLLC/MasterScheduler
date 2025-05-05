@@ -254,12 +254,15 @@ const ProjectStatus = () => {
     id: string,
     accessorKey: T,
     header: string,
-    cellRenderer: (value: ProjectWithRawData[T], project: ProjectWithRawData) => React.ReactNode
+    cellRenderer: (value: ProjectWithRawData[T], project: ProjectWithRawData) => React.ReactNode,
+    options: Record<string, any> = {}
   ) => {
     return {
       id,
       accessorKey,
       header,
+      sortingFn: 'alphanumeric', // Default sorting function to handle N/A values properly
+      ...options,
       cell: ({ row }: { row: ProjectRow }) => {
         try {
           return cellRenderer(row.original[accessorKey], row.original);
@@ -475,11 +478,13 @@ const ProjectStatus = () => {
                 Add Task
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => {
-                const { toast } = useToast();
                 toast({
                   title: "Archive functionality coming soon",
                   description: "Project archiving will be available in a future update.",
                 });
+                // In the future this will archive projects to a separate database
+                // Implementation will move the project to the archived table in the database
+                // and remove it from the active projects view
               }}>
                 Archive Project
               </DropdownMenuItem>
