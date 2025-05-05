@@ -45,11 +45,11 @@ const Sidebar = () => {
             </li>
             <li>
               <Link href="/projects" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/projects') || location.startsWith('/projects/') 
+                isActive('/projects') || location.startsWith('/project/') 
                   ? 'bg-primary bg-opacity-20 text-white' 
                   : 'text-gray-700 dark:text-gray-300'
               }`}>
-                <ListChecks className={`text-xl ${isActive('/projects') || location.startsWith('/projects/') ? 'text-primary' : ''}`} />
+                <ListChecks className={`text-xl ${isActive('/projects') || location.startsWith('/project/') ? 'text-primary' : ''}`} />
                 <span>Projects</span>
               </Link>
             </li>

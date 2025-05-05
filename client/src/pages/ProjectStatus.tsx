@@ -449,7 +449,7 @@ const ProjectStatus = () => {
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/project/${row.original.id}`)}>
             <Eye className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/projects/${row.original.id}/edit`)}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/project/${row.original.id}/edit`)}>
             <Edit className="h-4 w-4" />
           </Button>
           <DropdownMenu>
@@ -459,13 +459,13 @@ const ProjectStatus = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigate(`/projects/${row.original.id}`)}>
+              <DropdownMenuItem onClick={() => navigate(`/project/${row.original.id}`)}>
                 View Details
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate(`/projects/${row.original.id}/edit`)}>
+              <DropdownMenuItem onClick={() => navigate(`/project/${row.original.id}/edit`)}>
                 Edit Project
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate(`/projects/${row.original.id}/tasks/new`)}>
+              <DropdownMenuItem onClick={() => navigate(`/project/${row.original.id}/tasks/new`)}>
                 Add Task
               </DropdownMenuItem>
               <DropdownMenuItem>
