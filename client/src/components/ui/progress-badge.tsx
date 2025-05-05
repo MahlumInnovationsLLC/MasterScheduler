@@ -6,13 +6,15 @@ interface ProgressBadgeProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   animatePulse?: boolean;
+  children?: React.ReactNode;
 }
 
 export function ProgressBadge({ 
   status, 
   size = 'md', 
   className,
-  animatePulse = false
+  animatePulse = false,
+  children
 }: ProgressBadgeProps) {
   // Define styles based on status
   const getStatusStyles = () => {
@@ -60,7 +62,7 @@ export function ProgressBadge({
         className
       )}
     >
-      {status}
+      {children || status}
     </span>
   );
 }

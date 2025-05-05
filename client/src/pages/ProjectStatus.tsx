@@ -802,7 +802,7 @@ const ProjectStatus = () => {
         <ProjectStatsCard 
           title="Total Projects"
           value={projectStats?.total || 0}
-          icon={<Folders className="text-primary" />}
+          icon={<Folders className="text-primary h-5 w-5" />}
           tags={[
             { label: "Active", value: projectStats?.active || 0, status: "On Track" },
             { label: "Delayed", value: projectStats?.delayed || 0, status: "Delayed" },
@@ -813,7 +813,7 @@ const ProjectStatus = () => {
         <ProjectStatsCard 
           title="Upcoming Milestones"
           value={upcomingMilestones}
-          icon={<Flag className="text-accent" />}
+          icon={<Flag className="text-accent h-5 w-5" />}
           progress={{ 
             value: 45, 
             label: "45% complete" 
@@ -823,7 +823,7 @@ const ProjectStatus = () => {
         <ProjectStatsCard 
           title="Avg. Completion"
           value={`${Math.round(projectStats?.avgCompletion || 0)}%`}
-          icon={<DollarSign className="text-secondary" />}
+          icon={<DollarSign className="text-secondary h-5 w-5" />}
           change={{ 
             value: "5% this month", 
             isPositive: true 
@@ -833,7 +833,7 @@ const ProjectStatus = () => {
         <ProjectStatsCard 
           title="Manufacturing"
           value="4/5"
-          icon={<Building2 className="text-success" />}
+          icon={<Building2 className="text-success h-5 w-5" />}
           tags={[
             { label: "Active", value: 4, status: "On Track" },
             { label: "Available", value: 1, status: "Inactive" }

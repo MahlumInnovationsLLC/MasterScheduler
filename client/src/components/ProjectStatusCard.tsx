@@ -39,7 +39,7 @@ export function ProjectStatsCard({
     <Card className="bg-darkCard rounded-xl p-4 border border-gray-800">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-gray-400 font-medium">{title}</h3>
-        <div className="p-2 rounded-lg bg-primary bg-opacity-10">
+        <div className="p-2 rounded-lg bg-primary/10 flex items-center justify-center w-9 h-9">
           {icon}
         </div>
       </div>
@@ -65,9 +65,9 @@ export function ProjectStatsCard({
           {tags.map((tag, index) => (
             <span 
               key={index} 
-              className="px-2 py-0.5 rounded-full text-xs inline-flex items-center"
+              className="inline-flex items-center"
             >
-              <ProgressBadge status={tag.status} size="sm">
+              <ProgressBadge status={tag.status} size="sm" className="px-2 py-0.5 text-xs">
                 {tag.value} {tag.label}
               </ProgressBadge>
             </span>
