@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useParams, Link } from 'wouter';
+import { useParams, Link, useLocation } from 'wouter';
 import { queryClient } from '@/lib/queryClient';
 import { 
   ArrowLeft,
@@ -14,7 +14,9 @@ import {
   AlertTriangle,
   FileText,
   Building2,
-  Info
+  Info,
+  Archive,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -51,9 +53,12 @@ const ProjectDetails = () => {
   const { id } = useParams();
   const projectId = parseInt(id);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   
   // Dialog state
   const [isAssignBayDialogOpen, setIsAssignBayDialogOpen] = useState(false);
+  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
+  const [archiveReason, setArchiveReason] = useState<string>('');
   const [selectedBayId, setSelectedBayId] = useState<number | null>(null);
   const [startDate, setStartDate] = useState<string>(
     new Date().toISOString().split('T')[0]
@@ -121,6 +126,30 @@ const ProjectDetails = () => {
     onError: (error: Error) => {
       toast({
         title: "Failed to assign bay",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Archive project mutation
+  const archiveProjectMutation = useMutation({
+    mutationFn: async ({ reason }: { reason: string }) => {
+      const response = await apiRequest('POST', `/api/projects/${projectId}/archive`, { reason });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Project archived",
+        description: `Project ${data.archivedProject.projectNumber} has been archived successfully`,
+      });
+      setIsArchiveDialogOpen(false);
+      // Navigate back to projects list
+      navigate('/projects');
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to archive project",
         description: error.message,
         variant: "destructive",
       });
@@ -304,6 +333,15 @@ const ProjectDetails = () => {
             <Button size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Add Task
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsArchiveDialogOpen(true)}
+              className="text-destructive border-destructive hover:bg-destructive/10"
+            >
+              <Archive className="h-4 w-4 mr-2" />
+              Archive Project
             </Button>
           </div>
         </div>
