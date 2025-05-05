@@ -480,88 +480,10 @@ const ProjectStatus = () => {
   
     // Create dynamic columns based on rawData fields found in the first project
   const dynamicRawDataColumns = React.useMemo(() => {
-    if (!filteredProjects || filteredProjects.length === 0) return [];
-    
-    const sampleProject = filteredProjects[0];
-    if (!sampleProject.rawData) return [];
-    
-    // Get unique keys from rawData that aren't already in our column set
-    const rawDataKeys = Object.keys(sampleProject.rawData);
-    const existingColumnIds = allColumns.map(col => col.id);
-    
-    // Map common field names to nicer display names
-    const friendlyNames: Record<string, string> = {
-      'chassis_eta': 'Chassis ETA',
-      'delivery_date': 'Delivery Date',
-      'fabrication_start': 'Fabrication Start',
-      'assembly_start': 'Assembly Start',
-      'wrap_date': 'Wrap Date',
-      'ntc_testing_date': 'NTC Testing',
-      'qc_start_date': 'QC Start',
-      'executive_review_date': 'Exec Review',
-      'ship_date': 'Ship Date',
-      // Add more mappings as needed
-    };
-    
-    // Filter out fields we don't want to show as separate columns
-    const excludedFields = [
-      'id', 'project_number', 'name', 'description', 'notes', 'pm_owner', 'team', 'location',
-      'start_date', 'estimated_completion_date', 'actual_completion_date',
-      'percent_complete', 'status', 'contract_date', 'dpas_rating', 'stretch_shorten_gears',
-      'llts_ordered', 'qc_days', 'me_assigned', 'ee_assigned', 'ite_assigned',
-      'created_at', 'updated_at'
-    ];
-    
-    // Create columns for remaining rawData fields
-    return rawDataKeys
-      .filter(key => 
-        !existingColumnIds.includes(key) && 
-        !excludedFields.includes(key) &&
-        typeof sampleProject.rawData[key] !== 'object' && // Skip nested objects
-        sampleProject.rawData[key] !== null // Skip null values
-      )
-      .map(key => {
-        // Determine if this is a numeric column
-        const isNumeric = typeof sampleProject.rawData[key] === 'number';
-        
-        // Determine if this is a date column - check if it contains "date" in the name
-        const isDate = key.toLowerCase().includes('date') || 
-                      key.toLowerCase().includes('eta') ||
-                      key.toLowerCase().includes('start') ||
-                      key.toLowerCase().includes('completion');
-        
-        // Format the header with friendly names and proper capitalization
-        const formattedHeader = friendlyNames[key] || 
-          key.split('_')
-             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-             .join(' ');
-             
-        return {
-          id: `raw_${key}`,
-          header: formattedHeader,
-          accessorFn: (row: ProjectWithRawData) => getRawDataField(row, key),
-          cell: ({ row }: { row: ProjectRow }) => {
-            const value = getRawDataField(row.original, key);
-            
-            // Format based on detected type
-            if (isDate) {
-              return formatDate(value);
-            } else if (isNumeric) {
-              // Add percentage sign for values that look like percentages
-              const numValue = parseFloat(value);
-              if (!isNaN(numValue) && key.toLowerCase().includes('percent')) {
-                return `${numValue}%`;
-              }
-              return value;
-            } else if (typeof value === 'boolean') {
-              return value ? 'Yes' : 'No';
-            }
-            
-            return value || 'N/A';
-          }
-        };
-      });
-  }, [filteredProjects]);
+    // We won't generate any additional columns from raw data
+    // This prevents duplicating columns that are already in the standard columns
+    return [];
+  }, []);
   
   // Combine standard columns with dynamic raw data columns
   const allAvailableColumns = React.useMemo(() => {
@@ -843,7 +765,7 @@ const ProjectStatus = () => {
         filterColumn="status"
         filterOptions={statusOptions}
         searchPlaceholder="Search projects..."
-        frozenColumns={['projectNumber', 'status', 'pmOwner']} // Freeze Project Number, Status, and PM Owner columns
+        frozenColumns={['projectNumber']} // Freeze only the Project Number column which contains both number and name
       />
       
       {/* Filters Info */}
