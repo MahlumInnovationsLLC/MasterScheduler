@@ -279,9 +279,8 @@ const ProjectStatus = () => {
       accessorKey: 'status',
       header: 'Status',
       cellRenderer: (value) => (
-        <div className={`px-2 py-1 rounded-full text-xs font-medium 
-          ${getProjectStatusColor(value as string)}`}>
-          {value}
+        <div className={`px-2 py-1 rounded-full text-xs font-medium ${getProjectStatusColor(value as string)}`}>
+          {value?.toString().charAt(0).toUpperCase() + value?.toString().slice(1)}
         </div>
       )
     }),
@@ -637,7 +636,10 @@ const ProjectStatus = () => {
           {/* Project List Table */}
           <DataTable
             columns={columns}
-            data={filteredProjects as ProjectWithRawData[]}
+            data={(filteredProjects as ProjectWithRawData[]).filter(p => 
+              p.status.toLowerCase() !== 'delivered' && 
+              p.status.toLowerCase() !== 'archived'
+            )}
             filterColumn="status"
             filterOptions={statusOptions}
             searchPlaceholder="Search projects..."
@@ -678,12 +680,18 @@ const ProjectStatus = () => {
             </div>
 
             {/* Filter for delivered projects */}
-            <DataTable 
-              columns={columns}
-              data={(filteredProjects as ProjectWithRawData[]).filter(p => p.status === 'delivered')}
-              searchPlaceholder="Filter delivered projects..."
-              filterColumn="projectNumber"
-            />
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+              </div>
+            ) : (
+              <DataTable 
+                columns={columns}
+                data={(filteredProjects as ProjectWithRawData[]).filter(p => p.status.toLowerCase() === 'delivered')}
+                searchPlaceholder="Filter delivered projects..."
+                filterColumn="projectNumber"
+              />
+            )}
           </div>
         </TabsContent>
         
@@ -712,7 +720,7 @@ const ProjectStatus = () => {
             ) : (
               <DataTable 
                 columns={columns}
-                data={(filteredProjects as ProjectWithRawData[]).filter(p => p.status === 'archived')}
+                data={(filteredProjects as ProjectWithRawData[]).filter(p => p.status.toLowerCase() === 'archived')}
                 searchPlaceholder="Filter archived projects..."
                 filterColumn="projectNumber"
               />

@@ -1,3 +1,4 @@
+import React from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -10,7 +11,7 @@ import BillingMilestones from "@/pages/BillingMilestones";
 import ManufacturingBay from "@/pages/ManufacturingBay";
 import ProjectDetails from "@/pages/ProjectDetails";
 import ProjectEdit from "@/pages/ProjectEdit";
-import ArchivedProjects from "@/pages/ArchivedProjects";
+// ArchivedProjects moved to Project Status module as a tab
 import OnTimeDelivery from "@/pages/OnTimeDelivery";
 import CalendarPage from "@/pages/Calendar";
 import Reports from "@/pages/Reports";
@@ -26,9 +27,16 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 
 function Router() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const isAuthPage = location === "/auth";
   const isResetPasswordPage = location === "/reset-password" || location.startsWith("/reset-password?");
+  
+  // Redirect from old archived-projects page to projects with tab
+  React.useEffect(() => {
+    if (location === "/archived-projects") {
+      navigate("/projects");
+    }
+  }, [location, navigate]);
 
   // If we're on the auth page or reset password page, render without the app layout
   if (isAuthPage || isResetPasswordPage) {
@@ -51,7 +59,7 @@ function Router() {
             <ProtectedRoute path="/projects" component={ProjectStatus} />
             <ProtectedRoute path="/project/:id" component={ProjectDetails} />
             <ProtectedRoute path="/project/:id/edit" component={ProjectEdit} />
-            <ProtectedRoute path="/archived-projects" component={ArchivedProjects} />
+            {/* Archived Projects moved to Project Status module as a tab */}
             <ProtectedRoute path="/billing" component={BillingMilestones} />
             <ProtectedRoute path="/manufacturing" component={ManufacturingBay} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />
