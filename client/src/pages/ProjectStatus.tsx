@@ -252,21 +252,28 @@ const ProjectStatus = () => {
       },
     },
     createColumn('percentComplete', 'percentComplete', 'Progress', 
-      (value) => (
-        <div className="flex items-center gap-2">
-          <div className="w-full bg-gray-800 rounded-full h-2.5">
-            <div 
-              className="bg-success h-2.5 rounded-full" 
-              style={{ width: `${value}%` }}
-            ></div>
+      (value) => {
+        const percentValue = typeof value === 'string' ? parseFloat(value) : Number(value);
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-full bg-gray-800 rounded-full h-2.5">
+              <div 
+                className="bg-success h-2.5 rounded-full" 
+                style={{ width: `${percentValue}%` }}
+              ></div>
+            </div>
+            <span className="text-xs font-medium">{percentValue}%</span>
           </div>
-          <span className="text-xs font-medium">{value}%</span>
-        </div>
-      )),
+        );
+      }),
     createColumn('status', 'status', 'Status', 
       (value, project) => {
+        const percentValue = typeof project.percentComplete === 'string' 
+          ? parseFloat(project.percentComplete) 
+          : Number(project.percentComplete);
+          
         const { status } = getProjectStatusColor(
-          project.percentComplete,
+          percentValue,
           project.estimatedCompletionDate
         );
         return <ProgressBadge status={status} animatePulse={status === 'Critical'} />;
@@ -340,7 +347,7 @@ const ProjectStatus = () => {
     {
       id: 'actions',
       header: 'Actions',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: ProjectRow }) => (
         <div className="text-right space-x-2">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/projects/${row.original.id}`)}>
             <Eye className="h-4 w-4" />
