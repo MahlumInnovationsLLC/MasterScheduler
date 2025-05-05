@@ -466,23 +466,182 @@ const ProjectDetails = () => {
               <h3 className="font-bold">Additional Project Data</h3>
               <p className="text-xs text-gray-400">All original data from Excel import</p>
             </div>
-            <div className="p-4 overflow-auto max-h-[400px]">
+            <div className="p-4 overflow-auto max-h-[600px]">
               {project.rawData && Object.keys(project.rawData).length > 0 ? (
                 <div className="bg-darkInput rounded-lg p-3 text-sm">
+                  <div className="flex justify-between mb-3 items-center">
+                    <input 
+                      type="text"
+                      placeholder="Search fields..." 
+                      className="px-3 py-2 bg-darkCard border border-gray-700 rounded-md max-w-xs w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      onChange={(e) => {
+                        const searchTerm = e.target.value.toLowerCase();
+                        const rows = document.querySelectorAll('.raw-data-row');
+                        rows.forEach(row => {
+                          const fieldName = row.querySelector('.field-name')?.textContent?.toLowerCase() || '';
+                          const fieldValue = row.querySelector('.field-value')?.textContent?.toLowerCase() || '';
+                          
+                          if (fieldName.includes(searchTerm) || fieldValue.includes(searchTerm)) {
+                            (row as HTMLElement).style.display = '';
+                          } else {
+                            (row as HTMLElement).style.display = 'none';
+                          }
+                        });
+                      }}
+                    />
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Only show date fields
+                          const rows = document.querySelectorAll('.raw-data-row');
+                          rows.forEach(row => {
+                            const fieldName = row.querySelector('.field-name')?.textContent?.toLowerCase() || '';
+                            if (fieldName.includes('date') || fieldName.includes('eta') || 
+                                fieldName.includes('start') || fieldName.includes('completion')) {
+                              (row as HTMLElement).style.display = '';
+                            } else {
+                              (row as HTMLElement).style.display = 'none';
+                            }
+                          });
+                        }}
+                      >
+                        Dates
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Only show percentage fields
+                          const rows = document.querySelectorAll('.raw-data-row');
+                          rows.forEach(row => {
+                            const fieldName = row.querySelector('.field-name')?.textContent?.toLowerCase() || '';
+                            if (fieldName.includes('percent') || fieldName.includes('progress') || 
+                                fieldName.includes('complete')) {
+                              (row as HTMLElement).style.display = '';
+                            } else {
+                              (row as HTMLElement).style.display = 'none';
+                            }
+                          });
+                        }}
+                      >
+                        Percentages
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Only show fields that aren't in our standard displayed fields
+                          const standardFields = [
+                            'project_number', 'name', 'description', 'notes', 'pm_owner', 'team', 
+                            'location', 'start_date', 'estimated_completion_date', 'actual_completion_date',
+                            'percent_complete', 'status', 'contract_date', 'chassis_eta', 'fabrication_start',
+                            'assembly_start', 'wrap_date', 'ntc_testing_date', 'qc_start_date', 'qc_days',
+                            'executive_review_date', 'ship_date', 'delivery_date', 'dpas_rating', 
+                            'stretch_shorten_gears', 'llts_ordered'
+                          ];
+                          
+                          const rows = document.querySelectorAll('.raw-data-row');
+                          rows.forEach(row => {
+                            const fieldName = row.querySelector('.field-name')?.textContent?.toLowerCase() || '';
+                            const isStandardField = standardFields.some(f => 
+                              fieldName.includes(f.toLowerCase()) || 
+                              fieldName.replace(/_/g, ' ').includes(f.replace(/_/g, ' ').toLowerCase())
+                            );
+                            
+                            if (!isStandardField) {
+                              (row as HTMLElement).style.display = '';
+                            } else {
+                              (row as HTMLElement).style.display = 'none';
+                            }
+                          });
+                        }}
+                      >
+                        Unique Fields
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Show all rows
+                          const rows = document.querySelectorAll('.raw-data-row');
+                          rows.forEach(row => {
+                            (row as HTMLElement).style.display = '';
+                          });
+                        }}
+                      >
+                        Show All
+                      </Button>
+                    </div>
+                  </div>
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-800">
-                        <th className="text-left p-2 font-medium">Field</th>
-                        <th className="text-left p-2 font-medium">Value</th>
+                        <th className="text-left p-2 font-medium" style={{ width: '30%' }}>Field</th>
+                        <th className="text-left p-2 font-medium" style={{ width: '50%' }}>Value</th>
+                        <th className="text-left p-2 font-medium" style={{ width: '20%' }}>Type</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.entries(project.rawData).map(([key, value]) => (
-                        <tr key={key} className="border-b border-gray-700/20 hover:bg-gray-800/20">
-                          <td className="p-2 font-medium text-gray-300">{key}</td>
-                          <td className="p-2">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</td>
-                        </tr>
-                      ))}
+                      {Object.entries(project.rawData)
+                        .sort(([keyA], [keyB]) => keyA.localeCompare(keyB)) // Sort alphabetically
+                        .map(([key, value]) => {
+                          // Format the value based on its type
+                          let formattedValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                          let typeLabel = typeof value;
+                          let typeClass = 'bg-gray-800 text-gray-300';
+                          
+                          // Format dates
+                          if (
+                            key.toLowerCase().includes('date') || 
+                            key.toLowerCase().includes('eta') ||
+                            key.toLowerCase().includes('start') ||
+                            key.toLowerCase().includes('completion')
+                          ) {
+                            try {
+                              formattedValue = formatDate(value);
+                              typeLabel = 'date';
+                              typeClass = 'bg-blue-900/50 text-blue-300';
+                            } catch (e) {
+                              // Keep original if date formatting fails
+                            }
+                          }
+                          
+                          // Format percentages
+                          if (
+                            key.toLowerCase().includes('percent') &&
+                            typeof value === 'number'
+                          ) {
+                            formattedValue = `${value}%`;
+                            typeLabel = 'percentage';
+                            typeClass = 'bg-green-900/50 text-green-300';
+                          }
+                          
+                          // Format booleans
+                          if (typeof value === 'boolean') {
+                            formattedValue = value ? 'Yes' : 'No';
+                            typeLabel = 'boolean';
+                            typeClass = 'bg-purple-900/50 text-purple-300';
+                          }
+
+                          return (
+                            <tr key={key} className="border-b border-gray-700/20 hover:bg-gray-800/20 raw-data-row">
+                              <td className="p-2 font-medium text-gray-300 field-name">
+                                {key}
+                              </td>
+                              <td className="p-2 field-value">
+                                {formattedValue}
+                              </td>
+                              <td className="p-2">
+                                <span className={`px-2 py-0.5 rounded-full text-xs ${typeClass}`}>
+                                  {typeLabel}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      }
                     </tbody>
                   </table>
                 </div>
