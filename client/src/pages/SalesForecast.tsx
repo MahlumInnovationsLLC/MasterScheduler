@@ -487,7 +487,7 @@ function SalesDealCard({ deal, onEdit, onDelete, onConvert }: {
   };
   
   // Function to determine if the deal is convertible to a project
-  const isConvertible = deal.dealStage === "closed_won" && !deal.isConverted;
+  const isConvertible = deal.dealStage === "submit_decide" && !deal.isConverted;
   
   return (
     <Card className="h-full">
@@ -808,15 +808,15 @@ export default function SalesForecast() {
         
         // Tab filter
         switch (activeTab) {
-          case "prospecting":
+          case "early_stage":
             return matchesFilter && 
-              ["prospecting", "qualification", "needs_analysis"].includes(deal.dealStage);
-          case "proposal":
+              ["verbal_commit", "project_launch"].includes(deal.dealStage);
+          case "mid_stage":
             return matchesFilter && 
-              ["value_proposition", "proposal", "negotiation"].includes(deal.dealStage);
-          case "closed":
+              ["site_core_activity"].includes(deal.dealStage);
+          case "late_stage":
             return matchesFilter && 
-              ["closed_won", "closed_lost"].includes(deal.dealStage);
+              ["submit_decide"].includes(deal.dealStage);
           case "converted":
             return matchesFilter && deal.isConverted;
           case "all":
@@ -828,18 +828,18 @@ export default function SalesForecast() {
   
   // Calculate statistics
   const totalDeals = salesDeals?.length || 0;
-  const prospectingCount = salesDeals?.filter((d: SalesDeal) => 
-    ["prospecting", "qualification", "needs_analysis"].includes(d.dealStage)).length || 0;
-  const proposalCount = salesDeals?.filter((d: SalesDeal) => 
-    ["value_proposition", "proposal", "negotiation"].includes(d.dealStage)).length || 0;
-  const closedCount = salesDeals?.filter((d: SalesDeal) => 
-    ["closed_won", "closed_lost"].includes(d.dealStage)).length || 0;
+  const earlyStageCount = salesDeals?.filter((d: SalesDeal) => 
+    ["verbal_commit", "project_launch"].includes(d.dealStage)).length || 0;
+  const midStageCount = salesDeals?.filter((d: SalesDeal) => 
+    ["site_core_activity"].includes(d.dealStage)).length || 0;
+  const lateStageCount = salesDeals?.filter((d: SalesDeal) => 
+    ["submit_decide"].includes(d.dealStage)).length || 0;
   const convertedCount = salesDeals?.filter((d: SalesDeal) => d.isConverted).length || 0;
   
   // Calculate pipeline value
   const pipelineValue = salesDeals
     ? salesDeals
-        .filter((d: SalesDeal) => d.dealStage !== "closed_lost" && !d.isConverted && d.value)
+        .filter((d: SalesDeal) => !d.isConverted && d.value)
         .reduce((sum: number, deal: SalesDeal) => 
           sum + (deal.value ? Number(deal.value) * (deal.probability / 100) : 0), 0)
     : 0;
@@ -879,7 +879,7 @@ export default function SalesForecast() {
         </Dialog>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -923,15 +923,15 @@ export default function SalesForecast() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              In Prospecting
+              Early Stage
             </CardTitle>
             <CardDescription className="text-2xl font-bold">
-              {prospectingCount}
+              {earlyStageCount}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground">
-              Early stage deals
+              Verbal Commit/Project Launch
             </p>
           </CardContent>
         </Card>
@@ -939,15 +939,31 @@ export default function SalesForecast() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              In Proposal
+              Mid Stage
             </CardTitle>
             <CardDescription className="text-2xl font-bold">
-              {proposalCount}
+              {midStageCount}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground">
-              Late stage deals
+              Site Core Activity
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Late Stage
+            </CardTitle>
+            <CardDescription className="text-2xl font-bold">
+              {lateStageCount}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">
+              Submit & Decide
             </p>
           </CardContent>
         </Card>
@@ -962,9 +978,9 @@ export default function SalesForecast() {
         >
           <TabsList className="grid grid-cols-5 w-full md:w-auto">
             <TabsTrigger value="all">All Deals</TabsTrigger>
-            <TabsTrigger value="prospecting">Prospecting</TabsTrigger>
-            <TabsTrigger value="proposal">Proposal</TabsTrigger>
-            <TabsTrigger value="closed">Closed</TabsTrigger>
+            <TabsTrigger value="early_stage">Early Stage</TabsTrigger>
+            <TabsTrigger value="mid_stage">Mid Stage</TabsTrigger>
+            <TabsTrigger value="late_stage">Late Stage</TabsTrigger>
             <TabsTrigger value="converted">Converted</TabsTrigger>
           </TabsList>
         </Tabs>
