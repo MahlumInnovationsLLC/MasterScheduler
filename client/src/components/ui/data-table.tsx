@@ -152,12 +152,15 @@ export function DataTable<TData, TValue>({
                         return (
                           <th 
                             key={header.id}
-                            className="px-4 py-3 font-semibold text-left"
+                            className="px-4 font-semibold text-left"
                             style={{ 
                               width: `${width}px`, 
                               minWidth: `${width}px`,
                               background: 'var(--muted)',
-                              borderBottom: '1px solid var(--border)'
+                              borderBottom: '1px solid var(--border)',
+                              height: '53px',
+                              paddingTop: '15px',
+                              paddingBottom: '15px'
                             }}
                           >
                             <div
@@ -202,12 +205,15 @@ export function DataTable<TData, TValue>({
                             return (
                               <td 
                                 key={cell.id}
-                                className="px-4 py-3"
+                                className="px-4"
                                 style={{ 
                                   width: `${width}px`, 
                                   minWidth: `${width}px`,
                                   background: 'var(--background)',
-                                  borderRight: '1px solid var(--border-muted)'
+                                  borderRight: '1px solid var(--border-muted)',
+                                  height: '45px',
+                                  paddingTop: '12px',
+                                  paddingBottom: '12px'
                                 }}
                               >
                                 {flexRender(
@@ -245,12 +251,15 @@ export function DataTable<TData, TValue>({
                         return (
                           <th 
                             key={header.id}
-                            className="px-4 py-3 font-semibold text-left whitespace-nowrap"
+                            className="px-4 font-semibold text-left whitespace-nowrap"
                             style={{ 
                               minWidth: '150px',
                               background: 'var(--muted)',
                               borderBottom: '1px solid var(--border)',
-                              borderRight: '1px solid var(--border-muted)'
+                              borderRight: '1px solid var(--border-muted)',
+                              height: '53px',
+                              paddingTop: '15px',
+                              paddingBottom: '15px'
                             }}
                           >
                             <div
@@ -294,10 +303,13 @@ export function DataTable<TData, TValue>({
                             return (
                               <td 
                                 key={cell.id}
-                                className="px-4 py-3 whitespace-nowrap"
+                                className="px-4 whitespace-nowrap"
                                 style={{ 
                                   minWidth: '150px',
-                                  borderRight: '1px solid var(--border-muted)'
+                                  borderRight: '1px solid var(--border-muted)',
+                                  height: '45px',
+                                  paddingTop: '12px',
+                                  paddingBottom: '12px'
                                 }}
                               >
                                 {flexRender(
