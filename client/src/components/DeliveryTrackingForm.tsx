@@ -90,8 +90,13 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
           : null,
       };
       
-      const response = await apiRequest("POST", "/api/delivery-tracking", apiData);
-      return response.json();
+      const response = await apiRequest({ 
+        method: "POST", 
+        url: "/api/delivery-tracking", 
+        data: apiData 
+      });
+      const result = await response.json();
+      return result;
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
@@ -125,8 +130,13 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
           : null,
       };
       
-      const response = await apiRequest("PUT", `/api/delivery-tracking/${id}`, apiData);
-      return response.json();
+      const response = await apiRequest({
+        method: "PUT", 
+        url: `/api/delivery-tracking/${id}`, 
+        data: apiData
+      });
+      const result = await response.json();
+      return result;
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
@@ -190,7 +200,143 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
     return () => subscription.unsubscribe();
   }, [form.watch]);
 
-  const isLoading = createMutation.isPending || updateMutation.isPending;
+  // Excel import functionality
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importStatus, setImportStatus] = useState<{
+    status: 'idle' | 'loading' | 'success' | 'error';
+    message: string;
+    progress: number;
+    results?: {
+      imported: number;
+      errors: number;
+      details: string[];
+    };
+  }>({
+    status: 'idle',
+    message: '',
+    progress: 0
+  });
+  
+  // Import mutation
+  const importMutation = useMutation({
+    mutationFn: async (data: any[]) => {
+      const response = await apiRequest({
+        method: "POST",
+        url: "/api/import/delivery-tracking",
+        data
+      });
+      const result = await response.json();
+      return result;
+    },
+    onSuccess: (response) => {
+      // Update status
+      setImportStatus({
+        status: 'success',
+        message: `Successfully imported ${response.results.imported} records with ${response.results.errors} errors`,
+        progress: 100,
+        results: response.results
+      });
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/delivery-tracking"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/delivery-tracking/analytics"] });
+      
+      // Call success handler if provided
+      if (onSuccess) {
+        setTimeout(onSuccess, 1500); // Delay to allow user to see results
+      }
+    },
+    onError: (error: any) => {
+      setImportStatus({
+        status: 'error',
+        message: `Import failed: ${error.message || 'Unknown error'}`,
+        progress: 0
+      });
+    }
+  });
+  
+  // Handle file selection for Excel import
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Update status
+    setImportStatus({
+      status: 'loading',
+      message: 'Reading Excel file...',
+      progress: 10
+    });
+    
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        
+        // Get first sheet
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        
+        // Convert to JSON
+        setImportStatus({
+          status: 'loading',
+          message: 'Processing data...',
+          progress: 40
+        });
+        
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        console.log('Parsed Excel data:', jsonData);
+        
+        if (!jsonData || jsonData.length === 0) {
+          setImportStatus({
+            status: 'error',
+            message: 'No data found in Excel file',
+            progress: 0
+          });
+          return;
+        }
+        
+        // Update status
+        setImportStatus({
+          status: 'loading',
+          message: `Importing ${jsonData.length} records...`,
+          progress: 70
+        });
+        
+        // Submit the data to the import API
+        importMutation.mutate(jsonData);
+        
+      } catch (error: any) {
+        console.error('Error processing Excel file:', error);
+        setImportStatus({
+          status: 'error',
+          message: `Error processing Excel file: ${error.message || 'Unknown error'}`,
+          progress: 0
+        });
+      }
+    };
+    
+    reader.onerror = () => {
+      setImportStatus({
+        status: 'error',
+        message: 'Failed to read file',
+        progress: 0
+      });
+    };
+    
+    reader.readAsArrayBuffer(file);
+  };
+  
+  const resetImport = () => {
+    setImportStatus({
+      status: 'idle',
+      message: '',
+      progress: 0
+    });
+  };
+  
+  const isLoading = createMutation.isPending || updateMutation.isPending || importMutation.isPending;
 
   return (
     <Form {...form}>
@@ -479,7 +625,122 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {editData ? "Update Record" : "Create Record"}
         </Button>
+        
+        {/* Excel Import Button */}
+        <Button 
+          type="button" 
+          variant="outline" 
+          className="mt-4 w-full md:w-auto md:mt-0 md:ml-2"
+          onClick={() => setIsImportDialogOpen(true)}
+          disabled={isLoading}
+        >
+          <Upload className="mr-2 h-4 w-4" />
+          Import from Excel
+        </Button>
       </form>
+      
+      {/* Import Dialog */}
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Import Delivery Tracking Data</DialogTitle>
+            <DialogDescription>
+              Upload an Excel file with delivery tracking data to import multiple records at once.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {/* Upload Area */}
+          <div className="grid gap-4 py-4">
+            {importStatus.status === 'idle' && (
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <input
+                  type="file"
+                  id="excel-upload"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  disabled={isLoading}
+                />
+                <label 
+                  htmlFor="excel-upload" 
+                  className="cursor-pointer flex flex-col items-center justify-center"
+                >
+                  <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                  <span className="text-sm font-medium">Click to upload Excel file</span>
+                  <span className="text-xs text-gray-500 mt-1">
+                    Supports .xlsx, .xls files
+                  </span>
+                </label>
+              </div>
+            )}
+            
+            {/* Progress Indicator */}
+            {importStatus.status === 'loading' && (
+              <div className="p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-sm font-medium">{importStatus.message}</span>
+                  <span className="text-sm font-medium">{importStatus.progress}%</span>
+                </div>
+                <Progress value={importStatus.progress} className="h-2" />
+              </div>
+            )}
+            
+            {/* Success State */}
+            {importStatus.status === 'success' && (
+              <Alert className="border-green-500 bg-green-50">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-800">Import Successful</AlertTitle>
+                <AlertDescription className="text-green-700">
+                  {importStatus.message}
+                  {importStatus.results && importStatus.results.errors > 0 && (
+                    <div className="mt-2">
+                      <details>
+                        <summary className="cursor-pointer text-sm font-medium">View error details</summary>
+                        <ul className="mt-2 text-xs list-disc pl-5">
+                          {importStatus.results.details.map((detail, i) => (
+                            <li key={i} className="mb-1">{detail}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    </div>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {/* Error State */}
+            {importStatus.status === 'error' && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Import Failed</AlertTitle>
+                <AlertDescription>
+                  {importStatus.message}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+          
+          <DialogFooter className="sm:justify-between">
+            {importStatus.status !== 'idle' && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetImport}
+                className="mr-auto"
+              >
+                {importStatus.status === 'success' ? 'Import Another File' : 'Try Again'}
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant={importStatus.status === 'success' ? 'default' : 'outline'}
+              onClick={() => setIsImportDialogOpen(false)}
+            >
+              {importStatus.status === 'success' ? 'Done' : 'Cancel'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Form>
   );
 };
