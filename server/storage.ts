@@ -3,6 +3,7 @@ import {
   projects,
   tasks,
   billingMilestones,
+  projectMilestones,
   manufacturingBays,
   manufacturingSchedules,
   userPreferences,
@@ -16,6 +17,8 @@ import {
   type InsertProject,
   type Task,
   type InsertTask,
+  type ProjectMilestone,
+  type InsertProjectMilestone,
   type BillingMilestone,
   type InsertBillingMilestone,
   type ManufacturingBay,
@@ -115,6 +118,14 @@ export interface IStorage {
   updateTask(id: number, task: Partial<InsertTask>): Promise<Task | undefined>;
   completeTask(id: number, completedDate: Date): Promise<Task | undefined>;
   deleteTask(id: number): Promise<boolean>;
+  
+  // Project Milestone methods
+  getProjectMilestones(projectId: number): Promise<ProjectMilestone[]>;
+  getProjectMilestone(id: number): Promise<ProjectMilestone | undefined>;
+  createProjectMilestone(milestone: InsertProjectMilestone): Promise<ProjectMilestone>;
+  updateProjectMilestone(id: number, milestone: Partial<InsertProjectMilestone>): Promise<ProjectMilestone | undefined>;
+  completeProjectMilestone(id: number): Promise<ProjectMilestone | undefined>;
+  deleteProjectMilestone(id: number): Promise<boolean>;
   
   // Billing Milestone methods
   getBillingMilestones(): Promise<BillingMilestone[]>;
@@ -391,6 +402,76 @@ export class DatabaseStorage implements IStorage {
   async deleteTask(id: number): Promise<boolean> {
     await db.delete(tasks).where(eq(tasks.id, id));
     return true;
+  }
+  
+  // Project Milestone methods
+  async getProjectMilestones(projectId: number): Promise<ProjectMilestone[]> {
+    return await safeQuery<ProjectMilestone>(() => 
+      db.select().from(projectMilestones)
+        .where(eq(projectMilestones.projectId, projectId))
+        .orderBy(asc(projectMilestones.date))
+    );
+  }
+  
+  async getProjectMilestone(id: number): Promise<ProjectMilestone | undefined> {
+    return await safeSingleQuery<ProjectMilestone>(() =>
+      db.select().from(projectMilestones).where(eq(projectMilestones.id, id))
+    );
+  }
+  
+  async createProjectMilestone(milestone: InsertProjectMilestone): Promise<ProjectMilestone> {
+    try {
+      const [newMilestone] = await db.insert(projectMilestones).values(milestone).returning();
+      return newMilestone;
+    } catch (error) {
+      console.error("Error creating project milestone:", error);
+      throw error;
+    }
+  }
+  
+  async updateProjectMilestone(id: number, milestone: Partial<InsertProjectMilestone>): Promise<ProjectMilestone | undefined> {
+    try {
+      const [updatedMilestone] = await db
+        .update(projectMilestones)
+        .set({ 
+          ...milestone, 
+          updatedAt: new Date() 
+        })
+        .where(eq(projectMilestones.id, id))
+        .returning();
+      return updatedMilestone;
+    } catch (error) {
+      console.error("Error updating project milestone:", error);
+      return undefined;
+    }
+  }
+  
+  async completeProjectMilestone(id: number): Promise<ProjectMilestone | undefined> {
+    try {
+      const [completedMilestone] = await db
+        .update(projectMilestones)
+        .set({ 
+          isCompleted: true,
+          status: "completed",
+          updatedAt: new Date() 
+        })
+        .where(eq(projectMilestones.id, id))
+        .returning();
+      return completedMilestone;
+    } catch (error) {
+      console.error("Error completing project milestone:", error);
+      return undefined;
+    }
+  }
+  
+  async deleteProjectMilestone(id: number): Promise<boolean> {
+    try {
+      await db.delete(projectMilestones).where(eq(projectMilestones.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting project milestone:", error);
+      return false;
+    }
   }
   
   // Billing Milestone methods

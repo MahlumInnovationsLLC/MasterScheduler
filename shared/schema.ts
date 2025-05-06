@@ -498,6 +498,12 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
   createdAt: true,
 });
 
+export const insertProjectMilestoneSchema = createInsertSchema(projectMilestones).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertBillingMilestoneSchema = createInsertSchema(billingMilestones).omit({
   id: true,
   createdAt: true,
@@ -565,6 +571,9 @@ export type InsertArchivedProject = z.infer<typeof insertArchivedProjectSchema>;
 
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
+
+export type ProjectMilestone = typeof projectMilestones.$inferSelect;
+export type InsertProjectMilestone = z.infer<typeof insertProjectMilestoneSchema>;
 
 export type BillingMilestone = typeof billingMilestones.$inferSelect;
 export type InsertBillingMilestone = z.infer<typeof insertBillingMilestoneSchema>;

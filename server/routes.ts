@@ -11,6 +11,7 @@ import { eq } from "drizzle-orm";
 import {
   insertProjectSchema,
   insertTaskSchema,
+  insertProjectMilestoneSchema,
   insertBillingMilestoneSchema,
   insertManufacturingBaySchema,
   insertManufacturingScheduleSchema,
