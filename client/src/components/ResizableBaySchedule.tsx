@@ -164,6 +164,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
 }) => {
   // Extended state
   const [bays, setBays] = useState<ManufacturingBay[]>(initialBays);
+  
+  // Update bays when props change
+  useEffect(() => {
+    setBays(initialBays);
+  }, [initialBays]);
   const { toast } = useToast();
   const [draggingSchedule, setDraggingSchedule] = useState<any>(null);
   const [resizingSchedule, setResizingSchedule] = useState<any>(null);
@@ -415,6 +420,73 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
   };
   
+  // Handle saving an edited bay
+  const handleSaveBayEdit = async (bayId: number, data: Partial<ManufacturingBay>) => {
+    try {
+      if (!bayId && !data) {
+        toast({
+          title: "Error",
+          description: "Invalid bay data",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Update an existing bay
+      const response = await apiRequest('PATCH', `/api/manufacturing-bays/${bayId}`, data);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update bay: ${response.statusText}`);
+      }
+      
+      const updatedBay = await response.json();
+      
+      // Update local state
+      setBays(prev => prev.map(bay => bay.id === bayId ? updatedBay : bay));
+      
+      toast({
+        title: "Bay Updated",
+        description: `Bay ${data.bayNumber}: ${data.name} has been updated`,
+      });
+    } catch (error) {
+      console.error('Error updating bay:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update bay",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Handle creating a new bay
+  const handleCreateBay = async (bayId: number, data: Partial<ManufacturingBay>) => {
+    try {
+      // Create a new bay
+      const response = await apiRequest('POST', '/api/manufacturing-bays', data);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to create bay: ${response.statusText}`);
+      }
+      
+      const newBay = await response.json();
+      
+      // Update local state
+      setBays(prev => [...prev, newBay]);
+      
+      toast({
+        title: "Bay Created",
+        description: `Bay ${data.bayNumber}: ${data.name} has been created`,
+      });
+    } catch (error) {
+      console.error('Error creating bay:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create bay",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Handle drop
   const handleDrop = (e: React.DragEvent, bayId: number, slotIndex: number) => {
     e.preventDefault();
@@ -553,82 +625,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     setDraggingSchedule(null);
   };
   
-  // Handle bay capacity edit
-  const handleSaveBayEdit = async (bayId: number, bayData: Partial<ManufacturingBay>) => {
-    try {
-      // Call API to update the bay
-      const response = await fetch(`/api/manufacturing-bays/${bayId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(bayData),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update bay');
-      }
-      
-      const updatedBay = await response.json();
-      
-      // Update the local state (this would be better with React Query refetch)
-      setBays(prevBays => 
-        prevBays.map(bay => 
-          bay.id === bayId ? { ...bay, ...updatedBay } : bay
-        )
-      );
-      
-      setEditingBay(null);
-      
-      toast({
-        title: "Bay Updated",
-        description: `Bay ${updatedBay.bayNumber}: ${updatedBay.name} has been updated successfully.`,
-      });
-    } catch (error) {
-      console.error('Error updating bay:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update bay. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  // Handle creating a new bay
-  const handleCreateBay = async (bayId: number, bayData: Partial<ManufacturingBay>) => {
-    try {
-      // Call API to create the bay
-      const response = await fetch('/api/manufacturing-bays', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(bayData),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create bay');
-      }
-      
-      const newBayCreated = await response.json();
-      
-      // Update the local state
-      setBays(prevBays => [...prevBays, newBayCreated]);
-      
-      setNewBay(null);
-      
-      toast({
-        title: "Bay Created",
-        description: `Bay ${newBayCreated.bayNumber}: ${newBayCreated.name} has been created successfully.`,
-      });
-    } catch (error) {
-      console.error('Error creating bay:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create bay. Please try again.",
-        variant: "destructive"
-      });
-    }
+  // Update state after edits
+  const handleBayChanges = () => {
+    // This function now consolidated and replaced with apiRequest in handleSaveBayEdit & handleCreateBay
+    // Clear edit state when done
+    setEditingBay(null);
+    setNewBay(null);
   };
   
   // Render
