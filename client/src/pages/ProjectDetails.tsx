@@ -87,17 +87,17 @@ const ProjectDetails = () => {
     enabled: !isNaN(projectId)
   });
   
-  const { data: tasks, isLoading: isLoadingTasks } = useQuery({
+  const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({
     queryKey: [`/api/projects/${projectId}/tasks`],
     enabled: !isNaN(projectId)
   });
   
-  const { data: billingMilestones, isLoading: isLoadingBilling } = useQuery({
+  const { data: billingMilestones = [], isLoading: isLoadingBilling } = useQuery({
     queryKey: [`/api/projects/${projectId}/billing-milestones`],
     enabled: !isNaN(projectId)
   });
   
-  const { data: manufacturingSchedules, isLoading: isLoadingManufacturing } = useQuery({
+  const { data: manufacturingSchedules = [], isLoading: isLoadingManufacturing } = useQuery({
     queryKey: [`/api/manufacturing-schedules`],
     queryFn: async ({ queryKey }) => {
       const res = await fetch(`${queryKey[0]}?projectId=${projectId}`, {
@@ -109,7 +109,7 @@ const ProjectDetails = () => {
     enabled: !isNaN(projectId)
   });
   
-  const { data: manufacturingBays } = useQuery({
+  const { data: manufacturingBays = [] } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
     enabled: !isNaN(projectId)
   });
@@ -288,7 +288,36 @@ const ProjectDetails = () => {
 
   // Group tasks by milestone
   const milestones = React.useMemo(() => {
-    if (!tasks) return [];
+    // Add demo tasks if there are none yet (for UI development purposes only)
+    const currentTasks = tasks.length > 0 ? tasks : [
+      {
+        id: 1001,
+        name: 'Initial requirements gathering',
+        description: 'Document the initial project requirements',
+        dueDate: '2023-01-15T00:00:00.000Z',
+        completedDate: '2023-01-15T00:00:00.000Z',
+        isCompleted: true,
+        projectId: projectId
+      },
+      {
+        id: 1002,
+        name: 'Design approval',
+        description: 'Get sign-off on final designs',
+        dueDate: '2023-02-10T00:00:00.000Z',
+        completedDate: '2023-02-12T00:00:00.000Z',
+        isCompleted: true,
+        projectId: projectId
+      },
+      {
+        id: 1003,
+        name: 'QC inspection',
+        description: 'Quality control inspection before delivery',
+        dueDate: '2023-05-20T00:00:00.000Z',
+        completedDate: null,
+        isCompleted: false,
+        projectId: projectId
+      }
+    ];
     
     // Simple grouping - in a real app you would likely have a milestone field on tasks
     // or a separate milestones table with relationships
@@ -298,7 +327,7 @@ const ProjectDetails = () => {
         name: 'Project Kickoff Milestone',
         status: 'Completed',
         date: '2023-01-15',
-        tasks: tasks.filter(t => new Date(t.dueDate) < new Date('2023-01-30')),
+        tasks: currentTasks.filter(t => new Date(t.dueDate) < new Date('2023-01-30')),
         color: 'border-primary'
       },
       {
@@ -306,7 +335,7 @@ const ProjectDetails = () => {
         name: 'Design Phase Complete',
         status: 'Completed',
         date: '2023-02-15',
-        tasks: tasks.filter(t => 
+        tasks: currentTasks.filter(t => 
           new Date(t.dueDate) >= new Date('2023-01-30') && 
           new Date(t.dueDate) < new Date('2023-03-01')
         ),
@@ -317,13 +346,13 @@ const ProjectDetails = () => {
         name: 'Production Phase',
         status: 'In Progress',
         date: 'Currently Active',
-        tasks: tasks.filter(t => new Date(t.dueDate) >= new Date('2023-03-01')),
+        tasks: currentTasks.filter(t => new Date(t.dueDate) >= new Date('2023-03-01')),
         color: 'border-warning'
       }
     ];
     
     return milestoneGroups;
-  }, [tasks]);
+  }, [tasks, projectId]);
 
   if (isLoadingProject || isLoadingTasks || isLoadingBilling || isLoadingManufacturing) {
     return (
