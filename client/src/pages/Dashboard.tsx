@@ -31,37 +31,26 @@ const Dashboard = () => {
   
   const [filteredProjects, setFilteredProjects] = useState([]);
   
-  // Auto-filter projects by next ship date
+  // Show just the first few active projects on the dashboard
   useEffect(() => {
     if (!projects) return;
     
-    // Helper to get valid dates and handle null/invalid dates
-    const getValidDate = (dateStr) => {
-      if (!dateStr) return null;
-      const date = new Date(dateStr);
-      return isNaN(date.getTime()) ? null : date;
-    };
-    
-    // Filter for projects with valid ship dates and sort by earliest ship date
-    const now = new Date();
-    const upcomingProjects = projects
-      .filter(p => {
-        const shipDate = getValidDate(p.shipDate);
-        return shipDate && shipDate >= now;
-      })
+    // First prioritize active projects
+    const activeProjects = projects
+      .filter(p => p.status === 'active' || p.status === 'delayed' || p.status === 'critical')
       .sort((a, b) => {
-        const dateA = getValidDate(a.shipDate);
-        const dateB = getValidDate(b.shipDate);
-        if (!dateA) return 1;
-        if (!dateB) return -1;
-        return dateA.getTime() - dateB.getTime();
+        // Sort by projectNumber for a predictable order
+        const numA = parseInt(a.projectNumber.replace(/\D/g, '')) || 0;
+        const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
+        return numB - numA; // Most recent (highest) numbers first
       });
       
-    // If we have upcoming projects, show them, otherwise show all projects
-    if (upcomingProjects.length > 0) {
-      setFilteredProjects(upcomingProjects.slice(0, 5));
+    // Just take the first 3 projects to show only the entries
+    if (activeProjects.length > 0) {
+      setFilteredProjects(activeProjects.slice(0, 3));
     } else {
-      setFilteredProjects(projects.slice(0, 5));
+      // If no active projects, show the first 3 of any status
+      setFilteredProjects(projects.slice(0, 3));
     }
   }, [projects]);
 
@@ -162,23 +151,20 @@ const Dashboard = () => {
       ),
     },
     {
-      accessorKey: 'pmOwnerId',
-      header: 'PM Owner',
-      cell: ({ row }) => <div className="text-sm">John Smith</div>,
-    },
-    {
-      accessorKey: 'timeline',
-      header: 'Timeline',
+      accessorKey: 'location',
+      header: 'Location',
       cell: ({ row }) => (
-        <div>
-          <div className="text-sm">
-            {formatDate(row.original.startDate)} - {formatDate(row.original.estimatedCompletionDate)}
-          </div>
-          <div className="text-xs text-gray-400">
-            {Math.ceil((new Date(row.original.estimatedCompletionDate).getTime() - new Date(row.original.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
+        <div className="flex items-center">
+          <div className="px-3 py-1 rounded bg-primary text-white font-medium">
+            {row.original.location || 'N/A'}
           </div>
         </div>
       ),
+    },
+    {
+      accessorKey: 'pmOwnerId',
+      header: 'PM Owner',
+      cell: ({ row }) => <div className="text-sm">{row.original.pmOwner || 'Unassigned'}</div>,
     },
     {
       accessorKey: 'percentComplete',
@@ -290,7 +276,7 @@ const Dashboard = () => {
 
       {/* Projects Table */}
       <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-xl font-sans font-bold">Recent Projects</h2>
+        <h2 className="text-xl font-sans font-bold">Featured Projects</h2>
         <Link href="/projects">
           <Button variant="outline" size="sm">
             View All Projects
@@ -302,7 +288,7 @@ const Dashboard = () => {
         columns={projectColumns}
         data={filteredProjects}
         showPagination={false}
-        frozenColumns={['projectNumber', 'pmOwnerId', 'timeline', 'percentComplete', 'status']}
+        frozenColumns={['projectNumber', 'location', 'pmOwnerId', 'percentComplete', 'status']}
       />
     </div>
   );
