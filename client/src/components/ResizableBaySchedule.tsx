@@ -336,10 +336,44 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   
   // Handle drag start
   const handleDragStart = (e: React.DragEvent, type: 'existing' | 'new', data: any) => {
+    // Set data for drop handling
     e.dataTransfer.setData('application/json', JSON.stringify({
       type,
       ...data
     }));
+    
+    // Create custom drag image
+    const dragImage = document.createElement('div');
+    dragImage.className = 'p-2 rounded shadow-lg border bg-gray-800 text-white text-xs';
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-1000px';
+    dragImage.style.opacity = '0.9';
+    dragImage.style.padding = '8px';
+    dragImage.style.borderRadius = '4px';
+    dragImage.style.maxWidth = '200px';
+    dragImage.style.whiteSpace = 'nowrap';
+    dragImage.style.overflow = 'hidden';
+    dragImage.style.textOverflow = 'ellipsis';
+    
+    const projectInfo = document.createElement('div');
+    projectInfo.className = 'font-medium';
+    projectInfo.textContent = `${data.projectNumber}: ${data.projectName}`;
+    dragImage.appendChild(projectInfo);
+    
+    const hoursInfo = document.createElement('div');
+    hoursInfo.className = 'text-gray-300 text-xs mt-1';
+    hoursInfo.textContent = `${data.totalHours} hours`;
+    dragImage.appendChild(hoursInfo);
+    
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 100, 20);
+    
+    // Clean up the drag image after it's no longer needed
+    setTimeout(() => {
+      document.body.removeChild(dragImage);
+    }, 0);
+    
+    // Update state
     setDraggingSchedule(data);
   };
   
@@ -348,19 +382,42 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     
+    // Clear previous highlight
+    document.querySelectorAll('.bg-primary/10').forEach(el => {
+      el.classList.remove('bg-primary/10');
+    });
+    document.querySelectorAll('.bay-row-highlight').forEach(el => {
+      el.classList.remove('bay-row-highlight');
+    });
+    
     // Determine row index if not provided
-    const calculatedRowIndex = rowIndex !== undefined ? rowIndex : Math.floor((e.nativeEvent.offsetY / 64) * 4);
+    const cellHeight = e.currentTarget.clientHeight;
+    const relativeY = e.nativeEvent.offsetY;
+    const calculatedRowIndex = rowIndex !== undefined 
+      ? rowIndex 
+      : Math.floor((relativeY / cellHeight) * 4);
+    
+    const validRowIndex = Math.max(0, Math.min(3, calculatedRowIndex));
     
     // Update the target location
     setDropTarget({ 
       bayId, 
       slotIndex,
-      rowIndex: calculatedRowIndex >= 0 && calculatedRowIndex < 4 ? calculatedRowIndex : 0
+      rowIndex: validRowIndex
     });
     
-    // Add visual cue
+    // Add visual cue to the cell
     const target = e.currentTarget as HTMLElement;
     target.classList.add('bg-primary/10');
+    
+    // Highlight the specific row
+    const bayElement = target.closest('.bay-container');
+    if (bayElement) {
+      const rowElements = bayElement.querySelectorAll('.bay-row');
+      if (rowElements && rowElements.length > validRowIndex) {
+        rowElements[validRowIndex].classList.add('bay-row-highlight');
+      }
+    }
   };
   
   // Handle drop
@@ -370,6 +427,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Remove visual cue from all possible drop targets
     document.querySelectorAll('.bg-primary/10').forEach(el => {
       el.classList.remove('bg-primary/10');
+    });
+    document.querySelectorAll('.bay-row-highlight').forEach(el => {
+      el.classList.remove('bay-row-highlight');
     });
     
     try {
@@ -619,7 +679,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               >
                 {/* Grid columns */}
                 <div 
-                  className="absolute inset-0 grid" 
+                  className="absolute inset-0 grid bay-container" 
                   style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}
                 >
                   {slots.map((slot, index) => (
@@ -640,10 +700,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 
                 {/* Row dividers */}
                 <div className="absolute inset-0 flex flex-col pointer-events-none">
-                  <div className="border-b border-gray-700/50 h-1/4"></div>
-                  <div className="border-b border-gray-700/50 h-1/4"></div>
-                  <div className="border-b border-gray-700/50 h-1/4"></div>
+                  <div className="border-b border-gray-700/50 h-1/4 bay-row transition-colors"></div>
+                  <div className="border-b border-gray-700/50 h-1/4 bay-row transition-colors"></div>
+                  <div className="border-b border-gray-700/50 h-1/4 bay-row transition-colors"></div>
+                  <div className="h-1/4 bay-row transition-colors"></div>
                 </div>
+                
+                {/* Style for row highlight */}
+                <style jsx>{`
+                  .bay-row-highlight {
+                    background-color: rgba(59, 130, 246, 0.15);
+                    border-color: rgba(59, 130, 246, 0.3);
+                  }
+                `}</style>
                 
                 {/* Schedule bars */}
                 {scheduleBars
@@ -667,35 +736,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           height: height + 'px'
                         }}
                         draggable
-                        onDragStart={(e) => {
-                          // Create a custom drag image
-                          const dragImage = document.createElement('div');
-                          dragImage.className = 'bg-primary/80 text-white p-2 rounded shadow';
-                          dragImage.innerHTML = `${bar.projectNumber} - ${bar.totalHours}h`;
-                          document.body.appendChild(dragImage);
-                          e.dataTransfer.setDragImage(dragImage, 20, 20);
-                          
-                          // Clean up after small delay
-                          setTimeout(() => {
-                            document.body.removeChild(dragImage);
-                          }, 100);
-                          
-                          // Set data for transfer
-                          e.dataTransfer.setData('application/json', JSON.stringify({
-                            type: 'existing',
-                            id: bar.id,
-                            projectId: bar.projectId,
-                            projectName: bar.projectName,
-                            projectNumber: bar.projectNumber,
-                            totalHours: bar.totalHours,
-                            bayId: bar.bayId
-                          }));
-                          
-                          e.dataTransfer.effectAllowed = 'move';
-                          setDraggingSchedule(bar);
-                          
-                          console.log('Drag started for existing schedule:', bar.projectNumber);
-                        }}
+                        onDragStart={(e) => handleDragStart(e, 'existing', {
+                          id: bar.id,
+                          projectId: bar.projectId,
+                          projectName: bar.projectName,
+                          projectNumber: bar.projectNumber,
+                          totalHours: bar.totalHours,
+                          bayId: bar.bayId
+                        })}
                       >
                         {/* Content */}
                         <div className="absolute inset-0 flex items-center justify-between px-2 text-white">
@@ -738,7 +786,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               >
                 {/* Grid columns */}
                 <div 
-                  className="absolute inset-0 grid" 
+                  className="absolute inset-0 grid bay-container" 
                   style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}
                 >
                   {slots.map((slot, index) => (
@@ -753,9 +801,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 
                 {/* Row dividers */}
                 <div className="absolute inset-0 flex flex-col pointer-events-none">
-                  <div className="border-b border-gray-700/50 h-1/4"></div>
-                  <div className="border-b border-gray-700/50 h-1/4"></div>
-                  <div className="border-b border-gray-700/50 h-1/4"></div>
+                  <div className="border-b border-gray-700/50 h-1/4 bay-row transition-colors"></div>
+                  <div className="border-b border-gray-700/50 h-1/4 bay-row transition-colors"></div>
+                  <div className="border-b border-gray-700/50 h-1/4 bay-row transition-colors"></div>
+                  <div className="h-1/4 bay-row transition-colors"></div>
                 </div>
                 
                 {/* Empty indicator */}
@@ -791,33 +840,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 key={project.id}
                 className="relative p-3 rounded-md border border-gray-700 bg-gray-800/50 shadow-sm hover:bg-gray-800 transition-colors group"
                 draggable
-                onDragStart={(e) => {
-                  // Create a custom drag image to improve user experience
-                  const dragImage = document.createElement('div');
-                  dragImage.className = 'bg-primary/80 text-white p-2 rounded shadow';
-                  dragImage.innerHTML = `${project.projectNumber} - 40h`;
-                  document.body.appendChild(dragImage);
-                  e.dataTransfer.setDragImage(dragImage, 20, 20);
-                  
-                  // Clean up after small delay
-                  setTimeout(() => {
-                    document.body.removeChild(dragImage);
-                  }, 100);
-                  
-                  // Add required data
-                  e.dataTransfer.setData('application/json', JSON.stringify({
-                    type: 'new',
-                    projectId: project.id,
-                    projectName: project.name,
-                    projectNumber: project.projectNumber,
-                    totalHours: project.totalHours || 40
-                  }));
-                  
-                  // Set effect
-                  e.dataTransfer.effectAllowed = 'move';
-                  
-                  console.log('Drag started for project:', project.projectNumber);
-                }}
+                onDragStart={(e) => handleDragStart(e, 'new', {
+                  projectId: project.id,
+                  projectName: project.name,
+                  projectNumber: project.projectNumber,
+                  totalHours: project.totalHours || 40
+                })}
               >
                 <div className="text-sm font-medium">{project.projectNumber}</div>
                 <div className="text-xs text-gray-400 mt-1 line-clamp-1">{project.name}</div>
