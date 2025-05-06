@@ -58,6 +58,8 @@ const ProjectDetails = () => {
   // Dialog state
   const [isAssignBayDialogOpen, setIsAssignBayDialogOpen] = useState(false);
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
+  const [isTaskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [isDeleteTaskDialogOpen, setDeleteTaskDialogOpen] = useState(false);
   const [archiveReason, setArchiveReason] = useState<string>('');
   const [selectedBayId, setSelectedBayId] = useState<number | null>(null);
   const [startDate, setStartDate] = useState<string>(
@@ -68,6 +70,15 @@ const ProjectDetails = () => {
   );
   const [equipment, setEquipment] = useState<string>('Standard Equipment');
   const [staffAssigned, setStaffAssigned] = useState<string>('Team Alpha (4)');
+  
+  // Task editing state
+  const [editTaskId, setEditTaskId] = useState<number | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<any | null>(null);
+  const [taskForm, setTaskForm] = useState({
+    name: '',
+    description: '',
+    dueDate: new Date().toISOString().split('T')[0]
+  });
   
   const { data: project, isLoading: isLoadingProject } = useQuery({
     queryKey: [`/api/projects/${projectId}`],
@@ -150,6 +161,79 @@ const ProjectDetails = () => {
     onError: (error: Error) => {
       toast({
         title: "Failed to archive project",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Create task mutation
+  const createTaskMutation = useMutation({
+    mutationFn: async (taskData: any) => {
+      const response = await apiRequest('POST', '/api/tasks', {
+        ...taskData,
+        projectId: projectId,
+        isCompleted: false
+      });
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Task created",
+        description: "Task has been successfully created",
+      });
+      setTaskDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/tasks`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to create task",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Update task mutation
+  const updateTaskMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: any }) => {
+      const response = await apiRequest('PUT', `/api/tasks/${id}`, data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Task updated",
+        description: "Task has been successfully updated",
+      });
+      setTaskDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/tasks`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update task",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Delete task mutation
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (taskId: number) => {
+      const response = await apiRequest('DELETE', `/api/tasks/${taskId}`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Task deleted",
+        description: "Task has been successfully deleted",
+      });
+      setDeleteTaskDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/tasks`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete task",
         description: error.message,
         variant: "destructive",
       });
@@ -458,18 +542,59 @@ const ProjectDetails = () => {
                 {/* Tasks for this milestone */}
                 {milestone.tasks.map((task) => (
                   <div key={task.id} className="pl-6 py-2 border-b border-gray-800">
-                    <div className="flex items-center gap-3">
-                      <Checkbox 
-                        checked={task.isCompleted} 
-                        className="rounded bg-darkInput border-gray-600 text-primary focus:ring-primary focus:ring-offset-gray-900" 
-                      />
-                      <div>
-                        <div className="text-sm">{task.name}</div>
-                        <div className="text-xs text-gray-400">
-                          {task.isCompleted 
-                            ? `Completed on ${formatDate(task.completedDate)}` 
-                            : `Due ${formatDate(task.dueDate)}`}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Checkbox 
+                          checked={task.isCompleted} 
+                          className="rounded bg-darkInput border-gray-600 text-primary focus:ring-primary focus:ring-offset-gray-900"
+                          onCheckedChange={(checked) => {
+                            const isCompleted = !!checked;
+                            updateTaskMutation.mutate({
+                              id: task.id,
+                              data: { 
+                                isCompleted, 
+                                completedDate: isCompleted ? new Date().toISOString() : null 
+                              }
+                            });
+                          }}
+                        />
+                        <div>
+                          <div className="text-sm">{task.name}</div>
+                          <div className="text-xs text-gray-400">
+                            {task.isCompleted 
+                              ? `Completed on ${formatDate(task.completedDate)}` 
+                              : `Due ${formatDate(task.dueDate)}`}
+                          </div>
                         </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => {
+                            setEditTaskId(task.id);
+                            setTaskForm({
+                              name: task.name,
+                              description: task.description || '',
+                              dueDate: new Date(task.dueDate).toISOString().split('T')[0]
+                            });
+                            setTaskDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4 text-gray-400" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-8 w-8 hover:text-destructive"
+                          onClick={() => {
+                            setTaskToDelete(task);
+                            setDeleteTaskDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-gray-400" />
+                        </Button>
                       </div>
                     </div>
                   </div>
