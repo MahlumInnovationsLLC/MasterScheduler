@@ -152,6 +152,16 @@ export interface IStorage {
   updateManufacturingSchedule(id: number, schedule: Partial<InsertManufacturingSchedule>): Promise<ManufacturingSchedule | undefined>;
   deleteManufacturingSchedule(id: number): Promise<boolean>;
   
+  // Sales Deals methods
+  getSalesDeals(filters?: { isActive?: boolean, ownerId?: string, dealStage?: string, dealType?: string, priority?: string }): Promise<SalesDeal[]>;
+  getSalesDeal(id: number): Promise<SalesDeal | undefined>;
+  getSalesDealByNumber(dealNumber: string): Promise<SalesDeal | undefined>;
+  createSalesDeal(deal: InsertSalesDeal): Promise<SalesDeal>;
+  updateSalesDeal(id: number, deal: Partial<InsertSalesDeal>): Promise<SalesDeal | undefined>;
+  deleteSalesDeal(id: number): Promise<boolean>;
+  convertSalesDealToProject(id: number, projectId: number): Promise<SalesDeal | undefined>;
+  getUserSalesDeals(userId: string): Promise<SalesDeal[]>;
+  
   // Notification methods
   getNotifications(userId?: string, options?: { unreadOnly?: boolean, limit?: number }): Promise<Notification[]>;
   getNotificationById(id: number): Promise<Notification | undefined>;
@@ -1049,6 +1059,148 @@ export class DatabaseStorage implements IStorage {
         console.error("Error stack:", error.stack);
       }
       throw error;
+    }
+  }
+
+  // Sales Deals methods
+  async getSalesDeals(filters?: { isActive?: boolean, ownerId?: string, dealStage?: string, dealType?: string, priority?: string }): Promise<SalesDeal[]> {
+    try {
+      let query = db.select().from(salesDeals);
+      
+      // Apply filters if provided
+      if (filters) {
+        const conditions: SQL<unknown>[] = [];
+        
+        if (filters.isActive !== undefined) {
+          conditions.push(eq(salesDeals.isActive, filters.isActive));
+        }
+        
+        if (filters.ownerId) {
+          conditions.push(eq(salesDeals.ownerId, filters.ownerId));
+        }
+        
+        if (filters.dealStage) {
+          conditions.push(eq(salesDeals.dealStage, filters.dealStage));
+        }
+        
+        if (filters.dealType) {
+          conditions.push(eq(salesDeals.dealType, filters.dealType));
+        }
+        
+        if (filters.priority) {
+          conditions.push(eq(salesDeals.priority, filters.priority));
+        }
+        
+        if (conditions.length > 0) {
+          query = query.where(and(...conditions));
+        }
+      }
+      
+      return await query.orderBy(desc(salesDeals.updatedAt));
+    } catch (error) {
+      console.error("Error fetching sales deals:", error);
+      return [];
+    }
+  }
+  
+  async getSalesDeal(id: number): Promise<SalesDeal | undefined> {
+    try {
+      const [deal] = await db.select().from(salesDeals).where(eq(salesDeals.id, id));
+      return deal;
+    } catch (error) {
+      console.error(`Error fetching sales deal with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async getSalesDealByNumber(dealNumber: string): Promise<SalesDeal | undefined> {
+    try {
+      const [deal] = await db.select().from(salesDeals).where(eq(salesDeals.dealNumber, dealNumber));
+      return deal;
+    } catch (error) {
+      console.error(`Error fetching sales deal with number ${dealNumber}:`, error);
+      return undefined;
+    }
+  }
+  
+  async createSalesDeal(deal: InsertSalesDeal): Promise<SalesDeal> {
+    try {
+      const [newDeal] = await db.insert(salesDeals).values(deal).returning();
+      console.log("Sales deal created successfully:", newDeal.id, newDeal.dealNumber);
+      return newDeal;
+    } catch (error) {
+      console.error("Error creating sales deal:", error);
+      throw error;
+    }
+  }
+  
+  async updateSalesDeal(id: number, deal: Partial<InsertSalesDeal>): Promise<SalesDeal | undefined> {
+    try {
+      const [updatedDeal] = await db
+        .update(salesDeals)
+        .set({ ...deal, updatedAt: new Date() })
+        .where(eq(salesDeals.id, id))
+        .returning();
+        
+      if (!updatedDeal) {
+        console.error(`No sales deal found with ID ${id} for update`);
+        return undefined;
+      }
+      
+      console.log(`Sales deal ${id} updated successfully`);
+      return updatedDeal;
+    } catch (error) {
+      console.error(`Error updating sales deal ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async deleteSalesDeal(id: number): Promise<boolean> {
+    try {
+      await db.delete(salesDeals).where(eq(salesDeals.id, id));
+      return true;
+    } catch (error) {
+      console.error(`Error deleting sales deal ${id}:`, error);
+      return false;
+    }
+  }
+  
+  async convertSalesDealToProject(id: number, projectId: number): Promise<SalesDeal | undefined> {
+    try {
+      const [updatedDeal] = await db
+        .update(salesDeals)
+        .set({ 
+          isConverted: true, 
+          convertedProjectId: projectId,
+          actualCloseDate: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(salesDeals.id, id))
+        .returning();
+        
+      if (!updatedDeal) {
+        console.error(`No sales deal found with ID ${id} for conversion`);
+        return undefined;
+      }
+      
+      console.log(`Sales deal ${id} converted to project ${projectId} successfully`);
+      return updatedDeal;
+    } catch (error) {
+      console.error(`Error converting sales deal ${id} to project:`, error);
+      return undefined;
+    }
+  }
+  
+  async getUserSalesDeals(userId: string): Promise<SalesDeal[]> {
+    try {
+      return await db
+        .select()
+        .from(salesDeals)
+        .where(eq(salesDeals.ownerId, userId))
+        .orderBy(desc(salesDeals.updatedAt));
+    } catch (error) {
+      console.error(`Error fetching sales deals for user ${userId}:`, error);
+      return [];
     }
   }
 }

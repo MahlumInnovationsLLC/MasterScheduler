@@ -16,7 +16,8 @@ import {
   insertManufacturingBaySchema,
   insertManufacturingScheduleSchema,
   insertUserPreferencesSchema,
-  insertNotificationSchema
+  insertNotificationSchema,
+  insertSalesDealSchema
 } from "@shared/schema";
 import { setupSession, setupLocalAuth, isAuthenticated, hasEditRights, isAdmin, isEditor, hashPassword, comparePasswords } from "./authService";
 import { 
@@ -1002,6 +1003,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching delivered projects:", error);
       res.status(500).json({ message: "Error fetching delivered projects" });
+    }
+  });
+  
+  // Sales Deals Routes
+  app.get("/api/sales-deals", async (req, res) => {
+    try {
+      // Get optional query parameters
+      const filters: { isActive?: boolean, ownerId?: string, dealStage?: string, dealType?: string, priority?: string } = {};
+      
+      if (req.query.isActive !== undefined) {
+        filters.isActive = req.query.isActive === 'true';
+      }
+      
+      if (req.query.ownerId) {
+        filters.ownerId = req.query.ownerId as string;
+      }
+      
+      if (req.query.dealStage) {
+        filters.dealStage = req.query.dealStage as string;
+      }
+      
+      if (req.query.dealType) {
+        filters.dealType = req.query.dealType as string;
+      }
+      
+      if (req.query.priority) {
+        filters.priority = req.query.priority as string;
+      }
+      
+      const salesDeals = await storage.getSalesDeals(filters);
+      res.json(salesDeals);
+    } catch (error) {
+      console.error("Error fetching sales deals:", error);
+      res.status(500).json({ message: "Error fetching sales deals" });
+    }
+  });
+  
+  app.get("/api/sales-deals/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const salesDeal = await storage.getSalesDeal(id);
+      
+      if (!salesDeal) {
+        return res.status(404).json({ message: "Sales deal not found" });
+      }
+      
+      res.json(salesDeal);
+    } catch (error) {
+      console.error(`Error fetching sales deal ${req.params.id}:`, error);
+      res.status(500).json({ message: "Error fetching sales deal" });
+    }
+  });
+  
+  app.post("/api/sales-deals", isAuthenticated, hasEditRights, validateRequest(insertSalesDealSchema), async (req, res) => {
+    try {
+      const salesDeal = await storage.createSalesDeal(req.body);
+      res.status(201).json(salesDeal);
+    } catch (error) {
+      console.error("Error creating sales deal:", error);
+      res.status(500).json({ message: "Error creating sales deal" });
+    }
+  });
+  
+  app.put("/api/sales-deals/:id", isAuthenticated, hasEditRights, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const salesDeal = await storage.updateSalesDeal(id, req.body);
+      
+      if (!salesDeal) {
+        return res.status(404).json({ message: "Sales deal not found" });
+      }
+      
+      res.json(salesDeal);
+    } catch (error) {
+      console.error(`Error updating sales deal ${req.params.id}:`, error);
+      res.status(500).json({ message: "Error updating sales deal" });
+    }
+  });
+  
+  app.delete("/api/sales-deals/:id", isAuthenticated, hasEditRights, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteSalesDeal(id);
+      res.json({ success: result });
+    } catch (error) {
+      console.error(`Error deleting sales deal ${req.params.id}:`, error);
+      res.status(500).json({ message: "Error deleting sales deal" });
+    }
+  });
+  
+  app.post("/api/sales-deals/:id/convert", isAuthenticated, hasEditRights, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { projectId } = req.body;
+      
+      if (!projectId) {
+        return res.status(400).json({ message: "Project ID is required" });
+      }
+      
+      const salesDeal = await storage.convertSalesDealToProject(id, projectId);
+      
+      if (!salesDeal) {
+        return res.status(404).json({ message: "Sales deal not found" });
+      }
+      
+      res.json(salesDeal);
+    } catch (error) {
+      console.error(`Error converting sales deal ${req.params.id} to project:`, error);
+      res.status(500).json({ message: "Error converting sales deal to project" });
+    }
+  });
+  
+  app.get("/api/user/sales-deals", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const salesDeals = await storage.getUserSalesDeals(userId);
+      res.json(salesDeals);
+    } catch (error) {
+      console.error(`Error fetching user's sales deals:`, error);
+      res.status(500).json({ message: "Error fetching user's sales deals" });
     }
   });
 
