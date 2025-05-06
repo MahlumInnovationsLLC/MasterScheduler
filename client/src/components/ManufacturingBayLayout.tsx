@@ -19,9 +19,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Calendar, ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { AlertTriangle, Calendar, ChevronLeft, ChevronRight, Info, Edit, PlusCircle, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, addWeeks, eachWeekOfInterval, startOfWeek, endOfWeek, isSameWeek } from 'date-fns';
 import { 
   Select, 
   SelectContent, 
@@ -29,6 +29,17 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { checkScheduleConflict } from '@/lib/utils';
 import { ManufacturingSchedule, Project } from '@shared/schema';
 
@@ -67,18 +78,38 @@ interface ProjectCard {
   endDate: string;
 }
 
+// Define bay types
+interface Bay {
+  id: number;
+  name: string;
+  bayNumber: number;
+  description: string;
+  isActive: boolean;
+}
+
+// Group type for organizing related bays
+interface BayGroup {
+  id: string;
+  name: string;
+  bays: Bay[];
+  team: string;
+}
+
+// Week range for timeline
+interface WeekRange {
+  startDate: Date;
+  endDate: Date;
+  weekNumber: number;
+  label: string;
+}
+
 interface ManufacturingBayLayoutProps {
   schedules: ManufacturingSchedule[];
   projects: Project[];
-  bays: {
-    id: number;
-    name: string;
-    bayNumber: number;
-    description: string;
-    isActive: boolean;
-  }[];
+  bays: Bay[];
   onScheduleChange: (scheduleId: number, newBayId: number, newStartDate: string, newEndDate: string) => Promise<void>;
   onScheduleCreate: (projectId: number, bayId: number, startDate: string, endDate: string) => Promise<void>;
+  onUpdateBay?: (bayId: number, name: string, description: string) => Promise<void>;
 }
 
 // Draggable project card component
@@ -190,13 +221,74 @@ const BaySlot = ({
   );
 };
 
+// Bay Group component for the left panel
+const BayGroupSection = ({ 
+  group, 
+  schedules,
+  onEditBay,
+  onAddProject
+}: { 
+  group: BayGroup; 
+  schedules: ManufacturingSchedule[];
+  onEditBay: (bay: Bay) => void;
+  onAddProject: (bayId: number) => void;
+}) => {
+  // Count active projects for each bay in this group
+  const getBayProjectCount = (bayId: number) => {
+    return schedules.filter(s => s.bayId === bayId).length;
+  };
+  
+  return (
+    <div className="mb-6">
+      <div className="bg-gray-800 p-2 mb-2 rounded-md font-medium text-sm flex justify-between items-center">
+        {group.name}
+        <span className="text-xs text-gray-400">{group.team}</span>
+      </div>
+      <div className="space-y-2">
+        {group.bays.map(bay => (
+          <div 
+            key={bay.id}
+            className="bg-darkCard p-3 rounded-md border border-gray-800 flex items-center justify-between"
+          >
+            <div className="flex-1">
+              <div className="font-medium">Bay {bay.bayNumber}</div>
+              <div className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                <span>{bay.name}</span>
+                <button onClick={() => onEditBay(bay)} className="text-gray-400 hover:text-white">
+                  <Edit className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className={bay.isActive ? 'bg-success bg-opacity-10 text-success' : 'bg-gray-500 bg-opacity-10 text-gray-500'}>
+                {bay.isActive ? 'Active' : 'Inactive'}
+              </Badge>
+              <button 
+                onClick={() => onAddProject(bay.id)} 
+                className="text-primary hover:text-white transition-colors"
+                title="Add project"
+              >
+                <PlusCircle className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="text-xs text-primary ml-2">
+              {getBayProjectCount(bay.id)} projects
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // Main manufacturing bay layout component
 const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
   schedules,
   projects,
   bays,
   onScheduleChange,
-  onScheduleCreate
+  onScheduleCreate,
+  onUpdateBay
 }) => {
   const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
@@ -204,6 +296,11 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
   const [activeProject, setActiveProject] = useState<ProjectCard | null>(null);
   const [baySlots, setBaySlots] = useState<BaySlot[][]>([]);
   const [unassignedProjects, setUnassignedProjects] = useState<ProjectCard[]>([]);
+  const [weeks, setWeeks] = useState<WeekRange[]>([]);
+  const [editingBay, setEditingBay] = useState<Bay | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [bayGroups, setBayGroups] = useState<BayGroup[]>([]);
 
   // Set up sensors for drag and drop
   const sensors = useSensors(
@@ -237,11 +334,99 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
     };
   };
 
+  // Group bays by team/location
+  useEffect(() => {
+    // Create bay groups based on pattern in the bay numbers
+    const groups: BayGroup[] = [];
+    
+    // Bay 1 & 2
+    const bay1And2 = bays.filter(b => [1, 2].includes(b.bayNumber));
+    if (bay1And2.length > 0) {
+      groups.push({
+        id: 'bay-1-2',
+        name: 'Bay 1 & 2',
+        bays: bay1And2,
+        team: 'Nicholson / Olivas / Hershberger'
+      });
+    }
+    
+    // Bay 5 & 10
+    const bay5And10 = bays.filter(b => [5, 10].includes(b.bayNumber));
+    if (bay5And10.length > 0) {
+      groups.push({
+        id: 'bay-5-10',
+        name: 'Bay 5 & 10',
+        bays: bay5And10,
+        team: 'Williams / May / LaRose'
+      });
+    }
+    
+    // Bay 3 & 8
+    const bay3And8 = bays.filter(b => [3, 8].includes(b.bayNumber));
+    if (bay3And8.length > 0) {
+      groups.push({
+        id: 'bay-3-8',
+        name: 'Bay 3 & 8',
+        bays: bay3And8,
+        team: 'Nicholson / Nelson / Mondora'
+      });
+    }
+    
+    // Bay 4 & 6
+    const bay4And6 = bays.filter(b => [4, 6].includes(b.bayNumber));
+    if (bay4And6.length > 0) {
+      groups.push({
+        id: 'bay-4-6',
+        name: 'Bay 4 & 6',
+        bays: bay4And6,
+        team: 'Williams / Field / Freibot'
+      });
+    }
+    
+    // Other bays
+    const otherBays = bays.filter(b => 
+      ![1, 2, 3, 4, 5, 6, 8, 10].includes(b.bayNumber)
+    );
+    
+    if (otherBays.length > 0) {
+      groups.push({
+        id: 'other-bays',
+        name: 'Other Bays',
+        bays: otherBays,
+        team: 'Various Teams'
+      });
+    }
+    
+    setBayGroups(groups);
+  }, [bays]);
+  
   // Generate slots for the calendar view
   useEffect(() => {
     const currentYear = selectedMonth.getFullYear();
     const currentMonth = selectedMonth.getMonth();
     const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+    
+    // Generate weeks for the selected month
+    const monthStart = new Date(currentYear, currentMonth, 1);
+    const monthEnd = new Date(currentYear, currentMonth, daysInMonth);
+    
+    // Generate week ranges for the calendar
+    const weekRanges: WeekRange[] = [];
+    const weeks = eachWeekOfInterval({ start: monthStart, end: monthEnd });
+    
+    weeks.forEach((weekStart, index) => {
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      
+      weekRanges.push({
+        startDate: weekStart,
+        endDate: weekEnd,
+        weekNumber: index + 1,
+        label: `FW${index + 9}`  // Assuming FW numbering starts at 9 as in the example
+      });
+    });
+    
+    setWeeks(weekRanges);
     
     // Convert schedules to our internal format with project and bay info
     const scheduleItems: ScheduleItem[] = schedules.map(schedule => {
@@ -559,46 +744,122 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
       });
     }
   };
+  
+  // Handle editing bay name
+  const handleEditBay = (bay: Bay) => {
+    setEditingBay(bay);
+    setEditName(bay.name);
+    setEditDescription(bay.description);
+  };
+  
+  // Handle saving bay edits
+  const handleSaveBayEdit = async () => {
+    if (!editingBay || !onUpdateBay) return;
+    
+    try {
+      await onUpdateBay(editingBay.id, editName, editDescription);
+      toast({
+        title: "Bay Updated",
+        description: `Bay ${editingBay.bayNumber} information has been updated.`
+      });
+      setEditingBay(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update bay information.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Handle adding a project to specific bay
+  const handleAddProject = (bayId: number) => {
+    // Find the first day of the selected month for the start date
+    const startDate = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1);
+    
+    // Show a toast with instructions
+    toast({
+      title: "Add Project",
+      description: `Drag an unassigned project to Bay ${getBayInfo(bayId).bayNumber} to schedule it.`
+    });
+    
+    // Scroll to unassigned projects section
+    const unassignedSection = document.getElementById('unassigned-projects-section');
+    if (unassignedSection) {
+      unassignedSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+      {/* Bay edit dialog */}
+      <Dialog open={!!editingBay} onOpenChange={(open) => !open && setEditingBay(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Bay Information</DialogTitle>
+            <DialogDescription>
+              Update the name and description for Bay {editingBay?.bayNumber}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="bay-name">Bay Name</Label>
+              <Input
+                id="bay-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Enter bay name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bay-description">Description</Label>
+              <Input
+                id="bay-description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Enter bay description"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingBay(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveBayEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6">
         {/* Manufacturing Bays (Left Side) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
               <CardTitle>Manufacturing Bays</CardTitle>
               <div className="flex items-center space-x-2 text-sm text-gray-400">
-                <span>Drag projects to bays</span>
+                <span>Organized by team</span>
                 <Info className="h-4 w-4" />
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-3">
+          <CardContent className="p-4">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
-              <div className="space-y-3">
-                {bays.map((bay) => (
-                  <div 
-                    key={bay.id} 
-                    id={`bay-card-${bay.id}`} // Important ID for drop identification
-                    className="bg-darkCard p-3 rounded-md border border-gray-800 flex items-center justify-between cursor-pointer hover:border-primary hover:bg-gray-900 transition-colors"
-                  >
-                    <div>
-                      <div className="font-medium">Bay {bay.bayNumber}</div>
-                      <div className="text-xs text-gray-400">{bay.name || `Manufacturing Bay ${bay.bayNumber}`}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className={bay.isActive ? 'bg-success bg-opacity-10 text-success' : 'bg-gray-500 bg-opacity-10 text-gray-500'}>
-                        {bay.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                      <div className="text-xs text-gray-400">Drop projects here</div>
-                    </div>
-                  </div>
+              <div>
+                {bayGroups.map(group => (
+                  <BayGroupSection 
+                    key={group.id}
+                    group={group}
+                    schedules={schedules}
+                    onEditBay={handleEditBay}
+                    onAddProject={handleAddProject}
+                  />
                 ))}
               </div>
               
