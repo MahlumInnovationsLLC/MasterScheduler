@@ -196,6 +196,33 @@ const Dashboard = () => {
       ),
     },
     {
+      accessorKey: 'ntcDate',
+      header: 'NTC Date',
+      cell: ({ row }) => (
+        <div className="text-sm">
+          {formatDate(row.original.ntcDate)}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'ntcTestingDate',
+      header: 'NTC Testing',
+      cell: ({ row }) => (
+        <div className="text-sm">
+          {formatDate(row.original.ntcTestingDate)}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'qcDate',
+      header: 'QC Date',
+      cell: ({ row }) => (
+        <div className="text-sm">
+          {formatDate(row.original.qcDate)}
+        </div>
+      ),
+    },
+    {
       accessorKey: 'shipDate',
       header: 'Ship Date',
       cell: ({ row }) => (
