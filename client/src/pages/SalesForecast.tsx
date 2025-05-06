@@ -730,6 +730,7 @@ export default function SalesForecast() {
   const [dealToConvert, setDealToConvert] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("all");
   const [filter, setFilter] = useState("");
+  const [viewMode, setViewMode] = useState<"card" | "table">("card"); // Toggle between card and table views
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -981,28 +982,67 @@ export default function SalesForecast() {
       </div>
       
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <Tabs 
-          defaultValue="all" 
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="w-full md:w-auto"
-        >
-          <TabsList className="grid grid-cols-5 w-full md:w-auto">
-            <TabsTrigger value="all">All Deals</TabsTrigger>
-            <TabsTrigger value="early_stage">Early Stage</TabsTrigger>
-            <TabsTrigger value="mid_stage">Mid Stage</TabsTrigger>
-            <TabsTrigger value="late_stage">Late Stage</TabsTrigger>
-            <TabsTrigger value="converted">Converted</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center gap-4 w-full">
+          <Tabs 
+            defaultValue="all" 
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full md:w-auto"
+          >
+            <TabsList className="grid grid-cols-5 w-full md:w-auto">
+              <TabsTrigger value="all">All Deals</TabsTrigger>
+              <TabsTrigger value="early_stage">Early Stage</TabsTrigger>
+              <TabsTrigger value="mid_stage">Mid Stage</TabsTrigger>
+              <TabsTrigger value="late_stage">Late Stage</TabsTrigger>
+              <TabsTrigger value="converted">Converted</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          <div className="hidden md:flex border rounded-md p-1">
+            <Button
+              variant={viewMode === "card" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("card")}
+              className="px-2"
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className="px-2"
+            >
+              <Table className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
         
-        <div className="w-full md:w-auto">
+        <div className="w-full md:w-auto flex items-center gap-2">
           <Input
             placeholder="Search deals..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="w-full md:w-[300px]"
           />
+          <div className="flex md:hidden border rounded-md p-1">
+            <Button
+              variant={viewMode === "card" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("card")}
+              className="px-2"
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className="px-2"
+            >
+              <Table className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
       
@@ -1025,7 +1065,7 @@ export default function SalesForecast() {
             </Button>
           )}
         </div>
-      ) : (
+      ) : viewMode === "card" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDeals.map((deal: SalesDeal) => (
             <SalesDealCard
@@ -1036,6 +1076,10 @@ export default function SalesForecast() {
               onConvert={handleConvertDeal}
             />
           ))}
+        </div>
+      ) : (
+        <div className="bg-white rounded-md shadow">
+          <SalesDealsTable deals={filteredDeals} />
         </div>
       )}
       
