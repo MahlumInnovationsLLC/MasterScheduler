@@ -8,6 +8,7 @@ import Dashboard from "@/pages/Dashboard";
 import ProjectStatus from "@/pages/ProjectStatus";
 import BillingMilestones from "@/pages/BillingMilestones";
 import ManufacturingBay from "@/pages/ManufacturingBay";
+import BaySchedulingPage from "@/pages/BaySchedulingPage";
 import ProjectDetails from "@/pages/ProjectDetails";
 import ProjectEdit from "@/pages/ProjectEdit";
 import ArchivedProjects from "@/pages/ArchivedProjects";
