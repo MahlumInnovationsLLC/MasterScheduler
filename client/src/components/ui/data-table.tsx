@@ -120,8 +120,8 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
       
-      <div className="overflow-x-auto">
-        <Table>
+      <div className="overflow-x-auto" style={{ position: 'relative' }}>
+        <Table className="relative">
           <TableHeader>
             <TableRow className="bg-muted/50">
               {table.getHeaderGroups()[0].headers.map((header) => {
@@ -141,17 +141,23 @@ export function DataTable<TData, TValue>({
                 return (
                   <TableHead 
                     key={header.id}
+                    className={isColumnFrozen ? 'px-4 py-2' : 'px-4 py-2'}
                     style={{
                       position: isColumnFrozen ? 'sticky' : 'relative',
                       left: isColumnFrozen ? `${leftPosition}px` : 'auto',
-                      zIndex: isColumnFrozen ? 10 : 'auto',
-                      background: isColumnFrozen ? 'var(--background)' : 'transparent',
+                      zIndex: isColumnFrozen ? 30 : 'auto',
+                      background: isColumnFrozen ? 'var(--muted)' : 'var(--muted)',
                       borderRight: isColumnFrozen && frozenColumns.indexOf(header.column.id) === frozenColumns.length - 1 
                         ? '2px solid var(--primary)' 
                         : 'none',
                       boxShadow: isColumnFrozen && frozenColumns.indexOf(header.column.id) === frozenColumns.length - 1 
                         ? '4px 0 8px rgba(0,0,0,0.15)' 
                         : 'none',
+                      minWidth: header.getSize() || 150,
+                      maxWidth: header.getSize() || 150,
+                      width: header.getSize() || 150,
+                      padding: '0.75rem 1rem',
+                      fontWeight: 'bold',
                     }}
                   >
                     <div
@@ -205,10 +211,11 @@ export function DataTable<TData, TValue>({
                     return (
                       <TableCell 
                         key={cell.id}
+                        className={isColumnFrozen ? 'px-4 py-2' : 'px-4 py-2'} 
                         style={{
                           position: isColumnFrozen ? 'sticky' : 'relative',
                           left: isColumnFrozen ? `${leftPosition}px` : 'auto',
-                          zIndex: isColumnFrozen ? 1 : 'auto',
+                          zIndex: isColumnFrozen ? 20 : 'auto',
                           background: isColumnFrozen ? 'var(--background)' : 'transparent',
                           borderRight: isColumnFrozen && frozenColumns.indexOf(cell.column.id) === frozenColumns.length - 1 
                             ? '2px solid var(--primary)' 
@@ -216,6 +223,10 @@ export function DataTable<TData, TValue>({
                           boxShadow: isColumnFrozen && frozenColumns.indexOf(cell.column.id) === frozenColumns.length - 1 
                             ? '4px 0 8px rgba(0,0,0,0.15)' 
                             : 'none',
+                          minWidth: cell.column.getSize() || 150,
+                          maxWidth: cell.column.getSize() || 150,
+                          width: cell.column.getSize() || 150,
+                          padding: '0.75rem 1rem',
                         }}
                       >
                         {flexRender(
