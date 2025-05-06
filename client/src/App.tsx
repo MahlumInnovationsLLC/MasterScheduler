@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -25,9 +25,17 @@ import Sidebar from "@/components/Sidebar";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 
+// Check if we're in development mode
+const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
+
 function Router() {
   const [location] = useLocation();
   const isAuthPage = location === "/auth";
+  
+  // In development mode, redirect from auth page to dashboard
+  if (isDevelopment && isAuthPage) {
+    return <Redirect to="/" />;
+  }
   const isResetPasswordPage = location === "/reset-password" || location.startsWith("/reset-password?");
 
   // If we're on the auth page or reset password page, render without the app layout

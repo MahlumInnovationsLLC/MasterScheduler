@@ -44,8 +44,24 @@ type AuthContextType = {
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
+// Check if we're in development mode
+const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
+
+// Mock user for development environment
+const DEV_MOCK_USER: User = {
+  id: "dev-user-id",
+  username: "dev-admin",
+  email: "dev@example.com",
+  role: "admin",
+  isApproved: true,
+  firstName: "Development",
+  lastName: "User"
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  
+  // In development mode, directly use the mock user
   const {
     data: user,
     error,
@@ -53,6 +69,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<User | null, Error>({
     queryKey: ["/api/auth/user"],
     queryFn: async () => {
+      // For development mode, return mock user immediately
+      if (isDevelopment) {
+        console.log("🔧 Development mode: Using mock admin user");
+        return DEV_MOCK_USER;
+      }
+      
+      // Normal authentication for production
       try {
         console.log("Fetching current user data...");
         const res = await fetch("/api/auth/user", {
