@@ -228,14 +228,14 @@ const BayGroup = ({
   onSlotDoubleClick: (slot: BaySlot) => void;
 }) => {
   return (
-    <div className="mb-6">
-      <div className="flex items-center justify-between mb-2">
+    <div className="mb-10 bg-darkCard/50 p-4 rounded-lg border border-gray-800">
+      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-800">
         <h3 className="text-xl font-semibold text-primary">{group.name}</h3>
         <Badge variant="outline" className="text-xs">Team: {group.team}</Badge>
       </div>
       
       {group.bays.map(bay => (
-        <div key={bay.id} className="mb-4">
+        <div key={bay.id} className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center">
               <h4 className="font-medium">{bay.name} - Bay {bay.bayNumber}</h4>
@@ -248,7 +248,24 @@ const BayGroup = ({
                 <Edit className="h-4 w-4" />
               </Button>
             </div>
-            <div className="text-xs text-gray-400">{bay.description}</div>
+            <div className="flex items-center">
+              <div className="text-xs text-gray-400 mr-3">{bay.description}</div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 p-0 px-2"
+                onClick={() => {
+                  // Find first empty slot for this bay
+                  const firstEmptySlot = slots[bay.id]?.find(slot => !slot.isOccupied);
+                  if (firstEmptySlot) {
+                    onSlotDoubleClick(firstEmptySlot);
+                  }
+                }}
+              >
+                <PlusCircle className="h-4 w-4 mr-1" />
+                <span className="text-xs">Add Project</span>
+              </Button>
+            </div>
           </div>
           
           <div className="flex relative">

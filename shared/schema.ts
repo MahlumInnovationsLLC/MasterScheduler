@@ -312,6 +312,7 @@ export const manufacturingBays = pgTable("manufacturing_bays", {
   name: text("name").notNull(),
   description: text("description"),
   equipment: text("equipment"),
+  team: text("team").default("General"),  // Added team field for grouping bays
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
