@@ -4,7 +4,8 @@ import {
   InsertProject, 
   InsertBillingMilestone, 
   InsertManufacturingBay, 
-  InsertManufacturingSchedule 
+  InsertManufacturingSchedule,
+  InsertDeliveryTracking
 } from '@shared/schema';
 import { countWorkingDays } from '@shared/utils/date-utils';
 
@@ -668,6 +669,112 @@ export async function importManufacturingBays(req: Request, res: Response) {
 }
 
 // Import Manufacturing Schedules
+// Import On Time Delivery data
+export async function importDeliveryTracking(req: Request, res: Response) {
+  try {
+    const deliveryData = req.body;
+    
+    if (!Array.isArray(deliveryData)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid delivery tracking data. Expected an array.' 
+      });
+    }
+
+    const results = {
+      imported: 0,
+      errors: 0,
+      details: [] as string[]
+    };
+
+    // Process each delivery tracking entry
+    for (const rawData of deliveryData) {
+      try {
+        // Find project by name or number
+        const projectName = rawData['Project Name'] || '';
+        const projectNumber = rawData['Project Number'] || '';
+        
+        let project;
+        
+        if (projectNumber) {
+          project = await storage.getProjectByNumber(projectNumber);
+        } else if (projectName) {
+          // Search for project by name since we don't have a direct getProjectByName function
+          const allProjects = await storage.getProjects();
+          project = allProjects.find(p => p.name === projectName);
+        }
+        
+        if (!project) {
+          results.errors++;
+          results.details.push(`Project not found: ${projectName || projectNumber}`);
+          continue;
+        }
+        
+        // Parse dates
+        const originalContractDate = convertExcelDate(rawData['Original Contract Date']);
+        const extensionDate = convertExcelDate(rawData['# of Formal Extensions (Final Contract Date)']);
+        const actualDeliveryDate = convertExcelDate(rawData['Actual Delivery Date']);
+        
+        // Determine responsibility
+        let delayResponsibility = 'not_applicable';
+        if (rawData['Late due to: Client']) {
+          delayResponsibility = 'client_fault';
+        } else if (rawData['Late due to: Nomad']) {
+          delayResponsibility = 'nomad_fault';
+        } else if (rawData['Late due to: Vendor']) {
+          delayResponsibility = 'vendor_fault';
+        }
+        
+        // Calculate days late
+        let daysLate = convertToInteger(rawData['# of days pre/post contract']);
+        
+        // Determine if it's actually late (negative number means early)
+        if (daysLate !== null && daysLate <= 0) {
+          daysLate = 0;
+          delayResponsibility = 'not_applicable';
+        }
+        
+        // Create delivery tracking entry
+        const trackingData: InsertDeliveryTracking = {
+          projectId: project.id,
+          originalEstimatedDate: originalContractDate,
+          revisedEstimatedDate: extensionDate,
+          actualDeliveryDate: actualDeliveryDate,
+          daysLate: daysLate,
+          delayResponsibility: delayResponsibility as any,
+          delayReason: rawData['Category'] || '',
+          delayNotes: rawData['Late Reasoning'] || '',
+          createdById: req.user?.id
+        };
+        
+        await storage.createDeliveryTracking(trackingData);
+        results.imported++;
+        
+      } catch (error) {
+        console.error('Error processing delivery tracking entry:', error);
+        results.errors++;
+        results.details.push((error as Error).message);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully imported ${results.imported} delivery tracking entries with ${results.errors} errors.`,
+      imported: results.imported,
+      errors: results.errors,
+      details: results.details
+    });
+  } catch (error) {
+    console.error('Import delivery tracking error:', error);
+    return res.status(500).json({
+      success: false,
+      message: (error as Error).message,
+      errors: 1,
+      details: [(error as Error).message]
+    });
+  }
+}
+
 export async function importManufacturingSchedules(req: Request, res: Response) {
   try {
     const schedulesData = req.body;
