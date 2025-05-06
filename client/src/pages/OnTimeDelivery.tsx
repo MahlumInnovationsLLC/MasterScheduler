@@ -209,7 +209,7 @@ const OnTimeDeliveryPage: React.FC = () => {
 
   // Reset filters
   const resetFilters = () => {
-    setFilterResponsibility("");
+    setFilterResponsibility("all");
     setDaysLateMin("");
     setDaysLateMax("");
   };
@@ -300,7 +300,7 @@ const OnTimeDeliveryPage: React.FC = () => {
                       <SelectValue placeholder="All Responsibilities" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Responsibilities</SelectItem>
+                      <SelectItem value="all">All Responsibilities</SelectItem>
                       <SelectItem value="nomad_fault">Nomad Fault</SelectItem>
                       <SelectItem value="vendor_fault">Vendor Fault</SelectItem>
                       <SelectItem value="client_fault">Client Fault</SelectItem>
