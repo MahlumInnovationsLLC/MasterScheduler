@@ -85,7 +85,7 @@ export function DashboardTable<TData extends { id: number }, TValue>({
 
   // Handle row click to navigate to project details
   const handleRowClick = (id: number) => {
-    navigate(`/projects/${id}`);
+    navigate(`/project/${id}`);
   };
 
   return (
