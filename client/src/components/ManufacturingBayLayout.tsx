@@ -375,7 +375,64 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
     const projectId = parseInt(active.id.toString());
     const slotId = over.id.toString();
     
-    // Find the slot that was dropped on
+    // Check if we're dropping on a bay card
+    const isBayDrop = slotId.startsWith('bay-card-');
+    
+    if (isBayDrop) {
+      // Extract bay ID from the drop target ID
+      const bayId = parseInt(slotId.replace('bay-card-', ''));
+      const bay = bays.find(b => b.id === bayId);
+      
+      if (bay) {
+        // Start date is the first day of the current month
+        const startDate = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1);
+        // End date is 7 days later (default duration)
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 7);
+        
+        // Check for conflicts
+        const conflict = checkScheduleConflict(
+          bayId,
+          startDate.toISOString(),
+          endDate.toISOString(),
+          schedules
+        );
+        
+        if (conflict) {
+          toast({
+            title: "Schedule Conflict",
+            description: "This bay already has a schedule during this time period.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        try {
+          // Create a new schedule
+          await onScheduleCreate(
+            projectId,
+            bayId,
+            startDate.toISOString(),
+            endDate.toISOString()
+          );
+          
+          toast({
+            title: "Project Scheduled",
+            description: `Project scheduled to Bay ${bay.bayNumber}.`
+          });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to schedule project. Please try again.",
+            variant: "destructive"
+          });
+        }
+        
+        return;
+      }
+    }
+    
+    // Find the slot that was dropped on (for timeline placement)
     let targetSlot: BaySlot | undefined;
     for (const row of baySlots) {
       const found = row.find(slot => slot.id === slotId);
@@ -505,12 +562,63 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
-        {/* Manufacturing Bay Timeline */}
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+        {/* Manufacturing Bays (Left Side) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
-              <CardTitle>Manufacturing Bay Timeline</CardTitle>
+              <CardTitle>Manufacturing Bays</CardTitle>
+              <div className="flex items-center space-x-2 text-sm text-gray-400">
+                <span>Drag projects to bays</span>
+                <Info className="h-4 w-4" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-3">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="space-y-3">
+                {bays.map((bay) => (
+                  <div 
+                    key={bay.id} 
+                    id={`bay-card-${bay.id}`} // Important ID for drop identification
+                    className="bg-darkCard p-3 rounded-md border border-gray-800 flex items-center justify-between cursor-pointer hover:border-primary hover:bg-gray-900 transition-colors"
+                  >
+                    <div>
+                      <div className="font-medium">Bay {bay.bayNumber}</div>
+                      <div className="text-xs text-gray-400">{bay.name || `Manufacturing Bay ${bay.bayNumber}`}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={bay.isActive ? 'bg-success bg-opacity-10 text-success' : 'bg-gray-500 bg-opacity-10 text-gray-500'}>
+                        {bay.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                      <div className="text-xs text-gray-400">Drop projects here</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <DragOverlay>
+                {activeProject && (
+                  <SortableProjectCard 
+                    project={activeProject} 
+                    isDragging={true}
+                  />
+                )}
+              </DragOverlay>
+            </DndContext>
+          </CardContent>
+        </Card>
+        
+        {/* Manufacturing Timeline (Right Side) */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle>Manufacturing Timeline</CardTitle>
               <div className="flex items-center space-x-2 text-sm text-gray-400">
                 <span>Drag projects to schedule them</span>
                 <Info className="h-4 w-4" />
@@ -734,11 +842,14 @@ const ProjectCard = ({
   
   return (
     <div
-      className={`h-full rounded-sm border-l-4 px-2 py-1 bg-opacity-20 ${getStatusColor(schedule.status)}`}
+      className={`h-full rounded-sm border-l-4 px-2 py-1 bg-opacity-20 relative ${getStatusColor(schedule.status)}`}
       style={{ width: `${Math.min(durationDays * 100, 400)}%` }}
     >
       <div className="text-xs font-medium truncate">{project?.name}</div>
       <div className="text-xs text-gray-400 truncate">{project?.projectNumber}</div>
+      <div className="absolute bottom-1 right-2 text-xs opacity-75">
+        {durationDays} days
+      </div>
     </div>
   );
 };
