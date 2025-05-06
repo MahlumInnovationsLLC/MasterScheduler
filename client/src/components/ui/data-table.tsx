@@ -131,8 +131,7 @@ export function DataTable<TData, TValue>({
       </div>
       
       <div className="overflow-hidden">
-        {/* Frozen columns container */}
-        <div className="overflow-x-auto pb-4" style={{ position: 'relative' }}>
+        <div className="overflow-x-auto" style={{ position: 'relative' }}>
           <div className="grid grid-flow-col" style={{ width: 'fit-content' }}>
             {/* Frozen columns - these will stay fixed */}
             <div 
@@ -152,13 +151,13 @@ export function DataTable<TData, TValue>({
                         return (
                           <th 
                             key={header.id}
-                            className="px-4 font-semibold text-left"
+                            className="px-4 font-semibold text-left whitespace-nowrap"
                             style={{ 
                               width: `${width}px`, 
                               minWidth: `${width}px`,
                               background: 'var(--muted)',
                               borderBottom: '1px solid var(--border)',
-                              height: '53px',
+                              height: '50px',
                               paddingTop: '15px',
                               paddingBottom: '15px'
                             }}
@@ -198,7 +197,6 @@ export function DataTable<TData, TValue>({
                       <tr
                         key={row.id}
                         className="hover:bg-muted/50 border-b border-border"
-                        style={{ height: '45px' }}
                       >
                         {row.getVisibleCells().map((cell) => {
                           if (frozenColumns.includes(cell.column.id)) {
@@ -206,15 +204,15 @@ export function DataTable<TData, TValue>({
                             return (
                               <td 
                                 key={cell.id}
-                                className="px-4"
+                                className="px-4 align-middle"
                                 style={{ 
                                   width: `${width}px`, 
                                   minWidth: `${width}px`,
                                   background: 'var(--background)',
                                   borderRight: '1px solid var(--border-muted)',
-                                  height: '45px',
-                                  paddingTop: '12px',
-                                  paddingBottom: '12px'
+                                  height: '48px',
+                                  paddingTop: '14px',
+                                  paddingBottom: '14px'
                                 }}
                               >
                                 {flexRender(
@@ -258,7 +256,7 @@ export function DataTable<TData, TValue>({
                               background: 'var(--muted)',
                               borderBottom: '1px solid var(--border)',
                               borderRight: '1px solid var(--border-muted)',
-                              height: '53px',
+                              height: '50px',
                               paddingTop: '15px',
                               paddingBottom: '15px'
                             }}
@@ -298,20 +296,19 @@ export function DataTable<TData, TValue>({
                       <tr
                         key={row.id}
                         className="hover:bg-muted/50 border-b border-border"
-                        style={{ height: '45px' }}
                       >
                         {row.getVisibleCells().map((cell) => {
                           if (!frozenColumns.includes(cell.column.id)) {
                             return (
                               <td 
                                 key={cell.id}
-                                className="px-4 whitespace-nowrap"
+                                className="px-4 whitespace-nowrap align-middle"
                                 style={{ 
                                   minWidth: '150px',
                                   borderRight: '1px solid var(--border-muted)',
-                                  height: '45px',
-                                  paddingTop: '12px',
-                                  paddingBottom: '12px'
+                                  height: '48px',
+                                  paddingTop: '14px',
+                                  paddingBottom: '14px'
                                 }}
                               >
                                 {flexRender(
