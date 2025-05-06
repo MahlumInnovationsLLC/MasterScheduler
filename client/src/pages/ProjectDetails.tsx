@@ -655,143 +655,151 @@ const ProjectDetails = () => {
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 bg-darkCard rounded-xl border border-gray-800">
           <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-            <h3 className="font-bold">Tasks & Milestones</h3>
+            <h3 className="font-bold">Project Progress</h3>
             <div className="flex gap-2">
               <Button variant="outline" size="sm">
                 <Filter className="h-4 w-4 mr-2" />
                 Filter
               </Button>
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditMilestoneId(null);
-                  setMilestoneForm({
-                    name: '',
-                    status: 'In Progress',
-                    date: new Date().toISOString().split('T')[0]
-                  });
-                  setIsMilestoneDialogOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Milestone
-              </Button>
-              <Button 
-                size="sm"
-                onClick={() => {
-                  setEditTaskId(null);
-                  setTaskForm({
-                    name: '',
-                    description: '',
-                    dueDate: new Date().toISOString().split('T')[0],
-                    milestoneId: milestones[0]?.id || 0
-                  });
-                  setTaskDialogOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Task
-              </Button>
             </div>
           </div>
           
-          <div className="p-4 space-y-3">
-            {milestones.map((milestone) => (
-              <React.Fragment key={milestone.id}>
-                {/* Milestone */}
-                <div className={`border-l-4 ${milestone.color} pl-4 py-2`}>
-                  <div className="flex items-center justify-between">
-                    <h4 className={`font-bold ${
-                      milestone.color === 'border-primary' ? 'text-primary' :
-                      milestone.color === 'border-accent' ? 'text-accent' :
-                      'text-warning'
-                    }`}>
-                      {milestone.name}
-                    </h4>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">{milestone.date}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs 
-                        ${milestone.status === 'Completed' 
-                          ? 'bg-green-500/20 text-green-400' 
-                          : milestone.status === 'In Progress' 
-                            ? 'bg-blue-500/20 text-blue-400' 
-                            : 'bg-yellow-500/20 text-yellow-400'
-                        }`}
-                      >
-                        {milestone.status}
-                      </span>
-                    </div>
-                  </div>
+          <div className="p-4">
+            <Tabs defaultValue="milestones" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="milestones">Milestones</TabsTrigger>
+                <TabsTrigger value="tasks">Tasks</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="milestones" className="space-y-4">
+                <MilestonesList projectId={projectId} />
+              </TabsContent>
+              
+              <TabsContent value="tasks" className="space-y-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-base font-medium">Project Tasks</h4>
+                  <Button 
+                    size="sm"
+                    onClick={() => {
+                      setEditTaskId(null);
+                      setTaskForm({
+                        name: "",
+                        description: "",
+                        dueDate: new Date().toISOString().split("T")[0],
+                        milestoneId: milestones[0]?.id || 0
+                      });
+                      setTaskDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Task
+                  </Button>
                 </div>
                 
-                {/* Tasks for this milestone */}
-                {milestone.tasks.map((task) => (
-                  <div key={task.id} className="pl-6 py-2 border-b border-gray-800">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center">
-                          <Checkbox 
-                            checked={task.isCompleted} 
-                            className={`h-4 w-4 rounded border ${task.isCompleted ? 'bg-green-500 border-green-500' : 'bg-transparent border-gray-600'}`}
-                            onCheckedChange={(checked) => {
-                              const isCompleted = !!checked;
-                              updateTaskMutation.mutate({
-                                id: task.id,
-                                data: { 
-                                  isCompleted, 
-                                  completedDate: isCompleted ? new Date().toISOString() : null 
-                                }
-                              });
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <div className={`text-sm ${task.isCompleted ? 'line-through text-gray-400' : ''}`}>
-                            {task.name}
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            {task.isCompleted 
-                              ? `Completed on ${formatDate(task.completedDate)}` 
-                              : `Due ${formatDate(task.dueDate)}`}
+                <div className="space-y-3">
+                  {milestones.map((milestone) => (
+                    <React.Fragment key={milestone.id}>
+                      {/* Milestone Header */}
+                      <div className={`border-l-4 ${milestone.color} pl-4 py-2`}>
+                        <div className="flex items-center justify-between">
+                          <h4 className={`font-bold ${
+                            milestone.color === "border-primary" ? "text-primary" :
+                            milestone.color === "border-accent" ? "text-accent" :
+                            "text-warning"
+                          }`}>
+                            {milestone.name}
+                          </h4>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400">{milestone.date}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs 
+                              ${milestone.status === "Completed" 
+                                ? "bg-green-500/20 text-green-400" 
+                                : milestone.status === "In Progress" 
+                                  ? "bg-blue-500/20 text-blue-400" 
+                                  : "bg-yellow-500/20 text-yellow-400"
+                              }`}
+                            >
+                              {milestone.status}
+                            </span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => {
-                            setEditTaskId(task.id);
-                            setTaskForm({
-                              name: task.name,
-                              description: task.description || '',
-                              dueDate: new Date(task.dueDate).toISOString().split('T')[0],
-                              milestoneId: milestone.id
-                            });
-                            setTaskDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4 text-gray-400" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="h-8 w-8 hover:text-destructive"
-                          onClick={() => {
-                            setTaskToDelete(task);
-                            setDeleteTaskDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-gray-400" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </React.Fragment>
-            ))}
+                      
+                      {/* Tasks for this milestone */}
+                      {milestone.tasks.length > 0 ? (
+                        milestone.tasks.map((task) => (
+                          <div key={task.id} className="pl-6 py-2 border-b border-gray-800">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center justify-center">
+                                  <Checkbox 
+                                    checked={task.isCompleted} 
+                                    className={`h-4 w-4 rounded border ${task.isCompleted ? "bg-green-500 border-green-500" : "bg-transparent border-gray-600"}`}
+                                    onCheckedChange={(checked) => {
+                                      const isCompleted = !!checked;
+                                      updateTaskMutation.mutate({
+                                        id: task.id,
+                                        data: { 
+                                          isCompleted, 
+                                          completedDate: isCompleted ? new Date().toISOString() : null 
+                                        }
+                                      });
+                                    }}
+                                  />
+                                </div>
+                                <div>
+                                  <div className={`text-sm ${task.isCompleted ? "line-through text-gray-400" : ""}`}>
+                                    {task.name}
+                                  </div>
+                                  <div className="text-xs text-gray-400">
+                                    {task.isCompleted 
+                                      ? `Completed on ${formatDate(task.completedDate)}` 
+                                      : `Due ${formatDate(task.dueDate)}`}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    setEditTaskId(task.id);
+                                    setTaskForm({
+                                      name: task.name,
+                                      description: task.description || "",
+                                      dueDate: new Date(task.dueDate).toISOString().split("T")[0],
+                                      milestoneId: milestone.id
+                                    });
+                                    setTaskDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                                <Button 
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive"
+                                  onClick={() => {
+                                    setTaskToDelete(task);
+                                    setDeleteTaskDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="sr-only">Delete</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="pl-6 py-2 text-sm text-gray-400">
+                          No tasks for this milestone yet
+                        </div>
+                      )}
+                    </React.Fragment>
+                  ))
           </div>
         </div>
         
