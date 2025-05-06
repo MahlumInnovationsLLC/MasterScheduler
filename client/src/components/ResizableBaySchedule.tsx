@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { format, addDays, differenceInDays, isSameDay, addWeeks, addMonths, startOfMonth, endOfMonth } from 'date-fns';
-import { PlusCircle, GripVertical, Info, X, ArrowsExpand, ChevronRight, PencilIcon, PlusIcon } from 'lucide-react';
+import { PlusCircle, GripVertical, Info, X, ArrowsExpand, ChevronRight, PencilIcon, PlusIcon, Users, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ManufacturingBay, ManufacturingSchedule, Project } from '@shared/schema';
+import { EditBayDialog } from './EditBayDialog';
 
 interface ResizableBayScheduleProps {
   schedules: ManufacturingSchedule[];
@@ -127,81 +128,48 @@ const getProjectColor = (projectId: number) => {
   return COLORS[projectId % COLORS.length];
 };
 
-// EditBayDialog component for editing bay capacity
-const EditBayDialog = ({ 
-  bay, 
-  isOpen, 
-  onClose, 
-  onSave 
-}: { 
-  bay: ManufacturingBay, 
-  isOpen: boolean, 
-  onClose: () => void,
-  onSave: (bayId: number, staffCount: number, hoursPerPersonPerWeek: number) => void 
-}) => {
-  const [staffCount, setStaffCount] = useState(bay.staffCount);
-  const [hoursPerWeek, setHoursPerWeek] = useState(bay.hoursPerPersonPerWeek);
-  
-  const handleSave = () => {
-    onSave(bay.id, staffCount, hoursPerWeek);
-    onClose();
-  };
+// Simple BayCapacityInfo component to show staffing breakdown
+const BayCapacityInfo = ({ bay }: { bay: ManufacturingBay }) => {
+  const totalCapacity = bay.hoursPerPersonPerWeek * bay.staffCount;
   
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Edit Bay Capacity</DialogTitle>
-          <DialogDescription>
-            Update staff count and hours per person for Bay {bay.bayNumber}: {bay.name}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <label className="text-right text-sm">Staff Count</label>
-            <input
-              type="number"
-              className="col-span-3 p-2 rounded bg-gray-800 border border-gray-700"
-              value={staffCount}
-              min={1}
-              onChange={(e) => setStaffCount(parseInt(e.target.value) || 1)}
-            />
+    <div className="flex flex-col">
+      <div className="text-xs text-gray-400 mb-1">
+        <div className="flex items-center">
+          <div className="flex items-center mr-3">
+            <Users className="h-3 w-3 mr-1 text-blue-400" />
+            <span>{bay.assemblyStaffCount}</span>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <label className="text-right text-sm">Hours per Person/Week</label>
-            <input
-              type="number" 
-              className="col-span-3 p-2 rounded bg-gray-800 border border-gray-700"
-              value={hoursPerWeek}
-              min={1}
-              max={80}
-              onChange={(e) => setHoursPerWeek(parseInt(e.target.value) || 40)}
-            />
+          <div className="flex items-center">
+            <Zap className="h-3 w-3 mr-1 text-amber-400" />
+            <span>{bay.electricalStaffCount}</span>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave}>Save Changes</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+      <div className="text-xs text-gray-400">
+        {totalCapacity}h/week capacity
+      </div>
+    </div>
   );
 };
 
 const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   schedules,
   projects,
-  bays,
+  bays: initialBays,
   onScheduleChange,
   onScheduleCreate,
   dateRange,
   viewMode
 }) => {
+  // Extended state
+  const [bays, setBays] = useState<ManufacturingBay[]>(initialBays);
   const { toast } = useToast();
   const [draggingSchedule, setDraggingSchedule] = useState<any>(null);
   const [resizingSchedule, setResizingSchedule] = useState<any>(null);
   const [dropTarget, setDropTarget] = useState<{ bayId: number, slotIndex: number, rowIndex?: number } | null>(null);
   const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
+  const [newBay, setNewBay] = useState<ManufacturingBay | null>(null);
   
   // Generate time slots based on view mode
   const { slots, slotWidth } = useMemo(() => 
@@ -611,6 +579,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       );
       
       setEditingBay(null);
+      
+      toast({
+        title: "Bay Updated",
+        description: `Bay ${updatedBay.bayNumber}: ${updatedBay.name} has been updated successfully.`,
+      });
     } catch (error) {
       console.error('Error updating bay:', error);
       toast({
@@ -621,9 +594,68 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
   };
   
+  // Handle creating a new bay
+  const handleCreateBay = async (bayId: number, bayData: Partial<ManufacturingBay>) => {
+    try {
+      // Call API to create the bay
+      const response = await fetch('/api/manufacturing-bays', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bayData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create bay');
+      }
+      
+      const newBayCreated = await response.json();
+      
+      // Update the local state
+      setBays(prevBays => [...prevBays, newBayCreated]);
+      
+      setNewBay(null);
+      
+      toast({
+        title: "Bay Created",
+        description: `Bay ${newBayCreated.bayNumber}: ${newBayCreated.name} has been created successfully.`,
+      });
+    } catch (error) {
+      console.error('Error creating bay:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create bay. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+  
   // Render
   return (
     <div className="mb-8 overflow-hidden">
+      {/* EditBayDialog for existing bay edit */}
+      {editingBay && (
+        <EditBayDialog 
+          bay={editingBay}
+          isOpen={!!editingBay}
+          onClose={() => setEditingBay(null)}
+          onSave={handleSaveBayEdit}
+          isNewBay={false}
+        />
+      )}
+      
+      {/* EditBayDialog for new bay creation */}
+      {newBay && (
+        <EditBayDialog 
+          bay={newBay}
+          isOpen={!!newBay}
+          onClose={() => setNewBay(null)}
+          onSave={handleCreateBay}
+          isNewBay={true}
+        />
+      )}
+      
       <div className="flex">
         {/* Left sidebar with bay labels */}
         <div className="shrink-0 w-48 border-r border-gray-700">
@@ -643,9 +675,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   </Badge>
                   <div>
                     <div className="text-sm font-semibold">{bay.name}</div>
-                    <div className="text-xs text-gray-400">
-                      {bay.staffCount} staff · {bay.hoursPerPersonPerWeek * bay.staffCount}h/week
-                    </div>
+                    <BayCapacityInfo bay={bay} />
                   </div>
                 </div>
                 <Button 
