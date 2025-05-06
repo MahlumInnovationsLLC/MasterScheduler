@@ -141,38 +141,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: User) => {
       console.log("Login successful, refreshing user data in cache");
-      
-      // Set the logged in user in the query cache
-      queryClient.setQueryData(["/api/auth/user"], user);
-      
-      // Verify the session is working by making an API call
-      console.log("Verifying session with API call...");
-      fetch("/api/auth/user", { credentials: "include" })
-        .then(res => {
-          console.log("Session verification status:", res.status);
-          if (res.ok) {
-            return res.json();
-          }
-          throw new Error("Session verification failed");
-        })
-        .then(data => {
-          console.log("Session verified successfully:", data);
-        })
-        .catch(err => {
-          console.error("Session verification error:", err);
-        });
-      
-      // Set the success message
+      // Invalidate the auth user query so it will be refetched with the session cookie
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Login successful",
         description: `Welcome back${user.firstName ? `, ${user.firstName}` : ""}!`,
       });
-      
-      // Force a hard navigation to ensure session is maintained
-      setTimeout(() => {
-        console.log("Hard navigation to home page...");
-        window.location.href = "/";
-      }, 500);
     },
     onError: (error: Error) => {
       toast({

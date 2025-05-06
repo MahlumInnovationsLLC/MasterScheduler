@@ -105,7 +105,14 @@ const Sidebar = () => {
               </Link>
             </li>
 
-            {/* Archived Projects moved to Project Status module as a tab */}
+            <li>
+              <Link href="/archived-projects" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/archived-projects') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
+              }`}>
+                <FileArchive className={`text-xl ${isActive('/archived-projects') ? 'text-primary' : ''}`} />
+                <span>Archived Projects</span>
+              </Link>
+            </li>
           </ul>
         </div>
         

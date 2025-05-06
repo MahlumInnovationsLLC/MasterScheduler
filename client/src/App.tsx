@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation, Redirect } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,7 +10,7 @@ import BillingMilestones from "@/pages/BillingMilestones";
 import ManufacturingBay from "@/pages/ManufacturingBay";
 import ProjectDetails from "@/pages/ProjectDetails";
 import ProjectEdit from "@/pages/ProjectEdit";
-// ArchivedProjects moved to Project Status module as a tab
+import ArchivedProjects from "@/pages/ArchivedProjects";
 import OnTimeDelivery from "@/pages/OnTimeDelivery";
 import CalendarPage from "@/pages/Calendar";
 import Reports from "@/pages/Reports";
@@ -19,7 +19,6 @@ import SystemSettings from "@/pages/SystemSettings";
 import UserPreferences from "@/pages/UserPreferences";
 import AuthPage from "@/pages/auth-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
-import DevLoginHandler from "@/pages/DevLoginHandler";
 import NotFound from "@/pages/not-found";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -31,13 +30,12 @@ function Router() {
   const isAuthPage = location === "/auth";
   const isResetPasswordPage = location === "/reset-password" || location.startsWith("/reset-password?");
 
-  // If we're on the auth page, reset password page, or dev login handler, render without the app layout
-  if (isAuthPage || isResetPasswordPage || location === "/dev-login-handler") {
+  // If we're on the auth page or reset password page, render without the app layout
+  if (isAuthPage || isResetPasswordPage) {
     return (
       <Switch>
         <Route path="/auth" component={AuthPage} />
         <Route path="/reset-password" component={ResetPasswordPage} />
-        <Route path="/dev-login-handler" component={DevLoginHandler} />
       </Switch>
     );
   }
@@ -53,14 +51,13 @@ function Router() {
             <ProtectedRoute path="/projects" component={ProjectStatus} />
             <ProtectedRoute path="/project/:id" component={ProjectDetails} />
             <ProtectedRoute path="/project/:id/edit" component={ProjectEdit} />
-            {/* Archived Projects moved to Project Status module as a tab */}
+            <ProtectedRoute path="/archived-projects" component={ArchivedProjects} />
             <ProtectedRoute path="/billing" component={BillingMilestones} />
             <ProtectedRoute path="/manufacturing" component={ManufacturingBay} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />
             <ProtectedRoute path="/reports" component={Reports} />
             <ProtectedRoute path="/import" component={ImportData} />
             <ProtectedRoute path="/settings/system" component={SystemSettings} />
-            <Route path="/archived-projects" component={() => <Redirect to="/projects" />} />
             <ProtectedRoute path="/system-settings" component={SystemSettings} />
             <ProtectedRoute path="/settings" component={SystemSettings} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />

@@ -22,8 +22,7 @@ import {
   importProjects, 
   importBillingMilestones, 
   importManufacturingBays, 
-  importManufacturingSchedules,
-  importDeliveryTracking 
+  importManufacturingSchedules 
 } from "./import";
 import {
   getProjectDeliveryTracking,
@@ -466,7 +465,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/billing-milestones", isAuthenticated, importBillingMilestones);
   app.post("/api/import/manufacturing-bays", isAuthenticated, importManufacturingBays);
   app.post("/api/import/manufacturing-schedules", isAuthenticated, importManufacturingSchedules);
-  app.post("/api/import/delivery-tracking", isAuthenticated, importDeliveryTracking);
   
   // Delivery Tracking routes 
   app.get("/api/delivery-tracking", getAllDeliveryTracking);
@@ -594,107 +592,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("DEV-LOGIN: Found admin user:", adminUser.id);
       
-      // Create a token for direct login that will expire in 1 minute
-      const token = randomBytes(32).toString('hex');
-      
-      // Store the token and user ID in a temporary store accessible via API
-      // This avoids session issues with redirects
-      const tempLoginCache = {
-        token,
-        userId: adminUser.id,
-        expiresAt: Date.now() + 60000, // 1 minute expiry
-        used: false
-      };
-      
-      // Store in a global variable (this is dev-only)
-      if (!global.tempDevLoginCache) {
-        global.tempDevLoginCache = {};
-      }
-      global.tempDevLoginCache[token] = tempLoginCache;
-      
-      console.log(`DEV-LOGIN: Created temporary login token: ${token}`);
-      
-      // Check if we should return JSON or redirect to client login handler
-      if (req.query.redirect === 'true') {
-        const redirectUrl = `/dev-login-handler?token=${token}`;
-        console.log(`DEV-LOGIN: Redirecting to client handler: ${redirectUrl}`);
-        return res.redirect(redirectUrl);
-      }
-      
-      // Return the token for API usage
-      return res.json({
-        message: "Development auto-login token created",
-        token,
-        expiresAt: tempLoginCache.expiresAt
-      });
-    } catch (error) {
-      console.error("DEV-LOGIN ERROR:", error);
-      res.status(500).json({ message: "Failed to auto-login", error: String(error) });
-    }
-  });
-  
-  // TEMPORARY: API to validate and use dev login token
-  app.post("/api/complete-dev-login", async (req, res) => {
-    if (process.env.NODE_ENV === "production") {
-      return res.status(404).json({ message: "Route not found" });
-    }
-    
-    const { token } = req.body;
-    if (!token) {
-      return res.status(400).json({ message: "Token is required" });
-    }
-    
-    try {
-      // Check if token exists and is valid
-      if (!global.tempDevLoginCache || !global.tempDevLoginCache[token]) {
-        return res.status(401).json({ message: "Invalid or expired token" });
-      }
-      
-      const tempLogin = global.tempDevLoginCache[token];
-      
-      // Check if token is expired
-      if (tempLogin.expiresAt < Date.now() || tempLogin.used) {
-        // Clean up expired token
-        delete global.tempDevLoginCache[token];
-        return res.status(401).json({ message: "Token expired or already used" });
-      }
-      
-      // Mark token as used
-      tempLogin.used = true;
-      
-      // Get the user
-      const user = await storage.getUser(tempLogin.userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      console.log("COMPLETE-DEV-LOGIN: Found user:", user.id);
-      
       // Log in the user directly
-      req.login(user, (err) => {
+      req.login(adminUser, (err) => {
         if (err) {
-          console.error("COMPLETE-DEV-LOGIN ERROR:", err);
+          console.error("DEV-LOGIN ERROR:", err);
           return res.status(500).json({ message: "Login failed", error: err.message });
         }
         
-        console.log("COMPLETE-DEV-LOGIN: Session after login:", req.session);
+        console.log("DEV-LOGIN: Session after login:", req.session);
+        console.log("DEV-LOGIN: User in session:", req.user);
         
         // Return user info without sensitive data
-        const { password, passwordResetToken, passwordResetExpires, ...userInfo } = user;
+        const { password, passwordResetToken, passwordResetExpires, ...userInfo } = adminUser;
         
-        // Clean up the token now that it's been used
-        delete global.tempDevLoginCache[token];
+        // Send session cookie explicitly
+        res.cookie('tier4.sid', req.sessionID, {
+          httpOnly: true,
+          secure: false,
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
+        });
         
-        // Return the user info
         return res.json({
           ...userInfo,
           message: "Development auto-login successful",
-          isAuthenticated: true
+          sessionID: req.sessionID
         });
       });
     } catch (error) {
-      console.error("COMPLETE-DEV-LOGIN ERROR:", error);
-      res.status(500).json({ message: "Failed to complete auto-login", error: String(error) });
+      console.error("DEV-LOGIN ERROR:", error);
+      res.status(500).json({ message: "Failed to auto-login", error: error.message });
     }
   });
 

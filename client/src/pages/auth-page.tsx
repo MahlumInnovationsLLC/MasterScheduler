@@ -28,9 +28,7 @@ export default function AuthPage() {
 
   // If user is already logged in, redirect to home page
   if (user) {
-    console.log("User already logged in, redirecting to home page");
-    // Using window.location for hard redirect rather than wouter setLocation
-    window.location.href = "/";
+    setLocation("/");
     return null;
   }
 
@@ -41,7 +39,7 @@ export default function AuthPage() {
       console.log("Calling login mutation...");
       const result = await loginMutation.mutateAsync(loginData);
       console.log("Login successful, user data:", result);
-      // The redirect will be handled in the onSuccess callback of the mutation
+      setLocation("/");
     } catch (error: any) {
       console.error("Login form submission error:", error);
       // Error handling is done in the mutation
@@ -72,21 +70,32 @@ export default function AuthPage() {
     );
   }
 
-  // Development-only auto-login with direct navigation approach
-  const handleDevLogin = () => {
+  // Development-only auto-login
+  const handleDevLogin = async () => {
     try {
-      console.log("Attempting dev auto-login with direct navigation...");
-      
-      // Show toast notification
-      toast({
-        title: "Development Login",
-        description: "Auto-logging in as admin...",
+      console.log("Attempting dev auto-login...");
+      const response = await fetch("/api/dev-login", {
+        method: "GET",
+        credentials: "include"
       });
       
-      // Navigate directly to the endpoint with redirect=true parameter
-      console.log("Navigating to dev-login with redirect...");
-      window.location.href = '/api/dev-login?redirect=true';
+      if (!response.ok) {
+        throw new Error("Dev login failed");
+      }
       
+      const userData = await response.json();
+      console.log("Dev login successful:", userData);
+      
+      // Refresh the auth state to reflect the new logged in user
+      await loginMutation.mutateAsync({ email: "colter.mahlum@nomadgcs.com", password: "password" });
+      
+      // Redirect to home page
+      setLocation("/");
+      
+      toast({
+        title: "Development Login Successful",
+        description: `Auto-logged in as ${userData.email} (${userData.role})`,
+      });
     } catch (error) {
       console.error("Dev login error:", error);
       toast({

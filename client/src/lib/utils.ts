@@ -59,32 +59,9 @@ export function calculatePercentComplete(startDate: Date | string, endDate: Date
   return Math.min(100, Math.max(0, percent));
 }
 
-export function getProjectStatusColor(status: string): string {
-  switch (status.toLowerCase()) {
-    case 'active':
-      return 'bg-blue-900 text-blue-400';
-    case 'delayed':
-      return 'bg-warning-900 text-warning-400';
-    case 'critical':
-      return 'bg-danger-900 text-danger-400';
-    case 'completed':
-      return 'bg-success-900 text-success-400';
-    case 'delivered':
-      return 'bg-purple-900 text-purple-400';
-    case 'archived':
-      return 'bg-gray-900 text-gray-400';
-    case 'on-hold':
-      return 'bg-gray-900 text-gray-400';
-    case 'cancelled':
-      return 'bg-red-900 text-red-400';
-    default:
-      return 'bg-gray-800 text-gray-400';
-  }
-}
-
-export function calculateProjectStatus(percentComplete: number, dueDate: Date | string | undefined | null): string {
+export function getProjectStatusColor(percentComplete: number, dueDate: Date | string | undefined | null): { color: string, status: string } {
   if (!dueDate) {
-    return 'active';
+    return { color: 'bg-gray-500', status: 'Unknown' };
   }
   
   const due = new Date(dueDate);
@@ -94,22 +71,22 @@ export function calculateProjectStatus(percentComplete: number, dueDate: Date | 
   // Critical - due date passed or very close with low completion
   if ((daysUntilDue < 0 && percentComplete < 95) ||
       (daysUntilDue < 3 && percentComplete < 80)) {
-    return 'critical';
+    return { color: 'bg-danger', status: 'Critical' };
   }
   
   // Delayed - behind expected progress
   if ((daysUntilDue < 10 && percentComplete < 70) ||
       (percentComplete < 0.5 * (100 - daysUntilDue))) {
-    return 'delayed';
+    return { color: 'bg-warning', status: 'Delayed' };
   }
   
   // Completed
   if (percentComplete >= 100) {
-    return 'completed';
+    return { color: 'bg-success', status: 'Completed' };
   }
   
   // On track
-  return 'active';
+  return { color: 'bg-success', status: 'On Track' };
 }
 
 export function getBillingStatusInfo(
