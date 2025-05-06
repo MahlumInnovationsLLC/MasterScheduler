@@ -117,9 +117,9 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
       
-      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-        <Table className="w-full min-w-max">
-          <TableHeader>
+      <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+        <Table className="w-full">
+          <TableHeader className="sticky top-0 z-20">
             <TableRow>
               {table.getHeaderGroups()[0].headers.map((header) => {
                 const isColumnFrozen = frozenColumns.includes(header.column.id);
@@ -138,7 +138,7 @@ export function DataTable<TData, TValue>({
                 return (
                   <TableHead 
                     key={header.id}
-                    className={`px-4 py-3 bg-gray-900 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${
+                    className={`px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${
                       isColumnFrozen ? 'sticky z-20' : ''
                     } ${isColumnFrozen && frozenColumns.indexOf(header.column.id) === frozenColumns.length - 1 ? 'after:absolute after:right-0 after:top-0 after:bottom-0 after:w-[2px] after:bg-primary/30 after:content-[""]' : ''}`}
                     style={{
@@ -146,8 +146,8 @@ export function DataTable<TData, TValue>({
                       width: header.getSize() || 150,
                       position: isColumnFrozen ? 'sticky' : undefined,
                       left: isColumnFrozen ? `${leftPosition}px` : undefined,
-                      boxShadow: isColumnFrozen ? '2px 0 4px rgba(0,0,0,0.15)' : undefined,
-                      backgroundColor: isColumnFrozen ? '#1a1b26' : undefined,
+                      boxShadow: isColumnFrozen ? '4px 0 8px rgba(0,0,0,0.15)' : undefined,
+                      backgroundColor: 'var(--color-bg-card)',
                       zIndex: isColumnFrozen ? 30 : undefined
                     }}
                   >
@@ -183,7 +183,7 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className="border-b border-gray-800 hover:bg-gray-900/50"
+                  className="border-b border-gray-800 hover:bg-opacity-50 hover:bg-gray-800"
                 >
                   {row.getVisibleCells().map((cell) => {
                     const isColumnFrozen = frozenColumns.includes(cell.column.id);
@@ -209,8 +209,8 @@ export function DataTable<TData, TValue>({
                           width: cell.column.getSize() || 150,
                           position: isColumnFrozen ? 'sticky' : undefined,
                           left: isColumnFrozen ? `${leftPosition}px` : undefined,
-                          boxShadow: isColumnFrozen ? '2px 0 4px rgba(0,0,0,0.15)' : undefined,
-                          backgroundColor: isColumnFrozen ? '#1e1e2e' : undefined,
+                          boxShadow: isColumnFrozen ? '4px 0 8px rgba(0,0,0,0.15)' : undefined,
+                          backgroundColor: 'var(--color-bg-card)',
                           zIndex: isColumnFrozen ? 20 : undefined
                         }}
                       >
