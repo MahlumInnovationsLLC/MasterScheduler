@@ -174,7 +174,7 @@ export function EditBayDialog({
           
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right font-medium">Total Staff</Label>
-            <div className="col-span-3 py-2 px-3 bg-gray-800 rounded border border-gray-700">
+            <div className="col-span-3 py-2 px-3 bg-muted rounded border">
               {totalStaffCount} staff member{totalStaffCount !== 1 ? 's' : ''}
             </div>
           </div>
@@ -194,7 +194,7 @@ export function EditBayDialog({
           
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right font-medium">Weekly Capacity</Label>
-            <div className="col-span-3 py-2 px-3 bg-gray-800 rounded border border-gray-700">
+            <div className="col-span-3 py-2 px-3 bg-muted rounded border">
               {totalStaffCount * hoursPerPersonPerWeek} hours per week
             </div>
           </div>
