@@ -31,26 +31,51 @@ const Dashboard = () => {
   
   const [filteredProjects, setFilteredProjects] = useState([]);
   
-  // Show just the first few active projects on the dashboard
+  // Show the top 5 projects that are ready to ship next
   useEffect(() => {
     if (!projects) return;
     
-    // First prioritize active projects
-    const activeProjects = projects
-      .filter(p => p.status === 'active' || p.status === 'delayed' || p.status === 'critical')
+    // Helper to get valid dates and handle null/invalid dates
+    const getValidDate = (dateStr) => {
+      if (!dateStr) return null;
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? null : date;
+    };
+    
+    // Filter for projects with valid ship dates and sort by earliest ship date
+    const now = new Date();
+    const upcomingProjects = projects
+      .filter(p => {
+        const shipDate = getValidDate(p.shipDate);
+        return shipDate && shipDate >= now;
+      })
       .sort((a, b) => {
-        // Sort by projectNumber for a predictable order
-        const numA = parseInt(a.projectNumber.replace(/\D/g, '')) || 0;
-        const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
-        return numB - numA; // Most recent (highest) numbers first
+        const dateA = getValidDate(a.shipDate);
+        const dateB = getValidDate(b.shipDate);
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateA.getTime() - dateB.getTime(); // Sort by earliest ship date first
       });
       
-    // Just take the first 3 projects to show only the entries
-    if (activeProjects.length > 0) {
-      setFilteredProjects(activeProjects.slice(0, 3));
+    // Show up to 5 projects ready to ship next
+    if (upcomingProjects.length > 0) {
+      setFilteredProjects(upcomingProjects.slice(0, 5));
     } else {
-      // If no active projects, show the first 3 of any status
-      setFilteredProjects(projects.slice(0, 3));
+      // If no upcoming ship dates, show active projects instead
+      const activeProjects = projects
+        .filter(p => p.status === 'active' || p.status === 'delayed' || p.status === 'critical')
+        .sort((a, b) => {
+          const numA = parseInt(a.projectNumber.replace(/\D/g, '')) || 0;
+          const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
+          return numB - numA; // Most recent numbers first
+        });
+      
+      if (activeProjects.length > 0) {
+        setFilteredProjects(activeProjects.slice(0, 5));
+      } else {
+        // If no active projects either, show any projects
+        setFilteredProjects(projects.slice(0, 5));
+      }
     }
   }, [projects]);
 
@@ -133,6 +158,18 @@ const Dashboard = () => {
     };
   }, [manufacturingSchedules]);
 
+  // Helper function to format dates consistently
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'N/A';
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+  
   // Project table columns
   const projectColumns = [
     {
@@ -140,10 +177,7 @@ const Dashboard = () => {
       header: 'Project',
       cell: ({ row }) => (
         <div className="flex items-center">
-          <div className="flex-shrink-0 h-8 w-8 rounded bg-primary flex items-center justify-center text-white font-medium">
-            {row.original.projectNumber.slice(-2)}
-          </div>
-          <div className="ml-3">
+          <div className="ml-2">
             <div className="text-sm font-medium text-white">{row.original.projectNumber}</div>
             <div className="text-xs text-gray-400">{row.original.name}</div>
           </div>
@@ -158,6 +192,15 @@ const Dashboard = () => {
           <div className="px-3 py-1 rounded bg-primary text-white font-medium">
             {row.original.location || 'N/A'}
           </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'shipDate',
+      header: 'Ship Date',
+      cell: ({ row }) => (
+        <div className="text-sm">
+          {formatDate(row.original.shipDate)}
         </div>
       ),
     },
@@ -276,7 +319,7 @@ const Dashboard = () => {
 
       {/* Projects Table */}
       <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-xl font-sans font-bold">Featured Projects</h2>
+        <h2 className="text-xl font-sans font-bold">Next Projects Ready to Ship</h2>
         <Link href="/projects">
           <Button variant="outline" size="sm">
             View All Projects
@@ -288,7 +331,7 @@ const Dashboard = () => {
         columns={projectColumns}
         data={filteredProjects}
         showPagination={false}
-        frozenColumns={['projectNumber', 'location', 'pmOwnerId', 'percentComplete', 'status']}
+        frozenColumns={['projectNumber', 'location', 'shipDate', 'pmOwnerId', 'percentComplete', 'status']}
       />
     </div>
   );
