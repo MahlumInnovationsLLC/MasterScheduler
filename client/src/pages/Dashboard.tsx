@@ -22,7 +22,7 @@ import { BillingStatusCard } from '@/components/BillingStatusCard';
 import { ManufacturingCard } from '@/components/ManufacturingCard';
 import { ProgressBadge } from '@/components/ui/progress-badge';
 import { formatDate, formatCurrency, getProjectStatusColor } from '@/lib/utils';
-import { DataTable } from '@/components/ui/data-table';
+import { DashboardTable } from '@/components/ui/dashboard-table';
 
 const Dashboard = () => {
   const { data: projects, isLoading: isLoadingProjects } = useQuery({
@@ -254,21 +254,7 @@ const Dashboard = () => {
         return <ProgressBadge status={status} animatePulse={status === 'Critical'} />;
       },
     },
-    {
-      id: 'actions',
-      size: 10, // Make column width very narrow to fit just the button
-      maxSize: 10, // Enforce maximum width
-      header: "",  // Empty header
-      cell: ({ row }) => (
-        <div className="flex justify-center w-full">
-          <Link href={`/projects/${row.original.id}`}>
-            <Button variant="ghost" size="icon" className="h-6 w-6 p-0 min-w-[24px]">
-              <ArrowUpRight className="h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
-      ),
-    },
+
   ];
 
   if (isLoadingProjects || isLoadingBilling || isLoadingManufacturing) {
@@ -350,7 +336,7 @@ const Dashboard = () => {
       </div>
 
       <div className="w-full">
-        <DataTable
+        <DashboardTable
           columns={projectColumns}
           data={filteredProjects}
           showPagination={false}
