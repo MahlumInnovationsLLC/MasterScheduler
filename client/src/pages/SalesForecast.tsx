@@ -43,12 +43,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Calendar as CalendarIcon, Check, ChevronDown, Pencil, Plus, Table, Trash2 } from "lucide-react";
+import { 
+  AlertCircle, 
+  Calendar as CalendarIcon, 
+  Check, 
+  ChevronDown, 
+  Pencil, 
+  Plus, 
+  Table, 
+  Grid, 
+  Trash2 
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { SalesDeal } from "@shared/schema";
 import { Loading } from "@/components/ui/loading";
+import { SalesDealsTable } from "@/components/SalesDealsTable";
 
 // Component to create or edit a sales deal
 function SalesDealForm({ 
