@@ -228,12 +228,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/tasks/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const task = await storage.updateTask(id, req.body);
+      console.log(`Processing task update for ID ${id} with data:`, JSON.stringify(req.body, null, 2));
+      
+      // Handle special cases for task data
+      let taskData = { ...req.body };
+      
+      // If setting isCompleted to true but no completedDate provided, add it
+      if (taskData.isCompleted === true && !taskData.completedDate) {
+        taskData.completedDate = new Date().toISOString().split('T')[0];
+        console.log(`Added completion date: ${taskData.completedDate}`);
+      }
+      
+      const task = await storage.updateTask(id, taskData);
+      
       if (!task) {
+        console.error(`Task ID ${id} not found for update`);
         return res.status(404).json({ message: "Task not found" });
       }
+      
+      console.log(`Successfully updated task:`, task);
       res.json(task);
     } catch (error) {
+      console.error("Error updating task:", error);
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
       res.status(500).json({ message: "Error updating task" });
     }
   });

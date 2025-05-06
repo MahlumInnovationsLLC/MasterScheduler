@@ -379,24 +379,58 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateTask(id: number, task: Partial<InsertTask>): Promise<Task | undefined> {
-    const [updatedTask] = await db
-      .update(tasks)
-      .set(task)
-      .where(eq(tasks.id, id))
-      .returning();
-    return updatedTask;
+    try {
+      console.log(`Updating task ID ${id} with data:`, JSON.stringify(task, null, 2));
+      
+      // Handle completedDate if isCompleted is being set to true
+      let updateData = { ...task };
+      if (task.isCompleted === true && !task.completedDate) {
+        updateData.completedDate = new Date().toISOString().split('T')[0];
+        console.log(`Adding completion date: ${updateData.completedDate}`);
+      }
+      
+      const [updatedTask] = await db
+        .update(tasks)
+        .set(updateData)
+        .where(eq(tasks.id, id))
+        .returning();
+        
+      console.log(`Task ${id} updated successfully:`, updatedTask);
+      return updatedTask;
+    } catch (error) {
+      console.error(`Error updating task ${id}:`, error);
+      // Log the specific error for debugging
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      return undefined;
+    }
   }
   
   async completeTask(id: number, completedDate: Date): Promise<Task | undefined> {
-    const [updatedTask] = await db
-      .update(tasks)
-      .set({ 
-        isCompleted: true, 
-        completedDate: completedDate.toISOString().split('T')[0]
-      })
-      .where(eq(tasks.id, id))
-      .returning();
-    return updatedTask;
+    try {
+      console.log(`Completing task ID ${id} with date ${completedDate}`);
+      
+      const [updatedTask] = await db
+        .update(tasks)
+        .set({ 
+          isCompleted: true, 
+          completedDate: completedDate.toISOString().split('T')[0]
+        })
+        .where(eq(tasks.id, id))
+        .returning();
+        
+      console.log(`Task ${id} completed successfully:`, updatedTask);
+      return updatedTask;
+    } catch (error) {
+      console.error(`Error completing task ${id}:`, error);
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      return undefined;
+    }
   }
   
   async deleteTask(id: number): Promise<boolean> {
