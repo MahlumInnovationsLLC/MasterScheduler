@@ -563,7 +563,8 @@ const ProjectDetails = () => {
                 setTaskForm({
                   name: '',
                   description: '',
-                  dueDate: new Date().toISOString().split('T')[0]
+                  dueDate: new Date().toISOString().split('T')[0],
+                  milestoneId: milestones[0]?.id || 0
                 });
                 setTaskDialogOpen(true);
               }}
