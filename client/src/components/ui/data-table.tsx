@@ -210,9 +210,9 @@ export function DataTable<TData, TValue>({
                                   minWidth: `${width}px`,
                                   background: 'var(--background)',
                                   borderRight: '1px solid var(--border-muted)',
-                                  height: '54px',
-                                  paddingTop: '18px',
-                                  paddingBottom: '18px'
+                                  height: '48px',
+                                  paddingTop: '14px',
+                                  paddingBottom: '14px'
                                 }}
                               >
                                 {flexRender(
