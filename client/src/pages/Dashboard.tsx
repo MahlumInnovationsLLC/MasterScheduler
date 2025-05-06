@@ -20,9 +20,9 @@ import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
 import { BillingStatusCard } from '@/components/BillingStatusCard';
 import { ManufacturingCard } from '@/components/ManufacturingCard';
-import { DashboardTable } from '@/components/ui/dashboard-table';
 import { ProgressBadge } from '@/components/ui/progress-badge';
 import { formatDate, formatCurrency, getProjectStatusColor } from '@/lib/utils';
+import { DataTable } from '@/components/ui/data-table';
 
 const Dashboard = () => {
   const { data: projects, isLoading: isLoadingProjects } = useQuery({
@@ -328,9 +328,10 @@ const Dashboard = () => {
       </div>
 
       <div className="w-full">
-        <DashboardTable
+        <DataTable
           columns={projectColumns}
           data={filteredProjects}
+          showPagination={false}
         />
       </div>
     </div>
