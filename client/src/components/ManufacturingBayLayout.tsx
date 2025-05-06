@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -154,29 +154,22 @@ const SortableProjectCard = ({
     }
   };
 
+  // Helper to format dates in a friendly format
   const formatDateDisplay = (dateString: string) => {
-    try {
-      return format(new Date(dateString), 'MMM d');
-    } catch {
-      return 'N/A';
-    }
+    const date = new Date(dateString);
+    return format(date, 'MMM d');
   };
 
   return (
-    <div
-      ref={setNodeRef}
+    <div 
+      ref={setNodeRef} 
       style={style}
-      {...attributes}
+      {...attributes} 
       {...listeners}
-      className={`cursor-grab active:cursor-grabbing bg-darkCard rounded-md p-3 border border-gray-800 shadow-sm ${
-        isDragging ? 'shadow-lg' : ''
-      }`}
+      className="bg-darkCard rounded-md p-3 mb-2 border border-gray-800 shadow-sm cursor-grab"
     >
-      <div className="flex justify-between items-start">
-        <div>
-          <div className="font-medium text-sm">{project.name}</div>
-          <div className="text-xs text-gray-400 mt-0.5">{project.projectNumber}</div>
-        </div>
+      <div className="flex items-center justify-between">
+        <div className="font-medium truncate">{project.name}</div>
         <Badge className={`${getStatusColor(project.status)} text-xs`}>
           {project.status.replace('_', ' ')}
         </Badge>
@@ -208,80 +201,133 @@ const BaySlot = ({
   return (
     <div 
       className={`
-        h-16 w-24 border-b border-r border-gray-800 flex items-center justify-center relative
-        ${isToday ? 'bg-primary bg-opacity-5' : ''}
-        ${isWeekend ? 'bg-gray-900' : ''}
-        ${isOver ? 'bg-primary bg-opacity-20' : ''}
-        ${slot.isDisabled ? 'bg-gray-800 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-800'}
+        h-12 w-36 border-r border-b border-gray-800 relative
+        ${isToday ? 'bg-primary/10' : isWeekend ? 'bg-gray-900/10' : 'bg-transparent'}
+        ${slot.isOccupied ? 'cursor-not-allowed' : 'cursor-pointer'}
+        ${slot.isDisabled ? 'opacity-50' : ''}
+        ${isOver ? 'bg-primary/20' : ''}
       `}
+      id={slot.id}
       onDoubleClick={() => onDoubleClick(slot)}
-    >
-      <div className="absolute top-1 right-2 text-xs text-gray-400">{day}</div>
-    </div>
+    />
   );
 };
 
-// Bay Group component for the left panel
-const BayGroupSection = ({ 
+// Bay group component (represents a section of bays with a common team)
+const BayGroup = ({ 
   group, 
+  slots,
   schedules,
-  onEditBay,
-  onAddProject
+  onEditBay, 
+  onSlotDoubleClick 
 }: { 
   group: BayGroup; 
-  schedules: ManufacturingSchedule[];
+  slots: Record<number, BaySlot[]>;
+  schedules: ScheduleItem[];
   onEditBay: (bay: Bay) => void;
-  onAddProject: (bayId: number) => void;
+  onSlotDoubleClick: (slot: BaySlot) => void;
 }) => {
-  // Count active projects for each bay in this group
-  const getBayProjectCount = (bayId: number) => {
-    return schedules.filter(s => s.bayId === bayId).length;
-  };
-  
   return (
     <div className="mb-6">
-      <div className="bg-gray-800 p-2 mb-2 rounded-md font-medium text-sm flex justify-between items-center">
-        {group.name}
-        <span className="text-xs text-gray-400">{group.team}</span>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xl font-semibold text-primary">{group.name}</h3>
+        <Badge variant="outline" className="text-xs">Team: {group.team}</Badge>
       </div>
-      <div className="space-y-2">
-        {group.bays.map(bay => (
-          <div 
-            key={bay.id}
-            className="bg-darkCard p-3 rounded-md border border-gray-800 flex items-center justify-between"
-          >
-            <div className="flex-1">
-              <div className="font-medium">Bay {bay.bayNumber}</div>
-              <div className="text-xs text-gray-400 flex items-center gap-1 mt-1">
-                <span>{bay.name}</span>
-                <button onClick={() => onEditBay(bay)} className="text-gray-400 hover:text-white">
-                  <Edit className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge className={bay.isActive ? 'bg-success bg-opacity-10 text-success' : 'bg-gray-500 bg-opacity-10 text-gray-500'}>
-                {bay.isActive ? 'Active' : 'Inactive'}
-              </Badge>
-              <button 
-                onClick={() => onAddProject(bay.id)} 
-                className="text-primary hover:text-white transition-colors"
-                title="Add project"
+      
+      {group.bays.map(bay => (
+        <div key={bay.id} className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center">
+              <h4 className="font-medium">{bay.name} - Bay {bay.bayNumber}</h4>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0 ml-2"
+                onClick={() => onEditBay(bay)}
               >
-                <PlusCircle className="h-5 w-5" />
-              </button>
+                <Edit className="h-4 w-4" />
+              </Button>
             </div>
-            <div className="text-xs text-primary ml-2">
-              {getBayProjectCount(bay.id)} projects
+            <div className="text-xs text-gray-400">{bay.description}</div>
+          </div>
+          
+          <div className="flex relative">
+            {/* Bay slots */}
+            <div className="flex">
+              {slots[bay.id]?.map(slot => (
+                <BaySlot 
+                  key={slot.id} 
+                  slot={slot} 
+                  onDoubleClick={onSlotDoubleClick} 
+                />
+              ))}
+            </div>
+            
+            {/* Project cards positioned absolutely over the slots */}
+            <div className="absolute top-0 left-0 h-12">
+              {schedules
+                .filter(schedule => schedule.bayId === bay.id)
+                .map(schedule => {
+                  // Find the starting slot for this schedule
+                  const startSlot = slots[bay.id]?.find(slot => 
+                    format(slot.date, 'yyyy-MM-dd') === format(new Date(schedule.startDate), 'yyyy-MM-dd')
+                  );
+                  
+                  if (!startSlot) return null;
+                  
+                  // Calculate the width based on duration
+                  const width = calculateProjectWidth(schedule, slots[bay.id] || []);
+                  
+                  // Determine the left position based on the start date
+                  const startIndex = slots[bay.id]?.findIndex(s => s.id === startSlot.id) || 0;
+                  const left = startIndex * 36; // Each slot is 36px wide
+
+                  return (
+                    <div 
+                      key={schedule.id}
+                      className="absolute h-11 rounded-sm border overflow-hidden"
+                      style={{ 
+                        left: `${left}px`, 
+                        width: `${width}px`, 
+                        top: '2px',
+                        backgroundColor: getScheduleColor(schedule.status)
+                      }}
+                    >
+                      <div className="p-1 text-xs font-medium truncate">
+                        {schedule.projectName}
+                      </div>
+                      <div className="px-1 text-[10px] truncate text-gray-200">
+                        {schedule.projectNumber}
+                      </div>
+                    </div>
+                  );
+                })
+              }
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 };
 
-// Main manufacturing bay layout component
+// Helper function to determine the background color based on schedule status
+const getScheduleColor = (status: string): string => {
+  switch (status) {
+    case 'scheduled':
+      return 'rgba(59, 130, 246, 0.6)'; // blue
+    case 'in_progress':
+      return 'rgba(245, 158, 11, 0.6)'; // amber
+    case 'complete':
+      return 'rgba(34, 197, 94, 0.6)'; // green
+    case 'maintenance':
+      return 'rgba(168, 85, 247, 0.6)'; // purple
+    default:
+      return 'rgba(75, 85, 99, 0.6)'; // gray
+  }
+};
+
+// Main component function
 const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
   schedules,
   projects,
@@ -291,18 +337,31 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
   onUpdateBay
 }) => {
   const { toast } = useToast();
-  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
-  const [selectedBayId, setSelectedBayId] = useState<number | 'all'>('all');
-  const [activeProject, setActiveProject] = useState<ProjectCard | null>(null);
-  const [baySlots, setBaySlots] = useState<BaySlot[][]>([]);
-  const [unassignedProjects, setUnassignedProjects] = useState<ProjectCard[]>([]);
+  
+  // State for timeline navigation
+  const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
+  
+  // State for weeks display in the timeline
   const [weeks, setWeeks] = useState<WeekRange[]>([]);
-  const [editingBay, setEditingBay] = useState<Bay | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [bayGroups, setBayGroups] = useState<BayGroup[]>([]);
+  
+  // State for bay editing dialog
+  const [isEditingBay, setIsEditingBay] = useState(false);
+  const [currentBay, setCurrentBay] = useState<Bay | null>(null);
+  const [bayName, setBayName] = useState('');
+  const [bayDescription, setBayDescription] = useState('');
+  
+  // State for creating a new schedule
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<number | null>(null);
+  const [selectedBay, setSelectedBay] = useState<number | null>(null);
+  const [schedulingStartDate, setSchedulingStartDate] = useState<string>('');
+  const [schedulingEndDate, setSchedulingEndDate] = useState<string>('');
 
-  // Set up sensors for drag and drop
+  // State for dragging
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeProject, setActiveProject] = useState<ProjectCard | null>(null);
+  
+  // Create sensors for drag and drop
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -310,807 +369,581 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
       },
     })
   );
-
-  // Helper function to get days in a month
-  const getDaysInMonth = (year: number, month: number) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
-
-  // Helper to get project name from project ID
-  const getProjectInfo = (projectId: number) => {
-    const project = projects.find(p => p.id === projectId);
-    return {
-      name: project?.name || 'Unknown Project',
-      projectNumber: project?.projectNumber || '--'
-    };
-  };
-
-  // Helper to get bay info from bay ID
-  const getBayInfo = (bayId: number) => {
-    const bay = bays.find(b => b.id === bayId);
-    return {
-      name: bay?.name || 'Unknown Bay',
-      bayNumber: bay?.bayNumber || 0
-    };
-  };
-
-  // Group bays by team/location
-  useEffect(() => {
-    // Create bay groups based on pattern in the bay numbers
-    const groups: BayGroup[] = [];
+  
+  // Organize bays into groups by team
+  const bayGroups = useMemo(() => {
+    const groupsByTeam = new Map<string, Bay[]>();
     
-    // Bay 1 & 2
-    const bay1And2 = bays.filter(b => [1, 2].includes(b.bayNumber));
-    if (bay1And2.length > 0) {
-      groups.push({
-        id: 'bay-1-2',
-        name: 'Bay 1 & 2',
-        bays: bay1And2,
-        team: 'Nicholson / Olivas / Hershberger'
-      });
-    }
+    bays.forEach(bay => {
+      const team = bay.team || 'Unassigned';
+      if (!groupsByTeam.has(team)) {
+        groupsByTeam.set(team, []);
+      }
+      groupsByTeam.get(team)?.push(bay);
+    });
     
-    // Bay 5 & 10
-    const bay5And10 = bays.filter(b => [5, 10].includes(b.bayNumber));
-    if (bay5And10.length > 0) {
-      groups.push({
-        id: 'bay-5-10',
-        name: 'Bay 5 & 10',
-        bays: bay5And10,
-        team: 'Williams / May / LaRose'
-      });
-    }
-    
-    // Bay 3 & 8
-    const bay3And8 = bays.filter(b => [3, 8].includes(b.bayNumber));
-    if (bay3And8.length > 0) {
-      groups.push({
-        id: 'bay-3-8',
-        name: 'Bay 3 & 8',
-        bays: bay3And8,
-        team: 'Nicholson / Nelson / Mondora'
-      });
-    }
-    
-    // Bay 4 & 6
-    const bay4And6 = bays.filter(b => [4, 6].includes(b.bayNumber));
-    if (bay4And6.length > 0) {
-      groups.push({
-        id: 'bay-4-6',
-        name: 'Bay 4 & 6',
-        bays: bay4And6,
-        team: 'Williams / Field / Freibot'
-      });
-    }
-    
-    // Other bays
-    const otherBays = bays.filter(b => 
-      ![1, 2, 3, 4, 5, 6, 8, 10].includes(b.bayNumber)
-    );
-    
-    if (otherBays.length > 0) {
-      groups.push({
-        id: 'other-bays',
-        name: 'Other Bays',
-        bays: otherBays,
-        team: 'Various Teams'
-      });
-    }
-    
-    setBayGroups(groups);
+    return Array.from(groupsByTeam.entries()).map(([team, bays]) => ({
+      id: `team-${team}`,
+      name: `${team} Bays`,
+      team,
+      bays: bays.sort((a, b) => a.bayNumber - b.bayNumber)
+    }));
   }, [bays]);
   
-  // Generate slots for the calendar view
-  useEffect(() => {
-    const currentYear = selectedMonth.getFullYear();
-    const currentMonth = selectedMonth.getMonth();
-    const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+  // Generate calendar slots for the visible date range
+  const calendarSlots = useMemo(() => {
+    if (weeks.length === 0) return {};
     
-    // Generate weeks for the selected month
-    const monthStart = new Date(currentYear, currentMonth, 1);
-    const monthEnd = new Date(currentYear, currentMonth, daysInMonth);
+    const startDate = weeks[0].startDate;
+    const endDate = weeks[weeks.length - 1].endDate;
     
-    // Generate week ranges for the calendar
-    const weekRanges: WeekRange[] = [];
-    const weeks = eachWeekOfInterval({ start: monthStart, end: monthEnd });
+    const result: Record<number, BaySlot[]> = {};
     
-    weeks.forEach((weekStart, index) => {
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
+    // Create slots for each bay
+    bays.forEach(bay => {
+      const baySlots: BaySlot[] = [];
+      let position = 0;
       
-      weekRanges.push({
-        startDate: weekStart,
-        endDate: weekEnd,
-        weekNumber: index + 1,
-        label: `FW${index + 9}`  // Assuming FW numbering starts at 9 as in the example
-      });
-    });
-    
-    setWeeks(weekRanges);
-    
-    // Convert schedules to our internal format with project and bay info
-    const scheduleItems: ScheduleItem[] = schedules.map(schedule => {
-      const { name, projectNumber } = getProjectInfo(schedule.projectId);
-      const { name: bayName, bayNumber } = getBayInfo(schedule.bayId);
-      
-      return {
-        id: schedule.id,
-        projectId: schedule.projectId,
-        bayId: schedule.bayId,
-        startDate: schedule.startDate,
-        endDate: schedule.endDate,
-        status: schedule.status as 'scheduled' | 'in_progress' | 'complete' | 'maintenance',
-        projectName: name,
-        projectNumber,
-        bayName,
-        bayNumber
-      };
-    });
-    
-    // Generate bay slots for each bay
-    const newBaySlots: BaySlot[][] = [];
-    
-    // Filter bays if a specific bay is selected
-    const activeBays = selectedBayId === 'all' 
-      ? bays.filter(bay => bay.isActive)
-      : bays.filter(bay => bay.id === selectedBayId && bay.isActive);
-    
-    activeBays.forEach(bay => {
-      const bayRow: BaySlot[] = [];
-      
-      // Create a slot for each day in the month
-      for (let day = 1; day <= daysInMonth; day++) {
-        const slotDate = new Date(currentYear, currentMonth, day);
-        const slotKey = `bay-${bay.id}-day-${day}`;
-        
-        // Check if this slot has a schedule assigned
-        const occupyingSchedule = scheduleItems.find(schedule => {
-          const startDate = new Date(schedule.startDate);
-          const endDate = new Date(schedule.endDate);
+      // Create a slot for each day in the date range
+      let currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        // Check if this slot is occupied by a schedule
+        const isOccupied = schedules.some(schedule => {
+          const scheduleStart = new Date(schedule.startDate);
+          const scheduleEnd = new Date(schedule.endDate);
           
           return (
             schedule.bayId === bay.id &&
-            slotDate >= startDate &&
-            slotDate <= endDate
+            currentDate >= scheduleStart &&
+            currentDate <= scheduleEnd
           );
         });
         
-        bayRow.push({
-          id: slotKey,
+        baySlots.push({
+          id: `slot-${bay.id}-${format(currentDate, 'yyyy-MM-dd')}`,
           bayId: bay.id,
-          position: day,
-          date: slotDate,
-          scheduleId: occupyingSchedule?.id,
-          isOccupied: !!occupyingSchedule,
-          isDisabled: false // We could add logic here for maintenance days etc.
+          position,
+          date: new Date(currentDate),
+          isOccupied,
+          isDisabled: false,
         });
+        
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
+        position++;
       }
       
-      newBaySlots.push(bayRow);
+      result[bay.id] = baySlots;
     });
     
-    setBaySlots(newBaySlots);
+    return result;
+  }, [bays, schedules, weeks]);
+  
+  // Create project cards for unassigned projects
+  const unassignedProjects = useMemo(() => {
+    const scheduledProjectIds = new Set(schedules.map(s => s.projectId));
     
-    // Update unassigned projects list
-    // Here we're creating "cards" for projects that don't have manufacturing schedules
-    const assignedProjectIds = scheduleItems.map(item => item.projectId);
-    const newUnassignedProjects: ProjectCard[] = [];
+    return projects
+      .filter(p => !scheduledProjectIds.has(p.id))
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        projectNumber: p.projectNumber,
+        status: 'scheduled' as const,
+        startDate: p.startDate || new Date().toISOString(),
+        endDate: p.endDate || new Date().toISOString()
+      }));
+  }, [projects, schedules]);
+  
+  // Initialize weeks when component mounts
+  useEffect(() => {
+    const today = new Date();
+    initializeWeeks(today);
+  }, []);
+  
+  // Generate weeks for the timeline
+  const initializeWeeks = (startDate: Date, numberOfWeeks = 4) => {
+    const start = startOfWeek(startDate, { weekStartsOn: 1 }); // Start on Monday
+    const end = endOfWeek(addWeeks(start, numberOfWeeks - 1), { weekStartsOn: 1 });
     
-    // Convert schedules to project cards
-    const scheduledProjects = scheduleItems.map(schedule => ({
-      id: schedule.projectId,
-      name: schedule.projectName,
-      projectNumber: schedule.projectNumber,
-      scheduleId: schedule.id,
-      status: schedule.status,
-      startDate: schedule.startDate,
-      endDate: schedule.endDate
-    }));
-    
-    // Add projects without schedules
-    projects.forEach(project => {
-      if (!assignedProjectIds.includes(project.id)) {
-        newUnassignedProjects.push({
-          id: project.id,
-          name: project.name,
-          projectNumber: project.projectNumber,
-          status: 'scheduled', // Default status for unassigned projects
-          startDate: project.startDate,
-          endDate: project.estimatedCompletionDate || project.startDate
-        });
-      }
+    const weeksArray = eachWeekOfInterval(
+      { start, end },
+      { weekStartsOn: 1 }
+    ).map((weekStart, index) => {
+      const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+      return {
+        startDate: weekStart,
+        endDate: weekEnd,
+        weekNumber: index + 1,
+        label: `Week ${index + 1}: ${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`
+      };
     });
     
-    setUnassignedProjects(newUnassignedProjects);
+    setWeeks(weeksArray);
+    setCurrentWeek(start);
+  };
+  
+  // Navigate to previous set of weeks
+  const goToPreviousWeeks = () => {
+    if (weeks.length > 0) {
+      const newStart = addWeeks(weeks[0].startDate, -4);
+      initializeWeeks(newStart);
+    }
+  };
+  
+  // Navigate to next set of weeks
+  const goToNextWeeks = () => {
+    if (weeks.length > 0) {
+      const newStart = addWeeks(weeks[0].startDate, 4);
+      initializeWeeks(newStart);
+    }
+  };
+  
+  // Handle starting to edit a bay
+  const handleEditBay = (bay: Bay) => {
+    setCurrentBay(bay);
+    setBayName(bay.name);
+    setBayDescription(bay.description || '');
+    setIsEditingBay(true);
+  };
+  
+  // Handle saving bay edits
+  const handleSaveBay = async () => {
+    if (!currentBay || !onUpdateBay) return;
     
-  }, [schedules, projects, bays, selectedMonth, selectedBayId]);
-
-  // Handle month navigation
-  const goToPreviousMonth = () => {
-    const newDate = new Date(selectedMonth);
-    newDate.setMonth(newDate.getMonth() - 1);
-    setSelectedMonth(newDate);
+    try {
+      await onUpdateBay(currentBay.id, bayName, bayDescription);
+      toast({
+        title: "Bay updated",
+        description: `${bayName} has been updated successfully.`,
+      });
+      setIsEditingBay(false);
+    } catch (error) {
+      console.error("Error updating bay:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update bay. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
-  const goToNextMonth = () => {
-    const newDate = new Date(selectedMonth);
-    newDate.setMonth(newDate.getMonth() + 1);
-    setSelectedMonth(newDate);
+  // Handle double-clicking on a slot to add a schedule
+  const handleSlotDoubleClick = (slot: BaySlot) => {
+    // Reset scheduling form
+    setSelectedProject(null);
+    setSelectedBay(slot.bayId);
+    
+    // Set default dates based on the selected slot
+    const startDate = format(slot.date, 'yyyy-MM-dd');
+    const endDate = format(addWeeks(slot.date, 1), 'yyyy-MM-dd');
+    
+    setSchedulingStartDate(startDate);
+    setSchedulingEndDate(endDate);
+    setIsScheduling(true);
   };
   
-  const goToCurrentMonth = () => {
-    setSelectedMonth(new Date());
+  // Handle creating a new schedule
+  const handleCreateSchedule = async () => {
+    if (!selectedProject || !selectedBay || !schedulingStartDate || !schedulingEndDate) {
+      toast({
+        title: "Error",
+        description: "Please fill out all fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check for conflicting schedules
+    const hasConflict = checkScheduleConflict(
+      selectedBay, 
+      schedulingStartDate, 
+      schedulingEndDate, 
+      schedules.map(s => ({
+        id: s.id,
+        bayId: s.bayId,
+        startDate: s.startDate,
+        endDate: s.endDate
+      }))
+    );
+    
+    if (hasConflict) {
+      toast({
+        title: "Schedule Conflict",
+        description: "This bay is already scheduled during the selected dates.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      await onScheduleCreate(
+        selectedProject,
+        selectedBay,
+        schedulingStartDate,
+        schedulingEndDate
+      );
+      
+      toast({
+        title: "Schedule created",
+        description: "The project has been scheduled successfully.",
+      });
+      
+      setIsScheduling(false);
+    } catch (error) {
+      console.error("Error creating schedule:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create schedule. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
-
+  
   // Handle drag start event
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
+    setActiveId(active.id.toString());
+    
+    // Get the project data
     const { project } = active.data.current as { project: ProjectCard };
     setActiveProject(project);
   };
-
+  
   // Handle drag end event
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
+    setActiveId(null);
     setActiveProject(null);
     
     if (!over) return;
     
-    const projectId = parseInt(active.id.toString());
-    const slotId = over.id.toString();
-    
-    // Check if we're dropping on a bay card
-    const isBayDrop = slotId.startsWith('bay-card-');
-    
-    if (isBayDrop) {
-      // Extract bay ID from the drop target ID
-      const bayId = parseInt(slotId.replace('bay-card-', ''));
-      const bay = bays.find(b => b.id === bayId);
+    try {
+      const projectId = parseInt(active.id.toString());
+      const overSlotId = over.id.toString();
       
-      if (bay) {
-        // Start date is the first day of the current month
-        const startDate = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1);
-        // End date is 7 days later (default duration)
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + 7);
+      // Extract bay ID and date from the slot ID
+      const match = overSlotId.match(/slot-(\d+)-(\d{4}-\d{2}-\d{2})/);
+      
+      if (match) {
+        const bayId = parseInt(match[1]);
+        const startDate = match[2];
         
-        // Check for conflicts
-        const conflict = checkScheduleConflict(
-          bayId,
-          startDate.toISOString(),
-          endDate.toISOString(),
-          schedules
+        // Default to a 1-week duration
+        const endDate = format(addWeeks(new Date(startDate), 1), 'yyyy-MM-dd');
+        
+        // Check for existing schedule for this project
+        const existingSchedule = schedules.find(s => s.projectId === projectId);
+        
+        // Check for conflicting schedules
+        const hasConflict = checkScheduleConflict(
+          bayId, 
+          startDate, 
+          endDate, 
+          schedules.map(s => ({
+            id: s.id,
+            bayId: s.bayId,
+            startDate: s.startDate,
+            endDate: s.endDate
+          })),
+          existingSchedule?.id
         );
         
-        if (conflict) {
+        if (hasConflict) {
           toast({
             title: "Schedule Conflict",
-            description: "This bay already has a schedule during this time period.",
-            variant: "destructive"
+            description: "This bay is already scheduled during the selected dates.",
+            variant: "destructive",
           });
           return;
         }
         
-        try {
-          // Create a new schedule
-          await onScheduleCreate(
-            projectId,
+        if (existingSchedule) {
+          // Update existing schedule
+          await onScheduleChange(
+            existingSchedule.id,
             bayId,
-            startDate.toISOString(),
-            endDate.toISOString()
+            startDate,
+            endDate
           );
           
           toast({
-            title: "Project Scheduled",
-            description: `Project scheduled to Bay ${bay.bayNumber}.`
+            title: "Schedule updated",
+            description: "The project schedule has been updated.",
           });
-        } catch (error) {
+        } else {
+          // Create new schedule
+          await onScheduleCreate(
+            projectId,
+            bayId,
+            startDate,
+            endDate
+          );
+          
           toast({
-            title: "Error",
-            description: "Failed to schedule project. Please try again.",
-            variant: "destructive"
+            title: "Schedule created",
+            description: "The project has been scheduled successfully.",
           });
         }
-        
-        return;
       }
-    }
-    
-    // Find the slot that was dropped on (for timeline placement)
-    let targetSlot: BaySlot | undefined;
-    for (const row of baySlots) {
-      const found = row.find(slot => slot.id === slotId);
-      if (found) {
-        targetSlot = found;
-        break;
-      }
-    }
-    
-    if (!targetSlot) return;
-    
-    // Get the project from either unassigned or scheduled
-    const project = activeProject;
-    if (!project) return;
-    
-    // If the project has an existing schedule, update it
-    if (project.scheduleId) {
-      // Calculate a reasonable end date (e.g., 7 days from start)
-      const startDate = targetSlot.date.toISOString();
-      const endDate = new Date(targetSlot.date);
-      endDate.setDate(endDate.getDate() + 7); // Default to 7-day duration
-      
-      // Check for conflicts
-      const otherSchedules = schedules.filter(s => s.id !== project.scheduleId);
-      const conflict = checkScheduleConflict(
-        targetSlot.bayId,
-        startDate,
-        endDate.toISOString(),
-        otherSchedules
-      );
-      
-      if (conflict) {
-        toast({
-          title: "Schedule Conflict",
-          description: "This bay is already scheduled during this time period.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      try {
-        // Update the schedule
-        await onScheduleChange(
-          project.scheduleId,
-          targetSlot.bayId,
-          startDate,
-          endDate.toISOString()
-        );
-        
-        toast({
-          title: "Schedule Updated",
-          description: `${project.name} has been rescheduled.`
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to update schedule. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } else {
-      // Create a new schedule for this project
-      const startDate = targetSlot.date.toISOString();
-      const endDate = new Date(targetSlot.date);
-      endDate.setDate(endDate.getDate() + 7); // Default to 7-day duration
-      
-      // Check for conflicts
-      const conflict = checkScheduleConflict(
-        targetSlot.bayId,
-        startDate,
-        endDate.toISOString(),
-        schedules
-      );
-      
-      if (conflict) {
-        toast({
-          title: "Schedule Conflict",
-          description: "This bay is already scheduled during this time period.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      try {
-        // Create a new schedule
-        await onScheduleCreate(
-          projectId,
-          targetSlot.bayId,
-          startDate,
-          endDate.toISOString()
-        );
-        
-        toast({
-          title: "Schedule Created",
-          description: `${project.name} has been scheduled.`
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to create schedule. Please try again.",
-          variant: "destructive"
-        });
-      }
-    }
-  };
-
-  // Handle double-click on a slot to show schedule details
-  const handleSlotDoubleClick = (slot: BaySlot) => {
-    if (slot.scheduleId) {
-      const schedule = schedules.find(s => s.id === slot.scheduleId);
-      if (schedule) {
-        const { name, projectNumber } = getProjectInfo(schedule.projectId);
-        const { name: bayName } = getBayInfo(schedule.bayId);
-        
-        toast({
-          title: `${name} (${projectNumber})`,
-          description: `Scheduled in ${bayName} from ${format(new Date(schedule.startDate), 'MMM d, yyyy')} to ${format(new Date(schedule.endDate), 'MMM d, yyyy')}`,
-        });
-      }
-    } else {
-      toast({
-        title: "Empty Slot",
-        description: `${format(slot.date, 'MMMM d, yyyy')} is available for scheduling.`,
-      });
-    }
-  };
-  
-  // Handle editing bay name
-  const handleEditBay = (bay: Bay) => {
-    setEditingBay(bay);
-    setEditName(bay.name);
-    setEditDescription(bay.description);
-  };
-  
-  // Handle saving bay edits
-  const handleSaveBayEdit = async () => {
-    if (!editingBay || !onUpdateBay) return;
-    
-    try {
-      await onUpdateBay(editingBay.id, editName, editDescription);
-      toast({
-        title: "Bay Updated",
-        description: `Bay ${editingBay.bayNumber} information has been updated.`
-      });
-      setEditingBay(null);
     } catch (error) {
+      console.error("Error scheduling project:", error);
       toast({
         title: "Error",
-        description: "Failed to update bay information.",
-        variant: "destructive"
+        description: "Failed to schedule project. Please try again.",
+        variant: "destructive",
       });
     }
   };
   
-  // Handle adding a project to specific bay
-  const handleAddProject = (bayId: number) => {
-    // Find the first day of the selected month for the start date
-    const startDate = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1);
-    
-    // Show a toast with instructions
-    toast({
-      title: "Add Project",
-      description: `Drag an unassigned project to Bay ${getBayInfo(bayId).bayNumber} to schedule it.`
-    });
-    
-    // Scroll to unassigned projects section
-    const unassignedSection = document.getElementById('unassigned-projects-section');
-    if (unassignedSection) {
-      unassignedSection.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Bay edit dialog */}
-      <Dialog open={!!editingBay} onOpenChange={(open) => !open && setEditingBay(null)}>
+    <div className="min-h-screen pb-12">
+      {/* Timeline navigation */}
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Manufacturing Bay Schedule</h2>
+        
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={goToPreviousWeeks}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Previous
+          </Button>
+          
+          <p className="text-sm font-medium">
+            {weeks.length > 0 
+              ? `${format(weeks[0].startDate, 'MMM d')} - ${format(weeks[weeks.length - 1].endDate, 'MMM d')}`
+              : 'Loading...'}
+          </p>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={goToNextWeeks}
+          >
+            Next
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      </div>
+      
+      {/* Week indicators */}
+      <div className="mb-4 ml-36">
+        <div className="flex">
+          {weeks.map((week, index) => (
+            <div 
+              key={week.weekNumber}
+              className="flex-shrink-0 text-center font-medium"
+              style={{ width: `${7 * 36}px` }} // 7 days per week, 36px per day
+            >
+              Week {week.weekNumber}
+            </div>
+          ))}
+        </div>
+        
+        {/* Days of week */}
+        <div className="flex">
+          {weeks.map(week => (
+            <React.Fragment key={week.weekNumber}>
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, dayIndex) => (
+                <div 
+                  key={`${week.weekNumber}-${day}`}
+                  className="flex-shrink-0 text-xs text-center py-1"
+                  style={{ width: '36px' }}
+                >
+                  {day}
+                </div>
+              ))}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+      
+      <div className="flex">
+        {/* Main schedule area */}
+        <div className="flex-1">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            {/* Display bay groups */}
+            {bayGroups.map(group => (
+              <BayGroup 
+                key={group.id}
+                group={group}
+                slots={calendarSlots}
+                schedules={schedules.filter(s => 
+                  group.bays.some(b => b.id === s.bayId)
+                )}
+                onEditBay={handleEditBay}
+                onSlotDoubleClick={handleSlotDoubleClick}
+              />
+            ))}
+            
+            {/* Drag overlay */}
+            <DragOverlay>
+              {activeId && activeProject ? (
+                <div className="bg-primary/90 border-2 border-primary p-3 rounded-md shadow-xl w-32">
+                  <div className="font-medium text-sm truncate text-white">{activeProject.name}</div>
+                  <div className="text-xs text-white/80 truncate">{activeProject.projectNumber}</div>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
+        
+        {/* Unassigned projects */}
+        <div className="w-64 ml-6">
+          <div className="bg-card rounded-md p-4 border border-border">
+            <h3 className="font-semibold mb-3">Unassigned Projects</h3>
+            
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext 
+                items={unassignedProjects.map(p => p.id.toString())}
+                strategy={horizontalListSortingStrategy}
+              >
+                {unassignedProjects.length > 0 ? (
+                  unassignedProjects.map(project => (
+                    <SortableProjectCard 
+                      key={project.id} 
+                      project={project} 
+                    />
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-400">No unassigned projects</p>
+                )}
+              </SortableContext>
+            </DndContext>
+          </div>
+        </div>
+      </div>
+      
+      {/* Bay editing dialog */}
+      <Dialog open={isEditingBay} onOpenChange={setIsEditingBay}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Bay Information</DialogTitle>
+            <DialogTitle>Edit Bay</DialogTitle>
             <DialogDescription>
-              Update the name and description for Bay {editingBay?.bayNumber}.
+              Make changes to the bay name and description.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="bay-name">Bay Name</Label>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bayName" className="text-right">
+                Name
+              </Label>
               <Input
-                id="bay-name"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="Enter bay name"
+                id="bayName"
+                value={bayName}
+                onChange={(e) => setBayName(e.target.value)}
+                className="col-span-3"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="bay-description">Description</Label>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bayDescription" className="text-right">
+                Description
+              </Label>
               <Input
-                id="bay-description"
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                placeholder="Enter bay description"
+                id="bayDescription"
+                value={bayDescription}
+                onChange={(e) => setBayDescription(e.target.value)}
+                className="col-span-3"
               />
             </div>
           </div>
+          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingBay(null)}>
+            <Button variant="outline" onClick={() => setIsEditingBay(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveBayEdit}>
+            <Button onClick={handleSaveBay}>
               Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
-      <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6">
-        {/* Manufacturing Bays (Left Side) */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div>
-              <CardTitle>Manufacturing Bays</CardTitle>
-              <div className="flex items-center space-x-2 text-sm text-gray-400">
-                <span>Organized by team</span>
-                <Info className="h-4 w-4" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-            >
-              <div>
-                {bayGroups.map(group => (
-                  <BayGroupSection 
-                    key={group.id}
-                    group={group}
-                    schedules={schedules}
-                    onEditBay={handleEditBay}
-                    onAddProject={handleAddProject}
-                  />
-                ))}
-              </div>
-              
-              <DragOverlay>
-                {activeProject && (
-                  <SortableProjectCard 
-                    project={activeProject} 
-                    isDragging={true}
-                  />
-                )}
-              </DragOverlay>
-            </DndContext>
-          </CardContent>
-        </Card>
-        
-        {/* Manufacturing Timeline (Right Side) */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div>
-              <CardTitle>Manufacturing Timeline</CardTitle>
-              <div className="flex items-center space-x-2 text-sm text-gray-400">
-                <span>Drag projects to schedule them</span>
-                <Info className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={goToCurrentMonth}>
-                Today
-              </Button>
-              <Button variant="outline" size="sm" onClick={goToNextMonth}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+      {/* Schedule creation dialog */}
+      <Dialog open={isScheduling} onOpenChange={setIsScheduling}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule Project</DialogTitle>
+            <DialogDescription>
+              Select a project and set the schedule dates.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="projectSelect" className="text-right">
+                Project
+              </Label>
               <Select
-                value={selectedBayId === 'all' ? 'all' : selectedBayId.toString()}
-                onValueChange={(value) => setSelectedBayId(value === 'all' ? 'all' : parseInt(value))}
+                value={selectedProject?.toString() || ''}
+                onValueChange={(value) => setSelectedProject(parseInt(value))}
               >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Select Bay" />
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select a project" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Bays</SelectItem>
-                  {bays.map((bay) => (
-                    <SelectItem key={bay.id} value={bay.id.toString()}>
-                      Bay {bay.bayNumber}
+                  {unassignedProjects.map(project => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      {project.name} ({project.projectNumber})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="border-b border-gray-800 pl-32 pr-4 pt-2 pb-1">
-              <div className="text-lg font-medium">
-                {format(selectedMonth, 'MMMM yyyy')}
-              </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="startDate" className="text-right">
+                Start Date
+              </Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={schedulingStartDate}
+                onChange={(e) => setSchedulingStartDate(e.target.value)}
+                className="col-span-3"
+              />
             </div>
             
-            <div className="relative overflow-x-auto">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-              >
-                <div className="min-w-max">
-                  {/* Header row with day numbers */}
-                  <div className="flex border-b border-gray-800">
-                    <div className="w-32 flex-shrink-0"></div>
-                    {baySlots.length > 0 && baySlots[0].map((slot) => (
-                      <div 
-                        key={`header-${slot.position}`}
-                        className="h-10 w-24 flex items-center justify-center text-xs text-gray-400"
-                      >
-                        {format(slot.date, 'EEE')}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Bay rows */}
-                  {baySlots.map((row, rowIndex) => {
-                    const bayId = row.length > 0 ? row[0].bayId : 0;
-                    const bay = bays.find(b => b.id === bayId);
-                    
-                    return (
-                      <div key={`bay-${bayId}`} className="flex border-b border-gray-800">
-                        <div className="w-32 flex-shrink-0 border-r border-gray-800 bg-gray-900 flex items-center justify-center">
-                          <div className="text-center">
-                            <div className="font-medium">Bay {bay?.bayNumber}</div>
-                            <div className="text-xs text-gray-400">{bay?.name}</div>
-                          </div>
-                        </div>
-                        
-                        {/* Slots for this bay */}
-                        <div className="flex flex-1">
-                          {row.map((slot) => {
-                            // Find schedule for this slot if it exists
-                            const schedule = schedules.find(s => s.id === slot.scheduleId);
-                            const isFirstDayOfSchedule = schedule && 
-                              format(new Date(schedule.startDate), 'yyyy-MM-dd') === 
-                              format(slot.date, 'yyyy-MM-dd');
-                            
-                            // Only show the project card on the first day of the schedule
-                            return (
-                              <div key={slot.id} className="relative">
-                                <BaySlot 
-                                  slot={slot} 
-                                  onDoubleClick={handleSlotDoubleClick}
-                                />
-                                
-                                {isFirstDayOfSchedule && schedule && (
-                                  <div 
-                                    className="absolute top-0 left-0 right-0 bottom-0 z-10 flex items-center justify-center"
-                                    style={{
-                                      width: `${calculateProjectWidth(schedule, row)}px`
-                                    }}
-                                  >
-                                    <div className="w-full h-full py-1 px-2">
-                                      <ProjectCard 
-                                        schedule={schedule}
-                                        projects={projects}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                <DragOverlay>
-                  {activeProject && (
-                    <SortableProjectCard 
-                      project={activeProject} 
-                      isDragging={true}
-                    />
-                  )}
-                </DragOverlay>
-              </DndContext>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="endDate" className="text-right">
+                End Date
+              </Label>
+              <Input
+                id="endDate"
+                type="date"
+                value={schedulingEndDate}
+                onChange={(e) => setSchedulingEndDate(e.target.value)}
+                className="col-span-3"
+              />
             </div>
-          </CardContent>
-        </Card>
-        
-        {/* Unassigned Projects */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Unassigned Projects</CardTitle>
-            <div className="text-sm text-gray-400">
-              Drag to schedule
-            </div>
-          </CardHeader>
-          <CardContent>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-            >
-              <div className="space-y-3">
-                {unassignedProjects.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400">
-                    <div className="mb-2">
-                      <AlertTriangle className="h-8 w-8 mx-auto text-gray-400" />
-                    </div>
-                    No unassigned projects
-                  </div>
-                ) : (
-                  <SortableContext
-                    items={unassignedProjects.map(p => p.id.toString())}
-                    strategy={horizontalListSortingStrategy}
-                  >
-                    {unassignedProjects.map(project => (
-                      <SortableProjectCard 
-                        key={project.id} 
-                        project={project}
-                      />
-                    ))}
-                  </SortableContext>
-                )}
-              </div>
-              
-              <DragOverlay>
-                {activeProject && (
-                  <SortableProjectCard 
-                    project={activeProject} 
-                    isDragging={true}
-                  />
-                )}
-              </DragOverlay>
-            </DndContext>
-          </CardContent>
-          <CardFooter className="border-t pt-4 flex justify-between">
-            <div className="text-sm text-gray-400">
-              {unassignedProjects.length} projects unscheduled
-            </div>
-          </CardFooter>
-        </Card>
-      </div>
-    </div>
-  );
-};
-
-// Helper components
-
-// Project card that appears in the bay slot on the calendar
-const ProjectCard = ({ 
-  schedule, 
-  projects 
-}: { 
-  schedule: ManufacturingSchedule; 
-  projects: Project[];
-}) => {
-  const project = projects.find(p => p.id === schedule.projectId);
-  
-  // Calculate how many days the project spans
-  const startDate = new Date(schedule.startDate);
-  const endDate = new Date(schedule.endDate);
-  const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  
-  // Determine status color
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'scheduled':
-        return 'bg-blue-500 border-blue-500';
-      case 'in_progress':
-        return 'bg-amber-500 border-amber-500';
-      case 'complete':
-        return 'bg-green-500 border-green-500';
-      case 'maintenance':
-        return 'bg-purple-500 border-purple-500';
-      default:
-        return 'bg-gray-500 border-gray-500';
-    }
-  };
-  
-  return (
-    <div
-      className={`h-full rounded-sm border-l-4 px-2 py-1 bg-opacity-20 relative ${getStatusColor(schedule.status)}`}
-      style={{ width: `${Math.min(durationDays * 100, 400)}%` }}
-    >
-      <div className="text-xs font-medium truncate">{project?.name}</div>
-      <div className="text-xs text-gray-400 truncate">{project?.projectNumber}</div>
-      <div className="absolute bottom-1 right-2 text-xs opacity-75">
-        {durationDays} days
-      </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsScheduling(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateSchedule}>
+              Create Schedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -1125,7 +958,7 @@ const calculateProjectWidth = (schedule: ManufacturingSchedule, slotRow: BaySlot
     format(slot.date, 'yyyy-MM-dd') === format(startDate, 'yyyy-MM-dd')
   );
   
-  if (startSlotIndex === -1) return 24; // Slot width
+  if (startSlotIndex === -1) return 36; // Slot width
   
   // Find how many days this project spans
   const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
@@ -1136,7 +969,7 @@ const calculateProjectWidth = (schedule: ManufacturingSchedule, slotRow: BaySlot
     slotRow.length - startSlotIndex
   );
   
-  return visibleDays * 24; // Each slot is 24px wide
+  return visibleDays * 36; // Each slot is 36px wide
 };
 
 export default ManufacturingBayLayout;
