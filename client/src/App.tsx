@@ -11,6 +11,7 @@ import ManufacturingBay from "@/pages/ManufacturingBay";
 import ProjectDetails from "@/pages/ProjectDetails";
 import ProjectEdit from "@/pages/ProjectEdit";
 import ArchivedProjects from "@/pages/ArchivedProjects";
+import DeliveredProjects from "@/pages/DeliveredProjects";
 import OnTimeDelivery from "@/pages/OnTimeDelivery";
 import CalendarPage from "@/pages/Calendar";
 import Reports from "@/pages/Reports";
@@ -60,6 +61,7 @@ function Router() {
             <ProtectedRoute path="/project/:id" component={ProjectDetails} />
             <ProtectedRoute path="/project/:id/edit" component={ProjectEdit} />
             <ProtectedRoute path="/archived-projects" component={ArchivedProjects} />
+            <ProtectedRoute path="/delivered-projects" component={DeliveredProjects} />
             <ProtectedRoute path="/billing" component={BillingMilestones} />
             <ProtectedRoute path="/manufacturing" component={ManufacturingBay} />
             <ProtectedRoute path="/delivery-tracking" component={OnTimeDelivery} />

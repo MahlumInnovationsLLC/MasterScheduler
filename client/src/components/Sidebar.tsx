@@ -13,7 +13,9 @@ import {
   Users,
   Archive,
   FileArchive,
-  Clock
+  Clock,
+  Truck,
+  Package
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -110,6 +112,14 @@ const Sidebar = () => {
               }`}>
                 <Clock className={`text-xl ${isActive('/delivery-tracking') ? 'text-primary' : ''}`} />
                 <span>On Time Delivery</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/delivered-projects" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/delivered-projects') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
+              }`}>
+                <Truck className={`text-xl ${isActive('/delivered-projects') ? 'text-primary' : ''}`} />
+                <span>Delivered Projects</span>
               </Link>
             </li>
             <li>
