@@ -257,12 +257,29 @@ export const archivedProjects = pgTable("archived_projects", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Project Milestones Table
+export const projectMilestones = pgTable("project_milestones", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .references(() => projects.id)
+    .notNull(),
+  name: text("name").notNull(),
+  status: text("status").notNull().default("upcoming"),
+  date: date("target_date"),
+  color: text("color").default("border-primary"),
+  isCompleted: boolean("is_completed").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Tasks Table
 export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id")
     .references(() => projects.id)
     .notNull(),
+  milestoneId: integer("milestone_id")
+    .references(() => projectMilestones.id),
   name: text("name").notNull(),
   description: text("description"),
   startDate: date("start_date"),
@@ -272,11 +289,24 @@ export const tasks = pgTable("tasks", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Project Milestones Relations
+export const projectMilestonesRelations = relations(projectMilestones, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [projectMilestones.projectId],
+    references: [projects.id],
+  }),
+  tasks: many(tasks),
+}));
+
 // Tasks Relations
 export const tasksRelations = relations(tasks, ({ one }) => ({
   project: one(projects, {
     fields: [tasks.projectId],
     references: [projects.id],
+  }),
+  milestone: one(projectMilestones, {
+    fields: [tasks.milestoneId],
+    references: [projectMilestones.id],
   }),
 }));
 
@@ -389,14 +419,15 @@ export const deliveryTrackingRelations = relations(deliveryTracking, ({ one }) =
   }),
 }));
 
-// Update Project Relations to include delivery tracking
+// Update Project Relations to include delivery tracking and project milestones
 export const projectsRelations = relations(projects, ({ one, many }) => ({
   pmOwner: one(users, {
     fields: [projects.pmOwnerId],
     references: [users.id],
   }),
   tasks: many(tasks),
-  milestones: many(billingMilestones),
+  projectMilestones: many(projectMilestones),
+  billingMilestones: many(billingMilestones),
   baySchedules: many(manufacturingSchedules),
   deliveryTracking: many(deliveryTracking),
 }));
