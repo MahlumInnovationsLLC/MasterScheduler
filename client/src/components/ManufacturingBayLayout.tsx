@@ -21,7 +21,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Calendar, ChevronLeft, ChevronRight, Info, Edit, PlusCircle, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format, addWeeks, addDays, eachWeekOfInterval, startOfWeek, endOfWeek, isSameWeek } from 'date-fns';
+import { 
+  format, 
+  addWeeks, 
+  addDays, 
+  addMonths,
+  eachWeekOfInterval, 
+  startOfWeek, 
+  endOfWeek, 
+  startOfMonth,
+  endOfMonth,
+  isSameWeek 
+} from 'date-fns';
 import { 
   Select, 
   SelectContent, 
@@ -404,6 +415,9 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
   // State for weeks display in the timeline
   const [weeks, setWeeks] = useState<WeekRange[]>([]);
   
+  // State for view mode (day, week, month)
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
+  
   // State for bay editing dialog
   const [isEditingBay, setIsEditingBay] = useState(false);
   const [currentBay, setCurrentBay] = useState<Bay | null>(null);
@@ -516,47 +530,125 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
       }));
   }, [projects, schedules]);
   
-  // Initialize weeks when component mounts
+  // Initialize weeks when component mounts or when view mode changes
   useEffect(() => {
     const today = new Date();
-    initializeWeeks(today);
-  }, []);
+    initializeTimeRange(today);
+  }, [viewMode]);
   
-  // Generate weeks for the timeline
-  const initializeWeeks = (startDate: Date, numberOfWeeks = 4) => {
-    const start = startOfWeek(startDate, { weekStartsOn: 1 }); // Start on Monday
-    const end = endOfWeek(addWeeks(start, numberOfWeeks - 1), { weekStartsOn: 1 });
+  // Generate time range (days, weeks, or months) for the timeline
+  const initializeTimeRange = (startDate: Date) => {
+    let start: Date;
+    let end: Date;
+    let weeksArray: WeekRange[] = [];
     
-    const weeksArray = eachWeekOfInterval(
-      { start, end },
-      { weekStartsOn: 1 }
-    ).map((weekStart, index) => {
-      const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-      return {
-        startDate: weekStart,
-        endDate: weekEnd,
-        weekNumber: index + 1,
-        label: `Week ${index + 1}: ${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`
-      };
-    });
+    switch (viewMode) {
+      case 'day':
+        // Day view: show 2 weeks of individual days
+        start = startOfWeek(startDate, { weekStartsOn: 1 }); // Start on Monday
+        end = endOfWeek(addWeeks(start, 1), { weekStartsOn: 1 });
+        
+        weeksArray = eachWeekOfInterval(
+          { start, end },
+          { weekStartsOn: 1 }
+        ).map((weekStart, index) => {
+          const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+          return {
+            startDate: weekStart,
+            endDate: weekEnd,
+            weekNumber: index + 1,
+            label: `Week ${index + 1}: ${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`
+          };
+        });
+        break;
+        
+      case 'week':
+        // Week view: show 4 weeks
+        start = startOfWeek(startDate, { weekStartsOn: 1 });
+        end = endOfWeek(addWeeks(start, 3), { weekStartsOn: 1 });
+        
+        weeksArray = eachWeekOfInterval(
+          { start, end },
+          { weekStartsOn: 1 }
+        ).map((weekStart, index) => {
+          const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+          return {
+            startDate: weekStart,
+            endDate: weekEnd,
+            weekNumber: index + 1,
+            label: `Week ${index + 1}: ${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`
+          };
+        });
+        break;
+        
+      case 'month':
+        // Month view: show 3 months
+        start = startOfMonth(startDate);
+        end = endOfMonth(addMonths(start, 2));
+        
+        // Create weekly intervals within the 3-month period
+        weeksArray = eachWeekOfInterval(
+          { start, end },
+          { weekStartsOn: 1 }
+        ).map((weekStart, index) => {
+          const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+          return {
+            startDate: weekStart,
+            endDate: weekEnd,
+            weekNumber: index + 1,
+            label: `Week ${index + 1}: ${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`
+          };
+        });
+        break;
+    }
     
     setWeeks(weeksArray);
     setCurrentWeek(start);
   };
   
-  // Navigate to previous set of weeks
+  // Navigate to previous time range based on view mode
   const goToPreviousWeeks = () => {
     if (weeks.length > 0) {
-      const newStart = addWeeks(weeks[0].startDate, -4);
-      initializeWeeks(newStart);
+      let newStart: Date;
+      
+      switch (viewMode) {
+        case 'day':
+          newStart = addWeeks(weeks[0].startDate, -2);
+          break;
+        case 'week':
+          newStart = addWeeks(weeks[0].startDate, -4);
+          break;
+        case 'month':
+          newStart = addMonths(weeks[0].startDate, -3);
+          break;
+        default:
+          newStart = addWeeks(weeks[0].startDate, -2);
+      }
+      
+      initializeTimeRange(newStart);
     }
   };
   
-  // Navigate to next set of weeks
+  // Navigate to next time range based on view mode
   const goToNextWeeks = () => {
     if (weeks.length > 0) {
-      const newStart = addWeeks(weeks[0].startDate, 4);
-      initializeWeeks(newStart);
+      let newStart: Date;
+      
+      switch (viewMode) {
+        case 'day':
+          newStart = addWeeks(weeks[0].startDate, 2);
+          break;
+        case 'week':
+          newStart = addWeeks(weeks[0].startDate, 4);
+          break;
+        case 'month':
+          newStart = addMonths(weeks[0].startDate, 3);
+          break;
+        default:
+          newStart = addWeeks(weeks[0].startDate, 2);
+      }
+      
+      initializeTimeRange(newStart);
     }
   };
   
@@ -818,30 +910,60 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-bold">Manufacturing Bay Schedule</h2>
         
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={goToPreviousWeeks}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
-          </Button>
+        <div className="flex items-center gap-4">
+          {/* View mode toggle buttons */}
+          <div className="flex items-center bg-card rounded-md overflow-hidden border border-border">
+            <Button 
+              variant={viewMode === 'day' ? 'default' : 'ghost'} 
+              size="sm" 
+              className={`rounded-none h-8 px-3 transition-colors ${viewMode === 'day' ? 'bg-primary text-white' : 'bg-transparent'}`}
+              onClick={() => setViewMode('day')}
+            >
+              Day
+            </Button>
+            <Button 
+              variant={viewMode === 'week' ? 'default' : 'ghost'} 
+              size="sm" 
+              className={`rounded-none h-8 px-3 transition-colors ${viewMode === 'week' ? 'bg-primary text-white' : 'bg-transparent'}`}
+              onClick={() => setViewMode('week')}
+            >
+              Week
+            </Button>
+            <Button 
+              variant={viewMode === 'month' ? 'default' : 'ghost'} 
+              size="sm" 
+              className={`rounded-none h-8 px-3 transition-colors ${viewMode === 'month' ? 'bg-primary text-white' : 'bg-transparent'}`}
+              onClick={() => setViewMode('month')}
+            >
+              Month
+            </Button>
+          </div>
           
-          <p className="text-sm font-medium">
-            {weeks.length > 0 
-              ? `${format(weeks[0].startDate, 'MMM d')} - ${format(weeks[weeks.length - 1].endDate, 'MMM d')}`
-              : 'Loading...'}
-          </p>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={goToNextWeeks}
-          >
-            Next
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={goToPreviousWeeks}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Previous
+            </Button>
+            
+            <p className="text-sm font-medium">
+              {weeks.length > 0 
+                ? `${format(weeks[0].startDate, 'MMM d')} - ${format(weeks[weeks.length - 1].endDate, 'MMM d')}`
+                : 'Loading...'}
+            </p>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={goToNextWeeks}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
         </div>
       </div>
       
