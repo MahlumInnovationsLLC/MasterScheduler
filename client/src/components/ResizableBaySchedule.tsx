@@ -432,7 +432,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Handle saving an edited bay
   const handleSaveBayEdit = async (bayId: number, data: Partial<ManufacturingBay>) => {
     try {
-      if (!bayId && !data) {
+      if (!data) {
         toast({
           title: "Error",
           description: "Invalid bay data",
@@ -441,33 +441,37 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return;
       }
       
-      if (onBayUpdate) {
-        // Use the parent component's mutation
-        const updatedBay = await onBayUpdate(bayId, data);
+      // Make sure we have valid staff counts
+      const updatedData = {
+        ...data,
+        staffCount: (data.assemblyStaffCount || 0) + (data.electricalStaffCount || 0),
+      };
+      
+      console.log('Updating bay with data:', updatedData);
+      
+      if (onBayUpdate && bayId > 0) {
+        // Use the parent component's mutation for existing bays
+        const updatedBay = await onBayUpdate(bayId, updatedData);
+        console.log('Bay updated successfully:', updatedBay);
         
         // Update local state
         setBays(prev => prev.map(bay => bay.id === bayId ? updatedBay : bay));
         
         toast({
           title: "Bay Updated",
-          description: `Bay ${data.bayNumber}: ${data.name} has been updated`,
+          description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been updated`,
         });
+        
+        // Force refetch data from server
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
-        // Fallback to direct API call
-        const response = await apiRequest('PUT', `/api/manufacturing-bays/${bayId}`, data);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to update bay: ${response.statusText}`);
-        }
-        
-        const updatedBay = await response.json();
-        
-        // Update local state
-        setBays(prev => prev.map(bay => bay.id === bayId ? updatedBay : bay));
-        
+        console.error('Bay update failed - missing onBayUpdate handler or invalid bayId:', bayId);
         toast({
-          title: "Bay Updated",
-          description: `Bay ${data.bayNumber}: ${data.name} has been updated`,
+          title: "Error",
+          description: "Failed to update bay - missing update handler",
+          variant: "destructive"
         });
       }
     } catch (error) {
@@ -483,33 +487,46 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Handle creating a new bay
   const handleCreateBay = async (bayId: number, data: Partial<ManufacturingBay>) => {
     try {
+      if (!data) {
+        toast({
+          title: "Error",
+          description: "Invalid bay data",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Make sure we have valid staff counts
+      const updatedData = {
+        ...data,
+        staffCount: (data.assemblyStaffCount || 0) + (data.electricalStaffCount || 0),
+      };
+      
+      console.log('Creating bay with data:', updatedData);
+      
       if (onBayCreate) {
         // Use the parent component's mutation
-        const newBay = await onBayCreate(data);
+        const newBay = await onBayCreate(updatedData);
+        console.log('Bay created successfully:', newBay);
         
         // Update local state
         setBays(prev => [...prev, newBay]);
         
         toast({
           title: "Bay Created",
-          description: `Bay ${data.bayNumber}: ${data.name} has been created`,
+          description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been created`,
         });
+        
+        // Force refetch data from server
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
-        // Fallback to direct API call
-        const response = await apiRequest('POST', '/api/manufacturing-bays', data);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to create bay: ${response.statusText}`);
-        }
-        
-        const newBay = await response.json();
-        
-        // Update local state
-        setBays(prev => [...prev, newBay]);
-        
+        console.error('Bay creation failed - missing onBayCreate handler');
         toast({
-          title: "Bay Created",
-          description: `Bay ${data.bayNumber}: ${data.name} has been created`,
+          title: "Error",
+          description: "Failed to create bay - missing create handler",
+          variant: "destructive"
         });
       }
     } catch (error) {
