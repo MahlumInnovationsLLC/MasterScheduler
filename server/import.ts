@@ -710,102 +710,43 @@ export async function importDeliveryTracking(req: Request, res: Response) {
     // Process each delivery tracking entry
     for (const rawData of deliveryData) {
       try {
-        // Find project by name or number
-        // Support multiple possible column names for project identifiers
-        const projectName = 
-          rawData['Project Name'] || 
-          rawData['Project'] || 
-          rawData['Project Title'] || 
-          rawData['Name'] || 
-          '';
-        
-        const projectNumber = 
-          rawData['Project Number'] || 
-          rawData['Project #'] || 
-          rawData['Proj #'] || 
-          rawData['Number'] || 
-          '';
+        // Find project by name - use only the specific column name as requested
+        const projectName = rawData['Project Name'] || '';
         
         let project;
         
-        if (projectNumber) {
-          project = await storage.getProjectByNumber(projectNumber);
-        } else if (projectName) {
-          // Search for project by name since we don't have a direct getProjectByName function
+        // Search for project by name
+        if (projectName) {
           const allProjects = await storage.getProjects();
           project = allProjects.find(p => p.name === projectName);
         }
         
         if (!project) {
           results.errors++;
-          results.details.push(`Project not found: ${projectName || projectNumber}`);
+          results.details.push(`Project not found: ${projectName}`);
           continue;
         }
         
-        // Parse dates - support multiple possible column names
-        const originalContractDate = convertExcelDate(
-          rawData['Original Contract Date'] || 
-          rawData['Original Estimated Date'] ||
-          rawData['Original Delivery Date'] ||
-          rawData['Estimated Delivery'] ||
-          rawData['Contract Date']
-        );
+        // Parse dates - use only the specific column names as requested
+        const originalContractDate = convertExcelDate(rawData['Original Contract Date']);
+        const extensionDate = convertExcelDate(rawData['#of Formal Extensions (Final Contract Date)']);
+        const actualDeliveryDate = convertExcelDate(rawData['Actual Delivery Date']);
         
-        const extensionDate = convertExcelDate(
-          rawData['# of Formal Extensions (Final Contract Date)'] ||
-          rawData['Revised Estimated Date'] ||
-          rawData['Extension Date'] ||
-          rawData['Revised Delivery Date']
-        );
-        
-        const actualDeliveryDate = convertExcelDate(
-          rawData['Actual Delivery Date'] ||
-          rawData['Delivery Date'] ||
-          rawData['Actual Date']
-        );
-        
-        // Determine responsibility based on the field with 'X' or similar markers
-        // Support multiple possible column formats
+        // Determine responsibility based on the "Late Due To" field
         let delayResponsibility: 'not_applicable' | 'client_fault' | 'nomad_fault' | 'vendor_fault' = 'not_applicable';
         
-        // First check if there's a direct responsibility field
-        if (rawData['Responsibility'] || rawData['Delay Responsibility']) {
-          const resp = (rawData['Responsibility'] || rawData['Delay Responsibility'] || '').toString().toLowerCase();
-          if (resp.includes('client')) {
-            delayResponsibility = 'client_fault';
-          } else if (resp.includes('nomad')) {
-            delayResponsibility = 'nomad_fault';
-          } else if (resp.includes('vendor')) {
-            delayResponsibility = 'vendor_fault';
-          }
-        } 
-        // If no direct field, check the X marker fields
-        else if (rawData['Late due to: Client'] && 
-            isMarked(rawData['Late due to: Client'])) {
+        const lateDueTo = (rawData['Late Due To'] || '').toString().toLowerCase();
+        
+        if (lateDueTo.includes('client')) {
           delayResponsibility = 'client_fault';
-        } else if (rawData['Late due to: Nomad'] && 
-                  isMarked(rawData['Late due to: Nomad'])) {
+        } else if (lateDueTo.includes('nomad')) {
           delayResponsibility = 'nomad_fault';
-        } else if (rawData['Late due to: Vendor'] && 
-                  isMarked(rawData['Late due to: Vendor'])) {
-          delayResponsibility = 'vendor_fault';
-        }
-        // Also check alternate formats
-        else if (isMarked(rawData['Client Fault'])) {
-          delayResponsibility = 'client_fault';
-        } else if (isMarked(rawData['Nomad Fault'])) {
-          delayResponsibility = 'nomad_fault';
-        } else if (isMarked(rawData['Vendor Fault'])) {
+        } else if (lateDueTo.includes('vendor')) {
           delayResponsibility = 'vendor_fault';
         }
         
-        // Calculate days late - support multiple column names
-        let daysLate = convertToInteger(
-          rawData['# of days pre/post contract'] || 
-          rawData['Days Late'] ||
-          rawData['Late Days'] ||
-          rawData['Delay (Days)']
-        );
+        // Get days late directly from the specific column
+        let daysLate = convertToInteger(rawData['# of days pre/post contract']);
         
         // If days late isn't specified but we have both dates, calculate it
         if (daysLate === null && originalContractDate && actualDeliveryDate) {
@@ -819,8 +760,6 @@ export async function importDeliveryTracking(req: Request, res: Response) {
           daysLate = 0;
           delayResponsibility = 'not_applicable';
         }
-        
-        // Removed duplicate function declaration since we already have this defined at the top level
         
         // If original contract date is missing, use a fallback date
         if (!originalContractDate) {
