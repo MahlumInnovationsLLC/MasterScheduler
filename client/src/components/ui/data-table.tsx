@@ -133,29 +133,30 @@ export function DataTable<TData, TValue>({
       <div className="overflow-hidden">
         {/* Frozen columns container */}
         <div className="overflow-x-auto pb-4" style={{ position: 'relative' }}>
-          <div className="grid grid-flow-col" style={{ width: 'fit-content' }}>
+          <div className="flex" style={{ width: 'fit-content' }}>
             {/* Frozen columns - these will stay fixed */}
             <div 
               className="sticky left-0 z-40 shadow-md"
               style={{ 
-                display: 'flex',
                 background: 'var(--background)',
                 borderRight: '2px solid var(--primary)'
               }}
             >
-              <table className="border-collapse">
+              <table className="border-collapse w-full" style={{ tableLayout: 'fixed' }}>
                 <thead>
-                  <tr className="bg-muted/50">
+                  <tr className="bg-muted/50" style={{ height: '48px' }}>
                     {table.getHeaderGroups()[0].headers.map((header) => {
                       if (frozenColumns.includes(header.column.id)) {
                         const width = columnWidths[header.column.id as keyof typeof columnWidths] || 150;
                         return (
                           <th 
                             key={header.id}
-                            className="px-4 py-3 font-semibold text-left"
+                            className="px-4 font-semibold text-left"
                             style={{ 
                               width: `${width}px`, 
                               minWidth: `${width}px`,
+                              maxWidth: `${width}px`,
+                              height: '48px',
                               background: 'var(--muted)',
                               borderBottom: '1px solid var(--border)'
                             }}
@@ -195,6 +196,7 @@ export function DataTable<TData, TValue>({
                       <tr
                         key={row.id}
                         className="hover:bg-muted/50 border-b border-border"
+                        style={{ height: '53px' }} // Fixed height for row
                       >
                         {row.getVisibleCells().map((cell) => {
                           if (frozenColumns.includes(cell.column.id)) {
@@ -202,10 +204,12 @@ export function DataTable<TData, TValue>({
                             return (
                               <td 
                                 key={cell.id}
-                                className="px-4 py-3"
+                                className="px-4"
                                 style={{ 
                                   width: `${width}px`, 
                                   minWidth: `${width}px`,
+                                  maxWidth: `${width}px`,
+                                  height: '53px',
                                   background: 'var(--background)',
                                   borderRight: '1px solid var(--border-muted)'
                                 }}
@@ -237,17 +241,18 @@ export function DataTable<TData, TValue>({
 
             {/* Scrollable columns */}
             <div className="overflow-x-auto">
-              <table className="border-collapse">
+              <table className="border-collapse" style={{ tableLayout: 'fixed' }}>
                 <thead>
-                  <tr className="bg-muted/50">
+                  <tr className="bg-muted/50" style={{ height: '48px' }}>
                     {table.getHeaderGroups()[0].headers.map((header) => {
                       if (!frozenColumns.includes(header.column.id)) {
                         return (
                           <th 
                             key={header.id}
-                            className="px-4 py-3 font-semibold text-left whitespace-nowrap"
+                            className="px-4 font-semibold text-left whitespace-nowrap"
                             style={{ 
                               minWidth: '150px',
+                              height: '48px',
                               background: 'var(--muted)',
                               borderBottom: '1px solid var(--border)',
                               borderRight: '1px solid var(--border-muted)'
@@ -288,15 +293,17 @@ export function DataTable<TData, TValue>({
                       <tr
                         key={row.id}
                         className="hover:bg-muted/50 border-b border-border"
+                        style={{ height: '53px' }} // Fixed height for row
                       >
                         {row.getVisibleCells().map((cell) => {
                           if (!frozenColumns.includes(cell.column.id)) {
                             return (
                               <td 
                                 key={cell.id}
-                                className="px-4 py-3 whitespace-nowrap"
+                                className="px-4 whitespace-nowrap"
                                 style={{ 
                                   minWidth: '150px',
+                                  height: '53px',
                                   borderRight: '1px solid var(--border-muted)'
                                 }}
                               >
