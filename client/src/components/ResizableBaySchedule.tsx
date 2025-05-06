@@ -200,7 +200,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   const { toast } = useToast();
   const [draggingSchedule, setDraggingSchedule] = useState<any>(null);
   const [resizingSchedule, setResizingSchedule] = useState<any>(null);
-  const [dropTarget, setDropTarget] = useState<{ bayId: number, slotIndex: number } | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ bayId: number, slotIndex: number, rowIndex?: number } | null>(null);
   const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
   
   // Generate time slots based on view mode
@@ -610,7 +610,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         slot.isWeekend ? 'bg-gray-800/20' : ''
                       } ${isSameDay(slot.date, new Date()) ? 'bg-blue-900/20' : ''} ${
                         dropTarget?.bayId === bay.id && dropTarget.slotIndex === index 
-                          ? 'bg-primary/20' 
+                          ? 'bg-primary/40 border-primary border-2 z-10' 
                           : ''
                       }`}
                       onDragOver={(e) => handleDragOver(e, bay.id, index)}
@@ -647,13 +647,39 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           top: top + 'px',
                           height: height + 'px'
                         }}
+                        draggable
+                        onDragStart={(e) => {
+                          // Create a custom drag image
+                          const dragImage = document.createElement('div');
+                          dragImage.className = 'bg-primary/80 text-white p-2 rounded shadow';
+                          dragImage.innerHTML = `${bar.projectNumber} - ${bar.totalHours}h`;
+                          document.body.appendChild(dragImage);
+                          e.dataTransfer.setDragImage(dragImage, 20, 20);
+                          
+                          // Clean up after small delay
+                          setTimeout(() => {
+                            document.body.removeChild(dragImage);
+                          }, 100);
+                          
+                          // Set data for transfer
+                          e.dataTransfer.setData('application/json', JSON.stringify({
+                            type: 'existing',
+                            id: bar.id,
+                            projectId: bar.projectId,
+                            projectName: bar.projectName,
+                            projectNumber: bar.projectNumber,
+                            totalHours: bar.totalHours,
+                            bayId: bar.bayId
+                          }));
+                          
+                          e.dataTransfer.effectAllowed = 'move';
+                          setDraggingSchedule(bar);
+                          
+                          console.log('Drag started for existing schedule:', bar.projectNumber);
+                        }}
                       >
-                        {/* Main draggable area */}
-                        <div 
-                          className="absolute inset-0 flex items-center justify-between px-2 text-white cursor-move"
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, 'existing', bar)}
-                        >
+                        {/* Content */}
+                        <div className="absolute inset-0 flex items-center justify-between px-2 text-white">
                           <div className="font-medium text-xs truncate">
                             {bar.projectNumber}
                           </div>
@@ -745,23 +771,39 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               <div
                 key={project.id}
                 className="relative p-3 rounded-md border border-gray-700 bg-gray-800/50 shadow-sm hover:bg-gray-800 transition-colors group"
-              >
-                {/* Draggable area */}
-                <div 
-                  className="absolute inset-0 cursor-move"
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, 'new', {
+                draggable
+                onDragStart={(e) => {
+                  // Create a custom drag image to improve user experience
+                  const dragImage = document.createElement('div');
+                  dragImage.className = 'bg-primary/80 text-white p-2 rounded shadow';
+                  dragImage.innerHTML = `${project.projectNumber} - 40h`;
+                  document.body.appendChild(dragImage);
+                  e.dataTransfer.setDragImage(dragImage, 20, 20);
+                  
+                  // Clean up after small delay
+                  setTimeout(() => {
+                    document.body.removeChild(dragImage);
+                  }, 100);
+                  
+                  // Add required data
+                  e.dataTransfer.setData('application/json', JSON.stringify({
+                    type: 'new',
                     projectId: project.id,
                     projectName: project.name,
                     projectNumber: project.projectNumber,
-                    totalHours: 40
-                  })}
-                ></div>
-                
+                    totalHours: project.totalHours || 40
+                  }));
+                  
+                  // Set effect
+                  e.dataTransfer.effectAllowed = 'move';
+                  
+                  console.log('Drag started for project:', project.projectNumber);
+                }}
+              >
                 <div className="text-sm font-medium">{project.projectNumber}</div>
                 <div className="text-xs text-gray-400 mt-1 line-clamp-1">{project.name}</div>
                 <div className="flex justify-between items-center mt-2">
-                  <Badge variant="outline" className="bg-gray-700/50">40h</Badge>
+                  <Badge variant="outline" className="bg-gray-700/50">{project.totalHours || 40}h</Badge>
                   <div className="flex items-center space-x-2">
                     <div
                       className="w-3 h-3 rounded-full"
