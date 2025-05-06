@@ -36,6 +36,9 @@ interface ScheduleBar {
   projectNumber: string;
   width: number; // Width based on time period
   left: number; // Left position (start)
+  color: string;
+  // For multi-row layout within a bay
+  row?: number; // 0-3 for 4 rows per bay
 }
 
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
@@ -44,11 +47,15 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
   let slotWidth = 0;
   let format_string = '';
   
+  // Calculate end date 5 years from now for extended timeline
+  const extendedEndDate = new Date();
+  extendedEndDate.setFullYear(extendedEndDate.getFullYear() + 5);
+  
   switch (viewMode) {
     case 'day':
       slotWidth = 50;
       format_string = 'MMM d';
-      while (current <= dateRange.end) {
+      while (current <= extendedEndDate) {
         slots.push({
           date: new Date(current),
           label: format(current, format_string),
@@ -61,7 +68,7 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
     case 'week':
       slotWidth = 100;
       format_string = "'Week' w";
-      while (current <= dateRange.end) {
+      while (current <= extendedEndDate) {
         const weekEnd = addDays(current, 6);
         slots.push({
           date: new Date(current),
@@ -75,7 +82,7 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
     case 'month':
       slotWidth = 150;
       format_string = 'MMM yyyy';
-      while (current <= dateRange.end) {
+      while (current <= extendedEndDate) {
         const monthStart = startOfMonth(current);
         const monthEnd = endOfMonth(current);
         slots.push({
@@ -89,7 +96,7 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
       break;
     case 'quarter':
       slotWidth = 200;
-      while (current <= dateRange.end) {
+      while (current <= extendedEndDate) {
         const quarter = Math.floor(current.getMonth() / 3) + 1;
         const year = current.getFullYear();
         slots.push({
@@ -208,73 +215,123 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   const scheduleBars = useMemo(() => {
     if (!schedules.length || !slots.length) return [];
     
-    return schedules.map(schedule => {
-      const project = projects.find(p => p.id === schedule.projectId);
-      const bay = bays.find(b => b.id === schedule.bayId);
+    // First, group schedules by bay
+    const schedulesByBay = schedules.reduce((acc, schedule) => {
+      if (!acc[schedule.bayId]) {
+        acc[schedule.bayId] = [];
+      }
+      acc[schedule.bayId].push(schedule);
+      return acc;
+    }, {} as Record<number, typeof schedules>);
+    
+    // Process each bay's schedules to assign rows within the bay (for overlapping projects)
+    const processedBars: ScheduleBar[] = [];
+    
+    Object.entries(schedulesByBay).forEach(([bayIdStr, baySchedules]) => {
+      const bayId = parseInt(bayIdStr);
       
-      if (!project || !bay) return null;
+      // Sort schedules by start date
+      const sortedSchedules = [...baySchedules].sort((a, b) => 
+        new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+      );
       
-      const startDate = new Date(schedule.startDate);
-      const endDate = new Date(schedule.endDate);
+      // Initialize row tracking for this bay
+      const rowEndDates: Date[] = [
+        new Date(0), // Row 0
+        new Date(0), // Row 1
+        new Date(0), // Row 2
+        new Date(0)  // Row 3
+      ];
       
-      // Find the slot index for start and end
-      const startSlotIndex = slots.findIndex(slot => {
-        if (viewMode === 'day') {
-          return isSameDay(slot.date, startDate) || slot.date > startDate;
-        } else if (viewMode === 'week') {
-          const slotEndDate = addDays(slot.date, 6);
-          return (startDate >= slot.date && startDate <= slotEndDate);
-        } else if (viewMode === 'month') {
-          const slotMonth = slot.date.getMonth();
-          const slotYear = slot.date.getFullYear();
-          return (startDate.getMonth() === slotMonth && startDate.getFullYear() === slotYear);
-        } else { // quarter
-          const slotQuarter = Math.floor(slot.date.getMonth() / 3);
-          const slotYear = slot.date.getFullYear();
-          const startQuarter = Math.floor(startDate.getMonth() / 3);
-          return (startQuarter === slotQuarter && startDate.getFullYear() === slotYear);
+      // Process each schedule
+      sortedSchedules.forEach(schedule => {
+        const project = projects.find(p => p.id === schedule.projectId);
+        const bay = bays.find(b => b.id === bayId);
+        
+        if (!project || !bay) return;
+        
+        const startDate = new Date(schedule.startDate);
+        const endDate = new Date(schedule.endDate);
+        
+        // Find a row that doesn't have a schedule overlapping with this one
+        let assignedRow = -1;
+        for (let row = 0; row < 4; row++) {
+          if (startDate >= rowEndDates[row]) {
+            assignedRow = row;
+            break;
+          }
         }
-      });
-      
-      const endSlotIndex = slots.findIndex(slot => {
-        if (viewMode === 'day') {
-          return isSameDay(slot.date, endDate) || slot.date > endDate;
-        } else if (viewMode === 'week') {
-          const slotEndDate = addDays(slot.date, 6);
-          return (endDate >= slot.date && endDate <= slotEndDate);
-        } else if (viewMode === 'month') {
-          const slotMonth = slot.date.getMonth();
-          const slotYear = slot.date.getFullYear();
-          return (endDate.getMonth() === slotMonth && endDate.getFullYear() === slotYear);
-        } else { // quarter
-          const slotQuarter = Math.floor(slot.date.getMonth() / 3);
-          const slotYear = slot.date.getFullYear();
-          const endQuarter = Math.floor(endDate.getMonth() / 3);
-          return (endQuarter === slotQuarter && endDate.getFullYear() === slotYear);
+        
+        // If all rows are occupied, use the one that ends soonest
+        if (assignedRow === -1) {
+          assignedRow = rowEndDates.indexOf(Math.min(...rowEndDates.map(d => d.getTime())));
         }
+        
+        // Update the end date for this row
+        rowEndDates[assignedRow] = new Date(endDate);
+        
+        // Find the slot indices
+        const startSlotIndex = slots.findIndex(slot => {
+          if (viewMode === 'day') {
+            return isSameDay(slot.date, startDate) || slot.date > startDate;
+          } else if (viewMode === 'week') {
+            const slotEndDate = addDays(slot.date, 6);
+            return (startDate >= slot.date && startDate <= slotEndDate);
+          } else if (viewMode === 'month') {
+            const slotMonth = slot.date.getMonth();
+            const slotYear = slot.date.getFullYear();
+            return (startDate.getMonth() === slotMonth && startDate.getFullYear() === slotYear);
+          } else { // quarter
+            const slotQuarter = Math.floor(slot.date.getMonth() / 3);
+            const slotYear = slot.date.getFullYear();
+            const startQuarter = Math.floor(startDate.getMonth() / 3);
+            return (startQuarter === slotQuarter && startDate.getFullYear() === slotYear);
+          }
+        });
+        
+        const endSlotIndex = slots.findIndex(slot => {
+          if (viewMode === 'day') {
+            return isSameDay(slot.date, endDate) || slot.date > endDate;
+          } else if (viewMode === 'week') {
+            const slotEndDate = addDays(slot.date, 6);
+            return (endDate >= slot.date && endDate <= slotEndDate);
+          } else if (viewMode === 'month') {
+            const slotMonth = slot.date.getMonth();
+            const slotYear = slot.date.getFullYear();
+            return (endDate.getMonth() === slotMonth && endDate.getFullYear() === slotYear);
+          } else { // quarter
+            const slotQuarter = Math.floor(slot.date.getMonth() / 3);
+            const slotYear = slot.date.getFullYear();
+            const endQuarter = Math.floor(endDate.getMonth() / 3);
+            return (endQuarter === slotQuarter && endDate.getFullYear() === slotYear);
+          }
+        });
+        
+        // Calculate width and position
+        const validStartIndex = startSlotIndex === -1 ? 0 : startSlotIndex;
+        const validEndIndex = endSlotIndex === -1 ? slots.length - 1 : endSlotIndex;
+        
+        const barWidth = ((validEndIndex - validStartIndex) + 1) * slotWidth;
+        const barLeft = validStartIndex * slotWidth;
+        
+        processedBars.push({
+          id: schedule.id,
+          projectId: schedule.projectId,
+          bayId,
+          startDate,
+          endDate,
+          totalHours: schedule.totalHours || 40,
+          projectName: project.name,
+          projectNumber: project.projectNumber,
+          width: barWidth,
+          left: barLeft,
+          color: getProjectColor(project.id),
+          row: assignedRow
+        });
       });
-      
-      // Calculate width and position
-      const validStartIndex = startSlotIndex === -1 ? 0 : startSlotIndex;
-      const validEndIndex = endSlotIndex === -1 ? slots.length - 1 : endSlotIndex;
-      
-      const barWidth = ((validEndIndex - validStartIndex) + 1) * slotWidth;
-      const barLeft = validStartIndex * slotWidth;
-      
-      return {
-        id: schedule.id,
-        projectId: schedule.projectId,
-        bayId: schedule.bayId,
-        startDate,
-        endDate,
-        totalHours: schedule.totalHours || 40,
-        projectName: project.name,
-        projectNumber: project.projectNumber,
-        width: barWidth,
-        left: barLeft,
-        color: getProjectColor(project.id)
-      };
-    }).filter(Boolean);
+    });
+    
+    return processedBars;
   }, [schedules, projects, bays, slots, viewMode, slotWidth]);
   
   // Handle drag start
@@ -391,26 +448,36 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           {bays.map(bay => (
             <div 
               key={bay.id} 
-              className="h-16 flex items-center justify-between px-3 border-b border-gray-700"
+              className="h-64 flex flex-col px-3 py-3 border-b border-gray-700"
             >
-              <div className="flex items-center">
-                <Badge variant="outline" className="mr-2">
-                  {bay.bayNumber}
-                </Badge>
-                <div>
-                  <div className="text-sm font-semibold">{bay.name}</div>
-                  <div className="text-xs text-gray-400">
-                    {bay.staffCount} staff · {bay.hoursPerPersonPerWeek * bay.staffCount}h/week
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center">
+                  <Badge variant="outline" className="mr-2">
+                    {bay.bayNumber}
+                  </Badge>
+                  <div>
+                    <div className="text-sm font-semibold">{bay.name}</div>
+                    <div className="text-xs text-gray-400">
+                      {bay.staffCount} staff · {bay.hoursPerPersonPerWeek * bay.staffCount}h/week
+                    </div>
                   </div>
                 </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setEditingBay(bay)}
+                >
+                  <PencilIcon className="h-3.5 w-3.5" />
+                </Button>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setEditingBay(bay)}
-              >
-                <PencilIcon className="h-3.5 w-3.5" />
-              </Button>
+              
+              {/* Show 4 rows visually in the sidebar */}
+              <div className="flex-1 flex flex-col">
+                <div className="flex-1 border-b border-gray-700/30 text-xs text-gray-500 pl-2">Row 1</div>
+                <div className="flex-1 border-b border-gray-700/30 text-xs text-gray-500 pl-2">Row 2</div>
+                <div className="flex-1 border-b border-gray-700/30 text-xs text-gray-500 pl-2">Row 3</div>
+                <div className="flex-1 text-xs text-gray-500 pl-2">Row 4</div>
+              </div>
             </div>
           ))}
           
@@ -418,29 +485,39 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           {Array.from({ length: Math.max(0, 8 - bays.length) }).map((_, index) => (
             <div
               key={`empty-bay-${index}`}
-              className="h-16 flex items-center justify-between px-3 border-b border-gray-700 text-gray-500"
+              className="h-64 flex flex-col px-3 py-3 border-b border-gray-700 text-gray-500"
             >
-              <div className="flex items-center">
-                <Badge variant="outline" className="mr-2">
-                  {bays.length + index + 1}
-                </Badge>
-                <div>
-                  <div className="text-sm font-semibold">Empty Bay</div>
-                  <div className="text-xs text-gray-500">
-                    No staff assigned
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center">
+                  <Badge variant="outline" className="mr-2">
+                    {bays.length + index + 1}
+                  </Badge>
+                  <div>
+                    <div className="text-sm font-semibold">Empty Bay</div>
+                    <div className="text-xs text-gray-500">
+                      No staff assigned
+                    </div>
                   </div>
                 </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => toast({
+                    title: "Not Implemented",
+                    description: "Adding new bays is not implemented in this demo.",
+                  })}
+                >
+                  <PlusIcon className="h-3.5 w-3.5" />
+                </Button>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => toast({
-                  title: "Not Implemented",
-                  description: "Adding new bays is not implemented in this demo.",
-                })}
-              >
-                <PlusIcon className="h-3.5 w-3.5" />
-              </Button>
+              
+              {/* Show 4 rows visually in the sidebar */}
+              <div className="flex-1 flex flex-col opacity-50">
+                <div className="flex-1 border-b border-gray-700/30 text-xs text-gray-500 pl-2">Row 1</div>
+                <div className="flex-1 border-b border-gray-700/30 text-xs text-gray-500 pl-2">Row 2</div>
+                <div className="flex-1 border-b border-gray-700/30 text-xs text-gray-500 pl-2">Row 3</div>
+                <div className="flex-1 text-xs text-gray-500 pl-2">Row 4</div>
+              </div>
             </div>
           ))}
         </div>
@@ -472,11 +549,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           
           {/* Bay rows with schedule bars */}
           <div>
-            {/* Existing bays */}
+            {/* Existing bays - each bay now has 4 rows */}
             {bays.map(bay => (
               <div 
                 key={bay.id} 
-                className="relative h-16 border-b border-gray-700"
+                className="relative h-64 border-b border-gray-700"
                 style={{ width: totalViewWidth }}
               >
                 {/* Grid columns */}
@@ -500,41 +577,62 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   ))}
                 </div>
                 
+                {/* Row dividers */}
+                <div className="absolute inset-0 flex flex-col pointer-events-none">
+                  <div className="border-b border-gray-700/50 h-1/4"></div>
+                  <div className="border-b border-gray-700/50 h-1/4"></div>
+                  <div className="border-b border-gray-700/50 h-1/4"></div>
+                </div>
+                
                 {/* Schedule bars */}
                 {scheduleBars
                   .filter(bar => bar.bayId === bay.id)
-                  .map(bar => (
-                    <div
-                      key={bar.id}
-                      className="absolute top-2 bottom-2 rounded-sm z-10 cursor-move border shadow-md"
-                      style={{
-                        left: bar.left + 'px',
-                        width: bar.width - 2 + 'px',  // -2 for borders
-                        backgroundColor: bar.color,
-                        opacity: draggingSchedule?.id === bar.id ? 0.5 : 0.8
-                      }}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, 'existing', bar)}
-                    >
-                      <div className="flex items-center justify-between h-full px-2 text-white">
-                        <div className="font-medium text-xs truncate">
-                          {bar.projectNumber}
-                        </div>
-                        <div className="text-xs opacity-80 shrink-0">
-                          {bar.totalHours}h
+                  .map(bar => {
+                    // Calculate position based on row (0-3)
+                    const rowHeight = 64 / 4; // Total height divided by 4 rows
+                    const top = (bar.row || 0) * rowHeight + 2;
+                    const height = rowHeight - 4;
+                    
+                    return (
+                      <div
+                        key={bar.id}
+                        className="absolute rounded-sm z-10 cursor-move border shadow-md"
+                        style={{
+                          left: bar.left + 'px',
+                          width: bar.width - 2 + 'px',  // -2 for borders
+                          backgroundColor: bar.color,
+                          opacity: draggingSchedule?.id === bar.id ? 0.5 : 0.8,
+                          top: top + 'px',
+                          height: height + 'px'
+                        }}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, 'existing', bar)}
+                      >
+                        <div className="flex items-center justify-between h-full px-2 text-white">
+                          <div className="font-medium text-xs truncate">
+                            {bar.projectNumber}
+                          </div>
+                          <div className="text-xs opacity-80 shrink-0">
+                            {bar.totalHours}h
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 }
+                
+                {/* Bay label (shows on each row) */}
+                <div className="absolute top-0 left-0 bg-gray-800/80 text-xs px-1 rounded-br z-20">
+                  Bay {bay.bayNumber}
+                </div>
               </div>
             ))}
             
-            {/* Empty bay placeholders */}
+            {/* Empty bay placeholders - each bay now has 4 rows */}
             {Array.from({ length: Math.max(0, 8 - bays.length) }).map((_, index) => (
               <div 
                 key={`empty-bay-grid-${index}`} 
-                className="relative h-16 border-b border-gray-700"
+                className="relative h-64 border-b border-gray-700"
                 style={{ width: totalViewWidth }}
               >
                 {/* Grid columns */}
@@ -552,9 +650,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   ))}
                 </div>
                 
+                {/* Row dividers */}
+                <div className="absolute inset-0 flex flex-col pointer-events-none">
+                  <div className="border-b border-gray-700/50 h-1/4"></div>
+                  <div className="border-b border-gray-700/50 h-1/4"></div>
+                  <div className="border-b border-gray-700/50 h-1/4"></div>
+                </div>
+                
                 {/* Empty indicator */}
                 <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-xs">
                   Empty Bay (Add projects by creating a bay first)
+                </div>
+                
+                {/* Bay label */}
+                <div className="absolute top-0 left-0 bg-gray-800/80 text-xs px-1 rounded-br z-20">
+                  Bay {bays.length + index + 1}
                 </div>
               </div>
             ))}
