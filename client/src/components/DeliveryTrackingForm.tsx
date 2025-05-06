@@ -402,7 +402,7 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
                 <Select
                   disabled={isLoading}
                   onValueChange={field.onChange}
-                  defaultValue={field.value}
+                  defaultValue={field.value || undefined}
                 >
                   <FormControl>
                     <SelectTrigger>

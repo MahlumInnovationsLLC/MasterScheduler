@@ -122,15 +122,15 @@ function convertToDecimal(value: any, defaultValue: number | null = null): numbe
 }
 
 // Helper function to convert various formats to Excel dates
-function convertExcelDate(value: any): string | null {
+function convertExcelDate(value: any): string | undefined {
   // Handle empty or null values
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null || value === '') return undefined;
   
   // Handle common non-date placeholder values
   if (typeof value === 'string') {
     const normalized = value.trim().toLowerCase();
     if (['n/a', 'na', 'tbd', 'tba', 'pending', 'unknown', '-'].includes(normalized)) {
-      return null;
+      return undefined;
     }
   }
   
@@ -235,9 +235,9 @@ function convertExcelDate(value: any): string | null {
     }
   }
   
-  // Store the original value in rawData but return null for the actual field
+  // Store the original value in rawData but return undefined for the actual field
   console.log(`Could not convert to date, storing original: ${value}`);
-  return null;
+  return undefined;
 }
 
 // Import Tier IV Projects
@@ -715,13 +715,23 @@ export async function importDeliveryTracking(req: Request, res: Response) {
         const extensionDate = convertExcelDate(rawData['# of Formal Extensions (Final Contract Date)']);
         const actualDeliveryDate = convertExcelDate(rawData['Actual Delivery Date']);
         
-        // Determine responsibility
-        let delayResponsibility = 'not_applicable';
-        if (rawData['Late due to: Client']) {
+        // Determine responsibility based on the field with 'X' or similar markers
+        let delayResponsibility: 'not_applicable' | 'client_fault' | 'nomad_fault' | 'vendor_fault' = 'not_applicable';
+        
+        if (rawData['Late due to: Client'] && 
+            (rawData['Late due to: Client'] === 'X' || 
+             rawData['Late due to: Client'] === 'x' || 
+             rawData['Late due to: Client'] === true)) {
           delayResponsibility = 'client_fault';
-        } else if (rawData['Late due to: Nomad']) {
+        } else if (rawData['Late due to: Nomad'] && 
+                  (rawData['Late due to: Nomad'] === 'X' || 
+                   rawData['Late due to: Nomad'] === 'x' || 
+                   rawData['Late due to: Nomad'] === true)) {
           delayResponsibility = 'nomad_fault';
-        } else if (rawData['Late due to: Vendor']) {
+        } else if (rawData['Late due to: Vendor'] && 
+                  (rawData['Late due to: Vendor'] === 'X' || 
+                   rawData['Late due to: Vendor'] === 'x' || 
+                   rawData['Late due to: Vendor'] === true)) {
           delayResponsibility = 'vendor_fault';
         }
         
@@ -737,11 +747,11 @@ export async function importDeliveryTracking(req: Request, res: Response) {
         // Create delivery tracking entry
         const trackingData: InsertDeliveryTracking = {
           projectId: project.id,
-          originalEstimatedDate: originalContractDate,
-          revisedEstimatedDate: extensionDate,
-          actualDeliveryDate: actualDeliveryDate,
-          daysLate: daysLate,
-          delayResponsibility: delayResponsibility as any,
+          originalEstimatedDate: originalContractDate || undefined, // Handle null dates
+          revisedEstimatedDate: extensionDate || undefined,
+          actualDeliveryDate: actualDeliveryDate || undefined,
+          daysLate: daysLate || 0,
+          delayResponsibility: delayResponsibility,
           delayReason: rawData['Category'] || '',
           delayNotes: rawData['Late Reasoning'] || '',
           createdById: req.user?.id
