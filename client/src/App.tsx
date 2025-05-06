@@ -19,6 +19,7 @@ import SystemSettings from "@/pages/SystemSettings";
 import UserPreferences from "@/pages/UserPreferences";
 import AuthPage from "@/pages/auth-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
+import DevLoginHandler from "@/pages/DevLoginHandler";
 import NotFound from "@/pages/not-found";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -30,12 +31,13 @@ function Router() {
   const isAuthPage = location === "/auth";
   const isResetPasswordPage = location === "/reset-password" || location.startsWith("/reset-password?");
 
-  // If we're on the auth page or reset password page, render without the app layout
-  if (isAuthPage || isResetPasswordPage) {
+  // If we're on the auth page, reset password page, or dev login handler, render without the app layout
+  if (isAuthPage || isResetPasswordPage || location === "/dev-login-handler") {
     return (
       <Switch>
         <Route path="/auth" component={AuthPage} />
         <Route path="/reset-password" component={ResetPasswordPage} />
+        <Route path="/dev-login-handler" component={DevLoginHandler} />
       </Switch>
     );
   }
