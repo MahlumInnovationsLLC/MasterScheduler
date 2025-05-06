@@ -904,7 +904,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         {/* Edit button (appears on hover) */}
                         <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
                           <a 
-                            href={`/projects/${bar.projectId}`}
+                            href={`/project/${bar.projectId}`}
                             onClick={(e) => e.stopPropagation()}
                             className="inline-flex items-center justify-center w-4 h-4 bg-white/20 hover:bg-white/30 rounded-bl text-white"
                           >
@@ -1005,7 +1005,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     
                     {/* Edit button */}
                     <a 
-                      href={`/projects/${project.id}`}
+                      href={`/project/${project.id}`}
                       onClick={(e) => e.stopPropagation()}
                       className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center text-gray-400 hover:text-white"
                     >

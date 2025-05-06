@@ -6,16 +6,12 @@ import {
   Calendar,
   BarChart3,
   DollarSign,
-  Building2,
   Upload,
   Download,
   Settings,
   Users,
-  Archive,
-  FileArchive,
   Clock,
   Truck,
-  Package,
   TrendingUp,
   GanttChart
 } from 'lucide-react';
@@ -108,14 +104,7 @@ const Sidebar = () => {
                 <span>Billing Milestones</span>
               </Link>
             </li>
-            <li>
-              <Link href="/manufacturing" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/manufacturing') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
-                <Building2 className={`text-xl ${isActive('/manufacturing') ? 'text-primary' : ''}`} />
-                <span>Manufacturing Bays</span>
-              </Link>
-            </li>
+
             <li>
               <Link href="/bay-scheduling" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/bay-scheduling') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
@@ -140,14 +129,7 @@ const Sidebar = () => {
                 <span>Delivered Projects</span>
               </Link>
             </li>
-            <li>
-              <Link href="/archived-projects" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/archived-projects') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
-                <FileArchive className={`text-xl ${isActive('/archived-projects') ? 'text-primary' : ''}`} />
-                <span>Archived Projects</span>
-              </Link>
-            </li>
+
           </ul>
         </div>
         
