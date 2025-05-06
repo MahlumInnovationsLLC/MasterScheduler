@@ -325,7 +325,13 @@ const BayGroup = ({
                   if (!startSlot) return null;
                   
                   // Calculate the width based on duration
-                  const width = calculateProjectWidth(schedule, slots[bay.id] || []);
+                  // Find the width based on the difference between start and end dates
+                  const startDate = new Date(schedule.startDate);
+                  const endDate = new Date(schedule.endDate);
+                  const daysDifference = Math.ceil(
+                    (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+                  );
+                  const width = (daysDifference + 1) * 36; // Each slot is 36px wide
                   
                   // Determine the left position based on the start date
                   const startIndex = slots[bay.id]?.findIndex(s => s.id === startSlot.id) || 0;
@@ -406,7 +412,7 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
   onScheduleChange,
   onScheduleCreate,
   onUpdateBay
-}) => {
+}): React.ReactNode => {
   const { toast } = useToast();
   
   // State for timeline navigation
@@ -526,7 +532,7 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
         projectNumber: p.projectNumber,
         status: 'scheduled' as const,
         startDate: p.startDate || new Date().toISOString(),
-        endDate: p.endDate || new Date().toISOString()
+        endDate: (p as any).endDate || new Date(new Date().setDate(new Date().getDate() + 30)).toISOString()
       }));
   }, [projects, schedules]);
   
@@ -842,56 +848,74 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
         
         if (existingSchedule) {
           // Update existing schedule
-          await onScheduleChange(
-            existingSchedule.id,
-            bayId,
-            startDate,
-            endDate
-          );
-          
-          toast({
-            title: "Schedule updated",
-            description: "The project schedule has been updated.",
-          });
+          try {
+            await onScheduleChange(
+              existingSchedule.id,
+              bayId,
+              startDate,
+              endDate
+            );
+            
+            toast({
+              title: "Schedule updated",
+              description: "The project schedule has been updated.",
+            });
+          } catch (error) {
+            console.error("Error updating schedule:", error);
+            toast({
+              title: "Error",
+              description: "Failed to update schedule. Please try again.",
+              variant: "destructive",
+            });
+          }
         } else {
           // Create new schedule
-          await onScheduleCreate(
-            projectId,
-            bayId,
-            startDate,
-            endDate
-          );
-          
-          // Update project status to active if current date is between start and end dates
-          const currentDate = new Date();
-          const scheduleStartDate = new Date(startDate);
-          const scheduleEndDate = new Date(endDate);
-          
-          if (currentDate >= scheduleStartDate && currentDate <= scheduleEndDate) {
-            // Update project status to active
-            try {
-              const response = await fetch(`/api/projects/${projectId}`, {
-                method: 'PATCH',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  status: 'active'
-                }),
-              });
-              
-              if (!response.ok) {
-                console.warn('Failed to update project status, but schedule was created');
+          try {
+            await onScheduleCreate(
+              projectId,
+              bayId,
+              startDate,
+              endDate
+            );
+            
+            // Update project status to active if current date is between start and end dates
+            const currentDate = new Date();
+            const scheduleStartDate = new Date(startDate);
+            const scheduleEndDate = new Date(endDate);
+            
+            if (currentDate >= scheduleStartDate && currentDate <= scheduleEndDate) {
+              // Update project status to active
+              try {
+                const response = await fetch(`/api/projects/${projectId}`, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    status: 'active'
+                  }),
+                });
+                
+                if (!response.ok) {
+                  console.warn('Failed to update project status, but schedule was created');
+                }
+              } catch (statusError) {
+                console.warn('Error updating project status:', statusError);
               }
-            } catch (statusError) {
-              console.warn('Error updating project status:', statusError);
             }
+            
+            toast({
+              title: "Schedule created",
+              description: "The project has been scheduled successfully.",
+            });
+          } catch (createError) {
+            console.error("Error creating schedule:", createError);
+            toast({
+              title: "Error",
+              description: "Failed to create schedule. Please try again.",
+              variant: "destructive",
+            });
           }
-          
-          toast({
-            title: "Schedule created",
-            description: "The project has been scheduled successfully.",
-          });
         }
       }
     } catch (error) {
@@ -1039,7 +1063,18 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
                 key={group.id}
                 group={group}
                 slots={calendarSlots}
-                schedules={schedules.filter(s => 
+                schedules={schedules.map(s => ({
+                  id: s.id,
+                  projectId: s.projectId,
+                  bayId: s.bayId,
+                  startDate: s.startDate,
+                  endDate: s.endDate,
+                  status: s.status,
+                  projectName: projects.find(p => p.id === s.projectId)?.name || 'Unknown Project',
+                  projectNumber: projects.find(p => p.id === s.projectId)?.projectNumber || '',
+                  bayName: bays.find(b => b.id === s.bayId)?.name || 'Unknown Bay',
+                  bayNumber: bays.find(b => b.id === s.bayId)?.bayNumber || 0
+                })).filter(s => 
                   group.bays.some(b => b.id === s.bayId)
                 )}
                 onEditBay={handleEditBay}
@@ -1247,4 +1282,4 @@ const calculateProjectWidth = (schedule: ManufacturingSchedule, slotRow: BaySlot
   return visibleDays * 36; // Each slot is 36px wide
 };
 
-export default ManufacturingBayLayout;
+export { ManufacturingBayLayout };
