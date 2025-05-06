@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Calendar, ChevronLeft, ChevronRight, Info, Edit, PlusCircle, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format, addWeeks, eachWeekOfInterval, startOfWeek, endOfWeek, isSameWeek } from 'date-fns';
+import { format, addWeeks, addDays, eachWeekOfInterval, startOfWeek, endOfWeek, isSameWeek } from 'date-fns';
 import { 
   Select, 
   SelectContent, 
@@ -846,38 +846,63 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
       </div>
       
       {/* Week indicators */}
-      <div className="mb-4 ml-36">
-        <div className="flex">
-          {weeks.map((week, index) => (
-            <div 
-              key={week.weekNumber}
-              className="flex-shrink-0 text-center font-medium"
-              style={{ width: `${7 * 36}px` }} // 7 days per week, 36px per day
-            >
-              Week {week.weekNumber}
-            </div>
-          ))}
+      <div className="mb-6 ml-[156px]">
+        <div className="flex mb-2">
+          {weeks.map((week, index) => {
+            // Calculate if this is the current week
+            const today = new Date();
+            const isCurrentWeek = 
+              today >= week.startDate && 
+              today <= week.endDate;
+            
+            return (
+              <div 
+                key={week.weekNumber}
+                className={`
+                  flex-shrink-0 text-center font-medium rounded-t-md px-2 py-1
+                  ${isCurrentWeek ? 'bg-primary/20 text-primary' : 'bg-card/80 text-foreground/80'}
+                `}
+                style={{ width: `${7 * 36}px` }} // 7 days per week, 36px per day
+              >
+                <div className="text-sm">Week {week.weekNumber}</div>
+                <div className="text-xs opacity-70">{format(week.startDate, 'MMM d')} - {format(week.endDate, 'MMM d')}</div>
+              </div>
+            );
+          })}
         </div>
         
         {/* Days of week */}
-        <div className="flex">
+        <div className="flex bg-card/80 rounded-md border border-border/30">
           {weeks.map(week => (
             <React.Fragment key={week.weekNumber}>
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, dayIndex) => (
-                <div 
-                  key={`${week.weekNumber}-${day}`}
-                  className="flex-shrink-0 text-xs text-center py-1"
-                  style={{ width: '36px' }}
-                >
-                  {day}
-                </div>
-              ))}
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, dayIndex) => {
+                const date = addDays(week.startDate, dayIndex);
+                const isWeekend = [5, 6].includes(dayIndex); // 5 is Sat, 6 is Sun
+                return (
+                  <div 
+                    key={`${week.weekNumber}-${day}`}
+                    className={`
+                      flex-shrink-0 flex flex-col items-center justify-center py-1 text-center border-r border-border/20
+                      ${isWeekend ? 'bg-gray-900/10' : ''}
+                    `}
+                    style={{ width: '36px' }}
+                  >
+                    <div className="text-[10px] text-foreground/70">{day}</div>
+                    <div className="text-xs font-mono">{format(date, 'd')}</div>
+                  </div>
+                );
+              })}
             </React.Fragment>
           ))}
         </div>
       </div>
       
       <div className="flex">
+        {/* Bay group labels sidebar */}
+        <div className="w-[152px] flex-shrink-0 pt-[1px] pr-4">
+          <div className="text-sm font-medium text-right text-foreground/70 mb-2">Manufacturing Bays</div>
+        </div>
+        
         {/* Main schedule area */}
         <div className="flex-1">
           <DndContext
