@@ -76,6 +76,7 @@ interface BaySlot {
   scheduleId?: number;
   isOccupied: boolean;
   isDisabled: boolean;
+  interval?: number; // Number of days in this slot (1 for day view, 7 for week, ~30 for month)
 }
 
 interface ProjectCard {
@@ -210,24 +211,56 @@ const BaySlot = ({
   const isToday = format(new Date(), 'd MMM yyyy') === format(slot.date, 'd MMM yyyy');
   const isWeekend = [0, 6].includes(slot.date.getDay()); // 0 is Sunday, 6 is Saturday
   
+  // Determine width based on the slot interval (from view mode)
+  const getSlotWidth = () => {
+    // Default slot width for day view
+    const baseWidth = 36;
+    
+    // Wider slots for week and month views, but not too wide
+    // to keep the schedule within screen width
+    if (slot.interval === 7) {
+      return baseWidth * 2; // Week view: 72px per slot
+    } else if (slot.interval === 30) {
+      return baseWidth * 4; // Month view: 144px per slot
+    }
+    
+    return baseWidth; // Default (day view): 36px per slot
+  };
+  
+  const slotWidth = getSlotWidth();
+  
+  // Determine the appropriate date format based on the interval
+  const getDateLabel = () => {
+    if (slot.interval === 1) {
+      return day; // Just the day number for day view
+    } else if (slot.interval === 7) {
+      return `${format(slot.date, 'MMM d')}-${format(addDays(slot.date, 6), 'd')}`;
+    } else {
+      return format(slot.date, 'MMM');
+    }
+  };
+  
+  const dateLabel = getDateLabel();
+  
   return (
     <div 
       className={`
-        h-12 w-36 border-r border-b border-border/30 relative
+        h-12 border-r border-b border-border/30 relative
         ${isToday ? 'bg-primary/10' : isWeekend ? 'bg-gray-900/20' : 'bg-transparent'}
         ${slot.isOccupied ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-primary/5'}
         ${slot.isDisabled ? 'opacity-50' : ''}
         ${isOver ? 'bg-primary/20' : ''}
         transition-colors duration-100
+        flex items-center justify-center
       `}
       id={slot.id}
+      style={{ width: `${slotWidth}px` }}
       onDoubleClick={() => onDoubleClick(slot)}
     >
-      {day === '1' && (
-        <div className="absolute top-0 left-1 text-[9px] text-gray-400 font-mono">
-          {format(slot.date, 'MMM')}
-        </div>
-      )}
+      <div className="text-xs text-gray-400">
+        {dateLabel}
+      </div>
+      
       {isToday && (
         <div className="absolute bottom-1 right-1 w-1.5 h-1.5 bg-primary rounded-full"></div>
       )}
@@ -301,19 +334,28 @@ const BayGroup = ({
           </div>
           
           <div className="flex relative">
-            {/* Bay slots */}
-            <div className="flex bg-darkCard/80 rounded-md overflow-hidden border border-border/50">
-              {slots[bay.id]?.map(slot => (
-                <BaySlot 
-                  key={slot.id} 
-                  slot={slot} 
-                  onDoubleClick={onSlotDoubleClick} 
-                />
-              ))}
+            {/* Frozen bay label column (fixed width) */}
+            <div className="w-20 h-12 bg-primary/10 flex items-center justify-center border-r-2 border-primary/20 z-10 sticky left-0">
+              <div className="text-xs font-medium text-primary">Bay {bay.bayNumber}</div>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <div className="flex">
+                {/* Bay slots */}
+                <div className="flex bg-darkCard/80 rounded-md overflow-hidden border border-border/50">
+                  {slots[bay.id]?.map(slot => (
+                    <BaySlot 
+                      key={slot.id} 
+                      slot={slot} 
+                      onDoubleClick={onSlotDoubleClick} 
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
             
             {/* Project cards positioned absolutely over the slots */}
-            <div className="absolute top-0 left-0 h-12">
+            <div className="absolute top-0 left-20 h-12"> {/* Offset by the frozen column width */}
               {schedules
                 .filter(schedule => schedule.bayId === bay.id)
                 .map(schedule => {
@@ -324,18 +366,53 @@ const BayGroup = ({
                   
                   if (!startSlot) return null;
                   
+                  // Get the slot width based on view mode
+                  const getSlotWidth = (interval?: number) => {
+                    // Default slot width for day view
+                    const baseWidth = 36;
+                    
+                    // Wider slots for week and month views
+                    if (interval === 7) {
+                      return baseWidth * 2; // Week view: 72px per slot
+                    } else if (interval === 30) {
+                      return baseWidth * 4; // Month view: 144px per slot
+                    }
+                    
+                    return baseWidth; // Default (day view): 36px per slot
+                  };
+                  
                   // Calculate the width based on duration
-                  // Find the width based on the difference between start and end dates
                   const startDate = new Date(schedule.startDate);
                   const endDate = new Date(schedule.endDate);
-                  const daysDifference = Math.ceil(
-                    (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-                  );
-                  const width = (daysDifference + 1) * 36; // Each slot is 36px wide
+                  
+                  // Calculate width based on the view mode
+                  const slotWidth = getSlotWidth(startSlot.interval);
+                  
+                  // Scale the width based on the actual duration and slot intervals
+                  let width: number;
+                  if (startSlot.interval === 1) {
+                    // Day view - one day per slot
+                    const daysDifference = Math.ceil(
+                      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+                    );
+                    width = (daysDifference + 1) * slotWidth;
+                  } else if (startSlot.interval === 7) {
+                    // Week view - one week per slot
+                    const weeksDifference = Math.ceil(
+                      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7)
+                    );
+                    width = (weeksDifference + 0.5) * slotWidth; // Slightly less to show it's a partial week
+                  } else {
+                    // Month view - one month per slot
+                    const monthsDifference = 
+                      (endDate.getMonth() - startDate.getMonth()) + 
+                      (endDate.getFullYear() - startDate.getFullYear()) * 12;
+                    width = (monthsDifference + 0.5) * slotWidth; // Slightly less to show it's a partial month
+                  }
                   
                   // Determine the left position based on the start date
                   const startIndex = slots[bay.id]?.findIndex(s => s.id === startSlot.id) || 0;
-                  const left = startIndex * 36; // Each slot is 36px wide
+                  const left = startIndex * slotWidth; // Position based on slot width
 
                   // Determine status-specific styling
                   let statusColor = 'bg-blue-500/80';
@@ -485,7 +562,10 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
       const baySlots: BaySlot[] = [];
       let position = 0;
       
-      // Create a slot for each day in the date range
+      // Time interval depends on the view mode
+      const interval = viewMode === 'day' ? 1 : viewMode === 'week' ? 7 : 30;
+      
+      // Create slots based on view mode (day, week, or month)
       let currentDate = new Date(startDate);
       while (currentDate <= endDate) {
         // Check if this slot is occupied by a schedule
@@ -493,24 +573,40 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
           const scheduleStart = new Date(schedule.startDate);
           const scheduleEnd = new Date(schedule.endDate);
           
+          // For week and month views, we need to check if any day in the interval
+          // overlaps with the schedule
+          const intervalEnd = new Date(currentDate);
+          intervalEnd.setDate(intervalEnd.getDate() + interval - 1);
+          
           return (
             schedule.bayId === bay.id &&
-            currentDate >= scheduleStart &&
-            currentDate <= scheduleEnd
+            ((currentDate >= scheduleStart && currentDate <= scheduleEnd) ||
+             (intervalEnd >= scheduleStart && intervalEnd <= scheduleEnd) ||
+             (scheduleStart >= currentDate && scheduleStart <= intervalEnd))
           );
         });
         
+        // Generate an ID that includes the view mode
+        const slotId = viewMode === 'day' 
+          ? `slot-${bay.id}-${format(currentDate, 'yyyy-MM-dd')}`
+          : viewMode === 'week'
+            ? `slot-${bay.id}-week-${format(currentDate, 'yyyy-MM-dd')}`
+            : `slot-${bay.id}-month-${format(currentDate, 'yyyy-MM-dd')}`;
+            
         baySlots.push({
-          id: `slot-${bay.id}-${format(currentDate, 'yyyy-MM-dd')}`,
+          id: slotId,
           bayId: bay.id,
           position,
           date: new Date(currentDate),
           isOccupied,
           isDisabled: false,
+          interval: interval
         });
         
-        // Move to next day
-        currentDate.setDate(currentDate.getDate() + 1);
+        // Move to next interval based on view mode
+        const nextDate = new Date(currentDate);
+        nextDate.setDate(nextDate.getDate() + interval);
+        currentDate = nextDate;
         position++;
       }
       
@@ -518,7 +614,7 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
     });
     
     return result;
-  }, [bays, schedules, weeks]);
+  }, [bays, schedules, weeks, viewMode]);
   
   // Create project cards for unassigned projects
   const unassignedProjects = useMemo(() => {
@@ -1259,6 +1355,7 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
 };
 
 // Helper function to calculate the width of a project on the timeline
+// Calculate the width of a project based on the schedule dates and view mode
 const calculateProjectWidth = (schedule: ManufacturingSchedule, slotRow: BaySlot[]) => {
   const startDate = new Date(schedule.startDate);
   const endDate = new Date(schedule.endDate);
@@ -1268,18 +1365,53 @@ const calculateProjectWidth = (schedule: ManufacturingSchedule, slotRow: BaySlot
     format(slot.date, 'yyyy-MM-dd') === format(startDate, 'yyyy-MM-dd')
   );
   
-  if (startSlotIndex === -1) return 36; // Slot width
+  if (startSlotIndex === -1 || slotRow.length === 0) return 36; // Default fallback
+
+  // Get the first slot to determine interval/view mode
+  const firstSlot = slotRow[0];
   
-  // Find how many days this project spans
-  const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  // Get the slot width based on interval (view mode)
+  const getSlotWidth = (interval?: number) => {
+    // Default slot width for day view
+    const baseWidth = 36;
+    
+    // Wider slots for week and month views
+    if (interval === 7) {
+      return baseWidth * 2; // Week view: 72px per slot
+    } else if (interval === 30) {
+      return baseWidth * 4; // Month view: 144px per slot
+    }
+    
+    return baseWidth; // Default (day view): 36px per slot
+  };
   
-  // Calculate how many days are visible in the current month view
-  const visibleDays = Math.min(
-    durationDays,
-    slotRow.length - startSlotIndex
-  );
+  const slotWidth = getSlotWidth(firstSlot.interval);
   
-  return visibleDays * 36; // Each slot is 36px wide
+  // Scale the width based on the actual duration and slot intervals
+  let width: number;
+  if (firstSlot.interval === 1) {
+    // Day view - one day per slot
+    const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    // Calculate how many days are visible in the current view
+    const visibleDays = Math.min(durationDays, slotRow.length - startSlotIndex);
+    width = visibleDays * slotWidth;
+  } else if (firstSlot.interval === 7) {
+    // Week view - one week per slot
+    const durationWeeks = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 0.5;
+    // Calculate how many weeks are visible in the current view
+    const visibleWeeks = Math.min(durationWeeks, slotRow.length - startSlotIndex);
+    width = visibleWeeks * slotWidth;
+  } else {
+    // Month view - one month per slot
+    const durationMonths = 
+      (endDate.getMonth() - startDate.getMonth()) + 
+      (endDate.getFullYear() - startDate.getFullYear()) * 12 + 0.5;
+    // Calculate how many months are visible in the current view
+    const visibleMonths = Math.min(durationMonths, slotRow.length - startSlotIndex);
+    width = visibleMonths * slotWidth;
+  }
+  
+  return width;
 };
 
 export { ManufacturingBayLayout };
