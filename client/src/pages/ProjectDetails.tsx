@@ -45,9 +45,11 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { addDays } from 'date-fns';
+import { Loader2 } from 'lucide-react';
 
 const ProjectDetails = () => {
   const { id } = useParams();
