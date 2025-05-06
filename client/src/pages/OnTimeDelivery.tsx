@@ -65,7 +65,9 @@ const formatDate = (dateStr: string | null | undefined) => {
 };
 
 // Helper to get badge variant based on delay responsibility
-const getResponsibilityBadge = (responsibility: string) => {
+const getResponsibilityBadge = (responsibility: string | null) => {
+  if (responsibility === null) return <Badge variant="outline">Not Set</Badge>;
+  
   switch (responsibility) {
     case "nomad_fault":
       return <Badge variant="destructive">Nomad Fault</Badge>;
@@ -73,8 +75,10 @@ const getResponsibilityBadge = (responsibility: string) => {
       return <Badge className="bg-amber-500 hover:bg-amber-600">Vendor Fault</Badge>;
     case "client_fault":
       return <Badge variant="default">Client Fault</Badge>;
-    default:
+    case "not_applicable":
       return <Badge variant="outline">Not Applicable</Badge>;
+    default:
+      return <Badge variant="outline">Unknown</Badge>;
   }
 };
 
@@ -130,7 +134,7 @@ interface DeliveryAnalytics {
 const OnTimeDeliveryPage: React.FC = () => {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
-  const [filterResponsibility, setFilterResponsibility] = useState<string>("");
+  const [filterResponsibility, setFilterResponsibility] = useState<string>("all");
   const [daysLateMin, setDaysLateMin] = useState<string>("");
   const [daysLateMax, setDaysLateMax] = useState<string>("");
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
@@ -152,7 +156,8 @@ const OnTimeDeliveryPage: React.FC = () => {
       let url = "/api/delivery-tracking";
       const params = new URLSearchParams();
       
-      if (filterResponsibility) {
+      // Only add responsibility param if not "all"
+      if (filterResponsibility && filterResponsibility !== "all") {
         params.append("responsibility", filterResponsibility);
       }
       
