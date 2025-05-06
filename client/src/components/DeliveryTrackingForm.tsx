@@ -91,8 +91,8 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/delivery-tracking"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/delivery-tracking/analytics"] });
+      queryClient.invalidateQueries(["/api/delivery-tracking"]);
+      queryClient.invalidateQueries(["/api/delivery-tracking/analytics"]);
       
       // Reset form
       form.reset();
@@ -437,7 +437,11 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
                   placeholder="Explain the reason for any delay"
                   className="resize-none"
                   disabled={isLoading}
-                  {...field}
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  name={field.name}
                 />
               </FormControl>
               <FormDescription>
@@ -460,7 +464,11 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
                   placeholder="Any additional information about the delivery"
                   className="resize-none"
                   disabled={isLoading}
-                  {...field}
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  name={field.name}
                 />
               </FormControl>
               <FormDescription>

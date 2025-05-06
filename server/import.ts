@@ -744,10 +744,16 @@ export async function importDeliveryTracking(req: Request, res: Response) {
           delayResponsibility = 'not_applicable';
         }
         
+        // If original contract date is missing, use a fallback date
+        if (!originalContractDate) {
+          console.error(`Missing required original contract date for project ${project.projectNumber}`);
+          throw new Error(`Missing required original contract date for project ${project.projectNumber}`);
+        }
+        
         // Create delivery tracking entry
         const trackingData: InsertDeliveryTracking = {
           projectId: project.id,
-          originalEstimatedDate: originalContractDate || undefined, // Handle null dates
+          originalEstimatedDate: originalContractDate,
           revisedEstimatedDate: extensionDate || undefined,
           actualDeliveryDate: actualDeliveryDate || undefined,
           daysLate: daysLate || 0,
