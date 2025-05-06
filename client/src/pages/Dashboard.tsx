@@ -256,11 +256,13 @@ const Dashboard = () => {
     },
     {
       id: 'actions',
-      size: 50, // Set the column width to a smaller size
+      size: 10, // Make column width very narrow to fit just the button
+      maxSize: 10, // Enforce maximum width
+      header: "",  // Empty header
       cell: ({ row }) => (
-        <div className="text-center">
+        <div className="flex justify-center w-full">
           <Link href={`/projects/${row.original.id}`}>
-            <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+            <Button variant="ghost" size="icon" className="h-6 w-6 p-0 min-w-[24px]">
               <ArrowUpRight className="h-4 w-4" />
             </Button>
           </Link>
