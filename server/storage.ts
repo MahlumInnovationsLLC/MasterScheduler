@@ -11,6 +11,7 @@ import {
   notifications,
   archivedProjects,
   deliveryTracking,
+  salesDeals,
   type User,
   type InsertUser,
   type Project,
@@ -35,6 +36,8 @@ import {
   type InsertArchivedProject,
   type DeliveryTracking,
   type InsertDeliveryTracking,
+  type SalesDeal,
+  type InsertSalesDeal,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, or } from "drizzle-orm";

@@ -27,6 +27,28 @@ export const projectStatusEnum = pgEnum("project_status", [
   "critical",
 ]);
 
+export const dealTypeEnum = pgEnum("deal_type", [
+  "unsolicited_bid",
+  "unfinanced_restrict",
+  "developed_direct",
+  "developed_public_bid",
+]);
+
+export const dealStageEnum = pgEnum("deal_stage", [
+  "verbal_commit",
+  "project_launch",
+  "site_core_activity", 
+  "submit_decide",
+  "not_started"
+]);
+
+export const dealPriorityEnum = pgEnum("deal_priority", [
+  "low",
+  "medium", 
+  "high",
+  "urgent"
+]);
+
 export const billingStatusEnum = pgEnum("billing_status", [
   "upcoming",
   "invoiced",
@@ -108,6 +130,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     relationName: "userPreferences",
   }),
   projects: many(projects),
+  salesDeals: many(salesDeals),
 }));
 
 // User Preferences Table
@@ -449,6 +472,62 @@ export const notifications = pgTable("notifications", {
   expiresAt: timestamp("expires_at"), // Optional expiration time
 });
 
+// Sales Deals Table
+export const salesDeals = pgTable("sales_deals", {
+  id: serial("id").primaryKey(),
+  dealNumber: text("deal_number").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  
+  // Client/Customer Information
+  clientName: text("client_name").notNull(),
+  clientLocation: text("client_location"),
+  clientContactName: text("client_contact_name"),
+  clientContactEmail: text("client_contact_email"),
+  
+  // Sales Owner Information
+  ownerId: varchar("owner_id").references(() => users.id),
+  ownerName: text("owner_name"), // Store sales owner name directly
+  
+  // Deal Details
+  value: decimal("value", { precision: 12, scale: 2 }),
+  currency: text("currency").default("USD"),
+  dealType: dealTypeEnum("deal_type").notNull(),
+  dealStage: dealStageEnum("deal_stage").default("not_started").notNull(),
+  
+  // Dates
+  createdDate: date("created_date").defaultNow().notNull(),
+  expectedCloseDate: date("expected_close_date"),
+  actualCloseDate: date("actual_close_date"),
+  lastContactDate: date("last_contact_date"),
+  
+  // Tracking and Status
+  priority: dealPriorityEnum("priority").default("medium"),
+  probability: integer("probability").default(50), // Percentage 0-100
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true),
+  isConverted: boolean("is_converted").default(false),
+  convertedProjectId: integer("converted_project_id").references(() => projects.id),
+  
+  // Tags and Categories
+  vertical: text("vertical"), // Business vertical (e.g., Education, Finance, etc.)
+  
+  // Timestamps
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Sales Deal Relations
+export const salesDealsRelations = relations(salesDeals, ({ one }) => ({
+  owner: one(users, {
+    fields: [salesDeals.ownerId],
+    references: [users.id],
+  }),
+  convertedProject: one(projects, {
+    fields: [salesDeals.convertedProjectId],
+    references: [projects.id],
+  }),
+}));
+
 // Notification Relations
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(users, {
@@ -553,9 +632,18 @@ export const insertArchivedProjectSchema = createInsertSchema(archivedProjects).
   updatedAt: true,
 });
 
+// Create insert schema for sales deals
+export const insertSalesDealSchema = createInsertSchema(salesDeals).omit({
+  id: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type SalesDeal = typeof salesDeals.$inferSelect;
+export type InsertSalesDeal = z.infer<typeof insertSalesDealSchema>;
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
