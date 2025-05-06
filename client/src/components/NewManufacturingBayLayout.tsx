@@ -730,6 +730,17 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
                                     data-bay-id={bay.id}
                                     data-start-date={monthSchedule.startDate}
                                     data-end-date={monthSchedule.endDate}
+                                    onDragStart={(e) => {
+                                      e.dataTransfer.setData('application/json', JSON.stringify({
+                                        projectId: monthSchedule.projectId,
+                                        scheduleId: monthSchedule.id,
+                                        bayId: bay.id,
+                                        startDate: monthSchedule.startDate,
+                                        endDate: monthSchedule.endDate,
+                                        projectNumber: monthSchedule.projectNumber
+                                      }));
+                                      e.dataTransfer.effectAllowed = 'move';
+                                    }}
                                   >
                                     {monthSchedule.projectNumber}
                                   </div>
@@ -764,8 +775,8 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
                       name: project.name,
                       projectNumber: project.projectNumber,
                       status: 'scheduled',
-                      startDate: project.startDate || new Date().toISOString(),
-                      endDate: project.endDate || addDays(new Date(), 14).toISOString(),
+                      startDate: (project.startDate as string) || new Date().toISOString(),
+                      endDate: (project.endDate as string) || addDays(new Date(), 14).toISOString(),
                     }} 
                   />
                 ))}
