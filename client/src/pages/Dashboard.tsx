@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { 
@@ -28,6 +28,42 @@ const Dashboard = () => {
   const { data: projects, isLoading: isLoadingProjects } = useQuery({
     queryKey: ['/api/projects'],
   });
+  
+  const [filteredProjects, setFilteredProjects] = useState([]);
+  
+  // Auto-filter projects by next ship date
+  useEffect(() => {
+    if (!projects) return;
+    
+    // Helper to get valid dates and handle null/invalid dates
+    const getValidDate = (dateStr) => {
+      if (!dateStr) return null;
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? null : date;
+    };
+    
+    // Filter for projects with valid ship dates and sort by earliest ship date
+    const now = new Date();
+    const upcomingProjects = projects
+      .filter(p => {
+        const shipDate = getValidDate(p.shipDate);
+        return shipDate && shipDate >= now;
+      })
+      .sort((a, b) => {
+        const dateA = getValidDate(a.shipDate);
+        const dateB = getValidDate(b.shipDate);
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateA.getTime() - dateB.getTime();
+      });
+      
+    // If we have upcoming projects, show them, otherwise show all projects
+    if (upcomingProjects.length > 0) {
+      setFilteredProjects(upcomingProjects.slice(0, 5));
+    } else {
+      setFilteredProjects(projects.slice(0, 5));
+    }
+  }, [projects]);
 
   const { data: billingMilestones, isLoading: isLoadingBilling } = useQuery({
     queryKey: ['/api/billing-milestones'],
@@ -264,8 +300,9 @@ const Dashboard = () => {
 
       <DataTable
         columns={projectColumns}
-        data={projects?.slice(0, 5) || []}
+        data={filteredProjects}
         showPagination={false}
+        frozenColumns={['projectNumber', 'pmOwnerId', 'timeline', 'percentComplete', 'status']}
       />
     </div>
   );
