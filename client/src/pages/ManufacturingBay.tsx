@@ -347,6 +347,31 @@ const ManufacturingBay = () => {
               throw error;
             }
           }}
+          onUpdateBay={async (bayId, name, description, team) => {
+            try {
+              const response = await fetch(`/api/manufacturing-bays/${bayId}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  name,
+                  description,
+                  team
+                }),
+              });
+              
+              if (!response.ok) {
+                throw new Error('Failed to update bay information');
+              }
+              
+              // Refetch manufacturing bays
+              window.location.reload(); // Simple way to refresh data
+            } catch (error) {
+              console.error('Error updating bay:', error);
+              throw error;
+            }
+          }}
         />
       </div>
       

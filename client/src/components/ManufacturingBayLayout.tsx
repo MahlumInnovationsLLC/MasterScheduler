@@ -907,7 +907,7 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
           <DialogHeader>
             <DialogTitle>Edit Bay</DialogTitle>
             <DialogDescription>
-              Make changes to the bay name and description.
+              Make changes to the bay name, description, and team.
             </DialogDescription>
           </DialogHeader>
           
@@ -932,6 +932,19 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
                 id="bayDescription"
                 value={bayDescription}
                 onChange={(e) => setBayDescription(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bayTeam" className="text-right">
+                Team
+              </Label>
+              <Input
+                id="bayTeam"
+                value={bayTeam}
+                onChange={(e) => setBayTeam(e.target.value)}
+                placeholder="e.g., Bay 1 & 2, Bay 5 & 10"
                 className="col-span-3"
               />
             </div>
