@@ -202,15 +202,25 @@ const BaySlot = ({
   return (
     <div 
       className={`
-        h-12 w-36 border-r border-b border-gray-800 relative
-        ${isToday ? 'bg-primary/10' : isWeekend ? 'bg-gray-900/10' : 'bg-transparent'}
-        ${slot.isOccupied ? 'cursor-not-allowed' : 'cursor-pointer'}
+        h-12 w-36 border-r border-b border-border/30 relative
+        ${isToday ? 'bg-primary/10' : isWeekend ? 'bg-gray-900/20' : 'bg-transparent'}
+        ${slot.isOccupied ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-primary/5'}
         ${slot.isDisabled ? 'opacity-50' : ''}
         ${isOver ? 'bg-primary/20' : ''}
+        transition-colors duration-100
       `}
       id={slot.id}
       onDoubleClick={() => onDoubleClick(slot)}
-    />
+    >
+      {day === '1' && (
+        <div className="absolute top-0 left-1 text-[9px] text-gray-400 font-mono">
+          {format(slot.date, 'MMM')}
+        </div>
+      )}
+      {isToday && (
+        <div className="absolute bottom-1 right-1 w-1.5 h-1.5 bg-primary rounded-full"></div>
+      )}
+    </div>
   );
 };
 
@@ -229,17 +239,27 @@ const BayGroup = ({
   onSlotDoubleClick: (slot: BaySlot) => void;
 }) => {
   return (
-    <div className="mb-10 bg-darkCard/50 p-4 rounded-lg border border-gray-800">
-      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-800">
-        <h3 className="text-xl font-semibold text-primary">{group.name}</h3>
-        <Badge variant="outline" className="text-xs">Team: {group.team}</Badge>
+    <div className="mb-10 bg-darkCard/50 p-4 rounded-lg border-l-4 border border-primary/20 border-l-primary">
+      <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-800">
+        <div className="flex items-center">
+          <h3 className="text-xl font-semibold text-primary">{group.name}</h3>
+        </div>
+        <Badge 
+          variant="outline" 
+          className="text-xs px-3 py-1 border-primary/30 text-primary bg-primary/5"
+        >
+          Team: {group.team}
+        </Badge>
       </div>
       
       {group.bays.map(bay => (
         <div key={bay.id} className="mb-6">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center">
-              <h4 className="font-medium">{bay.name} - Bay {bay.bayNumber}</h4>
+              <div className="bg-card p-1 px-2 rounded-md border border-border mr-2">
+                <span className="font-mono text-sm">#{bay.bayNumber}</span>
+              </div>
+              <h4 className="font-medium">{bay.name}</h4>
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -250,11 +270,11 @@ const BayGroup = ({
               </Button>
             </div>
             <div className="flex items-center">
-              <div className="text-xs text-gray-400 mr-3">{bay.description}</div>
+              <div className="text-xs text-gray-400 mr-3 italic">{bay.description}</div>
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-8 p-0 px-2"
+                className="h-8 p-0 px-3 bg-primary/5 border-primary/20 hover:bg-primary/10 text-primary"
                 onClick={() => {
                   // Find first empty slot for this bay
                   const firstEmptySlot = slots[bay.id]?.find(slot => !slot.isOccupied);
@@ -271,7 +291,7 @@ const BayGroup = ({
           
           <div className="flex relative">
             {/* Bay slots */}
-            <div className="flex">
+            <div className="flex bg-darkCard/80 rounded-md overflow-hidden border border-border/50">
               {slots[bay.id]?.map(slot => (
                 <BaySlot 
                   key={slot.id} 
@@ -300,21 +320,43 @@ const BayGroup = ({
                   const startIndex = slots[bay.id]?.findIndex(s => s.id === startSlot.id) || 0;
                   const left = startIndex * 36; // Each slot is 36px wide
 
+                  // Determine status-specific styling
+                  let statusColor = 'bg-blue-500/80';
+                  let borderColor = 'border-blue-600';
+                  
+                  switch (schedule.status) {
+                    case 'scheduled':
+                      statusColor = 'bg-blue-500/80';
+                      borderColor = 'border-blue-600';
+                      break;
+                    case 'in_progress':
+                      statusColor = 'bg-amber-500/80';
+                      borderColor = 'border-amber-600';
+                      break;
+                    case 'complete':
+                      statusColor = 'bg-green-500/80';
+                      borderColor = 'border-green-600';
+                      break;
+                    case 'maintenance':
+                      statusColor = 'bg-purple-500/80';
+                      borderColor = 'border-purple-600';
+                      break;
+                  }
+
                   return (
                     <div 
                       key={schedule.id}
-                      className="absolute h-11 rounded-sm border overflow-hidden"
+                      className={`absolute h-11 rounded-md border-2 overflow-hidden shadow-md ${borderColor} ${statusColor}`}
                       style={{ 
                         left: `${left}px`, 
                         width: `${width}px`, 
-                        top: '2px',
-                        backgroundColor: getScheduleColor(schedule.status)
+                        top: '1px',
                       }}
                     >
-                      <div className="p-1 text-xs font-medium truncate">
+                      <div className="p-1 text-xs font-medium truncate text-white">
                         {schedule.projectName}
                       </div>
-                      <div className="px-1 text-[10px] truncate text-gray-200">
+                      <div className="px-1 text-[10px] truncate text-white/90 font-mono">
                         {schedule.projectNumber}
                       </div>
                     </div>
