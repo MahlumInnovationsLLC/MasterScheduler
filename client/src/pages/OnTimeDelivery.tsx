@@ -70,7 +70,7 @@ const getResponsibilityBadge = (responsibility: string) => {
     case "nomad_fault":
       return <Badge variant="destructive">Nomad Fault</Badge>;
     case "vendor_fault":
-      return <Badge variant="warning">Vendor Fault</Badge>;
+      return <Badge className="bg-amber-500 hover:bg-amber-600">Vendor Fault</Badge>;
     case "client_fault":
       return <Badge variant="default">Client Fault</Badge>;
     default:
@@ -81,8 +81,8 @@ const getResponsibilityBadge = (responsibility: string) => {
 // Helper to get badge for days late
 const getDaysLateBadge = (daysLate: number | null) => {
   if (daysLate === null) return <Badge variant="outline">Not Set</Badge>;
-  if (daysLate <= 0) return <Badge variant="success">On Time</Badge>;
-  if (daysLate <= 7) return <Badge variant="warning">{daysLate} Days Late</Badge>;
+  if (daysLate <= 0) return <Badge className="bg-green-500 hover:bg-green-600">On Time</Badge>;
+  if (daysLate <= 7) return <Badge className="bg-amber-500 hover:bg-amber-600">{daysLate} Days Late</Badge>;
   return <Badge variant="destructive">{daysLate} Days Late</Badge>;
 };
 
@@ -265,11 +265,13 @@ const OnTimeDeliveryPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">On Time Delivery Tracking</h1>
+    <div className="container p-4 mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">On Time Delivery Tracking</h1>
+      </div>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-6">
-        <TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
           <TabsTrigger value="all-records">Records</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           {isAuthenticated && user?.role && ["admin", "editor"].includes(user.role) && (
@@ -287,8 +289,8 @@ const OnTimeDeliveryPage: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div>
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="flex-1">
                   <Label htmlFor="filterResponsibility">Responsibility</Label>
                   <Select
                     value={filterResponsibility}
@@ -307,7 +309,7 @@ const OnTimeDeliveryPage: React.FC = () => {
                   </Select>
                 </div>
                 
-                <div>
+                <div className="flex-1">
                   <Label htmlFor="daysLateMin">Min Days Late</Label>
                   <Input
                     id="daysLateMin"
@@ -318,7 +320,7 @@ const OnTimeDeliveryPage: React.FC = () => {
                   />
                 </div>
                 
-                <div>
+                <div className="flex-1">
                   <Label htmlFor="daysLateMax">Max Days Late</Label>
                   <Input
                     id="daysLateMax"
@@ -329,9 +331,9 @@ const OnTimeDeliveryPage: React.FC = () => {
                   />
                 </div>
                 
-                <div className="flex items-end space-x-2">
+                <div className="flex items-end space-x-2 mt-auto">
                   <Button onClick={() => refetchRecords()}>
-                    Apply Filters
+                    Apply
                   </Button>
                   <Button variant="outline" onClick={resetFilters}>
                     Reset
@@ -420,7 +422,7 @@ const OnTimeDeliveryPage: React.FC = () => {
           ) : (
             <>
               {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg flex items-center">
@@ -495,7 +497,7 @@ const OnTimeDeliveryPage: React.FC = () => {
               </div>
               
               {/* Charts */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
                     <CardTitle>Delay Responsibility</CardTitle>
