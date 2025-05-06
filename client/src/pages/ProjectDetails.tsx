@@ -242,6 +242,15 @@ const ProjectDetails = () => {
     }
   });
 
+  // Calculate project progress based on tasks and milestones completion
+  const calculateProjectProgress = (): number => {
+    if (!tasks || tasks.length === 0) return 0;
+    
+    // Calculate task completion percentage
+    const completedTasks = tasks.filter(t => t.isCompleted).length;
+    return Math.round((completedTasks / tasks.length) * 100);
+  };
+
   const calculateProjectHealth = (): { score: number; change: number } => {
     if (!project || !tasks || !billingMilestones) return { score: 0, change: 0 };
     
@@ -256,7 +265,7 @@ const ProjectDetails = () => {
     const billingScore = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
     
     // Calculate timeline adherence (whether project is on track)
-    const percentComplete = parseFloat(project.percentComplete);
+    const percentComplete = calculateProjectProgress();
     const today = new Date();
     const startDate = new Date(project.startDate);
     const endDate = new Date(project.estimatedCompletionDate);
@@ -290,6 +299,7 @@ const ProjectDetails = () => {
   const milestones = React.useMemo(() => {
     // Add demo tasks if there are none yet (for UI development purposes only)
     const currentTasks = tasks.length > 0 ? tasks : [
+      // Project Kickoff Milestone Tasks
       {
         id: 1001,
         name: 'Initial requirements gathering',
@@ -297,25 +307,83 @@ const ProjectDetails = () => {
         dueDate: '2023-01-15T00:00:00.000Z',
         completedDate: '2023-01-15T00:00:00.000Z',
         isCompleted: true,
-        projectId: projectId
+        projectId: projectId,
       },
       {
         id: 1002,
-        name: 'Design approval',
-        description: 'Get sign-off on final designs',
-        dueDate: '2023-02-10T00:00:00.000Z',
-        completedDate: '2023-02-12T00:00:00.000Z',
+        name: 'Project charter creation',
+        description: 'Create and distribute project charter',
+        dueDate: '2023-01-16T00:00:00.000Z',
+        completedDate: '2023-01-16T00:00:00.000Z',
         isCompleted: true,
-        projectId: projectId
+        projectId: projectId,
       },
       {
         id: 1003,
+        name: 'Kickoff meeting',
+        description: 'Hold project kickoff meeting with stakeholders',
+        dueDate: '2023-01-17T00:00:00.000Z',
+        completedDate: '2023-01-17T00:00:00.000Z',
+        isCompleted: true,
+        projectId: projectId,
+      },
+      
+      // Design Phase Tasks
+      {
+        id: 1004,
+        name: 'Design approval',
+        description: 'Get sign-off on final designs',
+        dueDate: '2023-02-10T00:00:00.000Z',
+        completedDate: '2023-02-11T00:00:00.000Z',
+        isCompleted: true,
+        projectId: projectId,
+      },
+      {
+        id: 1005,
+        name: 'Materials sourcing',
+        description: 'Source all required materials for production',
+        dueDate: '2023-02-12T00:00:00.000Z',
+        completedDate: '2023-02-12T00:00:00.000Z',
+        isCompleted: true,
+        projectId: projectId,
+      },
+      {
+        id: 1006,
+        name: 'Production schedule finalization',
+        description: 'Finalize production schedule with manufacturing team',
+        dueDate: '2023-02-14T00:00:00.000Z',
+        completedDate: '2023-02-14T00:00:00.000Z',
+        isCompleted: true,
+        projectId: projectId,
+      },
+      
+      // Production Phase Tasks
+      {
+        id: 1007,
+        name: 'Assembly start',
+        description: 'Begin assembly of components',
+        dueDate: '2023-03-05T00:00:00.000Z',
+        completedDate: '2023-03-05T00:00:00.000Z',
+        isCompleted: true,
+        projectId: projectId,
+      },
+      {
+        id: 1008,
+        name: 'Mid-production review',
+        description: 'Conduct mid-production review and quality check',
+        dueDate: '2023-04-10T00:00:00.000Z',
+        completedDate: null,
+        isCompleted: false,
+        projectId: projectId,
+      },
+      {
+        id: 1009,
         name: 'QC inspection',
         description: 'Quality control inspection before delivery',
         dueDate: '2023-05-20T00:00:00.000Z',
         completedDate: null,
         isCompleted: false,
-        projectId: projectId
+        projectId: projectId,
       }
     ];
     
@@ -328,7 +396,8 @@ const ProjectDetails = () => {
         status: 'Completed',
         date: '2023-01-15',
         tasks: currentTasks.filter(t => new Date(t.dueDate) < new Date('2023-01-30')),
-        color: 'border-primary'
+        color: 'border-primary',
+        isCompleted: true
       },
       {
         id: 2,
@@ -339,7 +408,8 @@ const ProjectDetails = () => {
           new Date(t.dueDate) >= new Date('2023-01-30') && 
           new Date(t.dueDate) < new Date('2023-03-01')
         ),
-        color: 'border-accent'
+        color: 'border-accent',
+        isCompleted: true
       },
       {
         id: 3,
@@ -347,7 +417,8 @@ const ProjectDetails = () => {
         status: 'In Progress',
         date: 'Currently Active',
         tasks: currentTasks.filter(t => new Date(t.dueDate) >= new Date('2023-03-01')),
-        color: 'border-warning'
+        color: 'border-warning',
+        isCompleted: false
       }
     ];
     
@@ -489,10 +560,10 @@ const ProjectDetails = () => {
               <div className="w-32 bg-gray-800 rounded-full h-2.5">
                 <div 
                   className="bg-success h-2.5 rounded-full" 
-                  style={{ width: `${project.percentComplete}%` }}
+                  style={{ width: `${calculateProjectProgress()}%` }}
                 ></div>
               </div>
-              <span className="text-lg font-bold">{project.percentComplete}%</span>
+              <span className="text-lg font-bold">{calculateProjectProgress()}%</span>
             </div>
           </div>
           
@@ -580,14 +651,16 @@ const ProjectDetails = () => {
                     </h4>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-400">{milestone.date}</span>
-                      <ProgressBadge 
-                        status={
-                          milestone.status === 'Completed' ? 'Completed' :
-                          milestone.status === 'In Progress' ? 'In Progress' :
-                          'Upcoming'
-                        } 
-                        size="sm" 
-                      />
+                      <span className={`px-2 py-0.5 rounded-full text-xs 
+                        ${milestone.status === 'Completed' 
+                          ? 'bg-green-500/20 text-green-400' 
+                          : milestone.status === 'In Progress' 
+                            ? 'bg-blue-500/20 text-blue-400' 
+                            : 'bg-yellow-500/20 text-yellow-400'
+                        }`}
+                      >
+                        {milestone.status}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -597,22 +670,26 @@ const ProjectDetails = () => {
                   <div key={task.id} className="pl-6 py-2 border-b border-gray-800">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Checkbox 
-                          checked={task.isCompleted} 
-                          className="rounded bg-darkInput border-gray-600 text-primary focus:ring-primary focus:ring-offset-gray-900"
-                          onCheckedChange={(checked) => {
-                            const isCompleted = !!checked;
-                            updateTaskMutation.mutate({
-                              id: task.id,
-                              data: { 
-                                isCompleted, 
-                                completedDate: isCompleted ? new Date().toISOString() : null 
-                              }
-                            });
-                          }}
-                        />
+                        <div className="flex items-center justify-center">
+                          <Checkbox 
+                            checked={task.isCompleted} 
+                            className={`h-4 w-4 rounded border ${task.isCompleted ? 'bg-green-500 border-green-500' : 'bg-transparent border-gray-600'}`}
+                            onCheckedChange={(checked) => {
+                              const isCompleted = !!checked;
+                              updateTaskMutation.mutate({
+                                id: task.id,
+                                data: { 
+                                  isCompleted, 
+                                  completedDate: isCompleted ? new Date().toISOString() : null 
+                                }
+                              });
+                            }}
+                          />
+                        </div>
                         <div>
-                          <div className="text-sm">{task.name}</div>
+                          <div className={`text-sm ${task.isCompleted ? 'line-through text-gray-400' : ''}`}>
+                            {task.name}
+                          </div>
                           <div className="text-xs text-gray-400">
                             {task.isCompleted 
                               ? `Completed on ${formatDate(task.completedDate)}` 
