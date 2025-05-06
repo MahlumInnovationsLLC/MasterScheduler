@@ -764,7 +764,8 @@ const ProjectDetails = () => {
                             setTaskForm({
                               name: task.name,
                               description: task.description || '',
-                              dueDate: new Date(task.dueDate).toISOString().split('T')[0]
+                              dueDate: new Date(task.dueDate).toISOString().split('T')[0],
+                              milestoneId: milestone.id
                             });
                             setTaskDialogOpen(true);
                           }}
@@ -1327,6 +1328,25 @@ const ProjectDetails = () => {
           </DialogHeader>
           <div className="space-y-3 py-4">
             <div className="space-y-2">
+              <Label htmlFor="taskMilestone">Milestone</Label>
+              <Select
+                value={taskForm.milestoneId?.toString()}
+                onValueChange={(value) => setTaskForm({...taskForm, milestoneId: parseInt(value)})}
+              >
+                <SelectTrigger className="bg-darkInput border-gray-800 w-full">
+                  <SelectValue placeholder="Select a milestone" />
+                </SelectTrigger>
+                <SelectContent className="bg-darkInput border-gray-800">
+                  {milestones.map((milestone) => (
+                    <SelectItem key={milestone.id} value={milestone.id.toString()}>
+                      {milestone.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
               <Label htmlFor="taskName">Task Name</Label>
               <Input
                 id="taskName"
@@ -1442,6 +1462,100 @@ const ProjectDetails = () => {
                   Deleting...
                 </>
               ) : 'Delete Task'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add/Edit Milestone Dialog */}
+      <Dialog open={isMilestoneDialogOpen} onOpenChange={setIsMilestoneDialogOpen}>
+        <DialogContent className="bg-darkBg border-gray-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">
+              {editMilestoneId ? 'Edit Milestone' : 'Add New Milestone'}
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              {editMilestoneId 
+                ? 'Update the milestone details below.' 
+                : 'Create a new milestone to organize project tasks.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="milestoneName">Milestone Name</Label>
+              <Input
+                id="milestoneName"
+                value={milestoneForm.name}
+                onChange={(e) => setMilestoneForm({...milestoneForm, name: e.target.value})}
+                className="bg-darkInput border-gray-800"
+                placeholder="Enter milestone name"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="milestoneStatus">Status</Label>
+              <Select
+                value={milestoneForm.status}
+                onValueChange={(value) => setMilestoneForm({...milestoneForm, status: value})}
+              >
+                <SelectTrigger className="bg-darkInput border-gray-800 w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent className="bg-darkInput border-gray-800">
+                  <SelectItem value="Upcoming">Upcoming</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="milestoneDate">Target Date</Label>
+              <Input
+                id="milestoneDate"
+                type="date"
+                value={milestoneForm.date}
+                onChange={(e) => setMilestoneForm({...milestoneForm, date: e.target.value})}
+                className="bg-darkInput border-gray-800"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter className="flex space-x-2 sm:space-x-0">
+            <Button type="button" variant="outline" onClick={() => setIsMilestoneDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              type="button"
+              onClick={() => {
+                if (!milestoneForm.name.trim()) {
+                  toast({
+                    title: "Milestone name required",
+                    description: "Please provide a name for this milestone",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                saveMilestoneMutation.mutate({
+                  id: editMilestoneId || Date.now(), // Use timestamp as placeholder ID for demo
+                  name: milestoneForm.name,
+                  status: milestoneForm.status,
+                  date: milestoneForm.date,
+                  color: editMilestoneId ? 
+                    milestones.find(m => m.id === editMilestoneId)?.color || 'border-primary' : 
+                    'border-primary'
+                });
+              }}
+              disabled={saveMilestoneMutation.isPending}
+            >
+              {saveMilestoneMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {editMilestoneId ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (editMilestoneId ? 'Update Milestone' : 'Create Milestone')}
             </Button>
           </DialogFooter>
         </DialogContent>
