@@ -9,7 +9,6 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-  PaginationState,
   SortingState,
   ColumnFiltersState,
 } from "@tanstack/react-table";
@@ -118,186 +117,124 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
       
-      {/* Table with fixed left columns and scrollable right section */}
-      <div className="flex overflow-hidden border-gray-800 border-t">
-        {/* Fixed left section */}
-        {frozenColumns.length > 0 && (
-          <div className="bg-darkCard" style={{ width: 'auto', maxWidth: '40%' }}>
-            <Table className="w-full relative">
-              <TableHeader className="bg-gray-900">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id} className="border-gray-800">
-                    {headerGroup.headers
-                      .filter(header => frozenColumns.includes(header.column.id))
-                      .map((header) => (
-                        <TableHead 
-                          key={header.id}
-                          className="py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
-                          style={{
-                            minWidth: header.column.getSize() || 'auto',
-                            width: header.column.getSize() || 'auto'
-                          }}
-                        >
-                          {header.isPlaceholder ? null : (
-                            <div
-                              className={
-                                header.column.getCanSort()
-                                  ? 'flex items-center gap-1 cursor-pointer select-none'
-                                  : ''
-                              }
-                              onClick={header.column.getToggleSortingHandler()}
-                            >
-                              {flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                              {header.column.getCanSort() && (
-                                <div className="inline-block">
-                                  {{
-                                    asc: <ChevronUp className="h-4 w-4" />,
-                                    desc: <ChevronDown className="h-4 w-4" />,
-                                    false: <ChevronsUpDown className="h-4 w-4 opacity-50" />,
-                                  }[header.column.getIsSorted() as string] ?? null}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </TableHead>
-                      ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.length > 0 ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      className="hover:bg-gray-900/50 border-gray-800"
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+        <Table className="w-full min-w-max">
+          <TableHeader>
+            <TableRow>
+              {table.getHeaderGroups()[0].headers.map((header) => {
+                const isColumnFrozen = frozenColumns.includes(header.column.id);
+                // Calculate left position for frozen columns
+                let leftPosition = 0;
+                if (isColumnFrozen) {
+                  const frozenIndex = frozenColumns.indexOf(header.column.id);
+                  for (let i = 0; i < frozenIndex; i++) {
+                    const prevColumnId = frozenColumns[i];
+                    const headerGroup = table.getHeaderGroups()[0];
+                    const prevHeader = headerGroup.headers.find(h => h.column.id === prevColumnId);
+                    leftPosition += prevHeader ? (prevHeader.getSize() || 150) : 150;
+                  }
+                }
+                
+                return (
+                  <TableHead 
+                    key={header.id}
+                    className={`px-4 py-3 bg-gray-900 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${
+                      isColumnFrozen ? 'sticky z-20' : ''
+                    } ${isColumnFrozen && frozenColumns.indexOf(header.column.id) === frozenColumns.length - 1 ? 'after:absolute after:right-0 after:top-0 after:bottom-0 after:w-[2px] after:bg-primary/30 after:content-[""]' : ''}`}
+                    style={{
+                      minWidth: header.getSize() || 150,
+                      width: header.getSize() || 150,
+                      position: isColumnFrozen ? 'sticky' : undefined,
+                      left: isColumnFrozen ? `${leftPosition}px` : undefined,
+                      boxShadow: isColumnFrozen ? '2px 0 4px rgba(0,0,0,0.15)' : undefined,
+                      backgroundColor: isColumnFrozen ? '#1a1b26' : undefined,
+                      zIndex: isColumnFrozen ? 30 : undefined
+                    }}
+                  >
+                    <div
+                      className={
+                        header.column.getCanSort()
+                          ? 'flex items-center gap-1 cursor-pointer select-none'
+                          : ''
+                      }
+                      onClick={header.column.getToggleSortingHandler()}
                     >
-                      {row.getVisibleCells()
-                        .filter(cell => frozenColumns.includes(cell.column.id))
-                        .map((cell) => (
-                          <TableCell 
-                            key={cell.id} 
-                            className="py-4 px-4 bg-darkCard"
-                            style={{
-                              minWidth: cell.column.getSize() || 'auto',
-                              width: cell.column.getSize() || 'auto'
-                            }}
-                          >
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </TableCell>
-                        ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={frozenColumns.length}
-                      className="h-24 text-center text-gray-500"
-                    >
-                      No results found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-        
-        {/* Shadow effect on the edge of fixed section */}
-        <div className="w-2 relative">
-          <div className="absolute inset-y-0 left-0 w-2 bg-gradient-to-r from-black/40 to-transparent pointer-events-none z-30"></div>
-        </div>
-        
-        {/* Scrollable right section */}
-        <div className="overflow-x-auto relative flex-grow">
-          <Table className="w-full relative">
-            <TableHeader className="bg-gray-900">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="border-gray-800">
-                  {headerGroup.headers
-                    .filter(header => !frozenColumns.includes(header.column.id))
-                    .map((header) => (
-                      <TableHead 
-                        key={header.id}
-                        className="py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                      {header.column.getCanSort() && (
+                        <div className="inline-block">
+                          {{
+                            asc: <ChevronUp className="h-4 w-4" />,
+                            desc: <ChevronDown className="h-4 w-4" />,
+                            false: <ChevronsUpDown className="h-4 w-4 opacity-50" />,
+                          }[header.column.getIsSorted() as string] ?? null}
+                        </div>
+                      )}
+                    </div>
+                  </TableHead>
+                );
+              })}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.length > 0 ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className="border-b border-gray-800 hover:bg-gray-900/50"
+                >
+                  {row.getVisibleCells().map((cell) => {
+                    const isColumnFrozen = frozenColumns.includes(cell.column.id);
+                    // Calculate left position for frozen columns
+                    let leftPosition = 0;
+                    if (isColumnFrozen) {
+                      const frozenIndex = frozenColumns.indexOf(cell.column.id);
+                      for (let i = 0; i < frozenIndex; i++) {
+                        const prevColumnId = frozenColumns[i];
+                        const prevCell = row.getVisibleCells().find(c => c.column.id === prevColumnId);
+                        leftPosition += prevCell ? (prevCell.column.getSize() || 150) : 150;
+                      }
+                    }
+                    
+                    return (
+                      <TableCell 
+                        key={cell.id}
+                        className={`px-4 py-4 ${
+                          isColumnFrozen ? 'sticky z-10' : ''
+                        } ${isColumnFrozen && frozenColumns.indexOf(cell.column.id) === frozenColumns.length - 1 ? 'after:absolute after:right-0 after:top-0 after:bottom-0 after:w-[2px] after:bg-primary/30 after:content-[""]' : ''}`}
                         style={{
-                          minWidth: header.column.getSize() || 'auto',
-                          width: header.column.getSize() || 'auto'
+                          minWidth: cell.column.getSize() || 150,
+                          width: cell.column.getSize() || 150,
+                          position: isColumnFrozen ? 'sticky' : undefined,
+                          left: isColumnFrozen ? `${leftPosition}px` : undefined,
+                          boxShadow: isColumnFrozen ? '2px 0 4px rgba(0,0,0,0.15)' : undefined,
+                          backgroundColor: isColumnFrozen ? '#1e1e2e' : undefined,
+                          zIndex: isColumnFrozen ? 20 : undefined
                         }}
                       >
-                        {header.isPlaceholder ? null : (
-                          <div
-                            className={
-                              header.column.getCanSort()
-                                ? 'flex items-center gap-1 cursor-pointer select-none'
-                                : ''
-                            }
-                            onClick={header.column.getToggleSortingHandler()}
-                          >
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                            {header.column.getCanSort() && (
-                              <div className="inline-block">
-                                {{
-                                  asc: <ChevronUp className="h-4 w-4" />,
-                                  desc: <ChevronDown className="h-4 w-4" />,
-                                  false: <ChevronsUpDown className="h-4 w-4 opacity-50" />,
-                                }[header.column.getIsSorted() as string] ?? null}
-                              </div>
-                            )}
-                          </div>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
                         )}
-                      </TableHead>
-                    ))}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.length > 0 ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className="hover:bg-gray-900/50 border-gray-800"
-                  >
-                    {row.getVisibleCells()
-                      .filter(cell => !frozenColumns.includes(cell.column.id))
-                      .map((cell) => (
-                        <TableCell 
-                          key={cell.id} 
-                          className="py-4 px-4"
-                          style={{
-                            minWidth: cell.column.getSize() || 'auto',
-                            width: cell.column.getSize() || 'auto'
-                          }}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length - frozenColumns.length}
-                    className="h-24 text-center text-gray-500"
-                  >
-                    No results found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center text-gray-500"
+                >
+                  No results found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
       
       {showPagination && (
