@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { format, addDays, differenceInDays, isSameDay, addWeeks, addMonths, startOfMonth, endOfMonth } from 'date-fns';
-import { PlusCircle, GripVertical, Info, X, ArrowsExpand, ChevronRight, PencilIcon, PlusIcon, Users, Zap } from 'lucide-react';
+import { PlusCircle, GripVertical, Info, X, ChevronRight, PencilIcon, PlusIcon, Users, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { ManufacturingBay, ManufacturingSchedule, Project } from '@shared/schema';
 import { EditBayDialog } from './EditBayDialog';
+import { apiRequest } from '@/lib/queryClient';
 
 interface ResizableBayScheduleProps {
   schedules: ManufacturingSchedule[];
@@ -132,7 +133,11 @@ const getProjectColor = (projectId: number) => {
 
 // Simple BayCapacityInfo component to show staffing breakdown
 const BayCapacityInfo = ({ bay }: { bay: ManufacturingBay }) => {
-  const totalCapacity = bay.hoursPerPersonPerWeek * bay.staffCount;
+  const assemblyStaff = bay.assemblyStaffCount || 0;
+  const electricalStaff = bay.electricalStaffCount || 0;
+  const hoursPerWeek = bay.hoursPerPersonPerWeek || 40;
+  const staffCount = bay.staffCount || assemblyStaff + electricalStaff;
+  const totalCapacity = hoursPerWeek * staffCount;
   
   return (
     <div className="flex flex-col">
@@ -140,11 +145,11 @@ const BayCapacityInfo = ({ bay }: { bay: ManufacturingBay }) => {
         <div className="flex items-center">
           <div className="flex items-center mr-3">
             <Users className="h-3 w-3 mr-1 text-blue-400" />
-            <span>{bay.assemblyStaffCount}</span>
+            <span>{assemblyStaff}</span>
           </div>
           <div className="flex items-center">
             <Zap className="h-3 w-3 mr-1 text-amber-400" />
-            <span>{bay.electricalStaffCount}</span>
+            <span>{electricalStaff}</span>
           </div>
         </div>
       </div>
