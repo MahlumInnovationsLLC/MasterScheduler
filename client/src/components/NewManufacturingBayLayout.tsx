@@ -92,8 +92,25 @@ const ProjectCard = ({ project }: { project: ProjectCard }) => {
     return format(date, 'MMM d');
   };
 
+  // Handle drag start
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    e.dataTransfer.setData('application/json', JSON.stringify({
+      projectId: project.id,
+      projectNumber: project.projectNumber,
+      name: project.name,
+      startDate: project.startDate,
+      endDate: project.endDate
+    }));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
   return (
-    <div className="bg-white/5 rounded p-2 mb-2 border border-blue-500/30 hover:bg-white/10 cursor-grab">
+    <div 
+      className="bg-white/5 rounded p-2 mb-2 border border-blue-500/30 hover:bg-white/10 cursor-grab"
+      draggable="true"
+      onDragStart={handleDragStart}
+      data-project-id={project.id}
+    >
       <div className="text-sm font-medium">{project.projectNumber}</div>
       <div className="text-xs text-gray-400 mt-1">{formatDateDisplay(project.startDate)} - {formatDateDisplay(project.endDate)}</div>
     </div>
@@ -147,6 +164,10 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
     start: startOfWeek(new Date(), { weekStartsOn: 1 }),
     end: endOfWeek(addWeeks(new Date(), 1), { weekStartsOn: 1 })
   });
+  
+  // For tracking drag and drop operations
+  const [draggedItem, setDraggedItem] = useState<any>(null);
+  const [dragOverSlot, setDragOverSlot] = useState<string | null>(null);
   
   // Prepare schedule data by bay
   const schedulesByBay = useMemo(() => {
@@ -345,13 +366,30 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
                     {bay.description && <div className="ml-3 text-xs text-gray-400">{bay.description}</div>}
                   </div>
                   
-                  <div className="flex overflow-x-auto">
+                  <div className="flex overflow-x-auto relative" style={{ scrollbarWidth: 'thin' }}>
                     {/* Fixed bay column */}
                     <BayColumn bay={bay} />
                     
                     {/* Schedule slots */}
-                    <div className="flex-1 overflow-x-auto max-w-[calc(100vw-240px)]">
-                      <div className="flex">
+                    <div className="flex-1 overflow-x-auto max-w-[calc(100vw-280px)]" id={`bay-${bay.id}-timeline`}>
+                      <div className="flex relative">
+                        {/* Today indicator line */}
+                        <div className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10" style={{
+                          left: (() => {
+                            const today = new Date();
+                            const startDate = new Date(dateRange.start);
+                            const diffDays = Math.round((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+                            
+                            if (viewMode === 'day') {
+                              return `${diffDays * 40}px`; // 40px per day
+                            } else if (viewMode === 'week') {
+                              return `${(diffDays / 7) * 160}px`; // 160px per week
+                            } else {
+                              return `${(diffDays / 30) * 320}px`; // 320px per month
+                            }
+                          })()
+                        }}></div>
+                      
                         {viewMode === 'day' ? (
                           // Day slots - 14 days
                           [...Array(14)].map((_, i) => {
@@ -369,15 +407,100 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
                             return (
                               <div 
                                 key={i}
+                                data-date={format(date, 'yyyy-MM-dd')}
+                                data-bay-id={bay.id}
                                 className={`
                                   w-10 h-12 border-r border-border/30
                                   ${isWeekend ? 'bg-gray-800/30' : ''}
                                   ${isToday ? 'bg-blue-900/20' : ''}
-                                  ${daySchedule ? 'bg-blue-500/20' : ''}
+                                  ${daySchedule ? '' : 'droppable-slot hover:bg-blue-500/10'}
+                                  ${dragOverSlot === `slot-${bay.id}-${format(date, 'yyyy-MM-dd')}` ? 'bg-blue-500/20' : ''}
                                 `}
+                                onDragOver={(e) => {
+                                  if (!daySchedule) {
+                                    e.preventDefault();
+                                    setDragOverSlot(`slot-${bay.id}-${format(date, 'yyyy-MM-dd')}`);
+                                  }
+                                }}
+                                onDragLeave={() => setDragOverSlot(null)}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  setDragOverSlot(null);
+                                  
+                                  try {
+                                    const data = JSON.parse(e.dataTransfer.getData('application/json'));
+                                    
+                                    // If it's a new project being scheduled
+                                    if (data.projectId && !data.scheduleId) {
+                                      // Calculate a default end date (7 days after start)
+                                      const startDate = format(date, 'yyyy-MM-dd');
+                                      const endDate = format(addDays(date, 7), 'yyyy-MM-dd');
+                                      
+                                      toast({
+                                        title: "Scheduling project",
+                                        description: `Project ${data.projectNumber} in Bay ${bay.bayNumber}`,
+                                      });
+                                      
+                                      onScheduleCreate(
+                                        data.projectId,
+                                        bay.id,
+                                        startDate,
+                                        endDate
+                                      );
+                                    } 
+                                    // If it's an existing schedule being moved
+                                    else if (data.scheduleId) {
+                                      const startDate = format(date, 'yyyy-MM-dd');
+                                      
+                                      // Calculate the same duration as before
+                                      const oldStartDate = new Date(data.startDate);
+                                      const oldEndDate = new Date(data.endDate);
+                                      const durationMs = oldEndDate.getTime() - oldStartDate.getTime();
+                                      const newEndDate = format(new Date(date.getTime() + durationMs), 'yyyy-MM-dd');
+                                      
+                                      toast({
+                                        title: "Moving schedule",
+                                        description: `Project ${data.projectNumber} to Bay ${bay.bayNumber}`,
+                                      });
+                                      
+                                      onScheduleChange(
+                                        data.scheduleId,
+                                        bay.id,
+                                        startDate,
+                                        newEndDate
+                                      );
+                                    }
+                                  } catch (error) {
+                                    console.error('Error parsing drop data:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to schedule project",
+                                      variant: "destructive"
+                                    });
+                                  }
+                                }}
                               >
                                 {daySchedule && (
-                                  <div className="h-full w-full flex items-center justify-center text-xs text-blue-300">
+                                  <div 
+                                    className="h-full w-full flex items-center justify-center text-xs text-white bg-blue-500/70 cursor-grab draggable-project"
+                                    draggable="true"
+                                    data-project-id={daySchedule.projectId}
+                                    data-schedule-id={daySchedule.id}
+                                    data-bay-id={bay.id}
+                                    data-start-date={daySchedule.startDate}
+                                    data-end-date={daySchedule.endDate}
+                                    onDragStart={(e) => {
+                                      e.dataTransfer.setData('application/json', JSON.stringify({
+                                        projectId: daySchedule.projectId,
+                                        scheduleId: daySchedule.id,
+                                        bayId: bay.id,
+                                        startDate: daySchedule.startDate,
+                                        endDate: daySchedule.endDate,
+                                        projectNumber: daySchedule.projectNumber
+                                      }));
+                                      e.dataTransfer.effectAllowed = 'move';
+                                    }}
+                                  >
                                     {daySchedule.projectNumber}
                                   </div>
                                 )}
@@ -389,6 +512,8 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
                           [...Array(4)].map((_, i) => {
                             const weekStart = addDays(dateRange.start, i * 7);
                             const weekEnd = addDays(weekStart, 6);
+                            const isCurrentWeek = isSameDay(new Date(), weekStart) || 
+                              (new Date() >= weekStart && new Date() <= weekEnd);
                             
                             // Check if this week has a schedule
                             const weekSchedule = schedulesByBay[bay.id]?.find(s => {
@@ -403,13 +528,99 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
                             return (
                               <div 
                                 key={i}
+                                data-date={format(weekStart, 'yyyy-MM-dd')}
+                                data-bay-id={bay.id}
                                 className={`
                                   w-40 h-12 border-r border-border/30
-                                  ${weekSchedule ? 'bg-blue-500/20' : ''}
+                                  ${isCurrentWeek ? 'bg-blue-900/20' : ''}
+                                  ${weekSchedule ? '' : 'droppable-slot hover:bg-blue-500/10'}
+                                  ${dragOverSlot === `slot-${bay.id}-week-${format(weekStart, 'yyyy-MM-dd')}` ? 'bg-blue-500/20' : ''}
                                 `}
+                                onDragOver={(e) => {
+                                  if (!weekSchedule) {
+                                    e.preventDefault();
+                                    setDragOverSlot(`slot-${bay.id}-week-${format(weekStart, 'yyyy-MM-dd')}`);
+                                  }
+                                }}
+                                onDragLeave={() => setDragOverSlot(null)}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  setDragOverSlot(null);
+                                  
+                                  try {
+                                    const data = JSON.parse(e.dataTransfer.getData('application/json'));
+                                    
+                                    // If it's a new project being scheduled
+                                    if (data.projectId && !data.scheduleId) {
+                                      // For week view, schedule for the entire week
+                                      const startDate = format(weekStart, 'yyyy-MM-dd');
+                                      const endDate = format(addDays(weekStart, 14), 'yyyy-MM-dd');
+                                      
+                                      toast({
+                                        title: "Scheduling project",
+                                        description: `Project ${data.projectNumber} in Bay ${bay.bayNumber}`,
+                                      });
+                                      
+                                      onScheduleCreate(
+                                        data.projectId,
+                                        bay.id,
+                                        startDate,
+                                        endDate
+                                      );
+                                    } 
+                                    // If it's an existing schedule being moved
+                                    else if (data.scheduleId) {
+                                      const startDate = format(weekStart, 'yyyy-MM-dd');
+                                      
+                                      // Calculate the same duration as before
+                                      const oldStartDate = new Date(data.startDate);
+                                      const oldEndDate = new Date(data.endDate);
+                                      const durationMs = oldEndDate.getTime() - oldStartDate.getTime();
+                                      const newEndDate = format(new Date(weekStart.getTime() + durationMs), 'yyyy-MM-dd');
+                                      
+                                      toast({
+                                        title: "Moving schedule",
+                                        description: `Project ${data.projectNumber} to Bay ${bay.bayNumber}`,
+                                      });
+                                      
+                                      onScheduleChange(
+                                        data.scheduleId,
+                                        bay.id,
+                                        startDate,
+                                        newEndDate
+                                      );
+                                    }
+                                  } catch (error) {
+                                    console.error('Error parsing drop data:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to schedule project",
+                                      variant: "destructive"
+                                    });
+                                  }
+                                }}
                               >
                                 {weekSchedule && (
-                                  <div className="h-full w-full flex items-center justify-center text-xs text-blue-300">
+                                  <div 
+                                    className="h-full w-full flex items-center justify-center text-xs text-white bg-blue-500/70 cursor-grab draggable-project"
+                                    draggable="true"
+                                    data-project-id={weekSchedule.projectId}
+                                    data-schedule-id={weekSchedule.id}
+                                    data-bay-id={bay.id}
+                                    data-start-date={weekSchedule.startDate}
+                                    data-end-date={weekSchedule.endDate}
+                                    onDragStart={(e) => {
+                                      e.dataTransfer.setData('application/json', JSON.stringify({
+                                        projectId: weekSchedule.projectId,
+                                        scheduleId: weekSchedule.id,
+                                        bayId: bay.id,
+                                        startDate: weekSchedule.startDate,
+                                        endDate: weekSchedule.endDate,
+                                        projectNumber: weekSchedule.projectNumber
+                                      }));
+                                      e.dataTransfer.effectAllowed = 'move';
+                                    }}
+                                  >
                                     {weekSchedule.projectNumber}
                                   </div>
                                 )}
@@ -421,6 +632,9 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
                           [...Array(3)].map((_, i) => {
                             const monthStart = addDays(dateRange.start, i * 30);
                             const monthEnd = addDays(monthStart, 29);
+                            const isCurrentMonth = 
+                              new Date().getMonth() === monthStart.getMonth() && 
+                              new Date().getFullYear() === monthStart.getFullYear();
                             
                             // Check if this month has a schedule
                             const monthSchedule = schedulesByBay[bay.id]?.find(s => {
@@ -435,13 +649,88 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
                             return (
                               <div 
                                 key={i}
+                                data-date={format(monthStart, 'yyyy-MM-dd')}
+                                data-bay-id={bay.id}
                                 className={`
                                   w-80 h-12 border-r border-border/30
-                                  ${monthSchedule ? 'bg-blue-500/20' : ''}
+                                  ${isCurrentMonth ? 'bg-blue-900/20' : ''}
+                                  ${monthSchedule ? '' : 'droppable-slot hover:bg-blue-500/10'}
+                                  ${dragOverSlot === `slot-${bay.id}-month-${format(monthStart, 'yyyy-MM-dd')}` ? 'bg-blue-500/20' : ''}
                                 `}
+                                onDragOver={(e) => {
+                                  if (!monthSchedule) {
+                                    e.preventDefault();
+                                    setDragOverSlot(`slot-${bay.id}-month-${format(monthStart, 'yyyy-MM-dd')}`);
+                                  }
+                                }}
+                                onDragLeave={() => setDragOverSlot(null)}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  setDragOverSlot(null);
+                                  
+                                  try {
+                                    const data = JSON.parse(e.dataTransfer.getData('application/json'));
+                                    
+                                    // If it's a new project being scheduled
+                                    if (data.projectId && !data.scheduleId) {
+                                      // For month view, schedule for a whole month
+                                      const startDate = format(monthStart, 'yyyy-MM-dd');
+                                      const endDate = format(addDays(monthStart, 30), 'yyyy-MM-dd');
+                                      
+                                      toast({
+                                        title: "Scheduling project",
+                                        description: `Project ${data.projectNumber} in Bay ${bay.bayNumber}`,
+                                      });
+                                      
+                                      onScheduleCreate(
+                                        data.projectId,
+                                        bay.id,
+                                        startDate,
+                                        endDate
+                                      );
+                                    } 
+                                    // If it's an existing schedule being moved
+                                    else if (data.scheduleId) {
+                                      const startDate = format(monthStart, 'yyyy-MM-dd');
+                                      
+                                      // Calculate the same duration as before
+                                      const oldStartDate = new Date(data.startDate);
+                                      const oldEndDate = new Date(data.endDate);
+                                      const durationMs = oldEndDate.getTime() - oldStartDate.getTime();
+                                      const newEndDate = format(new Date(monthStart.getTime() + durationMs), 'yyyy-MM-dd');
+                                      
+                                      toast({
+                                        title: "Moving schedule",
+                                        description: `Project ${data.projectNumber} to Bay ${bay.bayNumber}`,
+                                      });
+                                      
+                                      onScheduleChange(
+                                        data.scheduleId,
+                                        bay.id,
+                                        startDate,
+                                        newEndDate
+                                      );
+                                    }
+                                  } catch (error) {
+                                    console.error('Error parsing drop data:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to schedule project",
+                                      variant: "destructive"
+                                    });
+                                  }
+                                }}
                               >
                                 {monthSchedule && (
-                                  <div className="h-full w-full flex items-center justify-center text-xs text-blue-300">
+                                  <div 
+                                    className="h-full w-full flex items-center justify-center text-xs text-white bg-blue-500/70 cursor-grab draggable-project"
+                                    draggable="true"
+                                    data-project-id={monthSchedule.projectId}
+                                    data-schedule-id={monthSchedule.id}
+                                    data-bay-id={bay.id}
+                                    data-start-date={monthSchedule.startDate}
+                                    data-end-date={monthSchedule.endDate}
+                                  >
                                     {monthSchedule.projectNumber}
                                   </div>
                                 )}
