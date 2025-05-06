@@ -91,8 +91,8 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries(["/api/delivery-tracking"]);
-      queryClient.invalidateQueries(["/api/delivery-tracking/analytics"]);
+      queryClient.invalidateQueries({ queryKey: ["/api/delivery-tracking"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/delivery-tracking/analytics"] });
       
       // Reset form
       form.reset();
@@ -126,8 +126,8 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries(["/api/delivery-tracking"]);
-      queryClient.invalidateQueries(["/api/delivery-tracking/analytics"]);
+      queryClient.invalidateQueries({ queryKey: ["/api/delivery-tracking"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/delivery-tracking/analytics"] });
       
       // Call success handler if provided
       if (onSuccess) {
@@ -376,7 +376,6 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
                     type="number"
                     disabled={isLoading}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    {...field}
                     onChange={(e) => {
                       const value = e.target.value === "" ? null : parseInt(e.target.value);
                       field.onChange(value);
@@ -445,7 +444,7 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
                 />
               </FormControl>
               <FormDescription>
-                Brief explanation of what caused the delay
+                Reason for any delay (weather, supply chain issues, etc.)
               </FormDescription>
               <FormMessage />
             </FormItem>
