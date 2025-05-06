@@ -336,49 +336,76 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   
   // Handle drag start
   const handleDragStart = (e: React.DragEvent, type: 'existing' | 'new', data: any) => {
-    // Set data for drop handling
-    e.dataTransfer.setData('application/json', JSON.stringify({
-      type,
-      ...data
-    }));
+    e.stopPropagation();
     
-    // Create custom drag image
-    const dragImage = document.createElement('div');
-    dragImage.className = 'p-2 rounded shadow-lg border bg-gray-800 text-white text-xs';
-    dragImage.style.position = 'absolute';
-    dragImage.style.top = '-1000px';
-    dragImage.style.opacity = '0.9';
-    dragImage.style.padding = '8px';
-    dragImage.style.borderRadius = '4px';
-    dragImage.style.maxWidth = '200px';
-    dragImage.style.whiteSpace = 'nowrap';
-    dragImage.style.overflow = 'hidden';
-    dragImage.style.textOverflow = 'ellipsis';
-    
-    const projectInfo = document.createElement('div');
-    projectInfo.className = 'font-medium';
-    projectInfo.textContent = `${data.projectNumber}: ${data.projectName}`;
-    dragImage.appendChild(projectInfo);
-    
-    const hoursInfo = document.createElement('div');
-    hoursInfo.className = 'text-gray-300 text-xs mt-1';
-    hoursInfo.textContent = `${data.totalHours} hours`;
-    dragImage.appendChild(hoursInfo);
-    
-    document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, 100, 20);
-    
-    // Clean up the drag image after it's no longer needed
-    setTimeout(() => {
-      document.body.removeChild(dragImage);
-    }, 0);
-    
-    // Update state
-    setDraggingSchedule(data);
+    // CRITICAL: We must ensure the correct data is set for the drag operation
+    try {
+      // Set both formats for better browser compatibility
+      const payload = JSON.stringify({
+        type,
+        ...data
+      });
+      
+      e.dataTransfer.setData('text/plain', payload);
+      e.dataTransfer.setData('application/json', payload);
+      
+      // Set drop effect
+      e.dataTransfer.effectAllowed = 'move';
+      
+      console.log(`Drag started for ${type} project:`, data.projectNumber || 'Project');
+      
+      // Create custom drag image
+      const dragImage = document.createElement('div');
+      dragImage.className = 'p-2 rounded-md shadow-lg border bg-primary text-white';
+      dragImage.style.position = 'absolute';
+      dragImage.style.top = '-1000px';
+      dragImage.style.zIndex = '9999';
+      dragImage.style.padding = '10px';
+      dragImage.style.width = '200px';
+      
+      const projectInfo = document.createElement('div');
+      projectInfo.className = 'font-medium';
+      projectInfo.textContent = data.projectNumber ? 
+        `${data.projectNumber}: ${data.projectName?.substring(0, 15) || ''}` : 
+        'Project';
+      dragImage.appendChild(projectInfo);
+      
+      const hoursInfo = document.createElement('div');
+      hoursInfo.className = 'text-white text-xs mt-1';
+      hoursInfo.textContent = `${data.totalHours || 40} hours`;
+      dragImage.appendChild(hoursInfo);
+      
+      document.body.appendChild(dragImage);
+      
+      // Set drag image with offset
+      e.dataTransfer.setDragImage(dragImage, 30, 20);
+      
+      // Clean up after a short delay
+      setTimeout(() => {
+        if (document.body.contains(dragImage)) {
+          document.body.removeChild(dragImage);
+        }
+      }, 100);
+      
+      // Update internal state
+      if (type === 'existing' && data.id) {
+        const bar = scheduleBars.find(b => b.id === data.id);
+        if (bar) {
+          setDraggingSchedule(bar);
+        } else {
+          setDraggingSchedule(data);
+        }
+      } else {
+        setDraggingSchedule(data);
+      }
+    } catch (error) {
+      console.error('Error in drag start:', error);
+    }
   };
   
   // Handle drag over
   const handleDragOver = (e: React.DragEvent, bayId: number, slotIndex: number, rowIndex?: number) => {
+    // CRITICAL: We must call preventDefault to allow dropping
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     
@@ -423,6 +450,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Handle drop
   const handleDrop = (e: React.DragEvent, bayId: number, slotIndex: number) => {
     e.preventDefault();
+    e.stopPropagation();
     
     // Remove visual cue from all possible drop targets
     document.querySelectorAll('.bg-primary/10').forEach(el => {
@@ -433,14 +461,27 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     });
     
     try {
-      const dataStr = e.dataTransfer.getData('application/json');
+      // Try multiple formats in case one fails
+      let dataStr = '';
+      try {
+        dataStr = e.dataTransfer.getData('application/json');
+      } catch (err) {
+        console.log('Error getting application/json data, trying text/plain...');
+        dataStr = e.dataTransfer.getData('text/plain');
+      }
+      
       if (!dataStr) {
         console.error('No data received in drop event');
         return;
       }
       
+      console.log('Data received in drop:', dataStr);
+      
       const data = JSON.parse(dataStr);
-      if (!data) return;
+      if (!data) {
+        console.error('Failed to parse drop data');
+        return;
+      }
       
       const bay = bays.find(b => b.id === bayId);
       if (!bay) {
@@ -693,6 +734,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           : ''
                       }`}
                       onDragOver={(e) => handleDragOver(e, bay.id, index)}
+                      onDragEnter={(e) => {
+                        e.preventDefault();
+                        // Add visual feedback on drag enter
+                        e.currentTarget.classList.add('bg-primary/10');
+                      }}
+                      onDragLeave={(e) => {
+                        // Remove visual feedback when leaving cell
+                        e.currentTarget.classList.remove('bg-primary/10');
+                      }}
                       onDrop={(e) => handleDrop(e, bay.id, index)}
                     />
                   ))}
