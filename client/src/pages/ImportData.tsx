@@ -162,6 +162,9 @@ const ImportDataPage = () => {
         case 'manufacturing':
           result = await processManufacturingData(headerMappedData);
           break;
+        case 'delivery':
+          result = await processDeliveryData(headerMappedData);
+          break;
         default:
           throw new Error('Unknown import type');
       }
@@ -659,6 +662,38 @@ const ImportDataPage = () => {
         ];
         filename = 'manufacturing_schedule_template.xlsx';
         break;
+      
+      case 'delivery':
+        template = [
+          {
+            'Project Name': 'Wildland/Brush/Type 6/Flatbed Replacement',
+            'Project Number': '804924_OK_LawtonFD_IC34As4',
+            'Original Contract Date': '1/15/2024',
+            '# of Formal Extensions (Final Contract Date)': '2/15/2024',
+            'Actual Delivery Date': '2/10/2024',
+            '# of days pre/post contract': -5,
+            'Category': 'Vehicle Type A',
+            'Late due to: Client': '',
+            'Late due to: Nomad': '',
+            'Late due to: Vendor': '',
+            'Late Reasoning': ''
+          },
+          {
+            'Project Name': 'Custom Command Vehicle',
+            'Project Number': '805121_TX_DallasFD_Command1',
+            'Original Contract Date': '2/1/2024',
+            '# of Formal Extensions (Final Contract Date)': '3/1/2024',
+            'Actual Delivery Date': '3/15/2024',
+            '# of days pre/post contract': 14,
+            'Category': 'Command Vehicle',
+            'Late due to: Client': '',
+            'Late due to: Nomad': 'X',
+            'Late due to: Vendor': '',
+            'Late Reasoning': 'Production delays due to staffing issues'
+          }
+        ];
+        filename = 'on_time_delivery_template.xlsx';
+        break;
     }
 
     // Create worksheet
@@ -693,10 +728,11 @@ const ImportDataPage = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="projects" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-3 mb-6">
+            <TabsList className="grid grid-cols-4 mb-6">
               <TabsTrigger value="projects">Tier IV Projects</TabsTrigger>
               <TabsTrigger value="billing">Billing Milestones</TabsTrigger>
               <TabsTrigger value="manufacturing">Manufacturing Schedule</TabsTrigger>
+              <TabsTrigger value="delivery">On Time Delivery</TabsTrigger>
             </TabsList>
             
             <TabsContent value="projects">
@@ -787,6 +823,38 @@ const ImportDataPage = () => {
                     <Button 
                       variant="outline" 
                       onClick={() => downloadTemplate('manufacturing')}
+                    >
+                      <Download className="mr-2 h-4 w-4" /> Template
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="delivery">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-md font-medium mb-2">Import On Time Delivery Tracking Data</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Upload your On Time Delivery Tracking Excel file to import delivery performance data.
+                    The file should contain project details, contract dates, and reasons for any delivery delays.
+                  </p>
+                  
+                  <div className="flex justify-between items-center gap-4">
+                    <div className="flex-1">
+                      <Label htmlFor="delivery-file" className="mb-2 block">Select Delivery Tracking Excel File</Label>
+                      <Input 
+                        id="delivery-file" 
+                        type="file" 
+                        accept=".xlsx,.xls" 
+                        onChange={(e) => handleFileUpload(e, 'delivery')}
+                        disabled={isUploading}
+                        className="cursor-pointer"
+                      />
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => downloadTemplate('delivery')}
                     >
                       <Download className="mr-2 h-4 w-4" /> Template
                     </Button>
