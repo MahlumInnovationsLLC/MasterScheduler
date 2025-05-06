@@ -72,32 +72,35 @@ export default function AuthPage() {
     );
   }
 
-  // Development-only auto-login
-  const handleDevLogin = async () => {
+  // Development-only auto-login with direct form submission approach
+  const handleDevLogin = () => {
     try {
-      console.log("Attempting dev auto-login...");
-      const response = await fetch("/api/dev-login", {
-        method: "GET",
-        credentials: "include"
-      });
+      console.log("Attempting dev auto-login with form approach...");
       
-      if (!response.ok) {
-        throw new Error("Dev login failed");
-      }
+      // Create a form element for a full-page post request
+      const form = document.createElement('form');
+      form.method = 'GET'; 
+      form.action = '/api/dev-login';
       
-      const userData = await response.json();
-      console.log("Dev login successful:", userData);
+      // Add a redirect param
+      const redirectInput = document.createElement('input');
+      redirectInput.type = 'hidden';
+      redirectInput.name = 'redirect';
+      redirectInput.value = 'true';
+      form.appendChild(redirectInput);
       
-      // Refresh the auth state to reflect the new logged in user
-      await loginMutation.mutateAsync({ email: "colter.mahlum@nomadgcs.com", password: "password" });
+      // Add the form to the body
+      document.body.appendChild(form);
       
-      // Redirect to home page
-      setLocation("/");
-      
+      // Show toast notification
       toast({
-        title: "Development Login Successful",
-        description: `Auto-logged in as ${userData.email} (${userData.role})`,
+        title: "Development Login",
+        description: "Auto-logging in as admin...",
       });
+      
+      // Submit the form
+      setTimeout(() => form.submit(), 200);
+      
     } catch (error) {
       console.error("Dev login error:", error);
       toast({

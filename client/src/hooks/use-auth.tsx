@@ -141,16 +141,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: User) => {
       console.log("Login successful, refreshing user data in cache");
-      // Set user data directly to ensure it's immediately available
-      queryClient.setQueryData(["/api/auth/user"], user);
-      // Also invalidate to ensure fresh data is fetched
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
+      // Create an HTML form for POST submission to ensure proper cookie handling
+      const form = document.createElement('form');
+      form.method = 'GET';
+      form.action = '/';
+      form.style.display = 'none';
+      document.body.appendChild(form);
+      
+      // Set the success message
       toast({
         title: "Login successful",
         description: `Welcome back${user.firstName ? `, ${user.firstName}` : ""}!`,
       });
-      // Force a navigation to home page
-      window.location.href = "/";
+      
+      // Submit the form to force a full page reload
+      // This ensures the session cookie is properly applied
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
     },
     onError: (error: Error) => {
       toast({
