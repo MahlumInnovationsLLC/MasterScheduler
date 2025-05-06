@@ -1,538 +1,410 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Building2, Users, Calendar, ArrowLeft, ArrowRight, Filter, PlusCircle, Info } from 'lucide-react';
-import { format, addDays, subDays, addWeeks } from 'date-fns';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { addDays, addWeeks, addMonths, format } from 'date-fns';
+import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { queryClient } from '@/lib/queryClient';
 import { ManufacturingCard } from '@/components/ManufacturingCard';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
-import { ManufacturingBay, Project } from '@shared/schema';
-import { apiRequest } from '@/lib/queryClient';
 
 const BaySchedulingPage = () => {
   const { toast } = useToast();
-  const [showAddBayDialog, setShowAddBayDialog] = useState(false);
-  const [showAddScheduleDialog, setShowAddScheduleDialog] = useState(false);
-  const [dateRange, setDateRange] = useState({
-    start: new Date(),
-    end: addWeeks(new Date(), 4)
+  
+  // View mode and date range
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'quarter'>('week');
+  const [dateRange, setDateRange] = useState(() => {
+    const today = new Date();
+    return {
+      start: today,
+      end: addWeeks(today, 4)
+    };
   });
   
-  // Form states for dialogs
-  const [newBay, setNewBay] = useState<Partial<ManufacturingBay>>({
-    bayNumber: 0,
-    name: '',
-    description: '',
-    team: 'General',
-    staffCount: 1,
-    hoursPerPersonPerWeek: 40,
-    isActive: true
-  });
+  // Filter states
+  const [filterTeam, setFilterTeam] = useState<string | null>(null);
   
-  const [selectedProject, setSelectedProject] = useState<number | null>(null);
-  const [selectedBay, setSelectedBay] = useState<number | null>(null);
-  const [scheduleTotalHours, setScheduleTotalHours] = useState<number>(40);
-  
-  // Fetch manufacturing bays, schedules, and projects
-  const { data: manufacturingBays, isLoading: isLoadingBays, refetch: refetchBays } = useQuery({
+  // Fetch data
+  const { data: manufacturingBays = [] } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
   });
   
-  const { data: manufacturingSchedules, isLoading: isLoadingSchedules, refetch: refetchSchedules } = useQuery({
+  const { data: manufacturingSchedules = [] } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
   });
   
-  const { data: projects, isLoading: isLoadingProjects } = useQuery({
+  const { data: projects = [] } = useQuery({
     queryKey: ['/api/projects'],
   });
   
-  // Calculate bay utilization and stats
-  const manufacturingStats = React.useMemo(() => {
-    if (!manufacturingSchedules || !manufacturingBays) return null;
-
-    const active = manufacturingSchedules.filter(s => s.status === 'in_progress').length;
-    const scheduled = manufacturingSchedules.filter(s => s.status === 'scheduled').length;
-    const completed = manufacturingSchedules.filter(s => s.status === 'complete').length;
-    const maintenance = manufacturingSchedules.filter(s => s.status === 'maintenance').length;
+  // Calculate utilization metrics
+  const bayUtilization = React.useMemo(() => {
+    if (!manufacturingBays.length || !manufacturingSchedules.length) return 0;
     
-    const totalBays = manufacturingBays.length;
-    const activeBays = manufacturingBays.filter(b => b.isActive).length;
-    const idleBays = activeBays - active;
+    // Calculate total hours capacity for all bays
+    const totalCapacity = manufacturingBays.reduce((sum, bay) => {
+      const weeklyHours = bay.hoursPerPersonPerWeek * bay.staffCount;
+      return sum + weeklyHours;
+    }, 0);
     
-    // Calculate total capacity
-    let totalCapacity = 0;
-    let usedCapacity = 0;
-    
-    manufacturingBays.forEach(bay => {
-      const weeklyCapacity = bay.hoursPerPersonPerWeek * (bay.staffCount || 1);
-      totalCapacity += weeklyCapacity;
-      
-      // Calculate used capacity from schedules
-      const baySchedules = manufacturingSchedules.filter(s => s.bayId === bay.id && s.status !== 'complete');
-      baySchedules.forEach(schedule => {
-        usedCapacity += schedule.totalHours || 40; // Default to 40 hours if not specified
-      });
-    });
+    // Calculate total hours scheduled
+    const totalScheduled = manufacturingSchedules.reduce((sum, schedule) => {
+      return sum + (schedule.totalHours || 0);
+    }, 0);
     
     // Calculate utilization percentage
-    const capacityUtilization = totalCapacity > 0 ? Math.round((usedCapacity / totalCapacity) * 100) : 0;
-    const bayUtilization = Math.round((active / totalBays) * 100);
-
-    return {
-      active,
-      scheduled,
-      completed,
-      maintenance,
-      totalBays,
-      activeBays,
-      idleBays,
-      capacityUtilization,
-      bayUtilization,
-      totalCapacity,
-      usedCapacity,
-      total: active + scheduled
-    };
-  }, [manufacturingSchedules, manufacturingBays]);
+    return Math.min(100, Math.round((totalScheduled / totalCapacity) * 100));
+  }, [manufacturingBays, manufacturingSchedules]);
   
-  // Handlers for schedule management
-  const handleScheduleChange = async (
-    scheduleId: number, 
-    newBayId: number, 
-    newStartDate: string, 
-    newEndDate: string,
-    totalHours?: number
-  ) => {
-    try {
-      const response = await apiRequest(
-        'PUT',
-        `/api/manufacturing-schedules/${scheduleId}`, 
-        {
-          bayId: newBayId,
-          startDate: newStartDate,
-          endDate: newEndDate,
-          totalHours: totalHours || 40
-        }
-      );
+  // Calculate scheduled projects
+  const scheduledProjectsCount = React.useMemo(() => {
+    if (!manufacturingSchedules.length) return 0;
+    
+    // Get unique project IDs from schedules
+    const uniqueProjectIds = new Set(manufacturingSchedules.map(s => s.projectId));
+    return uniqueProjectIds.size;
+  }, [manufacturingSchedules]);
+  
+  // Calculate total capacity hours
+  const totalCapacityHours = React.useMemo(() => {
+    if (!manufacturingBays.length) return 0;
+    
+    return manufacturingBays.reduce((sum, bay) => {
+      const weeklyHours = bay.hoursPerPersonPerWeek * bay.staffCount;
+      return sum + weeklyHours;
+    }, 0);
+  }, [manufacturingBays]);
+  
+  // Mutations for schedules
+  const updateScheduleMutation = useMutation({
+    mutationFn: async ({ scheduleId, bayId, startDate, endDate, totalHours }: { 
+      scheduleId: number, 
+      bayId: number, 
+      startDate: string, 
+      endDate: string, 
+      totalHours?: number 
+    }) => {
+      const response = await fetch(`/api/manufacturing-schedules/${scheduleId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bayId, startDate, endDate, totalHours }),
+      });
       
       if (!response.ok) {
         throw new Error('Failed to update schedule');
       }
       
-      // Refetch data
-      refetchSchedules();
-      return true;
-    } catch (error) {
-      console.error('Error updating schedule:', error);
-      throw error;
-    }
-  };
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update schedule',
+        variant: 'destructive',
+      });
+      console.error(error);
+    },
+  });
   
-  const handleScheduleCreate = async (
-    projectId: number, 
-    bayId: number, 
-    startDate: string, 
-    endDate: string,
-    totalHours?: number
-  ) => {
-    try {
-      const response = await apiRequest(
-        'POST',
-        '/api/manufacturing-schedules',
-        {
-          projectId,
-          bayId,
-          startDate,
-          endDate,
-          totalHours: totalHours || 40,
-          status: 'scheduled'
-        }
-      );
+  const createScheduleMutation = useMutation({
+    mutationFn: async ({ projectId, bayId, startDate, endDate, totalHours }: { 
+      projectId: number, 
+      bayId: number, 
+      startDate: string, 
+      endDate: string, 
+      totalHours?: number 
+    }) => {
+      const response = await fetch('/api/manufacturing-schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId, bayId, startDate, endDate, totalHours }),
+      });
       
       if (!response.ok) {
         throw new Error('Failed to create schedule');
       }
       
-      // Refetch data
-      refetchSchedules();
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to create schedule',
+        variant: 'destructive',
+      });
+      console.error(error);
+    },
+  });
+  
+  // Handler for schedule changes
+  const handleScheduleChange = async (
+    scheduleId: number,
+    newBayId: number,
+    newStartDate: string,
+    newEndDate: string,
+    totalHours?: number
+  ) => {
+    try {
+      await updateScheduleMutation.mutateAsync({
+        scheduleId,
+        bayId: newBayId,
+        startDate: newStartDate,
+        endDate: newEndDate,
+        totalHours
+      });
       return true;
     } catch (error) {
-      console.error('Error creating schedule:', error);
-      throw error;
+      return false;
     }
   };
   
-  // Handler for bay creation
-  const handleCreateBay = async () => {
+  // Handler for schedule creation
+  const handleScheduleCreate = async (
+    projectId: number,
+    bayId: number,
+    startDate: string,
+    endDate: string,
+    totalHours?: number
+  ) => {
     try {
-      const response = await apiRequest(
-        'POST',
-        '/api/manufacturing-bays',
-        newBay
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to create bay');
-      }
-      
-      toast({
-        title: "Bay Created",
-        description: `Bay ${newBay.bayNumber} has been created successfully`,
-      });
-      
-      // Reset form and close dialog
-      setNewBay({
-        bayNumber: 0,
-        name: '',
-        description: '',
-        team: 'General',
-        staffCount: 1,
-        hoursPerPersonPerWeek: 40,
-        isActive: true
-      });
-      setShowAddBayDialog(false);
-      
-      // Refetch data
-      refetchBays();
-    } catch (error) {
-      console.error('Error creating bay:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create manufacturing bay",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  // Handler for creating a schedule from the dialog
-  const handleCreateScheduleFromDialog = async () => {
-    if (!selectedProject || !selectedBay) {
-      toast({
-        title: "Error",
-        description: "Please select a project and bay",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      const startDate = new Date().toISOString();
-      const endDate = addDays(new Date(), 5).toISOString(); // Default 5 days for now
-      
-      await handleScheduleCreate(
-        selectedProject,
-        selectedBay,
+      await createScheduleMutation.mutateAsync({
+        projectId,
+        bayId,
         startDate,
         endDate,
-        scheduleTotalHours
-      );
-      
-      toast({
-        title: "Schedule Created",
-        description: "Project has been scheduled successfully",
+        totalHours
       });
-      
-      // Reset form and close dialog
-      setSelectedProject(null);
-      setSelectedBay(null);
-      setScheduleTotalHours(40);
-      setShowAddScheduleDialog(false);
+      return true;
     } catch (error) {
-      console.error('Error creating schedule:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create schedule",
-        variant: "destructive"
-      });
+      return false;
     }
   };
   
-  if (isLoadingBays || isLoadingSchedules || isLoadingProjects) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-sans font-bold mb-6">Manufacturing Bay Schedule</h1>
-        <div className="animate-pulse space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-darkCard h-28 rounded-xl border border-gray-800"></div>
-            ))}
-          </div>
-          <div className="bg-darkCard h-96 rounded-xl border border-gray-800"></div>
-        </div>
-      </div>
-    );
-  }
+  // Update date range based on view mode
+  const updateDateRange = (mode: 'day' | 'week' | 'month' | 'quarter') => {
+    const today = new Date();
+    let end;
+    
+    switch (mode) {
+      case 'day':
+        end = addDays(today, 14); // 2 weeks view
+        break;
+      case 'week':
+        end = addWeeks(today, 4); // 4 weeks view
+        break;
+      case 'month':
+        end = addMonths(today, 6); // 6 months view
+        break;
+      case 'quarter':
+        end = addMonths(today, 12); // 1 year view
+        break;
+    }
+    
+    setDateRange({ start: today, end });
+    setViewMode(mode);
+  };
+  
+  // Navigate through time
+  const navigateTime = (direction: 'forward' | 'backward') => {
+    let newStart, newEnd;
+    
+    switch (viewMode) {
+      case 'day':
+        newStart = direction === 'forward' 
+          ? addDays(dateRange.start, 7) 
+          : addDays(dateRange.start, -7);
+        newEnd = direction === 'forward' 
+          ? addDays(dateRange.end, 7) 
+          : addDays(dateRange.end, -7);
+        break;
+      case 'week':
+        newStart = direction === 'forward' 
+          ? addWeeks(dateRange.start, 2) 
+          : addWeeks(dateRange.start, -2);
+        newEnd = direction === 'forward' 
+          ? addWeeks(dateRange.end, 2) 
+          : addWeeks(dateRange.end, -2);
+        break;
+      case 'month':
+        newStart = direction === 'forward' 
+          ? addMonths(dateRange.start, 2) 
+          : addMonths(dateRange.start, -2);
+        newEnd = direction === 'forward' 
+          ? addMonths(dateRange.end, 2) 
+          : addMonths(dateRange.end, -2);
+        break;
+      case 'quarter':
+        newStart = direction === 'forward' 
+          ? addMonths(dateRange.start, 3) 
+          : addMonths(dateRange.start, -3);
+        newEnd = direction === 'forward' 
+          ? addMonths(dateRange.end, 3) 
+          : addMonths(dateRange.end, -3);
+        break;
+    }
+    
+    setDateRange({ start: newStart, end: newEnd });
+  };
   
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-sans font-bold">Bay Scheduling & Capacity</h1>
-          <p className="text-gray-400 text-sm">Manage manufacturing capacity, scheduling and bay assignments</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <AIInsightsModal />
-          <Button variant="outline" size="sm">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowAddScheduleDialog(true)}>
-            <Calendar className="mr-2 h-4 w-4" />
-            Add Schedule
-          </Button>
-          <Button size="sm" onClick={() => setShowAddBayDialog(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Bay
-          </Button>
-        </div>
+    <div className="px-4 py-4 md:py-6 md:px-6">
+      <div className="flex flex-col gap-1 mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">Bay Scheduling</h1>
+        <p className="text-muted-foreground">
+          Schedule and manage projects across manufacturing bays
+        </p>
       </div>
       
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <ManufacturingCard 
+      {/* Stats row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <ManufacturingCard
           title="Bay Utilization"
-          value={manufacturingStats?.bayUtilization || 0}
+          value={bayUtilization}
           type="utilization"
-          change={{ 
-            value: "7% from last month", 
-            isPositive: false 
-          }}
+          subtitle="Overall capacity utilization"
+          change={{ value: "+5%", isPositive: true }}
         />
-        
-        <ManufacturingCard 
-          title="Capacity Utilization"
-          value={manufacturingStats?.capacityUtilization || 0}
-          type="utilization"
-          subtitle={`${manufacturingStats?.usedCapacity || 0}/${manufacturingStats?.totalCapacity || 0} hours`}
-        />
-        
-        <ManufacturingCard 
-          title="Bay Status"
-          value=""
-          type="status"
-          stats={[
-            { label: "Active", value: manufacturingStats?.active || 0 },
-            { label: "Idle", value: manufacturingStats?.idleBays || 0 },
-            { label: "Maintenance", value: manufacturingStats?.maintenance || 0 },
-            { label: "Issues", value: 0 }
-          ]}
-        />
-        
-        <ManufacturingCard 
-          title="Workforce Allocation"
-          value=""
+        <ManufacturingCard
+          title="Manufacturing Capacity"
+          value={totalCapacityHours}
           type="resources"
           stats={[
-            { label: "Total Staff", value: manufacturingBays?.reduce((acc, bay) => acc + (bay.staffCount || 1), 0) || 0 },
-            { label: "Weekly Hours", value: manufacturingBays?.reduce((acc, bay) => acc + ((bay.staffCount || 1) * (bay.hoursPerPersonPerWeek || 40)), 0) || 0 },
-            { label: "Active Bays", value: manufacturingBays?.filter(b => b.isActive).length || 0 }
+            { label: "Total Hours", value: totalCapacityHours },
+            { label: "Total Bays", value: manufacturingBays.length },
+            { label: "Active Projects", value: scheduledProjectsCount },
+            { label: "Unassigned", value: projects.length - scheduledProjectsCount },
           ]}
         />
+        <Card>
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-400">AI Insights</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="mb-3">
+              <p className="text-sm text-gray-400">
+                Optimize your manufacturing schedule with AI-powered insights.
+              </p>
+            </div>
+            <AIInsightsModal />
+          </CardContent>
+        </Card>
       </div>
       
-      {/* Date Range Selector */}
-      <div className="flex justify-between items-center mb-4 bg-darkCard p-4 rounded-xl">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center">
-            <Button size="sm" variant="outline" onClick={() => setDateRange({
-              start: subDays(dateRange.start, 14),
-              end: subDays(dateRange.end, 14)
-            })}>
+      {/* Controls bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <Tabs
+            value={viewMode}
+            onValueChange={(value) => updateDateRange(value as 'day' | 'week' | 'month' | 'quarter')}
+            className="mr-4"
+          >
+            <TabsList>
+              <TabsTrigger value="day" className="text-xs">Day</TabsTrigger>
+              <TabsTrigger value="week" className="text-xs">Week</TabsTrigger>
+              <TabsTrigger value="month" className="text-xs">Month</TabsTrigger>
+              <TabsTrigger value="quarter" className="text-xs">Quarter</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigateTime('backward')}
+            >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <span className="mx-3 text-sm">
-              {format(dateRange.start, 'MMM d, yyyy')} - {format(dateRange.end, 'MMM d, yyyy')}
-            </span>
-            <Button size="sm" variant="outline" onClick={() => setDateRange({
-              start: addDays(dateRange.start, 14),
-              end: addDays(dateRange.end, 14)
-            })}>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigateTime('forward')}
+            >
               <ArrowRight className="h-4 w-4" />
             </Button>
-          </div>
-          
-          <Separator orientation="vertical" className="h-8" />
-          
-          <div className="flex space-x-2">
-            <Badge variant="outline" className="cursor-pointer hover:bg-primary/10">Today</Badge>
-            <Badge variant="outline" className="cursor-pointer hover:bg-primary/10">This Week</Badge>
-            <Badge variant="outline" className="cursor-pointer hover:bg-primary/10">This Month</Badge>
-            <Badge variant="outline" className="cursor-pointer hover:bg-primary/10">Next Month</Badge>
+            <Button
+              variant="outline"
+              onClick={() => updateDateRange(viewMode)}
+              className="flex items-center gap-1 ml-1"
+            >
+              <Calendar className="h-4 w-4 mr-1" />
+              <span>Today</span>
+            </Button>
           </div>
         </div>
         
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-1">
-            <div className="w-3 h-3 rounded-full bg-primary"></div>
-            <span className="text-xs">Active</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <div className="w-3 h-3 rounded-full bg-gray-500"></div>
-            <span className="text-xs">Scheduled</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <div className="w-3 h-3 rounded-full bg-success"></div>
-            <span className="text-xs">Completed</span>
-          </div>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-1">
+                <Filter className="h-4 w-4 mr-1" />
+                <span>Filters</span>
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Filter By Team</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => setFilterTeam(null)}>
+                  <span className={cn(filterTeam === null && "font-semibold")}>All Teams</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterTeam('Electronics')}>
+                  <span className={cn(filterTeam === 'Electronics' && "font-semibold")}>Electronics</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterTeam('Mechanical')}>
+                  <span className={cn(filterTeam === 'Mechanical' && "font-semibold")}>Mechanical</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterTeam('Assembly')}>
+                  <span className={cn(filterTeam === 'Assembly' && "font-semibold")}>Assembly</span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       
-      {/* Resizable Bay Schedule */}
-      <div className="bg-darkCard rounded-xl border border-gray-800 p-4 mb-6 overflow-hidden">
-        <ResizableBaySchedule 
-          schedules={manufacturingSchedules || []}
-          projects={projects || []}
-          bays={manufacturingBays || []}
-          onScheduleChange={handleScheduleChange}
-          onScheduleCreate={handleScheduleCreate}
-        />
+      <div className="rounded-md border border-gray-800 bg-darkCard">
+        <div className="p-4 border-b border-gray-800">
+          <h2 className="text-lg font-semibold">Manufacturing Schedule</h2>
+          <p className="text-sm text-gray-400">
+            {format(dateRange.start, 'MMM d, yyyy')} – {format(dateRange.end, 'MMM d, yyyy')}
+          </p>
+        </div>
+        <div className="p-4 overflow-x-auto">
+          <ResizableBaySchedule
+            schedules={manufacturingSchedules}
+            projects={projects}
+            bays={filterTeam 
+              ? manufacturingBays.filter(bay => bay.team === filterTeam) 
+              : manufacturingBays
+            }
+            onScheduleChange={handleScheduleChange}
+            onScheduleCreate={handleScheduleCreate}
+            dateRange={dateRange}
+            viewMode={viewMode}
+          />
+        </div>
       </div>
-      
-      {/* Add Bay Dialog */}
-      <Dialog open={showAddBayDialog} onOpenChange={setShowAddBayDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Manufacturing Bay</DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="bayNumber">Bay Number</Label>
-                <Input 
-                  id="bayNumber" 
-                  type="number"
-                  value={newBay.bayNumber || ''}
-                  onChange={(e) => setNewBay({...newBay, bayNumber: parseInt(e.target.value) || 0})}
-                />
-              </div>
-              <div>
-                <Label htmlFor="team">Team</Label>
-                <Input 
-                  id="team" 
-                  value={newBay.team || ''}
-                  onChange={(e) => setNewBay({...newBay, team: e.target.value})}
-                />
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="name">Bay Name</Label>
-              <Input 
-                id="name" 
-                value={newBay.name || ''}
-                onChange={(e) => setNewBay({...newBay, name: e.target.value})}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Input 
-                id="description" 
-                value={newBay.description || ''}
-                onChange={(e) => setNewBay({...newBay, description: e.target.value})}
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="staffCount">Staff Count</Label>
-                <Input 
-                  id="staffCount" 
-                  type="number"
-                  value={newBay.staffCount || 1}
-                  onChange={(e) => setNewBay({...newBay, staffCount: parseInt(e.target.value) || 1})}
-                />
-              </div>
-              <div>
-                <Label htmlFor="hoursPerPersonPerWeek">Hours Per Person (Weekly)</Label>
-                <Input 
-                  id="hoursPerPersonPerWeek" 
-                  type="number"
-                  value={newBay.hoursPerPersonPerWeek || 40}
-                  onChange={(e) => setNewBay({...newBay, hoursPerPersonPerWeek: parseInt(e.target.value) || 40})}
-                />
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddBayDialog(false)}>Cancel</Button>
-            <Button onClick={handleCreateBay}>Create Bay</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Add Schedule Dialog */}
-      <Dialog open={showAddScheduleDialog} onOpenChange={setShowAddScheduleDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Schedule a Project</DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div>
-              <Label htmlFor="project">Project</Label>
-              <select 
-                id="project"
-                className="w-full p-2 bg-darkInput border border-gray-700 rounded-md"
-                value={selectedProject || ''}
-                onChange={(e) => setSelectedProject(parseInt(e.target.value))}
-              >
-                <option value="">Select a project...</option>
-                {projects?.filter(p => !manufacturingSchedules?.some(s => s.projectId === p.id))
-                  .map(project => (
-                    <option key={project.id} value={project.id}>
-                      {project.projectNumber} - {project.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            
-            <div>
-              <Label htmlFor="bay">Manufacturing Bay</Label>
-              <select 
-                id="bay"
-                className="w-full p-2 bg-darkInput border border-gray-700 rounded-md"
-                value={selectedBay || ''}
-                onChange={(e) => setSelectedBay(parseInt(e.target.value))}
-              >
-                <option value="">Select a bay...</option>
-                {manufacturingBays?.filter(b => b.isActive)
-                  .map(bay => (
-                    <option key={bay.id} value={bay.id}>
-                      Bay {bay.bayNumber} - {bay.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            
-            <div>
-              <Label htmlFor="totalHours">Estimated Hours</Label>
-              <Input 
-                id="totalHours" 
-                type="number"
-                value={scheduleTotalHours}
-                onChange={(e) => setScheduleTotalHours(parseInt(e.target.value) || 40)}
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Total hours required to complete this project
-              </p>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddScheduleDialog(false)}>Cancel</Button>
-            <Button onClick={handleCreateScheduleFromDialog}>Schedule Project</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
