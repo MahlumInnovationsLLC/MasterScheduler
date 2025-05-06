@@ -339,7 +339,7 @@ const BayGroup = ({
               <div className="text-xs font-medium text-primary">Bay {bay.bayNumber}</div>
             </div>
             
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-w-[calc(100vw-240px)]">
               <div className="flex">
                 {/* Bay slots */}
                 <div className="flex bg-darkCard/80 rounded-md overflow-hidden border border-border/50">
