@@ -198,6 +198,7 @@ export function DataTable<TData, TValue>({
                       <tr
                         key={row.id}
                         className="hover:bg-muted/50 border-b border-border"
+                        style={{ height: '45px' }}
                       >
                         {row.getVisibleCells().map((cell) => {
                           if (frozenColumns.includes(cell.column.id)) {
@@ -297,6 +298,7 @@ export function DataTable<TData, TValue>({
                       <tr
                         key={row.id}
                         className="hover:bg-muted/50 border-b border-border"
+                        style={{ height: '45px' }}
                       >
                         {row.getVisibleCells().map((cell) => {
                           if (!frozenColumns.includes(cell.column.id)) {
