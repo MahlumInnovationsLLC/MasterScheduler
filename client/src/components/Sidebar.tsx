@@ -15,7 +15,8 @@ import {
   FileArchive,
   Clock,
   Truck,
-  Package
+  Package,
+  TrendingUp
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -82,6 +83,14 @@ const Sidebar = () => {
             Modules
           </h6>
           <ul>
+            <li>
+              <Link href="/sales-forecast" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/sales-forecast') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
+              }`}>
+                <TrendingUp className={`text-xl ${isActive('/sales-forecast') ? 'text-primary' : ''}`} />
+                <span>Sales Forecast</span>
+              </Link>
+            </li>
             <li>
               <Link href="/projects" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/projects') || location.startsWith('/project/') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
