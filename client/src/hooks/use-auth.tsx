@@ -141,12 +141,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: User) => {
       console.log("Login successful, refreshing user data in cache");
-      // Invalidate the auth user query so it will be refetched with the session cookie
+      // Set user data directly to ensure it's immediately available
+      queryClient.setQueryData(["/api/auth/user"], user);
+      // Also invalidate to ensure fresh data is fetched
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Login successful",
         description: `Welcome back${user.firstName ? `, ${user.firstName}` : ""}!`,
       });
+      // Force a navigation to home page
+      window.location.href = "/";
     },
     onError: (error: Error) => {
       toast({

@@ -28,7 +28,9 @@ export default function AuthPage() {
 
   // If user is already logged in, redirect to home page
   if (user) {
-    setLocation("/");
+    console.log("User already logged in, redirecting to home page");
+    // Using window.location for hard redirect rather than wouter setLocation
+    window.location.href = "/";
     return null;
   }
 
@@ -39,7 +41,7 @@ export default function AuthPage() {
       console.log("Calling login mutation...");
       const result = await loginMutation.mutateAsync(loginData);
       console.log("Login successful, user data:", result);
-      setLocation("/");
+      // The redirect will be handled in the onSuccess callback of the mutation
     } catch (error: any) {
       console.error("Login form submission error:", error);
       // Error handling is done in the mutation
