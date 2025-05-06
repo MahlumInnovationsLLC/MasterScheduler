@@ -22,6 +22,8 @@ interface ResizableBayScheduleProps {
   bays: ManufacturingBay[];
   onScheduleChange: (scheduleId: number, newBayId: number, newStartDate: string, newEndDate: string, totalHours?: number) => Promise<void>;
   onScheduleCreate: (projectId: number, bayId: number, startDate: string, endDate: string, totalHours?: number) => Promise<void>;
+  onBayCreate?: (bay: Partial<ManufacturingBay>) => Promise<any>;
+  onBayUpdate?: (id: number, bay: Partial<ManufacturingBay>) => Promise<any>;
   dateRange: { start: Date, end: Date };
   viewMode: 'day' | 'week' | 'month' | 'quarter';
 }
@@ -159,6 +161,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   bays: initialBays,
   onScheduleChange,
   onScheduleCreate,
+  onBayCreate,
+  onBayUpdate,
   dateRange,
   viewMode
 }) => {
@@ -432,22 +436,35 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return;
       }
       
-      // Update an existing bay
-      const response = await apiRequest('PUT', `/api/manufacturing-bays/${bayId}`, data);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to update bay: ${response.statusText}`);
+      if (onBayUpdate) {
+        // Use the parent component's mutation
+        const updatedBay = await onBayUpdate(bayId, data);
+        
+        // Update local state
+        setBays(prev => prev.map(bay => bay.id === bayId ? updatedBay : bay));
+        
+        toast({
+          title: "Bay Updated",
+          description: `Bay ${data.bayNumber}: ${data.name} has been updated`,
+        });
+      } else {
+        // Fallback to direct API call
+        const response = await apiRequest('PUT', `/api/manufacturing-bays/${bayId}`, data);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to update bay: ${response.statusText}`);
+        }
+        
+        const updatedBay = await response.json();
+        
+        // Update local state
+        setBays(prev => prev.map(bay => bay.id === bayId ? updatedBay : bay));
+        
+        toast({
+          title: "Bay Updated",
+          description: `Bay ${data.bayNumber}: ${data.name} has been updated`,
+        });
       }
-      
-      const updatedBay = await response.json();
-      
-      // Update local state
-      setBays(prev => prev.map(bay => bay.id === bayId ? updatedBay : bay));
-      
-      toast({
-        title: "Bay Updated",
-        description: `Bay ${data.bayNumber}: ${data.name} has been updated`,
-      });
     } catch (error) {
       console.error('Error updating bay:', error);
       toast({
@@ -461,22 +478,35 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Handle creating a new bay
   const handleCreateBay = async (bayId: number, data: Partial<ManufacturingBay>) => {
     try {
-      // Create a new bay
-      const response = await apiRequest('POST', '/api/manufacturing-bays', data);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to create bay: ${response.statusText}`);
+      if (onBayCreate) {
+        // Use the parent component's mutation
+        const newBay = await onBayCreate(data);
+        
+        // Update local state
+        setBays(prev => [...prev, newBay]);
+        
+        toast({
+          title: "Bay Created",
+          description: `Bay ${data.bayNumber}: ${data.name} has been created`,
+        });
+      } else {
+        // Fallback to direct API call
+        const response = await apiRequest('POST', '/api/manufacturing-bays', data);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to create bay: ${response.statusText}`);
+        }
+        
+        const newBay = await response.json();
+        
+        // Update local state
+        setBays(prev => [...prev, newBay]);
+        
+        toast({
+          title: "Bay Created",
+          description: `Bay ${data.bayNumber}: ${data.name} has been created`,
+        });
       }
-      
-      const newBay = await response.json();
-      
-      // Update local state
-      setBays(prev => [...prev, newBay]);
-      
-      toast({
-        title: "Bay Created",
-        description: `Bay ${data.bayNumber}: ${data.name} has been created`,
-      });
     } catch (error) {
       console.error('Error creating bay:', error);
       toast({
