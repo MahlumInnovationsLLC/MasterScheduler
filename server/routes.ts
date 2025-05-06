@@ -594,43 +594,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("DEV-LOGIN: Found admin user:", adminUser.id);
       
-      // Log in the user directly
-      req.login(adminUser, (err) => {
-        if (err) {
-          console.error("DEV-LOGIN ERROR:", err);
-          return res.status(500).json({ message: "Login failed", error: err.message });
-        }
-        
-        console.log("DEV-LOGIN: Session after login:", req.session);
-        console.log("DEV-LOGIN: User in session:", req.user);
-        
-        // Return user info without sensitive data
-        const { password, passwordResetToken, passwordResetExpires, ...userInfo } = adminUser;
-        
-        // Send session cookie explicitly
-        res.cookie('tier4.sid', req.sessionID, {
-          httpOnly: true,
-          secure: false,
-          sameSite: 'lax',
-          maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
-        });
-        
-        // Check if the request has a redirect param
-        if (req.query.redirect === 'true') {
-          // Redirect directly to the home page
-          return res.redirect('/');
-        }
-        
-        // Otherwise return JSON response
-        return res.json({
-          ...userInfo,
-          message: "Development auto-login successful",
-          sessionID: req.sessionID
+      // Perform the login - using a different approach to avoid callback issues
+      return new Promise<void>((resolve, reject) => {
+        req.login(adminUser, async (err) => {
+          try {
+            if (err) {
+              console.error("DEV-LOGIN ERROR:", err);
+              res.status(500).json({ message: "Login failed", error: err.message });
+              return reject(err);
+            }
+            
+            console.log("DEV-LOGIN: Session before save:", req.session);
+            
+            // Save the session explicitly before continuing
+            await new Promise<void>((saveResolve, saveReject) => {
+              req.session.save((saveErr) => {
+                if (saveErr) {
+                  console.error("DEV-LOGIN SESSION SAVE ERROR:", saveErr);
+                  return saveReject(saveErr);
+                }
+                console.log("DEV-LOGIN: Session saved successfully");
+                saveResolve();
+              });
+            });
+            
+            console.log("DEV-LOGIN: Session after save:", req.session);
+            console.log("DEV-LOGIN: User in session:", req.user);
+            
+            // Return user info without sensitive data
+            const { password, passwordResetToken, passwordResetExpires, ...userInfo } = adminUser;
+            
+            // Send session cookie explicitly
+            res.cookie('tier4.sid', req.sessionID, {
+              httpOnly: true,
+              secure: false,
+              sameSite: 'lax',
+              maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+              path: '/'
+            });
+            
+            // Check if the request has a redirect param
+            if (req.query.redirect === 'true') {
+              // Redirect directly to the home page
+              res.redirect('/');
+              return resolve();
+            }
+            
+            // Otherwise return JSON response
+            res.json({
+              ...userInfo,
+              message: "Development auto-login successful",
+              sessionID: req.sessionID
+            });
+            
+            resolve();
+          } catch (innerError) {
+            console.error("DEV-LOGIN INNER ERROR:", innerError);
+            res.status(500).json({ message: "Internal error during login", error: String(innerError) });
+            reject(innerError);
+          }
         });
       });
     } catch (error) {
       console.error("DEV-LOGIN ERROR:", error);
-      res.status(500).json({ message: "Failed to auto-login", error: error.message });
+      res.status(500).json({ message: "Failed to auto-login", error: String(error) });
     }
   });
 
