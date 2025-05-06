@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -59,6 +59,52 @@ const ProjectStatus = () => {
   const { data: projects, isLoading } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
+  
+  // Flag to track if initial auto-filtering has been applied
+  const [hasAppliedInitialFilter, setHasAppliedInitialFilter] = useState(false);
+  
+  // Auto-filter projects by next ship date on initial load
+  useEffect(() => {
+    if (!projects || hasAppliedInitialFilter) return;
+    
+    // Helper to get valid dates and handle null/invalid dates
+    const getValidDate = (dateStr) => {
+      if (!dateStr) return null;
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? null : date;
+    };
+    
+    // Find upcoming ship dates (after today)
+    const now = new Date();
+    const upcomingProjects = projects.filter(p => {
+      const shipDate = getValidDate(p.shipDate);
+      return shipDate && shipDate >= now;
+    });
+    
+    // If we have upcoming projects with ship dates, auto-filter by ship date
+    if (upcomingProjects.length > 0) {
+      // Sort by earliest ship date
+      const earliestShipDate = upcomingProjects
+        .sort((a, b) => {
+          const dateA = getValidDate(a.shipDate);
+          const dateB = getValidDate(b.shipDate);
+          if (!dateA) return 1;
+          if (!dateB) return -1;
+          return dateA.getTime() - dateB.getTime();
+        })[0];
+      
+      if (earliestShipDate?.shipDate) {
+        // Set a ship date minimum filter to today
+        setDateFilters(prev => ({
+          ...prev,
+          shipDateMin: now.toISOString().split('T')[0]
+        }));
+      }
+    }
+    
+    // Mark that we've applied the initial filter
+    setHasAppliedInitialFilter(true);
+  }, [projects, hasAppliedInitialFilter]);
   
   // State for visible columns
   const [visibleColumns, setVisibleColumns] = useState<{ [key: string]: boolean }>({
