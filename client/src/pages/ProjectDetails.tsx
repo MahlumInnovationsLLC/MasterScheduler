@@ -414,7 +414,18 @@ const ProjectDetails = () => {
               <Edit className="h-4 w-4 mr-2" />
               Edit Project
             </Button>
-            <Button size="sm">
+            <Button 
+              size="sm"
+              onClick={() => {
+                setEditTaskId(null);
+                setTaskForm({
+                  name: '',
+                  description: '',
+                  dueDate: new Date().toISOString().split('T')[0]
+                });
+                setTaskDialogOpen(true);
+              }}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Task
             </Button>
@@ -505,7 +516,18 @@ const ProjectDetails = () => {
                 <Filter className="h-4 w-4 mr-2" />
                 Filter
               </Button>
-              <Button size="sm">
+              <Button 
+                size="sm"
+                onClick={() => {
+                  setEditTaskId(null);
+                  setTaskForm({
+                    name: '',
+                    description: '',
+                    dueDate: new Date().toISOString().split('T')[0]
+                  });
+                  setTaskDialogOpen(true);
+                }}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Task
               </Button>
@@ -1124,6 +1146,137 @@ const ProjectDetails = () => {
                   Archive Project
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Task Dialog (Add/Edit) */}
+      <Dialog open={isTaskDialogOpen} onOpenChange={setTaskDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editTaskId ? 'Edit Task' : 'Add Task'}</DialogTitle>
+            <DialogDescription>
+              {editTaskId ? 'Update the task details below.' : 'Add a new task to this project.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="taskName">Task Name</Label>
+              <Input
+                id="taskName"
+                value={taskForm.name}
+                onChange={(e) => setTaskForm({...taskForm, name: e.target.value})}
+                className="bg-darkInput border-gray-800"
+                placeholder="Enter task name"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="taskDescription">Description (optional)</Label>
+              <Textarea
+                id="taskDescription"
+                value={taskForm.description}
+                onChange={(e) => setTaskForm({...taskForm, description: e.target.value})}
+                className="resize-none bg-darkInput border-gray-800 h-24"
+                placeholder="Enter task description"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="taskDueDate">Due Date</Label>
+              <Input
+                id="taskDueDate"
+                type="date"
+                value={taskForm.dueDate}
+                onChange={(e) => setTaskForm({...taskForm, dueDate: e.target.value})}
+                className="bg-darkInput border-gray-800"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex space-x-2 sm:space-x-0">
+            <Button type="button" variant="outline" onClick={() => setTaskDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              type="button"
+              onClick={() => {
+                if (!taskForm.name.trim()) {
+                  toast({
+                    title: "Task name required",
+                    description: "Please provide a name for this task",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                if (editTaskId) {
+                  updateTaskMutation.mutate({
+                    id: editTaskId,
+                    data: taskForm
+                  });
+                } else {
+                  createTaskMutation.mutate({
+                    ...taskForm,
+                    dueDate: new Date(taskForm.dueDate).toISOString()
+                  });
+                }
+              }}
+              disabled={createTaskMutation.isPending || updateTaskMutation.isPending}
+            >
+              {createTaskMutation.isPending || updateTaskMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {editTaskId ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (editTaskId ? 'Update Task' : 'Create Task')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Task Confirmation Dialog */}
+      <Dialog open={isDeleteTaskDialogOpen} onOpenChange={setDeleteTaskDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Task</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this task? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {taskToDelete && (
+            <div className="py-4">
+              <div className="bg-darkInput rounded-lg p-3 mb-4">
+                <p className="font-medium">{taskToDelete.name}</p>
+                {taskToDelete.description && (
+                  <p className="text-sm text-gray-400 mt-1">{taskToDelete.description}</p>
+                )}
+                <p className="text-xs text-gray-500 mt-2">
+                  Due: {formatDate(taskToDelete.dueDate)}
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex space-x-2 sm:space-x-0">
+            <Button type="button" variant="outline" onClick={() => setDeleteTaskDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                if (taskToDelete) {
+                  deleteTaskMutation.mutate(taskToDelete.id);
+                }
+              }}
+              disabled={deleteTaskMutation.isPending}
+            >
+              {deleteTaskMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : 'Delete Task'}
             </Button>
           </DialogFooter>
         </DialogContent>
