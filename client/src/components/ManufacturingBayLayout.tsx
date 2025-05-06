@@ -84,6 +84,7 @@ interface Bay {
   name: string;
   bayNumber: number;
   description: string;
+  team: string;
   isActive: boolean;
 }
 
@@ -109,7 +110,7 @@ interface ManufacturingBayLayoutProps {
   bays: Bay[];
   onScheduleChange: (scheduleId: number, newBayId: number, newStartDate: string, newEndDate: string) => Promise<void>;
   onScheduleCreate: (projectId: number, bayId: number, startDate: string, endDate: string) => Promise<void>;
-  onUpdateBay?: (bayId: number, name: string, description: string) => Promise<void>;
+  onUpdateBay?: (bayId: number, name: string, description: string, team: string) => Promise<void>;
 }
 
 // Draggable project card component
@@ -366,6 +367,7 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
   const [currentBay, setCurrentBay] = useState<Bay | null>(null);
   const [bayName, setBayName] = useState('');
   const [bayDescription, setBayDescription] = useState('');
+  const [bayTeam, setBayTeam] = useState('');
   
   // State for creating a new schedule
   const [isScheduling, setIsScheduling] = useState(false);
@@ -521,6 +523,7 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
     setCurrentBay(bay);
     setBayName(bay.name);
     setBayDescription(bay.description || '');
+    setBayTeam(bay.team || '');
     setIsEditingBay(true);
   };
   
@@ -529,7 +532,7 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
     if (!currentBay || !onUpdateBay) return;
     
     try {
-      await onUpdateBay(currentBay.id, bayName, bayDescription);
+      await onUpdateBay(currentBay.id, bayName, bayDescription, bayTeam);
       toast({
         title: "Bay updated",
         description: `${bayName} has been updated successfully.`,
@@ -594,12 +597,39 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
     }
     
     try {
+      // Create manufacturing schedule
       await onScheduleCreate(
         selectedProject,
         selectedBay,
         schedulingStartDate,
         schedulingEndDate
       );
+      
+      // Update project status to in_progress if current date is between start and end dates
+      const currentDate = new Date();
+      const startDate = new Date(schedulingStartDate);
+      const endDate = new Date(schedulingEndDate);
+      
+      if (currentDate >= startDate && currentDate <= endDate) {
+        // Update project status to active
+        try {
+          const response = await fetch(`/api/projects/${selectedProject}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              status: 'active'
+            }),
+          });
+          
+          if (!response.ok) {
+            console.warn('Failed to update project status, but schedule was created');
+          }
+        } catch (statusError) {
+          console.warn('Error updating project status:', statusError);
+        }
+      }
       
       toast({
         title: "Schedule created",
@@ -697,6 +727,32 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
             startDate,
             endDate
           );
+          
+          // Update project status to active if current date is between start and end dates
+          const currentDate = new Date();
+          const scheduleStartDate = new Date(startDate);
+          const scheduleEndDate = new Date(endDate);
+          
+          if (currentDate >= scheduleStartDate && currentDate <= scheduleEndDate) {
+            // Update project status to active
+            try {
+              const response = await fetch(`/api/projects/${projectId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  status: 'active'
+                }),
+              });
+              
+              if (!response.ok) {
+                console.warn('Failed to update project status, but schedule was created');
+              }
+            } catch (statusError) {
+              console.warn('Error updating project status:', statusError);
+            }
+          }
           
           toast({
             title: "Schedule created",
