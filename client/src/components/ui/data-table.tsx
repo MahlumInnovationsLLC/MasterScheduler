@@ -73,17 +73,22 @@ export function DataTable<TData, TValue>({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
-    initialState: {
-      pagination: {
-        pageSize: 1000, // Set a very large page size to show all rows
-      },
-    },
     state: {
       sorting,
       columnFilters,
       globalFilter,
     },
   });
+
+  // Define column widths
+  const columnWidths = {
+    location: 80,
+    projectNumber: 100,
+    name: 200,
+    pmOwner: 130,
+    progress: 120,
+    status: 100,
+  };
 
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -124,139 +129,256 @@ export function DataTable<TData, TValue>({
           )}
         </div>
       </div>
-
-      <div className="overflow-x-auto">
-        <div className="relative">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                {table.getHeaderGroups()[0].headers.map((header) => {
-                  const isColumnFrozen = frozenColumns.includes(header.column.id);
-                  
-                  // Calculate left position for frozen columns
-                  let leftPosition = 0;
-                  if (isColumnFrozen) {
-                    const frozenIndex = frozenColumns.indexOf(header.column.id);
-                    for (let i = 0; i < frozenIndex; i++) {
-                      const prevColumnId = frozenColumns[i];
-                      const prevHeader = table.getHeaderGroups()[0].headers.find(h => h.column.id === prevColumnId);
-                      leftPosition += prevHeader ? (prevHeader.getSize() || 150) : 150;
-                    }
-                  }
-                  
-                  return (
-                    <TableHead 
-                      key={header.id}
-                      style={{
-                        position: isColumnFrozen ? 'sticky' : 'relative',
-                        left: isColumnFrozen ? `${leftPosition}px` : 'auto',
-                        zIndex: isColumnFrozen ? 30 : 'auto',
-                        background: isColumnFrozen ? 'var(--muted)' : 'var(--muted)',
-                        borderRight: isColumnFrozen && frozenColumns.indexOf(header.column.id) === frozenColumns.length - 1 
-                          ? '2px solid var(--primary)' 
-                          : '1px solid var(--border-muted)',
-                        boxShadow: isColumnFrozen && frozenColumns.indexOf(header.column.id) === frozenColumns.length - 1 
-                          ? '4px 0 8px rgba(0,0,0,0.15)' 
-                          : 'none',
-                        minWidth: header.getSize() || 150,
-                        width: header.getSize() || 150,
-                      }}
-                    >
-                      <div
-                        className={
-                          header.column.getCanSort()
-                            ? 'flex items-center gap-1 cursor-pointer select-none'
-                            : ''
-                        }
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                        {header.column.getCanSort() && (
-                          <div className="inline-block">
-                            {{
-                              asc: <ChevronUp className="h-4 w-4" />,
-                              desc: <ChevronDown className="h-4 w-4" />,
-                              false: <ChevronsUpDown className="h-4 w-4 opacity-50" />,
-                            }[header.column.getIsSorted() as string] ?? null}
-                          </div>
-                        )}
-                      </div>
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {table.getFilteredRowModel().rows.length > 0 ? (
-                table.getFilteredRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className="hover:bg-muted/50"
-                  >
-                    {row.getVisibleCells().map((cell) => {
-                      const isColumnFrozen = frozenColumns.includes(cell.column.id);
-                      
-                      // Calculate left position for frozen columns
-                      let leftPosition = 0;
-                      if (isColumnFrozen) {
-                        const frozenIndex = frozenColumns.indexOf(cell.column.id);
-                        for (let i = 0; i < frozenIndex; i++) {
-                          const prevColumnId = frozenColumns[i];
-                          const prevCell = row.getVisibleCells().find(c => c.column.id === prevColumnId);
-                          leftPosition += prevCell ? (prevCell.column.getSize() || 150) : 150;
-                        }
+      
+      <div className="overflow-hidden">
+        {/* Frozen columns container */}
+        <div className="overflow-x-auto pb-4" style={{ position: 'relative' }}>
+          <div className="grid grid-flow-col" style={{ width: 'fit-content' }}>
+            {/* Frozen columns - these will stay fixed */}
+            <div 
+              className="sticky left-0 z-40 shadow-md"
+              style={{ 
+                display: 'flex',
+                background: 'var(--background)',
+                borderRight: '2px solid var(--primary)'
+              }}
+            >
+              <table className="border-collapse">
+                <thead>
+                  <tr className="bg-muted/50">
+                    {table.getHeaderGroups()[0].headers.map((header) => {
+                      if (frozenColumns.includes(header.column.id)) {
+                        const width = columnWidths[header.column.id as keyof typeof columnWidths] || 150;
+                        return (
+                          <th 
+                            key={header.id}
+                            className="px-4 py-3 font-semibold text-left"
+                            style={{ 
+                              width: `${width}px`, 
+                              minWidth: `${width}px`,
+                              background: 'var(--muted)',
+                              borderBottom: '1px solid var(--border)'
+                            }}
+                          >
+                            <div
+                              className={
+                                header.column.getCanSort()
+                                  ? 'flex items-center gap-1 cursor-pointer select-none'
+                                  : ''
+                              }
+                              onClick={header.column.getToggleSortingHandler()}
+                            >
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                              {header.column.getCanSort() && (
+                                <div className="inline-block">
+                                  {{
+                                    asc: <ChevronUp className="h-4 w-4" />,
+                                    desc: <ChevronDown className="h-4 w-4" />,
+                                    false: <ChevronsUpDown className="h-4 w-4 opacity-50" />,
+                                  }[header.column.getIsSorted() as string] ?? null}
+                                </div>
+                              )}
+                            </div>
+                          </th>
+                        );
                       }
-                      
-                      return (
-                        <TableCell 
-                          key={cell.id}
-                          style={{
-                            position: isColumnFrozen ? 'sticky' : 'relative',
-                            left: isColumnFrozen ? `${leftPosition}px` : 'auto',
-                            zIndex: isColumnFrozen ? 20 : 'auto',
-                            background: isColumnFrozen ? 'var(--background)' : 'transparent',
-                            borderRight: isColumnFrozen && frozenColumns.indexOf(cell.column.id) === frozenColumns.length - 1 
-                              ? '2px solid var(--primary)' 
-                              : '1px solid var(--border-muted)',
-                            boxShadow: isColumnFrozen && frozenColumns.indexOf(cell.column.id) === frozenColumns.length - 1 
-                              ? '4px 0 8px rgba(0,0,0,0.15)' 
-                              : 'none',
-                            minWidth: cell.column.getSize() || 150,
-                            width: cell.column.getSize() || 150,
-                          }}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      );
+                      return null;
                     })}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    No results found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                  </tr>
+                </thead>
+                <tbody>
+                  {table.getRowModel().rows.length > 0 ? (
+                    table.getRowModel().rows.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="hover:bg-muted/50 border-b border-border"
+                      >
+                        {row.getVisibleCells().map((cell) => {
+                          if (frozenColumns.includes(cell.column.id)) {
+                            const width = columnWidths[cell.column.id as keyof typeof columnWidths] || 150;
+                            return (
+                              <td 
+                                key={cell.id}
+                                className="px-4 py-3"
+                                style={{ 
+                                  width: `${width}px`, 
+                                  minWidth: `${width}px`,
+                                  background: 'var(--background)',
+                                  borderRight: '1px solid var(--border-muted)'
+                                }}
+                              >
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </td>
+                            );
+                          }
+                          return null;
+                        })}
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={frozenColumns.length}
+                        className="h-24 text-center"
+                      >
+                        No results found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Scrollable columns */}
+            <div className="overflow-x-auto">
+              <table className="border-collapse">
+                <thead>
+                  <tr className="bg-muted/50">
+                    {table.getHeaderGroups()[0].headers.map((header) => {
+                      if (!frozenColumns.includes(header.column.id)) {
+                        return (
+                          <th 
+                            key={header.id}
+                            className="px-4 py-3 font-semibold text-left whitespace-nowrap"
+                            style={{ 
+                              minWidth: '150px',
+                              background: 'var(--muted)',
+                              borderBottom: '1px solid var(--border)',
+                              borderRight: '1px solid var(--border-muted)'
+                            }}
+                          >
+                            <div
+                              className={
+                                header.column.getCanSort()
+                                  ? 'flex items-center gap-1 cursor-pointer select-none'
+                                  : ''
+                              }
+                              onClick={header.column.getToggleSortingHandler()}
+                            >
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                              {header.column.getCanSort() && (
+                                <div className="inline-block">
+                                  {{
+                                    asc: <ChevronUp className="h-4 w-4" />,
+                                    desc: <ChevronDown className="h-4 w-4" />,
+                                    false: <ChevronsUpDown className="h-4 w-4 opacity-50" />,
+                                  }[header.column.getIsSorted() as string] ?? null}
+                                </div>
+                              )}
+                            </div>
+                          </th>
+                        );
+                      }
+                      return null;
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {table.getRowModel().rows.length > 0 ? (
+                    table.getRowModel().rows.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="hover:bg-muted/50 border-b border-border"
+                      >
+                        {row.getVisibleCells().map((cell) => {
+                          if (!frozenColumns.includes(cell.column.id)) {
+                            return (
+                              <td 
+                                key={cell.id}
+                                className="px-4 py-3 whitespace-nowrap"
+                                style={{ 
+                                  minWidth: '150px',
+                                  borderRight: '1px solid var(--border-muted)'
+                                }}
+                              >
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </td>
+                            );
+                          }
+                          return null;
+                        })}
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={columns.length - frozenColumns.length}
+                        className="h-24 text-center"
+                      >
+                        No results found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
       
-      <div className="px-4 py-3 flex items-center justify-between border-t border-border">
-        <div className="text-sm text-muted-foreground">
-          Showing all {table.getFilteredRowModel().rows.length} entries
+      {showPagination && (
+        <div className="px-4 py-3 flex items-center justify-between border-t border-border">
+          <div className="text-sm text-muted-foreground">
+            Showing <span className="font-medium">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> to{' '}
+            <span className="font-medium">
+              {Math.min(
+                (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                table.getFilteredRowModel().rows.length
+              )}
+            </span>{' '}
+            of <span className="font-medium">{table.getFilteredRowModel().rows.length}</span> entries
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className={!table.getCanPreviousPage() ? 'opacity-50 cursor-not-allowed' : ''}
+            >
+              Previous
+            </Button>
+            {Array.from({ length: Math.min(5, table.getPageCount()) }).map((_, i) => {
+              const pageIndex = i + Math.max(0, Math.min(
+                table.getState().pagination.pageIndex - 2,
+                table.getPageCount() - 5
+              ));
+              
+              return (
+                <Button
+                  key={pageIndex}
+                  variant={pageIndex === table.getState().pagination.pageIndex ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => table.setPageIndex(pageIndex)}
+                >
+                  {pageIndex + 1}
+                </Button>
+              );
+            })}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className={!table.getCanNextPage() ? 'opacity-50 cursor-not-allowed' : ''}
+            >
+              Next
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
