@@ -474,6 +474,85 @@ const ImportDataPage = () => {
       };
     }
   };
+  
+  // Process delivery tracking data from On Time Delivery Excel
+  const processDeliveryData = async (data: any[]): Promise<any> => {
+    try {
+      // Clean and validate data
+      const deliveryTracking = data.map(row => {
+        const projectNumber = row['Project Number'] || '';
+        const projectName = row['Project Name'] || '';
+        
+        // Determine responsibility based on 'X' markers or similar
+        let delayResponsibility = 'not_applicable';
+        
+        if (row['Late due to: Client'] && 
+            (row['Late due to: Client'] === 'X' || row['Late due to: Client'] === 'x' || row['Late due to: Client'] === true)) {
+          delayResponsibility = 'client_fault';
+        } else if (row['Late due to: Nomad'] && 
+                  (row['Late due to: Nomad'] === 'X' || row['Late due to: Nomad'] === 'x' || row['Late due to: Nomad'] === true)) {
+          delayResponsibility = 'nomad_fault';
+        } else if (row['Late due to: Vendor'] && 
+                  (row['Late due to: Vendor'] === 'X' || row['Late due to: Vendor'] === 'x' || row['Late due to: Vendor'] === true)) {
+          delayResponsibility = 'vendor_fault';
+        }
+        
+        // Convert days late from number to integer
+        let daysLate: number | null = null;
+        if (row['# of days pre/post contract'] !== undefined && row['# of days pre/post contract'] !== null) {
+          daysLate = parseInt(String(row['# of days pre/post contract']));
+          if (isNaN(daysLate)) daysLate = 0;
+          
+          // Negative number means early delivery, which is not late
+          if (daysLate < 0) daysLate = 0;
+        }
+        
+        return {
+          projectId: null, // Will be looked up by project number or name in API
+          originalEstimatedDate: parseExcelDate(row['Original Contract Date']),
+          revisedEstimatedDate: parseExcelDate(row['# of Formal Extensions (Final Contract Date)']),
+          actualDeliveryDate: parseExcelDate(row['Actual Delivery Date']),
+          daysLate: daysLate,
+          delayResponsibility: delayResponsibility,
+          delayReason: row['Category'] || '',
+          delayNotes: row['Late Reasoning'] || '',
+          _projectNumber: projectNumber, // Temporary field to look up project
+          _projectName: projectName     // Backup for project lookup
+        };
+      });
+
+      // Call API to save data
+      const response = await fetch('/api/import/delivery-tracking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(deliveryTracking),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to import delivery tracking data');
+      }
+
+      const result = await response.json();
+      return {
+        success: true,
+        message: `Successfully imported ${result.imported} delivery tracking entries`,
+        imported: result.imported,
+        errors: result.errors,
+        details: result.details
+      };
+    } catch (error) {
+      console.error('Process delivery tracking data error:', error);
+      return {
+        success: false,
+        message: (error as Error).message,
+        errors: data.length,
+        details: [(error as Error).message]
+      };
+    }
+  };
 
   // Helper function to convert Excel date to ISO string
   const parseExcelDate = (excelDate: any): string | null => {

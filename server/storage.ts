@@ -9,6 +9,7 @@ import {
   allowedEmails,
   notifications,
   archivedProjects,
+  deliveryTracking,
   type User,
   type InsertUser,
   type Project,
@@ -29,6 +30,8 @@ import {
   type InsertNotification,
   type ArchivedProject,
   type InsertArchivedProject,
+  type DeliveryTracking,
+  type InsertDeliveryTracking,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, or } from "drizzle-orm";
@@ -149,6 +152,12 @@ export interface IStorage {
   getArchivedProjects(): Promise<ArchivedProject[]>;
   getArchivedProject(id: number): Promise<ArchivedProject | undefined>;
   archiveProject(projectId: number, userId: string, reason?: string): Promise<ArchivedProject | undefined>;
+  
+  // Delivery Tracking methods
+  getDeliveryTrackings(): Promise<DeliveryTracking[]>;
+  getProjectDeliveryTrackings(projectId: number): Promise<DeliveryTracking[]>;
+  getDeliveryTracking(id: number): Promise<DeliveryTracking | undefined>;
+  createDeliveryTracking(tracking: InsertDeliveryTracking): Promise<DeliveryTracking>;
 }
 
 export class DatabaseStorage implements IStorage {
