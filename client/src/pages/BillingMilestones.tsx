@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { 
   DollarSign, 
   Flag, 
@@ -11,7 +12,9 @@ import {
   CheckSquare,
   MoreHorizontal,
   Download,
-  Calendar
+  Calendar,
+  Edit,
+  Trash2
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -26,8 +29,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { formatDate, formatCurrency, getBillingStatusInfo } from '@/lib/utils';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
+import BillingMilestoneForm from '@/components/BillingMilestoneForm';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 const BillingMilestones = () => {
+  const [showMilestoneForm, setShowMilestoneForm] = useState(false);
+  const [selectedMilestone, setSelectedMilestone] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const { toast } = useToast();
+  
   const { data: billingMilestones, isLoading: isLoadingBilling } = useQuery({
     queryKey: ['/api/billing-milestones'],
   });
@@ -35,6 +46,50 @@ const BillingMilestones = () => {
   const { data: projects, isLoading: isLoadingProjects } = useQuery({
     queryKey: ['/api/projects'],
   });
+  
+  // Delete mutation
+  const deleteMilestoneMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("DELETE", `/api/billing-milestones/${id}`, {});
+      return response.ok;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Billing milestone deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete billing milestone: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Handler for adding a new milestone
+  const handleAddMilestone = () => {
+    setSelectedMilestone(null);
+    setIsEditing(false);
+    setShowMilestoneForm(true);
+  };
+  
+  // Handler for editing a milestone
+  const handleEditMilestone = (milestone: any) => {
+    setSelectedMilestone(milestone);
+    setIsEditing(true);
+    setShowMilestoneForm(true);
+  };
+  
+  // Handler for deleting a milestone
+  const handleDeleteMilestone = (id: number) => {
+    if (confirm("Are you sure you want to delete this milestone?")) {
+      deleteMilestoneMutation.mutate(id);
+    }
+  };
 
   // Calculate billing stats
   const billingStats = React.useMemo(() => {
@@ -181,9 +236,24 @@ const BillingMilestones = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem>View Details</DropdownMenuItem>
-              <DropdownMenuItem>Edit Milestone</DropdownMenuItem>
-              <DropdownMenuItem>Mark as Paid</DropdownMenuItem>
-              <DropdownMenuItem>Generate Invoice</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEditMilestone(row.original)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Milestone
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                const updatedMilestone = { 
+                  ...row.original,
+                  status: 'paid',
+                  paymentReceivedDate: format(new Date(), 'yyyy-MM-dd')
+                };
+                handleEditMilestone(updatedMilestone);
+              }}>
+                Mark as Paid
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDeleteMilestone(row.original.id)}>
+                <Trash2 className="h-4 w-4 mr-2 text-danger" />
+                Delete Milestone
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -230,7 +300,7 @@ const BillingMilestones = () => {
             <Filter className="mr-2 h-4 w-4" />
             Filter
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={handleAddMilestone}>
             <Plus className="mr-2 h-4 w-4" />
             New Milestone
           </Button>
@@ -367,6 +437,24 @@ const BillingMilestones = () => {
           </div>
         </div>
       </div>
+
+      {/* Billing Milestone Form Dialog */}
+      <BillingMilestoneForm
+        open={showMilestoneForm}
+        onOpenChange={setShowMilestoneForm}
+        defaultValues={selectedMilestone ? {
+          projectId: selectedMilestone.projectId,
+          name: selectedMilestone.name,
+          description: selectedMilestone.description || '',
+          amount: selectedMilestone.amount.toString(),
+          targetInvoiceDate: selectedMilestone.targetInvoiceDate,
+          actualInvoiceDate: selectedMilestone.actualInvoiceDate || '',
+          paymentReceivedDate: selectedMilestone.paymentReceivedDate || '',
+          status: selectedMilestone.status
+        } : undefined}
+        isEdit={isEditing}
+        milestoneId={selectedMilestone?.id}
+      />
     </div>
   );
 };
