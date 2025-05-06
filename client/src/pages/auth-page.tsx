@@ -72,25 +72,10 @@ export default function AuthPage() {
     );
   }
 
-  // Development-only auto-login with direct form submission approach
+  // Development-only auto-login with direct navigation approach
   const handleDevLogin = () => {
     try {
-      console.log("Attempting dev auto-login with form approach...");
-      
-      // Create a form element for a full-page post request
-      const form = document.createElement('form');
-      form.method = 'GET'; 
-      form.action = '/api/dev-login';
-      
-      // Add a redirect param
-      const redirectInput = document.createElement('input');
-      redirectInput.type = 'hidden';
-      redirectInput.name = 'redirect';
-      redirectInput.value = 'true';
-      form.appendChild(redirectInput);
-      
-      // Add the form to the body
-      document.body.appendChild(form);
+      console.log("Attempting dev auto-login with direct navigation...");
       
       // Show toast notification
       toast({
@@ -98,8 +83,9 @@ export default function AuthPage() {
         description: "Auto-logging in as admin...",
       });
       
-      // Submit the form
-      setTimeout(() => form.submit(), 200);
+      // Navigate directly to the endpoint with redirect=true parameter
+      console.log("Navigating to dev-login with redirect...");
+      window.location.href = '/api/dev-login?redirect=true';
       
     } catch (error) {
       console.error("Dev login error:", error);

@@ -142,12 +142,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (user: User) => {
       console.log("Login successful, refreshing user data in cache");
       
-      // Create an HTML form for POST submission to ensure proper cookie handling
-      const form = document.createElement('form');
-      form.method = 'GET';
-      form.action = '/';
-      form.style.display = 'none';
-      document.body.appendChild(form);
+      // Set the logged in user in the query cache
+      queryClient.setQueryData(["/api/auth/user"], user);
+      
+      // Verify the session is working by making an API call
+      console.log("Verifying session with API call...");
+      fetch("/api/auth/user", { credentials: "include" })
+        .then(res => {
+          console.log("Session verification status:", res.status);
+          if (res.ok) {
+            return res.json();
+          }
+          throw new Error("Session verification failed");
+        })
+        .then(data => {
+          console.log("Session verified successfully:", data);
+        })
+        .catch(err => {
+          console.error("Session verification error:", err);
+        });
       
       // Set the success message
       toast({
@@ -155,9 +168,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: `Welcome back${user.firstName ? `, ${user.firstName}` : ""}!`,
       });
       
-      // Submit the form to force a full page reload
-      // This ensures the session cookie is properly applied
+      // Force a hard navigation to ensure session is maintained
       setTimeout(() => {
+        console.log("Hard navigation to home page...");
         window.location.href = "/";
       }, 500);
     },
