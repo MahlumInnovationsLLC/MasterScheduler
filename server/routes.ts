@@ -897,6 +897,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching archived project" });
     }
   });
+  
+  // Delivered Projects Routes
+  app.get("/api/delivered-projects", async (req, res) => {
+    try {
+      const deliveredProjects = await storage.getDeliveredProjects();
+      res.json(deliveredProjects);
+    } catch (error) {
+      console.error("Error fetching delivered projects:", error);
+      res.status(500).json({ message: "Error fetching delivered projects" });
+    }
+  });
 
   app.post("/api/projects/:id/archive", isAuthenticated, hasEditRights, async (req, res) => {
     try {

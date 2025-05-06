@@ -153,6 +153,9 @@ export interface IStorage {
   getArchivedProject(id: number): Promise<ArchivedProject | undefined>;
   archiveProject(projectId: number, userId: string, reason?: string): Promise<ArchivedProject | undefined>;
   
+  // Delivered Projects methods
+  getDeliveredProjects(): Promise<any[]>;
+  
   // Delivery Tracking methods
   getDeliveryTrackings(): Promise<DeliveryTracking[]>;
   getProjectDeliveryTrackings(projectId: number): Promise<DeliveryTracking[]>;
@@ -861,6 +864,38 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Delivered Projects methods
+  async getDeliveredProjects(): Promise<any[]> {
+    try {
+      // Get projects with delivery tracking that have actualDeliveryDate
+      const result = await db.execute(sql`
+        SELECT 
+          p.id as "projectId",
+          p.project_number as "projectNumber",
+          p.name,
+          p.delivery_date as "deliveryDate",
+          dt.actual_delivery_date as "actualDeliveryDate",
+          dt.days_late as "daysLate",
+          dt.delay_responsibility as "delayResponsibility",
+          p.percent_complete as "percentComplete",
+          p.status
+        FROM 
+          projects p
+        JOIN 
+          delivery_tracking dt ON p.id = dt.project_id
+        WHERE 
+          dt.actual_delivery_date IS NOT NULL
+        ORDER BY 
+          dt.actual_delivery_date DESC
+      `);
+      
+      return result.rows as any[];
+    } catch (error) {
+      console.error("Error fetching delivered projects:", error);
+      return [];
+    }
+  }
+  
   // Delivery Tracking methods
   async getDeliveryTrackings(): Promise<DeliveryTracking[]> {
     return await safeQuery<DeliveryTracking>(() => 
