@@ -368,7 +368,9 @@ export const manufacturingBays = pgTable("manufacturing_bays", {
   description: text("description"),
   equipment: text("equipment"),
   team: text("team").default("General"),  // Added team field for grouping bays
-  staffCount: integer("staff_count").default(1),  // Number of people assigned to this bay
+  staffCount: integer("staff_count").default(0),  // Total staff count 
+  assemblyStaffCount: integer("assembly_staff_count").default(0),  // Assembly team staff count
+  electricalStaffCount: integer("electrical_staff_count").default(0),  // Electrical team staff count
   hoursPerPersonPerWeek: integer("hours_per_person_per_week").default(40), // Standard 40hr work week
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),

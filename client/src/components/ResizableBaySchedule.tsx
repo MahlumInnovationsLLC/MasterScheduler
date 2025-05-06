@@ -586,15 +586,39 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Handle bay capacity edit
-  const handleSaveBayEdit = async (bayId: number, staffCount: number, hoursPerPersonPerWeek: number) => {
-    // In a real implementation, this would call an API to update the bay
-    toast({
-      title: "Bay Updated",
-      description: `Staff count: ${staffCount}, Hours per week: ${hoursPerPersonPerWeek}`,
-    });
-    
-    // For now, we'll just close the dialog
-    setEditingBay(null);
+  const handleSaveBayEdit = async (bayId: number, bayData: Partial<ManufacturingBay>) => {
+    try {
+      // Call API to update the bay
+      const response = await fetch(`/api/manufacturing-bays/${bayId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bayData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update bay');
+      }
+      
+      const updatedBay = await response.json();
+      
+      // Update the local state (this would be better with React Query refetch)
+      setBays(prevBays => 
+        prevBays.map(bay => 
+          bay.id === bayId ? { ...bay, ...updatedBay } : bay
+        )
+      );
+      
+      setEditingBay(null);
+    } catch (error) {
+      console.error('Error updating bay:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update bay. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   // Render
@@ -664,10 +688,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => toast({
-                    title: "Not Implemented",
-                    description: "Adding new bays is not implemented in this demo.",
-                  })}
+                  onClick={() => {
+                    // Create a default empty bay to edit
+                    const newBay: Partial<ManufacturingBay> = {
+                      bayNumber: bays.length + index + 1,
+                      name: `Bay ${bays.length + index + 1}`,
+                      description: '',
+                      staffCount: 0,
+                      assemblyStaffCount: 0,
+                      electricalStaffCount: 0,
+                      hoursPerPersonPerWeek: 40,
+                      isActive: true
+                    };
+                    setNewBay(newBay as ManufacturingBay);
+                  }}
                 >
                   <PlusIcon className="h-3.5 w-3.5" />
                 </Button>
