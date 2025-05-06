@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
 import { BillingStatusCard } from '@/components/BillingStatusCard';
 import { ManufacturingCard } from '@/components/ManufacturingCard';
-import { DataTable } from '@/components/ui/data-table';
+import { DashboardTable } from '@/components/ui/dashboard-table';
 import { ProgressBadge } from '@/components/ui/progress-badge';
 import { formatDate, formatCurrency, getProjectStatusColor } from '@/lib/utils';
 
@@ -327,12 +327,12 @@ const Dashboard = () => {
         </Link>
       </div>
 
-      <DataTable
-        columns={projectColumns}
-        data={filteredProjects}
-        showPagination={false}
-        frozenColumns={['projectNumber', 'location', 'shipDate', 'pmOwnerId', 'percentComplete', 'status']}
-      />
+      <div className="w-full">
+        <DashboardTable
+          columns={projectColumns}
+          data={filteredProjects}
+        />
+      </div>
     </div>
   );
 };
