@@ -311,11 +311,10 @@ function SalesDealForm({
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="new_business">New Business</SelectItem>
-              <SelectItem value="existing_business">Existing Business</SelectItem>
-              <SelectItem value="service_contract">Service Contract</SelectItem>
-              <SelectItem value="renewal">Renewal</SelectItem>
-              <SelectItem value="upsell">Upsell</SelectItem>
+              <SelectItem value="unsolicited_bid">Unsolicited Bid</SelectItem>
+              <SelectItem value="unfinanced_restrict">Unfinanced Restrict</SelectItem>
+              <SelectItem value="developed_direct">Developed Direct</SelectItem>
+              <SelectItem value="developed_public_bid">Developed Public Bid</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -330,14 +329,11 @@ function SalesDealForm({
               <SelectValue placeholder="Select stage" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="prospecting">Prospecting</SelectItem>
-              <SelectItem value="qualification">Qualification</SelectItem>
-              <SelectItem value="needs_analysis">Needs Analysis</SelectItem>
-              <SelectItem value="value_proposition">Value Proposition</SelectItem>
-              <SelectItem value="proposal">Proposal</SelectItem>
-              <SelectItem value="negotiation">Negotiation</SelectItem>
-              <SelectItem value="closed_won">Closed Won</SelectItem>
-              <SelectItem value="closed_lost">Closed Lost</SelectItem>
+              <SelectItem value="verbal_commit">Verbal Commit</SelectItem>
+              <SelectItem value="project_launch">Project Launch</SelectItem>
+              <SelectItem value="site_core_activity">Site Core Activity</SelectItem>
+              <SelectItem value="submit_decide">Submit & Decide</SelectItem>
+              <SelectItem value="not_started">Not Started</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -355,7 +351,7 @@ function SalesDealForm({
               <SelectItem value="low">Low</SelectItem>
               <SelectItem value="medium">Medium</SelectItem>
               <SelectItem value="high">High</SelectItem>
-              <SelectItem value="critical">Critical</SelectItem>
+              <SelectItem value="urgent">Urgent</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -463,7 +459,7 @@ function SalesDealCard({ deal, onEdit, onDelete, onConvert }: {
       case "low": return "bg-gray-100 text-gray-800";
       case "medium": return "bg-blue-100 text-blue-800";
       case "high": return "bg-amber-100 text-amber-800";
-      case "critical": return "bg-red-100 text-red-800";
+      case "urgent": return "bg-red-100 text-red-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };
@@ -471,14 +467,11 @@ function SalesDealCard({ deal, onEdit, onDelete, onConvert }: {
   // Function to get color based on deal stage
   const getStageColor = (stage: string) => {
     switch (stage) {
-      case "prospecting": return "bg-slate-100 text-slate-800";
-      case "qualification": return "bg-blue-100 text-blue-800";
-      case "needs_analysis": return "bg-cyan-100 text-cyan-800";
-      case "value_proposition": return "bg-teal-100 text-teal-800";
-      case "proposal": return "bg-green-100 text-green-800";
-      case "negotiation": return "bg-amber-100 text-amber-800";
-      case "closed_won": return "bg-emerald-100 text-emerald-800";
-      case "closed_lost": return "bg-red-100 text-red-800";
+      case "verbal_commit": return "bg-slate-100 text-slate-800";
+      case "project_launch": return "bg-blue-100 text-blue-800";
+      case "site_core_activity": return "bg-cyan-100 text-cyan-800";
+      case "submit_decide": return "bg-teal-100 text-teal-800";
+      case "not_started": return "bg-gray-100 text-gray-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };
