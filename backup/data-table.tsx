@@ -1,34 +1,16 @@
-"use client";
-
-import { useState } from "react";
+import React, { useState } from 'react';
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
+  getPaginationRowModel,
+  getFilteredRowModel,
   useReactTable,
-  PaginationState,
-  SortingState,
-  ColumnFiltersState,
-} from "@tanstack/react-table";
-
-import {
-  ChevronDown,
-  ChevronUp,
-  ChevronsUpDown,
-} from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  type ColumnDef,
+  type SortingState,
+  type ColumnFiltersState,
+} from '@tanstack/react-table';
+import { ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -36,7 +18,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -59,12 +44,13 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [globalFilter, setGlobalFilter] = useState<string>("");
+  const [globalFilter, setGlobalFilter] = useState<string>('');
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    // Use default sorting
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -88,7 +74,7 @@ export function DataTable<TData, TValue>({
           <div className="relative">
             <Input
               placeholder={searchPlaceholder}
-              value={globalFilter ?? ""}
+              value={globalFilter ?? ''}
               onChange={(e) => setGlobalFilter(e.target.value)}
               className="bg-darkInput text-gray-300 border-none rounded-lg px-4 py-2 pl-9 text-sm focus:ring-1 focus:ring-primary"
             />
@@ -99,9 +85,9 @@ export function DataTable<TData, TValue>({
           
           {filterColumn && filterOptions && (
             <Select
-              value={(table.getColumn(filterColumn)?.getFilterValue() as string) ?? ""}
+              value={(table.getColumn(filterColumn)?.getFilterValue() as string) ?? ''}
               onValueChange={(value) => {
-                table.getColumn(filterColumn)?.setFilterValue(value === "all" ? "" : value);
+                table.getColumn(filterColumn)?.setFilterValue(value === 'all' ? '' : value);
               }}
             >
               <SelectTrigger className="bg-darkInput text-gray-300 border-none rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary">
@@ -125,7 +111,7 @@ export function DataTable<TData, TValue>({
             <TableHeader className="bg-gray-900 sticky top-0 z-10">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="border-gray-800">
-                  {headerGroup.headers.map((header) => {
+                  {headerGroup.headers.map((header, index) => {
                     const isColumnFrozen = frozenColumns.includes(header.column.id);
                     // Calculate left position for frozen columns
                     let leftPosition = 0;
