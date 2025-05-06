@@ -461,19 +461,37 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           title: "Bay Updated",
           description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been updated`,
         });
-        
-        // Force refetch data from server
-        window.setTimeout(() => {
-          window.location.reload();
-        }, 1500);
+      } else if (bayId > 0) {
+        // Fallback to direct API call if mutation isn't provided
+        try {
+          const response = await apiRequest('PUT', `/api/manufacturing-bays/${bayId}`, updatedData);
+          const updatedBay = await response.json();
+          console.log('Bay updated successfully via direct API call:', updatedBay);
+          
+          // Update local state
+          setBays(prev => prev.map(bay => bay.id === bayId ? updatedBay : bay));
+          
+          toast({
+            title: "Bay Updated",
+            description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been updated`,
+          });
+        } catch (err) {
+          console.error('Error in direct API call:', err);
+          throw err;
+        }
       } else {
-        console.error('Bay update failed - missing onBayUpdate handler or invalid bayId:', bayId);
+        console.error('Bay update failed - invalid bayId:', bayId);
         toast({
           title: "Error",
-          description: "Failed to update bay - missing update handler",
+          description: "Failed to update bay - invalid bay ID",
           variant: "destructive"
         });
       }
+      
+      // Force refetch data from server
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error('Error updating bay:', error);
       toast({
@@ -516,19 +534,30 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           title: "Bay Created",
           description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been created`,
         });
-        
-        // Force refetch data from server
-        window.setTimeout(() => {
-          window.location.reload();
-        }, 1500);
       } else {
-        console.error('Bay creation failed - missing onBayCreate handler');
-        toast({
-          title: "Error",
-          description: "Failed to create bay - missing create handler",
-          variant: "destructive"
-        });
+        // Fallback to direct API call if mutation isn't provided
+        try {
+          const response = await apiRequest('POST', '/api/manufacturing-bays', updatedData);
+          const newBay = await response.json();
+          console.log('Bay created successfully via direct API call:', newBay);
+          
+          // Update local state
+          setBays(prev => [...prev, newBay]);
+          
+          toast({
+            title: "Bay Created",
+            description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been created`,
+          });
+        } catch (err) {
+          console.error('Error in direct API call:', err);
+          throw err;
+        }
       }
+      
+      // Force refetch data from server
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error('Error creating bay:', error);
       toast({

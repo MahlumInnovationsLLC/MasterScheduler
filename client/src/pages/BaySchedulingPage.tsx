@@ -4,6 +4,7 @@ import { addDays, addWeeks, addMonths, format } from 'date-fns';
 import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -17,10 +18,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { queryClient } from '@/lib/queryClient';
 import { ManufacturingCard } from '@/components/ManufacturingCard';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
+import { 
+  ManufacturingBay, 
+  ManufacturingSchedule, 
+  Project 
+} from '@shared/schema';
 
 const BaySchedulingPage = () => {
   const { toast } = useToast();
