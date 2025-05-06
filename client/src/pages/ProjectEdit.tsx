@@ -85,6 +85,9 @@ const projectSchema = z.object({
   itDesignOrdersPercent: z.number().min(0).max(100).optional(),
   ntcDesignOrdersPercent: z.number().min(0).max(100).optional(),
   
+  // Manufacturing details
+  totalHours: z.number().min(0).optional(),
+  
   // Status and notes
   status: z.string(),
   priority: z.string().optional(),
@@ -122,6 +125,7 @@ function ProjectEdit() {
       location: '',
       pmOwner: '',
       client: '',
+      totalHours: 40,
       status: 'active',
       priority: 'medium',
       category: '',
@@ -171,6 +175,9 @@ function ProjectEdit() {
         location: project.location || '',
         pmOwner: project.pmOwner || '',
         team: project.team || '',
+        
+        // Manufacturing details
+        totalHours: project.totalHours ? Number(project.totalHours) : 40,
         
         // New field with calculated days
         poDroppedToDeliveryDays: calculatedDays,
@@ -446,6 +453,30 @@ function ProjectEdit() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="totalHours"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Manufacturing Hours</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              min={0}
+                              step={1}
+                              placeholder="Total hours required" 
+                              {...field}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Total hours required for manufacturing (used for scheduling)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
                     <FormField
                       control={form.control}
                       name="status"

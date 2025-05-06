@@ -344,14 +344,33 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Handle drag over
-  const handleDragOver = (e: React.DragEvent, bayId: number, slotIndex: number) => {
+  const handleDragOver = (e: React.DragEvent, bayId: number, slotIndex: number, rowIndex?: number) => {
     e.preventDefault();
-    setDropTarget({ bayId, slotIndex });
+    e.dataTransfer.dropEffect = 'move';
+    
+    // Determine row index if not provided
+    const calculatedRowIndex = rowIndex !== undefined ? rowIndex : Math.floor((e.nativeEvent.offsetY / 64) * 4);
+    
+    // Update the target location
+    setDropTarget({ 
+      bayId, 
+      slotIndex,
+      rowIndex: calculatedRowIndex >= 0 && calculatedRowIndex < 4 ? calculatedRowIndex : 0
+    });
+    
+    // Add visual cue
+    const target = e.currentTarget as HTMLElement;
+    target.classList.add('bg-primary/10');
   };
   
   // Handle drop
   const handleDrop = (e: React.DragEvent, bayId: number, slotIndex: number) => {
     e.preventDefault();
+    
+    // Remove visual cue from all possible drop targets
+    document.querySelectorAll('.bg-primary/10').forEach(el => {
+      el.classList.remove('bg-primary/10');
+    });
     
     try {
       const dataStr = e.dataTransfer.getData('application/json');
