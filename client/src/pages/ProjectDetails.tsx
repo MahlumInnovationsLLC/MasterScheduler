@@ -16,8 +16,7 @@ import {
   Building2,
   Info,
   Archive,
-  Trash2,
-  Loader2
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -29,7 +28,6 @@ import { formatDate, formatCurrency, getProjectStatusColor, getBillingStatusInfo
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import { ProjectHealthCard } from '@/components/ProjectHealthCard';
 import { MilestonesList } from '@/components/MilestonesList';
-import { MilestoneDialog } from '@/components/MilestoneDialog';
 import { 
   Dialog, 
   DialogContent, 
@@ -52,11 +50,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { addDays } from 'date-fns';
+import { Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ProjectDetails = () => {
   const { id } = useParams();
-  const projectId = parseInt(id || "0");
+  const projectId = parseInt(id);
   const { toast } = useToast();
   const [, navigate] = useLocation();
   
@@ -66,7 +65,6 @@ const ProjectDetails = () => {
   const [isTaskDialogOpen, setTaskDialogOpen] = useState(false);
   const [isDeleteTaskDialogOpen, setDeleteTaskDialogOpen] = useState(false);
   const [isMilestoneDialogOpen, setIsMilestoneDialogOpen] = useState(false);
-  const [selectedMilestone, setSelectedMilestone] = useState<any | null>(null);
   const [archiveReason, setArchiveReason] = useState<string>('');
   const [selectedBayId, setSelectedBayId] = useState<number | null>(null);
   const [startDate, setStartDate] = useState<string>(
@@ -88,7 +86,14 @@ const ProjectDetails = () => {
     milestoneId: 0
   });
   
-  // API Queries
+  // Milestone editing state
+  const [editMilestoneId, setEditMilestoneId] = useState<number | null>(null);
+  const [milestoneForm, setMilestoneForm] = useState({
+    name: '',
+    status: 'In Progress',
+    date: new Date().toISOString().split('T')[0]
+  });
+  
   const { data: project, isLoading: isLoadingProject } = useQuery({
     queryKey: [`/api/projects/${projectId}`],
     enabled: !isNaN(projectId)
@@ -96,11 +101,6 @@ const ProjectDetails = () => {
   
   const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({
     queryKey: [`/api/projects/${projectId}/tasks`],
-    enabled: !isNaN(projectId)
-  });
-  
-  const { data: projectMilestones = [], isLoading: isLoadingMilestones } = useQuery({
-    queryKey: [`/api/projects/${projectId}/milestones`],
     enabled: !isNaN(projectId)
   });
   
@@ -253,13 +253,43 @@ const ProjectDetails = () => {
       });
     }
   });
+  
+  // Create/Update milestone mutation
+  const saveMilestoneMutation = useMutation({
+    mutationFn: async (data: any) => {
+      // Since we're not using a real API for milestones in the demo, we'll simulate it
+      // In a real app, you'd send a request to the server
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({ success: true, milestone: data });
+        }, 500);
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: editMilestoneId ? "Milestone updated" : "Milestone created",
+        description: `Milestone has been successfully ${editMilestoneId ? 'updated' : 'created'}`,
+      });
+      setIsMilestoneDialogOpen(false);
+      
+      // In a real app, you'd invalidate the milestone query
+      // For demo, we're just closing the dialog
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to save milestone",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   // Calculate project progress based on tasks and milestones completion
   const calculateProjectProgress = (): number => {
     if (!tasks || tasks.length === 0) return 0;
     
     // Calculate task completion percentage
-    const completedTasks = tasks.filter((t: any) => t.isCompleted).length;
+    const completedTasks = tasks.filter(t => t.isCompleted).length;
     return Math.round((completedTasks / tasks.length) * 100);
   };
 
@@ -268,12 +298,12 @@ const ProjectDetails = () => {
     
     // Calculate percent of tasks completed
     const totalTasks = tasks.length;
-    const completedTasks = tasks.filter((t: any) => t.isCompleted).length;
+    const completedTasks = tasks.filter(t => t.isCompleted).length;
     const taskScore = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
     
     // Calculate percent of billing milestones completed
     const totalMilestones = billingMilestones.length;
-    const completedMilestones = billingMilestones.filter((m: any) => m.status === 'paid').length;
+    const completedMilestones = billingMilestones.filter(m => m.status === 'paid').length;
     const billingScore = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
     
     // Calculate timeline adherence (whether project is on track)
@@ -304,8 +334,8 @@ const ProjectDetails = () => {
   ) : { status: 'Unknown' };
 
   // Find the active manufacturing schedule if any
-  const activeSchedule = manufacturingSchedules?.find((s: any) => s.status === 'in_progress');
-  const activeBay = activeSchedule ? manufacturingBays?.find((b: any) => b.id === activeSchedule.bayId) : null;
+  const activeSchedule = manufacturingSchedules?.find(s => s.status === 'in_progress');
+  const activeBay = activeSchedule ? manufacturingBays?.find(b => b.id === activeSchedule.bayId) : null;
 
   // Group tasks by milestone
   const milestones = React.useMemo(() => {
@@ -320,7 +350,6 @@ const ProjectDetails = () => {
         completedDate: '2023-01-15T00:00:00.000Z',
         isCompleted: true,
         projectId: projectId,
-        milestoneId: 1
       },
       {
         id: 1002,
@@ -330,7 +359,6 @@ const ProjectDetails = () => {
         completedDate: '2023-01-16T00:00:00.000Z',
         isCompleted: true,
         projectId: projectId,
-        milestoneId: 1
       },
       {
         id: 1003,
@@ -340,7 +368,6 @@ const ProjectDetails = () => {
         completedDate: '2023-01-17T00:00:00.000Z',
         isCompleted: true,
         projectId: projectId,
-        milestoneId: 1
       },
       
       // Design Phase Tasks
@@ -352,7 +379,6 @@ const ProjectDetails = () => {
         completedDate: '2023-02-11T00:00:00.000Z',
         isCompleted: true,
         projectId: projectId,
-        milestoneId: 2
       },
       {
         id: 1005,
@@ -362,7 +388,6 @@ const ProjectDetails = () => {
         completedDate: '2023-02-12T00:00:00.000Z',
         isCompleted: true,
         projectId: projectId,
-        milestoneId: 2
       },
       {
         id: 1006,
@@ -372,7 +397,6 @@ const ProjectDetails = () => {
         completedDate: '2023-02-14T00:00:00.000Z',
         isCompleted: true,
         projectId: projectId,
-        milestoneId: 2
       },
       
       // Production Phase Tasks
@@ -384,7 +408,6 @@ const ProjectDetails = () => {
         completedDate: '2023-03-05T00:00:00.000Z',
         isCompleted: true,
         projectId: projectId,
-        milestoneId: 3
       },
       {
         id: 1008,
@@ -394,7 +417,6 @@ const ProjectDetails = () => {
         completedDate: null,
         isCompleted: false,
         projectId: projectId,
-        milestoneId: 3
       },
       {
         id: 1009,
@@ -404,88 +426,86 @@ const ProjectDetails = () => {
         completedDate: null,
         isCompleted: false,
         projectId: projectId,
-        milestoneId: 3
       }
     ];
     
     // Simple grouping - in a real app you would likely have a milestone field on tasks
     // or a separate milestones table with relationships
-    const milestoneGroups = projectMilestones.length > 0 
-      ? projectMilestones.map((milestone: any) => {
-          const milestoneTasks = currentTasks.filter((task: any) => task.milestoneId === milestone.id);
-          return {
-            ...milestone,
-            tasks: milestoneTasks,
-            color: milestone.isCompleted 
-              ? 'border-primary' 
-              : milestone.status === 'delayed' 
-                ? 'border-warning' 
-                : 'border-accent'
-          };
-        })
-      : [
-        {
-          id: 1,
-          name: 'Project Kickoff Milestone',
-          status: 'Completed',
-          date: '2023-01-15',
-          tasks: currentTasks.filter((t: any) => t.milestoneId === 1),
-          color: 'border-primary',
-          isCompleted: true
-        },
-        {
-          id: 2,
-          name: 'Design Phase Complete',
-          status: 'Completed',
-          date: '2023-02-15',
-          tasks: currentTasks.filter((t: any) => t.milestoneId === 2),
-          color: 'border-accent',
-          isCompleted: true
-        },
-        {
-          id: 3,
-          name: 'Production Phase',
-          status: 'In Progress',
-          date: 'Currently Active',
-          tasks: currentTasks.filter((t: any) => t.milestoneId === 3),
-          color: 'border-warning',
-          isCompleted: false
-        }
-      ];
+    const milestoneGroups = [
+      {
+        id: 1,
+        name: 'Project Kickoff Milestone',
+        status: 'Completed',
+        date: '2023-01-15',
+        tasks: currentTasks.filter(t => new Date(t.dueDate) < new Date('2023-01-30')),
+        color: 'border-primary',
+        isCompleted: true
+      },
+      {
+        id: 2,
+        name: 'Design Phase Complete',
+        status: 'Completed',
+        date: '2023-02-15',
+        tasks: currentTasks.filter(t => 
+          new Date(t.dueDate) >= new Date('2023-01-30') && 
+          new Date(t.dueDate) < new Date('2023-03-01')
+        ),
+        color: 'border-accent',
+        isCompleted: true
+      },
+      {
+        id: 3,
+        name: 'Production Phase',
+        status: 'In Progress',
+        date: 'Currently Active',
+        tasks: currentTasks.filter(t => new Date(t.dueDate) >= new Date('2023-03-01')),
+        color: 'border-warning',
+        isCompleted: false
+      }
+    ];
     
     return milestoneGroups;
-  }, [tasks, projectId, projectMilestones]);
+  }, [tasks, projectId]);
 
   if (isLoadingProject || isLoadingTasks || isLoadingBilling || isLoadingManufacturing) {
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" disabled>
-            <ArrowLeft className="h-5 w-5" />
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Projects
           </Button>
-          <h2 className="text-2xl font-bold">Loading Project Details...</h2>
         </div>
-        <div className="flex justify-center p-10">
-          <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full"></div>
+        <div className="animate-pulse space-y-6">
+          <div className="bg-darkCard h-36 rounded-xl border border-gray-800"></div>
+          <div className="grid grid-cols-3 gap-6">
+            <div className="col-span-2 bg-darkCard h-96 rounded-xl border border-gray-800"></div>
+            <div className="space-y-6">
+              <div className="bg-darkCard h-48 rounded-xl border border-gray-800"></div>
+              <div className="bg-darkCard h-48 rounded-xl border border-gray-800"></div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
+  // If project not found
   if (!project) {
     return (
       <div className="p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/projects')}>
-            <ArrowLeft className="h-5 w-5" />
+        <Link href="/projects">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Projects
           </Button>
-          <h2 className="text-2xl font-bold">Project Not Found</h2>
-        </div>
-        <div className="bg-destructive/10 text-destructive p-4 rounded-md">
-          <p>The requested project could not be found. The project may have been archived or deleted.</p>
-          <Button variant="outline" className="mt-4" onClick={() => navigate('/projects')}>
-            Return to Projects
-          </Button>
+        </Link>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 mx-auto text-warning mb-4" />
+            <h2 className="text-xl font-bold mb-2">Project Not Found</h2>
+            <p className="text-gray-400">The project you're looking for doesn't exist or has been removed.</p>
+          </div>
         </div>
       </div>
     );
@@ -493,151 +513,600 @@ const ProjectDetails = () => {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header with back button */}
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/projects')}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-bold">{project.projectNumber}: {project.name}</h2>
-            <ProgressBadge progress={calculateProjectProgress()} className="mt-0.5" />
+      <div className="flex items-center justify-between">
+        <Link href="/projects">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Projects
+          </Button>
+        </Link>
+        <AIInsightsModal projectId={projectId} />
+      </div>
+      
+      {/* Project Header */}
+      <div className="bg-darkCard rounded-xl border border-gray-800 p-5">
+        <div className="flex justify-between items-start">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded bg-primary flex items-center justify-center text-white font-bold">
+                {project.projectNumber.slice(-2)}
+              </div>
+              <div>
+                <h2 className="text-xl font-bold font-sans">{project.projectNumber}: {project.name}</h2>
+                <div className="flex items-center gap-3 text-sm text-gray-400 mt-1">
+                  <span className="flex items-center gap-1">
+                    <User className="h-4 w-4" /> {project.pmOwner || 'Unassigned'}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" /> {formatDate(project.startDate)} - {formatDate(project.estimatedCompletionDate)}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" /> {Math.ceil((new Date(project.estimatedCompletionDate).getTime() - new Date(project.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="text-sm text-gray-400">Status: {projectStatus}</div>
+          
+          <div className="flex items-center gap-2">
+            <ProgressBadge status={projectStatus} size="md" animatePulse={projectStatus === 'Critical'} />
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate(`/project/${projectId}/edit`)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Project
+            </Button>
+            <Button 
+              size="sm"
+              onClick={() => {
+                setEditTaskId(null);
+                setTaskForm({
+                  name: '',
+                  description: '',
+                  dueDate: new Date().toISOString().split('T')[0],
+                  milestoneId: milestones[0]?.id || 0
+                });
+                setTaskDialogOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Task
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsArchiveDialogOpen(true)}
+              className="text-destructive border-destructive hover:bg-destructive/10"
+            >
+              <Archive className="h-4 w-4 mr-2" />
+              Archive Project
+            </Button>
+          </div>
+        </div>
+        
+        <div className="mt-5 flex gap-8">
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Project Health</div>
+            <div className="flex items-center gap-2">
+              <div className="text-2xl font-bold">{projectHealth.score}<span className="text-sm">/100</span></div>
+              <div className="bg-success text-white rounded px-1.5 text-xs flex items-center">
+                <ArrowLeft className="h-3 w-3 rotate-90" /> {projectHealth.change}
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Progress</div>
+            <div className="flex items-center gap-3">
+              <div className="w-32 bg-gray-800 rounded-full h-2.5">
+                <div 
+                  className="bg-success h-2.5 rounded-full" 
+                  style={{ width: `${calculateProjectProgress()}%` }}
+                ></div>
+              </div>
+              <span className="text-lg font-bold">{calculateProjectProgress()}%</span>
+            </div>
+          </div>
+          
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Tasks</div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold">
+                {tasks.filter(t => t.isCompleted).length}/{tasks.length}
+              </span>
+              <span className="text-sm text-gray-400">completed</span>
+            </div>
+          </div>
+          
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Billing</div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold">
+                {formatCurrency(billingMilestones
+                  .filter(m => m.status === 'paid')
+                  .reduce((sum, m) => sum + parseFloat(m.amount), 0)
+                )}
+              </span>
+              <span className="text-sm text-gray-400">/ 
+                {formatCurrency(billingMilestones
+                  .reduce((sum, m) => sum + parseFloat(m.amount), 0)
+                )}
+              </span>
+            </div>
+          </div>
+          
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Manufacturing</div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold">
+                {activeBay ? `Bay ${activeBay.bayNumber}` : 'None'}
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-success bg-opacity-20 text-success text-xs">
+                {activeSchedule ? 'Active' : 'Not Scheduled'}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
       
-      {/* Project Overview */}
-      <div className="flex flex-col space-y-8">
-        <div className="bg-darkCard rounded-xl border border-gray-800 p-5">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1 mb-4">
-              <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                <span className="text-sm">Start Date: <span className="text-gray-400">{formatDate(project.startDate)}</span></span>
-                <span className="text-gray-500 mx-2">•</span>
-                <Clock className="h-4 w-4 text-gray-400" />
-                <span className="text-sm">Est. Completion: <span className="text-gray-400">{formatDate(project.estimatedCompletionDate)}</span></span>
-              </div>
-              <div className="flex items-center gap-1">
-                <User className="h-4 w-4 text-gray-400" />
-                <span className="text-sm">PM: <span className="text-gray-400">{project.pmOwner || 'Not Assigned'}</span></span>
-                <span className="text-gray-500 mx-2">•</span>
-                <Building2 className="h-4 w-4 text-gray-400" />
-                <span className="text-sm">Customer: <span className="text-gray-400">{project.customer}</span></span>
-              </div>
-            </div>
-            <div className="flex space-x-2 items-center">
-              <AIInsightsModal projectId={projectId} />
-              <Button variant="outline" size="sm" onClick={() => navigate(`/projects/${projectId}/edit`)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Project
+      {/* Task List & Milestones + Sidebar */}
+      <div className="grid grid-cols-3 gap-6">
+        <div className="col-span-2 bg-darkCard rounded-xl border border-gray-800">
+          <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+            <h3 className="font-bold">Tasks & Milestones</h3>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-2" />
+                Filter
               </Button>
               <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setIsArchiveDialogOpen(true)}
-                className="text-destructive border-destructive hover:bg-destructive/10"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEditMilestoneId(null);
+                  setMilestoneForm({
+                    name: '',
+                    status: 'In Progress',
+                    date: new Date().toISOString().split('T')[0]
+                  });
+                  setIsMilestoneDialogOpen(true);
+                }}
               >
-                <Archive className="h-4 w-4 mr-2" />
-                Archive Project
+                <Plus className="h-4 w-4 mr-2" />
+                Add Milestone
+              </Button>
+              <Button 
+                size="sm"
+                onClick={() => {
+                  setEditTaskId(null);
+                  setTaskForm({
+                    name: '',
+                    description: '',
+                    dueDate: new Date().toISOString().split('T')[0],
+                    milestoneId: milestones[0]?.id || 0
+                  });
+                  setTaskDialogOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Task
               </Button>
             </div>
           </div>
           
-          <div className="mt-5 flex gap-8">
-            <div>
-              <div className="text-sm text-gray-400 mb-1">Project Health</div>
-              <div className="flex items-center gap-2">
-                <div className="text-2xl font-bold">{projectHealth.score}<span className="text-sm">/100</span></div>
-                <div className="bg-success text-success-foreground rounded px-1.5 text-xs flex items-center">
-                  <ArrowLeft className="h-3 w-3 rotate-90" /> {projectHealth.change}
+          <div className="p-4 space-y-3">
+            {milestones.map((milestone) => (
+              <React.Fragment key={milestone.id}>
+                {/* Milestone */}
+                <div className={`border-l-4 ${milestone.color} pl-4 py-2`}>
+                  <div className="flex items-center justify-between">
+                    <h4 className={`font-bold ${
+                      milestone.color === 'border-primary' ? 'text-primary' :
+                      milestone.color === 'border-accent' ? 'text-accent' :
+                      'text-warning'
+                    }`}>
+                      {milestone.name}
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400">{milestone.date}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs 
+                        ${milestone.status === 'Completed' 
+                          ? 'bg-green-500/20 text-green-400' 
+                          : milestone.status === 'In Progress' 
+                            ? 'bg-blue-500/20 text-blue-400' 
+                            : 'bg-yellow-500/20 text-yellow-400'
+                        }`}
+                      >
+                        {milestone.status}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            
-            <div>
-              <div className="text-sm text-gray-400 mb-1">Progress</div>
-              <div className="flex items-center gap-3">
-                <div className="w-32 bg-gray-800 rounded-full h-2.5">
-                  <div 
-                    className="bg-success h-2.5 rounded-full" 
-                    style={{ width: `${calculateProjectProgress()}%` }}
-                  ></div>
-                </div>
-                <span className="text-lg font-bold">{calculateProjectProgress()}%</span>
-              </div>
-            </div>
-            
-            <div>
-              <div className="text-sm text-gray-400 mb-1">Tasks</div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold">
-                  {tasks.filter((t: any) => t.isCompleted).length}/{tasks.length}
-                </span>
-                <span className="text-sm text-gray-400">completed</span>
-              </div>
-            </div>
-            
-            <div>
-              <div className="text-sm text-gray-400 mb-1">Billing</div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold">{formatCurrency(project.totalValue)}</span>
-                <ProjectHealthCard project={project} billingMilestones={billingMilestones} />
-              </div>
-            </div>
+                
+                {/* Tasks for this milestone */}
+                {milestone.tasks.map((task) => (
+                  <div key={task.id} className="pl-6 py-2 border-b border-gray-800">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center">
+                          <Checkbox 
+                            checked={task.isCompleted} 
+                            className={`h-4 w-4 rounded border ${task.isCompleted ? 'bg-green-500 border-green-500' : 'bg-transparent border-gray-600'}`}
+                            onCheckedChange={(checked) => {
+                              const isCompleted = !!checked;
+                              updateTaskMutation.mutate({
+                                id: task.id,
+                                data: { 
+                                  isCompleted, 
+                                  completedDate: isCompleted ? new Date().toISOString() : null 
+                                }
+                              });
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <div className={`text-sm ${task.isCompleted ? 'line-through text-gray-400' : ''}`}>
+                            {task.name}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {task.isCompleted 
+                              ? `Completed on ${formatDate(task.completedDate)}` 
+                              : `Due ${formatDate(task.dueDate)}`}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => {
+                            setEditTaskId(task.id);
+                            setTaskForm({
+                              name: task.name,
+                              description: task.description || '',
+                              dueDate: new Date(task.dueDate).toISOString().split('T')[0],
+                              milestoneId: milestone.id
+                            });
+                            setTaskDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4 text-gray-400" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-8 w-8 hover:text-destructive"
+                          onClick={() => {
+                            setTaskToDelete(task);
+                            setDeleteTaskDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-gray-400" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </React.Fragment>
+            ))}
           </div>
         </div>
         
-        {/* Manufacturing Bay Assignment */}
-        <div className="bg-darkCard rounded-xl border border-gray-800 p-5">
-          <h3 className="font-bold mb-4">Manufacturing</h3>
-          <Card className="bg-darkCardLight border-gray-800">
+        <div className="space-y-6">
+          {/* AI-powered Project Health Analysis */}
+          <ProjectHealthCard projectId={projectId} />
+
+          {/* Project Notes */}
+          <Card className="bg-darkCard rounded-xl border border-gray-800">
+            <div className="p-4 border-b border-gray-800">
+              <h3 className="font-bold">Project Notes</h3>
+            </div>
             <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <div className="flex items-center gap-2 font-bold">
-                    <span>Assignment Status</span>
-                    <span className="px-2 py-0.5 rounded-full bg-success bg-opacity-20 text-success text-xs">
-                      {activeSchedule ? 'Active' : 'Not Scheduled'}
-                    </span>
-                  </div>
-                </div>
+              <div className="bg-darkInput rounded-lg p-3 text-sm">
+                <p>{project.notes || 'No notes available for this project.'}</p>
+                {!project.notes && (
+                  <p className="mt-3">Click 'Edit Notes' to add project notes and important details.</p>
+                )}
               </div>
-              
-              {activeBay ? (
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <div className="text-sm text-gray-400 mb-1">Bay</div>
-                    <div className="font-semibold">Bay {activeBay.bayNumber}: {activeBay.name}</div>
+              <div className="mt-4 flex justify-between">
+                <span className="text-xs text-gray-400">Last updated: {formatDate(project.updatedAt)}</span>
+                <Button variant="link" size="sm" className="text-primary h-auto p-0">Edit Notes</Button>
+              </div>
+            </div>
+          </Card>
+
+          {/* All Excel Data */}
+          <Card className="bg-darkCard rounded-xl border border-gray-800">
+            <div className="p-4 border-b border-gray-800">
+              <h3 className="font-bold">Additional Project Data</h3>
+              <p className="text-xs text-gray-400">All original data from Excel import</p>
+            </div>
+            <div className="p-4 overflow-auto max-h-[600px]">
+              {project.rawData && Object.keys(project.rawData).length > 0 ? (
+                <div className="bg-darkInput rounded-lg p-3 text-sm">
+                  <div className="flex justify-between mb-3 items-center">
+                    <input 
+                      type="text"
+                      placeholder="Search fields..." 
+                      className="px-3 py-2 bg-darkCard border border-gray-700 rounded-md max-w-xs w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      onChange={(e) => {
+                        const searchTerm = e.target.value.toLowerCase();
+                        const rows = document.querySelectorAll('.raw-data-row');
+                        rows.forEach(row => {
+                          const fieldName = row.querySelector('.field-name')?.textContent?.toLowerCase() || '';
+                          const fieldValue = row.querySelector('.field-value')?.textContent?.toLowerCase() || '';
+                          
+                          if (fieldName.includes(searchTerm) || fieldValue.includes(searchTerm)) {
+                            (row as HTMLElement).style.display = '';
+                          } else {
+                            (row as HTMLElement).style.display = 'none';
+                          }
+                        });
+                      }}
+                    />
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Only show date fields
+                          const rows = document.querySelectorAll('.raw-data-row');
+                          rows.forEach(row => {
+                            const fieldName = row.querySelector('.field-name')?.textContent?.toLowerCase() || '';
+                            if (fieldName.includes('date') || fieldName.includes('eta') || 
+                                fieldName.includes('start') || fieldName.includes('completion')) {
+                              (row as HTMLElement).style.display = '';
+                            } else {
+                              (row as HTMLElement).style.display = 'none';
+                            }
+                          });
+                        }}
+                      >
+                        Dates
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Only show percentage fields
+                          const rows = document.querySelectorAll('.raw-data-row');
+                          rows.forEach(row => {
+                            const fieldName = row.querySelector('.field-name')?.textContent?.toLowerCase() || '';
+                            if (fieldName.includes('percent') || fieldName.includes('progress') || 
+                                fieldName.includes('complete')) {
+                              (row as HTMLElement).style.display = '';
+                            } else {
+                              (row as HTMLElement).style.display = 'none';
+                            }
+                          });
+                        }}
+                      >
+                        Percentages
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Only show fields that aren't in our standard displayed fields
+                          const standardFields = [
+                            'project_number', 'name', 'description', 'notes', 'pm_owner', 'team', 
+                            'location', 'start_date', 'estimated_completion_date', 'actual_completion_date',
+                            'percent_complete', 'status', 'contract_date', 'chassis_eta', 'fabrication_start',
+                            'assembly_start', 'wrap_date', 'ntc_testing_date', 'qc_start_date', 'qc_days',
+                            'executive_review_date', 'ship_date', 'delivery_date', 'dpas_rating', 
+                            'stretch_shorten_gears', 'llts_ordered'
+                          ];
+                          
+                          const rows = document.querySelectorAll('.raw-data-row');
+                          rows.forEach(row => {
+                            const fieldName = row.querySelector('.field-name')?.textContent?.toLowerCase() || '';
+                            const isStandardField = standardFields.some(f => 
+                              fieldName.includes(f.toLowerCase()) || 
+                              fieldName.replace(/_/g, ' ').includes(f.replace(/_/g, ' ').toLowerCase())
+                            );
+                            
+                            if (!isStandardField) {
+                              (row as HTMLElement).style.display = '';
+                            } else {
+                              (row as HTMLElement).style.display = 'none';
+                            }
+                          });
+                        }}
+                      >
+                        Unique Fields
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Show all rows
+                          const rows = document.querySelectorAll('.raw-data-row');
+                          rows.forEach(row => {
+                            (row as HTMLElement).style.display = '';
+                          });
+                        }}
+                      >
+                        Show All
+                      </Button>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-sm text-gray-400 mb-1">Schedule</div>
-                    <div className="font-semibold">{formatDate(activeSchedule.startDate)} - {formatDate(activeSchedule.endDate)}</div>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-800">
+                        <th className="text-left p-2 font-medium" style={{ width: '30%' }}>Field</th>
+                        <th className="text-left p-2 font-medium" style={{ width: '50%' }}>Value</th>
+                        <th className="text-left p-2 font-medium" style={{ width: '20%' }}>Type</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(project.rawData)
+                        .sort(([keyA], [keyB]) => keyA.localeCompare(keyB)) // Sort alphabetically
+                        .map(([key, value]) => {
+                          // Format the value based on its type
+                          let formattedValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                          let typeLabel = typeof value;
+                          let typeClass = 'bg-gray-800 text-gray-300';
+                          
+                          // Format dates
+                          if (
+                            key.toLowerCase().includes('date') || 
+                            key.toLowerCase().includes('eta') ||
+                            key.toLowerCase().includes('start') ||
+                            key.toLowerCase().includes('completion')
+                          ) {
+                            try {
+                              formattedValue = formatDate(value);
+                              typeLabel = 'date';
+                              typeClass = 'bg-blue-900/50 text-blue-300';
+                            } catch (e) {
+                              // Keep original if date formatting fails
+                            }
+                          }
+                          
+                          // Format percentages
+                          if (
+                            key.toLowerCase().includes('percent') &&
+                            typeof value === 'number'
+                          ) {
+                            formattedValue = `${value}%`;
+                            typeLabel = 'percentage';
+                            typeClass = 'bg-green-900/50 text-green-300';
+                          }
+                          
+                          // Format booleans
+                          if (typeof value === 'boolean') {
+                            formattedValue = value ? 'Yes' : 'No';
+                            typeLabel = 'boolean';
+                            typeClass = 'bg-purple-900/50 text-purple-300';
+                          }
+
+                          return (
+                            <tr key={key} className="border-b border-gray-700/20 hover:bg-gray-800/20 raw-data-row">
+                              <td className="p-2 font-medium text-gray-300 field-name">
+                                {key}
+                              </td>
+                              <td className="p-2 field-value">
+                                {formattedValue}
+                              </td>
+                              <td className="p-2">
+                                <span className={`px-2 py-0.5 rounded-full text-xs ${typeClass}`}>
+                                  {typeLabel}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="bg-darkInput rounded-lg p-3 text-sm">
+                  <p>No additional data available from Excel import.</p>
+                </div>
+              )}
+            </div>
+          </Card>
+          
+          {/* Linked Billing Milestones */}
+          <Card className="bg-darkCard rounded-xl border border-gray-800">
+            <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+              <h3 className="font-bold">Billing Milestones</h3>
+              <Button variant="link" size="sm" className="text-primary h-auto p-0">View All</Button>
+            </div>
+            <div className="p-4">
+              <div className="space-y-3">
+                {billingMilestones.length > 0 ? (
+                  billingMilestones.map((milestone) => {
+                    const statusInfo = getBillingStatusInfo(
+                      milestone.status,
+                      milestone.targetInvoiceDate,
+                      milestone.actualInvoiceDate
+                    );
+                    
+                    return (
+                      <div key={milestone.id} className="bg-darkInput rounded-lg p-3">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">{milestone.name}</span>
+                          <span className={milestone.status === 'paid' ? 'text-success' : 'text-warning'}>
+                            {formatCurrency(milestone.amount)}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex justify-between items-center text-xs">
+                          <span className="text-gray-400">{formatDate(milestone.targetInvoiceDate)}</span>
+                          <ProgressBadge status={statusInfo.display} size="sm" />
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="bg-darkInput rounded-lg p-3 text-sm text-gray-400 text-center">
+                    No billing milestones found for this project.
                   </div>
-                  <div>
-                    <div className="text-sm text-gray-400 mb-1">Team</div>
-                    <div className="font-semibold">{activeSchedule.staffAssigned || 'Not Assigned'}</div>
+                )}
+              </div>
+            </div>
+          </Card>
+          
+          {/* Bay Assignment */}
+          <Card className="bg-darkCard rounded-xl border border-gray-800">
+            <div className="p-4 border-b border-gray-800">
+              <h3 className="font-bold">Manufacturing Assignment</h3>
+            </div>
+            <div className="p-4">
+              {activeSchedule ? (
+                <div className="bg-darkInput rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-lg font-bold">Bay {activeBay?.bayNumber || activeSchedule.bayId}</div>
+                      <div className="text-sm text-gray-400">
+                        {formatDate(activeSchedule.startDate)} - {formatDate(activeSchedule.endDate)}
+                      </div>
+                    </div>
+                    <ProgressBadge status="Active" size="sm" />
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-gray-700 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Usage:</span>
+                      <span>
+                        {Math.ceil((new Date(activeSchedule.endDate).getTime() - new Date(activeSchedule.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
+                      </span>
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-gray-400">Equipment:</span>
+                      <span>{activeSchedule.equipment || 'Standard Equipment'}</span>
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-gray-400">Staff:</span>
+                      <span>{activeSchedule.staffAssigned || 'Team Alpha (4)'}</span>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <div className="text-gray-400 italic mb-4">
-                  This project has not been assigned to a manufacturing bay yet.
+                <div className="bg-darkInput rounded-lg p-3 text-center">
+                  <Building2 className="h-12 w-12 mx-auto text-gray-500 mb-2" />
+                  <div className="text-sm mb-2">No manufacturing bay currently assigned</div>
+                  <div className="text-xs text-gray-400">
+                    Schedule production for this project to assign a bay
+                  </div>
                 </div>
               )}
               
-              <div className="flex gap-2">
-                <Button 
-                  onClick={() => setIsAssignBayDialogOpen(true)}
-                  className="flex-1"
-                >
-                  {activeBay ? 'Reassign Bay' : 'Assign to Bay'}
-                </Button>
-                {activeBay && (
+              <div className="flex gap-2 mt-3">
+                {!activeSchedule ? (
                   <Button 
-                    variant="outline"
-                    className="flex-1"
+                    className="flex-1" 
+                    onClick={() => setIsAssignBayDialogOpen(true)}
                   >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Assign Manufacturing Bay
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="flex-1">
+                    <Edit className="h-4 w-4 mr-2" />
                     Edit Assignment
                   </Button>
                 )}
@@ -649,516 +1118,6 @@ const ProjectDetails = () => {
           </Card>
         </div>
       </div>
-
-      {/* Task List & Milestones + Sidebar */}
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 bg-darkCard rounded-xl border border-gray-800">
-          <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-            <h3 className="font-bold">Project Progress</h3>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Filter
-              </Button>
-            </div>
-          </div>
-          
-          <div className="p-4">
-            <Tabs defaultValue="milestones" className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="milestones">Milestones</TabsTrigger>
-                <TabsTrigger value="tasks">Tasks</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="milestones" className="space-y-4">
-                <div className="flex justify-end mb-4">
-                  <Button 
-                    size="sm"
-                    onClick={() => {
-                      setSelectedMilestone(undefined);
-                      setIsMilestoneDialogOpen(true);
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Milestone
-                  </Button>
-                </div>
-                <MilestonesList projectId={projectId} />
-              </TabsContent>
-              
-              <TabsContent value="tasks" className="space-y-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="text-base font-medium">Project Tasks</h4>
-                  <Button 
-                    size="sm"
-                    onClick={() => {
-                      setEditTaskId(null);
-                      setTaskForm({
-                        name: '',
-                        description: '',
-                        dueDate: new Date().toISOString().split('T')[0],
-                        milestoneId: milestones[0]?.id || 0
-                      });
-                      setTaskDialogOpen(true);
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Task
-                  </Button>
-                </div>
-                
-                <div className="space-y-3">
-                  {milestones.map((milestone: any) => (
-                    <React.Fragment key={milestone.id}>
-                      {/* Milestone Header */}
-                      <div className={`border-l-4 ${milestone.color} pl-4 py-2`}>
-                        <div className="flex items-center justify-between">
-                          <h4 className={`font-bold ${
-                            milestone.color === 'border-primary' ? 'text-primary' :
-                            milestone.color === 'border-accent' ? 'text-accent' :
-                            'text-warning'
-                          }`}>
-                            {milestone.name}
-                          </h4>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400">{milestone.date}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-xs 
-                              ${milestone.status === 'Completed' || milestone.status === 'completed'
-                                ? 'bg-green-500/20 text-green-400' 
-                                : milestone.status === 'In Progress' || milestone.status === 'in_progress'
-                                  ? 'bg-blue-500/20 text-blue-400' 
-                                  : 'bg-yellow-500/20 text-yellow-400'
-                              }`}
-                            >
-                              {milestone.status}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 ml-2"
-                              onClick={() => {
-                                setEditTaskId(null);
-                                setTaskForm({
-                                  name: '',
-                                  description: '',
-                                  dueDate: new Date().toISOString().split('T')[0],
-                                  milestoneId: milestone.id
-                                });
-                                setTaskDialogOpen(true);
-                              }}
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                              <span className="sr-only">Add Task to Milestone</span>
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Tasks for this milestone */}
-                      {milestone.tasks && milestone.tasks.length > 0 ? (
-                        milestone.tasks.map((task: any) => (
-                          <div key={task.id} className="pl-6 py-2 border-b border-gray-800">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center justify-center">
-                                  <Checkbox 
-                                    checked={task.isCompleted} 
-                                    className={`h-4 w-4 rounded border ${task.isCompleted ? 'bg-green-500 border-green-500' : 'bg-transparent border-gray-600'}`}
-                                    onCheckedChange={(checked) => {
-                                      const isCompleted = !!checked;
-                                      updateTaskMutation.mutate({
-                                        id: task.id,
-                                        data: { 
-                                          isCompleted, 
-                                          completedDate: isCompleted ? new Date().toISOString() : null 
-                                        }
-                                      });
-                                    }}
-                                  />
-                                </div>
-                                <div>
-                                  <div className={`text-sm ${task.isCompleted ? 'line-through text-gray-400' : ''}`}>
-                                    {task.name}
-                                  </div>
-                                  <div className="text-xs text-gray-400">
-                                    {task.isCompleted 
-                                      ? `Completed on ${formatDate(task.completedDate)}` 
-                                      : `Due ${formatDate(task.dueDate)}`}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button 
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => {
-                                    setEditTaskId(task.id);
-                                    setTaskForm({
-                                      name: task.name,
-                                      description: task.description || '',
-                                      dueDate: new Date(task.dueDate).toISOString().split('T')[0],
-                                      milestoneId: milestone.id
-                                    });
-                                    setTaskDialogOpen(true);
-                                  }}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                  <span className="sr-only">Edit</span>
-                                </Button>
-                                <Button 
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive"
-                                  onClick={() => {
-                                    setTaskToDelete(task);
-                                    setDeleteTaskDialogOpen(true);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  <span className="sr-only">Delete</span>
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="pl-6 py-2 text-sm text-gray-400">
-                          No tasks for this milestone yet
-                          <Button 
-                            variant="link" 
-                            className="p-0 h-auto text-xs ml-2"
-                            onClick={() => {
-                              setEditTaskId(null);
-                              setTaskForm({
-                                name: '',
-                                description: '',
-                                dueDate: new Date().toISOString().split('T')[0],
-                                milestoneId: milestone.id
-                              });
-                              setTaskDialogOpen(true);
-                            }}
-                          >
-                            Add Task
-                          </Button>
-                        </div>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
-        
-        {/* Sidebar */}
-        <div>
-          {/* Billing Milestones */}
-          <Card className="mb-6">
-            <div className="p-4 border-b border-gray-700 flex justify-between items-center">
-              <h3 className="font-bold">Billing Milestones</h3>
-              <Button variant="ghost" size="icon">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="p-4 space-y-3">
-              {billingMilestones.length === 0 ? (
-                <div className="text-center text-gray-400 py-4">
-                  <div className="text-sm">No billing milestones</div>
-                  <Button variant="link" className="mt-1">Add Your First Milestone</Button>
-                </div>
-              ) : (
-                billingMilestones.map((milestone: any) => {
-                  const { icon: StatusIcon, color } = getBillingStatusInfo(milestone.status);
-                  return (
-                    <div key={milestone.id} className="border-b border-gray-800 pb-3 last:border-0 last:pb-0">
-                      <div className="flex justify-between">
-                        <div className="font-medium">{milestone.name}</div>
-                        <div className={`${color} flex items-center text-xs font-medium`}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {milestone.status.charAt(0).toUpperCase() + milestone.status.slice(1)}
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-400 mt-1">{formatCurrency(milestone.amount)}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        Due: {formatDate(milestone.dueDate)}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </Card>
-          
-          {/* Raw Project Data */}
-          <Card>
-            <div className="p-4 border-b border-gray-700 flex justify-between items-center">
-              <h3 className="font-bold">Project Data</h3>
-              <Button variant="ghost" size="icon">
-                <FileText className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="p-4">
-              <div className="flex justify-between mb-3 items-center">
-                <input 
-                  type="text"
-                  placeholder="Search fields..." 
-                  className="px-3 py-2 bg-darkInput border border-gray-700 rounded-md max-w-xs w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  onChange={(e) => {
-                    const searchTerm = e.target.value.toLowerCase();
-                    const rows = document.querySelectorAll('.raw-data-row');
-                    rows.forEach(row => {
-                      const fieldName = row.querySelector('.field-name')?.textContent?.toLowerCase() || '';
-                      const fieldValue = row.querySelector('.field-value')?.textContent?.toLowerCase() || '';
-                      
-                      if (fieldName.includes(searchTerm) || fieldValue.includes(searchTerm)) {
-                        (row as HTMLElement).style.display = '';
-                      } else {
-                        (row as HTMLElement).style.display = 'none';
-                      }
-                    });
-                  }}
-                />
-                <div className="flex space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      // Only show date fields
-                      const rows = document.querySelectorAll('.raw-data-row');
-                      rows.forEach(row => {
-                        const fieldName = row.querySelector('.field-name')?.textContent?.toLowerCase() || '';
-                        if (fieldName.includes('date') || fieldName.includes('eta') || 
-                            fieldName.includes('start') || fieldName.includes('completion')) {
-                          (row as HTMLElement).style.display = '';
-                        } else {
-                          (row as HTMLElement).style.display = 'none';
-                        }
-                      });
-                    }}
-                  >
-                    Dates
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      // Only show percentage fields
-                      const rows = document.querySelectorAll('.raw-data-row');
-                      rows.forEach(row => {
-                        const fieldName = row.querySelector('.field-name')?.textContent?.toLowerCase() || '';
-                        if (fieldName.includes('percent') || fieldName.includes('progress') || 
-                            fieldName.includes('complete')) {
-                          (row as HTMLElement).style.display = '';
-                        } else {
-                          (row as HTMLElement).style.display = 'none';
-                        }
-                      });
-                    }}
-                  >
-                    Percentages
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      // Show all fields
-                      const rows = document.querySelectorAll('.raw-data-row');
-                      rows.forEach(row => {
-                        (row as HTMLElement).style.display = '';
-                      });
-                    }}
-                  >
-                    All
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="divide-y divide-gray-800 text-sm max-h-96 overflow-y-auto">
-                {Object.entries(project.rawData || {}).map(([key, value]) => {
-                  if (key === 'id' || key === 'createdAt' || key === 'updatedAt') return null;
-                  return (
-                    <div key={key} className="py-2 flex justify-between raw-data-row">
-                      <div className="text-gray-400 field-name">{key}</div>
-                      <div className="text-right font-medium field-value">
-                        {value === null ? (
-                          <span className="text-gray-500 italic">null</span>
-                        ) : typeof value === 'object' ? (
-                          <span className="text-gray-500 italic">object</span>
-                        ) : typeof value === 'boolean' ? (
-                          value ? 'true' : 'false'
-                        ) : (
-                          String(value)
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* Task Dialog */}
-      <Dialog open={isTaskDialogOpen} onOpenChange={setTaskDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>{editTaskId ? 'Edit Task' : 'Create Task'}</DialogTitle>
-            <DialogDescription>
-              {editTaskId
-                ? 'Update the task details below.'
-                : 'Add a new task to track progress on this project.'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="taskName" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="taskName"
-                className="col-span-3 bg-darkInput border-gray-800"
-                value={taskForm.name}
-                onChange={(e) => setTaskForm({...taskForm, name: e.target.value})}
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="taskDescription" className="text-right">
-                Description
-              </Label>
-              <Textarea
-                id="taskDescription"
-                className="col-span-3 bg-darkInput border-gray-800"
-                value={taskForm.description}
-                onChange={(e) => setTaskForm({...taskForm, description: e.target.value})}
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="taskDueDate" className="text-right">
-                Due Date
-              </Label>
-              <Input
-                id="taskDueDate"
-                type="date"
-                className="col-span-3 bg-darkInput border-gray-800"
-                value={taskForm.dueDate}
-                onChange={(e) => setTaskForm({...taskForm, dueDate: e.target.value})}
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="taskMilestone" className="text-right">
-                Milestone
-              </Label>
-              <Select
-                value={taskForm.milestoneId.toString()}
-                onValueChange={(value) => setTaskForm({...taskForm, milestoneId: parseInt(value)})}
-              >
-                <SelectTrigger className="col-span-3 bg-darkInput border-gray-800">
-                  <SelectValue placeholder="Select a milestone" />
-                </SelectTrigger>
-                <SelectContent className="bg-darkInput border-gray-800">
-                  {milestones.map((milestone: any) => (
-                    <SelectItem key={milestone.id} value={milestone.id.toString()}>
-                      {milestone.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTaskDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => {
-                if (!taskForm.name) {
-                  toast({
-                    title: "Task name is required",
-                    description: "Please provide a name for this task",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-                
-                if (editTaskId) {
-                  updateTaskMutation.mutate({
-                    id: editTaskId,
-                    data: {
-                      name: taskForm.name,
-                      description: taskForm.description,
-                      dueDate: new Date(taskForm.dueDate).toISOString(),
-                      milestoneId: taskForm.milestoneId
-                    }
-                  });
-                } else {
-                  createTaskMutation.mutate({
-                    name: taskForm.name,
-                    description: taskForm.description,
-                    dueDate: new Date(taskForm.dueDate).toISOString(),
-                    milestoneId: taskForm.milestoneId
-                  });
-                }
-              }}
-              disabled={createTaskMutation.isPending || updateTaskMutation.isPending}
-            >
-              {createTaskMutation.isPending || updateTaskMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {editTaskId ? 'Updating...' : 'Creating...'}
-                </>
-              ) : (
-                editTaskId ? 'Update Task' : 'Create Task'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Task Confirmation Dialog */}
-      <Dialog open={isDeleteTaskDialogOpen} onOpenChange={setDeleteTaskDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Delete Task</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this task? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {taskToDelete && (
-            <div className="py-4">
-              <div className="font-semibold">{taskToDelete.name}</div>
-              <div className="text-sm text-gray-400 mt-1">{taskToDelete.description}</div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTaskDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => taskToDelete && deleteTaskMutation.mutate(taskToDelete.id)}
-              disabled={deleteTaskMutation.isPending}
-            >
-              {deleteTaskMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                'Delete Task'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Manufacturing Bay Assignment Dialog */}
       <Dialog open={isAssignBayDialogOpen} onOpenChange={setIsAssignBayDialogOpen}>
@@ -1184,7 +1143,7 @@ const ProjectDetails = () => {
                     <SelectValue placeholder="Select a manufacturing bay" />
                   </SelectTrigger>
                   <SelectContent>
-                    {manufacturingBays?.map((bay: any) => (
+                    {manufacturingBays?.map((bay) => (
                       <SelectItem key={bay.id} value={bay.id.toString()}>
                         Bay {bay.bayNumber} - {bay.name}
                       </SelectItem>
@@ -1198,50 +1157,56 @@ const ProjectDetails = () => {
               <Label htmlFor="startDate" className="text-right">
                 Start Date
               </Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="col-span-3 bg-darkInput border-gray-800"
-              />
+              <div className="col-span-3">
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="endDate" className="text-right">
                 End Date
               </Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="col-span-3 bg-darkInput border-gray-800"
-              />
+              <div className="col-span-3">
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="equipment" className="text-right">
                 Equipment
               </Label>
-              <Input
-                id="equipment"
-                value={equipment}
-                onChange={(e) => setEquipment(e.target.value)}
-                className="col-span-3 bg-darkInput border-gray-800"
-              />
+              <div className="col-span-3">
+                <Input
+                  id="equipment"
+                  value={equipment}
+                  onChange={(e) => setEquipment(e.target.value)}
+                  placeholder="Equipment requirements"
+                />
+              </div>
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="staff" className="text-right">
                 Staff
               </Label>
-              <Input
-                id="staff"
-                value={staffAssigned}
-                onChange={(e) => setStaffAssigned(e.target.value)}
-                className="col-span-3 bg-darkInput border-gray-800"
-              />
+              <div className="col-span-3">
+                <Input
+                  id="staff"
+                  value={staffAssigned}
+                  onChange={(e) => setStaffAssigned(e.target.value)}
+                  placeholder="Staff assigned"
+                />
+              </div>
             </div>
           </div>
           
@@ -1253,99 +1218,351 @@ const ProjectDetails = () => {
               onClick={() => {
                 if (!selectedBayId) {
                   toast({
-                    title: "Manufacturing bay required",
-                    description: "Please select a manufacturing bay to assign",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-                
-                if (new Date(startDate) >= new Date(endDate)) {
-                  toast({
-                    title: "Invalid date range",
-                    description: "End date must be after start date",
+                    title: "Bay selection required",
+                    description: "Please select a manufacturing bay",
                     variant: "destructive",
                   });
                   return;
                 }
                 
                 assignBayMutation.mutate({
-                  projectId: projectId,
+                  projectId,
                   bayId: selectedBayId,
-                  startDate: startDate,
-                  endDate: endDate,
-                  equipment: equipment,
-                  staffAssigned: staffAssigned,
-                  status: 'in_progress'
+                  startDate,
+                  endDate,
+                  equipment,
+                  staffAssigned,
+                  status: 'scheduled'
                 });
               }}
               disabled={assignBayMutation.isPending}
             >
-              {assignBayMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Assigning...
-                </>
-              ) : (
-                'Assign Bay'
-              )}
+              {assignBayMutation.isPending ? "Assigning..." : "Assign Bay"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
+      
       {/* Archive Project Dialog */}
       <Dialog open={isArchiveDialogOpen} onOpenChange={setIsArchiveDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="bg-darkBg border-gray-800 text-white max-w-md">
           <DialogHeader>
-            <DialogTitle>Archive Project</DialogTitle>
-            <DialogDescription>
-              This project will be moved to the archive. You can restore it later if needed.
+            <DialogTitle className="text-lg font-bold">
+              Archive Project
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              This will archive the project and remove it from the active projects list. 
+              Archived projects can still be viewed but cannot be modified.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="py-4">
-            <Label htmlFor="archiveReason" className="block mb-2">
-              Reason for archiving (optional)
-            </Label>
-            <Textarea
-              id="archiveReason"
-              value={archiveReason}
-              onChange={(e) => setArchiveReason(e.target.value)}
-              placeholder="Project was completed successfully..."
-              className="bg-darkInput border-gray-800 w-full h-24"
-            />
+          <div className="space-y-4 py-4">
+            <div className="flex items-start">
+              <Trash2 className="h-10 w-10 text-destructive mr-4 flex-shrink-0" />
+              <div>
+                <p className="text-white font-medium">
+                  Are you sure you want to archive <span className="font-bold">{project.projectNumber}: {project.name}</span>?
+                </p>
+                <p className="text-gray-400 text-sm mt-1">
+                  This action will move the project to the archive, along with all associated tasks, 
+                  billing milestones, and manufacturing schedules.
+                </p>
+              </div>
+            </div>
+            
+            <div className="bg-gray-900 p-3 rounded-md">
+              <Label htmlFor="archiveReason" className="text-sm font-medium mb-2 block">
+                Reason for archiving (optional)
+              </Label>
+              <Input 
+                id="archiveReason"
+                value={archiveReason}
+                onChange={(e) => setArchiveReason(e.target.value)}
+                placeholder="e.g., Project completed, Contract terminated, etc."
+                className="bg-darkInput border-gray-700 focus:border-primary text-white"
+              />
+            </div>
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsArchiveDialogOpen(false)}>
+          <DialogFooter className="sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsArchiveDialogOpen(false)}
+              className="border-gray-700 hover:bg-gray-800 hover:text-white"
+            >
               Cancel
             </Button>
+            
             <Button
+              type="button"
               variant="destructive"
               onClick={() => archiveProjectMutation.mutate({ reason: archiveReason })}
               disabled={archiveProjectMutation.isPending}
+              className="bg-destructive hover:bg-destructive/90"
             >
               {archiveProjectMutation.isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
                   Archiving...
                 </>
               ) : (
-                'Archive Project'
+                <>
+                  <Archive className="h-4 w-4 mr-2" />
+                  Archive Project
+                </>
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Milestone Dialog */}
-      <MilestoneDialog
-        isOpen={isMilestoneDialogOpen}
-        onClose={() => setIsMilestoneDialogOpen(false)}
-        projectId={projectId}
-        milestone={selectedMilestone}
-      />
+      
+      {/* Task Dialog (Add/Edit) */}
+      <Dialog open={isTaskDialogOpen} onOpenChange={setTaskDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editTaskId ? 'Edit Task' : 'Add Task'}</DialogTitle>
+            <DialogDescription>
+              {editTaskId ? 'Update the task details below.' : 'Add a new task to this project.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="taskMilestone">Milestone</Label>
+              <Select
+                value={taskForm.milestoneId?.toString()}
+                onValueChange={(value) => setTaskForm({...taskForm, milestoneId: parseInt(value)})}
+              >
+                <SelectTrigger className="bg-darkInput border-gray-800 w-full">
+                  <SelectValue placeholder="Select a milestone" />
+                </SelectTrigger>
+                <SelectContent className="bg-darkInput border-gray-800">
+                  {milestones.map((milestone) => (
+                    <SelectItem key={milestone.id} value={milestone.id.toString()}>
+                      {milestone.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="taskName">Task Name</Label>
+              <Input
+                id="taskName"
+                value={taskForm.name}
+                onChange={(e) => setTaskForm({...taskForm, name: e.target.value})}
+                className="bg-darkInput border-gray-800"
+                placeholder="Enter task name"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="taskDescription">Description (optional)</Label>
+              <Textarea
+                id="taskDescription"
+                value={taskForm.description}
+                onChange={(e) => setTaskForm({...taskForm, description: e.target.value})}
+                className="resize-none bg-darkInput border-gray-800 h-24"
+                placeholder="Enter task description"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="taskDueDate">Due Date</Label>
+              <Input
+                id="taskDueDate"
+                type="date"
+                value={taskForm.dueDate}
+                onChange={(e) => setTaskForm({...taskForm, dueDate: e.target.value})}
+                className="bg-darkInput border-gray-800"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex space-x-2 sm:space-x-0">
+            <Button type="button" variant="outline" onClick={() => setTaskDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              type="button"
+              onClick={() => {
+                if (!taskForm.name.trim()) {
+                  toast({
+                    title: "Task name required",
+                    description: "Please provide a name for this task",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                if (editTaskId) {
+                  updateTaskMutation.mutate({
+                    id: editTaskId,
+                    data: taskForm
+                  });
+                } else {
+                  createTaskMutation.mutate({
+                    ...taskForm,
+                    dueDate: new Date(taskForm.dueDate).toISOString()
+                  });
+                }
+              }}
+              disabled={createTaskMutation.isPending || updateTaskMutation.isPending}
+            >
+              {createTaskMutation.isPending || updateTaskMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {editTaskId ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (editTaskId ? 'Update Task' : 'Create Task')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Task Confirmation Dialog */}
+      <Dialog open={isDeleteTaskDialogOpen} onOpenChange={setDeleteTaskDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Task</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this task? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {taskToDelete && (
+            <div className="py-4">
+              <div className="bg-darkInput rounded-lg p-3 mb-4">
+                <p className="font-medium">{taskToDelete.name}</p>
+                {taskToDelete.description && (
+                  <p className="text-sm text-gray-400 mt-1">{taskToDelete.description}</p>
+                )}
+                <p className="text-xs text-gray-500 mt-2">
+                  Due: {formatDate(taskToDelete.dueDate)}
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex space-x-2 sm:space-x-0">
+            <Button type="button" variant="outline" onClick={() => setDeleteTaskDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                if (taskToDelete) {
+                  deleteTaskMutation.mutate(taskToDelete.id);
+                }
+              }}
+              disabled={deleteTaskMutation.isPending}
+            >
+              {deleteTaskMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : 'Delete Task'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add/Edit Milestone Dialog */}
+      <Dialog open={isMilestoneDialogOpen} onOpenChange={setIsMilestoneDialogOpen}>
+        <DialogContent className="bg-darkBg border-gray-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">
+              {editMilestoneId ? 'Edit Milestone' : 'Add New Milestone'}
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              {editMilestoneId 
+                ? 'Update the milestone details below.' 
+                : 'Create a new milestone to organize project tasks.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="milestoneName">Milestone Name</Label>
+              <Input
+                id="milestoneName"
+                value={milestoneForm.name}
+                onChange={(e) => setMilestoneForm({...milestoneForm, name: e.target.value})}
+                className="bg-darkInput border-gray-800"
+                placeholder="Enter milestone name"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="milestoneStatus">Status</Label>
+              <Select
+                value={milestoneForm.status}
+                onValueChange={(value) => setMilestoneForm({...milestoneForm, status: value})}
+              >
+                <SelectTrigger className="bg-darkInput border-gray-800 w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent className="bg-darkInput border-gray-800">
+                  <SelectItem value="Upcoming">Upcoming</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="milestoneDate">Target Date</Label>
+              <Input
+                id="milestoneDate"
+                type="date"
+                value={milestoneForm.date}
+                onChange={(e) => setMilestoneForm({...milestoneForm, date: e.target.value})}
+                className="bg-darkInput border-gray-800"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter className="flex space-x-2 sm:space-x-0">
+            <Button type="button" variant="outline" onClick={() => setIsMilestoneDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              type="button"
+              onClick={() => {
+                if (!milestoneForm.name.trim()) {
+                  toast({
+                    title: "Milestone name required",
+                    description: "Please provide a name for this milestone",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                saveMilestoneMutation.mutate({
+                  id: editMilestoneId || Date.now(), // Use timestamp as placeholder ID for demo
+                  name: milestoneForm.name,
+                  status: milestoneForm.status,
+                  date: milestoneForm.date,
+                  color: editMilestoneId ? 
+                    milestones.find(m => m.id === editMilestoneId)?.color || 'border-primary' : 
+                    'border-primary'
+                });
+              }}
+              disabled={saveMilestoneMutation.isPending}
+            >
+              {saveMilestoneMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {editMilestoneId ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (editMilestoneId ? 'Update Milestone' : 'Create Milestone')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
