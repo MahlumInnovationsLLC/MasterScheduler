@@ -433,7 +433,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
       
       // Update an existing bay
-      const response = await apiRequest('PATCH', `/api/manufacturing-bays/${bayId}`, data);
+      const response = await apiRequest('PUT', `/api/manufacturing-bays/${bayId}`, data);
       
       if (!response.ok) {
         throw new Error(`Failed to update bay: ${response.statusText}`);
