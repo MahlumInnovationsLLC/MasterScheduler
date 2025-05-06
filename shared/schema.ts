@@ -366,6 +366,8 @@ export const manufacturingBays = pgTable("manufacturing_bays", {
   description: text("description"),
   equipment: text("equipment"),
   team: text("team").default("General"),  // Added team field for grouping bays
+  staffCount: integer("staff_count").default(1),  // Number of people assigned to this bay
+  hoursPerPersonPerWeek: integer("hours_per_person_per_week").default(40), // Standard 40hr work week
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -381,6 +383,7 @@ export const manufacturingSchedules = pgTable("manufacturing_schedules", {
     .notNull(),
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
+  totalHours: integer("total_hours").default(40), // Total hours needed for this project
   status: manufacturingStatusEnum("status").default("scheduled").notNull(),
   notes: text("notes"),
   equipment: text("equipment"),
