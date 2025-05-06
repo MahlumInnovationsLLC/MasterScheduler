@@ -27,6 +27,7 @@ import { Separator } from '@/components/ui/separator';
 import { formatDate, formatCurrency, getProjectStatusColor, getBillingStatusInfo } from '@/lib/utils';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import { ProjectHealthCard } from '@/components/ProjectHealthCard';
+import { MilestonesList } from '@/components/MilestonesList';
 import { 
   Dialog, 
   DialogContent, 
@@ -50,6 +51,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { addDays } from 'date-fns';
 import { Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ProjectDetails = () => {
   const { id } = useParams();
