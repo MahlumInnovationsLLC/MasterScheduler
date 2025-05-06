@@ -307,7 +307,7 @@ const ProjectDetails = () => {
                 <h2 className="text-xl font-bold font-sans">{project.projectNumber}: {project.name}</h2>
                 <div className="flex items-center gap-3 text-sm text-gray-400 mt-1">
                   <span className="flex items-center gap-1">
-                    <User className="h-4 w-4" /> John Smith
+                    <User className="h-4 w-4" /> {project.pmOwner || 'Unassigned'}
                   </span>
                   <span className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" /> {formatDate(project.startDate)} - {formatDate(project.estimatedCompletionDate)}
@@ -325,7 +325,7 @@ const ProjectDetails = () => {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => window.location.href = `/project/${projectId}/edit`}
+              onClick={() => navigate(`/project/${projectId}/edit`)}
             >
               <Edit className="h-4 w-4 mr-2" />
               Edit Project
