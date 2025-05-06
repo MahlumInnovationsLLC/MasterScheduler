@@ -90,13 +90,10 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
           : null,
       };
       
-      const response = await apiRequest({ 
-        method: "POST", 
-        url: "/api/delivery-tracking", 
-        data: apiData 
+      return await apiRequest("/api/delivery-tracking", {
+        method: "POST",
+        body: apiData
       });
-      const result = await response.json();
-      return result;
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
@@ -130,13 +127,10 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
           : null,
       };
       
-      const response = await apiRequest({
-        method: "PUT", 
-        url: `/api/delivery-tracking/${id}`, 
-        data: apiData
+      return await apiRequest(`/api/delivery-tracking/${id}`, {
+        method: "PUT",
+        body: apiData
       });
-      const result = await response.json();
-      return result;
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
@@ -220,13 +214,10 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
   // Import mutation
   const importMutation = useMutation({
     mutationFn: async (data: any[]) => {
-      const response = await apiRequest({
+      return await apiRequest("/api/import/delivery-tracking", {
         method: "POST",
-        url: "/api/import/delivery-tracking",
-        data
+        body: data
       });
-      const result = await response.json();
-      return result;
     },
     onSuccess: (response) => {
       // Update status
@@ -552,7 +543,7 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
                 <Select
                   disabled={isLoading}
                   onValueChange={field.onChange}
-                  defaultValue={field.value}
+                  value={field.value as string || "not_applicable"}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -587,7 +578,11 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
                   placeholder="Explain the reason for any delay"
                   className="resize-none"
                   disabled={isLoading}
-                  {...field}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  name={field.name}
+                  value={field.value || ""}
                 />
               </FormControl>
               <FormDescription>
@@ -610,7 +605,11 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
                   placeholder="Any additional information about the delivery"
                   className="resize-none"
                   disabled={isLoading}
-                  {...field}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  name={field.name}
+                  value={field.value || ""}
                 />
               </FormControl>
               <FormDescription>
