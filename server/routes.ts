@@ -615,6 +615,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
         });
         
+        // Check if the request has a redirect param
+        if (req.query.redirect === 'true') {
+          // Redirect directly to the home page
+          return res.redirect('/');
+        }
+        
+        // Otherwise return JSON response
         return res.json({
           ...userInfo,
           message: "Development auto-login successful",
