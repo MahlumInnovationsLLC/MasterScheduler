@@ -354,20 +354,60 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     
     try {
-      const data = JSON.parse(e.dataTransfer.getData('application/json'));
+      const dataStr = e.dataTransfer.getData('application/json');
+      if (!dataStr) {
+        console.error('No data received in drop event');
+        return;
+      }
+      
+      const data = JSON.parse(dataStr);
       if (!data) return;
       
       const bay = bays.find(b => b.id === bayId);
-      if (!bay) return;
+      if (!bay) {
+        toast({
+          title: "Error",
+          description: "Bay not found",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Check if the bay has staff assigned
+      if (!bay.staffCount || bay.staffCount <= 0) {
+        toast({
+          title: "Cannot assign to bay",
+          description: "This bay has no staff assigned. Please add staff first.",
+          variant: "destructive"
+        });
+        return;
+      }
       
       // Get the date for this slot
       const slotDate = slots[slotIndex]?.date;
-      if (!slotDate) return;
+      if (!slotDate) {
+        toast({
+          title: "Error",
+          description: "Invalid date slot",
+          variant: "destructive"
+        });
+        return;
+      }
       
       // Calculate end date based on total hours and bay capacity
-      const dailyCapacity = (bay.hoursPerPersonPerWeek * bay.staffCount) / 5;
-      const daysNeeded = Math.ceil(data.totalHours / dailyCapacity);
+      // Make sure to use at least 1 hour per day
+      const dailyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek * bay.staffCount) / 5);
+      const daysNeeded = Math.max(1, Math.ceil(data.totalHours / dailyCapacity));
       const endDate = addDays(slotDate, daysNeeded);
+      
+      console.log('Attempting to drop project:', {
+        projectId: data.projectId || data.id,
+        bayId,
+        slotDate: slotDate.toISOString(),
+        endDate: endDate.toISOString(),
+        totalHours: data.totalHours,
+        type: data.type
+      });
       
       if (data.type === 'existing') {
         // Update existing schedule
@@ -383,6 +423,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             description: `${data.projectNumber} moved to Bay ${bay.bayNumber}`,
           });
         }).catch(err => {
+          console.error('Failed to update schedule:', err);
           toast({
             title: "Error",
             description: "Failed to update schedule",
@@ -403,6 +444,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             description: `${data.projectNumber} assigned to Bay ${bay.bayNumber}`,
           });
         }).catch(err => {
+          console.error('Failed to create schedule:', err);
           toast({
             title: "Error",
             description: "Failed to create schedule",
@@ -414,7 +456,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.error('Error handling drop:', error);
       toast({
         title: "Error",
-        description: "Failed to process schedule",
+        description: "Failed to process schedule. Please try again.",
         variant: "destructive"
       });
     }
@@ -596,7 +638,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     return (
                       <div
                         key={bar.id}
-                        className="absolute rounded-sm z-10 cursor-move border shadow-md"
+                        className="absolute rounded-sm z-10 border shadow-md group"
                         style={{
                           left: bar.left + 'px',
                           width: bar.width - 2 + 'px',  // -2 for borders
@@ -605,16 +647,30 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           top: top + 'px',
                           height: height + 'px'
                         }}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, 'existing', bar)}
                       >
-                        <div className="flex items-center justify-between h-full px-2 text-white">
+                        {/* Main draggable area */}
+                        <div 
+                          className="absolute inset-0 flex items-center justify-between px-2 text-white cursor-move"
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, 'existing', bar)}
+                        >
                           <div className="font-medium text-xs truncate">
                             {bar.projectNumber}
                           </div>
                           <div className="text-xs opacity-80 shrink-0">
                             {bar.totalHours}h
                           </div>
+                        </div>
+                        
+                        {/* Edit button (appears on hover) */}
+                        <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <a 
+                            href={`/projects/${bar.projectId}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center justify-center w-4 h-4 bg-white/20 hover:bg-white/30 rounded-bl text-white"
+                          >
+                            <PencilIcon className="h-2.5 w-2.5" />
+                          </a>
                         </div>
                       </div>
                     );
@@ -688,23 +744,39 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             .map(project => (
               <div
                 key={project.id}
-                className="p-3 rounded-md border border-gray-700 bg-gray-800/50 shadow-sm cursor-move hover:bg-gray-800 transition-colors"
-                draggable
-                onDragStart={(e) => handleDragStart(e, 'new', {
-                  projectId: project.id,
-                  projectName: project.name,
-                  projectNumber: project.projectNumber,
-                  totalHours: 40
-                })}
+                className="relative p-3 rounded-md border border-gray-700 bg-gray-800/50 shadow-sm hover:bg-gray-800 transition-colors group"
               >
+                {/* Draggable area */}
+                <div 
+                  className="absolute inset-0 cursor-move"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, 'new', {
+                    projectId: project.id,
+                    projectName: project.name,
+                    projectNumber: project.projectNumber,
+                    totalHours: 40
+                  })}
+                ></div>
+                
                 <div className="text-sm font-medium">{project.projectNumber}</div>
                 <div className="text-xs text-gray-400 mt-1 line-clamp-1">{project.name}</div>
                 <div className="flex justify-between items-center mt-2">
                   <Badge variant="outline" className="bg-gray-700/50">40h</Badge>
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: getProjectColor(project.id) }}
-                  ></div>
+                  <div className="flex items-center space-x-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: getProjectColor(project.id) }}
+                    ></div>
+                    
+                    {/* Edit button */}
+                    <a 
+                      href={`/projects/${project.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center text-gray-400 hover:text-white"
+                    >
+                      <PencilIcon className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
                 </div>
               </div>
             ))}
