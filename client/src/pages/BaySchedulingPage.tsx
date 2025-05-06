@@ -39,7 +39,7 @@ const BaySchedulingPage = () => {
   const [filterTeam, setFilterTeam] = useState<string | null>(null);
   
   // Fetch data
-  const { data: manufacturingBays = [] } = useQuery({
+  const { data: manufacturingBays = [], refetch: refetchBays } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
   });
   
@@ -49,6 +49,52 @@ const BaySchedulingPage = () => {
   
   const { data: projects = [] } = useQuery({
     queryKey: ['/api/projects'],
+  });
+  
+  // Create bay mutation
+  const createBayMutation = useMutation({
+    mutationFn: async (bay: Partial<ManufacturingBay>) => {
+      const response = await apiRequest('POST', '/api/manufacturing-bays', bay);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-bays'] });
+      toast({
+        title: 'Success',
+        description: 'Manufacturing bay created successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to create manufacturing bay',
+        variant: 'destructive',
+      });
+      console.error(error);
+    },
+  });
+  
+  // Update bay mutation
+  const updateBayMutation = useMutation({
+    mutationFn: async ({ id, ...bay }: { id: number } & Partial<ManufacturingBay>) => {
+      const response = await apiRequest('PUT', `/api/manufacturing-bays/${id}`, bay);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-bays'] });
+      toast({
+        title: 'Success',
+        description: 'Manufacturing bay updated successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update manufacturing bay',
+        variant: 'destructive',
+      });
+      console.error(error);
+    },
   });
   
   // Calculate utilization metrics
@@ -400,6 +446,8 @@ const BaySchedulingPage = () => {
             }
             onScheduleChange={handleScheduleChange}
             onScheduleCreate={handleScheduleCreate}
+            onBayCreate={(bay) => createBayMutation.mutateAsync(bay)}
+            onBayUpdate={(id, bay) => updateBayMutation.mutateAsync({ id, ...bay })}
             dateRange={dateRange}
             viewMode={viewMode}
           />
