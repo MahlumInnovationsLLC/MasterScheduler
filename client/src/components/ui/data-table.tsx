@@ -60,9 +60,12 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState<string>("");
 
+  // Remove 'timeline' column if it exists
+  const filteredColumns = columns.filter(col => col.id !== 'timeline');
+
   const table = useReactTable({
     data,
-    columns,
+    columns: filteredColumns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -78,8 +81,8 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="bg-darkCard rounded-xl border border-gray-800 overflow-hidden">
-      <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="p-4 border-b border-border flex justify-between items-center">
         <h2 className="font-bold text-lg">
           {table.getFilteredRowModel().rows.length} Results
         </h2>
@@ -89,9 +92,9 @@ export function DataTable<TData, TValue>({
               placeholder={searchPlaceholder}
               value={globalFilter ?? ""}
               onChange={(e) => setGlobalFilter(e.target.value)}
-              className="bg-darkInput text-gray-300 border-none rounded-lg px-4 py-2 pl-9 text-sm focus:ring-1 focus:ring-primary"
+              className="bg-input border-none rounded-lg px-4 py-2 pl-9 text-sm focus:ring-1 focus:ring-primary"
             />
-            <div className="absolute left-3 top-2.5 text-gray-500">
+            <div className="absolute left-3 top-2.5 text-muted-foreground">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-search"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
             </div>
           </div>
@@ -103,7 +106,7 @@ export function DataTable<TData, TValue>({
                 table.getColumn(filterColumn)?.setFilterValue(value === "all" ? "" : value);
               }}
             >
-              <SelectTrigger className="bg-darkInput text-gray-300 border-none rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary">
+              <SelectTrigger className="bg-input border-none rounded-lg px-4 py-2 text-sm focus:ring-1 focus:ring-primary">
                 <SelectValue placeholder="All" />
               </SelectTrigger>
               <SelectContent>
@@ -117,20 +120,20 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
       
-      <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-        <Table className="w-full">
-          <TableHeader className="sticky top-0 z-20">
-            <TableRow>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
               {table.getHeaderGroups()[0].headers.map((header) => {
                 const isColumnFrozen = frozenColumns.includes(header.column.id);
+                
                 // Calculate left position for frozen columns
                 let leftPosition = 0;
                 if (isColumnFrozen) {
                   const frozenIndex = frozenColumns.indexOf(header.column.id);
                   for (let i = 0; i < frozenIndex; i++) {
                     const prevColumnId = frozenColumns[i];
-                    const headerGroup = table.getHeaderGroups()[0];
-                    const prevHeader = headerGroup.headers.find(h => h.column.id === prevColumnId);
+                    const prevHeader = table.getHeaderGroups()[0].headers.find(h => h.column.id === prevColumnId);
                     leftPosition += prevHeader ? (prevHeader.getSize() || 150) : 150;
                   }
                 }
@@ -138,17 +141,17 @@ export function DataTable<TData, TValue>({
                 return (
                   <TableHead 
                     key={header.id}
-                    className={`px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${
-                      isColumnFrozen ? 'sticky z-20' : ''
-                    } ${isColumnFrozen && frozenColumns.indexOf(header.column.id) === frozenColumns.length - 1 ? 'after:absolute after:right-0 after:top-0 after:bottom-0 after:w-[2px] after:bg-primary/30 after:content-[""]' : ''}`}
                     style={{
-                      minWidth: header.getSize() || 150,
-                      width: header.getSize() || 150,
-                      position: isColumnFrozen ? 'sticky' : undefined,
-                      left: isColumnFrozen ? `${leftPosition}px` : undefined,
-                      boxShadow: isColumnFrozen ? '4px 0 8px rgba(0,0,0,0.15)' : undefined,
-                      backgroundColor: 'var(--color-bg-card)',
-                      zIndex: isColumnFrozen ? 30 : undefined
+                      position: isColumnFrozen ? 'sticky' : 'relative',
+                      left: isColumnFrozen ? `${leftPosition}px` : 'auto',
+                      zIndex: isColumnFrozen ? 10 : 'auto',
+                      background: isColumnFrozen ? 'var(--background)' : 'transparent',
+                      borderRight: isColumnFrozen && frozenColumns.indexOf(header.column.id) === frozenColumns.length - 1 
+                        ? '2px solid var(--primary)' 
+                        : 'none',
+                      boxShadow: isColumnFrozen && frozenColumns.indexOf(header.column.id) === frozenColumns.length - 1 
+                        ? '4px 0 8px rgba(0,0,0,0.15)' 
+                        : 'none',
                     }}
                   >
                     <div
@@ -183,10 +186,11 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className="border-b border-gray-800 hover:bg-opacity-50 hover:bg-gray-800"
+                  className="hover:bg-muted/50"
                 >
                   {row.getVisibleCells().map((cell) => {
                     const isColumnFrozen = frozenColumns.includes(cell.column.id);
+                    
                     // Calculate left position for frozen columns
                     let leftPosition = 0;
                     if (isColumnFrozen) {
@@ -201,17 +205,17 @@ export function DataTable<TData, TValue>({
                     return (
                       <TableCell 
                         key={cell.id}
-                        className={`px-4 py-4 ${
-                          isColumnFrozen ? 'sticky z-10' : ''
-                        } ${isColumnFrozen && frozenColumns.indexOf(cell.column.id) === frozenColumns.length - 1 ? 'after:absolute after:right-0 after:top-0 after:bottom-0 after:w-[2px] after:bg-primary/30 after:content-[""]' : ''}`}
                         style={{
-                          minWidth: cell.column.getSize() || 150,
-                          width: cell.column.getSize() || 150,
-                          position: isColumnFrozen ? 'sticky' : undefined,
-                          left: isColumnFrozen ? `${leftPosition}px` : undefined,
-                          boxShadow: isColumnFrozen ? '4px 0 8px rgba(0,0,0,0.15)' : undefined,
-                          backgroundColor: 'var(--color-bg-card)',
-                          zIndex: isColumnFrozen ? 20 : undefined
+                          position: isColumnFrozen ? 'sticky' : 'relative',
+                          left: isColumnFrozen ? `${leftPosition}px` : 'auto',
+                          zIndex: isColumnFrozen ? 1 : 'auto',
+                          background: isColumnFrozen ? 'var(--background)' : 'transparent',
+                          borderRight: isColumnFrozen && frozenColumns.indexOf(cell.column.id) === frozenColumns.length - 1 
+                            ? '2px solid var(--primary)' 
+                            : 'none',
+                          boxShadow: isColumnFrozen && frozenColumns.indexOf(cell.column.id) === frozenColumns.length - 1 
+                            ? '4px 0 8px rgba(0,0,0,0.15)' 
+                            : 'none',
                         }}
                       >
                         {flexRender(
@@ -227,7 +231,7 @@ export function DataTable<TData, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center text-gray-500"
+                  className="h-24 text-center"
                 >
                   No results found.
                 </TableCell>
@@ -238,8 +242,8 @@ export function DataTable<TData, TValue>({
       </div>
       
       {showPagination && (
-        <div className="px-4 py-3 flex items-center justify-between border-t border-gray-800">
-          <div className="text-sm text-gray-400">
+        <div className="px-4 py-3 flex items-center justify-between border-t border-border">
+          <div className="text-sm text-muted-foreground">
             Showing <span className="font-medium">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> to{' '}
             <span className="font-medium">
               {Math.min(
