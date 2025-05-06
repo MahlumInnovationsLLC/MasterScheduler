@@ -860,6 +860,44 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     }
   }
+
+  // Delivery Tracking methods
+  async getDeliveryTrackings(): Promise<DeliveryTracking[]> {
+    return await safeQuery<DeliveryTracking>(() => 
+      db.select().from(deliveryTracking).orderBy(desc(deliveryTracking.updatedAt))
+    );
+  }
+
+  async getProjectDeliveryTrackings(projectId: number): Promise<DeliveryTracking[]> {
+    return await safeQuery<DeliveryTracking>(() => 
+      db.select()
+        .from(deliveryTracking)
+        .where(eq(deliveryTracking.projectId, projectId))
+        .orderBy(desc(deliveryTracking.updatedAt))
+    );
+  }
+
+  async getDeliveryTracking(id: number): Promise<DeliveryTracking | undefined> {
+    return await safeSingleQuery<DeliveryTracking>(() => 
+      db.select().from(deliveryTracking).where(eq(deliveryTracking.id, id))
+    );
+  }
+
+  async createDeliveryTracking(tracking: InsertDeliveryTracking): Promise<DeliveryTracking> {
+    try {
+      console.log("Creating delivery tracking with data:", JSON.stringify(tracking, null, 2));
+      const [newTracking] = await db.insert(deliveryTracking).values(tracking).returning();
+      console.log("Delivery tracking created successfully:", newTracking.id);
+      return newTracking;
+    } catch (error) {
+      console.error("Error creating delivery tracking:", error);
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
