@@ -126,8 +126,8 @@ export const DeliveryTrackingForm: React.FC<DeliveryTrackingFormProps> = ({
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/delivery-tracking"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/delivery-tracking/analytics"] });
+      queryClient.invalidateQueries(["/api/delivery-tracking"]);
+      queryClient.invalidateQueries(["/api/delivery-tracking/analytics"]);
       
       // Call success handler if provided
       if (onSuccess) {
