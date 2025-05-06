@@ -195,15 +195,7 @@ const Dashboard = () => {
         </div>
       ),
     },
-    {
-      accessorKey: 'ntcDate',
-      header: 'NTC Date',
-      cell: ({ row }) => (
-        <div className="text-sm">
-          {formatDate(row.original.ntcDate)}
-        </div>
-      ),
-    },
+
     {
       accessorKey: 'ntcTestingDate',
       header: 'NTC Testing',
@@ -264,10 +256,11 @@ const Dashboard = () => {
     },
     {
       id: 'actions',
+      size: 50, // Set the column width to a smaller size
       cell: ({ row }) => (
-        <div className="text-right space-x-2">
+        <div className="text-center">
           <Link href={`/projects/${row.original.id}`}>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
               <ArrowUpRight className="h-4 w-4" />
             </Button>
           </Link>
