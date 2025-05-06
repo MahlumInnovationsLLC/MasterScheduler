@@ -46,6 +46,24 @@ function convertToBoolean(value: any): boolean | null {
   return null;
 }
 
+// Helper function to check if a field is marked (X, Yes, True, etc.)
+function isMarked(value: any): boolean {
+  if (!value) return false;
+  
+  if (typeof value === 'boolean') return value;
+  
+  if (typeof value === 'string') {
+    const str = value.toLowerCase().trim();
+    return str === 'x' || str === 'yes' || str === 'true' || str === '1' || str === 'y';
+  }
+  
+  if (typeof value === 'number') {
+    return value === 1;
+  }
+  
+  return false;
+}
+
 // Helper function to safely convert various input formats to integers
 function convertToInteger(value: any): number | null {
   if (value === undefined || value === null) return null;
@@ -687,12 +705,26 @@ export async function importDeliveryTracking(req: Request, res: Response) {
       details: [] as string[]
     };
 
+    // Using the module level isMarked function now
+    
     // Process each delivery tracking entry
     for (const rawData of deliveryData) {
       try {
         // Find project by name or number
-        const projectName = rawData['Project Name'] || '';
-        const projectNumber = rawData['Project Number'] || '';
+        // Support multiple possible column names for project identifiers
+        const projectName = 
+          rawData['Project Name'] || 
+          rawData['Project'] || 
+          rawData['Project Title'] || 
+          rawData['Name'] || 
+          '';
+        
+        const projectNumber = 
+          rawData['Project Number'] || 
+          rawData['Project #'] || 
+          rawData['Proj #'] || 
+          rawData['Number'] || 
+          '';
         
         let project;
         
@@ -710,39 +742,85 @@ export async function importDeliveryTracking(req: Request, res: Response) {
           continue;
         }
         
-        // Parse dates
-        const originalContractDate = convertExcelDate(rawData['Original Contract Date']);
-        const extensionDate = convertExcelDate(rawData['# of Formal Extensions (Final Contract Date)']);
-        const actualDeliveryDate = convertExcelDate(rawData['Actual Delivery Date']);
+        // Parse dates - support multiple possible column names
+        const originalContractDate = convertExcelDate(
+          rawData['Original Contract Date'] || 
+          rawData['Original Estimated Date'] ||
+          rawData['Original Delivery Date'] ||
+          rawData['Estimated Delivery'] ||
+          rawData['Contract Date']
+        );
+        
+        const extensionDate = convertExcelDate(
+          rawData['# of Formal Extensions (Final Contract Date)'] ||
+          rawData['Revised Estimated Date'] ||
+          rawData['Extension Date'] ||
+          rawData['Revised Delivery Date']
+        );
+        
+        const actualDeliveryDate = convertExcelDate(
+          rawData['Actual Delivery Date'] ||
+          rawData['Delivery Date'] ||
+          rawData['Actual Date']
+        );
         
         // Determine responsibility based on the field with 'X' or similar markers
+        // Support multiple possible column formats
         let delayResponsibility: 'not_applicable' | 'client_fault' | 'nomad_fault' | 'vendor_fault' = 'not_applicable';
         
-        if (rawData['Late due to: Client'] && 
-            (rawData['Late due to: Client'] === 'X' || 
-             rawData['Late due to: Client'] === 'x' || 
-             rawData['Late due to: Client'] === true)) {
+        // First check if there's a direct responsibility field
+        if (rawData['Responsibility'] || rawData['Delay Responsibility']) {
+          const resp = (rawData['Responsibility'] || rawData['Delay Responsibility'] || '').toString().toLowerCase();
+          if (resp.includes('client')) {
+            delayResponsibility = 'client_fault';
+          } else if (resp.includes('nomad')) {
+            delayResponsibility = 'nomad_fault';
+          } else if (resp.includes('vendor')) {
+            delayResponsibility = 'vendor_fault';
+          }
+        } 
+        // If no direct field, check the X marker fields
+        else if (rawData['Late due to: Client'] && 
+            isMarked(rawData['Late due to: Client'])) {
           delayResponsibility = 'client_fault';
         } else if (rawData['Late due to: Nomad'] && 
-                  (rawData['Late due to: Nomad'] === 'X' || 
-                   rawData['Late due to: Nomad'] === 'x' || 
-                   rawData['Late due to: Nomad'] === true)) {
+                  isMarked(rawData['Late due to: Nomad'])) {
           delayResponsibility = 'nomad_fault';
         } else if (rawData['Late due to: Vendor'] && 
-                  (rawData['Late due to: Vendor'] === 'X' || 
-                   rawData['Late due to: Vendor'] === 'x' || 
-                   rawData['Late due to: Vendor'] === true)) {
+                  isMarked(rawData['Late due to: Vendor'])) {
+          delayResponsibility = 'vendor_fault';
+        }
+        // Also check alternate formats
+        else if (isMarked(rawData['Client Fault'])) {
+          delayResponsibility = 'client_fault';
+        } else if (isMarked(rawData['Nomad Fault'])) {
+          delayResponsibility = 'nomad_fault';
+        } else if (isMarked(rawData['Vendor Fault'])) {
           delayResponsibility = 'vendor_fault';
         }
         
-        // Calculate days late
-        let daysLate = convertToInteger(rawData['# of days pre/post contract']);
+        // Calculate days late - support multiple column names
+        let daysLate = convertToInteger(
+          rawData['# of days pre/post contract'] || 
+          rawData['Days Late'] ||
+          rawData['Late Days'] ||
+          rawData['Delay (Days)']
+        );
+        
+        // If days late isn't specified but we have both dates, calculate it
+        if (daysLate === null && originalContractDate && actualDeliveryDate) {
+          const origDate = new Date(originalContractDate);
+          const actDate = new Date(actualDeliveryDate);
+          daysLate = Math.floor((actDate.getTime() - origDate.getTime()) / (1000 * 60 * 60 * 24));
+        }
         
         // Determine if it's actually late (negative number means early)
         if (daysLate !== null && daysLate <= 0) {
           daysLate = 0;
           delayResponsibility = 'not_applicable';
         }
+        
+        // Removed duplicate function declaration since we already have this defined at the top level
         
         // If original contract date is missing, use a fallback date
         if (!originalContractDate) {
