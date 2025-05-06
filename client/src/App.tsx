@@ -66,6 +66,7 @@ function Router() {
             <ProtectedRoute path="/delivered-projects" component={DeliveredProjects} />
             <ProtectedRoute path="/billing" component={BillingMilestones} />
             <ProtectedRoute path="/manufacturing" component={ManufacturingBay} />
+            <ProtectedRoute path="/bay-scheduling" component={BaySchedulingPage} />
             <ProtectedRoute path="/delivery-tracking" component={OnTimeDelivery} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />
             <ProtectedRoute path="/sales-forecast" component={SalesForecast} />

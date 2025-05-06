@@ -651,6 +651,20 @@ export type InsertSalesDeal = z.infer<typeof insertSalesDealSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
+// AI Insight types for manufacturing analytics
+export interface AIInsight {
+  type: 'timeline' | 'billing' | 'production' | 'manufacturing';
+  title: string;
+  description: string;
+  items: {
+    severity: 'danger' | 'warning' | 'success';
+    text: string;
+    detail?: string;
+  }[];
+  confidence?: number;
+  benefit?: string;
+}
+
 export type UserPreference = typeof userPreferences.$inferSelect;
 export type InsertUserPreference = z.infer<typeof insertUserPreferencesSchema>;
 

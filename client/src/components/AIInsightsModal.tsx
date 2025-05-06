@@ -1,476 +1,219 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Lightbulb, 
+  AlertTriangle, 
+  Check, 
+  X, 
+  ChevronRight, 
+  Info, 
+  BrainCircuit 
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { AlertCircle, AlertTriangle, Check, Clock, Info, TrendingDown, TrendingUp, Zap } from 'lucide-react';
+import { AIInsight } from '@shared/schema';
 
-export interface AIInsight {
-  type: 'timeline' | 'billing' | 'production';
-  title: string;
-  description: string;
-  items: {
-    severity: 'danger' | 'warning' | 'success';
-    text: string;
-    detail?: string;
-  }[];
-  confidence?: number;
-  benefit?: string;
-}
-
-export interface ProjectHealthAnalysis {
-  overallHealth: {
-    score: number; // 0-100
-    status: 'critical' | 'at-risk' | 'caution' | 'healthy' | 'excellent';
-    summary: string;
-  };
-  timeline: {
-    status: 'delayed' | 'on-track' | 'ahead';
-    score: number; // 0-100
-    analysis: string;
-    recommendations: string[];
-  };
-  budget: {
-    status: 'over-budget' | 'on-budget' | 'under-budget';
-    score: number; // 0-100
-    analysis: string;
-    recommendations: string[];
-  };
-  resources: {
-    status: 'insufficient' | 'adequate' | 'optimal';
-    score: number; // 0-100
-    analysis: string;
-    recommendations: string[];
-  };
-  quality: {
-    score: number; // 0-100
-    analysis: string;
-    recommendations: string[];
-  };
-  risks: {
-    severity: 'low' | 'medium' | 'high';
-    items: string[];
-    mitigation: string[];
-  };
-  confidenceScore: number; // AI's confidence in its analysis, 0-1
-}
-
-interface AIInsightsModalProps {
-  trigger?: React.ReactNode;
-  projectId?: number;
-}
-
-export const AIInsightsModal: React.FC<AIInsightsModalProps> = ({ trigger, projectId }) => {
+export function AIInsightsModal() {
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>(projectId ? 'project-health' : 'insights');
   
-  const { data: billingInsights, isLoading: billingLoading } = useQuery({
-    queryKey: ['/api/ai/billing-insights'],
-    enabled: open && activeTab === 'insights',
-  });
-  
-  const { data: manufacturingInsights, isLoading: manufacturingLoading } = useQuery({
-    queryKey: ['/api/ai/manufacturing-insights'],
-    enabled: open && activeTab === 'insights',
-  });
-  
-  const { data: timelineInsights, isLoading: timelineLoading } = useQuery({
-    queryKey: ['/api/ai/timeline-insights'],
-    enabled: open && activeTab === 'insights',
-  });
-  
-  const { data: projectHealth, isLoading: projectHealthLoading } = useQuery({
-    queryKey: ['/api/ai/project-health', projectId],
-    enabled: open && !!projectId && activeTab === 'project-health',
-  });
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'critical':
-      case 'over-budget':
-      case 'delayed':
-      case 'insufficient':
-      case 'high':
-        return 'bg-red-500';
-      case 'at-risk':
-      case 'caution':
-      case 'medium':
-        return 'bg-amber-500';
-      case 'healthy':
-      case 'on-budget':
-      case 'on-track':
-      case 'adequate':
-      case 'low':
-        return 'bg-green-500';
-      case 'excellent':
-      case 'under-budget':
-      case 'ahead':
-      case 'optimal':
-        return 'bg-blue-500';
-      default:
-        return 'bg-gray-500';
+  // Placeholder AI insights - in a real implementation, these would come from the AI service
+  const insights: AIInsight[] = [
+    {
+      type: 'manufacturing',
+      title: 'Manufacturing Capacity Optimization',
+      description: 'Optimize bay allocations based on project timelines and bay capacity.',
+      items: [
+        {
+          severity: 'warning',
+          text: 'Bay 3 is currently over-allocated by 35 hours next week',
+          detail: 'Consider reassigning Project T4-223 to Bay 5 which has excess capacity.'
+        },
+        {
+          severity: 'danger',
+          text: 'Resource bottleneck detected in Electronics section',
+          detail: 'Three high-priority projects are scheduled simultaneously with only 2 technicians available.'
+        },
+        {
+          severity: 'success',
+          text: 'Optimal bay allocation achieved for Bay 1 and Bay 2',
+          detail: 'Current scheduling efficiently utilizes available resources.'
+        },
+      ],
+      confidence: 0.87,
+      benefit: 'Potential 15% increase in manufacturing throughput'
+    },
+    {
+      type: 'timeline',
+      title: 'Timeline Optimization',
+      description: 'Identify scheduling conflicts and suggest improved project timelines.',
+      items: [
+        {
+          severity: 'warning',
+          text: 'Project T4-256 has scheduling conflict with Bay 2 maintenance',
+          detail: 'Scheduled maintenance on May 15 overlaps with critical assembly phase.'
+        },
+        {
+          severity: 'success',
+          text: 'Rescheduling Projects T4-298 and T4-301 creates 3-day efficiency gain',
+          detail: 'Swapping these projects optimizes equipment utilization.'
+        },
+        {
+          severity: 'danger',
+          text: 'Critical staffing gap identified for May 22-26',
+          detail: 'Four simultaneous projects requiring specialized technicians.'
+        }
+      ],
+      confidence: 0.92,
+      benefit: 'Potential 8 day reduction in overall delivery timeline'
+    },
+    {
+      type: 'production',
+      title: 'Production Insights',
+      description: 'Identify ways to optimize production flow and reduce bottlenecks.',
+      items: [
+        {
+          severity: 'warning',
+          text: 'Bay 4 is consistently underutilized by ~20%',
+          detail: 'Consider reallocating resources or adjusting staffing.'
+        },
+        {
+          severity: 'success',
+          text: 'Redistributing current project load could free capacity for 2 new projects',
+          detail: 'Moving Project T4-267 from Bay 6 to Bay 4 optimizes resource usage.'
+        },
+        {
+          severity: 'warning',
+          text: 'Team specialization causing bottlenecks between departments',
+          detail: 'Cross-training opportunities identified for Bay 2 and Bay 3 staff.'
+        }
+      ],
+      confidence: 0.85,
+      benefit: 'Potential 12% increase in production capacity'
     }
-  };
-
+  ];
+  
   const getSeverityIcon = (severity: string) => {
-    switch (severity) {
+    switch(severity) {
       case 'danger':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+        return <AlertTriangle className="h-4 w-4 text-red-500" />;
       case 'warning':
-        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
       case 'success':
-        return <Check className="h-5 w-5 text-green-500" />;
+        return <Check className="h-4 w-4 text-green-500" />;
       default:
-        return <Info className="h-5 w-5 text-gray-500" />;
+        return <Info className="h-4 w-4 text-blue-500" />;
     }
   };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'critical':
-      case 'over-budget':
-      case 'delayed':
-      case 'insufficient':
-      case 'high':
-        return <TrendingDown className="h-5 w-5 text-red-500" />;
-      case 'at-risk':
-      case 'caution':
-      case 'medium':
-        return <AlertCircle className="h-5 w-5 text-amber-500" />;
-      case 'healthy':
-      case 'on-budget':
-      case 'on-track':
-      case 'adequate':
-      case 'low':
-        return <Check className="h-5 w-5 text-green-500" />;
-      case 'excellent':
-      case 'under-budget':
-      case 'ahead':
-      case 'optimal':
-        return <TrendingUp className="h-5 w-5 text-blue-500" />;
+  
+  const getSeverityClass = (severity: string) => {
+    switch(severity) {
+      case 'danger':
+        return 'bg-red-900/20 border-red-900/30 text-red-400';
+      case 'warning':
+        return 'bg-amber-900/20 border-amber-900/30 text-amber-400';
+      case 'success':
+        return 'bg-green-900/20 border-green-900/30 text-green-400';
       default:
-        return <Info className="h-5 w-5 text-gray-500" />;
+        return 'bg-blue-900/20 border-blue-900/30 text-blue-400';
     }
   };
-
-  const renderInsightsTab = () => {
-    const isLoading = billingLoading || manufacturingLoading || timelineLoading;
-    
-    if (isLoading) {
-      return (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <Zap className="h-10 w-10 text-blue-500 mx-auto animate-pulse" />
-            <p className="mt-4 text-muted-foreground">Generating AI insights...</p>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {timelineInsights && typeof timelineInsights === 'object' && (
-          <InsightCard insight={timelineInsights as AIInsight} />
-        )}
-        {billingInsights && typeof billingInsights === 'object' && (
-          <InsightCard insight={billingInsights as AIInsight} />
-        )}
-        {manufacturingInsights && typeof manufacturingInsights === 'object' && (
-          <InsightCard insight={manufacturingInsights as AIInsight} />
-        )}
-      </div>
-    );
-  };
-
-  const renderProjectHealthTab = () => {
-    if (projectHealthLoading) {
-      return (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <Zap className="h-10 w-10 text-blue-500 mx-auto animate-pulse" />
-            <p className="mt-4 text-muted-foreground">Analyzing project health...</p>
-          </div>
-        </div>
-      );
-    }
-
-    if (!projectHealth) {
-      return (
-        <div className="text-center py-10">
-          <AlertCircle className="h-10 w-10 text-amber-500 mx-auto" />
-          <p className="mt-4 text-muted-foreground">Unable to load project health data</p>
-        </div>
-      );
-    }
-
-    const health = projectHealth as ProjectHealthAnalysis;
-
-    return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle>Overall Health</CardTitle>
-              <Badge 
-                className={`${getStatusColor(health.overallHealth.status)} text-white`}
-              >
-                {health.overallHealth.status.toUpperCase()}
-              </Badge>
-            </div>
-            <CardDescription>{health.overallHealth.summary}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Score</span>
-                <span className="font-medium">{health.overallHealth.score}/100</span>
-              </div>
-              <Progress value={health.overallHealth.score} />
-            </div>
-          </CardContent>
-          <CardFooter className="text-xs text-muted-foreground">
-            AI Confidence: {Math.round(health.confidenceScore * 100)}%
-          </CardFooter>
-        </Card>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <HealthCategoryCard 
-            title="Timeline" 
-            status={health.timeline.status}
-            score={health.timeline.score}
-            analysis={health.timeline.analysis}
-            recommendations={health.timeline.recommendations}
-          />
-          <HealthCategoryCard 
-            title="Budget" 
-            status={health.budget.status}
-            score={health.budget.score}
-            analysis={health.budget.analysis}
-            recommendations={health.budget.recommendations}
-          />
-          <HealthCategoryCard 
-            title="Resources" 
-            status={health.resources.status}
-            score={health.resources.score}
-            analysis={health.resources.analysis}
-            recommendations={health.resources.recommendations}
-          />
-          <HealthCategoryCard 
-            title="Quality" 
-            status=""
-            score={health.quality.score}
-            analysis={health.quality.analysis}
-            recommendations={health.quality.recommendations}
-          />
-        </div>
-
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Risk Assessment</CardTitle>
-              <Badge 
-                className={`${getStatusColor(health.risks.severity)} text-white`}
-              >
-                {health.risks.severity.toUpperCase()}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-sm font-medium mb-2">Identified Risks</h4>
-                <ul className="space-y-1">
-                  {health.risks.items.map((risk, index) => (
-                    <li key={index} className="text-sm flex items-start gap-2">
-                      <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                      <span>{risk}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium mb-2">Mitigation Strategies</h4>
-                <ul className="space-y-1">
-                  {health.risks.mitigation.map((strategy, index) => (
-                    <li key={index} className="text-sm flex items-start gap-2">
-                      <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>{strategy}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  };
-
+  
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="outline" size="sm">
-            <Zap className="mr-2 h-4 w-4" />
-            AI Insights
-          </Button>
-        )}
+        <Button variant="secondary" size="sm" className="bg-primary/10 hover:bg-primary/20 border-none">
+          <BrainCircuit className="mr-2 h-4 w-4 text-primary" />
+          <span>AI Insights</span>
+        </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>AI-Powered Insights</DialogTitle>
-          <DialogDescription>
-            Analysis and recommendations powered by artificial intelligence
-          </DialogDescription>
+          <DialogTitle className="flex items-center text-xl">
+            <BrainCircuit className="mr-2 h-5 w-5 text-primary" />
+            AI Manufacturing Insights
+          </DialogTitle>
+          <p className="text-sm text-gray-400 mt-2">
+            Intelligent recommendations to optimize manufacturing schedules and bay allocation
+          </p>
         </DialogHeader>
-        <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="insights">General Insights</TabsTrigger>
-            <TabsTrigger value="project-health" disabled={!projectId}>Project Health Score</TabsTrigger>
+        
+        <Tabs defaultValue="manufacturing" className="mt-4">
+          <TabsList className="grid grid-cols-3 mb-4">
+            <TabsTrigger value="manufacturing">
+              <Lightbulb className="h-4 w-4 mr-2" /> Bay Utilization
+            </TabsTrigger>
+            <TabsTrigger value="timeline">
+              <Lightbulb className="h-4 w-4 mr-2" /> Timeline
+            </TabsTrigger>
+            <TabsTrigger value="production">
+              <Lightbulb className="h-4 w-4 mr-2" /> Production
+            </TabsTrigger>
           </TabsList>
-          <TabsContent value="insights" className="py-4">
-            {renderInsightsTab()}
-          </TabsContent>
-          <TabsContent value="project-health" className="py-4">
-            {renderProjectHealthTab()}
-          </TabsContent>
+          
+          {insights.map((insight) => (
+            <TabsContent key={insight.type} value={insight.type} className="space-y-4">
+              <div className="bg-darkCard border border-gray-800 rounded-lg p-4">
+                <h3 className="text-lg font-medium">{insight.title}</h3>
+                <p className="text-sm text-gray-400 mb-3">{insight.description}</p>
+                <div className="space-y-3 mt-4">
+                  {insight.items.map((item, i) => (
+                    <div 
+                      key={i} 
+                      className={`border ${getSeverityClass(item.severity)} rounded-md p-3 flex items-start`}
+                    >
+                      <div className="shrink-0 mr-3 mt-0.5">
+                        {getSeverityIcon(item.severity)}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{item.text}</p>
+                        <p className="text-xs text-gray-400 mt-1">{item.detail}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between items-center mt-4 text-xs text-gray-400">
+                  <div className="flex items-center">
+                    <span>AI Confidence: </span>
+                    <div className="ml-2 bg-gray-800 rounded-full h-1.5 w-24">
+                      <div 
+                        className="bg-primary h-1.5 rounded-full" 
+                        style={{ width: `${insight.confidence ? insight.confidence * 100 : 0}%` }}
+                      ></div>
+                    </div>
+                    <span className="ml-2">{insight.confidence ? Math.round(insight.confidence * 100) : 0}%</span>
+                  </div>
+                  <Badge variant="outline" className="ml-2 text-xs bg-primary/10">
+                    {insight.benefit}
+                  </Badge>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-darkCard border border-primary/20 rounded-lg">
+                <h4 className="text-sm font-medium flex items-center text-primary">
+                  <Lightbulb className="h-4 w-4 mr-2" />
+                  Why This Matters
+                </h4>
+                <p className="text-sm text-gray-400 mt-2">
+                  Optimizing bay allocation and manufacturing schedules can significantly reduce production time, 
+                  increase capacity utilization, and improve on-time delivery performance. These insights are based 
+                  on historical project data and current manufacturing capacity metrics.
+                </p>
+              </div>
+              
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
+                  <X className="h-4 w-4 mr-2" />
+                  Close
+                </Button>
+                <Button size="sm">
+                  Apply Recommendations <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </TabsContent>
+          ))}
         </Tabs>
       </DialogContent>
     </Dialog>
   );
-};
-
-interface InsightCardProps {
-  insight: AIInsight;
-}
-
-const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle>{insight.title}</CardTitle>
-        <CardDescription>{insight.description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ul className="space-y-2">
-          {insight.items.map((item, index) => (
-            <li key={index} className="flex items-start gap-2">
-              {getSeverityIcon(item.severity)}
-              <div>
-                <p className="font-medium text-sm">{item.text}</p>
-                {item.detail && <p className="text-xs text-muted-foreground">{item.detail}</p>}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-      {insight.confidence && (
-        <CardFooter className="text-xs text-muted-foreground flex justify-between">
-          <span>AI Confidence: {Math.round(insight.confidence * 100)}%</span>
-          {insight.benefit && <span>{insight.benefit}</span>}
-        </CardFooter>
-      )}
-    </Card>
-  );
-};
-
-interface HealthCategoryCardProps {
-  title: string;
-  status: string;
-  score: number;
-  analysis: string;
-  recommendations: string[];
-}
-
-const HealthCategoryCard: React.FC<HealthCategoryCardProps> = ({ 
-  title, 
-  status, 
-  score, 
-  analysis, 
-  recommendations 
-}) => {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle>{title}</CardTitle>
-          {status && (
-            <Badge 
-              className={`${status ? getStatusColor(status) : 'bg-gray-500'} text-white`}
-            >
-              {status.toUpperCase()}
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Score</span>
-              <span className="font-medium">{score}/100</span>
-            </div>
-            <Progress value={score} />
-          </div>
-          <p className="text-sm">{analysis}</p>
-          <div>
-            <h4 className="text-sm font-medium mb-2">Recommendations</h4>
-            <ul className="space-y-1">
-              {recommendations.map((rec, index) => (
-                <li key={index} className="text-sm flex items-start gap-2">
-                  <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span>{rec}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-function getStatusColor(status: string) {
-  switch (status.toLowerCase()) {
-    case 'critical':
-    case 'over-budget':
-    case 'delayed':
-    case 'insufficient':
-    case 'high':
-      return 'bg-red-500';
-    case 'at-risk':
-    case 'caution':
-    case 'medium':
-      return 'bg-amber-500';
-    case 'healthy':
-    case 'on-budget':
-    case 'on-track':
-    case 'adequate':
-    case 'low':
-      return 'bg-green-500';
-    case 'excellent':
-    case 'under-budget':
-    case 'ahead':
-    case 'optimal':
-      return 'bg-blue-500';
-    default:
-      return 'bg-gray-500';
-  }
-}
-
-function getSeverityIcon(severity: 'danger' | 'warning' | 'success') {
-  switch (severity) {
-    case 'danger':
-      return <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />;
-    case 'warning':
-      return <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />;
-    case 'success':
-      return <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />;
-    default:
-      return <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />;
-  }
 }
