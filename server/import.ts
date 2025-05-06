@@ -4,7 +4,8 @@ import {
   InsertProject, 
   InsertBillingMilestone, 
   InsertManufacturingBay, 
-  InsertManufacturingSchedule 
+  InsertManufacturingSchedule,
+  InsertDeliveryTracking
 } from '@shared/schema';
 import { countWorkingDays } from '@shared/utils/date-utils';
 
@@ -819,6 +820,142 @@ export async function importManufacturingSchedules(req: Request, res: Response) 
     return res.status(500).json({ 
       success: false, 
       message: `Failed to import manufacturing schedules: ${(error as Error).message}` 
+    });
+  }
+}
+
+// Import Delivery Tracking data
+export async function importDeliveryTracking(req: Request, res: Response) {
+  try {
+    const deliveryData = req.body;
+    
+    if (!Array.isArray(deliveryData)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid delivery tracking data. Expected an array.' 
+      });
+    }
+    
+    const results = {
+      imported: 0,
+      errors: 0,
+      details: [] as string[]
+    };
+    
+    // Process each delivery record
+    for (const rawDeliveryData of deliveryData) {
+      try {
+        console.log("Processing delivery tracking record:", JSON.stringify(rawDeliveryData, null, 2));
+        
+        // Look up project by project number
+        let project = null;
+        if (rawDeliveryData.projectNumber) {
+          // Use db query to find project by project number
+          const { db } = await import('./db');
+          const { projects } = await import('@shared/schema');
+          const { eq } = await import('drizzle-orm');
+          
+          const [foundProject] = await db.select()
+            .from(projects)
+            .where(eq(projects.projectNumber, rawDeliveryData.projectNumber));
+          
+          project = foundProject;
+        }
+        
+        // If project not found by number, try matching by name
+        if (!project && rawDeliveryData.projectName) {
+          const { db } = await import('./db');
+          const { projects } = await import('@shared/schema');
+          const { like } = await import('drizzle-orm');
+          
+          const foundProjects = await db.select()
+            .from(projects)
+            .where(like(projects.name, `%${rawDeliveryData.projectName}%`));
+          
+          if (foundProjects && foundProjects.length > 0) {
+            project = foundProjects[0];
+          }
+        }
+        
+        if (!project) {
+          results.errors++;
+          results.details.push(`Project not found for: ${rawDeliveryData.projectNumber || ''} - ${rawDeliveryData.projectName || ''}`);
+          continue;
+        }
+        
+        // Parse responsibility
+        let delayResponsibility = 'not_applicable';
+        if (rawDeliveryData.delayResponsibility) {
+          const responsibilityText = rawDeliveryData.delayResponsibility.toLowerCase().trim();
+          if (responsibilityText.includes('nomad')) {
+            delayResponsibility = 'nomad_fault';
+          } else if (responsibilityText.includes('vendor')) {
+            delayResponsibility = 'vendor_fault';
+          } else if (responsibilityText.includes('client')) {
+            delayResponsibility = 'client_fault';
+          }
+        }
+        
+        // Calculate days late if not provided
+        let daysLate = rawDeliveryData.daysLate ? convertToInteger(rawDeliveryData.daysLate) : null;
+        const originalEstimatedDate = convertExcelDate(rawDeliveryData.contractDate || rawDeliveryData.originalEstimatedDate);
+        const actualDeliveryDate = convertExcelDate(rawDeliveryData.deliveryDate || rawDeliveryData.actualDeliveryDate);
+        
+        if (daysLate === null && originalEstimatedDate && actualDeliveryDate) {
+          const originalDate = new Date(originalEstimatedDate);
+          const actualDate = new Date(actualDeliveryDate);
+          daysLate = Math.round((actualDate.getTime() - originalDate.getTime()) / (1000 * 60 * 60 * 24));
+        }
+        
+        // Create delivery tracking record
+        const deliveryDataToInsert: Partial<InsertDeliveryTracking> = {
+          projectId: project.id,
+          originalEstimatedDate: originalEstimatedDate!,
+          revisedEstimatedDate: convertExcelDate(rawDeliveryData.revisedEstimatedDate),
+          actualDeliveryDate: actualDeliveryDate,
+          daysLate,
+          delayResponsibility: delayResponsibility as any,
+          delayReason: rawDeliveryData.delayReason || rawDeliveryData.reason,
+          delayNotes: rawDeliveryData.delayNotes || rawDeliveryData.notes,
+          createdById: req.user?.id as string,
+        };
+        
+        console.log("Inserting delivery tracking data:", JSON.stringify(deliveryDataToInsert, null, 2));
+        
+        // Validate required fields
+        if (!deliveryDataToInsert.originalEstimatedDate) {
+          results.errors++;
+          results.details.push(`Missing required originalEstimatedDate for project ${project.projectNumber}`);
+          continue;
+        }
+        
+        // Insert via db directly since storage might not have this method yet
+        const { db } = await import('./db');
+        const { deliveryTracking } = await import('@shared/schema');
+        
+        const [newRecord] = await db.insert(deliveryTracking).values(deliveryDataToInsert as any).returning();
+        console.log("Successfully created delivery tracking record:", newRecord.id);
+        
+        results.imported++;
+      }
+      catch (error: any) {
+        console.error("Error importing delivery tracking:", error);
+        results.errors++;
+        results.details.push(`Error: ${error.message}`);
+      }
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: `Imported ${results.imported} delivery tracking records with ${results.errors} errors`,
+      results
+    });
+  }
+  catch (error: any) {
+    console.error("Error in importDeliveryTracking:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: `Error importing delivery tracking data: ${error.message}` 
     });
   }
 }
