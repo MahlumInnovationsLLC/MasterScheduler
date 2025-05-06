@@ -62,6 +62,7 @@ const ProjectDetails = () => {
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
   const [isTaskDialogOpen, setTaskDialogOpen] = useState(false);
   const [isDeleteTaskDialogOpen, setDeleteTaskDialogOpen] = useState(false);
+  const [isMilestoneDialogOpen, setIsMilestoneDialogOpen] = useState(false);
   const [archiveReason, setArchiveReason] = useState<string>('');
   const [selectedBayId, setSelectedBayId] = useState<number | null>(null);
   const [startDate, setStartDate] = useState<string>(
@@ -79,7 +80,16 @@ const ProjectDetails = () => {
   const [taskForm, setTaskForm] = useState({
     name: '',
     description: '',
-    dueDate: new Date().toISOString().split('T')[0]
+    dueDate: new Date().toISOString().split('T')[0],
+    milestoneId: 0
+  });
+  
+  // Milestone editing state
+  const [editMilestoneId, setEditMilestoneId] = useState<number | null>(null);
+  const [milestoneForm, setMilestoneForm] = useState({
+    name: '',
+    status: 'In Progress',
+    date: new Date().toISOString().split('T')[0]
   });
   
   const { data: project, isLoading: isLoadingProject } = useQuery({
@@ -236,6 +246,36 @@ const ProjectDetails = () => {
     onError: (error: Error) => {
       toast({
         title: "Failed to delete task",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Create/Update milestone mutation
+  const saveMilestoneMutation = useMutation({
+    mutationFn: async (data: any) => {
+      // Since we're not using a real API for milestones in the demo, we'll simulate it
+      // In a real app, you'd send a request to the server
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({ success: true, milestone: data });
+        }, 500);
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: editMilestoneId ? "Milestone updated" : "Milestone created",
+        description: `Milestone has been successfully ${editMilestoneId ? 'updated' : 'created'}`,
+      });
+      setIsMilestoneDialogOpen(false);
+      
+      // In a real app, you'd invalidate the milestone query
+      // For demo, we're just closing the dialog
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to save milestone",
         description: error.message,
         variant: "destructive",
       });
@@ -619,13 +659,30 @@ const ProjectDetails = () => {
                 Filter
               </Button>
               <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEditMilestoneId(null);
+                  setMilestoneForm({
+                    name: '',
+                    status: 'In Progress',
+                    date: new Date().toISOString().split('T')[0]
+                  });
+                  setIsMilestoneDialogOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Milestone
+              </Button>
+              <Button 
                 size="sm"
                 onClick={() => {
                   setEditTaskId(null);
                   setTaskForm({
                     name: '',
                     description: '',
-                    dueDate: new Date().toISOString().split('T')[0]
+                    dueDate: new Date().toISOString().split('T')[0],
+                    milestoneId: milestones[0]?.id || 0
                   });
                   setTaskDialogOpen(true);
                 }}
