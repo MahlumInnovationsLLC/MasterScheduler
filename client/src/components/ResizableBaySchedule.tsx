@@ -1,10 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { format, addDays, differenceInDays, isSameDay, addWeeks, addMonths, startOfMonth, endOfMonth } from 'date-fns';
-import { PlusCircle, GripVertical, Info, X, ArrowsExpand, ChevronRight } from 'lucide-react';
+import { PlusCircle, GripVertical, Info, X, ArrowsExpand, ChevronRight, PencilIcon, PlusIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ManufacturingBay, ManufacturingSchedule, Project } from '@shared/schema';
 
 interface ResizableBayScheduleProps {
@@ -112,6 +120,67 @@ const getProjectColor = (projectId: number) => {
   return COLORS[projectId % COLORS.length];
 };
 
+// EditBayDialog component for editing bay capacity
+const EditBayDialog = ({ 
+  bay, 
+  isOpen, 
+  onClose, 
+  onSave 
+}: { 
+  bay: ManufacturingBay, 
+  isOpen: boolean, 
+  onClose: () => void,
+  onSave: (bayId: number, staffCount: number, hoursPerPersonPerWeek: number) => void 
+}) => {
+  const [staffCount, setStaffCount] = useState(bay.staffCount);
+  const [hoursPerWeek, setHoursPerWeek] = useState(bay.hoursPerPersonPerWeek);
+  
+  const handleSave = () => {
+    onSave(bay.id, staffCount, hoursPerWeek);
+    onClose();
+  };
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Edit Bay Capacity</DialogTitle>
+          <DialogDescription>
+            Update staff count and hours per person for Bay {bay.bayNumber}: {bay.name}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <label className="text-right text-sm">Staff Count</label>
+            <input
+              type="number"
+              className="col-span-3 p-2 rounded bg-gray-800 border border-gray-700"
+              value={staffCount}
+              min={1}
+              onChange={(e) => setStaffCount(parseInt(e.target.value) || 1)}
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <label className="text-right text-sm">Hours per Person/Week</label>
+            <input
+              type="number" 
+              className="col-span-3 p-2 rounded bg-gray-800 border border-gray-700"
+              value={hoursPerWeek}
+              min={1}
+              max={80}
+              onChange={(e) => setHoursPerWeek(parseInt(e.target.value) || 40)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSave}>Save Changes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   schedules,
   projects,
@@ -125,6 +194,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   const [draggingSchedule, setDraggingSchedule] = useState<any>(null);
   const [resizingSchedule, setResizingSchedule] = useState<any>(null);
   const [dropTarget, setDropTarget] = useState<{ bayId: number, slotIndex: number } | null>(null);
+  const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
   
   // Generate time slots based on view mode
   const { slots, slotWidth } = useMemo(() => 
@@ -296,6 +366,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     setDraggingSchedule(null);
   };
   
+  // Handle bay capacity edit
+  const handleSaveBayEdit = async (bayId: number, staffCount: number, hoursPerPersonPerWeek: number) => {
+    // In a real implementation, this would call an API to update the bay
+    toast({
+      title: "Bay Updated",
+      description: `Staff count: ${staffCount}, Hours per week: ${hoursPerPersonPerWeek}`,
+    });
+    
+    // For now, we'll just close the dialog
+    setEditingBay(null);
+  };
+  
   // Render
   return (
     <div className="mb-8 overflow-hidden">
@@ -305,10 +387,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           <div className="h-12 flex items-end pb-1 pl-3 text-xs font-semibold text-gray-400">
             Bays
           </div>
+          {/* Display edit button for each bay */}
           {bays.map(bay => (
             <div 
               key={bay.id} 
-              className="h-16 flex items-center px-3 border-b border-gray-700"
+              className="h-16 flex items-center justify-between px-3 border-b border-gray-700"
             >
               <div className="flex items-center">
                 <Badge variant="outline" className="mr-2">
@@ -321,6 +404,43 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   </div>
                 </div>
               </div>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setEditingBay(bay)}
+              >
+                <PencilIcon className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ))}
+          
+          {/* Empty slots for additional bays */}
+          {Array.from({ length: Math.max(0, 8 - bays.length) }).map((_, index) => (
+            <div
+              key={`empty-bay-${index}`}
+              className="h-16 flex items-center justify-between px-3 border-b border-gray-700 text-gray-500"
+            >
+              <div className="flex items-center">
+                <Badge variant="outline" className="mr-2">
+                  {bays.length + index + 1}
+                </Badge>
+                <div>
+                  <div className="text-sm font-semibold">Empty Bay</div>
+                  <div className="text-xs text-gray-500">
+                    No staff assigned
+                  </div>
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => toast({
+                  title: "Not Implemented",
+                  description: "Adding new bays is not implemented in this demo.",
+                })}
+              >
+                <PlusIcon className="h-3.5 w-3.5" />
+              </Button>
             </div>
           ))}
         </div>
@@ -352,6 +472,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           
           {/* Bay rows with schedule bars */}
           <div>
+            {/* Existing bays */}
             {bays.map(bay => (
               <div 
                 key={bay.id} 
@@ -408,6 +529,35 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 }
               </div>
             ))}
+            
+            {/* Empty bay placeholders */}
+            {Array.from({ length: Math.max(0, 8 - bays.length) }).map((_, index) => (
+              <div 
+                key={`empty-bay-grid-${index}`} 
+                className="relative h-16 border-b border-gray-700"
+                style={{ width: totalViewWidth }}
+              >
+                {/* Grid columns */}
+                <div 
+                  className="absolute inset-0 grid" 
+                  style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}
+                >
+                  {slots.map((slot, index) => (
+                    <div 
+                      key={index}
+                      className={`border-r border-gray-700 h-full ${
+                        slot.isWeekend ? 'bg-gray-800/20' : ''
+                      } ${isSameDay(slot.date, new Date()) ? 'bg-blue-900/20' : ''}`}
+                    />
+                  ))}
+                </div>
+                
+                {/* Empty indicator */}
+                <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-xs">
+                  Empty Bay (Add projects by creating a bay first)
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -450,6 +600,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             ))}
         </div>
       </div>
+
+      {/* Bay Edit Dialog */}
+      {editingBay && (
+        <EditBayDialog
+          bay={editingBay}
+          isOpen={!!editingBay}
+          onClose={() => setEditingBay(null)}
+          onSave={handleSaveBayEdit}
+        />
+      )}
     </div>
   );
 };
