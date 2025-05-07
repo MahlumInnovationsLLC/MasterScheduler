@@ -1198,28 +1198,28 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 
                 {/* Empty indicator */}
                 <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-xs">
-                  Empty Bay (Add projects by creating a bay first)
+                  Empty Team (Add projects by creating a team first)
                 </div>
                 
-                {/* Bay label */}
+                {/* Team label */}
                 <div className="absolute top-0 left-0 bg-gray-800/80 text-xs px-2 py-1 rounded-br z-20">
                   <span className="font-semibold text-blue-400 mr-1">TEAM</span> Empty
                 </div>
               </div>
             ))}
             
-            {/* Add Bay button */}
+            {/* Add Team button */}
             <div className="mt-4 flex justify-center">
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={() => {
-                  // Create a new bay with default values
+                  // Create a new team with default values
                   const newBayNumber = bays.length + 1;
                   setEditingBay({
                     id: 0, // Will be assigned by server
                     bayNumber: newBayNumber,
-                    name: `Bay ${newBayNumber}`,
+                    name: `Team ${newBayNumber}`,
                     description: null,
                     equipment: null,
                     team: null,

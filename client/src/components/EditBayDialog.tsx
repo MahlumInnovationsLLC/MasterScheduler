@@ -92,10 +92,10 @@ export function EditBayDialog({
       
       onClose();
     } catch (error) {
-      console.error('Error saving bay:', error);
+      console.error('Error saving team:', error);
       toast({
         title: "Error",
-        description: `Failed to ${isNewBay ? 'create' : 'update'} bay. Please try again.`,
+        description: `Failed to ${isNewBay ? 'create' : 'update'} team. Please try again.`,
         variant: "destructive"
       });
     } finally {
@@ -118,10 +118,10 @@ export function EditBayDialog({
       
       onClose();
     } catch (error) {
-      console.error('Error deleting bay:', error);
+      console.error('Error deleting team:', error);
       toast({
         title: "Error",
-        description: "Failed to delete bay. Please try again.",
+        description: "Failed to delete team. Please try again.",
         variant: "destructive"
       });
     } finally {
