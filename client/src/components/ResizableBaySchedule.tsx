@@ -1889,13 +1889,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         )}
                         
                         {/* Content - displayed on top of the phases */}
-                        <div className="absolute inset-0 flex items-center justify-between px-2 text-white font-semibold text-shadow-sm z-10">
-                          <div className="font-medium text-xs truncate">
-                            {bar.projectNumber}
+                        <div className="absolute inset-0 flex items-start justify-between px-2 text-white font-semibold text-shadow-sm z-10">
+                          <div className="font-medium text-xs flex flex-col pt-1">
+                            <span>{bar.projectNumber}</span>
+                            <span className="font-normal text-[10px]">{bar.totalHours}h</span>
                           </div>
-                          <div className="text-xs shrink-0">
-                            {bar.totalHours}h
-                          </div>
+                          {/* Hours removed from here and placed under project number */}
                         </div>
                         
                         {/* Hover info overlay - extends to the full calculated width of the bar */}
