@@ -28,6 +28,7 @@ import { formatDate, formatCurrency, getProjectStatusColor, getBillingStatusInfo
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import { ProjectHealthCard } from '@/components/ProjectHealthCard';
 import { MilestonesList } from '@/components/MilestonesList';
+import { ProjectPhaseInfo } from '@/components/ProjectPhaseInfo';
 import { 
   Dialog, 
   DialogContent, 
