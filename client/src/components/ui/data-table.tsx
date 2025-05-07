@@ -67,7 +67,31 @@ export function DataTable<TData, TValue>({
     data,
     columns: filteredColumns,
     getCoreRowModel: getCoreRowModel(),
+    // Custom sorting to move N/A values to the bottom
     getSortedRowModel: getSortedRowModel(),
+    sortingFns: {
+      customSort: (rowA, rowB, columnId) => {
+        let valueA = rowA.getValue(columnId);
+        let valueB = rowB.getValue(columnId);
+        
+        // Check if either value is N/A or null
+        const isAEmpty = valueA === 'N/A' || valueA === null || valueA === undefined || valueA === '';
+        const isBEmpty = valueB === 'N/A' || valueB === null || valueB === undefined || valueB === '';
+        
+        // Always move empty/N/A values to the bottom
+        if (isAEmpty && !isBEmpty) return 1;
+        if (!isAEmpty && isBEmpty) return -1;
+        if (isAEmpty && isBEmpty) return 0;
+        
+        // Regular string comparison for non-empty values
+        if (typeof valueA === 'string' && typeof valueB === 'string') {
+          return valueA.localeCompare(valueB);
+        }
+        
+        // Numeric comparison
+        return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
+      }
+    },
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
@@ -139,7 +163,8 @@ export function DataTable<TData, TValue>({
               style={{ 
                 display: 'flex',
                 background: 'var(--background)',
-                borderRight: '2px solid var(--primary)'
+                borderRight: '2px solid var(--primary)',
+                boxSizing: 'border-box'
               }}
             >
               <table className="border-collapse">
@@ -306,9 +331,9 @@ export function DataTable<TData, TValue>({
                                 style={{ 
                                   minWidth: '150px',
                                   borderRight: '1px solid var(--border-muted)',
-                                  height: '54px',
-                                  paddingTop: '18px',
-                                  paddingBottom: '18px'
+                                  height: '48px',
+                                  paddingTop: '14px',
+                                  paddingBottom: '14px'
                                 }}
                               >
                                 {flexRender(
