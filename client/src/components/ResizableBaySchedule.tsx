@@ -1418,7 +1418,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Add week number to the data attribute for debugging
     if (slots && slotIndex >= 0 && slotIndex < slots.length) {
       const weekNumber = format(slots[slotIndex].date, 'w');
-      target.setAttribute('data-week-number', weekNumber);
+      
+      // Make sure we have a reference to the current target
+      const currentTarget = e.currentTarget as HTMLElement;
+      if (currentTarget) {
+        currentTarget.setAttribute('data-week-number', weekNumber);
+      }
       
       // Log drag over an explicit week for debugging
       console.log(`Dragging over Bay ${bayId}, Week ${weekNumber} (index ${slotIndex}), Row ${validRowIndex}`);
