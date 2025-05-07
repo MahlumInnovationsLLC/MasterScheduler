@@ -939,7 +939,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   </Badge>
                   <div>
                     <div className="text-sm font-semibold">
-                      <span className="font-semibold text-blue-400 mr-1">TEAM</span> {bay.name}
+                      <span className="font-semibold text-blue-400 mr-1">TEAM</span> {bay.name} 
+                      {bay.description && (
+                        <span className="text-gray-400 text-xs font-normal ml-1">- {bay.description}</span>
+                      )}
                     </div>
                     <BayCapacityInfo bay={bay} />
                   </div>
