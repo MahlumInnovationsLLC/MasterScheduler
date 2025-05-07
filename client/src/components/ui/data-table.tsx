@@ -279,7 +279,7 @@ export function DataTable<TData, TValue>({
                   
                   {/* Dedicated empty row in frozen section to match scrollbar row height */}
                   <tr className="scrollbar-row">
-                    <td colSpan={frozenColumns.length} style={{ height: '0px', padding: 0 }}></td>
+                    <td colSpan={frozenColumns.length} style={{ height: '15px', padding: 0 }}></td>
                   </tr>
                 </tbody>
               </table>
@@ -381,7 +381,7 @@ export function DataTable<TData, TValue>({
                   
                   {/* Dedicated row for horizontal scrollbar */}
                   <tr className="scrollbar-row">
-                    <td colSpan={columns.length - frozenColumns.length} style={{ height: '0px', padding: 0 }}></td>
+                    <td colSpan={columns.length - frozenColumns.length} style={{ height: '15px', padding: 0 }}></td>
                   </tr>
                 </tbody>
               </table>
