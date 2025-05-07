@@ -342,6 +342,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   
   // Add a version counter to force recalculation of schedules
   const [recalculationVersion, setRecalculationVersion] = useState(1);
+
+  // State to track if the sticky header is visible
+  const [stickyHeaderVisible, setStickyHeaderVisible] = useState(false);
   
   // Add state for warning popup when manual resizing affects capacity
   const [showCapacityWarning, setShowCapacityWarning] = useState(false);
@@ -363,6 +366,49 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   useEffect(() => {
     setRecalculationVersion(prev => prev + 1);
   }, [schedules.length]);
+
+  // Set up sticky header behavior on scroll
+  useEffect(() => {
+    // Function to handle scroll events
+    const handleScroll = () => {
+      if (!weekHeaderRef.current || !stickyHeaderRef.current) return;
+      
+      // Get the position of the original header
+      const headerRect = weekHeaderRef.current.getBoundingClientRect();
+      const headerTop = headerRect.top;
+      
+      // Get the width and position of the header for proper alignment
+      const headerWidth = headerRect.width;
+      const headerLeft = headerRect.left;
+      
+      // Show sticky header when original header goes out of view (above the viewport)
+      if (headerTop < 0) {
+        // Make sticky header visible and position it correctly
+        stickyHeaderRef.current.classList.remove('hidden');
+        stickyHeaderRef.current.style.width = `${headerWidth}px`;
+        stickyHeaderRef.current.style.left = `${headerLeft}px`;
+        setStickyHeaderVisible(true);
+      } else {
+        // Hide sticky header when original header is visible
+        stickyHeaderRef.current.classList.add('hidden');
+        setStickyHeaderVisible(false);
+      }
+    };
+    
+    // Get the main scrollable container
+    const scrollContainer = document.querySelector('.main-content');
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll);
+      
+      // Initial check
+      handleScroll();
+      
+      // Clean up
+      return () => {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, []);
   
   // Function to automatically adjust schedules to maintain 100% capacity usage
   // Now takes optional bayId to only adjust a specific bay
@@ -2709,7 +2755,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   `;
     
   return (
-    <div className="mb-8 overflow-hidden">
+    <div className="mb-8 overflow-hidden main-content">
       <style dangerouslySetInnerHTML={{ __html: customCSS }} />
       
       {/* Capacity Warning Alert Dialog */}
