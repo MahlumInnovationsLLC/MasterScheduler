@@ -808,6 +808,44 @@
   box-shadow: inset 0 0 6px rgba(var(--primary-rgb), 0.25);
 }
 
+/* Column highlight styling */
+.week-column-highlight {
+  background-color: rgba(var(--primary-rgb), 0.05) !important;
+  border-left: 1px solid rgba(var(--primary-rgb), 0.3) !important;
+  border-right: 1px solid rgba(var(--primary-rgb), 0.3) !important;
+  z-index: 3;
+}
+
+.dark .week-column-highlight {
+  background-color: rgba(var(--primary-rgb), 0.1) !important;
+  border-left: 1px solid rgba(var(--primary-rgb), 0.4) !important;
+  border-right: 1px solid rgba(var(--primary-rgb), 0.4) !important;
+}
+
+.light .week-column-highlight {
+  background-color: rgba(var(--primary-rgb), 0.05) !important;
+  border-left: 1px solid rgba(var(--primary-rgb), 0.3) !important;
+  border-right: 1px solid rgba(var(--primary-rgb), 0.3) !important;
+}
+
+/* Target cell highlight at intersection of row and column */
+.target-cell-highlight {
+  background-color: rgba(var(--primary-rgb), 0.3) !important;
+  border: 2px solid hsl(var(--primary)) !important;
+  z-index: 10;
+  box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.5);
+}
+
+.dark .target-cell-highlight {
+  background-color: rgba(var(--primary-rgb), 0.25) !important;
+  border: 2px solid rgba(var(--primary-rgb), 0.9) !important;
+}
+
+.light .target-cell-highlight {
+  background-color: rgba(var(--primary-rgb), 0.15) !important;
+  border: 2px solid rgba(var(--primary-rgb), 0.6) !important;
+}
+
 /* Vertical text for small sections */
 .vertical-text {
   writing-mode: vertical-rl;

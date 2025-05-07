@@ -2009,7 +2009,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log('Exact target start date (before any FAB calculations):', exactTargetStartDate);
         
         // Store this for later use - CRUCIAL for proper week positioning
+        // Adding direct data modification here could be problematic - need to create a new object property
         data.targetStartDate = exactTargetStartDate.toISOString();
+        
+        // CRITICAL DEBUG: Add more verbose logging
+        console.log('SAVED EXACT TARGET START DATE:', data.targetStartDate);
       }
       
       // Final validation
