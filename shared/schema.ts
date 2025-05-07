@@ -187,7 +187,7 @@ export const projects = pgTable("projects", {
   
   // Project details
   percentComplete: decimal("percent_complete", { precision: 5, scale: 2 }).default("0").notNull(),
-  totalHours: integer("total_hours").default(40), // Total hours needed for manufacturing
+  totalHours: integer("total_hours").default(1000), // Total hours needed for manufacturing
   dpasRating: text("dpas_rating"),
   stretchShortenGears: text("stretch_shorten_gears"),
   lltsOrdered: boolean("llts_ordered").default(false),
@@ -247,7 +247,7 @@ export const archivedProjects = pgTable("archived_projects", {
   deliveryDate: date("delivery_date"),
   
   // Project details
-  totalHours: integer("total_hours").default(40), // Total hours needed for manufacturing
+  totalHours: integer("total_hours").default(1000), // Total hours needed for manufacturing
   percentComplete: decimal("percent_complete", { precision: 5, scale: 2 }).default("0").notNull(),
   dpasRating: text("dpas_rating"),
   stretchShortenGears: text("stretch_shorten_gears"),
@@ -387,7 +387,7 @@ export const manufacturingSchedules = pgTable("manufacturing_schedules", {
     .notNull(),
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
-  totalHours: integer("total_hours").default(40), // Total hours needed for this project
+  totalHours: integer("total_hours").default(1000), // Total hours needed for this project
   row: integer("row").default(0), // Row position within bay (0-3)
   status: manufacturingStatusEnum("status").default("scheduled").notNull(),
   notes: text("notes"),
