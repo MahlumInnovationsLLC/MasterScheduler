@@ -1404,25 +1404,34 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const dataDate = target.getAttribute('data-date');
       if (dataDate) {
         // Store this for the drop handler - CRUCIAL for preserving week position
-        target.setAttribute('data-exact-date', dataDate);
+        // CRITICAL FIX: Always use this format to ensure consistent date handling
+        const dateObj = new Date(dataDate);
+        // CRITICAL FIX: Force exact dates to start at beginning of the week 
+        // This fixes the week placement issues where projects would snap to wrong week
+        const exactWeekStart = format(startOfWeek(dateObj, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        
+        // IMPORTANT: Set a global variable with this date for use in the drop handler
+        (window as any).lastExactDate = exactWeekStart;
+        
+        target.setAttribute('data-exact-date', exactWeekStart);
+        console.log(`Storing exact week start date: ${exactWeekStart} (from date ${dataDate})`);
         
         // Also store this date on the parent bay element for better target identification
         const parentBay = target.closest('.bay-container');
         if (parentBay) {
-          parentBay.setAttribute('data-last-dragover-date', dataDate);
+          parentBay.setAttribute('data-last-dragover-date', exactWeekStart);
         }
         
         // Also add this date to active drop elements that don't have a date
         document.querySelectorAll('.active-drop-target').forEach(el => {
           if (!el.hasAttribute('data-exact-date')) {
-            el.setAttribute('data-exact-date', dataDate);
+            el.setAttribute('data-exact-date', exactWeekStart);
           }
         });
         
         // Log the exact date and week for debugging
-        const exactDate = new Date(dataDate);
-        const weekNumber = format(exactDate, 'w');
-        const dateFormatted = format(exactDate, 'MMM d, yyyy');
+        const weekNumber = format(dateObj, 'w');
+        const dateFormatted = format(dateObj, 'MMM d, yyyy');
         console.log(`Target cell date: ${dateFormatted} (Week ${weekNumber})`);
         
         // CRITICAL FIX: Also add the slot index to this element data attribute
@@ -2112,13 +2121,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
       
       // First get the exact start date that we're using
-      const exactStartDate = data.targetStartDate ? new Date(data.targetStartDate) : slotDate;
+      // CRITICAL FIX: Use the global variable we set in handleDragOver if available
+      // This ensures we use the exact week that was targeted during dragging
+      const globalExactDate = (window as any).lastExactDate;
+      console.log(`Global exact date from drag: ${globalExactDate}`);
+      
+      const exactStartDate = globalExactDate 
+        ? new Date(globalExactDate)
+        : (data.targetStartDate ? new Date(data.targetStartDate) : slotDate);
       
       // Calculate the FAB phase duration from the exact start date
       const exactFabEndDate = addDays(exactStartDate, fabDays);
       
-      // Now calculate the final end date by adding production days to the FAB end date
-      const finalEndDate = addDays(exactFabEndDate, prodDays);
+      // CRITICAL FIX: Calculate proper end date based on capacity per week
+      // Force the production phase to only take the weeks needed based on capacity calculations
+      // This directly prevents projects from auto-stretching across the entire timeline
+      const forcedProdDuration = prodWeeksNeeded * 7; // Convert weeks to days
+      console.log(`ENFORCED production duration: ${forcedProdDuration} days (${prodWeeksNeeded} weeks)`);
+      
+      // Now calculate the final end date by adding ONLY the exact production days to the FAB end date
+      const finalEndDate = addDays(exactFabEndDate, forcedProdDuration);
       
       // Store the formatted target date for API - CRUCIAL for preserving exact week position
       const formattedExactStartDate = format(exactStartDate, 'yyyy-MM-dd');
@@ -2201,11 +2223,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const startDateToUse = formattedExactStartDate || data.targetStartDate || format(slotDate, 'yyyy-MM-dd');
         console.log('Using start date for new schedule:', startDateToUse, '(formatted from', exactStartDate, ')');
         
+        // Format the finalEndDate properly for the API
+        const formattedFinalEndDate = format(finalEndDate, 'yyyy-MM-dd');
+        console.log('Using END date for new schedule:', formattedFinalEndDate, '(formatted from', finalEndDate, ')');
+        
         onScheduleCreate(
           data.projectId,
           targetBayId,
           startDateToUse,
-          finalEndDate.toISOString(),
+          formattedFinalEndDate,
           data.totalHours || 1000,
           targetRowIndex // Include rowIndex for vertical positioning
         )
@@ -2238,8 +2264,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       });
     }
     
+    // Reset states and clear the global variables after use
     setDropTarget(null);
     setDraggingSchedule(null);
+    // Clear the global date variable we set during drag operations
+    (window as any).lastExactDate = null;
   };
   
   // Update state after edits
