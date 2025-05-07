@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ManufacturingCard } from '@/components/ManufacturingCard';
+import { BayUtilizationCard } from '@/components/BayUtilizationCard';
+import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
 import { 
@@ -423,38 +425,48 @@ const BaySchedulingPage = () => {
       </div>
       
       {/* Stats row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <ManufacturingCard
-          title="Bay Utilization"
-          value={bayUtilization}
-          type="utilization"
-          subtitle="Average utilization of staffed bays"
-          change={{ value: "+5%", isPositive: true }}
-        />
-        <ManufacturingCard
-          title="Manufacturing Capacity"
-          value={totalCapacityHours}
-          type="resources"
-          stats={[
-            { label: "Total Hours", value: totalCapacityHours },
-            { label: "Total Bays", value: manufacturingBays.length },
-            { label: "Active Projects", value: scheduledProjectsCount },
-            { label: "Unassigned", value: projects.length - scheduledProjectsCount },
-          ]}
-        />
-        <Card>
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">AI Insights</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="mb-3">
-              <p className="text-sm text-gray-400">
-                Optimize your manufacturing schedule with AI-powered insights.
-              </p>
-            </div>
-            <AIInsightsModal />
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="md:col-span-1">
+          <BayUtilizationCard
+            title="Bay Utilization"
+            value={bayUtilization}
+            subtitle="Average utilization of staffed bays"
+            change={{ value: "+5%", isPositive: true }}
+            bays={manufacturingBays}
+            schedules={manufacturingSchedules}
+          />
+        </div>
+        <div className="md:col-span-1">
+          <HighRiskProjectsCard projects={projects} />
+        </div>
+        <div className="md:col-span-1">
+          <ManufacturingCard
+            title="Manufacturing Capacity"
+            value={totalCapacityHours}
+            type="resources"
+            stats={[
+              { label: "Total Hours", value: totalCapacityHours },
+              { label: "Total Bays", value: manufacturingBays.length },
+              { label: "Active Projects", value: scheduledProjectsCount },
+              { label: "Unassigned", value: projects.length - scheduledProjectsCount },
+            ]}
+          />
+        </div>
+        <div className="md:col-span-1">
+          <Card className="h-full">
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">AI Insights</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="mb-3">
+                <p className="text-sm text-gray-400">
+                  Optimize your manufacturing schedule with AI-powered insights.
+                </p>
+              </div>
+              <AIInsightsModal />
+            </CardContent>
+          </Card>
+        </div>
       </div>
       
       {/* Controls bar */}

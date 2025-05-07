@@ -49,6 +49,12 @@ export const dealPriorityEnum = pgEnum("deal_priority", [
   "urgent"
 ]);
 
+export const projectRiskLevelEnum = pgEnum("project_risk_level", [
+  "low",
+  "medium",
+  "high"
+]);
+
 export const billingStatusEnum = pgEnum("billing_status", [
   "upcoming",
   "invoiced",
@@ -214,6 +220,7 @@ export const projects = pgTable("projects", {
   
   // Status fields
   status: projectStatusEnum("status").default("active").notNull(),
+  riskLevel: projectRiskLevelEnum("risk_level").default("medium"),
   hasBillingMilestones: boolean("has_billing_milestones").default(false),
   notes: text("notes"),
   
@@ -285,6 +292,7 @@ export const archivedProjects = pgTable("archived_projects", {
   
   // Status fields - always "archived" for archived projects
   status: projectStatusEnum("status").default("archived").notNull(),
+  riskLevel: projectRiskLevelEnum("risk_level").default("medium"),
   hasBillingMilestones: boolean("has_billing_milestones").default(false),
   notes: text("notes"),
   
