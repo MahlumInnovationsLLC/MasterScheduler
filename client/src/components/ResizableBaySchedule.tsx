@@ -211,7 +211,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     initialEndDate: Date;
     projectId: number;
     bayId: number;
+    row?: number;
   } | null>(null);
+  
+  // Track which slot/week the resize is hovering over for visual feedback
+  const [resizeHoverSlot, setResizeHoverSlot] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{ bayId: number, slotIndex: number, rowIndex?: number } | null>(null);
   const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
   const [newBay, setNewBay] = useState<ManufacturingBay | null>(null);
@@ -528,6 +532,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       return;
     }
     
+    // Extract row index from class name (format: row-X-bar)
+    const rowClasses = Array.from(barElement.classList).filter(cls => cls.startsWith('row-') && cls.endsWith('-bar'));
+    let row = 0; // Default to first row
+    if (rowClasses.length > 0) {
+      const rowMatch = rowClasses[0].match(/row-(\d+)-bar/);
+      if (rowMatch && rowMatch[1]) {
+        row = parseInt(rowMatch[1], 10);
+      }
+    }
+    
     // Set resizing state
     setResizingSchedule({
       id: barId,
@@ -538,8 +552,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       initialStartDate: new Date(schedule.startDate),
       initialEndDate: new Date(schedule.endDate),
       projectId,
-      bayId
+      bayId,
+      row
     });
+    
+    // Reset the hover slot state
+    setResizeHoverSlot(null);
     
     // Add resize event listeners
     document.addEventListener('mousemove', handleResizeMove);
@@ -563,21 +581,65 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const timelineContainer = barElement.closest('.timeline-container');
     if (!timelineContainer) return;
     
+    // Calculate which week/slot we're hovering over
+    // First, get the timeline container offset
+    const timelineRect = timelineContainer.getBoundingClientRect();
+    const relativeX = e.clientX - timelineRect.left;
+    
+    // Determine which slot index we're over
+    const hoverSlotIndex = Math.floor(relativeX / slotWidth);
+    
+    // Highlight the week we're hovering over for visual feedback
+    if (hoverSlotIndex !== resizeHoverSlot) {
+      // Remove previous hover highlights
+      document.querySelectorAll('.week-cell-resize-hover').forEach(el => {
+        el.classList.remove('week-cell-resize-hover');
+      });
+      
+      // Add highlight to the current slot
+      const weekCell = timelineContainer.querySelector(`.week-cell:nth-child(${hoverSlotIndex + 1})`);
+      if (weekCell) {
+        weekCell.classList.add('week-cell-resize-hover');
+      }
+      
+      // Update the state
+      setResizeHoverSlot(hoverSlotIndex);
+    }
+    
+    // Calculate the snap position based on weeks
+    let newLeft = resizingSchedule.initialLeft;
+    let newWidth = resizingSchedule.initialWidth;
+    
     if (resizingSchedule.direction === 'left') {
       // Resizing from left (changing start date)
-      const newLeft = Math.max(0, resizingSchedule.initialLeft + deltaX);
-      const newWidth = resizingSchedule.initialWidth - (newLeft - resizingSchedule.initialLeft);
+      // Calculate which slot this would snap to
+      const snapSlot = Math.floor((resizingSchedule.initialLeft + deltaX) / slotWidth);
+      const snapLeft = snapSlot * slotWidth;
+      
+      // Update left position and width
+      newLeft = Math.max(0, snapLeft);
+      newWidth = resizingSchedule.initialWidth - (newLeft - resizingSchedule.initialLeft);
       
       // Update visual appearance while dragging
       barElement.style.left = `${newLeft}px`;
       barElement.style.width = `${newWidth}px`;
     } else {
       // Resizing from right (changing end date)
-      const newWidth = Math.max(50, resizingSchedule.initialWidth + deltaX);
+      // Calculate which slot this would snap to
+      const currentRightEdge = resizingSchedule.initialLeft + resizingSchedule.initialWidth;
+      const newRightEdge = currentRightEdge + deltaX;
+      const snapSlot = Math.ceil(newRightEdge / slotWidth);
+      const snapRight = snapSlot * slotWidth;
+      
+      // Update width based on snap position
+      newWidth = Math.max(50, snapRight - resizingSchedule.initialLeft);
       
       // Update visual appearance while dragging
       barElement.style.width = `${newWidth}px`;
     }
+    
+    // Add a data attribute to track the hover slot for debugging
+    barElement.dataset.hoverSlot = hoverSlotIndex.toString();
   };
   
   // Handle the end of resize operation
@@ -589,8 +651,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
       if (!barElement) return;
       
-      // Calculate the new dates based on pixel positions
-      const deltaX = e.clientX - resizingSchedule.startX;
+      // Clear any resize hover highlights
+      document.querySelectorAll('.week-cell-resize-hover').forEach(el => {
+        el.classList.remove('week-cell-resize-hover');
+      });
       
       // Get the time factor for date calculations based on view mode
       const msPerDay = 24 * 60 * 60 * 1000;
@@ -602,11 +666,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       let newEndDate = new Date(resizingSchedule.initialEndDate);
       
       if (resizingSchedule.direction === 'left') {
-        // Calculate new start date
-        const pixelsDelta = deltaX; // Simplified - just use the raw movement
-        const pixelsPerDay = slotWidth / daysBetweenSlots;
-        const daysDelta = Math.round(pixelsDelta / pixelsPerDay);
-        newStartDate = addDays(resizingSchedule.initialStartDate, daysDelta);
+        // Calculate which slot this snapped to
+        const snapSlot = Math.floor(parseInt(barElement.style.left, 10) / slotWidth);
+        
+        if (snapSlot >= 0 && snapSlot < slots.length) {
+          // Get the date from the slot
+          newStartDate = new Date(slots[snapSlot].date);
+        } else {
+          // Fallback to pixel-based calculation
+          const pixelsDelta = parseInt(barElement.style.left, 10) - resizingSchedule.initialLeft;
+          const pixelsPerDay = slotWidth / daysBetweenSlots;
+          const daysDelta = Math.round(pixelsDelta / pixelsPerDay);
+          newStartDate = addDays(resizingSchedule.initialStartDate, daysDelta);
+        }
         
         // Ensure start date is not after end date
         if (newStartDate >= newEndDate) {
@@ -614,11 +686,31 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           newStartDate.setDate(newEndDate.getDate() - 1); // At least 1 day between start and end
         }
       } else {
-        // Calculate new end date
-        const pixelsDelta = deltaX; // Simplified - just use the raw movement
-        const pixelsPerDay = slotWidth / daysBetweenSlots;
-        const daysDelta = Math.round(pixelsDelta / pixelsPerDay);
-        newEndDate = addDays(resizingSchedule.initialEndDate, daysDelta);
+        // Calculate which slot this snapped to for the right edge
+        const rightEdge = parseInt(barElement.style.left, 10) + parseInt(barElement.style.width, 10);
+        const snapSlot = Math.ceil(rightEdge / slotWidth);
+        
+        if (snapSlot >= 0 && snapSlot < slots.length) {
+          // Get the date from the slot
+          newEndDate = new Date(slots[snapSlot].date);
+          
+          // When using week (or larger) view mode, each slot represents the start of a period
+          // So we need to add the day count to get to the end of that period for the end date
+          if (viewMode === 'week') {
+            newEndDate = addDays(newEndDate, 6); // End of week
+          } else if (viewMode === 'month') {
+            newEndDate = endOfMonth(newEndDate); // End of month
+          } else if (viewMode === 'quarter') {
+            newEndDate = addMonths(newEndDate, 3); // End of quarter
+            newEndDate = addDays(newEndDate, -1);
+          }
+        } else {
+          // Fallback to pixel-based calculation
+          const pixelsDelta = rightEdge - (resizingSchedule.initialLeft + resizingSchedule.initialWidth);
+          const pixelsPerDay = slotWidth / daysBetweenSlots;
+          const daysDelta = Math.round(pixelsDelta / pixelsPerDay);
+          newEndDate = addDays(resizingSchedule.initialEndDate, daysDelta);
+        }
         
         // Ensure end date is not before start date
         if (newEndDate <= newStartDate) {
