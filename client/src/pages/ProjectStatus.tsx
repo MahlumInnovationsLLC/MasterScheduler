@@ -304,11 +304,19 @@ const ProjectStatus = () => {
     cellRenderer: (value: ProjectWithRawData[T], project: ProjectWithRawData) => React.ReactNode,
     options: Record<string, any> = {}
   ) => {
+    // Determine if this is a date column
+    const isDateColumn = 
+      id.toLowerCase().includes('date') || 
+      id.toLowerCase().includes('eta') || 
+      id.toLowerCase().includes('start') ||
+      id.toLowerCase().includes('completion');
+    
     return {
       id,
       accessorKey,
       header,
-      sortingFn: 'alphanumeric', // Default sorting function to handle N/A values properly
+      // Use custom sort function to make N/A values appear at the bottom
+      sortingFn: options.sortingFn || 'customSort' as any,
       ...options,
       cell: ({ row }: { row: ProjectRow }) => {
         try {

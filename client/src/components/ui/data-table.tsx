@@ -71,8 +71,8 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     sortingFns: {
       customSort: (rowA, rowB, columnId) => {
-        let valueA = rowA.getValue(columnId);
-        let valueB = rowB.getValue(columnId);
+        let valueA = rowA.getValue(columnId) as string | number | Date | null | undefined;
+        let valueB = rowB.getValue(columnId) as string | number | Date | null | undefined;
         
         // Check if either value is N/A or null
         const isAEmpty = valueA === 'N/A' || valueA === null || valueA === undefined || valueA === '';
@@ -83,13 +83,25 @@ export function DataTable<TData, TValue>({
         if (!isAEmpty && isBEmpty) return -1;
         if (isAEmpty && isBEmpty) return 0;
         
+        // Date comparison
+        if (valueA instanceof Date && valueB instanceof Date) {
+          return valueA.getTime() - valueB.getTime();
+        }
+        
         // Regular string comparison for non-empty values
         if (typeof valueA === 'string' && typeof valueB === 'string') {
           return valueA.localeCompare(valueB);
         }
         
         // Numeric comparison
-        return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
+        if (typeof valueA === 'number' && typeof valueB === 'number') {
+          return valueA - valueB;
+        }
+        
+        // Fallback for mixed types - convert to strings and compare
+        const strA = String(valueA);
+        const strB = String(valueB);
+        return strA.localeCompare(strB);
       }
     },
     getFilteredRowModel: getFilteredRowModel(),
