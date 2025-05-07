@@ -258,7 +258,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         // Initialize variables for week-by-week calculation
         let remainingHours = totalHours;
-        let currentDate = new Date(productionStartDate);
+        
+        // CRITICAL: Start allocation from the PRODUCTION start date (after FAB)
+        // This ensures the FAB phase isn't affected by capacity sharing
+        let currentDate = new Date(productionStartDate); 
         let newEndDate = new Date(productionStartDate);
         
         // Find all other schedules in this bay
@@ -270,19 +273,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           const weekStart = startOfWeek(currentDate);
           const weekEnd = endOfWeek(currentDate);
           
-          // Count overlapping projects in this week (in production phase)
+          // Count ONLY projects that are in their PRODUCTION phase this week (AFTER FAB)
           const projectsInWeek = otherSchedules.filter(s => {
             const scheduleStart = new Date(s.startDate);
-            // Add FAB phase to get production start date
+            // Get the project to find its FAB weeks setting
             const schedProject = projects.find(p => p.id === s.projectId);
             const schedFabWeeks = schedProject?.fabWeeks || 4;
+            
+            // Calculate when production phase starts (after FAB)
             const schedProductionStart = addDays(scheduleStart, schedFabWeeks * 7);
             const scheduleEnd = new Date(s.endDate);
             
-            return (
-              (schedProductionStart <= weekEnd && scheduleEnd >= weekStart) ||
-              (scheduleStart <= weekEnd && scheduleEnd >= weekStart)
-            );
+            // Only count projects where this week falls within their PRODUCTION phase
+            // (i.e., after their FAB phase has ended and before their end date)
+            return (schedProductionStart <= weekEnd && scheduleEnd >= weekStart);
           });
           
           // Calculate available capacity for this project in this week
