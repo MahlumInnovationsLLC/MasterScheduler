@@ -2631,6 +2631,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
       
     } else {
+      // Show loading state
+      setIsMovingProject(true);
+      
       // Apply the change directly
       onScheduleChange(
         scheduleId,
@@ -2652,6 +2655,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Force UI update by incrementing recalculation version
         setRecalculationVersion(prev => prev + 1);
         
+        // Clear loading state
+        setIsMovingProject(false);
+        
         // Highlight the updated bar to make the change more visible
         const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${scheduleId}"]`) as HTMLElement;
         if (barElement) {
@@ -2664,6 +2670,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       })
       .catch(error => {
         console.error('Error updating schedule:', error);
+        
+        // Clear loading state
+        setIsMovingProject(false);
+        
         toast({
           title: "Error",
           description: "Failed to update schedule",
@@ -2978,6 +2988,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               <AlertDialogAction
                 onClick={() => {
                   if (capacityWarningData) {
+                    // Show loading state
+                    setIsMovingProject(true);
+                    
                     onScheduleChange(
                       capacityWarningData.scheduleId,
                       capacityWarningData.bayId,
@@ -2987,6 +3000,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       schedules.find(s => s.id === capacityWarningData.scheduleId)?.row || 0
                     )
                     .then(() => {
+                      // Clear loading state
+                      setIsMovingProject(false);
+                      
                       toast({
                         title: "Schedule Updated",
                         description: "Manual adjustment applied successfully",
@@ -2997,6 +3013,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
                     })
                     .catch(error => {
+                      // Clear loading state
+                      setIsMovingProject(false);
+                      
                       console.error('Error applying manual adjustment:', error);
                       toast({
                         title: "Error",
