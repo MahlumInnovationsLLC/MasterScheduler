@@ -191,6 +191,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   const [newBay, setNewBay] = useState<ManufacturingBay | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   
+  // Add a version counter to force recalculation of schedules
+  const [recalculationVersion, setRecalculationVersion] = useState(1);
+  
+  // Force a recalculation when component mounts or when schedules change
+  useEffect(() => {
+    setRecalculationVersion(prev => prev + 1);
+  }, [schedules.length]);
+  
   // Generate time slots based on view mode
   const { slots, slotWidth } = useMemo(() => 
     generateTimeSlots(dateRange, viewMode), 
@@ -202,6 +210,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Map schedules to visual bars
   const scheduleBars = useMemo(() => {
     if (!schedules.length || !slots.length) return [];
+    
+    console.log(`Recalculating schedule bars (version ${recalculationVersion}): ensuring capacity sharing only starts AFTER FAB phase ends`);
     
     // First, group schedules by bay
     const schedulesByBay = schedules.reduce((acc, schedule) => {
@@ -429,7 +439,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     });
     
     return processedBars;
-  }, [schedules, projects, bays, slots, viewMode, slotWidth]);
+  }, [schedules, projects, bays, slots, viewMode, slotWidth, recalculationVersion]);
   
   // Handle drag start
   const handleDragStart = (e: React.DragEvent, type: 'existing' | 'new', data: any) => {

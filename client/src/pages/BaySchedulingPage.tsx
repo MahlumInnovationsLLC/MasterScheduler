@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { addDays, addWeeks, addMonths, format } from 'date-fns';
 import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
@@ -29,6 +29,14 @@ import {
 
 const BaySchedulingPage = () => {
   const { toast } = useToast();
+  
+  // Force a refresh of manufacturing schedules when page loads
+  // This ensures capacity sharing calculations are correctly applied
+  useEffect(() => {
+    // Force immediate refetch of all schedule data
+    queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+    console.log("Manufacturing page loaded: forcing refresh of schedules to apply capacity sharing after FAB phase");
+  }, []);
   
   // View mode and date range
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'quarter'>('week');
