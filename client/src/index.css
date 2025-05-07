@@ -795,9 +795,10 @@
 
 /* Vertical column highlight during resize operations */
 .vertical-highlight-column {
-  background-color: rgba(var(--primary-rgb), 0.15) !important;
+  background-color: rgba(var(--primary-rgb), 0.2) !important;
   position: relative;
   z-index: 5;
+  box-shadow: inset 0 0 0 1px rgba(var(--primary-rgb), 0.3) !important;
 }
 
 .vertical-highlight-column::after {
@@ -805,8 +806,10 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 2px;
+  width: 3px;
   background-color: hsl(var(--primary));
+  box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.8);
+  z-index: 50;
 }
 
 .vertical-highlight-column.left-resize::after {
@@ -815,6 +818,15 @@
 
 .vertical-highlight-column.right-resize::after {
   right: 0;
+}
+
+/* Theme-specific variations for vertical highlights */
+.dark .vertical-highlight-column {
+  background-color: rgba(var(--primary-rgb), 0.25) !important;
+}
+
+.light .vertical-highlight-column {
+  background-color: rgba(var(--primary-rgb), 0.15) !important;
 }
 
 .dark .week-cell-hover {

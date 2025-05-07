@@ -2513,8 +2513,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Show warning toast with details
       toast({
         title: "Over Capacity Warning",
-        description: `Bay will be at ${capacityImpact.percentage}% utilization for ${capacityImpact.weekCount} weeks`,
-        variant: "warning",
+        description: `Bay will be at ${capacityImpact.percentage}% utilization in affected weeks`,
+        variant: "destructive",
       });
       
       // Even with the warning, we'll update the UI immediately to show the new dates
