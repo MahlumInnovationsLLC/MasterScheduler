@@ -1837,13 +1837,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // First try the direct target element for data attributes
     const dataBayId = targetElement.getAttribute('data-bay-id');
-    const dataSlotIndex = targetElement.getAttribute('data-slot-index'); 
+    const dataSlotIndex = targetElement.getAttribute('data-slot-index');
+    const dataExactSlotIndex = targetElement.getAttribute('data-exact-slot-index'); // Check for exact slot index 
     const dataRow = targetElement.getAttribute('data-row');
     const dataDate = targetElement.getAttribute('data-date');
     
     // Apply any attributes found directly on the target
+    // PRIORITY ORDER:
+    // 1. data-exact-slot-index (set during drag over)
+    // 2. data-slot-index
     if (dataBayId) targetBayId = parseInt(dataBayId);
-    if (dataSlotIndex) targetSlotIndex = parseInt(dataSlotIndex);
+    if (dataExactSlotIndex) {
+      targetSlotIndex = parseInt(dataExactSlotIndex);
+      console.log('Using exact slot index from data-exact-slot-index:', targetSlotIndex);
+    } else if (dataSlotIndex) {
+      targetSlotIndex = parseInt(dataSlotIndex);
+      console.log('Using slot index from data-slot-index:', targetSlotIndex);
+    }
     if (dataRow) targetRowIndex = parseInt(dataRow);
     
     // Then try to find the closest cell marker element with data-slot-index if needed
@@ -2179,6 +2189,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Now calculate the end date by adding production days to the FAB end date
       endDate = addDays(exactFabEndDate, productionDays);
       
+      // Store the formatted target date for API - CRUCIAL for preserving exact week position
+      const formattedExactStartDate = format(exactStartDate, 'yyyy-MM-dd');
+      
       console.log('Calculated dates:', {
         exactStartDate: exactStartDate.toISOString(),
         fabEndDate: exactFabEndDate.toISOString(),
@@ -2214,8 +2227,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Use promise-based approach instead of async/await
         // IMPORTANT: Use the exact targetStartDate we captured earlier instead of the slotDate 
         // which may have been modified for FAB calculations
-        const startDateToUse = data.targetStartDate || slotDate.toISOString();
-        console.log('Using start date for schedule change:', startDateToUse);
+        // CRITICAL FIX: Use the properly formatted date string for API compatibility
+        const startDateToUse = formattedExactStartDate || data.targetStartDate || format(slotDate, 'yyyy-MM-dd');
+        console.log('Using start date for schedule change:', startDateToUse, '(formatted from', exactStartDate, ')');
         
         onScheduleChange(
           data.id,
@@ -2252,8 +2266,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       } else {
         // Create new schedule with row assignment using target values from data attributes
         // Also use the exact targetStartDate for new schedules to ensure they start exactly where dropped
-        const startDateToUse = data.targetStartDate || slotDate.toISOString();
-        console.log('Using start date for new schedule:', startDateToUse);
+        // CRITICAL FIX: Use the properly formatted date string for API compatibility
+        const startDateToUse = formattedExactStartDate || data.targetStartDate || format(slotDate, 'yyyy-MM-dd');
+        console.log('Using start date for new schedule:', startDateToUse, '(formatted from', exactStartDate, ')');
         
         onScheduleCreate(
           data.projectId,
