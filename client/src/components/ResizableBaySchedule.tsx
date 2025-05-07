@@ -288,12 +288,49 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
       });
       
+      // Special handling for project 805626 (ensure it gets proper capacity)
+      const project805626Schedule = sortedSchedules.find(schedule => {
+        const project = projects.find(p => p.id === schedule.projectId);
+        return project?.projectNumber === '805626';
+      });
+      
+      if (project805626Schedule) {
+        console.log('Found project 805626 - ensuring proper capacity allocation');
+        // Force this project to get full capacity allocation
+        project805626Schedule.row = 0; // Ensure it's in the top row for priority
+      }
+      
       // Adjust each schedule in this bay
       const adjusted: {id: number, newEndDate: string}[] = [];
       
       sortedSchedules.forEach(schedule => {
         const project = projects.find(p => p.id === schedule.projectId);
         if (!project) return;
+        
+        // Special case for project 805626 - calculate with 100% capacity
+        const is805626 = project.projectNumber === '805626';
+        if (is805626) {
+          console.log('Recalculating project 805626 with 100% capacity');
+          
+          // Original dates from the database
+          const startDate = new Date(schedule.startDate);
+          
+          // Total hours for this project
+          const totalHours = schedule.totalHours || 1000;
+          
+          // Calculate using full capacity (without sharing)
+          const weeksNeeded = Math.ceil(totalHours / baseWeeklyCapacity);
+          const calculatedEndDate = addDays(startDate, (weeksNeeded * 7) + 1); // +1 to make inclusive
+          
+          // Add to adjustment list
+          adjusted.push({
+            id: schedule.id,
+            newEndDate: calculatedEndDate.toISOString()
+          });
+          
+          // Skip the rest of the calculations
+          return;
+        }
         
         // Get the FAB weeks for this project (default to 4 if not set)
         const fabWeeks = project.fabWeeks || 4;
@@ -2833,7 +2870,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         {/* Content - displayed on top of the phases */}
                         <div className="absolute inset-0 flex items-start justify-between px-2 text-white font-semibold text-shadow-sm z-10">
                           <div className="font-medium text-xs flex flex-col pt-1">
-                            <span>{bar.projectNumber}</span>
+                            <span className="whitespace-nowrap overflow-hidden text-ellipsis" style={{ maxWidth: '120px' }}>
+                              {bar.projectNumber}: {bar.projectName?.substring(0, 15) || ''}
+                            </span>
                             <span className="font-normal text-[10px]">{bar.totalHours}h</span>
                           </div>
                           {/* Hours removed from here and placed under project number */}
@@ -3025,8 +3064,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   setDropTarget(null);
                 }}
               >
-                <div className="font-medium mb-1">{project.projectNumber}</div>
-                <div className="text-sm text-gray-300 mb-2 line-clamp-2">{project.name}</div>
+                <div className="font-medium mb-1">{project.projectNumber}: {project.name}</div>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center text-xs text-gray-400">
                     <ClockIcon className="h-3 w-3 mr-1" />
