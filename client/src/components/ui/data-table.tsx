@@ -234,6 +234,7 @@ export function DataTable<TData, TValue>({
                       <tr
                         key={row.id}
                         className="hover:bg-muted/50 border-b border-border"
+                        style={{ height: '48px' }} // Explicitly set height for all rows
                       >
                         {row.getVisibleCells().map((cell) => {
                           if (frozenColumns.includes(cell.column.id)) {
@@ -273,6 +274,11 @@ export function DataTable<TData, TValue>({
                       </td>
                     </tr>
                   )}
+                  
+                  {/* Dedicated empty row in frozen section to match scrollbar row height */}
+                  <tr className="scrollbar-row">
+                    <td colSpan={frozenColumns.length} style={{ height: '10px', padding: 0 }}></td>
+                  </tr>
                 </tbody>
               </table>
             </div>
