@@ -1271,8 +1271,51 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       padding: 0 !important;
       display: flex !important;
       align-items: center !important;
-      justify-content: center !important;
+      justify-content: flex-start !important;
       height: 95% !important; /* Fill most of the height but leave a small gap */
+    }
+    
+    /* Department phase colors */
+    .dept-phase {
+      height: 100% !important;
+      position: absolute !important;
+      top: 0 !important;
+    }
+    
+    .dept-fab-phase {
+      background-color: #2563eb !important; /* blue-600 */
+      left: 0 !important;
+      border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
+      z-index: 1 !important;
+    }
+    
+    .dept-paint-phase {
+      background-color: #7c3aed !important; /* violet-600 */
+      border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
+      z-index: 2 !important;
+    }
+    
+    .dept-production-phase {
+      background-color: #059669 !important; /* emerald-600 */
+      border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
+      z-index: 3 !important;
+    }
+    
+    .dept-it-phase {
+      background-color: #d97706 !important; /* amber-600 */
+      border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
+      z-index: 4 !important;
+    }
+    
+    .dept-ntc-phase {
+      background-color: #dc2626 !important; /* red-600 */
+      border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
+      z-index: 5 !important;
+    }
+    
+    .dept-qc-phase {
+      background-color: #7e22ce !important; /* purple-700 */
+      z-index: 6 !important;
     }
     
     /* Row-specific positioning - these classes position bars in each of the 4 rows */
@@ -1711,8 +1754,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         style={{
                           left: bar.left + 'px',
                           width: bar.width - 4 + 'px',  // -4 for border spacing
-                          backgroundColor: bar.color,
-                          opacity: draggingSchedule?.id === bar.id ? 0.5 : 0.9
+                          backgroundColor: 'transparent', // Make background transparent since we're using department phases
+                          opacity: draggingSchedule?.id === bar.id ? 0.5 : 1
                         }}
                         draggable
                         onDragStart={(e) => handleDragStart(e, 'existing', {
@@ -1724,31 +1767,88 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           bayId: bar.bayId
                         })}
                       >
-                        {/* FAB phase indicator - always shown at BEGINNING of project */}
+                        {/* Department phases */}
+                        {/* FAB phase */}
                         {bar.fabWidth && bar.fabWidth > 0 && (
-                          <div 
-                            className="absolute top-0 left-0 h-full rounded-l-md flex items-center justify-center overflow-hidden"
+                          <div
+                            className="dept-phase dept-fab-phase rounded-l-sm"
                             style={{
-                              width: `${bar.fabWidth}px`,
-                              backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                              borderRight: '3px dashed rgba(255, 255, 255, 0.7)',
-                              zIndex: 1,
-                              boxShadow: 'inset -2px 0px 4px rgba(0,0,0,0.2)'
+                              width: bar.fabWidth + 'px'
                             }}
+                            title={`FAB: ${bar.fabPercentage}% (${Math.round(bar.totalHours * bar.fabPercentage / 100)}h)`}
                           >
-                            <span className="text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1">
-                              FAB {bar.fabWeeks}w
+                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
+                              FAB
                             </span>
                           </div>
                         )}
                         
-                        {/* Bar content - Production information */}
-                        <div 
-                          className="absolute inset-0 flex items-center justify-between px-2 text-white font-semibold text-shadow-sm"
-                          style={{
-                            paddingLeft: bar.fabWidth && bar.fabWidth > 0 ? `${Math.min(bar.fabWidth + 4, bar.width * 0.5)}px` : '8px'
-                          }}
-                        >
+                        {/* PAINT phase */}
+                        {bar.paintWidth && bar.paintWidth > 0 && (
+                          <div
+                            className="dept-phase dept-paint-phase"
+                            style={{
+                              left: bar.fabWidth + 'px',
+                              width: bar.paintWidth + 'px'
+                            }}
+                            title={`PAINT: ${bar.paintPercentage}% (${Math.round(bar.totalHours * bar.paintPercentage / 100)}h)`}
+                          />
+                        )}
+                        
+                        {/* PRODUCTION phase */}
+                        {bar.productionWidth && bar.productionWidth > 0 && (
+                          <div
+                            className="dept-phase dept-production-phase"
+                            style={{
+                              left: (bar.fabWidth + bar.paintWidth) + 'px',
+                              width: bar.productionWidth + 'px'
+                            }}
+                            title={`PRODUCTION: ${bar.productionPercentage}% (${Math.round(bar.totalHours * bar.productionPercentage / 100)}h)`}
+                          >
+                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
+                              PROD
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* IT phase */}
+                        {bar.itWidth && bar.itWidth > 0 && (
+                          <div
+                            className="dept-phase dept-it-phase"
+                            style={{
+                              left: (bar.fabWidth + bar.paintWidth + bar.productionWidth) + 'px',
+                              width: bar.itWidth + 'px'
+                            }}
+                            title={`IT: ${bar.itPercentage}% (${Math.round(bar.totalHours * bar.itPercentage / 100)}h)`}
+                          />
+                        )}
+                        
+                        {/* NTC phase */}
+                        {bar.ntcWidth && bar.ntcWidth > 0 && (
+                          <div
+                            className="dept-phase dept-ntc-phase"
+                            style={{
+                              left: (bar.fabWidth + bar.paintWidth + bar.productionWidth + bar.itWidth) + 'px',
+                              width: bar.ntcWidth + 'px'
+                            }}
+                            title={`NTC: ${bar.ntcPercentage}% (${Math.round(bar.totalHours * bar.ntcPercentage / 100)}h)`}
+                          />
+                        )}
+                        
+                        {/* QC phase */}
+                        {bar.qcWidth && bar.qcWidth > 0 && (
+                          <div
+                            className="dept-phase dept-qc-phase rounded-r-sm"
+                            style={{
+                              left: (bar.fabWidth + bar.paintWidth + bar.productionWidth + bar.itWidth + bar.ntcWidth) + 'px',
+                              width: bar.qcWidth + 'px'
+                            }}
+                            title={`QC: ${bar.qcPercentage}% (${Math.round(bar.totalHours * bar.qcPercentage / 100)}h)`}
+                          />
+                        )}
+                        
+                        {/* Content - displayed on top of the phases */}
+                        <div className="absolute inset-0 flex items-center justify-between px-2 text-white font-semibold text-shadow-sm z-10">
                           <div className="font-medium text-xs truncate">
                             {bar.projectNumber}
                           </div>
@@ -1757,8 +1857,45 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           </div>
                         </div>
                         
+                        {/* Hover info overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/70 transition-opacity z-20 rounded-sm">
+                          <div className="text-white text-xs p-2">
+                            <div className="font-bold">{bar.projectNumber}</div>
+                            <div className="truncate w-full max-w-[180px]">{bar.projectName}</div>
+                            <div className="mt-1 flex gap-1 items-center">
+                              <ClockIcon className="h-3 w-3" /> {bar.totalHours}h
+                            </div>
+                            <div className="mt-1 text-[9px] grid grid-cols-2 gap-x-2 gap-y-1">
+                              <div className="flex items-center">
+                                <div className="w-2 h-2 rounded-full bg-blue-600 mr-1"></div>
+                                <span>FAB: {bar.fabPercentage}%</span>
+                              </div>
+                              <div className="flex items-center">
+                                <div className="w-2 h-2 rounded-full bg-violet-600 mr-1"></div>
+                                <span>PAINT: {bar.paintPercentage}%</span>
+                              </div>
+                              <div className="flex items-center">
+                                <div className="w-2 h-2 rounded-full bg-emerald-600 mr-1"></div>
+                                <span>PROD: {bar.productionPercentage}%</span>
+                              </div>
+                              <div className="flex items-center">
+                                <div className="w-2 h-2 rounded-full bg-amber-600 mr-1"></div>
+                                <span>IT: {bar.itPercentage}%</span>
+                              </div>
+                              <div className="flex items-center">
+                                <div className="w-2 h-2 rounded-full bg-red-600 mr-1"></div>
+                                <span>NTC: {bar.ntcPercentage}%</span>
+                              </div>
+                              <div className="flex items-center">
+                                <div className="w-2 h-2 rounded-full bg-purple-700 mr-1"></div>
+                                <span>QC: {bar.qcPercentage}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
                         {/* Edit button (appears on hover) */}
-                        <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-30">
                           <a 
                             href={`/project/${bar.projectId}`}
                             onClick={(e) => e.stopPropagation()}
