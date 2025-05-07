@@ -186,6 +186,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   const [dropTarget, setDropTarget] = useState<{ bayId: number, slotIndex: number, rowIndex?: number } | null>(null);
   const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
   const [newBay, setNewBay] = useState<ManufacturingBay | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   
   // Generate time slots based on view mode
   const { slots, slotWidth } = useMemo(() => 
@@ -306,7 +307,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           bayId,
           startDate,
           endDate,
-          totalHours: schedule.totalHours || 40,
+          totalHours: schedule.totalHours || 1000,
           projectName: project.name,
           projectNumber: project.projectNumber,
           width: barWidth,
@@ -373,7 +374,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           <circle cx="12" cy="12" r="10"></circle>
           <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
-        <span>${data.totalHours || 40} hours</span>
+        <span>${data.totalHours || 1000} hours</span>
       `;
       dragImage.appendChild(hoursContainer);
       
