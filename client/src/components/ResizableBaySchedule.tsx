@@ -318,6 +318,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   const timelineContainerRef = useRef<HTMLDivElement>(null);
   const weekHeaderRef = useRef<HTMLDivElement>(null);
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
+  const [isHeaderSticky, setIsHeaderSticky] = useState(false);
   const [draggingSchedule, setDraggingSchedule] = useState<any>(null);
   const [resizingSchedule, setResizingSchedule] = useState<{
     id: number;
