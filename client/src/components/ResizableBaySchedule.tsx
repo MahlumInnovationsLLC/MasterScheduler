@@ -209,6 +209,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     initialLeft: number;
     initialStartDate: Date;
     initialEndDate: Date;
+    originalHours?: number; // Added this to store original hours
     projectId: number;
     bayId: number;
     row?: number;
@@ -551,6 +552,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       initialLeft,
       initialStartDate: new Date(schedule.startDate),
       initialEndDate: new Date(schedule.endDate),
+      originalHours: schedule.totalHours || 1000, // Store original hours to preserve them
       projectId,
       bayId,
       row
@@ -723,9 +725,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const formattedStartDate = format(newStartDate, 'yyyy-MM-dd');
       const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
       
-      // Calculate total hours based on the new duration
+      // Get original hours - don't recalculate based on duration
+      const originalHours = resizingSchedule.originalHours || 1000;
+      // Calculate days for logging only
       const totalDays = differenceInDays(newEndDate, newStartDate);
-      const totalHours = Math.max(40, totalDays * 8); // Minimum 40 hours
+      // Use original hours or fallback to 1000 hours (don't recalculate)
+      const totalHours = originalHours;
       
       console.log(`Updating schedule ${resizingSchedule.id} with new dates:`, {
         startDate: formattedStartDate,
