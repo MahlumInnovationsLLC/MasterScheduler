@@ -735,9 +735,11 @@
   @apply bg-purple-700;
 }
 
-/* Hide department labels unless hovering over the project bar */
-.big-project-bar:not(:hover) .dept-phase-label {
+/* Hide department labels and percentage labels unless hovering over the project bar */
+.big-project-bar:not(:hover) .dept-phase-label,
+.schedule-bar:not(:hover) .percentage-label {
   opacity: 0;
+  visibility: hidden;
 }
 
 /* Vertical text for small sections */
