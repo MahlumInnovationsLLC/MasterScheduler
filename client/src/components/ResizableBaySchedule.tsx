@@ -487,13 +487,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     });
   };
 
-  // Apply auto-adjustment once on initial load
-  useEffect(() => {
-    if (schedules.length && bays.length && !hasAutoAdjusted) {
-      applyAutoCapacityAdjustment();
-      setHasAutoAdjusted(true);
-    }
-  }, [schedules.length, bays.length, hasAutoAdjusted]);
+  // No longer applying auto-adjustment on initial load
+  // Instead, we'll add a button to each bay's header
   
   // Generate time slots based on view mode
   const { slots, slotWidth } = useMemo(() => 
@@ -2410,6 +2405,31 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     title="Edit Team"
                   >
                     <PencilIcon className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      // Apply auto-adjustment only to this specific bay
+                      applyAutoCapacityAdjustment(bay.id);
+                      
+                      // Update the auto-adjusted bays state
+                      setAutoAdjustedBays(prev => ({...prev, [bay.id]: true}));
+                      
+                      // Show toast notification
+                      toast({
+                        title: `Auto-Adjusted ${bay.name}`,
+                        description: "Schedule lengths adjusted based on capacity sharing",
+                        duration: 3000
+                      });
+                    }}
+                    title="Auto-Adjust Capacity"
+                    className={autoAdjustedBays[bay.id] ? "text-green-500" : "text-blue-400 hover:text-blue-500"}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 8L22 12L18 16" />
+                      <path d="M2 12H22" />
+                    </svg>
                   </Button>
                   <Button 
                     variant="ghost" 
