@@ -759,7 +759,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Calculate end date based on total hours and bay capacity
       // Make sure to use at least 1 hour per day
-      const dailyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek * bay.staffCount) / 5);
+      const dailyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1) / 5);
       const daysNeeded = Math.max(1, Math.ceil(data.totalHours / dailyCapacity));
       const endDate = addDays(slotDate, daysNeeded);
       
@@ -774,19 +774,44 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       if (data.type === 'existing') {
         // Update existing schedule
-        onScheduleChange(
-          data.id,
-          bayId,
-          slotDate.toISOString(),
-          endDate.toISOString(),
-          data.totalHours
-        ).then(() => {
+        // Make a direct API call for better reliability
+        fetch(`/api/manufacturing-schedules/${data.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            bayId, 
+            startDate: slotDate.toISOString(), 
+            endDate: endDate.toISOString(),
+            totalHours: data.totalHours
+          }),
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to update schedule');
+          }
+          return response.json();
+        })
+        .then(() => {
           toast({
             title: "Schedule Updated",
             description: `${data.projectNumber} moved to Bay ${bay.bayNumber}`,
           });
-        }).catch(err => {
+          
+          // Force refresh to show changes
+          setTimeout(() => window.location.reload(), 1000);
+        })
+        .catch(err => {
           console.error('Failed to update schedule:', err);
+          
+          // Try the prop as fallback
+          onScheduleChange(
+            data.id,
+            bayId,
+            slotDate.toISOString(),
+            endDate.toISOString(),
+            data.totalHours
+          );
+          
           toast({
             title: "Error",
             description: "Failed to update schedule",
@@ -1069,19 +1094,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   .filter(bar => bar.bayId === bay.id)
                   .map(bar => {
                     // Calculate position based on row (0-3)
-                    const rowHeight = 64 / 4; // Total height divided by 4 rows
-                    const top = (bar.row || 0) * rowHeight; // No offset to fill the row
-                    const height = rowHeight; // Fill the entire row height
+                    // Each row is 25% of the bay height (64px)
+                    const rowHeight = 64 / 4; // 16px per row
+                    const top = (bar.row || 0) * rowHeight; // Position at the top of the row
+                    const height = rowHeight - 2; // Fill the entire row height minus 2px for spacing
                     
                     return (
                       <div
                         key={bar.id}
-                        className="absolute rounded-sm z-10 border-2 border-gray-600 shadow-md group hover:brightness-110 transition-all"
+                        className="absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all"
                         style={{
                           left: bar.left + 'px',
-                          width: bar.width - 4 + 'px',  // -4 for thicker borders
+                          width: bar.width - 4 + 'px',  // -4 for border spacing
                           backgroundColor: bar.color,
-                          opacity: draggingSchedule?.id === bar.id ? 0.5 : 0.8,
+                          opacity: draggingSchedule?.id === bar.id ? 0.5 : 0.9,
                           top: top + 'px',
                           height: height + 'px'
                         }}
@@ -1121,7 +1147,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 }
                 
                 {/* Bay label (shows on each row) with delete button */}
-                <div className="absolute top-0 left-0 bg-gray-800/80 text-xs px-1 rounded-br z-20 flex items-center gap-1 group">
+                <div className="absolute top-0 left-0 bg-gray-800/90 text-xs px-2 py-1 rounded-br z-20 flex items-center gap-2 group">
                   <span>Bay {bay.bayNumber}</span>
                   <button 
                     onClick={() => {
@@ -1130,7 +1156,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         handleDeleteBay(bay.id);
                       }
                     }}
-                    className="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 ml-1"
+                    className="text-red-400 hover:text-red-500 transition-colors bg-gray-700/50 hover:bg-gray-700 rounded-full p-0.5 flex items-center justify-center"
+                    title="Delete Bay"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 6h18"></path>
