@@ -288,9 +288,8 @@ const Dashboard = () => {
           title="Total Projects"
           value={projectStats?.total || 0}
           icon={<Folders className="text-primary" />}
-          change={{ value: "12% from last month", isPositive: true }}
           tags={[
-            { label: "Active", value: projectStats?.active || 0, status: "On Track" },
+            { label: "Active", value: projectStats?.active || 0, status: "Active" },
             { label: "Delayed", value: projectStats?.delayed || 0, status: "Delayed" },
             { label: "Critical", value: projectStats?.critical || 0, status: "Critical" }
           ]}
@@ -309,19 +308,27 @@ const Dashboard = () => {
 
         <BillingStatusCard
           title="Revenue Forecast"
-          value="$920K"
+          value={formatCurrency((billingStats?.amounts.received || 0) + (billingStats?.amounts.pending || 0) + (billingStats?.amounts.overdue || 0))}
           type="forecast"
           chart={{
-            labels: ["Apr", "May", "Jun"],
-            values: [8, 5, 10]
+            labels: [
+              new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short' }),
+              new Date().toLocaleDateString('en-US', { month: 'short' }),
+              new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short' })
+            ],
+            values: [
+              billingStats?.milestones.completed || 0,
+              billingStats?.milestones.inProgress || 0,
+              billingStats?.milestones.upcoming || 0
+            ]
           }}
         />
 
         <ManufacturingCard
           title="Bay Utilization"
-          value="85"
+          value={manufacturingStats ? Math.round((manufacturingStats.active + manufacturingStats.scheduled) / Math.max(1, manufacturingStats.total) * 100) : 0}
           type="utilization"
-          change={{ value: "7% from last month", isPositive: false }}
+          subtitle={`${manufacturingStats?.active || 0} bays active, ${manufacturingStats?.scheduled || 0} scheduled`}
         />
       </div>
 

@@ -40,7 +40,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { formatDate, getProjectStatusColor } from '@/lib/utils';
+import { formatDate, getProjectStatusColor, getProjectScheduleState } from '@/lib/utils';
 import { Project } from '@shared/schema';
 
 // Extend Project type to ensure rawData is included
