@@ -420,21 +420,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const barWidth = ((validEndIndex - validStartIndex) + 1) * slotWidth;
         const barLeft = validStartIndex * slotWidth;
         
-        // Calculate FAB phase width - STRICTLY based on FAB weeks, not a percentage of total width
-        let fabWidth = 0;
-        if (viewMode === 'day') {
-          fabWidth = fabWeeks * 7 * slotWidth; // Convert weeks to days
-        } else if (viewMode === 'week') {
-          fabWidth = fabWeeks * slotWidth; // Direct weeks to slots
-        } else if (viewMode === 'month') {
-          fabWidth = (fabWeeks / 4) * slotWidth; // Approximate weeks to months
-        } else { // quarter
-          fabWidth = (fabWeeks / 12) * slotWidth; // Approximate weeks to quarters
-        }
-        
-        // Ensure minimum width but don't cap it based on total width percentage
-        fabWidth = Math.max(slotWidth / 2, fabWidth);
-        
         // Get department percentages from the project (or use defaults)
         const fabPercentage = parseFloat(project.fabPercentage as any) || 20;
         const paintPercentage = parseFloat(project.paintPercentage as any) || 7; 
@@ -443,20 +428,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const ntcPercentage = parseFloat(project.ntcPercentage as any) || 7;
         const qcPercentage = parseFloat(project.qcPercentage as any) || 7;
         
-        // Calculate the remaining width after FAB phase
-        const remainingWidth = barWidth - fabWidth;
+        // Calculate each department's width directly based on percentage of total width
+        let fabWidth = Math.floor(barWidth * (fabPercentage / 100));
+        let paintWidth = Math.floor(barWidth * (paintPercentage / 100));
+        let productionWidth = Math.floor(barWidth * (productionPercentage / 100));
+        let itWidth = Math.floor(barWidth * (itPercentage / 100));
+        let ntcWidth = Math.floor(barWidth * (ntcPercentage / 100));
         
-        // The remaining departments (after FAB) should add up to remainingWidth
-        const nonFabPercentageTotal = paintPercentage + productionPercentage + itPercentage + ntcPercentage + qcPercentage;
-        
-        // Calculate widths proportionally
-        const paintWidth = Math.floor(remainingWidth * (paintPercentage / nonFabPercentageTotal));
-        const productionWidth = Math.floor(remainingWidth * (productionPercentage / nonFabPercentageTotal));
-        const itWidth = Math.floor(remainingWidth * (itPercentage / nonFabPercentageTotal));
-        const ntcWidth = Math.floor(remainingWidth * (ntcPercentage / nonFabPercentageTotal));
+        // Ensure minimum width for FAB
+        fabWidth = Math.max(4, fabWidth);
         
         // QC gets the remainder to ensure we add up exactly to total width
-        const qcWidth = remainingWidth - paintWidth - productionWidth - itWidth - ntcWidth;
+        const qcWidth = barWidth - fabWidth - paintWidth - productionWidth - itWidth - ntcWidth;
         
         processedBars.push({
           id: schedule.id,
@@ -1795,7 +1778,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           <div
                             className="dept-phase dept-paint-phase"
                             style={{
-                              left: bar.fabWidth + 'px',
+                              left: (bar.fabWidth || 0) + 'px',
                               width: bar.paintWidth + 'px'
                             }}
                             title={`PAINT: ${bar.paintPercentage}% (${Math.round(bar.totalHours * bar.paintPercentage / 100)}h)`}
@@ -1807,7 +1790,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           <div
                             className="dept-phase dept-production-phase"
                             style={{
-                              left: (bar.fabWidth + bar.paintWidth) + 'px',
+                              left: ((bar.fabWidth || 0) + (bar.paintWidth || 0)) + 'px',
                               width: bar.productionWidth + 'px'
                             }}
                             title={`PRODUCTION: ${bar.productionPercentage}% (${Math.round(bar.totalHours * bar.productionPercentage / 100)}h)`}
@@ -1823,7 +1806,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           <div
                             className="dept-phase dept-it-phase"
                             style={{
-                              left: (bar.fabWidth + bar.paintWidth + bar.productionWidth) + 'px',
+                              left: ((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0)) + 'px',
                               width: bar.itWidth + 'px'
                             }}
                             title={`IT: ${bar.itPercentage}% (${Math.round(bar.totalHours * bar.itPercentage / 100)}h)`}
@@ -1835,7 +1818,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           <div
                             className="dept-phase dept-ntc-phase"
                             style={{
-                              left: (bar.fabWidth + bar.paintWidth + bar.productionWidth + bar.itWidth) + 'px',
+                              left: ((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0)) + 'px',
                               width: bar.ntcWidth + 'px'
                             }}
                             title={`NTC: ${bar.ntcPercentage}% (${Math.round(bar.totalHours * bar.ntcPercentage / 100)}h)`}
@@ -1847,7 +1830,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           <div
                             className="dept-phase dept-qc-phase rounded-r-sm"
                             style={{
-                              left: (bar.fabWidth + bar.paintWidth + bar.productionWidth + bar.itWidth + bar.ntcWidth) + 'px',
+                              left: ((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0)) + 'px',
                               width: bar.qcWidth + 'px'
                             }}
                             title={`QC: ${bar.qcPercentage}% (${Math.round(bar.totalHours * bar.qcPercentage / 100)}h)`}
