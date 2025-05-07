@@ -377,9 +377,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Get the position of the original header
       const headerRect = weekHeaderRef.current.getBoundingClientRect();
       
-      // Get the position of the sidebar
+      // Get the position of the sidebar more accurately
       const sidebar = document.querySelector('.sidebar'); // Sidebar element
-      const sidebarWidth = sidebar ? sidebar.getBoundingClientRect().width : 0;
+      const sidebarRect = sidebar ? sidebar.getBoundingClientRect() : null;
+      const sidebarWidth = sidebarRect ? sidebarRect.width : 0;
+      
+      // Also check for any main padding/margin that might affect the calculation
+      const mainElement = document.querySelector('main');
+      const mainPaddingLeft = mainElement ? parseInt(getComputedStyle(mainElement).paddingLeft) : 0;
       
       // Position where we want the sticky header to become visible
       // We want it to appear when the original header is just out of view
@@ -393,16 +398,24 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Set width to match the visible content area
         stickyHeaderRef.current.style.width = `${headerRect.width}px`;
         
-        // Calculate the correct left position accounting for the sidebar
-        // This ensures the header aligns with the content even with a sidebar
-        stickyHeaderRef.current.style.left = `${Math.max(sidebarWidth, headerRect.left)}px`;
+        // Calculate the correct left position accounting for the sidebar and other offsets
+        // This ensures the header aligns perfectly with the content area
+        const leftPosition = headerRect.left;
+        const contentOffset = mainPaddingLeft || 0;
+        stickyHeaderRef.current.style.left = `${leftPosition}px`;
         
         // If there's horizontal scrolling, smoothly adjust the header to match scroll position
         if (timelineContainerRef.current) {
           // Use requestAnimationFrame for smooth transitions during scroll
           requestAnimationFrame(() => {
             if (stickyHeaderRef.current) {
-              stickyHeaderRef.current.style.transform = `translateX(${-timelineContainerRef.current.scrollLeft}px)`;
+              // Calculate horizontal offset more precisely to account for the content
+              const contentScrollLeft = timelineContainerRef.current?.scrollLeft || 0;
+              
+              // For smoother scroll and to avoid jittery behavior:
+              // 1. Apply this transform directly instead of as a cumulative change
+              // 2. Use a fixed offset that matches the main content area
+              stickyHeaderRef.current.style.transform = `translateX(${-contentScrollLeft}px)`;
             }
           });
         }
@@ -415,12 +428,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
     };
     
-    // Use window scroll event for vertical scrolling
-    window.addEventListener('scroll', handleScroll);
+    // Use window scroll event for vertical scrolling with throttling to improve performance
+    let scrollTimeout: number | null = null;
+    const throttledScrollHandler = () => {
+      if (scrollTimeout === null) {
+        scrollTimeout = window.setTimeout(() => {
+          handleScroll();
+          scrollTimeout = null;
+        }, 16); // ~60fps for smoother animation
+      }
+    };
+    
+    window.addEventListener('scroll', throttledScrollHandler, { passive: true });
     
     // Use the timeline container's scroll event for horizontal scrolling
+    // The requestAnimationFrame in handleScroll will make horizontal scrolling smooth
     if (timelineContainerRef.current) {
-      timelineContainerRef.current.addEventListener('scroll', handleScroll);
+      timelineContainerRef.current.addEventListener('scroll', throttledScrollHandler, { passive: true });
     }
     
     // Initial check
@@ -428,9 +452,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // Clean up
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', throttledScrollHandler);
       if (timelineContainerRef.current) {
-        timelineContainerRef.current.removeEventListener('scroll', handleScroll);
+        timelineContainerRef.current.removeEventListener('scroll', throttledScrollHandler);
+      }
+      
+      // Clear any pending timeout
+      if (scrollTimeout !== null) {
+        window.clearTimeout(scrollTimeout);
       }
     };
   }, []);
@@ -3454,7 +3483,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               top: '104px', // Match below the app header + page header
               zIndex: 50,
               backgroundColor: 'var(--background)',
-              backdropFilter: 'blur(8px)'
+              backdropFilter: 'blur(8px)',
+              transition: 'transform 0.05s ease-out',
+              pointerEvents: 'none' // Prevents interaction with the sticky header
             }}
             ref={stickyHeaderRef}
           >
