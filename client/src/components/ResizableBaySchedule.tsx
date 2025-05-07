@@ -1299,7 +1299,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         </div>
       </div>
 
-      {/* Bay Edit Dialog */}
+      {/* Team Edit Dialog */}
       {editingBay && (
         <EditBayDialog
           bay={editingBay}
