@@ -248,7 +248,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         // If all rows are occupied, use the one that ends soonest
         if (assignedRow === -1) {
-          assignedRow = rowEndDates.indexOf(Math.min(...rowEndDates.map(d => d.getTime())));
+          const endTimes = rowEndDates.map(d => d.getTime());
+          const minTime = Math.min(...endTimes);
+          assignedRow = endTimes.indexOf(minTime);
         }
         
         // Update the end date for this row
@@ -520,8 +522,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         };
         console.log('Simulated updated bay:', updatedBay);
         
-        // Update local state
-        setBays(prev => prev.map(bay => bay.id === bayId ? updatedBay as ManufacturingBay : bay));
+        // Update local state - cast to expected type
+        setBays(prev => prev.map(bay => bay.id === bayId ? {
+          ...updatedBay,
+          createdAt: updatedBay.createdAt ? new Date(updatedBay.createdAt) : null
+        } as ManufacturingBay : bay));
         
         toast({
           title: "Bay Updated",
@@ -652,15 +657,27 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         // Create a fake ID
         const fakeId = Math.floor(Math.random() * 1000) + 100;
-        const newBay = {
-          ...updatedData,
+        
+        // Create properly typed bay object with correct data types
+        const newBay: ManufacturingBay = {
           id: fakeId,
-          createdAt: new Date().toISOString()
+          bayNumber: updatedData.bayNumber || fakeId,
+          name: updatedData.name || `Bay ${fakeId}`,
+          description: updatedData.description || null,
+          equipment: updatedData.equipment || null,
+          team: updatedData.team || null,
+          staffCount: updatedData.staffCount || 0,
+          assemblyStaffCount: updatedData.assemblyStaffCount || 0,
+          electricalStaffCount: updatedData.electricalStaffCount || 0,
+          hoursPerPersonPerWeek: updatedData.hoursPerPersonPerWeek || 32,
+          isActive: updatedData.isActive !== undefined ? updatedData.isActive : true,
+          createdAt: new Date()
         };
+        
         console.log('Simulated new bay:', newBay);
         
-        // Update local state
-        setBays(prev => [...prev, newBay as ManufacturingBay]);
+        // Update local state with properly typed object
+        setBays(prev => [...prev, newBay]);
         
         toast({
           title: "Bay Created", 
@@ -804,13 +821,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         .catch(err => {
           console.error('Failed to update schedule:', err);
           
-          // Try the prop as fallback
+          // Try the prop as fallback - include rowIndex for vertical position
           onScheduleChange(
             data.id,
             bayId,
             slotDate.toISOString(),
             endDate.toISOString(),
-            data.totalHours
+            data.totalHours,
+            rowIndex
           );
           
           toast({

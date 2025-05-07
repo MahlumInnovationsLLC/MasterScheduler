@@ -388,6 +388,7 @@ export const manufacturingSchedules = pgTable("manufacturing_schedules", {
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
   totalHours: integer("total_hours").default(40), // Total hours needed for this project
+  row: integer("row").default(0), // Row position within bay (0-3)
   status: manufacturingStatusEnum("status").default("scheduled").notNull(),
   notes: text("notes"),
   equipment: text("equipment"),
