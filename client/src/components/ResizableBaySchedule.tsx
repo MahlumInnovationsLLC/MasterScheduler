@@ -838,10 +838,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return;
       }
       
+      // Get the project data to determine FAB weeks
+      const project = projects.find(p => p.id === (data.projectId || data.id));
+      const fabWeeks = project?.fabWeeks || 4; // Default to 4 weeks if not set
+      
+      // Calculate FAB phase duration in days
+      const fabDays = fabWeeks * 7; // Convert weeks to days
+      
+      // Calculate production start date (after FAB phase)
+      const productionStartDate = addDays(slotDate, fabDays);
+      
       // Calculate end date based on total hours and bay capacity with weekly limits
       const weeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
       
-      // Calculate how many full weeks the project will take
+      // Calculate how many full weeks the project will take FOR PRODUCTION ONLY
       const totalHours = data.totalHours || 1000; // Default to 1000 if not specified
       const fullWeeksNeeded = Math.floor(totalHours / weeklyCapacity);
       
@@ -852,11 +862,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const dailyCapacity = weeklyCapacity / 5;
       const additionalDays = remainingHours > 0 ? Math.ceil(remainingHours / dailyCapacity) : 0;
       
-      // Calculate total days needed
-      const totalDays = (fullWeeksNeeded * 7) + additionalDays;
+      // Calculate total days needed for production
+      const productionDays = (fullWeeksNeeded * 7) + additionalDays;
       
-      // Calculate end date
-      const endDate = addDays(slotDate, totalDays);
+      // Calculate end date (production start date + production time)
+      // The FAB phase is already accounted for in the productionStartDate
+      const endDate = addDays(productionStartDate, productionDays);
       
       console.log('Attempting to drop project:', {
         projectId: data.projectId || data.id,
@@ -868,7 +879,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         fullWeeksNeeded: fullWeeksNeeded,
         remainingHours: remainingHours,
         additionalDays: additionalDays,
-        totalDays: totalDays,
+        productionDays: productionDays,
+        fabWeeks: fabWeeks,
         type: data.type
       });
       
