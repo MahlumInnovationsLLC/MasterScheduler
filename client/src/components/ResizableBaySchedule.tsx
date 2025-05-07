@@ -2045,7 +2045,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 <div className="text-sm text-gray-300 mb-2 line-clamp-2">{project.name}</div>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center text-xs text-gray-400">
-                    <Clock className="h-3 w-3 mr-1" />
+                    <ClockIcon className="h-3 w-3 mr-1" />
                     <span>{project.totalHours || 1000} hours</span>
                   </div>
                   <a 
