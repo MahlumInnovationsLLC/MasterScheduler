@@ -889,8 +889,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
     
     .bay-schedule-bar {
-      height: 14px !important;
-      min-height: 14px !important;
+      height: 100% !important;
+      min-height: 16px !important;
     }
   `;
     
@@ -1121,8 +1121,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     // Calculate position based on row (0-3)
                     // Each row is 25% of the bay height (64px total height)
                     const rowHeight = 64 / 4; // 16px per row
-                    const top = (bar.row || 0) * rowHeight + 1; // Position with minimal padding from top
-                    const height = rowHeight - 2; // Fill almost the entire row height
+                    const top = (bar.row || 0) * rowHeight + 1; // Add 1px padding from top
+                    const height = rowHeight - 2; // Subtract 2px for padding (1px top + 1px bottom)
                     
                     return (
                       <div
