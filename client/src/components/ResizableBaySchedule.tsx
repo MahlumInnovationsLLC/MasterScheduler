@@ -390,8 +390,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Add a version counter to force recalculation of schedules
   const [recalculationVersion, setRecalculationVersion] = useState(1);
 
-  // State to track if the sticky header is visible
-  const [stickyHeaderVisible, setStickyHeaderVisible] = useState(false);
+  // Loading state for project moves
+  const [isMovingProject, setIsMovingProject] = useState(false);
   
   // Add state for warning popup when manual resizing affects capacity
   const [showCapacityWarning, setShowCapacityWarning] = useState(false);
@@ -3429,36 +3429,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             ))}
           </div>
           
-          {/* Clone of week header that becomes visible when scrolling */}
-          <div 
-            className="h-12 border-b border-gray-700 grid week-header-sticky hidden" 
-            style={{ 
-              gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
-              width: totalViewWidth,
-              position: 'fixed',
-              top: '104px', // Match below the app header + page header
-              zIndex: 50,
-              backgroundColor: 'var(--background)',
-              backdropFilter: 'blur(8px)',
-              transition: 'transform 0.05s ease-out',
-              pointerEvents: 'none' // Prevents interaction with the sticky header
-            }}
-            ref={stickyHeaderRef}
-          >
-            {slots.map((slot, index) => (
-              <div 
-                key={index} 
-                className={`border-r border-gray-700 flex flex-col justify-end pb-1 ${
-                  slot.isWeekend ? 'bg-gray-800/20' : ''
-                } ${isSameDay(slot.date, new Date()) ? 'bg-blue-900/20' : ''}`}
-              >
-                <div className="text-xs font-medium px-2">{slot.label}</div>
-                {slot.sublabel && (
-                  <div className="text-xs text-gray-400 px-2">{slot.sublabel}</div>
-                )}
-              </div>
-            ))}
-          </div>
+          {/* Sticky header removed as requested by user */}
           
           {/* Bay rows with schedule bars */}
           <div>
