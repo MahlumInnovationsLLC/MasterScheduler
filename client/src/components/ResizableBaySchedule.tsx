@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { format, addDays, differenceInDays, isSameDay, addWeeks, addMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { format, addDays, differenceInDays, isSameDay, addWeeks, addMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
 import { PlusCircle, GripVertical, Info, X, ChevronRight, ChevronLeft, PencilIcon, PlusIcon, Users, Zap, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -811,26 +811,63 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Calculate production start date (after FAB phase)
       const productionStartDate = addDays(slotDate, fabDays);
       
-      // Calculate end date based on total hours and bay capacity with weekly limits
-      const weeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
+      // Get the bay's base weekly capacity 
+      const baseWeeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
       
-      // Calculate how many full weeks the project will take
+      // Find overlapping schedules in the same bay
+      const overlappingSchedules = schedules.filter(s => 
+        s.bayId === bayId && 
+        // Exclude the current schedule if we're updating an existing one
+        (data.type !== 'existing' || s.id !== data.id)
+      );
+      
+      // Calculate how long the project will take considering capacity sharing
       const totalHours = data.totalHours || 1000; // Default to 1000 if not specified
-      const fullWeeksNeeded = Math.floor(totalHours / weeklyCapacity);
       
-      // Calculate remaining hours after full weeks
-      const remainingHours = totalHours % weeklyCapacity;
+      // Initialize variables for week-by-week calculation
+      let remainingHours = totalHours;
+      let currentDate = new Date(productionStartDate);
+      let endDate = new Date(productionStartDate);
+      let productionDays = 0;
       
-      // Convert remaining hours to days (assuming equal distribution across 5-day work week)
-      const dailyCapacity = weeklyCapacity / 5;
-      const additionalDays = remainingHours > 0 ? Math.ceil(remainingHours / dailyCapacity) : 0;
+      // Process week by week until all hours are allocated
+      while (remainingHours > 0) {
+        // For each week, check how many projects are overlapping
+        const weekStart = startOfWeek(currentDate);
+        const weekEnd = endOfWeek(currentDate);
+        
+        // Count overlapping projects in this week that are in production phase
+        const projectsInWeek = overlappingSchedules.filter(s => {
+          const scheduleStart = new Date(s.startDate);
+          // Add FAB phase to get production start date
+          const schedProject = projects.find(p => p.id === s.projectId);
+          const schedFabWeeks = schedProject?.fabWeeks || 4;
+          const schedProductionStart = addDays(scheduleStart, schedFabWeeks * 7);
+          const scheduleEnd = new Date(s.endDate);
+          
+          return (
+            (schedProductionStart <= weekEnd && scheduleEnd >= weekStart) ||
+            (scheduleStart <= weekEnd && scheduleEnd >= weekStart)
+          );
+        });
+        
+        // Calculate available capacity for this project in this week
+        // Up to 4 projects can share the capacity evenly
+        const totalProjects = Math.min(4, projectsInWeek.length + 1); // +1 for the current project
+        const availableCapacity = baseWeeklyCapacity / totalProjects;
+        
+        // Allocate hours for this week
+        const hoursToAllocate = Math.min(remainingHours, availableCapacity);
+        remainingHours -= hoursToAllocate;
+        
+        // Move to next week and update production days
+        currentDate = addDays(currentDate, 7);
+        endDate = currentDate;
+        productionDays += 7;
+      }
       
-      // Calculate total days needed for production
-      const productionDays = (fullWeeksNeeded * 7) + additionalDays;
-      
-      // Calculate end date (production start date + production time)
-      // The FAB phase is already accounted for in the productionStartDate
-      const endDate = addDays(productionStartDate, productionDays);
+      // Calculate end date based on production days
+      endDate = addDays(productionStartDate, productionDays);
       
       console.log('Attempting to drop project:', {
         projectId: data.projectId || data.id,
@@ -838,10 +875,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         slotDate: slotDate.toISOString(),
         endDate: endDate.toISOString(),
         totalHours: totalHours,
-        weeklyCapacity: weeklyCapacity,
-        fullWeeksNeeded: fullWeeksNeeded,
-        productionDays: productionDays,
-        fabWeeks: fabWeeks,
+        baseWeeklyCapacity,
+        productionDays,
+        fabWeeks,
+        overlappingProjects: overlappingSchedules.length,
         type: data.type
       });
       
