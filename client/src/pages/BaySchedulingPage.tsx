@@ -166,17 +166,18 @@ const BaySchedulingPage = () => {
   
   // Mutations for schedules
   const updateScheduleMutation = useMutation({
-    mutationFn: async ({ scheduleId, bayId, startDate, endDate, totalHours }: { 
+    mutationFn: async ({ scheduleId, bayId, startDate, endDate, totalHours, row }: { 
       scheduleId: number, 
       bayId: number, 
       startDate: string, 
       endDate: string, 
-      totalHours?: number 
+      totalHours?: number,
+      row?: number
     }) => {
       const response = await fetch(`/api/manufacturing-schedules/${scheduleId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bayId, startDate, endDate, totalHours }),
+        body: JSON.stringify({ bayId, startDate, endDate, totalHours, row }),
       });
       
       if (!response.ok) {
@@ -199,17 +200,18 @@ const BaySchedulingPage = () => {
   });
   
   const createScheduleMutation = useMutation({
-    mutationFn: async ({ projectId, bayId, startDate, endDate, totalHours }: { 
+    mutationFn: async ({ projectId, bayId, startDate, endDate, totalHours, row }: { 
       projectId: number, 
       bayId: number, 
       startDate: string, 
       endDate: string, 
-      totalHours?: number 
+      totalHours?: number,
+      row?: number 
     }) => {
       const response = await fetch('/api/manufacturing-schedules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId, bayId, startDate, endDate, totalHours }),
+        body: JSON.stringify({ projectId, bayId, startDate, endDate, totalHours, row }),
       });
       
       if (!response.ok) {
@@ -237,16 +239,18 @@ const BaySchedulingPage = () => {
     newBayId: number,
     newStartDate: string,
     newEndDate: string,
-    totalHours?: number
+    totalHours?: number,
+    rowIndex?: number
   ) => {
     try {
-      console.log(`Updating schedule ${scheduleId} to bay ${newBayId}`);
+      console.log(`Updating schedule ${scheduleId} to bay ${newBayId}, row ${rowIndex}`);
       const result = await updateScheduleMutation.mutateAsync({
         scheduleId,
         bayId: newBayId,
         startDate: newStartDate,
         endDate: newEndDate,
-        totalHours
+        totalHours,
+        row: rowIndex
       });
       
       // Force a refetch to ensure state is up to date
@@ -270,7 +274,8 @@ const BaySchedulingPage = () => {
     bayId: number,
     startDate: string,
     endDate: string,
-    totalHours?: number
+    totalHours?: number,
+    rowIndex?: number
   ) => {
     try {
       await createScheduleMutation.mutateAsync({
@@ -278,7 +283,8 @@ const BaySchedulingPage = () => {
         bayId,
         startDate,
         endDate,
-        totalHours
+        totalHours,
+        row: rowIndex
       });
       return true;
     } catch (error) {
