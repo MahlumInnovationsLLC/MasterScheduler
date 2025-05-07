@@ -1680,7 +1680,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // Remove visual cue from all possible drop targets
+    // Remove highlighted state from all cells
+    document.querySelectorAll('.drag-hover, .active-drop-target').forEach(el => {
+      el.classList.remove('drag-hover', 'active-drop-target');
+    });
+    
+    // Remove row highlights from all rows
+    document.querySelectorAll('[class*="row-"][class*="-highlight"]').forEach(el => {
+      // Remove all row highlight classes
+      for (let i = 0; i < 4; i++) {
+        el.classList.remove(`row-${i}-highlight`);
+      }
+    });
+    
+    // Remove legacy highlight classes for backward compatibility
     document.querySelectorAll('.drop-target-highlight').forEach(el => {
       el.classList.remove('drop-target-highlight', 'bg-primary/20', 'border-primary', 'border-dashed');
     });
