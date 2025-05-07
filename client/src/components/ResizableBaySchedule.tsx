@@ -930,19 +930,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const weekStart = startOfWeek(currentDate);
         const weekEnd = endOfWeek(currentDate);
         
-        // Count overlapping projects in this week that are in production phase
+        // Count ONLY projects that are in their PRODUCTION phase this week (AFTER FAB)
         const projectsInWeek = overlappingSchedules.filter(s => {
           const scheduleStart = new Date(s.startDate);
-          // Add FAB phase to get production start date
+          // Get the project to find its FAB weeks setting
           const schedProject = projects.find(p => p.id === s.projectId);
           const schedFabWeeks = schedProject?.fabWeeks || 4;
+          
+          // Calculate when production phase starts (after FAB)
           const schedProductionStart = addDays(scheduleStart, schedFabWeeks * 7);
           const scheduleEnd = new Date(s.endDate);
           
-          return (
-            (schedProductionStart <= weekEnd && scheduleEnd >= weekStart) ||
-            (scheduleStart <= weekEnd && scheduleEnd >= weekStart)
-          );
+          // Only count projects where this week falls within their PRODUCTION phase
+          // (i.e., after their FAB phase has ended and before their end date)
+          return (schedProductionStart <= weekEnd && scheduleEnd >= weekStart);
         });
         
         // Calculate available capacity for this project in this week
