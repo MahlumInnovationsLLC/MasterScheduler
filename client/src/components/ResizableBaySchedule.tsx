@@ -438,8 +438,25 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Ensure minimum width for FAB
         fabWidth = Math.max(4, fabWidth);
         
-        // QC gets the remainder to ensure we add up exactly to total width
-        const qcWidth = barWidth - fabWidth - paintWidth - productionWidth - itWidth - ntcWidth;
+        // Calculate QC width based on percentage and ensure it's visible
+        let qcWidth = Math.floor(barWidth * (qcPercentage / 100));
+        
+        // Make sure QC has at least a minimum width when qcPercentage > 0
+        if (qcPercentage > 0) {
+          qcWidth = Math.max(4, qcWidth);
+        }
+        
+        // Adjust total to ensure it matches barWidth exactly
+        const calculatedTotal = fabWidth + paintWidth + productionWidth + itWidth + ntcWidth + qcWidth;
+        if (calculatedTotal !== barWidth) {
+          // Adjust the largest section to make up the difference
+          const largestSection = Math.max(fabWidth, paintWidth, productionWidth, itWidth, ntcWidth, qcWidth);
+          if (largestSection === productionWidth) {
+            productionWidth -= (calculatedTotal - barWidth);
+          } else if (largestSection === fabWidth) {
+            fabWidth -= (calculatedTotal - barWidth);
+          }
+        }
         
         processedBars.push({
           id: schedule.id,
@@ -1882,37 +1899,39 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         </div>
                         
                         {/* Hover info overlay - extends to the full calculated width of the bar */}
-                        <div className="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/70 transition-opacity z-20 rounded-sm" style={{ width: bar.width + 'px' }}>
-                          <div className="text-white text-xs p-2">
-                            <div className="font-bold">{bar.projectNumber}</div>
-                            <div className="truncate w-full max-w-[180px]">{bar.projectName}</div>
-                            <div className="mt-1 flex gap-1 items-center">
-                              <ClockIcon className="h-3 w-3" /> {bar.totalHours}h
-                            </div>
-                            <div className="mt-1 text-[9px] grid grid-cols-2 gap-x-2 gap-y-1">
-                              <div className="flex items-center">
-                                <div className="w-2 h-2 rounded-full bg-blue-600 mr-1"></div>
-                                <span>FAB: {bar.fabPercentage}%</span>
+                        <div className="absolute top-0 bottom-0 left-0 opacity-0 group-hover:opacity-100 bg-black/70 transition-opacity z-20 rounded-sm" style={{ width: bar.width + 'px' }}>
+                          <div className="text-white text-xs p-2 h-full flex items-center justify-center">
+                            <div>
+                              <div className="font-bold">{bar.projectNumber}</div>
+                              <div className="truncate w-full max-w-[180px]">{bar.projectName}</div>
+                              <div className="mt-1 flex gap-1 items-center">
+                                <ClockIcon className="h-3 w-3" /> {bar.totalHours}h
                               </div>
-                              <div className="flex items-center">
-                                <div className="w-2 h-2 rounded-full bg-violet-600 mr-1"></div>
-                                <span>PAINT: {bar.paintPercentage}%</span>
-                              </div>
-                              <div className="flex items-center">
-                                <div className="w-2 h-2 rounded-full bg-emerald-600 mr-1"></div>
-                                <span>PROD: {bar.productionPercentage}%</span>
-                              </div>
-                              <div className="flex items-center">
-                                <div className="w-2 h-2 rounded-full bg-amber-600 mr-1"></div>
-                                <span>IT: {bar.itPercentage}%</span>
-                              </div>
-                              <div className="flex items-center">
-                                <div className="w-2 h-2 rounded-full bg-red-600 mr-1"></div>
-                                <span>NTC: {bar.ntcPercentage}%</span>
-                              </div>
-                              <div className="flex items-center">
-                                <div className="w-2 h-2 rounded-full bg-purple-700 mr-1"></div>
-                                <span>QC: {bar.qcPercentage}%</span>
+                              <div className="mt-1 text-[9px] grid grid-cols-2 gap-x-2 gap-y-1">
+                                <div className="flex items-center">
+                                  <div className="w-2 h-2 rounded-full bg-blue-600 mr-1"></div>
+                                  <span>FAB: {bar.fabPercentage}%</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <div className="w-2 h-2 rounded-full bg-violet-600 mr-1"></div>
+                                  <span>PAINT: {bar.paintPercentage}%</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <div className="w-2 h-2 rounded-full bg-emerald-600 mr-1"></div>
+                                  <span>PROD: {bar.productionPercentage}%</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <div className="w-2 h-2 rounded-full bg-amber-600 mr-1"></div>
+                                  <span>IT: {bar.itPercentage}%</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <div className="w-2 h-2 rounded-full bg-red-600 mr-1"></div>
+                                  <span>NTC: {bar.ntcPercentage}%</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <div className="w-2 h-2 rounded-full bg-purple-700 mr-1"></div>
+                                  <span>QC: {bar.qcPercentage}%</span>
+                                </div>
                               </div>
                             </div>
                           </div>
