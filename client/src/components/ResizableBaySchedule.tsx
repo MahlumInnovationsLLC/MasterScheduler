@@ -44,9 +44,25 @@ interface ScheduleBar {
   color: string;
   // For multi-row layout within a bay
   row?: number; // 0-3 for 4 rows per bay
-  // FAB phase information
-  fabWeeks: number; // Number of weeks for FAB phase
+  
+  // Department phase percentages
+  fabPercentage: number; // Default 27%
+  paintPercentage: number; // Default 7%
+  productionPercentage: number; // Default 60%
+  itPercentage: number; // Default 7%
+  ntcPercentage: number; // Default 7% 
+  qcPercentage: number; // Default 7%
+  
+  // Width calculations for phases
   fabWidth?: number; // Width of FAB phase on visualization
+  paintWidth?: number; // Width of PAINT phase
+  productionWidth?: number; // Width of PRODUCTION phase
+  itWidth?: number; // Width of IT phase 
+  ntcWidth?: number; // Width of NTC phase
+  qcWidth?: number; // Width of QC phase
+  
+  // Legacy field
+  fabWeeks: number; // Number of weeks for FAB phase
 }
 
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
@@ -419,6 +435,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Ensure minimum width but don't cap it based on total width percentage
         fabWidth = Math.max(slotWidth / 2, fabWidth);
         
+        // Get department percentages from the project (or use defaults)
+        const fabPercentage = parseFloat(project.fabPercentage as any) || 27;
+        const paintPercentage = parseFloat(project.paintPercentage as any) || 7; 
+        const productionPercentage = parseFloat(project.productionPercentage as any) || 60;
+        const itPercentage = parseFloat(project.itPercentage as any) || 7;
+        const ntcPercentage = parseFloat(project.ntcPercentage as any) || 7;
+        const qcPercentage = parseFloat(project.qcPercentage as any) || 7;
+        
+        // Calculate the remaining width after FAB phase
+        const remainingWidth = barWidth - fabWidth;
+        
+        // The remaining departments (after FAB) should add up to remainingWidth
+        const nonFabPercentageTotal = paintPercentage + productionPercentage + itPercentage + ntcPercentage + qcPercentage;
+        
+        // Calculate widths proportionally
+        const paintWidth = Math.floor(remainingWidth * (paintPercentage / nonFabPercentageTotal));
+        const productionWidth = Math.floor(remainingWidth * (productionPercentage / nonFabPercentageTotal));
+        const itWidth = Math.floor(remainingWidth * (itPercentage / nonFabPercentageTotal));
+        const ntcWidth = Math.floor(remainingWidth * (ntcPercentage / nonFabPercentageTotal));
+        
+        // QC gets the remainder to ensure we add up exactly to total width
+        const qcWidth = remainingWidth - paintWidth - productionWidth - itWidth - ntcWidth;
+        
         processedBars.push({
           id: schedule.id,
           projectId: schedule.projectId,
@@ -432,8 +471,25 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           left: barLeft,
           color: getProjectColor(project.id),
           row: assignedRow,
-          fabWeeks,
-          fabWidth
+          
+          // Department percentages
+          fabPercentage,
+          paintPercentage,
+          productionPercentage,
+          itPercentage,
+          ntcPercentage,
+          qcPercentage,
+          
+          // Department widths
+          fabWidth,
+          paintWidth,
+          productionWidth,
+          itWidth,
+          ntcWidth,
+          qcWidth,
+          
+          // Legacy field
+          fabWeeks
         });
       });
     });
