@@ -21,8 +21,8 @@ interface ResizableBayScheduleProps {
   schedules: ManufacturingSchedule[];
   projects: Project[];
   bays: ManufacturingBay[];
-  onScheduleChange: (scheduleId: number, newBayId: number, newStartDate: string, newEndDate: string, totalHours?: number) => Promise<void>;
-  onScheduleCreate: (projectId: number, bayId: number, startDate: string, endDate: string, totalHours?: number) => Promise<void>;
+  onScheduleChange: (scheduleId: number, newBayId: number, newStartDate: string, newEndDate: string, totalHours?: number) => Promise<any>;
+  onScheduleCreate: (projectId: number, bayId: number, startDate: string, endDate: string, totalHours?: number) => Promise<any>;
   onBayCreate?: (bay: Partial<ManufacturingBay>) => Promise<any>;
   onBayUpdate?: (id: number, bay: Partial<ManufacturingBay>) => Promise<any>;
   onBayDelete?: (id: number) => Promise<any>;
@@ -1120,9 +1120,24 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   })
                 }
                 
-                {/* Bay label (shows on each row) */}
-                <div className="absolute top-0 left-0 bg-gray-800/80 text-xs px-1 rounded-br z-20">
-                  Bay {bay.bayNumber}
+                {/* Bay label (shows on each row) with delete button */}
+                <div className="absolute top-0 left-0 bg-gray-800/80 text-xs px-1 rounded-br z-20 flex items-center gap-1 group">
+                  <span>Bay {bay.bayNumber}</span>
+                  <button 
+                    onClick={() => {
+                      // Show confirmation dialog before deleting
+                      if (window.confirm(`Are you sure you want to delete Bay ${bay.bayNumber}? All projects in this bay will be moved to the Unassigned section.`)) {
+                        handleDeleteBay(bay.id);
+                      }
+                    }}
+                    className="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 ml-1"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18"></path>
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    </svg>
+                  </button>
                 </div>
               </div>
             ))}
@@ -1168,6 +1183,39 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 </div>
               </div>
             ))}
+            
+            {/* Add Bay button */}
+            <div className="mt-4 flex justify-center">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  // Create a new bay with default values
+                  const newBayNumber = bays.length + 1;
+                  setEditingBay({
+                    id: 0, // Will be assigned by server
+                    bayNumber: newBayNumber,
+                    name: `Bay ${newBayNumber}`,
+                    description: null,
+                    equipment: null,
+                    team: null,
+                    staffCount: 3,
+                    assemblyStaffCount: 2,
+                    electricalStaffCount: 1,
+                    hoursPerPersonPerWeek: 32,
+                    isActive: true,
+                    createdAt: null
+                  });
+                }}
+                className="flex items-center gap-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Add New Bay</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>

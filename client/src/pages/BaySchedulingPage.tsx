@@ -240,15 +240,26 @@ const BaySchedulingPage = () => {
     totalHours?: number
   ) => {
     try {
-      await updateScheduleMutation.mutateAsync({
+      console.log(`Updating schedule ${scheduleId} to bay ${newBayId}`);
+      const result = await updateScheduleMutation.mutateAsync({
         scheduleId,
         bayId: newBayId,
         startDate: newStartDate,
         endDate: newEndDate,
         totalHours
       });
-      return true;
+      
+      // Force a refetch to ensure state is up to date
+      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+      
+      return result;
     } catch (error) {
+      console.error('Error updating schedule:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update schedule",
+        variant: "destructive"
+      });
       return false;
     }
   };
