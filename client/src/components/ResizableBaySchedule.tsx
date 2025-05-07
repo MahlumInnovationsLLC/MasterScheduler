@@ -1864,8 +1864,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // If we couldn't get the date from any attribute, use the targetSlotIndex
       if (!slotDate && targetSlotIndex >= 0 && targetSlotIndex < slots.length) {
-        slotDate = slots[targetSlotIndex]?.date;
+        slotDate = new Date(slots[targetSlotIndex]?.date);
         console.log('Using date from slots array with targetSlotIndex:', targetSlotIndex, slotDate);
+      }
+      
+      // Force persist the exact slot date from the drop target
+      if (targetSlotIndex >= 0 && targetSlotIndex < slots.length) {
+        // Make absolutely sure we're using the exact date of the target slot
+        slotDate = new Date(slots[targetSlotIndex]?.date);
+        console.log('FORCED SLOT DATE to match exact weekly slot:', targetSlotIndex, slotDate);
       }
       
       // Final validation
