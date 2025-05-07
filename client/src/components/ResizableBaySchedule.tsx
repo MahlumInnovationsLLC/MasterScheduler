@@ -248,6 +248,38 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   useEffect(() => {
     setBays(initialBays);
   }, [initialBays]);
+  
+  // Handle document-level drag events for global feedback
+  useEffect(() => {
+    const handleDocumentDragOver = () => {
+      document.body.classList.add('dragging-active');
+    };
+    
+    const handleDocumentDragEnd = () => {
+      document.body.classList.remove('dragging-active');
+      document.querySelectorAll('.drag-hover, .active-drop-target').forEach(el => {
+        el.classList.remove('drag-hover', 'active-drop-target');
+      });
+      document.querySelectorAll('[class*="row-"][class*="-highlight"]').forEach(el => {
+        // Remove all row highlight classes
+        for (let i = 0; i < 4; i++) {
+          el.classList.remove(`row-${i}-highlight`);
+        }
+      });
+      setDropTarget(null);
+    };
+    
+    document.addEventListener('dragover', handleDocumentDragOver);
+    document.addEventListener('dragend', handleDocumentDragEnd);
+    document.addEventListener('drop', handleDocumentDragEnd);
+    
+    return () => {
+      document.removeEventListener('dragover', handleDocumentDragOver);
+      document.removeEventListener('dragend', handleDocumentDragEnd);
+      document.removeEventListener('drop', handleDocumentDragEnd);
+    };
+  }, []);
+  
   const { toast } = useToast();
   const [draggingSchedule, setDraggingSchedule] = useState<any>(null);
   const [resizingSchedule, setResizingSchedule] = useState<{
@@ -1244,15 +1276,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
     }
     
-    // Clear previous highlights across all cells
-    document.querySelectorAll('.drop-target-highlight').forEach(el => {
-      el.classList.remove('drop-target-highlight', 'bg-primary/20', 'border-primary', 'border-dashed');
-    });
-    document.querySelectorAll('.bay-row-highlight').forEach(el => {
-      el.classList.remove('bay-row-highlight', 'bg-primary/10');
+    // Remove highlighted state from all cells
+    document.querySelectorAll('.drag-hover, .active-drop-target').forEach(el => {
+      el.classList.remove('drag-hover', 'active-drop-target');
     });
     
-    // Determine row index if not provided
+    // Remove row highlights from all rows
+    document.querySelectorAll('[class*="row-"][class*="-highlight"]').forEach(el => {
+      // Remove all row highlight classes
+      for (let i = 0; i < 4; i++) {
+        el.classList.remove(`row-${i}-highlight`);
+      }
+    });
+    
+    // Determine row index if not provided based on cell position
     const cellHeight = e.currentTarget.clientHeight;
     const relativeY = e.nativeEvent.offsetY;
     const calculatedRowIndex = rowIndex !== undefined 
@@ -1260,6 +1297,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       : Math.floor((relativeY / cellHeight) * 4);
     
     const validRowIndex = Math.max(0, Math.min(3, calculatedRowIndex));
+    
+    // Add highlight to the current target cell
+    if (e.currentTarget) {
+      // Add class to show this as an active drop target
+      e.currentTarget.classList.add('active-drop-target');
+      
+      // Add a row-specific highlight class
+      e.currentTarget.classList.add(`row-${validRowIndex}-highlight`);
+      
+      // Find all cells in this week column and add hover effect
+      const columnIndex = e.currentTarget.getAttribute('data-slot-index');
+      if (columnIndex) {
+        document.querySelectorAll(`[data-slot-index="${columnIndex}"][data-bay-id="${bayId}"]`).forEach(el => {
+          el.classList.add('drag-hover');
+        });
+      }
+    }
     
     // Update the target location
     setDropTarget({ 
