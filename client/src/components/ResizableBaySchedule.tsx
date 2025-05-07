@@ -1046,18 +1046,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         targetWeekCell.classList.add('week-cell-resize-hover');
         
         // Add vertical column highlight for better visual feedback
-        // This highlights the entire column in all rows
-        for (let row = 0; row < 4; row++) {
-          const columnCell = document.querySelector(`.week-cell[data-slot-index="${hoverSlotIndex}"][data-row="${row}"]`);
-          if (columnCell) {
-            columnCell.classList.add('vertical-highlight-column');
-            if (resizingSchedule.direction === 'left') {
-              columnCell.classList.add('left-resize');
-            } else {
-              columnCell.classList.add('right-resize');
-            }
+        // This highlights the entire column in all rows for ALL BAYS
+        document.querySelectorAll(`.week-cell[data-slot-index="${hoverSlotIndex}"]`).forEach(columnCell => {
+          columnCell.classList.add('vertical-highlight-column');
+          if (resizingSchedule.direction === 'left') {
+            columnCell.classList.add('left-resize');
+          } else {
+            columnCell.classList.add('right-resize');
           }
-        }
+        });
+        
+        // Also add a highlight class to all cells in the same column regardless of row/bay
+        const allColumnCells = document.querySelectorAll(`[data-slot-index="${hoverSlotIndex}"]`);
+        allColumnCells.forEach(cell => {
+          cell.classList.add('column-highlight');
+        });
         
         console.log(`Highlighting week cell at index ${hoverSlotIndex} with vertical column highlight`);
       }
@@ -1150,14 +1153,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const snapSlot = Math.floor(parseInt(barElement.style.left, 10) / slotWidth);
         
         if (snapSlot >= 0 && snapSlot < slots.length) {
-          // Get the date from the slot
+          // Get the date from the slot - change starting point only, KEEP the end date fixed
           newStartDate = new Date(slots[snapSlot].date);
+          // The end date is unchanged when resizing from left
+          newEndDate = new Date(resizingSchedule.initialEndDate);
         } else {
           // Fallback to pixel-based calculation
           const pixelsDelta = parseInt(barElement.style.left, 10) - resizingSchedule.initialLeft;
           const pixelsPerDay = slotWidth / daysBetweenSlots;
           const daysDelta = Math.round(pixelsDelta / pixelsPerDay);
           newStartDate = addDays(resizingSchedule.initialStartDate, daysDelta);
+          // The end date is unchanged when resizing from left
+          newEndDate = new Date(resizingSchedule.initialEndDate);
         }
         
         // Ensure start date is not after end date
@@ -1279,6 +1286,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Clear all vertical column highlights
       document.querySelectorAll('.vertical-highlight-column').forEach(el => {
         el.classList.remove('vertical-highlight-column', 'left-resize', 'right-resize');
+      });
+      
+      // Clear all column highlights from any cell
+      document.querySelectorAll('.column-highlight').forEach(el => {
+        el.classList.remove('column-highlight');
       });
       
       // Reset UI state

@@ -820,6 +820,36 @@
   right: 0;
 }
 
+/* Generic column highlight for any cell in the same column */
+.column-highlight {
+  position: relative !important;
+  background-color: rgba(var(--primary-rgb), 0.07) !important;
+  box-shadow: inset 0 0 0 1px rgba(var(--primary-rgb), 0.2) !important;
+}
+
+/* Stronger highlight for the target column */
+.column-highlight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background-color: rgba(var(--primary-rgb), 0.5);
+  z-index: 30;
+}
+
+.column-highlight::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 1px;
+  background-color: rgba(var(--primary-rgb), 0.5);
+  z-index: 30;
+}
+
 /* Theme-specific variations for vertical highlights */
 .dark .vertical-highlight-column {
   background-color: rgba(var(--primary-rgb), 0.25) !important;
@@ -827,6 +857,14 @@
 
 .light .vertical-highlight-column {
   background-color: rgba(var(--primary-rgb), 0.15) !important;
+}
+
+.dark .column-highlight {
+  background-color: rgba(var(--primary-rgb), 0.1) !important;
+}
+
+.light .column-highlight {
+  background-color: rgba(var(--primary-rgb), 0.07) !important;
 }
 
 .dark .week-cell-hover {
