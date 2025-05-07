@@ -294,11 +294,51 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           }
         });
         
-        // Calculate width and position
+        // Calculate width and position based on capacity-adjusted duration
         const validStartIndex = startSlotIndex === -1 ? 0 : startSlotIndex;
         const validEndIndex = endSlotIndex === -1 ? slots.length - 1 : endSlotIndex;
         
-        const barWidth = ((validEndIndex - validStartIndex) + 1) * slotWidth;
+        // Get weekly capacity for this bay
+        const weeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
+        
+        // Calculate how many full weeks the project will take based on total hours
+        const totalHours = schedule.totalHours || 1000; // Default to 1000 if not specified
+        const fullWeeksNeeded = Math.floor(totalHours / weeklyCapacity);
+        
+        // Calculate remaining hours after full weeks
+        const remainingHours = totalHours % weeklyCapacity;
+        
+        // Calculate additional slots needed for remaining hours (partial week)
+        const additionalSlots = remainingHours > 0 ? 1 : 0; // At least one more slot for remainders
+        
+        // Calculate total slots needed
+        let totalSlotsNeeded;
+        if (viewMode === 'day') {
+          // For day view, each day is a slot
+          const dailyCapacity = weeklyCapacity / 5;
+          const daysNeeded = Math.ceil(totalHours / dailyCapacity);
+          totalSlotsNeeded = daysNeeded;
+        } else if (viewMode === 'week') {
+          // For week view, each slot is a week
+          totalSlotsNeeded = fullWeeksNeeded + additionalSlots;
+        } else if (viewMode === 'month') {
+          // For month view, approximate weeks per month
+          const weeksPerMonth = 4;
+          totalSlotsNeeded = Math.ceil((fullWeeksNeeded + additionalSlots) / weeksPerMonth);
+        } else { // quarter
+          // For quarter view, approximate weeks per quarter
+          const weeksPerQuarter = 13;
+          totalSlotsNeeded = Math.ceil((fullWeeksNeeded + additionalSlots) / weeksPerQuarter);
+        }
+        
+        // Ensure at least 1 slot
+        totalSlotsNeeded = Math.max(1, totalSlotsNeeded);
+        
+        // Apply the calculated width
+        const calculatedEndIndex = validStartIndex + totalSlotsNeeded - 1;
+        const adjustedEndIndex = Math.min(calculatedEndIndex, slots.length - 1);
+        
+        const barWidth = ((adjustedEndIndex - validStartIndex) + 1) * slotWidth;
         const barLeft = validStartIndex * slotWidth;
         
         processedBars.push({
@@ -775,18 +815,37 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return;
       }
       
-      // Calculate end date based on total hours and bay capacity
-      // Make sure to use at least 1 hour per day
-      const dailyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1) / 5);
-      const daysNeeded = Math.max(1, Math.ceil(data.totalHours / dailyCapacity));
-      const endDate = addDays(slotDate, daysNeeded);
+      // Calculate end date based on total hours and bay capacity with weekly limits
+      const weeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
+      
+      // Calculate how many full weeks the project will take
+      const totalHours = data.totalHours || 1000; // Default to 1000 if not specified
+      const fullWeeksNeeded = Math.floor(totalHours / weeklyCapacity);
+      
+      // Calculate remaining hours after full weeks
+      const remainingHours = totalHours % weeklyCapacity;
+      
+      // Convert remaining hours to days (assuming equal distribution across 5-day work week)
+      const dailyCapacity = weeklyCapacity / 5;
+      const additionalDays = remainingHours > 0 ? Math.ceil(remainingHours / dailyCapacity) : 0;
+      
+      // Calculate total days needed
+      const totalDays = (fullWeeksNeeded * 7) + additionalDays;
+      
+      // Calculate end date
+      const endDate = addDays(slotDate, totalDays);
       
       console.log('Attempting to drop project:', {
         projectId: data.projectId || data.id,
         bayId,
         slotDate: slotDate.toISOString(),
         endDate: endDate.toISOString(),
-        totalHours: data.totalHours,
+        totalHours: totalHours,
+        weeklyCapacity: weeklyCapacity,
+        fullWeeksNeeded: fullWeeksNeeded,
+        remainingHours: remainingHours,
+        additionalDays: additionalDays,
+        totalDays: totalDays,
         type: data.type
       });
       
