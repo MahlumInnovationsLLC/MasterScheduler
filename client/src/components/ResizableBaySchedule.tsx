@@ -974,12 +974,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 </div>
               </div>
               
-              {/* Show 4 rows visually in the sidebar */}
-              <div className="flex-1 flex flex-col">
-                <div className="flex-1 border-b border-gray-700/30 text-xs text-gray-500 pl-2">Row 1</div>
-                <div className="flex-1 border-b border-gray-700/30 text-xs text-gray-500 pl-2">Row 2</div>
-                <div className="flex-1 border-b border-gray-700/30 text-xs text-gray-500 pl-2">Row 3</div>
-                <div className="flex-1 text-xs text-gray-500 pl-2">Row 4</div>
+              {/* Team capacity area - no row labels */}
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-xs text-gray-400">4 projects max</div>
               </div>
             </div>
           ))}
@@ -1026,12 +1023,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 </Button>
               </div>
               
-              {/* Show 4 rows visually in the sidebar */}
-              <div className="flex-1 flex flex-col opacity-50">
-                <div className="flex-1 border-b border-gray-700/30 text-xs text-gray-500 pl-2">Row 1</div>
-                <div className="flex-1 border-b border-gray-700/30 text-xs text-gray-500 pl-2">Row 2</div>
-                <div className="flex-1 border-b border-gray-700/30 text-xs text-gray-500 pl-2">Row 3</div>
-                <div className="flex-1 text-xs text-gray-500 pl-2">Row 4</div>
+              {/* Empty team area - no row labels */}
+              <div className="flex-1 flex items-center justify-center opacity-50">
+                <div className="text-xs text-gray-400">Click + to create team</div>
               </div>
             </div>
           ))}
