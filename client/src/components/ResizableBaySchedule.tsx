@@ -1070,16 +1070,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   .map(bar => {
                     // Calculate position based on row (0-3)
                     const rowHeight = 64 / 4; // Total height divided by 4 rows
-                    const top = (bar.row || 0) * rowHeight;
-                    const height = rowHeight - 1; // Just a 1px gap
+                    const top = (bar.row || 0) * rowHeight + 1; // Add 1px offset from top
+                    const height = rowHeight - 2; // Just a small gap for visibility between rows
                     
                     return (
                       <div
                         key={bar.id}
-                        className="absolute rounded-sm z-10 border shadow-md group"
+                        className="absolute rounded-sm z-10 border-2 border-gray-600 shadow-md group hover:brightness-110 transition-all"
                         style={{
                           left: bar.left + 'px',
-                          width: bar.width - 2 + 'px',  // -2 for borders
+                          width: bar.width - 4 + 'px',  // -4 for thicker borders
                           backgroundColor: bar.color,
                           opacity: draggingSchedule?.id === bar.id ? 0.5 : 0.8,
                           top: top + 'px',
@@ -1096,11 +1096,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         })}
                       >
                         {/* Content */}
-                        <div className="absolute inset-0 flex items-center justify-between px-2 text-white">
+                        <div className="absolute inset-0 flex items-center justify-between px-2 text-white font-semibold text-shadow-sm">
                           <div className="font-medium text-xs truncate">
                             {bar.projectNumber}
                           </div>
-                          <div className="text-xs opacity-80 shrink-0">
+                          <div className="text-xs shrink-0">
                             {bar.totalHours}h
                           </div>
                         </div>
