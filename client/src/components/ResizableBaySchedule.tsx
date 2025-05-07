@@ -593,7 +593,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Handle saving an edited bay
-  const handleSaveBayEdit = async (bayId: number, data: Partial<ManufacturingBay>) => {
+  const handleSaveBayEdit = (bayId: number, data: Partial<ManufacturingBay>) => {
     try {
       if (!data) {
         toast({
@@ -613,17 +613,32 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.log('Updating bay with data:', updatedData);
       
       if (onBayUpdate && bayId > 0) {
-        // Use the parent component's mutation for existing bays
-        const updatedBay = await onBayUpdate(bayId, updatedData);
-        console.log('Bay updated successfully:', updatedBay);
-        
-        // Update local state
-        setBays(prev => prev.map(bay => bay.id === bayId ? updatedBay : bay));
-        
-        toast({
-          title: "Bay Updated",
-          description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been updated`,
-        });
+        // Use the parent component's mutation with promise
+        onBayUpdate(bayId, updatedData)
+          .then((updatedBay) => {
+            console.log('Bay updated successfully:', updatedBay);
+            
+            // Update local state
+            setBays(prev => prev.map(bay => bay.id === bayId ? updatedBay : bay));
+            
+            toast({
+              title: "Bay Updated",
+              description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been updated`,
+            });
+            
+            // Force refetch data from server
+            window.setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          })
+          .catch((error) => {
+            console.error('Error updating bay:', error);
+            toast({
+              title: "Error",
+              description: "Failed to update bay",
+              variant: "destructive"
+            });
+          });
       } else if (bayId > 0) {
         // Simulate success in dev mode to avoid authentication issues
         console.log('Simulating bay update in dev mode');
@@ -653,6 +668,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           title: "Bay Updated",
           description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been updated`, 
         });
+        
+        // Force refetch data from server
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
         console.error('Bay update failed - invalid bayId:', bayId);
         toast({
@@ -661,11 +681,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           variant: "destructive"
         });
       }
-      
-      // Force refetch data from server
-      window.setTimeout(() => {
-        window.location.reload();
-      }, 1000);
     } catch (error) {
       console.error('Error updating bay:', error);
       toast({
@@ -677,7 +692,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Handle deleting a bay
-  const handleDeleteBay = async (bayId: number) => {
+  const handleDeleteBay = (bayId: number) => {
     try {
       if (!bayId) {
         toast({
@@ -699,19 +714,28 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.log(`Found ${schedulesInBay.length} schedules in bay ${bayId} to reassign`);
       
       if (onBayDelete) {
-        // Use the parent component's mutation
-        await onBayDelete(bayId);
-        
-        // Handle reassigning any projects that were in this bay to the unassigned section
-        // This will be handled server-side, but we'll update local state for immediate feedback
-        
-        // Remove the bay from local state
-        setBays(prev => prev.filter(bay => bay.id !== bayId));
-        
-        toast({
-          title: "Bay Deleted",
-          description: `Bay ${bayToDelete.bayNumber}: ${bayToDelete.name} has been deleted. Projects have been moved to Unassigned.`,
-        });
+        // Use the parent component's mutation with promise
+        onBayDelete(bayId)
+          .then(() => {
+            // Handle reassigning any projects that were in this bay to the unassigned section
+            // This will be handled server-side, but we'll update local state for immediate feedback
+            
+            // Remove the bay from local state
+            setBays(prev => prev.filter(bay => bay.id !== bayId));
+            
+            toast({
+              title: "Bay Deleted",
+              description: `Bay ${bayToDelete.bayNumber}: ${bayToDelete.name} has been deleted. Projects have been moved to Unassigned.`,
+            });
+          })
+          .catch((error) => {
+            console.error('Error deleting bay:', error);
+            toast({
+              title: "Error",
+              description: "Failed to delete bay",
+              variant: "destructive"
+            });
+          });
       } else {
         // Simulate success in dev mode to avoid authentication issues
         console.log('Simulating bay deletion in dev mode');
@@ -740,7 +764,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Handle creating a new bay
-  const handleCreateBay = async (bayId: number, data: Partial<ManufacturingBay>) => {
+  const handleCreateBay = (bayId: number, data: Partial<ManufacturingBay>) => {
     try {
       if (!data) {
         toast({
@@ -760,17 +784,32 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.log('Creating bay with data:', updatedData);
       
       if (onBayCreate) {
-        // Use the parent component's mutation
-        const newBay = await onBayCreate(updatedData);
-        console.log('Bay created successfully:', newBay);
-        
-        // Update local state
-        setBays(prev => [...prev, newBay]);
-        
-        toast({
-          title: "Bay Created",
-          description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been created`,
-        });
+        // Use the parent component's mutation with promise
+        onBayCreate(updatedData)
+          .then((newBay) => {
+            console.log('Bay created successfully:', newBay);
+            
+            // Update local state
+            setBays(prev => [...prev, newBay]);
+            
+            toast({
+              title: "Bay Created",
+              description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been created`,
+            });
+            
+            // Force refetch data from server
+            window.setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          })
+          .catch((error) => {
+            console.error('Error creating bay:', error);
+            toast({
+              title: "Error",
+              description: "Failed to create bay",
+              variant: "destructive"
+            });
+          });
       } else {
         // If there's no onBayCreate handler provided, simulate success in dev mode
         // This avoids authentication issues with direct API calls
@@ -810,11 +849,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           window.location.reload();
         }, 1000);
       }
-      
-      // Force refetch data from server
-      window.setTimeout(() => {
-        window.location.reload();
-      }, 1000);
     } catch (error) {
       console.error('Error creating bay:', error);
       toast({
