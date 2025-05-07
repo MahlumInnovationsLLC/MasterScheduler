@@ -1405,11 +1405,32 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       if (dataDate) {
         // Store this for the drop handler - CRUCIAL for preserving week position
         target.setAttribute('data-exact-date', dataDate);
+        
+        // Also store this date on the parent bay element for better target identification
+        const parentBay = target.closest('.bay-container');
+        if (parentBay) {
+          parentBay.setAttribute('data-last-dragover-date', dataDate);
+        }
+        
+        // Also add this date to active drop elements that don't have a date
+        document.querySelectorAll('.active-drop-target').forEach(el => {
+          if (!el.hasAttribute('data-exact-date')) {
+            el.setAttribute('data-exact-date', dataDate);
+          }
+        });
+        
         // Log the exact date and week for debugging
         const exactDate = new Date(dataDate);
         const weekNumber = format(exactDate, 'w');
         const dateFormatted = format(exactDate, 'MMM d, yyyy');
         console.log(`Target cell date: ${dateFormatted} (Week ${weekNumber})`);
+        
+        // CRITICAL FIX: Also add the slot index to this element data attribute
+        const slotIndex = target.getAttribute('data-slot-index');
+        if (slotIndex) {
+          target.setAttribute('data-exact-slot-index', slotIndex);
+          console.log(`Target slot index: ${slotIndex}`);
+        }
       }
       
       // Add basic highlight classes for the current cell
@@ -1970,16 +1991,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Get the date for this slot using multiple reliable sources with fallbacks
       let slotDate: Date | null = null;
+      let exactDateForStorage: string | null = null;
       
       // MOST RELIABLE: Check for data-exact-date which is specifically set during drag over
+      // This is the most accurate way to get the precise date the user intended
       const exactDateStr = targetElement.getAttribute('data-exact-date');
       if (exactDateStr) {
         slotDate = new Date(exactDateStr);
-        console.log('Using precise date from data-exact-date attribute:', exactDateStr, slotDate);
+        exactDateForStorage = exactDateStr; // Store the exact string for later use
+        console.log('SUCCESS: Using precise date from data-exact-date attribute:', exactDateStr, slotDate);
       }
       // Next check for data-date on direct target
       else if (dataDate) {
         slotDate = new Date(dataDate);
+        exactDateForStorage = dataDate;
         console.log('Using date directly from target element data-date attribute:', dataDate, slotDate);
       }
       // Next try to find and check the closest element with a data-date attribute
@@ -1989,6 +2014,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           const dateStr = dateElement.getAttribute('data-date');
           if (dateStr) {
             slotDate = new Date(dateStr);
+            exactDateForStorage = dateStr;
             console.log('Using date from closest element with data-date attribute:', dateStr, slotDate);
           }
         }
@@ -1997,6 +2023,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // If we couldn't get the date from any attribute, use the targetSlotIndex
       if (!slotDate && targetSlotIndex >= 0 && targetSlotIndex < slots.length) {
         slotDate = new Date(slots[targetSlotIndex]?.date);
+        exactDateForStorage = format(slotDate, 'yyyy-MM-dd');
         console.log('Using date from slots array with targetSlotIndex:', targetSlotIndex, slotDate);
       }
       
@@ -2004,16 +2031,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // This ensures we remember precisely which week cell was targeted
       if (slotDate) {
         // IMPORTANT: Keep track of the original target slot date before any phase calculations
-        // This will be our real target start date for the schedule
-        const exactTargetStartDate = new Date(slotDate);
+        // Create a clone to avoid any reference issues
+        const exactTargetStartDate = new Date(slotDate.getTime());
         console.log('Exact target start date (before any FAB calculations):', exactTargetStartDate);
         
         // Store this for later use - CRUCIAL for proper week positioning
-        // Adding direct data modification here could be problematic - need to create a new object property
-        data.targetStartDate = exactTargetStartDate.toISOString();
+        // We MUST create a new property as a string to ensure it's carried forward in drag events
+        data.targetStartDate = exactDateForStorage || exactTargetStartDate.toISOString();
         
         // CRITICAL DEBUG: Add more verbose logging
         console.log('SAVED EXACT TARGET START DATE:', data.targetStartDate);
+        console.log('Week of target start date:', format(exactTargetStartDate, 'w'));
       }
       
       // Final validation
