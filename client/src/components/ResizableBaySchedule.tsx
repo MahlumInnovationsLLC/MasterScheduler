@@ -1874,6 +1874,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Make absolutely sure we're using the exact date of the target slot
         slotDate = new Date(slots[targetSlotIndex]?.date);
         console.log('FORCED SLOT DATE to match exact weekly slot:', targetSlotIndex, slotDate);
+        
+        // IMPORTANT: Keep track of the original target slot date before any phase calculations
+        // This will be our real target start date for the schedule
+        const exactTargetStartDate = new Date(slotDate);
+        console.log('Exact target start date (before any FAB calculations):', exactTargetStartDate);
+        
+        // Store this for later use
+        data.targetStartDate = exactTargetStartDate.toISOString();
       }
       
       // Final validation
@@ -2002,7 +2010,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
       
       // Calculate end date based on production days
-      endDate = addDays(productionStartDate, productionDays);
+      // First get the exact start date that we're using
+      const exactStartDate = data.targetStartDate ? new Date(data.targetStartDate) : slotDate;
+      
+      // Calculate the FAB phase duration from the exact start date
+      const exactFabEndDate = addDays(exactStartDate, fabDays);
+      
+      // Now calculate the end date by adding production days to the FAB end date
+      endDate = addDays(exactFabEndDate, productionDays);
+      
+      console.log('Calculated dates:', {
+        exactStartDate: exactStartDate.toISOString(),
+        fabEndDate: exactFabEndDate.toISOString(),
+        endDate: endDate.toISOString(),
+        fabDays,
+        productionDays
+      });
       
       console.log('Attempting to drop project:', {
         projectId: data.projectId || data.id,
@@ -2029,10 +2052,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         });
         
         // Use promise-based approach instead of async/await
+        // IMPORTANT: Use the exact targetStartDate we captured earlier instead of the slotDate 
+        // which may have been modified for FAB calculations
+        const startDateToUse = data.targetStartDate || slotDate.toISOString();
+        console.log('Using start date for schedule change:', startDateToUse);
+        
         onScheduleChange(
           data.id,
           targetBayId,
-          slotDate.toISOString(),
+          startDateToUse,
           endDate.toISOString(),
           data.totalHours || 1000,
           targetRowIndex
@@ -2063,10 +2091,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         });
       } else {
         // Create new schedule with row assignment using target values from data attributes
+        // Also use the exact targetStartDate for new schedules to ensure they start exactly where dropped
+        const startDateToUse = data.targetStartDate || slotDate.toISOString();
+        console.log('Using start date for new schedule:', startDateToUse);
+        
         onScheduleCreate(
           data.projectId,
           targetBayId,
-          slotDate.toISOString(),
+          startDateToUse,
           endDate.toISOString(),
           data.totalHours || 1000,
           targetRowIndex // Include rowIndex for vertical positioning
