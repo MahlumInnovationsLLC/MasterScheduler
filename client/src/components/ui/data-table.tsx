@@ -119,7 +119,7 @@ export function DataTable<TData, TValue>({
   // Define column widths
   const columnWidths = {
     location: 80,
-    projectNumber: 168, // Increased width for project number by 20% (from 140px to 168px)
+    projectNumber: 220, // Significantly increased width to minimize text wrapping
     name: 350, // Increased from 200px to 350px
     pmOwner: 130,
     progress: 120,
