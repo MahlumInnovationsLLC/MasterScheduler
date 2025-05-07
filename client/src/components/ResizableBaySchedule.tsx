@@ -33,6 +33,7 @@ interface ResizableBayScheduleProps {
   bays: ManufacturingBay[];
   onScheduleChange: (scheduleId: number, newBayId: number, newStartDate: string, newEndDate: string, totalHours?: number, rowIndex?: number) => Promise<any>;
   onScheduleCreate: (projectId: number, bayId: number, startDate: string, endDate: string, totalHours?: number, rowIndex?: number) => Promise<any>;
+  onScheduleDelete?: (scheduleId: number) => Promise<any>;
   onBayCreate?: (bay: Partial<ManufacturingBay>) => Promise<any>;
   onBayUpdate?: (id: number, bay: Partial<ManufacturingBay>) => Promise<any>;
   onBayDelete?: (id: number) => Promise<any>;
@@ -196,6 +197,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   bays: initialBays,
   onScheduleChange,
   onScheduleCreate,
+  onScheduleDelete,
   onBayCreate,
   onBayUpdate,
   onBayDelete,

@@ -241,6 +241,29 @@ const BaySchedulingPage = () => {
     },
   });
   
+  // Delete schedule mutation
+  const deleteScheduleMutation = useMutation({
+    mutationFn: async (scheduleId: number) => {
+      const response = await apiRequest('DELETE', `/api/manufacturing-schedules/${scheduleId}`);
+      return response.ok;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+      toast({
+        title: 'Success',
+        description: 'Project removed from manufacturing schedule',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to remove project from schedule',
+        variant: 'destructive',
+      });
+      console.error(error);
+    },
+  });
+  
   // Handler for schedule changes
   const handleScheduleChange = async (
     scheduleId: number,
@@ -296,6 +319,17 @@ const BaySchedulingPage = () => {
       });
       return true;
     } catch (error) {
+      return false;
+    }
+  };
+  
+  // Handler for schedule deletion
+  const handleScheduleDelete = async (scheduleId: number) => {
+    try {
+      await deleteScheduleMutation.mutateAsync(scheduleId);
+      return true;
+    } catch (error) {
+      console.error('Error deleting schedule:', error);
       return false;
     }
   };
@@ -500,6 +534,7 @@ const BaySchedulingPage = () => {
             }
             onScheduleChange={handleScheduleChange}
             onScheduleCreate={handleScheduleCreate}
+            onScheduleDelete={handleScheduleDelete}
             onBayCreate={(bay) => createBayMutation.mutateAsync(bay)}
             onBayUpdate={(id, bay) => updateBayMutation.mutateAsync({ id, ...bay })}
             onBayDelete={(id) => deleteBayMutation.mutateAsync(id)}
