@@ -129,6 +129,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(projectsWithQcDays);
     } catch (error) {
+      console.error("Error fetching projects:", error);
+      // Log additional details for debugging
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
       res.status(500).json({ message: "Error fetching projects" });
     }
   });
