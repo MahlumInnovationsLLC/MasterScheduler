@@ -456,9 +456,29 @@ const ProjectStatus = () => {
           percentValue,
           project.estimatedCompletionDate
         );
-        return <ProgressBadge status={status} animatePulse={status === 'Critical'} />;
+        
+        // Get the scheduling state for this project
+        const scheduleState = getProjectScheduleState(
+          manufacturingSchedules,
+          project.id
+        );
+        
+        return (
+          <div className="flex items-center gap-2">
+            <ProgressBadge status="Active" />
+            <ProgressBadge 
+              status={scheduleState} 
+              className={
+                scheduleState === 'Unscheduled' ? 'bg-gray-700 border-gray-600' :
+                scheduleState === 'Scheduled' ? 'bg-green-900 border-green-700' :
+                scheduleState === 'In Progress' ? 'bg-yellow-900 border-yellow-700' :
+                'bg-blue-900 border-blue-700'
+              }
+            />
+          </div>
+        );
       },
-      { size: 120 }),
+      { size: 180 }),
     createColumn('contractDate', 'contractDate', 'Contract Date', 
       (value) => formatDate(value),
       { size: 140 }),

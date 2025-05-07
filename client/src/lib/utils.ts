@@ -86,7 +86,54 @@ export function getProjectStatusColor(percentComplete: number, dueDate: Date | s
   }
   
   // On track
-  return { color: 'bg-success', status: 'On Track' };
+  return { color: 'bg-success', status: 'Active' };
+}
+
+export function getProjectScheduleState(
+  manufacturingSchedules: any[] | null | undefined,
+  projectId: number
+): string {
+  if (!manufacturingSchedules || manufacturingSchedules.length === 0) {
+    return 'Unscheduled';
+  }
+  
+  // Find schedules for this project
+  const projectSchedules = manufacturingSchedules.filter(
+    schedule => schedule.projectId === projectId
+  );
+  
+  if (projectSchedules.length === 0) {
+    return 'Unscheduled';
+  }
+  
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  // Check if any schedule is complete
+  const completed = projectSchedules.some(
+    schedule => schedule.status === 'complete' || 
+    (schedule.endDate && new Date(schedule.endDate) < today)
+  );
+  
+  if (completed) {
+    return 'Complete';
+  }
+  
+  // Check if any schedule is in progress
+  const inProgress = projectSchedules.some(
+    schedule => {
+      const startDate = new Date(schedule.startDate);
+      const endDate = new Date(schedule.endDate);
+      return startDate <= today && endDate >= today;
+    }
+  );
+  
+  if (inProgress) {
+    return 'In Progress';
+  }
+  
+  // If not completed or in progress, but scheduled, then it's scheduled
+  return 'Scheduled';
 }
 
 export function getBillingStatusInfo(
