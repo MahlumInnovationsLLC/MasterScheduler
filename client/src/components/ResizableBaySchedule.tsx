@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { ManufacturingBay, ManufacturingSchedule, Project } from '@shared/schema';
 import { EditBayDialog } from './EditBayDialog';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 interface ResizableBayScheduleProps {
   schedules: ManufacturingSchedule[];
@@ -939,10 +939,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           const schedProductionStart = addDays(scheduleStart, schedFabWeeks * 7);
           const scheduleEnd = new Date(s.endDate);
           
-          return (
-            (schedProductionStart <= weekEnd && scheduleEnd >= weekStart) ||
-            (scheduleStart <= weekEnd && scheduleEnd >= weekStart)
-          );
+          // IMPORTANT: Only count overlap if this week falls within the production phase
+          // It must be AFTER the FAB phase has ended and before the end date
+          return (schedProductionStart <= weekEnd && scheduleEnd >= weekStart);
         });
         
         // Calculate available capacity for this project in this week
@@ -977,50 +976,44 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       });
       
       if (data.type === 'existing') {
-        // Update existing schedule with row assignment
-        // Make a direct API call for better reliability
-        fetch(`/api/manufacturing-schedules/${data.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            bayId, 
-            startDate: slotDate.toISOString(), 
-            endDate: endDate.toISOString(),
-            totalHours: data.totalHours,
-            row: rowIndex // Add row index for vertical positioning
-          }),
-        })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Failed to update schedule');
-          }
-          return response.json();
-        })
-        .then(() => {
+        console.log('Moving existing schedule with data:', {
+          id: data.id,
+          projectId: data.projectId,
+          bayId, 
+          startDate: slotDate.toISOString(), 
+          endDate: endDate.toISOString(),
+          totalHours: data.totalHours || 1000,
+          row: rowIndex
+        });
+        
+        // Use promise-based approach instead of async/await
+        onScheduleChange(
+          data.id,
+          bayId,
+          slotDate.toISOString(),
+          endDate.toISOString(),
+          data.totalHours || 1000,
+          rowIndex
+        )
+        .then(result => {
+          console.log('Schedule successfully updated:', result);
+          
           toast({
             title: "Schedule Updated",
             description: `${data.projectNumber} moved to Bay ${bay.bayNumber}`,
           });
           
-          // Force refresh to show changes
+          // Force data refresh without full page reload
+          queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+          
+          // Force refresh to show changes after a delay to allow server processing
           setTimeout(() => window.location.reload(), 1000);
         })
-        .catch(err => {
-          console.error('Failed to update schedule:', err);
-          
-          // Try the prop as fallback - include rowIndex for vertical position
-          onScheduleChange(
-            data.id,
-            bayId,
-            slotDate.toISOString(),
-            endDate.toISOString(),
-            data.totalHours,
-            rowIndex
-          );
-          
+        .catch(error => {
+          console.error('Error updating schedule:', error);
           toast({
             title: "Error",
-            description: "Failed to update schedule",
+            description: "Failed to update schedule. Please try again.",
             variant: "destructive"
           });
         });
@@ -1031,14 +1024,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           bayId,
           slotDate.toISOString(),
           endDate.toISOString(),
-          data.totalHours,
+          data.totalHours || 1000,
           rowIndex // Include rowIndex for vertical positioning
-        ).then(() => {
+        )
+        .then(() => {
           toast({
             title: "Schedule Created",
             description: `${data.projectNumber} assigned to Bay ${bay.bayNumber}`,
           });
-        }).catch(err => {
+          
+          // Force refresh to show changes after a delay
+          setTimeout(() => window.location.reload(), 1000);
+        })
+        .catch(err => {
           console.error('Failed to create schedule:', err);
           toast({
             title: "Error",
