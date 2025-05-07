@@ -1032,6 +1032,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         el.classList.remove('week-cell-resize-hover');
       });
       
+      // Remove previous vertical column highlights
+      document.querySelectorAll('.vertical-highlight-column').forEach(el => {
+        el.classList.remove('vertical-highlight-column', 'left-resize', 'right-resize');
+      });
+      
       // Add highlight to the current week slot - we need to make this much more visible
       const weekCells = timelineContainer.querySelectorAll(`.week-cell`);
       const targetWeekCell = weekCells[hoverSlotIndex];
@@ -1039,7 +1044,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       if (targetWeekCell) {
         // Apply highlight to the week cell
         targetWeekCell.classList.add('week-cell-resize-hover');
-        console.log(`Highlighting week cell at index ${hoverSlotIndex}`);
+        
+        // Add vertical column highlight for better visual feedback
+        // This highlights the entire column in all rows
+        for (let row = 0; row < 4; row++) {
+          const columnCell = document.querySelector(`.week-cell[data-slot-index="${hoverSlotIndex}"][data-row="${row}"]`);
+          if (columnCell) {
+            columnCell.classList.add('vertical-highlight-column');
+            if (resizingSchedule.direction === 'left') {
+              columnCell.classList.add('left-resize');
+            } else {
+              columnCell.classList.add('right-resize');
+            }
+          }
+        }
+        
+        console.log(`Highlighting week cell at index ${hoverSlotIndex} with vertical column highlight`);
       }
       
       // Update the state
@@ -1251,12 +1271,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       document.removeEventListener('mouseup', handleResizeEnd);
       document.body.style.cursor = '';
       
-      // Reset resize hover state
+      // Reset resize hover state and clean up all highlight classes
       document.querySelectorAll('.week-cell-resize-hover').forEach(el => {
         el.classList.remove('week-cell-resize-hover');
       });
+      
+      // Clear all vertical column highlights
+      document.querySelectorAll('.vertical-highlight-column').forEach(el => {
+        el.classList.remove('vertical-highlight-column', 'left-resize', 'right-resize');
+      });
+      
+      // Reset UI state
       setResizeHoverSlot(null);
       setResizingSchedule(null);
+      
+      // Force schedules to be recalculated by incrementing the version counter
+      // This ensures the UI updates with the new position even if data is still cached
+      setRecalculationVersion(prev => prev + 1);
     }
   };
   
@@ -2478,6 +2509,34 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Show warning dialog
       setCapacityWarningData(capacityImpact);
       setShowCapacityWarning(true);
+      
+      // Show warning toast with details
+      toast({
+        title: "Over Capacity Warning",
+        description: `Bay will be at ${capacityImpact.percentage}% utilization for ${capacityImpact.weekCount} weeks`,
+        variant: "warning",
+      });
+      
+      // Even with the warning, we'll update the UI immediately to show the new dates
+      // This ensures the UI is responsive, but the server update will happen after confirmation
+      
+      // Force UI update by incrementing recalculation version
+      setRecalculationVersion(prev => prev + 1);
+      
+      // Update project bar visually with new dates (optimistic update)
+      const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${scheduleId}"]`) as HTMLElement;
+      if (barElement) {
+        // Update data attributes for rendering
+        barElement.setAttribute('data-start-date', newStartDate);
+        barElement.setAttribute('data-end-date', finalEndDate);
+        
+        // Temporarily apply a highlight to show the change
+        barElement.classList.add('bg-yellow-400/20', 'border-yellow-500', 'border-2');
+        setTimeout(() => {
+          barElement.classList.remove('bg-yellow-400/20', 'border-yellow-500', 'border-2');
+        }, 2000);
+      }
+      
     } else {
       // Apply the change directly
       onScheduleChange(
@@ -2494,8 +2553,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           description: "Project schedule has been updated",
         });
         
-        // Force refresh to show changes
+        // Force refresh data
         queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+        
+        // Force UI update by incrementing recalculation version
+        setRecalculationVersion(prev => prev + 1);
+        
+        // Highlight the updated bar to make the change more visible
+        const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${scheduleId}"]`) as HTMLElement;
+        if (barElement) {
+          // Apply a highlight effect that fades out
+          barElement.classList.add('bg-green-400/20', 'border-green-500', 'border-2');
+          setTimeout(() => {
+            barElement.classList.remove('bg-green-400/20', 'border-green-500', 'border-2');
+          }, 2000);
+        }
       })
       .catch(error => {
         console.error('Error updating schedule:', error);
