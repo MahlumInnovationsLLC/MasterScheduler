@@ -316,6 +316,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   
   const { toast } = useToast();
   const timelineContainerRef = useRef<HTMLDivElement>(null);
+  const weekHeaderRef = useRef<HTMLDivElement>(null);
+  const stickyHeaderRef = useRef<HTMLDivElement>(null);
   const [draggingSchedule, setDraggingSchedule] = useState<any>(null);
   const [resizingSchedule, setResizingSchedule] = useState<{
     id: number;
@@ -3239,13 +3241,42 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             })()}
           </div>
 
-          {/* Header row with time slots */}
+          {/* Header row with time slots - Add sticky functionality */}
           <div 
-            className="h-12 border-b border-gray-700 grid" 
+            className="h-12 border-b border-gray-700 grid week-header-row" 
             style={{ 
               gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
               width: totalViewWidth 
             }}
+            ref={weekHeaderRef}
+          >
+            {slots.map((slot, index) => (
+              <div 
+                key={index} 
+                className={`border-r border-gray-700 flex flex-col justify-end pb-1 ${
+                  slot.isWeekend ? 'bg-gray-800/20' : ''
+                } ${isSameDay(slot.date, new Date()) ? 'bg-blue-900/20' : ''}`}
+              >
+                <div className="text-xs font-medium px-2">{slot.label}</div>
+                {slot.sublabel && (
+                  <div className="text-xs text-gray-400 px-2">{slot.sublabel}</div>
+                )}
+              </div>
+            ))}
+          </div>
+          
+          {/* Clone of week header that becomes visible when scrolling */}
+          <div 
+            className="h-12 border-b border-gray-700 grid week-header-sticky hidden" 
+            style={{ 
+              gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
+              width: totalViewWidth,
+              position: 'fixed',
+              top: '0',
+              zIndex: 50,
+              backgroundColor: 'var(--background)'
+            }}
+            ref={stickyHeaderRef}
           >
             {slots.map((slot, index) => (
               <div 
