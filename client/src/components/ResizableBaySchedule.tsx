@@ -2397,59 +2397,61 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     <BayCapacityInfo bay={bay} allSchedules={schedules} />
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setEditingBay(bay)}
-                    title="Edit Team"
-                  >
-                    <PencilIcon className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => {
-                      // Apply auto-adjustment only to this specific bay
-                      applyAutoCapacityAdjustment(bay.id);
-                      
-                      // Update the auto-adjusted bays state
-                      setAutoAdjustedBays(prev => ({...prev, [bay.id]: true}));
-                      
-                      // Show toast notification
-                      toast({
-                        title: `Auto-Adjusted ${bay.name}`,
-                        description: "Schedule lengths adjusted based on capacity sharing",
-                        duration: 3000
-                      });
-                    }}
-                    title="Auto-Adjust Capacity"
-                    className={autoAdjustedBays[bay.id] ? "text-green-500" : "text-blue-400 hover:text-blue-500"}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 8L22 12L18 16" />
-                      <path d="M2 12H22" />
-                    </svg>
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="text-red-400 hover:text-red-500"
-                    onClick={() => {
-                      // Show confirmation dialog before deleting
-                      if (window.confirm(`Are you sure you want to delete Team ${bay.name}? All projects in this bay will be moved to the Unassigned section.`)) {
-                        handleDeleteBay(bay.id);
-                      }
-                    }}
-                    title="Delete Team"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 6h18"></path>
-                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                    </svg>
-                  </Button>
-                </div>
+              </div>
+              
+              {/* Action buttons row - moved below bay info and above capacity indicator */}
+              <div className="flex items-center justify-center gap-1 mb-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setEditingBay(bay)}
+                  title="Edit Team"
+                >
+                  <PencilIcon className="h-3.5 w-3.5" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    // Apply auto-adjustment only to this specific bay
+                    applyAutoCapacityAdjustment(bay.id);
+                    
+                    // Update the auto-adjusted bays state
+                    setAutoAdjustedBays(prev => ({...prev, [bay.id]: true}));
+                    
+                    // Show toast notification
+                    toast({
+                      title: `Auto-Adjusted ${bay.name}`,
+                      description: "Schedule lengths adjusted based on capacity sharing",
+                      duration: 3000
+                    });
+                  }}
+                  title="Auto-Adjust Capacity"
+                  className={autoAdjustedBays[bay.id] ? "text-green-500" : "text-blue-400 hover:text-blue-500"}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8L22 12L18 16" />
+                    <path d="M2 12H22" />
+                  </svg>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-red-400 hover:text-red-500"
+                  onClick={() => {
+                    // Show confirmation dialog before deleting
+                    if (window.confirm(`Are you sure you want to delete Team ${bay.name}? All projects in this bay will be moved to the Unassigned section.`)) {
+                      handleDeleteBay(bay.id);
+                    }
+                  }}
+                  title="Delete Team"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                  </svg>
+                </Button>
               </div>
               
               {/* Team capacity area with work level indicator */}
@@ -2672,6 +2674,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     </div>
                   </div>
                 </div>
+              </div>
+              
+              {/* Action buttons for empty bay - centered below the bay details */}
+              <div className="flex items-center justify-center gap-1 mb-2">
                 <Button 
                   variant="ghost" 
                   size="sm"
