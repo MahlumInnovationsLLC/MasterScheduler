@@ -2542,7 +2542,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       
                       // Calculate utilization percentage based on weekly hours
                       // Get the same utilization percentage shown in BayCapacityInfo for consistency
-                      const utilization = weeklyCapacity > 0 ? Math.min(100, (weeklyUtilization / weeklyCapacity) * 100) : 0;
+                      const utilization = maxCapacity > 0 ? Math.min(100, (weeklyUtilization / maxCapacity) * 100) : 0;
                       const roundedUtilization = Math.round(utilization);
                       const loadRatio = roundedUtilization / 100;
                       
