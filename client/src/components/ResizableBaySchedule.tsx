@@ -2541,7 +2541,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       }
                       
                       // Calculate utilization percentage based on weekly hours
-                      const loadRatio = maxCapacity > 0 ? weeklyUtilization / maxCapacity : 0;
+                      // Get the same utilization percentage shown in BayCapacityInfo for consistency
+                      const utilization = weeklyCapacity > 0 ? Math.min(100, (weeklyUtilization / weeklyCapacity) * 100) : 0;
+                      const roundedUtilization = Math.round(utilization);
+                      const loadRatio = roundedUtilization / 100;
                       
                       // Create a more detailed analysis
                       const overloadedPercent = weeksCount > 0 ? (overloadedWeeks / weeksCount) * 100 : 0;
@@ -2571,6 +2574,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         label = 'No Projects';
                         details = 'Bay is empty';
                       }
+                      
+                      // Log to verify calculation is consistent with BayCapacityInfo
+                      console.log(`Bay ${bay.name} schedule display utilization: ${roundedUtilization}%`);
                       
                       // Set colors based on status
                       const colors = {
