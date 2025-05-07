@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { format, addDays, differenceInDays, isSameDay, addWeeks, addMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
-import { PlusCircle, GripVertical, Info, X, ChevronRight, ChevronLeft, PencilIcon, PlusIcon, Users, Zap, Clock } from 'lucide-react';
+import { PlusCircle, GripVertical, Info, X, ChevronRight, ChevronLeft, PencilIcon, PlusIcon, Users, Zap, Clock as ClockIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
