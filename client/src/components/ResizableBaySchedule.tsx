@@ -1313,15 +1313,33 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // Remove highlighted state from all cells and rows first - safely by handling selectors separately
     try {
-      // Clean up simple class names
+      // Clean up simple class names - EXPANDED LIST WITH NEW HIGHLIGHT CLASSES
       [
         '.drag-hover', 
         '.active-drop-target', 
         '.week-cell-hover', 
-        '.week-cell-resize-hover'
+        '.week-cell-resize-hover',
+        '.week-column-highlight',
+        '.target-cell-highlight',
+        '.bay-row-highlight'
       ].forEach(selector => {
         document.querySelectorAll(selector).forEach(el => {
-          el.classList.remove('drag-hover', 'active-drop-target', 'week-cell-hover', 'week-cell-resize-hover');
+          // Remove all possible highlight classes
+          el.classList.remove(
+            'drag-hover', 
+            'active-drop-target', 
+            'week-cell-hover', 
+            'week-cell-resize-hover',
+            'week-column-highlight',
+            'target-cell-highlight',
+            'bay-row-highlight',
+            'bg-primary/10',
+            'bg-primary/20',
+            'border-primary',
+            'border-primary/40',
+            'border-dashed',
+            'border-2'
+          );
         });
       });
       
@@ -1331,6 +1349,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         for (let i = 0; i < 4; i++) {
           el.classList.remove(`row-${i}-highlight`);
         }
+      });
+      
+      // Clear any data attributes used for highlighting
+      document.querySelectorAll('[data-active-drop-target="true"]').forEach(el => {
+        el.removeAttribute('data-active-drop-target');
+      });
+      
+      document.querySelectorAll('[data-active-row]').forEach(el => {
+        el.removeAttribute('data-active-row');
       });
     } catch (error) {
       console.error('Error cleaning up highlight classes in drag over:', error);
@@ -1369,47 +1396,63 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       rowIndex: validRowIndex
     });
     
-    // Add prominent visual cue to the current cell
+    // Add prominent visual cue to the current cell - ENHANCED VERSION WITH COLUMN HIGHLIGHTING
     try {
       const target = e.currentTarget as HTMLElement;
       
-      // Add basic highlight class safely
-      target.classList.add('drop-target-highlight', 'week-cell-hover');
+      // MOST IMPORTANT - Get and store the exact date from this cell
+      const dataDate = target.getAttribute('data-date');
+      if (dataDate) {
+        // Store this for the drop handler - CRUCIAL for preserving week position
+        target.setAttribute('data-exact-date', dataDate);
+        // Log the exact date and week for debugging
+        const exactDate = new Date(dataDate);
+        const weekNumber = format(exactDate, 'w');
+        const dateFormatted = format(exactDate, 'MMM d, yyyy');
+        console.log(`Target cell date: ${dateFormatted} (Week ${weekNumber})`);
+      }
       
-      // Add background and border classes separately to avoid selector issues
+      // Add basic highlight classes for the current cell
+      target.classList.add('drop-target-highlight', 'week-cell-hover');
       target.classList.add('border-primary', 'border-dashed');
       target.classList.add('bg-primary/20');
       
-      // Get the exact date from this cell
-      const dataDate = target.getAttribute('data-date');
-      
-      // Find all cells in this column for the bay to highlight them
+      // Find and highlight the entire column for this week
       const targetSlotIndex = target.getAttribute('data-slot-index');
       if (targetSlotIndex) {
-        // CRUCIAL FIX: Use a more specific selector to target only the right column
+        // First get all cells in this week column for ALL bays
+        document.querySelectorAll(`[data-slot-index="${targetSlotIndex}"]`).forEach(el => {
+          el.classList.add('week-column-highlight');
+        });
+        
+        // Then specifically highlight cells in THIS bay
         document.querySelectorAll(`[data-slot-index="${targetSlotIndex}"][data-bay-id="${bayId}"]`).forEach(el => {
-          el.classList.add('week-cell-resize-hover');
+          el.classList.add('week-cell-resize-hover', 'border-primary/40');
         });
       }
+      
+      // Add a data attribute to mark this cell as the active drop target
+      target.setAttribute('data-active-drop-target', 'true');
       
       // Highlight the specific row across the entire bay
       const bayElement = target.closest('.bay-container');
       if (bayElement) {
         const rowElements = bayElement.querySelectorAll('.bay-row');
         if (rowElements && rowElements.length > validRowIndex) {
-          rowElements[validRowIndex].classList.add('bay-row-highlight');
-          rowElements[validRowIndex].classList.add('bg-primary/10');
+          const rowElement = rowElements[validRowIndex];
+          rowElement.classList.add('bay-row-highlight');
+          rowElement.classList.add('bg-primary/10');
+          
+          // Also store the row index in the row element for later reference
+          rowElement.setAttribute('data-active-row', validRowIndex.toString());
         }
       }
       
-      // If we have a data-date, highlight all cells with the same date
-      if (dataDate) {
-        // Store this for the drop handler
-        target.setAttribute('data-exact-date', dataDate);
-        
-        // Extra precise targeting of the specific week column
-        const weekNumber = format(new Date(dataDate), 'w');
-        console.log(`Selected week ${weekNumber} with date ${dataDate}`);
+      // Extra visual cue for the intersection of column and row
+      const cellSelector = `[data-slot-index="${targetSlotIndex}"][data-bay-id="${bayId}"][data-row-index="${validRowIndex}"]`;
+      const cellElement = document.querySelector(cellSelector);
+      if (cellElement) {
+        cellElement.classList.add('target-cell-highlight', 'border-primary', 'border-2');
       }
     } catch (error) {
       console.error('Error adding cell highlights:', error);
