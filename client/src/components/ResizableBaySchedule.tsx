@@ -257,15 +257,33 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     const handleDocumentDragEnd = () => {
       document.body.classList.remove('dragging-active');
-      document.querySelectorAll('.drag-hover, .active-drop-target').forEach(el => {
-        el.classList.remove('drag-hover', 'active-drop-target');
+      
+      // Clean up all highlight classes
+      document.querySelectorAll(
+        '.drag-hover, .active-drop-target, .week-cell-hover, .week-cell-resize-hover, .bay-row-highlight, .drop-target-highlight, .bg-primary/10, .bg-primary/20, .border-primary, .border-dashed'
+      ).forEach(el => {
+        el.classList.remove(
+          'drag-hover', 
+          'active-drop-target', 
+          'week-cell-hover', 
+          'week-cell-resize-hover',
+          'bay-row-highlight',
+          'drop-target-highlight',
+          'bg-primary/10',
+          'bg-primary/20',
+          'border-primary',
+          'border-dashed'
+        );
       });
+      
+      // Remove row highlight classes
       document.querySelectorAll('[class*="row-"][class*="-highlight"]').forEach(el => {
         // Remove all row highlight classes
         for (let i = 0; i < 4; i++) {
           el.classList.remove(`row-${i}-highlight`);
         }
       });
+      
       setDropTarget(null);
     };
     
@@ -1694,24 +1712,52 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     let targetSlotIndex = slotIndex;
     let targetRowIndex = rowIndex;
     
-    // Try to find the closest week cell or cell marker element
-    const weekCellElement = targetElement.closest('[data-slot-index]') as HTMLElement;
-    if (weekCellElement) {
-      // Update from data attributes if they exist
-      const dataBayId = weekCellElement.getAttribute('data-bay-id');
-      const dataSlotIndex = weekCellElement.getAttribute('data-slot-index');
-      const dataRow = weekCellElement.getAttribute('data-row');
-      
-      if (dataBayId) targetBayId = parseInt(dataBayId);
-      if (dataSlotIndex) targetSlotIndex = parseInt(dataSlotIndex);
-      if (dataRow) targetRowIndex = parseInt(dataRow);
-      
-      console.log('Precise drop target detected:', {
-        element: weekCellElement,
+    // First try the direct target element for data attributes
+    const dataBayId = targetElement.getAttribute('data-bay-id');
+    const dataSlotIndex = targetElement.getAttribute('data-slot-index'); 
+    const dataRow = targetElement.getAttribute('data-row');
+    const dataDate = targetElement.getAttribute('data-date');
+    
+    // Apply any attributes found directly on the target
+    if (dataBayId) targetBayId = parseInt(dataBayId);
+    if (dataSlotIndex) targetSlotIndex = parseInt(dataSlotIndex);
+    if (dataRow) targetRowIndex = parseInt(dataRow);
+    
+    // Then try to find the closest week cell or cell marker element if needed
+    if (!dataSlotIndex || !dataBayId) {
+      const weekCellElement = targetElement.closest('[data-slot-index]') as HTMLElement;
+      if (weekCellElement) {
+        // Update from data attributes if they exist and weren't found directly
+        const cellBayId = weekCellElement.getAttribute('data-bay-id');
+        const cellSlotIndex = weekCellElement.getAttribute('data-slot-index');
+        const cellRow = weekCellElement.getAttribute('data-row');
+        const cellDate = weekCellElement.getAttribute('data-date');
+        
+        // Only override if not already set from direct target
+        if (!dataBayId && cellBayId) targetBayId = parseInt(cellBayId);
+        if (!dataSlotIndex && cellSlotIndex) targetSlotIndex = parseInt(cellSlotIndex);
+        if (!dataRow && cellRow) targetRowIndex = parseInt(cellRow);
+        
+        console.log('Precise drop target detected from cell element:', {
+          element: weekCellElement,
+          bayId: targetBayId,
+          slotIndex: targetSlotIndex,
+          rowIndex: targetRowIndex,
+          date: cellDate || dataDate,
+          attributes: {
+            bayId: cellBayId,
+            slotIndex: cellSlotIndex,
+            row: cellRow
+          }
+        });
+      }
+    } else {
+      console.log('Precise drop target detected from direct target:', {
+        element: targetElement,
         bayId: targetBayId,
         slotIndex: targetSlotIndex,
         rowIndex: targetRowIndex,
-        date: weekCellElement.getAttribute('data-date'),
+        date: dataDate,
         attributes: {
           bayId: dataBayId,
           slotIndex: dataSlotIndex,

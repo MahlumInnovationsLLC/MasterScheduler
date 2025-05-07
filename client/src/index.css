@@ -786,6 +786,23 @@
   z-index: 10;
 }
 
+/* Styling for resize hover target cells */
+.week-cell-resize-hover {
+  background-color: rgba(var(--primary-rgb), 0.25) !important;
+  border: 2px dashed hsl(var(--primary)) !important;
+  transition: all 0.2s ease-in-out;
+  z-index: 5;
+  position: relative;
+}
+
+.dark .week-cell-resize-hover {
+  background-color: rgba(var(--primary-rgb), 0.3) !important;
+}
+
+.light .week-cell-resize-hover {
+  background-color: rgba(var(--primary-rgb), 0.18) !important;
+}
+
 /* Vertical text for small sections */
 .vertical-text {
   writing-mode: vertical-rl;
