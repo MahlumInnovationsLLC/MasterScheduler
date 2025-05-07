@@ -1244,7 +1244,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
     }
     
-    // Clear previous highlight
+    // Clear previous highlights across all cells
     document.querySelectorAll('.drop-target-highlight').forEach(el => {
       el.classList.remove('drop-target-highlight', 'bg-primary/20', 'border-primary', 'border-dashed');
     });
@@ -1268,17 +1268,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       rowIndex: validRowIndex
     });
     
-    // Add prominent visual cue to the cell
+    // Add prominent visual cue to the current cell
     const target = e.currentTarget as HTMLElement;
     target.classList.add('drop-target-highlight', 'bg-primary/20', 'border-primary', 'border-dashed');
     
-    // Highlight the specific row
+    // Highlight the specific row across the entire bay
     const bayElement = target.closest('.bay-container');
     if (bayElement) {
       const rowElements = bayElement.querySelectorAll('.bay-row');
       if (rowElements && rowElements.length > validRowIndex) {
         rowElements[validRowIndex].classList.add('bay-row-highlight', 'bg-primary/10');
       }
+    }
+    
+    // Add week number to the data attribute for debugging
+    if (slots[slotIndex]) {
+      const weekNumber = format(slots[slotIndex].date, 'w');
+      target.setAttribute('data-week-number', weekNumber);
+      
+      // Log drag over an explicit week for debugging
+      console.log(`Dragging over Bay ${bayId}, Week ${weekNumber} (index ${slotIndex}), Row ${validRowIndex}`);
     }
   };
   
