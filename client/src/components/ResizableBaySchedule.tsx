@@ -930,20 +930,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const weekStart = startOfWeek(currentDate);
         const weekEnd = endOfWeek(currentDate);
         
-        // Count ONLY projects that are in their PRODUCTION phase this week (AFTER FAB)
+        // Count overlapping projects in this week that are in production phase
         const projectsInWeek = overlappingSchedules.filter(s => {
           const scheduleStart = new Date(s.startDate);
-          // Get the project to find its FAB weeks setting
+          // Add FAB phase to get production start date
           const schedProject = projects.find(p => p.id === s.projectId);
           const schedFabWeeks = schedProject?.fabWeeks || 4;
-          
-          // Calculate when production phase starts (after FAB)
           const schedProductionStart = addDays(scheduleStart, schedFabWeeks * 7);
           const scheduleEnd = new Date(s.endDate);
           
-          // Only count projects where this week falls within their PRODUCTION phase
-          // (i.e., after their FAB phase has ended and before their end date)
-          return (schedProductionStart <= weekEnd && scheduleEnd >= weekStart);
+          return (
+            (schedProductionStart <= weekEnd && scheduleEnd >= weekStart) ||
+            (scheduleStart <= weekEnd && scheduleEnd >= weekStart)
+          );
         });
         
         // Calculate available capacity for this project in this week
@@ -1429,8 +1428,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         style={{
                           left: bar.left + 'px',
                           width: bar.width - 4 + 'px',  // -4 for border spacing
-                          backgroundColor: '#313ea5', // Darker blue for production phase
-                          opacity: draggingSchedule?.id === bar.id ? 0.5 : 1
+                          backgroundColor: bar.color,
+                          opacity: draggingSchedule?.id === bar.id ? 0.5 : 0.9
                         }}
                         draggable
                         onDragStart={(e) => handleDragStart(e, 'existing', {
@@ -1448,7 +1447,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             className="absolute top-0 left-0 h-full rounded-l-md flex items-center justify-center overflow-hidden"
                             style={{
                               width: `${bar.fabWidth}px`,
-                              backgroundColor: '#8878ee', // Light purple color for FAB
+                              backgroundColor: 'rgba(255, 255, 255, 0.3)',
                               borderRight: '3px dashed rgba(255, 255, 255, 0.7)',
                               zIndex: 1,
                               boxShadow: 'inset -2px 0px 4px rgba(0,0,0,0.2)'
