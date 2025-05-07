@@ -225,10 +225,34 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Add a version counter to force recalculation of schedules
   const [recalculationVersion, setRecalculationVersion] = useState(1);
   
+  // Add state for warning popup when manual resizing affects capacity
+  const [showCapacityWarning, setShowCapacityWarning] = useState(false);
+  const [capacityWarningData, setCapacityWarningData] = useState<{
+    scheduleId: number;
+    bayId: number; 
+    newStartDate: string;
+    newEndDate: string;
+    totalHours: number;
+    impact: 'over-capacity' | 'under-capacity';
+    percentage: number;
+    affectedProjects: any[];
+  } | null>(null);
+  
+  // Track whether the auto-adjustment has been applied
+  const [hasAutoAdjusted, setHasAutoAdjusted] = useState(false);
+  
   // Force a recalculation when component mounts or when schedules change
   useEffect(() => {
     setRecalculationVersion(prev => prev + 1);
   }, [schedules.length]);
+  
+  // Apply auto-adjustment once on initial load
+  useEffect(() => {
+    if (schedules.length && bays.length && !hasAutoAdjusted) {
+      applyAutoCapacityAdjustment();
+      setHasAutoAdjusted(true);
+    }
+  }, [schedules.length, bays.length, hasAutoAdjusted]);
   
   // Generate time slots based on view mode
   const { slots, slotWidth } = useMemo(() => 
