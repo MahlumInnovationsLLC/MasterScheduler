@@ -2341,6 +2341,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const formattedFinalEndDate = format(finalEndDate, 'yyyy-MM-dd');
         console.log('Using END date for schedule change:', formattedFinalEndDate, '(formatted from', finalEndDate, ')');
         
+        // Show loading state
+        setIsMovingProject(true);
+        
+        // Add loading animation to the project element
+        const projectElement = document.querySelector(`[data-schedule-id="${data.id}"]`);
+        if (projectElement) {
+          projectElement.classList.add('animate-pulse', 'opacity-50');
+        }
+        
         onScheduleChange(
           data.id,
           targetBayId,
@@ -2362,10 +2371,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           // Force data refresh without full page reload
           queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
           
+          // Clear loading state
+          setIsMovingProject(false);
+          
           // Force refresh to show changes after a delay to allow server processing
           setTimeout(() => window.location.reload(), 1000);
         })
         .catch(error => {
+          // Clear loading state
+          setIsMovingProject(false);
+          
+          // Remove animation classes
+          const projectElement = document.querySelector(`[data-schedule-id="${data.id}"]`);
+          if (projectElement) {
+            projectElement.classList.remove('animate-pulse', 'opacity-50');
+          }
+          
           console.error('Error updating schedule:', error);
           toast({
             title: "Error",
@@ -2384,6 +2405,30 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const formattedFinalEndDate = format(finalEndDate, 'yyyy-MM-dd');
         console.log('Using END date for new schedule:', formattedFinalEndDate, '(formatted from', finalEndDate, ')');
         
+        // Show loading state
+        setIsMovingProject(true);
+        
+        // Add loading overlay to the bay
+        const bayElement = document.querySelector(`[data-bay-id="${targetBayId}"]`);
+        if (bayElement) {
+          // Create a temporary placeholder element to show where the project will be placed
+          const placeholderDiv = document.createElement('div');
+          placeholderDiv.classList.add('absolute', 'animate-pulse', 'bg-primary/30', 'border', 'border-primary', 'rounded', 'z-30');
+          
+          // Position it based on the target row
+          const rowHeight = bayElement.clientHeight / 4; // 4 rows per bay
+          const rowTop = targetRowIndex * rowHeight;
+          
+          // Set styles
+          placeholderDiv.style.left = `${slotIndex * slotWidth}px`;
+          placeholderDiv.style.top = `${rowTop}px`;
+          placeholderDiv.style.width = `${slotWidth * 5}px`; // Default to 5 weeks width
+          placeholderDiv.style.height = `${rowHeight}px`;
+          
+          // Add it to the bay element
+          bayElement.appendChild(placeholderDiv);
+        }
+        
         onScheduleCreate(
           data.projectId,
           targetBayId,
@@ -2400,10 +2445,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             description: `${data.projectNumber} assigned to Bay ${targetBayInfo?.bayNumber || bay.bayNumber}`,
           });
           
+          // Clear loading state
+          setIsMovingProject(false);
+          
           // Force refresh to show changes after a delay
           setTimeout(() => window.location.reload(), 1000);
         })
         .catch(err => {
+          // Clear loading state
+          setIsMovingProject(false);
+          
+          // Remove any placeholder elements we created
+          const bayElement = document.querySelector(`[data-bay-id="${targetBayId}"]`);
+          if (bayElement) {
+            const placeholders = bayElement.querySelectorAll('.animate-pulse.bg-primary/30');
+            placeholders.forEach(el => el.remove());
+          }
+          
           console.error('Failed to create schedule:', err);
           toast({
             title: "Error",
