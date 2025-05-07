@@ -1337,7 +1337,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           bayId: bar.bayId
                         })}
                       >
-                        {/* Content */}
+                        {/* FAB phase indicator */}
+                        {bar.fabWidth && bar.fabWidth > 0 && (
+                          <div 
+                            className="absolute top-0 left-0 h-full rounded-l-sm flex items-center justify-center overflow-hidden"
+                            style={{
+                              width: `${Math.min(bar.fabWidth, bar.width - 4)}px`,
+                              backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                              borderRight: '2px dashed rgba(255, 255, 255, 0.6)',
+                              zIndex: 1
+                            }}
+                          >
+                            <span className="text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1">
+                              FAB
+                            </span>
+                          </div>
+                        )}
+                        {/* Bar content */}
                         <div className="absolute inset-0 flex items-center justify-between px-2 text-white font-semibold text-shadow-sm">
                           <div className="font-medium text-xs truncate">
                             {bar.projectNumber}
