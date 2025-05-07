@@ -185,6 +185,10 @@ export interface IStorage {
   getProjectDeliveryTrackings(projectId: number): Promise<DeliveryTracking[]>;
   getDeliveryTracking(id: number): Promise<DeliveryTracking | undefined>;
   createDeliveryTracking(tracking: InsertDeliveryTracking): Promise<DeliveryTracking>;
+  
+  // Data migration methods
+  updateDefaultProjectHours(): Promise<number>; // Returns count of updated records
+  updateDefaultScheduleHours(): Promise<number>; // Returns count of updated records
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1054,6 +1058,69 @@ export class DatabaseStorage implements IStorage {
       return newTracking;
     } catch (error) {
       console.error("Error creating delivery tracking:", error);
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      throw error;
+    }
+  }
+  
+  // Data migration methods
+  async updateDefaultProjectHours(): Promise<number> {
+    try {
+      console.log("Updating default project hours from 40 to 1000...");
+      // Update all active projects with default hours of 40
+      const result = await db
+        .update(projects)
+        .set({ 
+          totalHours: 1000,
+          updatedAt: new Date()
+        })
+        .where(eq(projects.totalHours, 40))
+        .returning();
+      
+      // Also update archived projects
+      const archivedResult = await db
+        .update(archivedProjects)
+        .set({ 
+          totalHours: 1000,
+          updatedAt: new Date()
+        })
+        .where(eq(archivedProjects.totalHours, 40))
+        .returning();
+        
+      const totalUpdated = result.length + archivedResult.length;
+      console.log(`Successfully updated hours for ${totalUpdated} projects (${result.length} active, ${archivedResult.length} archived)`);
+      
+      return totalUpdated;
+    } catch (error) {
+      console.error("Error updating project hours:", error);
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      throw error;
+    }
+  }
+  
+  async updateDefaultScheduleHours(): Promise<number> {
+    try {
+      console.log("Updating default manufacturing schedule hours from 40 to 1000...");
+      // Update all schedules with default hours of 40
+      const result = await db
+        .update(manufacturingSchedules)
+        .set({ 
+          totalHours: 1000,
+          updatedAt: new Date()
+        })
+        .where(eq(manufacturingSchedules.totalHours, 40))
+        .returning();
+        
+      console.log(`Successfully updated hours for ${result.length} manufacturing schedules`);
+      return result.length;
+    } catch (error) {
+      console.error("Error updating manufacturing schedule hours:", error);
       if (error instanceof Error) {
         console.error("Error message:", error.message);
         console.error("Error stack:", error.stack);

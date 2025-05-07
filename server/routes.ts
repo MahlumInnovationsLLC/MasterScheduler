@@ -54,6 +54,28 @@ import {
 } from "./notifications";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Special route to update project hours from 40 to 1000
+  app.post("/api/admin/update-project-hours", isAdmin, async (req, res) => {
+    try {
+      // Update all existing projects that still have the default 40 hours
+      const projectsUpdated = await storage.updateDefaultProjectHours();
+      
+      // Update all existing manufacturing schedules that still have the default 40 hours
+      const schedulesUpdated = await storage.updateDefaultScheduleHours();
+      
+      res.status(200).json({
+        success: true,
+        message: `Updated hours to 1000 for ${projectsUpdated} projects and ${schedulesUpdated} schedules`,
+      });
+    } catch (error) {
+      console.error("Error updating project hours:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to update project hours",
+        error: String(error)
+      });
+    }
+  });
   // Auth middleware
   setupSession(app);
   setupLocalAuth(app);
