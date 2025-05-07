@@ -183,7 +183,7 @@ const BaySchedulingPage = () => {
       row?: number
     }) => {
       const response = await fetch(`/api/manufacturing-schedules/${scheduleId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bayId, startDate, endDate, totalHours, row }),
       });
