@@ -563,7 +563,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       console.log("Creating schedule with row data:", data);
       
+      // First create the schedule
       const schedule = await storage.createManufacturingSchedule(data);
+      
+      // Then update the project's dates to match the schedule
+      if (schedule && data.projectId) {
+        try {
+          // Get the current project data
+          const project = await storage.getProject(data.projectId);
+          
+          if (project) {
+            // Create project update with new dates from the schedule
+            const projectUpdate = {
+              startDate: format(new Date(data.startDate), 'yyyy-MM-dd'),
+              // Use the schedule's end date to update the project's estimated completion 
+              // and delivery dates if they're not already set
+              estimatedCompletionDate: format(new Date(data.endDate), 'yyyy-MM-dd'),
+              // Only update deliveryDate if it's not already set
+              ...(
+                !project.deliveryDate 
+                  ? { deliveryDate: format(new Date(data.endDate), 'yyyy-MM-dd') }
+                  : {}
+              )
+            };
+            
+            console.log(`Updating project ${data.projectId} with dates from schedule: `, projectUpdate);
+            await storage.updateProject(data.projectId, projectUpdate);
+          }
+        } catch (projectUpdateError) {
+          console.error("Error updating project dates:", projectUpdateError);
+          // Don't fail the request if project update fails - still return the created schedule
+        }
+      }
+      
       res.status(201).json(schedule);
     } catch (error) {
       console.error("Error creating manufacturing schedule:", error);
@@ -581,10 +613,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       console.log("Updating schedule with row data:", data);
       
+      // First get the original schedule to access the projectId
+      const originalSchedule = await storage.getManufacturingSchedule(id);
+      if (!originalSchedule) {
+        return res.status(404).json({ message: "Manufacturing schedule not found" });
+      }
+      
+      // Update the schedule
       const schedule = await storage.updateManufacturingSchedule(id, data);
       if (!schedule) {
         return res.status(404).json({ message: "Manufacturing schedule not found" });
       }
+      
+      // Then update the project's dates to match the schedule
+      try {
+        const projectId = originalSchedule.projectId;
+        if (projectId && (data.startDate || data.endDate)) {
+          // Get the current project data
+          const project = await storage.getProject(projectId);
+          
+          if (project) {
+            // Create project update with new dates from the schedule
+            const projectUpdate: any = {};
+            
+            // Only update dates that were changed in the schedule
+            if (data.startDate) {
+              projectUpdate.startDate = format(new Date(data.startDate), 'yyyy-MM-dd');
+            }
+            
+            if (data.endDate) {
+              // Always update estimated completion date when the schedule end date changes
+              projectUpdate.estimatedCompletionDate = format(new Date(data.endDate), 'yyyy-MM-dd');
+              
+              // Only update deliveryDate if the project end date is after the current delivery date
+              // or if deliveryDate is not set
+              if (!project.deliveryDate || 
+                  (new Date(data.endDate) > new Date(project.deliveryDate))) {
+                projectUpdate.deliveryDate = format(new Date(data.endDate), 'yyyy-MM-dd');
+              }
+            }
+            
+            if (Object.keys(projectUpdate).length > 0) {
+              console.log(`Updating project ${projectId} with dates from schedule: `, projectUpdate);
+              await storage.updateProject(projectId, projectUpdate);
+            }
+          }
+        }
+      } catch (projectUpdateError) {
+        console.error("Error updating project dates:", projectUpdateError);
+        // Don't fail the request if project update fails - still return the updated schedule
+      }
+      
       res.json(schedule);
     } catch (error) {
       console.error("Error updating manufacturing schedule:", error);
