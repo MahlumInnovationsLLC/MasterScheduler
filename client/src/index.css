@@ -768,6 +768,21 @@
 .week-cell.active-drop-target {
   border: 2px solid hsl(var(--primary)) !important;
   background-color: rgba(var(--primary-rgb), 0.3) !important;
+}
+
+/* Week cell hover for specific rows/data slots */
+.week-cell-hover {
+  background-color: rgba(var(--primary-rgb), 0.15) !important;
+  border: 2px dashed hsl(var(--primary)) !important;
+  z-index: 5;
+}
+
+.dark .week-cell-hover {
+  background-color: rgba(var(--primary-rgb), 0.25) !important;
+}
+
+.light .week-cell-hover {
+  background-color: rgba(var(--primary-rgb), 0.15) !important;
   z-index: 10;
 }
 
@@ -839,8 +854,8 @@
   stroke-width: 3px;
 }
 
-/* Styling for week cells during resize hover */
-.week-cell-resize-hover {
+/* Styling for week cells during resize hover - enhanced version */
+.week-cell-resize-highlight {
   position: relative;
   z-index: 25;
   border: 2px solid rgba(var(--primary), 0.8) !important;
@@ -850,13 +865,13 @@
 }
 
 /* Dark theme styling for resize hover */
-.dark .week-cell-resize-hover {
+.dark .week-cell-resize-highlight {
   background-color: rgba(var(--primary), 0.35) !important;
   box-shadow: 0 0 8px 1px rgba(var(--primary), 0.6);
 }
 
 /* Light theme styling for resize hover */
-.light .week-cell-resize-hover {
+.light .week-cell-resize-highlight {
   background-color: rgba(var(--primary), 0.25) !important;
   box-shadow: 0 0 8px 1px rgba(var(--primary), 0.4);
 }
