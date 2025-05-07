@@ -583,6 +583,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const timelineContainer = barElement.closest('.timeline-container');
     if (!timelineContainer) return;
     
+    // Get the main scrollable container
+    const mainScrollContainer = document.querySelector('.main-content') as HTMLElement;
+    
+    // Auto-scroll when resize moves close to viewport edges
+    const viewportWidth = window.innerWidth;
+    const SCROLL_THRESHOLD = 100; // Pixels from viewport edge to start scrolling
+    const SCROLL_SPEED = 15; // Pixels to scroll per move event
+    
+    // Check if mouse is near the right edge
+    if (e.clientX > viewportWidth - SCROLL_THRESHOLD) {
+      // Scroll right
+      if (mainScrollContainer) {
+        mainScrollContainer.scrollLeft += SCROLL_SPEED;
+      }
+    } 
+    // Check if mouse is near the left edge
+    else if (e.clientX < SCROLL_THRESHOLD) {
+      // Scroll left
+      if (mainScrollContainer) {
+        mainScrollContainer.scrollLeft -= SCROLL_SPEED;
+      }
+    }
+    
     // Calculate which week/slot we're hovering over
     // First, get the timeline container offset
     const timelineRect = timelineContainer.getBoundingClientRect();
@@ -612,36 +635,56 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       setResizeHoverSlot(hoverSlotIndex);
     }
     
-    // Calculate the snap position based on weeks
+    // Calculate the snap position precisely - either by cell (1/4 week) or full week
     let newLeft = resizingSchedule.initialLeft;
     let newWidth = resizingSchedule.initialWidth;
     
+    // Calculate cell width for more precise snapping (4 cells per week)
+    const cellWidth = slotWidth / 4;
+    
     if (resizingSchedule.direction === 'left') {
       // Resizing from left (changing start date)
-      // Calculate which slot this would snap to
-      const snapSlot = Math.floor((resizingSchedule.initialLeft + deltaX) / slotWidth);
-      const snapLeft = snapSlot * slotWidth;
+      // Calculate which cell this would snap to (more precise than whole weeks)
+      const snapCell = Math.floor((resizingSchedule.initialLeft + deltaX) / cellWidth);
+      const snapLeft = snapCell * cellWidth;
       
       // Update left position and width
       newLeft = Math.max(0, snapLeft);
       newWidth = resizingSchedule.initialWidth - (newLeft - resizingSchedule.initialLeft);
+      
+      // Ensure minimum width
+      if (newWidth < cellWidth) {
+        newWidth = cellWidth;
+        newLeft = resizingSchedule.initialLeft + resizingSchedule.initialWidth - cellWidth;
+      }
       
       // Update visual appearance while dragging
       barElement.style.left = `${newLeft}px`;
       barElement.style.width = `${newWidth}px`;
     } else {
       // Resizing from right (changing end date)
-      // Calculate which slot this would snap to
+      // Allow resizing by cell for more precise control
       const currentRightEdge = resizingSchedule.initialLeft + resizingSchedule.initialWidth;
       const newRightEdge = currentRightEdge + deltaX;
-      const snapSlot = Math.ceil(newRightEdge / slotWidth);
-      const snapRight = snapSlot * slotWidth;
       
-      // Update width based on snap position
-      newWidth = Math.max(50, snapRight - resizingSchedule.initialLeft);
+      // Snap to cell boundaries instead of week boundaries
+      const snapCell = Math.round(newRightEdge / cellWidth);
+      const snapRight = snapCell * cellWidth;
+      
+      // Ensure we can resize within the same week (current position)
+      // Allow increasing or decreasing by individual cells
+      newWidth = Math.max(cellWidth, snapRight - resizingSchedule.initialLeft);
+      
+      // Limit max extension to avoid excessive growth
+      const maxWidth = slotWidth * 24; // 24 weeks maximum (6 months)
+      newWidth = Math.min(newWidth, maxWidth);
       
       // Update visual appearance while dragging
       barElement.style.width = `${newWidth}px`;
+      
+      // Add debugging attributes
+      barElement.dataset.newWidth = newWidth.toString();
+      barElement.dataset.cellSnap = snapCell.toString();
     }
     
     // Add a data attribute to track the hover slot for debugging
@@ -692,33 +735,47 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           newStartDate.setDate(newEndDate.getDate() - 1); // At least 1 day between start and end
         }
       } else {
-        // Calculate which slot this snapped to for the right edge
+        // Calculate precise cell positioning for the right edge (cell-by-cell resize)
         const rightEdge = parseInt(barElement.style.left, 10) + parseInt(barElement.style.width, 10);
         
-        // Only extend to the closest week boundary when dragging right
-        // Use Math.floor instead of Math.ceil to avoid extending too far
-        const snapSlot = Math.floor(rightEdge / slotWidth);
+        // Calculate cell width (4 cells per week) for more precise snapping 
+        const cellWidth = slotWidth / 4;
+        const cellsPerDay = 4 / daysBetweenSlots; // How many cells per day
         
-        if (snapSlot >= 0 && snapSlot < slots.length) {
-          // Get the date from the slot and make it the end of the week
-          newEndDate = new Date(slots[snapSlot].date);
+        // Snap to cell boundary instead of week boundary
+        const snapCell = Math.round(rightEdge / cellWidth);
+        
+        if (snapCell * cellWidth >= 0) {
+          // Get the date from the starting week slot
+          const weekIndex = Math.floor(snapCell / 4); // Which week are we in
+          const cellOffset = snapCell % 4; // Which cell within that week (0-3)
           
-          // Add days to the end date only to reach the end of the current week
-          // This is a more controlled extension than going to the next slot
-          if (viewMode === 'week') {
-            newEndDate = addDays(newEndDate, 6); // End of the current week
-          } else if (viewMode === 'month') {
-            // For month and quarter views, we'll still use the end of the week
-            // to make sure we don't extend too far
-            newEndDate = addDays(newEndDate, 6); 
-          } else if (viewMode === 'quarter') {
-            newEndDate = addDays(newEndDate, 6);
+          if (weekIndex >= 0 && weekIndex < slots.length) {
+            // Start with the date from the week
+            newEndDate = new Date(slots[weekIndex].date);
+            
+            // Add days based on cell position within the week
+            // Each cell is 1/4 of a week (approximately 1-2 days depending on view)
+            const daysToAdd = Math.ceil(cellOffset / cellsPerDay);
+            newEndDate = addDays(newEndDate, daysToAdd);
+            
+            // The date should be the end of the day (not start)
+            newEndDate.setHours(23, 59, 59);
+            
+            console.log(`Cell-based resize: Week ${weekIndex}, Cell ${cellOffset}, Adding ${daysToAdd} days`);
+          } else {
+            // We're outside the visible timeline - use fallback
+            const cellDelta = snapCell - (resizingSchedule.initialLeft / cellWidth + resizingSchedule.initialWidth / cellWidth);
+            const dayDelta = Math.round(cellDelta / cellsPerDay);
+            newEndDate = addDays(resizingSchedule.initialEndDate, dayDelta);
+            
+            console.log(`Fallback resize: Cell delta ${cellDelta}, Day delta ${dayDelta}`);
           }
         } else {
           // Fallback to a constrained pixel-based calculation
-          // Limit extension to a reasonable size (e.g., just 1-2 weeks)
+          // Limit extension to a reasonable size
           const pixelsDelta = rightEdge - (resizingSchedule.initialLeft + resizingSchedule.initialWidth);
-          const maxExtensionPixels = slotWidth * 2; // Limit to 2 slots
+          const maxExtensionPixels = slotWidth * 4; // Limit to 4 weeks
           const constrainedDelta = Math.min(pixelsDelta, maxExtensionPixels);
           
           const pixelsPerDay = slotWidth / daysBetweenSlots;
@@ -905,6 +962,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // CRITICAL: We must call preventDefault to allow dropping
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    
+    // Get the main scrollable container for auto-scroll
+    const mainScrollContainer = document.querySelector('.main-content') as HTMLElement;
+    
+    // Auto-scroll when drag moves close to viewport edges
+    const viewportWidth = window.innerWidth;
+    const SCROLL_THRESHOLD = 80; // Pixels from viewport edge to start scrolling
+    const SCROLL_SPEED = 15; // Pixels to scroll per drag over event
+    
+    // Check if mouse is near the right edge
+    if (e.clientX > viewportWidth - SCROLL_THRESHOLD) {
+      // Scroll right
+      if (mainScrollContainer) {
+        mainScrollContainer.scrollLeft += SCROLL_SPEED;
+      }
+    } 
+    // Check if mouse is near the left edge
+    else if (e.clientX < SCROLL_THRESHOLD) {
+      // Scroll left
+      if (mainScrollContainer) {
+        mainScrollContainer.scrollLeft -= SCROLL_SPEED;
+      }
+    }
     
     // Clear previous highlight
     document.querySelectorAll('.drop-target-highlight').forEach(el => {
