@@ -1680,9 +1680,32 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
+    // Read data attributes from the drop target element for more precise week targeting
+    let targetElement = e.target as HTMLElement;
+    let targetBayId = bayId;
+    let targetSlotIndex = slotIndex;
+    let targetRowIndex = rowIndex;
+    
+    // Try to find the closest week cell or cell marker element
+    const weekCellElement = targetElement.closest('[data-slot-index]') as HTMLElement;
+    if (weekCellElement) {
+      // Update from data attributes if they exist
+      targetBayId = parseInt(weekCellElement.getAttribute('data-bay-id') || String(targetBayId));
+      targetSlotIndex = parseInt(weekCellElement.getAttribute('data-slot-index') || String(targetSlotIndex));
+      targetRowIndex = parseInt(weekCellElement.getAttribute('data-row') || String(targetRowIndex));
+      
+      console.log('Precise drop target detected:', {
+        element: weekCellElement,
+        bayId: targetBayId,
+        slotIndex: targetSlotIndex,
+        rowIndex: targetRowIndex,
+        date: weekCellElement.getAttribute('data-date')
+      });
+    }
+    
     // Remove highlighted state from all cells
-    document.querySelectorAll('.drag-hover, .active-drop-target').forEach(el => {
-      el.classList.remove('drag-hover', 'active-drop-target');
+    document.querySelectorAll('.drag-hover, .active-drop-target, .week-cell-hover').forEach(el => {
+      el.classList.remove('drag-hover', 'active-drop-target', 'week-cell-hover');
     });
     
     // Remove row highlights from all rows
@@ -1694,8 +1717,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     });
     
     // Remove legacy highlight classes for backward compatibility
-    document.querySelectorAll('.drop-target-highlight').forEach(el => {
-      el.classList.remove('drop-target-highlight', 'bg-primary/20', 'border-primary', 'border-dashed');
+    document.querySelectorAll('.drop-target-highlight, .week-cell-resize-highlight').forEach(el => {
+      el.classList.remove('drop-target-highlight', 'bg-primary/20', 'border-primary', 'border-dashed', 'week-cell-resize-highlight');
     });
     document.querySelectorAll('.bay-row-highlight').forEach(el => {
       el.classList.remove('bay-row-highlight', 'bg-primary/10');
@@ -1748,8 +1771,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return;
       }
       
-      // Get the date for this slot
-      const slotDate = slots[slotIndex]?.date;
+      // Get the date for this slot using the updated target slot index from data attributes
+      const slotDate = slots[targetSlotIndex]?.date;
       if (!slotDate) {
         toast({
           title: "Error",
@@ -1894,28 +1917,30 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log('Moving existing schedule with data:', {
           id: data.id,
           projectId: data.projectId,
-          bayId, 
+          bayId: targetBayId, 
           startDate: slotDate.toISOString(), 
           endDate: endDate.toISOString(),
           totalHours: data.totalHours || 1000,
-          row: rowIndex
+          row: targetRowIndex
         });
         
         // Use promise-based approach instead of async/await
         onScheduleChange(
           data.id,
-          bayId,
+          targetBayId,
           slotDate.toISOString(),
           endDate.toISOString(),
           data.totalHours || 1000,
-          rowIndex
+          targetRowIndex
         )
         .then(result => {
           console.log('Schedule successfully updated:', result);
           
+          // Find the target bay to show proper bay number in toast
+          const targetBayInfo = bays.find(b => b.id === targetBayId);
           toast({
             title: "Schedule Updated",
-            description: `${data.projectNumber} moved to Bay ${bay.bayNumber}`,
+            description: `${data.projectNumber} moved to Bay ${targetBayInfo?.bayNumber || bay.bayNumber}`,
           });
           
           // Force data refresh without full page reload
@@ -1933,19 +1958,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           });
         });
       } else {
-        // Create new schedule with row assignment
+        // Create new schedule with row assignment using target values from data attributes
         onScheduleCreate(
           data.projectId,
-          bayId,
+          targetBayId,
           slotDate.toISOString(),
           endDate.toISOString(),
           data.totalHours || 1000,
-          rowIndex // Include rowIndex for vertical positioning
+          targetRowIndex // Include rowIndex for vertical positioning
         )
         .then(() => {
+          // Find the target bay to show proper bay number in toast
+          const targetBayInfo = bays.find(b => b.id === targetBayId);
           toast({
             title: "Schedule Created",
-            description: `${data.projectNumber} assigned to Bay ${bay.bayNumber}`,
+            description: `${data.projectNumber} assigned to Bay ${targetBayInfo?.bayNumber || bay.bayNumber}`,
           });
           
           // Force refresh to show changes after a delay
