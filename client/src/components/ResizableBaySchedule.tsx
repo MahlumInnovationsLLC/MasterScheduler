@@ -688,7 +688,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
 
   // Handle drop
-  const handleDrop = (e: React.DragEvent, bayId: number, slotIndex: number) => {
+  const handleDrop = (e: React.DragEvent, bayId: number, slotIndex: number, rowIndex: number = 0) => {
     e.preventDefault();
     e.stopPropagation();
     
