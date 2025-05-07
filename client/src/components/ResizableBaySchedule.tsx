@@ -1428,8 +1428,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         style={{
                           left: bar.left + 'px',
                           width: bar.width - 4 + 'px',  // -4 for border spacing
-                          backgroundColor: bar.color,
-                          opacity: draggingSchedule?.id === bar.id ? 0.5 : 0.9
+                          backgroundColor: '#313ea5', // Darker blue for production phase
+                          opacity: draggingSchedule?.id === bar.id ? 0.5 : 1
                         }}
                         draggable
                         onDragStart={(e) => handleDragStart(e, 'existing', {
@@ -1447,7 +1447,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             className="absolute top-0 left-0 h-full rounded-l-md flex items-center justify-center overflow-hidden"
                             style={{
                               width: `${bar.fabWidth}px`,
-                              backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                              backgroundColor: '#8878ee', // Light purple color for FAB
                               borderRight: '3px dashed rgba(255, 255, 255, 0.7)',
                               zIndex: 1,
                               boxShadow: 'inset -2px 0px 4px rgba(0,0,0,0.2)'
