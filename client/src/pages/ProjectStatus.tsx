@@ -392,12 +392,12 @@ const ProjectStatus = () => {
       (value, project) => (
         <div className="flex items-center">
           <div className="ml-2">
-            <div className="text-sm font-medium text-white">{value}</div>
-            <div className="text-xs text-gray-400 max-w-[280px]">{project.name}</div>
+            <div className="text-sm font-medium text-white whitespace-normal">{value}</div>
+            <div className="text-xs text-gray-400 whitespace-normal">{project.name}</div>
           </div>
         </div>
       ),
-      { sortingFn: 'alphanumeric', size: 350 }),
+      { sortingFn: 'alphanumeric', size: 220 }),
     createColumn('pmOwner', 'pmOwnerId', 'PM Owner', 
       (value) => <div className="text-sm">{value || 'Unassigned'}</div>,
       { size: 150 }),
