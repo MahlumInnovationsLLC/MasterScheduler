@@ -598,10 +598,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         el.classList.remove('week-cell-resize-hover');
       });
       
-      // Add highlight to the current slot
-      const weekCell = timelineContainer.querySelector(`.week-cell:nth-child(${hoverSlotIndex + 1})`);
-      if (weekCell) {
-        weekCell.classList.add('week-cell-resize-hover');
+      // Add highlight to the current week slot - we need to make this much more visible
+      const weekCells = timelineContainer.querySelectorAll(`.week-cell`);
+      const targetWeekCell = weekCells[hoverSlotIndex];
+      
+      if (targetWeekCell) {
+        // Apply highlight to the week cell
+        targetWeekCell.classList.add('week-cell-resize-hover');
+        console.log(`Highlighting week cell at index ${hoverSlotIndex}`);
       }
       
       // Update the state
@@ -690,27 +694,35 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       } else {
         // Calculate which slot this snapped to for the right edge
         const rightEdge = parseInt(barElement.style.left, 10) + parseInt(barElement.style.width, 10);
-        const snapSlot = Math.ceil(rightEdge / slotWidth);
+        
+        // Only extend to the closest week boundary when dragging right
+        // Use Math.floor instead of Math.ceil to avoid extending too far
+        const snapSlot = Math.floor(rightEdge / slotWidth);
         
         if (snapSlot >= 0 && snapSlot < slots.length) {
-          // Get the date from the slot
+          // Get the date from the slot and make it the end of the week
           newEndDate = new Date(slots[snapSlot].date);
           
-          // When using week (or larger) view mode, each slot represents the start of a period
-          // So we need to add the day count to get to the end of that period for the end date
+          // Add days to the end date only to reach the end of the current week
+          // This is a more controlled extension than going to the next slot
           if (viewMode === 'week') {
-            newEndDate = addDays(newEndDate, 6); // End of week
+            newEndDate = addDays(newEndDate, 6); // End of the current week
           } else if (viewMode === 'month') {
-            newEndDate = endOfMonth(newEndDate); // End of month
+            // For month and quarter views, we'll still use the end of the week
+            // to make sure we don't extend too far
+            newEndDate = addDays(newEndDate, 6); 
           } else if (viewMode === 'quarter') {
-            newEndDate = addMonths(newEndDate, 3); // End of quarter
-            newEndDate = addDays(newEndDate, -1);
+            newEndDate = addDays(newEndDate, 6);
           }
         } else {
-          // Fallback to pixel-based calculation
+          // Fallback to a constrained pixel-based calculation
+          // Limit extension to a reasonable size (e.g., just 1-2 weeks)
           const pixelsDelta = rightEdge - (resizingSchedule.initialLeft + resizingSchedule.initialWidth);
+          const maxExtensionPixels = slotWidth * 2; // Limit to 2 slots
+          const constrainedDelta = Math.min(pixelsDelta, maxExtensionPixels);
+          
           const pixelsPerDay = slotWidth / daysBetweenSlots;
-          const daysDelta = Math.round(pixelsDelta / pixelsPerDay);
+          const daysDelta = Math.round(constrainedDelta / pixelsPerDay);
           newEndDate = addDays(resizingSchedule.initialEndDate, daysDelta);
         }
         
