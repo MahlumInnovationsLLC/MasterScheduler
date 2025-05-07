@@ -1698,17 +1698,33 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const weekCellElement = targetElement.closest('[data-slot-index]') as HTMLElement;
     if (weekCellElement) {
       // Update from data attributes if they exist
-      targetBayId = parseInt(weekCellElement.getAttribute('data-bay-id') || String(targetBayId));
-      targetSlotIndex = parseInt(weekCellElement.getAttribute('data-slot-index') || String(targetSlotIndex));
-      targetRowIndex = parseInt(weekCellElement.getAttribute('data-row') || String(targetRowIndex));
+      const dataBayId = weekCellElement.getAttribute('data-bay-id');
+      const dataSlotIndex = weekCellElement.getAttribute('data-slot-index');
+      const dataRow = weekCellElement.getAttribute('data-row');
+      
+      if (dataBayId) targetBayId = parseInt(dataBayId);
+      if (dataSlotIndex) targetSlotIndex = parseInt(dataSlotIndex);
+      if (dataRow) targetRowIndex = parseInt(dataRow);
       
       console.log('Precise drop target detected:', {
         element: weekCellElement,
         bayId: targetBayId,
         slotIndex: targetSlotIndex,
         rowIndex: targetRowIndex,
-        date: weekCellElement.getAttribute('data-date')
+        date: weekCellElement.getAttribute('data-date'),
+        attributes: {
+          bayId: dataBayId,
+          slotIndex: dataSlotIndex,
+          row: dataRow
+        }
       });
+    }
+    
+    // Ensure we have valid indexes, especially for the slot
+    if (targetSlotIndex < 0 || targetSlotIndex >= slots.length) {
+      console.error('Invalid slot index detected:', targetSlotIndex);
+      // Use fallback to original slotIndex if target is out of bounds
+      targetSlotIndex = slotIndex;
     }
     
     // Remove highlighted state from all cells
@@ -1780,7 +1796,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
       
       // Get the date for this slot using the updated target slot index from data attributes
-      const slotDate = slots[targetSlotIndex]?.date;
+      // If we have a week cell element with a data-date attribute, use that directly
+      let slotDate: Date | null = null;
+      if (weekCellElement && weekCellElement.getAttribute('data-date')) {
+        const dateStr = weekCellElement.getAttribute('data-date');
+        if (dateStr) {
+          slotDate = new Date(dateStr);
+          console.log('Using date directly from data-date attribute:', dateStr, slotDate);
+        }
+      }
+      
+      // If we couldn't get the date from the attribute, use the targetSlotIndex
+      if (!slotDate) {
+        slotDate = slots[targetSlotIndex]?.date;
+        console.log('Using date from slots array with targetSlotIndex:', targetSlotIndex, slotDate);
+      }
+      
+      // Final validation
       if (!slotDate) {
         toast({
           title: "Error",
