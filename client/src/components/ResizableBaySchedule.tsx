@@ -912,6 +912,27 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       height: 100% !important;
       min-height: 24px !important;
     }
+    
+    /* Row positioning */
+    .row-0-bar {
+      top: 0%;
+      height: 25% !important;
+    }
+    
+    .row-1-bar {
+      top: 25%;
+      height: 25% !important;
+    }
+    
+    .row-2-bar {
+      top: 50%;
+      height: 25% !important;
+    }
+    
+    .row-3-bar {
+      top: 75%;
+      height: 25% !important;
+    }
 
     /* Enhanced styling for project bars to fill rows properly */
     .big-project-bar {
