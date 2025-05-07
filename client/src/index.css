@@ -709,3 +709,38 @@
 .danger-gradient {
   background: linear-gradient(135deg, hsl(var(--danger)), hsl(var(--danger-darker, calc(var(--danger-hue) var(--danger-saturation) 35%))));
 }
+
+/* Department phases within project bars */
+.dept-fab-phase {
+  @apply bg-blue-600;
+}
+
+.dept-paint-phase {
+  @apply bg-violet-600;
+}
+
+.dept-production-phase {
+  @apply bg-emerald-600;
+}
+
+.dept-it-phase {
+  @apply bg-amber-600;
+}
+
+.dept-ntc-phase {
+  @apply bg-red-600;
+}
+
+.dept-qc-phase {
+  @apply bg-purple-700;
+}
+
+/* Vertical text for small sections */
+.vertical-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform-origin: center;
+  white-space: nowrap;
+  display: inline-block;
+  line-height: 1;
+}

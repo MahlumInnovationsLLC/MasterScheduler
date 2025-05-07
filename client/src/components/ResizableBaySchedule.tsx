@@ -1768,7 +1768,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             title={`FAB: ${bar.fabPercentage}% (${Math.round(bar.totalHours * bar.fabPercentage / 100)}h)`}
                           >
                             <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
-                              FAB
+                              {bar.fabWidth < 30 ? 
+                                <span className="vertical-text text-[8px] transform rotate-90">FAB</span> : 
+                                "FAB"
+                              }
                             </span>
                           </div>
                         )}
@@ -1782,7 +1785,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                               width: bar.paintWidth + 'px'
                             }}
                             title={`PAINT: ${bar.paintPercentage}% (${Math.round(bar.totalHours * bar.paintPercentage / 100)}h)`}
-                          />
+                          >
+                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
+                              {bar.paintWidth < 30 ? 
+                                <span className="vertical-text text-[8px] transform rotate-90">PAINT</span> : 
+                                <span className="text-[10px]">PAINT</span>
+                              }
+                            </span>
+                          </div>
                         )}
                         
                         {/* PRODUCTION phase */}
@@ -1796,7 +1806,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             title={`PRODUCTION: ${bar.productionPercentage}% (${Math.round(bar.totalHours * bar.productionPercentage / 100)}h)`}
                           >
                             <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
-                              PROD
+                              {bar.productionWidth < 30 ? 
+                                <span className="vertical-text text-[8px] transform rotate-90">PROD</span> : 
+                                "PROD"
+                              }
                             </span>
                           </div>
                         )}
@@ -1810,7 +1823,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                               width: bar.itWidth + 'px'
                             }}
                             title={`IT: ${bar.itPercentage}% (${Math.round(bar.totalHours * bar.itPercentage / 100)}h)`}
-                          />
+                          >
+                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
+                              {bar.itWidth < 30 ? 
+                                <span className="vertical-text text-[8px] transform rotate-90">IT</span> : 
+                                <span className="text-[10px]">IT</span>
+                              }
+                            </span>
+                          </div>
                         )}
                         
                         {/* NTC phase */}
@@ -1822,7 +1842,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                               width: bar.ntcWidth + 'px'
                             }}
                             title={`NTC: ${bar.ntcPercentage}% (${Math.round(bar.totalHours * bar.ntcPercentage / 100)}h)`}
-                          />
+                          >
+                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
+                              {bar.ntcWidth < 30 ? 
+                                <span className="vertical-text text-[8px] transform rotate-90">NTC</span> : 
+                                <span className="text-[10px]">NTC</span>
+                              }
+                            </span>
+                          </div>
                         )}
                         
                         {/* QC phase */}
@@ -1834,7 +1861,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                               width: bar.qcWidth + 'px'
                             }}
                             title={`QC: ${bar.qcPercentage}% (${Math.round(bar.totalHours * bar.qcPercentage / 100)}h)`}
-                          />
+                          >
+                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
+                              {bar.qcWidth < 30 ? 
+                                <span className="vertical-text text-[8px] transform rotate-90">QC</span> : 
+                                <span className="text-[10px]">QC</span>
+                              }
+                            </span>
+                          </div>
                         )}
                         
                         {/* Content - displayed on top of the phases */}
@@ -1847,8 +1881,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           </div>
                         </div>
                         
-                        {/* Hover info overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/70 transition-opacity z-20 rounded-sm">
+                        {/* Hover info overlay - extends to the full calculated width of the bar */}
+                        <div className="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/70 transition-opacity z-20 rounded-sm" style={{ width: bar.width + 'px' }}>
                           <div className="text-white text-xs p-2">
                             <div className="font-bold">{bar.projectNumber}</div>
                             <div className="truncate w-full max-w-[180px]">{bar.projectName}</div>
