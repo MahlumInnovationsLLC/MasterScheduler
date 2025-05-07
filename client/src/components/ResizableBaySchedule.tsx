@@ -1070,8 +1070,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   .map(bar => {
                     // Calculate position based on row (0-3)
                     const rowHeight = 64 / 4; // Total height divided by 4 rows
-                    const top = (bar.row || 0) * rowHeight + 2;
-                    const height = rowHeight - 4;
+                    const top = (bar.row || 0) * rowHeight;
+                    const height = rowHeight - 1; // Just a 1px gap
                     
                     return (
                       <div
