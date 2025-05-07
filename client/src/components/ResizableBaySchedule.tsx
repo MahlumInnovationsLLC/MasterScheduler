@@ -922,7 +922,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       <div className="flex">
         {/* Left sidebar with bay labels */}
-        <div className="shrink-0 w-48 border-r border-gray-700">
+        <div className="shrink-0 w-64 border-r border-gray-700">
           <div className="h-12 flex items-end pb-1 pl-3 text-xs font-semibold text-gray-400">
             Bays
           </div>
@@ -1041,7 +1041,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         </div>
         
         {/* Main timeline grid */}
-        <div className="overflow-x-auto flex-1" style={{ maxWidth: 'calc(100% - 48px)' }}>
+        <div className="overflow-x-auto flex-1" style={{ maxWidth: 'calc(100% - 64px)' }}>
           {/* Header row with time slots */}
           <div 
             className="h-12 border-b border-gray-700 grid" 
