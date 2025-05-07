@@ -2889,6 +2889,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       data-week-index={index}
                       data-date={format(slot.date, 'yyyy-MM-dd')}
                       data-bay-id={bay.id}
+                      data-slot-index={index}
                       onDragOver={(e) => {
                         // Calculate which row within the cell the cursor is over
                         const cellHeight = e.currentTarget.clientHeight;
@@ -2980,7 +2981,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     {/* Row 1 cell markers */}
                     <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
                       {slots.map((slot, index) => (
-                        <div key={`sub-cell-r0-${index}`} className="relative h-full border-r border-gray-700/30">
+                        <div 
+                          key={`sub-cell-r0-${index}`} 
+                          className="relative h-full border-r border-gray-700/30"
+                          data-row="0"
+                          data-slot-index={index}
+                          data-date={format(slot.date, 'yyyy-MM-dd')}
+                          data-bay-id={bay.id}
+                        >
                           <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
                         </div>
                       ))}
@@ -2994,7 +3002,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     {/* Row 2 cell markers */}
                     <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
                       {slots.map((slot, index) => (
-                        <div key={`sub-cell-r1-${index}`} className="relative h-full border-r border-gray-700/30">
+                        <div 
+                          key={`sub-cell-r1-${index}`} 
+                          className="relative h-full border-r border-gray-700/30"
+                          data-row="1"
+                          data-slot-index={index}
+                          data-date={format(slot.date, 'yyyy-MM-dd')}
+                          data-bay-id={bay.id}
+                        >
                           <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
                         </div>
                       ))}
@@ -3008,7 +3023,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     {/* Row 3 cell markers */}
                     <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
                       {slots.map((slot, index) => (
-                        <div key={`sub-cell-r2-${index}`} className="relative h-full border-r border-gray-700/30">
+                        <div 
+                          key={`sub-cell-r2-${index}`} 
+                          className="relative h-full border-r border-gray-700/30"
+                          data-row="2"
+                          data-slot-index={index}
+                          data-date={format(slot.date, 'yyyy-MM-dd')}
+                          data-bay-id={bay.id}
+                        >
                           <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
                         </div>
                       ))}
@@ -3022,7 +3044,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     {/* Row 4 cell markers */}
                     <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
                       {slots.map((slot, index) => (
-                        <div key={`sub-cell-r3-${index}`} className="relative h-full border-r border-gray-700/30">
+                        <div 
+                          key={`sub-cell-r3-${index}`} 
+                          className="relative h-full border-r border-gray-700/30"
+                          data-row="3"
+                          data-slot-index={index}
+                          data-date={format(slot.date, 'yyyy-MM-dd')}
+                          data-bay-id={bay.id}
+                        >
                           <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
                         </div>
                       ))}
