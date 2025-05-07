@@ -44,11 +44,27 @@ const BaySchedulingPage = () => {
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'quarter'>('week');
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
+    // Start range 8 weeks in the past to allow scrolling back
+    const startDate = addWeeks(today, -8);
     return {
-      start: today,
-      end: addWeeks(today, 4)
+      start: startDate,
+      end: addWeeks(today, 24) // Show 24 weeks ahead from today
     };
   });
+  
+  // Scroll to current week on initial load
+  useEffect(() => {
+    // Use setTimeout to ensure DOM is ready
+    setTimeout(() => {
+      // Find the current week element and scroll to it
+      const scheduleContainer = document.querySelector('.overflow-x-auto');
+      if (scheduleContainer) {
+        // We want to position the current week near the bay column
+        const bayColumnWidth = 180; // Approximate width of bay details column
+        scheduleContainer.scrollLeft = bayColumnWidth;
+      }
+    }, 300);
+  }, []);
   
   // Filter states
   const [filterTeam, setFilterTeam] = useState<string | null>(null);
