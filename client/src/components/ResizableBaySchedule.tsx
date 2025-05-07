@@ -1723,15 +1723,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     if (dataSlotIndex) targetSlotIndex = parseInt(dataSlotIndex);
     if (dataRow) targetRowIndex = parseInt(dataRow);
     
-    // Then try to find the closest week cell or cell marker element if needed
+    // Then try to find the closest cell marker element with data-slot-index if needed
     if (!dataSlotIndex || !dataBayId) {
-      const weekCellElement = targetElement.closest('[data-slot-index]') as HTMLElement;
-      if (weekCellElement) {
+      const cellElement = targetElement.closest('[data-slot-index]') as HTMLElement;
+      if (cellElement) {
         // Update from data attributes if they exist and weren't found directly
-        const cellBayId = weekCellElement.getAttribute('data-bay-id');
-        const cellSlotIndex = weekCellElement.getAttribute('data-slot-index');
-        const cellRow = weekCellElement.getAttribute('data-row');
-        const cellDate = weekCellElement.getAttribute('data-date');
+        const cellBayId = cellElement.getAttribute('data-bay-id');
+        const cellSlotIndex = cellElement.getAttribute('data-slot-index');
+        const cellRow = cellElement.getAttribute('data-row');
+        const cellDate = cellElement.getAttribute('data-date');
         
         // Only override if not already set from direct target
         if (!dataBayId && cellBayId) targetBayId = parseInt(cellBayId);
@@ -1739,7 +1739,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         if (!dataRow && cellRow) targetRowIndex = parseInt(cellRow);
         
         console.log('Precise drop target detected from cell element:', {
-          element: weekCellElement,
+          element: cellElement,
           bayId: targetBayId,
           slotIndex: targetSlotIndex,
           rowIndex: targetRowIndex,
@@ -1850,14 +1850,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         slotDate = new Date(dataDate);
         console.log('Using date directly from target element data-date attribute:', dataDate, slotDate);
       }
-      // Next try to find and check the closest week cell element
+      // Next try to find and check the closest element with a data-date attribute
       else {
-        const weekCellElement = targetElement.closest('[data-slot-index]') as HTMLElement;
-        if (weekCellElement && weekCellElement.getAttribute('data-date')) {
-          const dateStr = weekCellElement.getAttribute('data-date');
+        const dateElement = targetElement.closest('[data-date]') as HTMLElement;
+        if (dateElement) {
+          const dateStr = dateElement.getAttribute('data-date');
           if (dateStr) {
             slotDate = new Date(dateStr);
-            console.log('Using date from week cell element data-date attribute:', dateStr, slotDate);
+            console.log('Using date from closest element with data-date attribute:', dateStr, slotDate);
           }
         }
       }

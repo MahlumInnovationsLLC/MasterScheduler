@@ -793,14 +793,19 @@
   transition: all 0.2s ease-in-out;
   z-index: 5;
   position: relative;
+  box-shadow: inset 0 0 5px rgba(var(--primary-rgb), 0.3);
 }
 
+/* Dark theme - more visible highlight */
 .dark .week-cell-resize-hover {
-  background-color: rgba(var(--primary-rgb), 0.3) !important;
+  background-color: rgba(var(--primary-rgb), 0.25) !important;
+  box-shadow: inset 0 0 8px rgba(var(--primary-rgb), 0.4);
 }
 
+/* Light theme - more subtle but still visible */
 .light .week-cell-resize-hover {
-  background-color: rgba(var(--primary-rgb), 0.18) !important;
+  background-color: rgba(var(--primary-rgb), 0.15) !important;
+  box-shadow: inset 0 0 6px rgba(var(--primary-rgb), 0.25);
 }
 
 /* Vertical text for small sections */
