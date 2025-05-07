@@ -2755,7 +2755,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   `;
     
   return (
-    <div className="mb-8 overflow-hidden main-content">
+    <div className="mb-8 overflow-hidden">
       <style dangerouslySetInnerHTML={{ __html: customCSS }} />
       
       {/* Capacity Warning Alert Dialog */}

@@ -970,3 +970,29 @@
   box-shadow: inset 0 0 0 2px rgb(var(--primary)), inset 0 0 0 4px rgba(var(--primary), 0.2);
   background-image: linear-gradient(to bottom, transparent 0%, transparent 75%, rgba(var(--primary), 0.2) 75%, rgba(var(--primary), 0.05) 100%);
 }
+
+/* Sticky header styles */
+.week-header-sticky {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  backdrop-filter: blur(5px);
+}
+
+.dark .week-header-sticky {
+  background-color: rgba(var(--background), 0.95);
+}
+
+.light .week-header-sticky {
+  background-color: rgba(var(--background), 0.95);
+}
+
+.week-header-sticky:not(.hidden) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Main content scroll area */
+.main-content {
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+  overflow-x: auto;
+  position: relative;
+}
