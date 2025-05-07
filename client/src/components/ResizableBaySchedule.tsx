@@ -892,6 +892,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       height: 100% !important;
       min-height: 24px !important;
     }
+
+    /* This is the key style that makes the project bars taller */
+    .big-project-bar {
+      height: 16px !important;
+      min-height: 16px !important;
+      border-width: 2px !important;
+      overflow: visible !important;
+      position: relative !important;
+      z-index: 20 !important;
+      box-sizing: border-box !important;
+      display: flex !important;
+      align-items: center !important;
+    }
   `;
     
   return (
@@ -1121,20 +1134,25 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     // Calculate position based on row (0-3)
                     // Each row is 25% of the bay height (64px total height)
                     const rowHeight = 64 / 4; // 16px per row
-                    const top = (bar.row || 0) * rowHeight; // Position at the exact start of row
-                    const height = rowHeight; // Use the full row height with no padding
+                    // Center the bar vertically in the row to make it look better
+                    const barHeight = 16; // Fixed height of the bar
+                    const topOffset = (rowHeight - barHeight) / 2; // Center vertically
+                    const top = ((bar.row || 0) * rowHeight) + topOffset; // Position centered in row
+                    const height = barHeight; // Fixed height
                     
                     return (
                       <div
                         key={bar.id}
-                        className="absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all"
+                        className="absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all big-project-bar"
                         style={{
                           left: bar.left + 'px',
                           width: bar.width - 4 + 'px',  // -4 for border spacing
                           backgroundColor: bar.color,
                           opacity: draggingSchedule?.id === bar.id ? 0.5 : 0.9,
                           top: top + 'px',
-                          height: height + 'px'
+                          height: '16px',
+                          minHeight: '16px',
+                          maxHeight: '16px'
                         }}
                         draggable
                         onDragStart={(e) => handleDragStart(e, 'existing', {
