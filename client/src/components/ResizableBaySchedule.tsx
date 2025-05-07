@@ -242,13 +242,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const fabWeeks = project.fabWeeks || 4;
         
         // Original start and end dates from the database
-        const originalStartDate = new Date(schedule.startDate);
-        const originalEndDate = new Date(schedule.endDate);
+        const startDate = new Date(schedule.startDate);
+        const endDate = new Date(schedule.endDate);
         
         // Find a row that doesn't have a schedule overlapping with this one
         let assignedRow = -1;
         for (let row = 0; row < 4; row++) {
-          if (originalStartDate >= rowEndDates[row]) {
+          if (startDate >= rowEndDates[row]) {
             assignedRow = row;
             break;
           }
@@ -262,43 +262,43 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         }
         
         // Update the end date for this row
-        rowEndDates[assignedRow] = new Date(originalEndDate);
+        rowEndDates[assignedRow] = new Date(endDate);
         
         // Find the slot indices for the original start date (where the bar begins)
         const startSlotIndex = slots.findIndex(slot => {
           if (viewMode === 'day') {
-            return isSameDay(slot.date, originalStartDate) || slot.date > originalStartDate;
+            return isSameDay(slot.date, startDate) || slot.date > startDate;
           } else if (viewMode === 'week') {
             const slotEndDate = addDays(slot.date, 6);
-            return (originalStartDate >= slot.date && originalStartDate <= slotEndDate);
+            return (startDate >= slot.date && startDate <= slotEndDate);
           } else if (viewMode === 'month') {
             const slotMonth = slot.date.getMonth();
             const slotYear = slot.date.getFullYear();
-            return (originalStartDate.getMonth() === slotMonth && originalStartDate.getFullYear() === slotYear);
+            return (startDate.getMonth() === slotMonth && startDate.getFullYear() === slotYear);
           } else { // quarter
             const slotQuarter = Math.floor(slot.date.getMonth() / 3);
             const slotYear = slot.date.getFullYear();
-            const startQuarter = Math.floor(originalStartDate.getMonth() / 3);
-            return (startQuarter === slotQuarter && originalStartDate.getFullYear() === slotYear);
+            const startQuarter = Math.floor(startDate.getMonth() / 3);
+            return (startQuarter === slotQuarter && startDate.getFullYear() === slotYear);
           }
         });
         
         // Find the slot indices for the original end date
         const endSlotIndex = slots.findIndex(slot => {
           if (viewMode === 'day') {
-            return isSameDay(slot.date, originalEndDate) || slot.date > originalEndDate;
+            return isSameDay(slot.date, endDate) || slot.date > endDate;
           } else if (viewMode === 'week') {
             const slotEndDate = addDays(slot.date, 6);
-            return (originalEndDate >= slot.date && originalEndDate <= slotEndDate);
+            return (endDate >= slot.date && endDate <= slotEndDate);
           } else if (viewMode === 'month') {
             const slotMonth = slot.date.getMonth();
             const slotYear = slot.date.getFullYear();
-            return (originalEndDate.getMonth() === slotMonth && originalEndDate.getFullYear() === slotYear);
+            return (endDate.getMonth() === slotMonth && endDate.getFullYear() === slotYear);
           } else { // quarter
             const slotQuarter = Math.floor(slot.date.getMonth() / 3);
             const slotYear = slot.date.getFullYear();
-            const endQuarter = Math.floor(originalEndDate.getMonth() / 3);
-            return (endQuarter === slotQuarter && originalEndDate.getFullYear() === slotYear);
+            const endQuarter = Math.floor(endDate.getMonth() / 3);
+            return (endQuarter === slotQuarter && endDate.getFullYear() === slotYear);
           }
         });
         
