@@ -991,21 +991,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         totalHours
       });
       
-      // Update the schedule in the database
-      if (onScheduleChange) {
-        await onScheduleChange(
-          resizingSchedule.id,
-          resizingSchedule.bayId,
-          formattedStartDate,
-          formattedEndDate,
-          totalHours
-        );
-        
-        toast({
-          title: "Schedule Updated",
-          description: `Project schedule updated with new dates`
-        });
-      }
+      // Use applyManualResize which will check for capacity impacts
+      applyManualResize(
+        resizingSchedule.id,
+        formattedStartDate,
+        formattedEndDate,
+        resizingSchedule.row
+      );
     } catch (error) {
       console.error('Error updating schedule after resize:', error);
       toast({
