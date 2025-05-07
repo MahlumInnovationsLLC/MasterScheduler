@@ -947,6 +947,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
       
       console.log('Data received in drop:', dataStr);
+      console.log(`Dropping at bay ${bayId}, slot ${slotIndex}, row ${rowIndex}`);
       
       const data = JSON.parse(dataStr);
       if (!data) {
@@ -1345,7 +1346,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     /* Row hover effects for better visualization */
     .bay-row:hover {
-      background-color: rgba(255, 255, 255, 0.05);
+      background-color: rgba(99, 102, 241, 0.1) !important;
+    }
+    
+    /* Cell hover effect */
+    .week-cell:hover {
+      background-color: rgba(99, 102, 241, 0.07) !important;
+      outline: 1px solid rgba(99, 102, 241, 0.3) !important;
+      z-index: 5 !important;
     }
   `;
     
@@ -1722,28 +1730,64 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   ))}
                 </div>
                 
-                {/* Row dividers - Interactive for row selection */}
+                {/* Row dividers - Interactive for row selection with grid-cell visual guides  */}
                 <div className="absolute inset-0 flex flex-col">
                   <div 
                     className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
                     onDragOver={(e) => handleDragOver(e, bay.id, 0, 0)}
                     onDrop={(e) => handleDrop(e, bay.id, 0, 0)}
-                  ></div>
+                  >
+                    {/* Row 1 cell markers */}
+                    <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
+                      {slots.map((slot, index) => (
+                        <div key={`sub-cell-r0-${index}`} className="relative h-full border-r border-gray-700/30">
+                          <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                   <div 
                     className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
                     onDragOver={(e) => handleDragOver(e, bay.id, 0, 1)}
                     onDrop={(e) => handleDrop(e, bay.id, 0, 1)}
-                  ></div>
+                  >
+                    {/* Row 2 cell markers */}
+                    <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
+                      {slots.map((slot, index) => (
+                        <div key={`sub-cell-r1-${index}`} className="relative h-full border-r border-gray-700/30">
+                          <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                   <div 
                     className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
                     onDragOver={(e) => handleDragOver(e, bay.id, 0, 2)}
                     onDrop={(e) => handleDrop(e, bay.id, 0, 2)}
-                  ></div>
+                  >
+                    {/* Row 3 cell markers */}
+                    <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
+                      {slots.map((slot, index) => (
+                        <div key={`sub-cell-r2-${index}`} className="relative h-full border-r border-gray-700/30">
+                          <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                   <div 
                     className="h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
                     onDragOver={(e) => handleDragOver(e, bay.id, 0, 3)}
                     onDrop={(e) => handleDrop(e, bay.id, 0, 3)}
-                  ></div>
+                  >
+                    {/* Row 4 cell markers */}
+                    <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
+                      {slots.map((slot, index) => (
+                        <div key={`sub-cell-r3-${index}`} className="relative h-full border-r border-gray-700/30">
+                          <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 
                 {/* Schedule bars */}
