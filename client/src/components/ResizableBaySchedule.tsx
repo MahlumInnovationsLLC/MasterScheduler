@@ -508,6 +508,174 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   }, [schedules, projects, bays, slots, viewMode, slotWidth, recalculationVersion]);
   
   // Handle drag start
+  // Handle the start of resize operation
+  const handleResizeStart = (e: React.MouseEvent, barId: number, direction: 'left' | 'right', projectId: number, bayId: number) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // Find the schedule bar element
+    const barElement = e.currentTarget.closest('.big-project-bar') as HTMLElement;
+    if (!barElement) return;
+    
+    // Get initial dimensions
+    const initialWidth = barElement.offsetWidth;
+    const initialLeft = parseInt(barElement.style.left, 10) || 0;
+    
+    // Find the schedule data
+    const schedule = schedules.find(s => s.id === barId);
+    if (!schedule) {
+      console.error('Schedule not found for resize operation', barId);
+      return;
+    }
+    
+    // Set resizing state
+    setResizingSchedule({
+      id: barId,
+      direction,
+      startX: e.clientX,
+      initialWidth,
+      initialLeft,
+      initialStartDate: new Date(schedule.startDate),
+      initialEndDate: new Date(schedule.endDate),
+      projectId,
+      bayId
+    });
+    
+    // Add resize event listeners
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+    
+    // Add a cursor style to the body
+    document.body.style.cursor = 'ew-resize';
+    
+    console.log(`Resize started: bar ${barId}, direction ${direction}`);
+  };
+  
+  // Handle mouse movement during resize
+  const handleResizeMove = (e: MouseEvent) => {
+    if (!resizingSchedule) return;
+    
+    // Find the schedule bar element
+    const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
+    if (!barElement) return;
+    
+    const deltaX = e.clientX - resizingSchedule.startX;
+    const timelineContainer = barElement.closest('.timeline-container');
+    if (!timelineContainer) return;
+    
+    if (resizingSchedule.direction === 'left') {
+      // Resizing from left (changing start date)
+      const newLeft = Math.max(0, resizingSchedule.initialLeft + deltaX);
+      const newWidth = resizingSchedule.initialWidth - (newLeft - resizingSchedule.initialLeft);
+      
+      // Update visual appearance while dragging
+      barElement.style.left = `${newLeft}px`;
+      barElement.style.width = `${newWidth}px`;
+    } else {
+      // Resizing from right (changing end date)
+      const newWidth = Math.max(50, resizingSchedule.initialWidth + deltaX);
+      
+      // Update visual appearance while dragging
+      barElement.style.width = `${newWidth}px`;
+    }
+  };
+  
+  // Handle the end of resize operation
+  const handleResizeEnd = async (e: MouseEvent) => {
+    if (!resizingSchedule) return;
+    
+    try {
+      // Find the schedule bar element
+      const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
+      if (!barElement) return;
+      
+      // Calculate the new dates based on pixel positions
+      const deltaX = e.clientX - resizingSchedule.startX;
+      
+      // Get the slot width for date calculations
+      const slotWidth = slots[1]?.date ? 
+                         (slots[1].date.getTime() - slots[0].date.getTime()) / (7 * 24 * 60 * 60 * 1000) * slotWidth :
+                         slotWidth; // Default to slotWidth
+      
+      let newStartDate = new Date(resizingSchedule.initialStartDate);
+      let newEndDate = new Date(resizingSchedule.initialEndDate);
+      
+      if (resizingSchedule.direction === 'left') {
+        // Calculate new start date
+        const pixelsDelta = resizingSchedule.initialLeft + deltaX - resizingSchedule.initialLeft;
+        const daysDelta = Math.round((pixelsDelta / slotWidth) * 7); // Convert pixels to days based on view mode
+        newStartDate = addDays(resizingSchedule.initialStartDate, daysDelta);
+        
+        // Ensure start date is not after end date
+        if (newStartDate >= newEndDate) {
+          newStartDate = new Date(newEndDate);
+          newStartDate.setDate(newEndDate.getDate() - 1); // At least 1 day between start and end
+        }
+      } else {
+        // Calculate new end date
+        const pixelsDelta = resizingSchedule.initialWidth + deltaX - resizingSchedule.initialWidth;
+        const daysDelta = Math.round((pixelsDelta / slotWidth) * 7); // Convert pixels to days based on view mode
+        newEndDate = addDays(resizingSchedule.initialEndDate, daysDelta);
+        
+        // Ensure end date is not before start date
+        if (newEndDate <= newStartDate) {
+          newEndDate = new Date(newStartDate);
+          newEndDate.setDate(newStartDate.getDate() + 1); // At least 1 day between start and end
+        }
+      }
+      
+      // Format dates for the API
+      const formattedStartDate = format(newStartDate, 'yyyy-MM-dd');
+      const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
+      
+      // Calculate total hours based on the new duration
+      const totalDays = differenceInDays(newEndDate, newStartDate);
+      const totalHours = Math.max(40, totalDays * 8); // Minimum 40 hours
+      
+      console.log(`Updating schedule ${resizingSchedule.id} with new dates:`, {
+        startDate: formattedStartDate,
+        endDate: formattedEndDate,
+        totalHours
+      });
+      
+      // Update the schedule in the database
+      if (onScheduleChange) {
+        await onScheduleChange(
+          resizingSchedule.id,
+          resizingSchedule.bayId,
+          formattedStartDate,
+          formattedEndDate,
+          totalHours
+        );
+        
+        toast({
+          title: "Schedule Updated",
+          description: `Project schedule updated with new dates`
+        });
+      }
+    } catch (error) {
+      console.error('Error updating schedule after resize:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update schedule",
+        variant: "destructive"
+      });
+      
+      // Reset the visual appearance
+      const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
+      if (barElement) {
+        barElement.style.left = `${resizingSchedule.initialLeft}px`;
+        barElement.style.width = `${resizingSchedule.initialWidth}px`;
+      }
+    } finally {
+      // Clean up
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+      document.body.style.cursor = '';
+      setResizingSchedule(null);
+    }
+  };
+  
   const handleDragStart = (e: React.DragEvent, type: 'existing' | 'new', data: any) => {
     e.stopPropagation();
     
@@ -1352,6 +1520,42 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       top: 75% !important;
       height: 24% !important;
       transform: translateY(0%) !important;
+    }
+    
+    /* Resize handles */
+    .resize-handle {
+      position: absolute !important;
+      top: 0 !important;
+      bottom: 0 !important;
+      width: 12px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      cursor: ew-resize !important;
+      opacity: 0 !important;
+      transition: opacity 0.2s ease !important;
+      z-index: 30 !important;
+      background-color: rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    .resize-handle-left {
+      left: 0 !important;
+      border-top-left-radius: 4px !important;
+      border-bottom-left-radius: 4px !important;
+    }
+    
+    .resize-handle-right {
+      right: 0 !important;
+      border-top-right-radius: 4px !important;
+      border-bottom-right-radius: 4px !important;
+    }
+    
+    .big-project-bar:hover .resize-handle {
+      opacity: 1 !important;
+    }
+    
+    .resize-handle:hover {
+      background-color: rgba(0, 0, 0, 0.5) !important;
     }
     
     /* Row hover effects for better visualization */
