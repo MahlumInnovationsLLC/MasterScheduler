@@ -436,9 +436,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         fabWidth = Math.max(slotWidth / 2, fabWidth);
         
         // Get department percentages from the project (or use defaults)
-        const fabPercentage = parseFloat(project.fabPercentage as any) || 27;
+        const fabPercentage = parseFloat(project.fabPercentage as any) || 20;
         const paintPercentage = parseFloat(project.paintPercentage as any) || 7; 
-        const productionPercentage = parseFloat(project.productionPercentage as any) || 60;
+        const productionPercentage = parseFloat(project.productionPercentage as any) || 53;
         const itPercentage = parseFloat(project.itPercentage as any) || 7;
         const ntcPercentage = parseFloat(project.ntcPercentage as any) || 7;
         const qcPercentage = parseFloat(project.qcPercentage as any) || 7;
@@ -1472,7 +1472,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         const totalWeeks = Math.ceil(differenceInDays(endDate, productionStartDate) / 7);
                         if (totalWeeks <= 0) return; // No production phase yet
                         
-                        const weeklyHours = (schedule.totalHours || 1000) / totalWeeks;
+                        // Get the project for this schedule
+                        const project = projects.find(p => p.id === schedule.projectId);
+                        // Get production percentage (default 53%)
+                        const productionPercentage = parseFloat(project?.productionPercentage as any) || 53;
+                        // Calculate production hours (53% of total hours by default)
+                        const productionHours = (schedule.totalHours || 1000) * (productionPercentage / 100);
+                        // Calculate weekly hours for production phase only
+                        const weeklyHours = productionHours / totalWeeks;
                         
                         // Distribute hours to each week in the production phase
                         slots.forEach(slot => {
