@@ -758,8 +758,33 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const validStartIndex = startSlotIndex === -1 ? 0 : startSlotIndex;
         const validEndIndex = endSlotIndex === -1 ? slots.length - 1 : endSlotIndex;
         
-        // Calculate total bar width based on actual date range
-        const barWidth = ((validEndIndex - validStartIndex) + 1) * slotWidth;
+        // FIXED: Calculate total bar width based on actual date range AND view mode
+        const startTime = startDate.getTime();
+        const endTime = endDate.getTime();
+        const totalDays = differenceInDays(endDate, startDate) + 1; // +1 to include the start day
+        
+        // Calculate bar width based on actual day count, not just slot indices
+        let barWidth;
+        if (viewMode === 'day') {
+          // In day view, one slot = one day
+          barWidth = ((validEndIndex - validStartIndex) + 1) * slotWidth;
+        } else if (viewMode === 'week') {
+          // In week view, calculate actual days and convert to weeks
+          const weeksNeeded = Math.ceil(totalDays / 7);
+          barWidth = weeksNeeded * slotWidth;
+        } else if (viewMode === 'month') {
+          // In month view, calculate actual months
+          const monthsNeeded = differenceInMonths(endDate, startDate) + 1;
+          barWidth = monthsNeeded * slotWidth;
+        } else { // quarter
+          // In quarter view, calculate actual quarters
+          const quartersNeeded = Math.ceil(differenceInMonths(endDate, startDate) / 3) + 1;
+          barWidth = quartersNeeded * slotWidth;
+        }
+        
+        // Ensure minimum width for visibility
+        barWidth = Math.max(20, barWidth);
+        
         const barLeft = validStartIndex * slotWidth;
         
         // Get department percentages from the project (or use defaults)
