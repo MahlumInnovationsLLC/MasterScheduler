@@ -44,6 +44,9 @@ interface ScheduleBar {
   color: string;
   // For multi-row layout within a bay
   row?: number; // 0-3 for 4 rows per bay
+  // FAB phase information
+  fabWeeks: number; // Number of weeks for FAB phase
+  fabWidth?: number; // Width of FAB phase on visualization
 }
 
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
