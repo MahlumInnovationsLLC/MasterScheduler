@@ -277,8 +277,8 @@ export function DataTable<TData, TValue>({
               </table>
             </div>
 
-            {/* Scrollable columns */}
-            <div className="overflow-x-auto">
+            {/* Scrollable columns with fixed row heights */}
+            <div className="overflow-x-auto" style={{ scrollbarGutter: 'stable' }}>
               <table className="border-collapse">
                 <thead>
                   <tr className="bg-muted/50">
@@ -289,7 +289,8 @@ export function DataTable<TData, TValue>({
                             key={header.id}
                             className="px-4 font-semibold text-left whitespace-nowrap"
                             style={{ 
-                              minWidth: '150px',
+                              minWidth: header.column.columnDef.size || '150px',
+                              width: header.column.columnDef.size || '150px',
                               background: 'var(--muted)',
                               borderBottom: '1px solid var(--border)',
                               borderRight: '1px solid var(--border-muted)',
@@ -333,6 +334,7 @@ export function DataTable<TData, TValue>({
                       <tr
                         key={row.id}
                         className="hover:bg-muted/50 border-b border-border"
+                        style={{ height: '48px' }} // Explicitly set height for all rows
                       >
                         {row.getVisibleCells().map((cell) => {
                           if (!frozenColumns.includes(cell.column.id)) {
@@ -341,11 +343,10 @@ export function DataTable<TData, TValue>({
                                 key={cell.id}
                                 className="px-4 whitespace-nowrap align-middle"
                                 style={{ 
-                                  minWidth: '150px',
+                                  minWidth: cell.column.columnDef.size || '150px',
+                                  width: cell.column.columnDef.size || '150px',
                                   borderRight: '1px solid var(--border-muted)',
-                                  height: '48px',
-                                  paddingTop: '14px',
-                                  paddingBottom: '14px'
+                                  height: '48px'
                                 }}
                               >
                                 {flexRender(
@@ -369,6 +370,11 @@ export function DataTable<TData, TValue>({
                       </td>
                     </tr>
                   )}
+                  
+                  {/* Dedicated row for horizontal scrollbar */}
+                  <tr className="scrollbar-row">
+                    <td colSpan={columns.length - frozenColumns.length} style={{ height: '10px', padding: 0 }}></td>
+                  </tr>
                 </tbody>
               </table>
             </div>

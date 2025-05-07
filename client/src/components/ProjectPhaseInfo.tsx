@@ -9,7 +9,16 @@ interface ProjectPhaseInfoProps {
 export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) => {
   // Helper to safely get date from project or rawData
   const getPhaseDate = (fieldName: string): string | null => {
-    // Try to get directly from project
+    // Special case for startDate and shipDate which should come from project first
+    if (fieldName === 'startDate' && project.startDate) {
+      return project.startDate;
+    }
+    
+    if (fieldName === 'shipDate' && project.shipDate) {
+      return project.shipDate;
+    }
+    
+    // Try to get directly from project for other fields
     if (project[fieldName]) {
       return project[fieldName];
     }
@@ -26,25 +35,28 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
       ];
       
       for (const key of possibleKeys) {
-        if (project.rawData[key] !== undefined && project.rawData[key] !== null) {
+        if (project.rawData[key] !== undefined && project.rawData[key] !== null && 
+            project.rawData[key] !== 'N/A' && project.rawData[key] !== '') {
           return project.rawData[key];
         }
       }
       
       // Try common alternative names
       const alternativeNames: Record<string, string[]> = {
+        'startDate': ['START_DATE', 'START', 'Start Date', 'Start', 'BEGIN_DATE', 'Begin Date'],
         'fabricationStart': ['FAB_START', 'FAB_DATE', 'FABRICATION_START', 'Fabrication_Start', 'Fab Start'],
         'assemblyStart': ['ASSEMBLY_START', 'ASSEMBLY_DATE', 'Assembly_Start', 'Assembly Start'],
         'ntcTestingDate': ['NTC_TESTING', 'NTC_TEST_DATE', 'NTC Testing', 'NTC Test Date'],
         'qcStartDate': ['QC_START', 'QUALITY_CONTROL_START', 'QC Start', 'Quality Control Start'],
         'executiveReviewDate': ['EXECUTIVE_REVIEW', 'EXEC_REVIEW', 'EXEC_REVIEW_DATE', 'Executive Review'],
-        'shipDate': ['SHIP', 'SHIPPING_DATE', 'Ship', 'Shipping Date'],
+        'shipDate': ['SHIP', 'SHIPPING_DATE', 'Ship', 'Shipping Date', 'SHIP_DATE'],
         'deliveryDate': ['DELIVERY', 'DELIVERY_DATE', 'Delivery', 'Delivery Date']
       };
       
       const alternatives = alternativeNames[fieldName] || [];
       for (const alt of alternatives) {
-        if (project.rawData[alt] !== undefined && project.rawData[alt] !== null) {
+        if (project.rawData[alt] !== undefined && project.rawData[alt] !== null && 
+            project.rawData[alt] !== 'N/A' && project.rawData[alt] !== '') {
           return project.rawData[alt];
         }
       }
@@ -53,17 +65,22 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
     return null;
   };
   
-  // Get all phase dates
+  // For timeline START, use the project start date (it's the official one)
+  const startDate = project.startDate || null;
+  
+  // For timeline END, use the ship date (it's the official one)
+  const shipDate = project.shipDate || project.estimatedCompletionDate || null;
+  
+  // Get all other phase dates
   const fabricationStart = getPhaseDate('fabricationStart');
   const assemblyStart = getPhaseDate('assemblyStart');
   const ntcTestingDate = getPhaseDate('ntcTestingDate');
   const qcStartDate = getPhaseDate('qcStartDate');
   const executiveReviewDate = getPhaseDate('executiveReviewDate');
-  const shipDate = getPhaseDate('shipDate');
   const deliveryDate = getPhaseDate('deliveryDate');
   
   // Only display if we have at least one phase date
-  if (!fabricationStart && !assemblyStart && !ntcTestingDate && 
+  if (!startDate && !fabricationStart && !assemblyStart && !ntcTestingDate && 
       !qcStartDate && !executiveReviewDate && !shipDate && !deliveryDate) {
     return null;
   }
@@ -72,6 +89,16 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
     <div className="mt-6 bg-darkCard/50 border border-gray-800 rounded-lg p-3">
       <div className="text-sm text-gray-400 mb-2">Project Timeline</div>
       <div className="flex flex-wrap gap-3">
+        {startDate && (
+          <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
+            <Calendar className="h-4 w-4 text-primary" />
+            <div>
+              <div className="text-xs text-gray-400">TIMELINE START</div>
+              <div className="text-sm font-medium">{formatDate(startDate)}</div>
+            </div>
+          </div>
+        )}
+        
         {fabricationStart && (
           <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
             <Hammer className="h-4 w-4 text-blue-400" />
