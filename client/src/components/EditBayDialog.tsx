@@ -35,7 +35,7 @@ export function EditBayDialog({
   const [description, setDescription] = useState<string>('');
   const [assemblyStaffCount, setAssemblyStaffCount] = useState<number>(0);
   const [electricalStaffCount, setElectricalStaffCount] = useState<number>(0);
-  const [hoursPerPersonPerWeek, setHoursPerPersonPerWeek] = useState<number>(40);
+  const [hoursPerPersonPerWeek, setHoursPerPersonPerWeek] = useState<number>(32);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
   // Calculate total staff count
@@ -49,7 +49,7 @@ export function EditBayDialog({
       setDescription(bay.description || '');
       setAssemblyStaffCount(bay.assemblyStaffCount || 0);
       setElectricalStaffCount(bay.electricalStaffCount || 0);
-      setHoursPerPersonPerWeek(bay.hoursPerPersonPerWeek || 40);
+      setHoursPerPersonPerWeek(bay.hoursPerPersonPerWeek || 32);
     } else {
       // Default values for a new bay
       setName('');
@@ -57,7 +57,7 @@ export function EditBayDialog({
       setDescription('');
       setAssemblyStaffCount(0);
       setElectricalStaffCount(0);
-      setHoursPerPersonPerWeek(40);
+      setHoursPerPersonPerWeek(32);
     }
   }, [bay]);
 
@@ -187,7 +187,7 @@ export function EditBayDialog({
               min={1}
               max={168}
               value={hoursPerPersonPerWeek}
-              onChange={(e) => setHoursPerPersonPerWeek(parseInt(e.target.value) || 40)}
+              onChange={(e) => setHoursPerPersonPerWeek(parseInt(e.target.value) || 32)}
               className="col-span-3"
             />
           </div>
