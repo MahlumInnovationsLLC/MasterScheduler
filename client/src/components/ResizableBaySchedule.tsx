@@ -102,14 +102,18 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
       break;
     case 'week':
       slotWidth = 100;
-      format_string = "'Week' w";
+      format_string = "'Week' w"; // Standard ISO week number (fiscal week)
       while (current <= extendedEndDate) {
         const weekEnd = addDays(current, 6);
+        // Standard work week is Monday through Friday
+        const monday = current;
+        const friday = addDays(monday, 4);
         slots.push({
           date: new Date(current),
           label: format(current, format_string),
-          sublabel: `${format(current, 'MMM d')} - ${format(weekEnd, 'MMM d')}`,
-          isWeekend: false
+          sublabel: `${format(monday, 'MMM d')} - ${format(friday, 'MMM d')}`, // Monday-Friday instead of full week
+          isWeekend: false,
+          year: current.getFullYear() // Store year for year row
         });
         current = addDays(current, 7);
       }
@@ -2673,6 +2677,56 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         {/* Main timeline grid */}
         <div className="overflow-x-auto flex-1" style={{ maxWidth: 'calc(100% - 64px)' }}>
+          {/* Year row above week headers */}
+          <div 
+            className="h-6 border-b border-gray-700 grid" 
+            style={{ 
+              gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
+              width: totalViewWidth 
+            }}
+          >
+            {(() => {
+              // Generate year segments
+              const years: {year: number, startIndex: number, endIndex: number}[] = [];
+              let currentYear = -1;
+              let startIndex = 0;
+              
+              // Group slots by year
+              slots.forEach((slot, index) => {
+                const year = slot.year || slot.date.getFullYear();
+                if (year !== currentYear) {
+                  if (currentYear !== -1) {
+                    years.push({year: currentYear, startIndex, endIndex: index - 1});
+                  }
+                  currentYear = year;
+                  startIndex = index;
+                }
+                
+                // Handle the last group
+                if (index === slots.length - 1) {
+                  years.push({year: currentYear, startIndex, endIndex: index});
+                }
+              });
+              
+              // Render year labels
+              return years.map(({year, startIndex, endIndex}) => {
+                const width = (endIndex - startIndex + 1) * slotWidth;
+                return (
+                  <div 
+                    key={`year-${year}-${startIndex}`}
+                    className="border-r border-gray-700 flex items-center justify-center"
+                    style={{
+                      gridColumn: `${startIndex + 1} / ${endIndex + 2}`,
+                      width: `${width}px`
+                    }}
+                  >
+                    <div className="text-xs font-medium text-gray-400">{year}</div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+
           {/* Header row with time slots */}
           <div 
             className="h-12 border-b border-gray-700 grid" 
