@@ -998,6 +998,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         formattedEndDate,
         resizingSchedule.row
       );
+      
+      // After manual resize, trigger auto-capacity adjustment in 500ms
+      // This gives time for the manual change to be applied first
+      setTimeout(() => {
+        applyAutoCapacityAdjustment();
+      }, 500);
     } catch (error) {
       console.error('Error updating schedule after resize:', error);
       toast({
