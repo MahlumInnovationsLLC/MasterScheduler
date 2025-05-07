@@ -313,13 +313,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Calculate FAB phase width - STRICTLY based on FAB weeks, not a percentage of total width
         let fabWidth = 0;
         if (viewMode === 'day') {
-          fabWidth = fabWeeks * 7 * slotWidth / 7; // Convert weeks to days
+          fabWidth = fabWeeks * 1 * slotWidth; // Each slot is a day
         } else if (viewMode === 'week') {
-          fabWidth = fabWeeks * slotWidth; // Direct mapping for weeks
+          fabWidth = fabWeeks / 1 * slotWidth; // 1 slot = 1 week
         } else if (viewMode === 'month') {
-          fabWidth = Math.ceil(fabWeeks / 4) * slotWidth; // Approximate weeks to months
+          fabWidth = fabWeeks / 4 * slotWidth; // ~4 weeks per month
         } else { // quarter
-          fabWidth = Math.ceil(fabWeeks / 13) * slotWidth; // Approximate weeks to quarters
+          fabWidth = fabWeeks / 13 * slotWidth; // ~13 weeks per quarter
         }
         
         // Ensure minimum width but don't cap it based on total width percentage
@@ -808,29 +808,24 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Calculate FAB phase duration in days
       const fabDays = fabWeeks * 7; // Convert weeks to days
       
-      // Calculate production start date (after FAB phase)
+      // This is the start date where production will begin (AFTER FAB phase)
       const productionStartDate = addDays(slotDate, fabDays);
       
       // Calculate end date based on total hours and bay capacity with weekly limits
       const weeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
       
-      // Calculate how many full weeks the project will take FOR PRODUCTION ONLY
+      // Calculate how many full weeks the project will take FOR PRODUCTION ONLY (excluding FAB)
       const totalHours = data.totalHours || 1000; // Default to 1000 if not specified
-      const fullWeeksNeeded = Math.floor(totalHours / weeklyCapacity);
+      const fullWeeksNeeded = Math.ceil(totalHours / weeklyCapacity);
       
-      // Calculate remaining hours after full weeks
-      const remainingHours = totalHours % weeklyCapacity;
+      // Calculate total weeks and days needed for production (ensuring we don't have projects too short)
+      const productionDays = Math.max(7, fullWeeksNeeded * 7); // Ensure at least one week
       
-      // Convert remaining hours to days (assuming equal distribution across 5-day work week)
-      const dailyCapacity = weeklyCapacity / 5;
-      const additionalDays = remainingHours > 0 ? Math.ceil(remainingHours / dailyCapacity) : 0;
-      
-      // Calculate total days needed for production
-      const productionDays = (fullWeeksNeeded * 7) + additionalDays;
-      
-      // Calculate end date (production start date + production time)
-      // The FAB phase is already accounted for in the productionStartDate
+      // Calculate end date as production start date + production time
       const endDate = addDays(productionStartDate, productionDays);
+      
+      // Important: We're storing the original FAB start date in the database
+      // But our scheduleBars calculation will handle showing the FAB phase properly
       
       console.log('Attempting to drop project:', {
         projectId: data.projectId || data.id,
@@ -840,8 +835,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         totalHours: totalHours,
         weeklyCapacity: weeklyCapacity,
         fullWeeksNeeded: fullWeeksNeeded,
-        remainingHours: remainingHours,
-        additionalDays: additionalDays,
         productionDays: productionDays,
         fabWeeks: fabWeeks,
         type: data.type
@@ -1312,14 +1305,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           bayId: bar.bayId
                         })}
                       >
-                        {/* FAB phase indicator - always shown, no longer limited by percentage of total bar */}
+                        {/* FAB phase indicator - always shown at BEGINNING of project */}
                         {bar.fabWidth && bar.fabWidth > 0 && (
                           <div 
-                            className="absolute top-0 left-0 h-full rounded-l-sm flex items-center justify-center overflow-hidden"
+                            className="absolute top-0 right-0 h-full rounded-r-sm flex items-center justify-center overflow-hidden"
                             style={{
                               width: `${bar.fabWidth}px`,
                               backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                              borderRight: '2px dashed rgba(255, 255, 255, 0.6)',
+                              borderLeft: '2px dashed rgba(255, 255, 255, 0.6)',
                               zIndex: 1
                             }}
                           >
@@ -1328,7 +1321,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             </span>
                           </div>
                         )}
-                        {/* Bar content */}
+                        
+                        {/* Bar content - Production information */}
                         <div className="absolute inset-0 flex items-center justify-between px-2 text-white font-semibold text-shadow-sm">
                           <div className="font-medium text-xs truncate">
                             {bar.projectNumber}
