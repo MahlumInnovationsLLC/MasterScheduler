@@ -53,8 +53,24 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
   const bayStatuses: BayStatus[] = React.useMemo(() => {
     if (!bays.length) return [];
     
+    // Debug the bay data and schedules
+    console.log("All bays:", bays);
+    console.log("All schedules:", schedules);
+    
+    // Track which bays we've processed to avoid duplicates
+    const processedBayIds = new Set<number>();
+    
     return bays
       .filter(bay => bay.staffCount && bay.staffCount > 0 && bay.isActive)
+      .filter(bay => {
+        // Skip duplicate bays
+        if (processedBayIds.has(bay.id)) {
+          console.log(`Skipping duplicate bay: ${bay.name} (ID: ${bay.id})`);
+          return false;
+        }
+        processedBayIds.add(bay.id);
+        return true;
+      })
       .map(bay => {
         // Get schedules for this bay
         const baySchedules = schedules.filter(schedule => schedule.bayId === bay.id);
@@ -79,7 +95,9 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
         const bayScheduledHours = baySchedules.reduce((sum, schedule) => sum + (schedule.totalHours || 0), 0);
         
         // Calculate utilization percentage for this bay
+        // Same calculation used in BaySchedulingPage for consistency
         const utilization = Math.min(100, (bayScheduledHours / weeklyCapacity) * 100);
+        const roundedUtilization = Math.round(utilization);
         
         // Determine staff types
         const assemblyStaff = bay.assemblyStaffCount || 0;
@@ -95,7 +113,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
         let description: string;
         let recommendations: string[] = [];
         
-        if (utilization < 30) {
+        if (roundedUtilization < 30) {
           status = 'underutilized';
           description = `${bay.name} is significantly underutilized. Consider assigning more projects.`;
           recommendations = [
@@ -103,7 +121,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
             'Consider temporarily reassigning staff to other teams',
             'Check for upcoming projects that can be scheduled earlier'
           ];
-        } else if (utilization > 85) {
+        } else if (roundedUtilization > 85) {
           status = 'overloaded';
           description = `${bay.name} is approaching or exceeding capacity. Consider redistributing workload.`;
           recommendations = [
@@ -122,10 +140,12 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
           ];
         }
         
+        console.log(`Bay ${bay.name} utilization: ${roundedUtilization}% (${bayScheduledHours}/${weeklyCapacity} hours)`);
+        
         return {
           bayId: bay.id,
           bayName: bay.name,
-          utilization: Math.round(utilization),
+          utilization: roundedUtilization,
           status,
           description,
           teamName: bay.team || 'General',
@@ -231,7 +251,14 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
                       </div>
                       <div>
                         <div className="flex items-center">
-                          <h5 className="text-sm font-medium">{bay.bayName}</h5>
+                          <h5 className="text-sm font-medium">
+                            {bay.bayName}
+                            {bays.find(b => b.id === bay.bayId)?.description && (
+                              <span className="text-xs ml-1 text-gray-400">
+                                ({bays.find(b => b.id === bay.bayId)?.description})
+                              </span>
+                            )}
+                          </h5>
                           <span className={`text-xs ml-2 ${getStatusColor(bay.status)}`}>
                             {bay.utilization}%
                           </span>
