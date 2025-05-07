@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { format, addDays, differenceInDays, isSameDay, addWeeks, addMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
 import { PlusCircle, GripVertical, Info, X, ChevronRight, ChevronLeft, PencilIcon, PlusIcon, Users, Zap, Clock as ClockIcon, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -299,6 +299,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   }, []);
   
   const { toast } = useToast();
+  const timelineContainerRef = useRef<HTMLDivElement>(null);
   const [draggingSchedule, setDraggingSchedule] = useState<any>(null);
   const [resizingSchedule, setResizingSchedule] = useState<{
     id: number;
@@ -2938,7 +2939,35 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         </div>
         
         {/* Main timeline grid */}
-        <div className="overflow-x-auto flex-1" style={{ maxWidth: 'calc(100% - 64px)' }}>
+        <div 
+          className="overflow-x-auto flex-1 relative" 
+          style={{ maxWidth: 'calc(100% - 64px)' }}
+          ref={timelineContainerRef}
+        >
+          {/* Today indicator line */}
+          {(() => {
+            const today = new Date();
+            const startDate = dateRange.start;
+            const totalDays = differenceInDays(today, startDate);
+            const position = (totalDays / 7) * slotWidth;
+            const isVisible = position >= 0 && position <= totalViewWidth;
+            
+            return isVisible ? (
+              <div 
+                className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-30 pointer-events-none" 
+                style={{ 
+                  left: `${position}px`,
+                  height: '100%' // Full height
+                }}
+              >
+                {/* Small label showing "Today" */}
+                <div className="absolute top-0 left-1 bg-red-500 text-white text-xs px-1 rounded">
+                  Today
+                </div>
+              </div>
+            ) : null;
+          })()}
+          
           {/* Year row above week headers */}
           <div 
             className="h-6 border-b border-gray-700 grid" 
