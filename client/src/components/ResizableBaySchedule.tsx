@@ -887,13 +887,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     [draggable=true]:active {
       cursor: grabbing;
     }
+    
+    .bay-schedule-bar {
+      height: 14px !important;
+      min-height: 14px !important;
+    }
   `;
     
   return (
     <div className="mb-8 overflow-hidden">
-      <style jsx>
-        {customCSS}
-      </style>
+      <style dangerouslySetInnerHTML={{ __html: customCSS }} />
       {/* EditBayDialog for existing bay edit */}
       {editingBay && (
         <EditBayDialog 
@@ -1081,23 +1084,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   <div className="h-1/4 bay-row transition-colors"></div>
                 </div>
                 
-                {/* Style for row highlight */}
-                <style jsx>{`
-                  .bay-row-highlight {
-                    background-color: rgba(59, 130, 246, 0.15);
-                    border-color: rgba(59, 130, 246, 0.3);
-                  }
-                `}</style>
+                {/* Style for row highlight added to global style */}
                 
                 {/* Schedule bars */}
                 {scheduleBars
                   .filter(bar => bar.bayId === bay.id)
                   .map(bar => {
                     // Calculate position based on row (0-3)
-                    // Each row is 25% of the bay height (64px)
+                    // Each row is 25% of the bay height (64px total height)
                     const rowHeight = 64 / 4; // 16px per row
-                    const top = (bar.row || 0) * rowHeight; // Position at the top of the row
-                    const height = rowHeight - 2; // Fill the entire row height minus 2px for spacing
+                    const top = (bar.row || 0) * rowHeight + 2; // Position with slight padding from top
+                    const height = 12; // Fixed height for better visibility
                     
                     return (
                       <div
