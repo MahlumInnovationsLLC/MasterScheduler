@@ -3210,7 +3210,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         {/* Main timeline grid */}
         <div 
-          className="overflow-x-auto flex-1 relative" 
+          className="overflow-x-auto flex-1 relative main-content" 
           style={{ maxWidth: 'calc(100% - 64px)' }}
           ref={timelineContainerRef}
         >
