@@ -104,14 +104,16 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
       slotWidth = 100;
       format_string = "'Week' w"; // Standard ISO week number (fiscal week)
       while (current <= extendedEndDate) {
-        const weekEnd = addDays(current, 6);
-        // Standard work week is Monday through Friday
-        const monday = current;
-        const friday = addDays(monday, 4);
+        // Ensure we're starting with Monday for each week
+        const dayOfWeek = current.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const daysToMonday = dayOfWeek === 0 ? 1 : (dayOfWeek === 1 ? 0 : -(dayOfWeek - 1));
+        const monday = addDays(current, daysToMonday);
+        const friday = addDays(monday, 4); // Add 4 days to Monday to get Friday
+        
         slots.push({
           date: new Date(current),
           label: format(current, format_string),
-          sublabel: `${format(monday, 'MMM d')} - ${format(friday, 'MMM d')}`, // Monday-Friday instead of full week
+          sublabel: `${format(monday, 'MMM d')} - ${format(friday, 'MMM d')}`, // Always Monday-Friday
           isWeekend: false,
           year: current.getFullYear() // Store year for year row
         });
