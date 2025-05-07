@@ -2898,7 +2898,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             }}
                             title={`FAB: ${bar.fabPercentage}% (${Math.round(bar.totalHours * bar.fabPercentage / 100)}h)`}
                           >
-                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
+                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10 dept-phase-label">
                               {bar.fabWidth < 30 ? 
                                 <span className="vertical-text text-[8px] transform rotate-90">FAB</span> : 
                                 "FAB"
@@ -2974,7 +2974,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             }}
                             title={`NTC: ${bar.ntcPercentage}% (${Math.round(bar.totalHours * bar.ntcPercentage / 100)}h)`}
                           >
-                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
+                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10 dept-phase-label">
                               {bar.ntcWidth < 30 ? 
                                 <span className="vertical-text text-[8px] transform rotate-90">NTC</span> : 
                                 <span className="text-[10px]">NTC</span>
@@ -2993,7 +2993,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             }}
                             title={`QC: ${bar.qcPercentage}% (${Math.round(bar.totalHours * bar.qcPercentage / 100)}h)`}
                           >
-                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
+                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10 dept-phase-label">
                               {bar.qcWidth < 30 ? 
                                 <span className="vertical-text text-[8px] transform rotate-90">QC</span> : 
                                 <span className="text-[10px]">QC</span>

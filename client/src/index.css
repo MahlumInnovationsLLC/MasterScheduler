@@ -735,6 +735,11 @@
   @apply bg-purple-700;
 }
 
+/* Hide department labels unless hovering over the project bar */
+.big-project-bar:not(:hover) .dept-phase-label {
+  opacity: 0;
+}
+
 /* Vertical text for small sections */
 .vertical-text {
   writing-mode: vertical-rl;
