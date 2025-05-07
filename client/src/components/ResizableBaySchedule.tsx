@@ -592,18 +592,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Calculate the new dates based on pixel positions
       const deltaX = e.clientX - resizingSchedule.startX;
       
-      // Get the slot width for date calculations
-      const slotWidth = slots[1]?.date ? 
-                         (slots[1].date.getTime() - slots[0].date.getTime()) / (7 * 24 * 60 * 60 * 1000) * slotWidth :
-                         slotWidth; // Default to slotWidth
+      // Get the time factor for date calculations based on view mode
+      const msPerDay = 24 * 60 * 60 * 1000;
+      const daysBetweenSlots = slots[1]?.date && slots[0]?.date 
+        ? (slots[1].date.getTime() - slots[0].date.getTime()) / msPerDay 
+        : viewMode === 'day' ? 1 : viewMode === 'week' ? 7 : viewMode === 'month' ? 30 : 90;
       
       let newStartDate = new Date(resizingSchedule.initialStartDate);
       let newEndDate = new Date(resizingSchedule.initialEndDate);
       
       if (resizingSchedule.direction === 'left') {
         // Calculate new start date
-        const pixelsDelta = resizingSchedule.initialLeft + deltaX - resizingSchedule.initialLeft;
-        const daysDelta = Math.round((pixelsDelta / slotWidth) * 7); // Convert pixels to days based on view mode
+        const pixelsDelta = deltaX; // Simplified - just use the raw movement
+        const pixelsPerDay = slotWidth / daysBetweenSlots;
+        const daysDelta = Math.round(pixelsDelta / pixelsPerDay);
         newStartDate = addDays(resizingSchedule.initialStartDate, daysDelta);
         
         // Ensure start date is not after end date
@@ -613,8 +615,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         }
       } else {
         // Calculate new end date
-        const pixelsDelta = resizingSchedule.initialWidth + deltaX - resizingSchedule.initialWidth;
-        const daysDelta = Math.round((pixelsDelta / slotWidth) * 7); // Convert pixels to days based on view mode
+        const pixelsDelta = deltaX; // Simplified - just use the raw movement
+        const pixelsPerDay = slotWidth / daysBetweenSlots;
+        const daysDelta = Math.round(pixelsDelta / pixelsPerDay);
         newEndDate = addDays(resizingSchedule.initialEndDate, daysDelta);
         
         // Ensure end date is not before start date
@@ -2104,6 +2107,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     return (
                       <div
                         key={bar.id}
+                        data-schedule-id={bar.id}
                         className={`absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all big-project-bar ${rowClass}`}
                         style={{
                           left: bar.left + 'px',
@@ -2121,6 +2125,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           bayId: bar.bayId
                         })}
                       >
+                        {/* Left Resize Handle */}
+                        <div 
+                          className="resize-handle resize-handle-left"
+                          onMouseDown={(e) => handleResizeStart(e, bar.id, 'left', bar.projectId, bar.bayId)}
+                        >
+                          <ChevronLeft className="h-4 w-4 text-white" />
+                        </div>
+                        
+                        {/* Right Resize Handle */}
+                        <div 
+                          className="resize-handle resize-handle-right"
+                          onMouseDown={(e) => handleResizeStart(e, bar.id, 'right', bar.projectId, bar.bayId)}
+                        >
+                          <ChevronRight className="h-4 w-4 text-white" />
+                        </div>
                         {/* Department phases */}
                         {/* FAB phase */}
                         {bar.fabWidth && bar.fabWidth > 0 && (
