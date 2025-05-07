@@ -217,6 +217,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     Object.entries(schedulesByBay).forEach(([bayIdStr, baySchedules]) => {
       const bayId = parseInt(bayIdStr);
+      const bay = bays.find(b => b.id === bayId);
+      if (!bay) return;
+      
+      // Get the base capacity for this bay
+      const baseWeeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
       
       // Sort schedules by start date
       const sortedSchedules = [...baySchedules].sort((a, b) => 
@@ -231,19 +236,94 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         new Date(0)  // Row 3
       ];
       
-      // Process each schedule
-      sortedSchedules.forEach(schedule => {
+      // First pass: Calculate when schedules overlap and adjust their end dates
+      // This is crucial for redistributing hours when projects share capacity
+      const adjustedSchedules = sortedSchedules.map(schedule => {
         const project = projects.find(p => p.id === schedule.projectId);
-        const bay = bays.find(b => b.id === bayId);
-        
-        if (!project || !bay) return;
+        if (!project) return schedule;
         
         // Get the FAB weeks for this project (default to 4 if not set)
         const fabWeeks = project.fabWeeks || 4;
         
-        // Original start and end dates from the database
+        // Original dates from the database
+        const originalStartDate = new Date(schedule.startDate);
+        const originalEndDate = new Date(schedule.endDate);
+        
+        // Calculate production start date (after FAB phase)
+        const fabDays = fabWeeks * 7; // Convert weeks to days
+        const productionStartDate = addDays(originalStartDate, fabDays);
+        
+        // Total hours for this project
+        const totalHours = schedule.totalHours || 1000;
+        
+        // Initialize variables for week-by-week calculation
+        let remainingHours = totalHours;
+        let currentDate = new Date(productionStartDate);
+        let newEndDate = new Date(productionStartDate);
+        
+        // Find all other schedules in this bay
+        const otherSchedules = sortedSchedules.filter(s => s.id !== schedule.id);
+        
+        // Process week by week until all hours are allocated
+        while (remainingHours > 0) {
+          // For each week, check how many projects are overlapping
+          const weekStart = startOfWeek(currentDate);
+          const weekEnd = endOfWeek(currentDate);
+          
+          // Count overlapping projects in this week (in production phase)
+          const projectsInWeek = otherSchedules.filter(s => {
+            const scheduleStart = new Date(s.startDate);
+            // Add FAB phase to get production start date
+            const schedProject = projects.find(p => p.id === s.projectId);
+            const schedFabWeeks = schedProject?.fabWeeks || 4;
+            const schedProductionStart = addDays(scheduleStart, schedFabWeeks * 7);
+            const scheduleEnd = new Date(s.endDate);
+            
+            return (
+              (schedProductionStart <= weekEnd && scheduleEnd >= weekStart) ||
+              (scheduleStart <= weekEnd && scheduleEnd >= weekStart)
+            );
+          });
+          
+          // Calculate available capacity for this project in this week
+          // Up to 4 projects can share the capacity evenly
+          const totalProjects = Math.min(4, projectsInWeek.length + 1); // +1 for the current project
+          const availableCapacity = baseWeeklyCapacity / totalProjects;
+          
+          // Allocate hours for this week
+          const hoursToAllocate = Math.min(remainingHours, availableCapacity);
+          remainingHours -= hoursToAllocate;
+          
+          // Move to next week if we still have hours to allocate
+          if (remainingHours > 0) {
+            currentDate = addDays(currentDate, 7);
+            newEndDate = currentDate;
+          }
+        }
+        
+        // Add an extra day to make the end date inclusive
+        newEndDate = addDays(newEndDate, 1);
+        
+        // Return the schedule with adjusted end date
+        return {
+          ...schedule,
+          calculatedEndDate: newEndDate
+        };
+      });
+      
+      // Second pass: Create the visual bars with updated end dates
+      adjustedSchedules.forEach((schedule: any) => {
+        const project = projects.find(p => p.id === schedule.projectId);
+        if (!project) return;
+        
+        // Get the FAB weeks for this project (default to 4 if not set)
+        const fabWeeks = project.fabWeeks || 4;
+        
+        // Original start date from the database
         const startDate = new Date(schedule.startDate);
-        const endDate = new Date(schedule.endDate);
+        
+        // Use adjusted end date if calculated, otherwise use original
+        const endDate = schedule.calculatedEndDate || new Date(schedule.endDate);
         
         // Find a row that doesn't have a schedule overlapping with this one
         let assignedRow = -1;
@@ -283,7 +363,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           }
         });
         
-        // Find the slot indices for the original end date
+        // Find the slot indices for the end date
         const endSlotIndex = slots.findIndex(slot => {
           if (viewMode === 'day') {
             return isSameDay(slot.date, endDate) || slot.date > endDate;
@@ -306,7 +386,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const validStartIndex = startSlotIndex === -1 ? 0 : startSlotIndex;
         const validEndIndex = endSlotIndex === -1 ? slots.length - 1 : endSlotIndex;
         
-        // Calculate total bar width based on actual date range, not on capacity calculations
+        // Calculate total bar width based on actual date range
         const barWidth = ((validEndIndex - validStartIndex) + 1) * slotWidth;
         const barLeft = validStartIndex * slotWidth;
         
