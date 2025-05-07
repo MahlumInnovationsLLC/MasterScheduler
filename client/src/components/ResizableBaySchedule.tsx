@@ -2115,14 +2115,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const prodDays = prodWeeksNeeded * 7;
       console.log(`Production phase days needed: ${prodDays} days`);
       
-      // Safety valve check - HARD CAP the maximum duration
-      const MAX_PROD_DAYS = 60; // Maximum 8-9 weeks for production phase
-      const cappedProdDays = Math.min(prodDays, MAX_PROD_DAYS);
-      if (prodDays > MAX_PROD_DAYS) {
-        console.warn(`DURATION CAPPED: Project production phase reduced from ${prodDays} to ${MAX_PROD_DAYS} days to prevent excessive stretching`);
+      // Safety check - just log if the duration seems excessive
+      if (prodDays > 365) { // Only log a warning if over a year, but don't cap it
+        console.warn(`WARNING: Very long production phase calculated: ${prodDays} days. This is based on ${prodHours} production hours at ${fullWeeklyCapacity} hours per week capacity.`);
       }
-      // Use the capped value for further calculations
-      const prodDaysToUse = cappedProdDays;
+      
+      // Use the calculated duration based on hours and capacity
+      // NO CAPPING - allow the proper calculation based on hours/capacity
+      const prodDaysToUse = prodDays;
       
       // First get the exact start date that we're using
       // CRITICAL FIX: Use the global variable we set in handleDragOver if available
@@ -2138,13 +2138,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const exactFabEndDate = addDays(exactStartDate, fabDays);
       
       // CRITICAL FIX: Calculate proper end date based on capacity per week
-      // Force the production phase to only take the weeks needed based on capacity calculations
+      // Use the production days calculated from hours/capacity
       // This directly prevents projects from auto-stretching across the entire timeline
-      const forcedProdDuration = prodWeeksNeeded * 7; // Convert weeks to days
-      console.log(`ENFORCED production duration: ${forcedProdDuration} days (${prodWeeksNeeded} weeks)`);
+      console.log(`ENFORCED production duration: ${prodDaysToUse} days based on ${prodHours} production hours at ${fullWeeklyCapacity} weekly capacity`);
       
-      // Now calculate the final end date by adding ONLY the exact production days to the FAB end date
-      const finalEndDate = addDays(exactFabEndDate, forcedProdDuration);
+      // Now calculate the final end date by adding the calculated production days to the FAB end date
+      const finalEndDate = addDays(exactFabEndDate, prodDaysToUse);
       
       // Store the formatted target date for API - CRUCIAL for preserving exact week position
       const formattedExactStartDate = format(exactStartDate, 'yyyy-MM-dd');
@@ -2188,11 +2187,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const startDateToUse = formattedExactStartDate || data.targetStartDate || format(slotDate, 'yyyy-MM-dd');
         console.log('Using start date for schedule change:', startDateToUse, '(formatted from', exactStartDate, ')');
         
+        // Format the finalEndDate properly for the API - CRITICAL FIX
+        const formattedFinalEndDate = format(finalEndDate, 'yyyy-MM-dd');
+        console.log('Using END date for schedule change:', formattedFinalEndDate, '(formatted from', finalEndDate, ')');
+        
         onScheduleChange(
           data.id,
           targetBayId,
           startDateToUse,
-          finalEndDate.toISOString(),
+          formattedFinalEndDate,
           data.totalHours || 1000,
           targetRowIndex
         )
@@ -2372,6 +2375,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Check if there's a capacity impact
     const capacityImpact = checkCapacityImpact(scheduleId, newEndDate);
     
+    // Parse dates for logging
+    const startDateObj = new Date(newStartDate);
+    const endDateObj = new Date(newEndDate);
+    
+    // Calculate total days
+    const totalDays = differenceInDays(endDateObj, startDateObj);
+    
+    // For extremely long durations, just log a warning but allow the user's choice
+    if (totalDays > 365) {
+      console.warn(`WARNING: Very long manual resize duration: ${totalDays} days.`);
+    }
+    
+    // No capping - use the exact dates chosen by the user
+    const finalEndDate = newEndDate;
+    
     if (capacityImpact) {
       // Show warning dialog
       setCapacityWarningData(capacityImpact);
@@ -2382,7 +2400,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         scheduleId,
         schedule.bayId,
         newStartDate,
-        newEndDate,
+        finalEndDate, // Use the exact end date chosen by the user
         schedule.totalHours || 1000,
         row !== undefined ? row : (schedule.row || 0)
       )
