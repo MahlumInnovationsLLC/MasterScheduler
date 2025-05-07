@@ -376,18 +376,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Get the position of the original header
       const headerRect = weekHeaderRef.current.getBoundingClientRect();
-      const headerTop = headerRect.top;
       
-      // Get the width and position of the header for proper alignment
-      const headerWidth = headerRect.width;
-      const headerLeft = headerRect.left;
+      // Position where we want the sticky header to become visible
+      // We want it to appear when the original header is just out of view
+      const appHeaderHeight = 104; // Height of the app header
       
-      // Show sticky header when original header goes out of view (above the viewport)
-      if (headerTop < 0) {
-        // Make sticky header visible and position it correctly
+      // Show sticky header when original header goes out of view (scrolls above the app header)
+      if (headerRect.top < appHeaderHeight) {
+        // Make sticky header visible
         stickyHeaderRef.current.classList.remove('hidden');
-        stickyHeaderRef.current.style.width = `${headerWidth}px`;
-        stickyHeaderRef.current.style.left = `${headerLeft}px`;
+        stickyHeaderRef.current.style.width = `${headerRect.width}px`;
+        stickyHeaderRef.current.style.left = `${headerRect.left}px`;
+        
+        // If there's a lot of horizontal content, make sure we get the horizontal scroll position too
+        if (timelineContainerRef.current) {
+          stickyHeaderRef.current.style.transform = `translateX(${-timelineContainerRef.current.scrollLeft}px)`;
+        }
+        
         setStickyHeaderVisible(true);
       } else {
         // Hide sticky header when original header is visible
@@ -396,8 +401,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
     };
     
-    // Use window scroll event instead of a nested container
+    // Use window scroll event for vertical scrolling
     window.addEventListener('scroll', handleScroll);
+    
+    // Use the timeline container's scroll event for horizontal scrolling
+    if (timelineContainerRef.current) {
+      timelineContainerRef.current.addEventListener('scroll', handleScroll);
+    }
     
     // Initial check
     handleScroll();
@@ -405,6 +415,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Clean up
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      if (timelineContainerRef.current) {
+        timelineContainerRef.current.removeEventListener('scroll', handleScroll);
+      }
     };
   }, []);
   
@@ -3316,7 +3329,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
               width: totalViewWidth,
               position: 'fixed',
-              top: '64px', // Match the height of the app's header
+              top: '104px', // Match below the app header + page header
               zIndex: 50,
               backgroundColor: 'var(--background)',
               backdropFilter: 'blur(8px)'
