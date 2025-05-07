@@ -313,13 +313,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Calculate FAB phase width - STRICTLY based on FAB weeks, not a percentage of total width
         let fabWidth = 0;
         if (viewMode === 'day') {
-          fabWidth = fabWeeks * 1 * slotWidth; // Each slot is a day
+          fabWidth = fabWeeks * 7 * slotWidth; // Convert weeks to days
         } else if (viewMode === 'week') {
-          fabWidth = fabWeeks / 1 * slotWidth; // 1 slot = 1 week
+          fabWidth = fabWeeks * slotWidth; // Direct weeks to slots
         } else if (viewMode === 'month') {
-          fabWidth = fabWeeks / 4 * slotWidth; // ~4 weeks per month
+          fabWidth = (fabWeeks / 4) * slotWidth; // Approximate weeks to months
         } else { // quarter
-          fabWidth = fabWeeks / 13 * slotWidth; // ~13 weeks per quarter
+          fabWidth = (fabWeeks / 12) * slotWidth; // Approximate weeks to quarters
         }
         
         // Ensure minimum width but don't cap it based on total width percentage
@@ -805,27 +805,32 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const project = projects.find(p => p.id === (data.projectId || data.id));
       const fabWeeks = project?.fabWeeks || 4; // Default to 4 weeks if not set
       
-      // Calculate FAB phase duration in days
+      // Calculate FAB phase duration in days (first 4 weeks by default)
       const fabDays = fabWeeks * 7; // Convert weeks to days
       
-      // This is the start date where production will begin (AFTER FAB phase)
+      // Calculate production start date (after FAB phase)
       const productionStartDate = addDays(slotDate, fabDays);
       
       // Calculate end date based on total hours and bay capacity with weekly limits
       const weeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
       
-      // Calculate how many full weeks the project will take FOR PRODUCTION ONLY (excluding FAB)
+      // Calculate how many full weeks the project will take
       const totalHours = data.totalHours || 1000; // Default to 1000 if not specified
-      const fullWeeksNeeded = Math.ceil(totalHours / weeklyCapacity);
+      const fullWeeksNeeded = Math.floor(totalHours / weeklyCapacity);
       
-      // Calculate total weeks and days needed for production (ensuring we don't have projects too short)
-      const productionDays = Math.max(7, fullWeeksNeeded * 7); // Ensure at least one week
+      // Calculate remaining hours after full weeks
+      const remainingHours = totalHours % weeklyCapacity;
       
-      // Calculate end date as production start date + production time
+      // Convert remaining hours to days (assuming equal distribution across 5-day work week)
+      const dailyCapacity = weeklyCapacity / 5;
+      const additionalDays = remainingHours > 0 ? Math.ceil(remainingHours / dailyCapacity) : 0;
+      
+      // Calculate total days needed for production
+      const productionDays = (fullWeeksNeeded * 7) + additionalDays;
+      
+      // Calculate end date (production start date + production time)
+      // The FAB phase is already accounted for in the productionStartDate
       const endDate = addDays(productionStartDate, productionDays);
-      
-      // Important: We're storing the original FAB start date in the database
-      // But our scheduleBars calculation will handle showing the FAB phase properly
       
       console.log('Attempting to drop project:', {
         projectId: data.projectId || data.id,
@@ -1308,11 +1313,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         {/* FAB phase indicator - always shown at BEGINNING of project */}
                         {bar.fabWidth && bar.fabWidth > 0 && (
                           <div 
-                            className="absolute top-0 right-0 h-full rounded-r-sm flex items-center justify-center overflow-hidden"
+                            className="absolute top-0 left-0 h-full rounded-l-sm flex items-center justify-center overflow-hidden"
                             style={{
-                              width: `${bar.fabWidth}px`,
+                              width: `${Math.min(bar.fabWidth, bar.width * 0.2)}px`,
                               backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                              borderLeft: '2px dashed rgba(255, 255, 255, 0.6)',
+                              borderRight: '2px dashed rgba(255, 255, 255, 0.6)',
                               zIndex: 1
                             }}
                           >
