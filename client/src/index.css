@@ -742,6 +742,35 @@
   visibility: hidden;
 }
 
+/* Row highlight classes for visualizing drag target row */
+.row-0-highlight {
+  background: linear-gradient(180deg, rgba(var(--primary-rgb), 0.2) 0%, rgba(var(--primary-rgb), 0.1) 25%, transparent 25%, transparent 100%) !important;
+}
+
+.row-1-highlight {
+  background: linear-gradient(180deg, transparent 0%, transparent 25%, rgba(var(--primary-rgb), 0.2) 25%, rgba(var(--primary-rgb), 0.1) 50%, transparent 50%, transparent 100%) !important;
+}
+
+.row-2-highlight {
+  background: linear-gradient(180deg, transparent 0%, transparent 50%, rgba(var(--primary-rgb), 0.2) 50%, rgba(var(--primary-rgb), 0.1) 75%, transparent 75%, transparent 100%) !important;
+}
+
+.row-3-highlight {
+  background: linear-gradient(180deg, transparent 0%, transparent 75%, rgba(var(--primary-rgb), 0.2) 75%, rgba(var(--primary-rgb), 0.1) 100%) !important;
+}
+
+/* Week cell hover - enhance visibility for dragging targets */
+.week-cell.drag-hover {
+  border: 2px dashed hsl(var(--primary)) !important;
+  z-index: 5;
+}
+
+.week-cell.active-drop-target {
+  border: 2px solid hsl(var(--primary)) !important;
+  background-color: rgba(var(--primary-rgb), 0.3) !important;
+  z-index: 10;
+}
+
 /* Vertical text for small sections */
 .vertical-text {
   writing-mode: vertical-rl;

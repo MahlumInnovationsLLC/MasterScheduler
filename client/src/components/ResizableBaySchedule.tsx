@@ -2816,17 +2816,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         slot.isWeekend ? 'bg-gray-800/20' : ''
                       } ${isSameDay(slot.date, new Date()) ? 'bg-blue-900/20' : ''} ${
                         dropTarget?.bayId === bay.id && dropTarget.slotIndex === index 
-                          ? 'bg-primary/40 border-primary border-2 z-10' 
+                          ? 'active-drop-target' 
                           : ''
                       }`}
+                      data-week-index={index}
+                      data-date={format(slot.date, 'yyyy-MM-dd')}
+                      data-bay-id={bay.id}
                       onDragOver={(e) => {
                         // Calculate which row within the cell the cursor is over
                         const cellHeight = e.currentTarget.clientHeight;
                         const relativeY = e.nativeEvent.offsetY;
                         const rowIndex = Math.floor((relativeY / cellHeight) * 4);
                         
-                        // Show which cell row is being targeted with a data attribute
+                        // Show which cell row is being targeted with data attributes
                         e.currentTarget.setAttribute('data-target-row', rowIndex.toString());
+                        e.currentTarget.setAttribute('data-week-number', format(slot.date, 'w'));
                         
                         // Add visual highlight for better row targeting
                         const highlightClass = `row-${rowIndex}-highlight`;
@@ -2839,25 +2843,38 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         // Add highlight for current row
                         e.currentTarget.classList.add(highlightClass);
                         
+                        // Remove previous drag-hover class from all cells
+                        document.querySelectorAll('.drag-hover').forEach(el => {
+                          el.classList.remove('drag-hover');
+                        });
+                        
+                        // Add drag-hover class to this cell
+                        e.currentTarget.classList.add('drag-hover');
+                        
                         // Call the main handler
                         handleDragOver(e, bay.id, index, rowIndex);
                       }}
                       onDragEnter={(e) => {
                         e.preventDefault();
-                        // Add visual feedback on drag enter
-                        e.currentTarget.classList.add('bg-primary/10');
+                        // Visualize the specific week cell being targeted
+                        e.currentTarget.classList.add('drag-hover');
+                        
+                        // Log week info for debugging
+                        const weekNumber = format(slot.date, 'w');
+                        console.log(`Entering week ${weekNumber} (index ${index}) in bay ${bay.id}`);
                       }}
                       onDragLeave={(e) => {
                         // Remove visual feedback when leaving cell
-                        e.currentTarget.classList.remove('bg-primary/10');
+                        e.currentTarget.classList.remove('bg-primary/10', 'drag-hover');
                         
                         // Remove all row highlight classes
                         for (let i = 0; i < 4; i++) {
                           e.currentTarget.classList.remove(`row-${i}-highlight`);
                         }
                         
-                        // Reset data attribute
+                        // Reset data attributes
                         e.currentTarget.removeAttribute('data-target-row');
+                        e.currentTarget.removeAttribute('data-week-number');
                       }}
                       onDrop={(e) => {
                         // Calculate which row within the cell the cursor is over
@@ -2865,19 +2882,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         const relativeY = e.nativeEvent.offsetY;
                         const rowIndex = Math.floor((relativeY / cellHeight) * 4);
                         
-                        // Remove all row highlight classes
+                        // Remove all highlight classes
                         for (let i = 0; i < 4; i++) {
                           e.currentTarget.classList.remove(`row-${i}-highlight`);
                         }
+                        e.currentTarget.classList.remove('drag-hover', 'active-drop-target');
                         
-                        // Reset data attribute
+                        // Reset data attributes
                         e.currentTarget.removeAttribute('data-target-row');
+                        e.currentTarget.removeAttribute('data-week-number');
                         
                         // Handle the drop with the specific row
                         handleDrop(e, bay.id, index, rowIndex);
                         
                         // Log the exact cell location for debugging
-                        console.log(`Project dropped at Bay ${bay.id}, Week ${index}, Row ${rowIndex}`);
+                        const weekStartDate = format(slot.date, 'yyyy-MM-dd');
+                        console.log(`Project dropped at Bay ${bay.id}, Week ${index} (${weekStartDate}), Row ${rowIndex}`);
                       }}
                     />
                   ))}
