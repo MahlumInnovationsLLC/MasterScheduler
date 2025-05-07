@@ -138,19 +138,32 @@ const BaySchedulingPage = () => {
   const bayUtilization = React.useMemo(() => {
     if (!manufacturingBays.length || !manufacturingSchedules.length) return 0;
     
-    // Calculate total hours capacity for all bays
-    const totalCapacity = manufacturingBays.reduce((sum, bay) => {
-      const weeklyHours = bay.hoursPerPersonPerWeek * bay.staffCount;
-      return sum + weeklyHours;
-    }, 0);
+    // Filter to only include bays with staff assigned
+    const staffedBays = manufacturingBays.filter(bay => bay.staffCount && bay.staffCount > 0);
     
-    // Calculate total hours scheduled
-    const totalScheduled = manufacturingSchedules.reduce((sum, schedule) => {
-      return sum + (schedule.totalHours || 0);
-    }, 0);
+    if (staffedBays.length === 0) return 0;
     
-    // Calculate utilization percentage
-    return Math.min(100, Math.round((totalScheduled / totalCapacity) * 100));
+    // Calculate individual bay utilizations
+    const bayUtilizations = staffedBays.map(bay => {
+      // Get schedules for this bay
+      const baySchedules = manufacturingSchedules.filter(schedule => schedule.bayId === bay.id);
+      
+      // Calculate capacity for this bay
+      const bayCapacity = (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 0);
+      
+      if (bayCapacity === 0) return 0;
+      
+      // Calculate scheduled hours for this bay
+      const bayScheduledHours = baySchedules.reduce((sum, schedule) => sum + (schedule.totalHours || 0), 0);
+      
+      // Calculate utilization percentage for this bay
+      return Math.min(100, (bayScheduledHours / bayCapacity) * 100);
+    });
+    
+    // Calculate average utilization across all staffed bays
+    const avgUtilization = bayUtilizations.reduce((sum, util) => sum + util, 0) / staffedBays.length;
+    
+    return Math.round(avgUtilization);
   }, [manufacturingBays, manufacturingSchedules]);
   
   // Calculate scheduled projects
@@ -415,7 +428,7 @@ const BaySchedulingPage = () => {
           title="Bay Utilization"
           value={bayUtilization}
           type="utilization"
-          subtitle="Overall capacity utilization"
+          subtitle="Average utilization of staffed bays"
           change={{ value: "+5%", isPositive: true }}
         />
         <ManufacturingCard
@@ -520,9 +533,6 @@ const BaySchedulingPage = () => {
       <div className="rounded-md border border-gray-800 bg-darkCard">
         <div className="p-4 border-b border-gray-800">
           <h2 className="text-lg font-semibold">Manufacturing Schedule</h2>
-          <p className="text-sm text-gray-400">
-            {format(dateRange.start, 'MMM d, yyyy')} – {format(dateRange.end, 'MMM d, yyyy')}
-          </p>
         </div>
         <div className="p-4 overflow-x-auto">
           <ResizableBaySchedule
