@@ -140,6 +140,22 @@
   border-left: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+/* Week header sticky styles */
+.week-header-sticky {
+  transition: opacity 0.2s ease-in-out;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.dark .week-header-sticky {
+  background-color: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.light .week-header-sticky {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

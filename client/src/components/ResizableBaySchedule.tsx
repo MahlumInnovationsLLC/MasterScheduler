@@ -396,19 +396,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
     };
     
-    // Get the main scrollable container
-    const scrollContainer = document.querySelector('.main-content');
-    if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', handleScroll);
-      
-      // Initial check
-      handleScroll();
-      
-      // Clean up
-      return () => {
-        scrollContainer.removeEventListener('scroll', handleScroll);
-      };
-    }
+    // Use window scroll event instead of a nested container
+    window.addEventListener('scroll', handleScroll);
+    
+    // Initial check
+    handleScroll();
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
   
   // Function to automatically adjust schedules to maintain 100% capacity usage
@@ -3210,7 +3207,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         {/* Main timeline grid */}
         <div 
-          className="overflow-x-auto flex-1 relative main-content" 
+          className="overflow-x-auto flex-1 relative" 
           style={{ maxWidth: 'calc(100% - 64px)' }}
           ref={timelineContainerRef}
         >
@@ -3319,9 +3316,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
               width: totalViewWidth,
               position: 'fixed',
-              top: '0',
+              top: '64px', // Match the height of the app's header
               zIndex: 50,
-              backgroundColor: 'var(--background)'
+              backgroundColor: 'var(--background)',
+              backdropFilter: 'blur(8px)'
             }}
             ref={stickyHeaderRef}
           >
