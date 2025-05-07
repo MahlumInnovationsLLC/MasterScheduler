@@ -453,6 +453,7 @@ const BaySchedulingPage = () => {
             onScheduleCreate={handleScheduleCreate}
             onBayCreate={(bay) => createBayMutation.mutateAsync(bay)}
             onBayUpdate={(id, bay) => updateBayMutation.mutateAsync({ id, ...bay })}
+            onBayDelete={(id) => deleteBayMutation.mutateAsync(id)}
             dateRange={dateRange}
             viewMode={viewMode}
           />

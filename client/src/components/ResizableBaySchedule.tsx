@@ -25,6 +25,7 @@ interface ResizableBayScheduleProps {
   onScheduleCreate: (projectId: number, bayId: number, startDate: string, endDate: string, totalHours?: number) => Promise<void>;
   onBayCreate?: (bay: Partial<ManufacturingBay>) => Promise<any>;
   onBayUpdate?: (id: number, bay: Partial<ManufacturingBay>) => Promise<any>;
+  onBayDelete?: (id: number) => Promise<any>;
   dateRange: { start: Date, end: Date };
   viewMode: 'day' | 'week' | 'month' | 'quarter';
 }
@@ -168,6 +169,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   onScheduleCreate,
   onBayCreate,
   onBayUpdate,
+  onBayDelete,
   dateRange,
   viewMode
 }) => {
@@ -874,6 +876,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           isOpen={!!editingBay}
           onClose={() => setEditingBay(null)}
           onSave={handleSaveBayEdit}
+          onDelete={handleDeleteBay}
           isNewBay={false}
         />
       )}
