@@ -102,6 +102,30 @@ const BaySchedulingPage = () => {
     },
   });
   
+  // Delete bay mutation
+  const deleteBayMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest('DELETE', `/api/manufacturing-bays/${id}`);
+      return response.ok;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-bays'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+      toast({
+        title: 'Success',
+        description: 'Manufacturing bay deleted successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete manufacturing bay',
+        variant: 'destructive',
+      });
+      console.error(error);
+    },
+  });
+  
   // Calculate utilization metrics
   const bayUtilization = React.useMemo(() => {
     if (!manufacturingBays.length || !manufacturingSchedules.length) return 0;
