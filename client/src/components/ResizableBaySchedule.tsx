@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { format, addDays, differenceInDays, isSameDay, addWeeks, addMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
-import { PlusCircle, GripVertical, Info, X, ChevronRight, ChevronLeft, PencilIcon, PlusIcon, Users, Zap, Clock as ClockIcon } from 'lucide-react';
+import { PlusCircle, GripVertical, Info, X, ChevronRight, ChevronLeft, PencilIcon, PlusIcon, Users, Zap, Clock as ClockIcon, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -13,6 +13,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 import { ManufacturingBay, ManufacturingSchedule, Project } from '@shared/schema';
 import { EditBayDialog } from './EditBayDialog';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -246,6 +256,156 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     setRecalculationVersion(prev => prev + 1);
   }, [schedules.length]);
   
+  // Function to automatically adjust schedules to maintain 100% capacity usage
+  const applyAutoCapacityAdjustment = () => {
+    if (!schedules.length || !bays.length) return;
+    
+    // Group schedules by bay
+    const schedulesByBay = schedules.reduce((acc, schedule) => {
+      if (!acc[schedule.bayId]) {
+        acc[schedule.bayId] = [];
+      }
+      acc[schedule.bayId].push(schedule);
+      return acc;
+    }, {} as Record<number, typeof schedules>);
+    
+    // Process each bay to optimize capacity
+    Object.entries(schedulesByBay).forEach(([bayIdStr, baySchedules]) => {
+      const bayId = parseInt(bayIdStr);
+      const bay = bays.find(b => b.id === bayId);
+      if (!bay) return;
+      
+      // Get the bay's capacity
+      const baseWeeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
+      
+      // Sort schedules by start date (top rows first)
+      const sortedSchedules = [...baySchedules].sort((a, b) => {
+        // First sort by row (if available)
+        if (a.row !== undefined && b.row !== undefined && a.row !== b.row) {
+          return a.row - b.row;
+        }
+        // Then by start date
+        return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+      });
+      
+      // Adjust each schedule in this bay
+      const adjusted: {id: number, newEndDate: string}[] = [];
+      
+      sortedSchedules.forEach(schedule => {
+        const project = projects.find(p => p.id === schedule.projectId);
+        if (!project) return;
+        
+        // Get the FAB weeks for this project (default to 4 if not set)
+        const fabWeeks = project.fabWeeks || 4;
+        
+        // Original dates from the database
+        const startDate = new Date(schedule.startDate);
+        
+        // Calculate production start date (after FAB phase)
+        const fabDays = fabWeeks * 7; // Convert weeks to days
+        const productionStartDate = addDays(startDate, fabDays);
+        
+        // Total hours for this project
+        const totalHours = schedule.totalHours || 1000;
+        
+        // Initialize variables for week-by-week calculation
+        let remainingHours = totalHours;
+        
+        // CRITICAL: Start allocation from the PRODUCTION start date (after FAB)
+        let currentDate = new Date(productionStartDate);
+        let calculatedEndDate = new Date(productionStartDate);
+        
+        // Find all other schedules in this bay
+        const otherSchedules = sortedSchedules.filter(s => s.id !== schedule.id);
+        
+        // Process week by week until all hours are allocated
+        while (remainingHours > 0) {
+          // For each week, check how many projects are overlapping
+          const weekStart = startOfWeek(currentDate);
+          const weekEnd = endOfWeek(currentDate);
+          
+          // Count ONLY projects that are in their PRODUCTION phase this week (AFTER FAB)
+          const projectsInWeek = otherSchedules.filter(s => {
+            const scheduleStart = new Date(s.startDate);
+            // Get the project to find its FAB weeks setting
+            const schedProject = projects.find(p => p.id === s.projectId);
+            const schedFabWeeks = schedProject?.fabWeeks || 4;
+            
+            // Calculate when production phase starts (after FAB)
+            const schedProductionStart = addDays(scheduleStart, schedFabWeeks * 7);
+            const scheduleEnd = new Date(s.endDate);
+            
+            // Only count projects where this week falls within their PRODUCTION phase
+            return (schedProductionStart <= weekEnd && scheduleEnd >= weekStart);
+          });
+          
+          // Calculate available capacity for this project in this week
+          // Up to 4 projects can share the capacity evenly
+          const totalProjects = Math.min(4, projectsInWeek.length + 1); // +1 for the current project
+          const availableCapacity = baseWeeklyCapacity / totalProjects;
+          
+          // Allocate hours for this week
+          const hoursToAllocate = Math.min(remainingHours, availableCapacity);
+          remainingHours -= hoursToAllocate;
+          
+          // Move to next week if we still have hours to allocate
+          if (remainingHours > 0) {
+            currentDate = addDays(currentDate, 7);
+            calculatedEndDate = currentDate;
+          }
+        }
+        
+        // Add an extra day to make the end date inclusive
+        calculatedEndDate = addDays(calculatedEndDate, 1);
+        
+        // Only update if there's a significant difference (more than 1 day)
+        const currentEndDate = new Date(schedule.endDate);
+        if (Math.abs(differenceInDays(calculatedEndDate, currentEndDate)) > 1) {
+          adjusted.push({
+            id: schedule.id,
+            newEndDate: calculatedEndDate.toISOString()
+          });
+        }
+      });
+      
+      // Apply adjustments to backend
+      Promise.all(adjusted.map(item => {
+        const schedule = schedules.find(s => s.id === item.id);
+        if (!schedule) return null;
+        
+        return onScheduleChange(
+          item.id,
+          schedule.bayId,
+          schedule.startDate,
+          item.newEndDate,
+          schedule.totalHours || 1000,
+          schedule.row || 0
+        );
+      }))
+      .then(results => {
+        const validResults = results.filter(Boolean);
+        if (validResults.length > 0) {
+          toast({
+            title: "Schedules Auto-Adjusted",
+            description: `${validResults.length} project(s) adjusted to maintain optimal capacity utilization`,
+            duration: 5000
+          });
+          
+          // Force refresh to show changes
+          queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+        }
+      })
+      .catch(error => {
+        console.error('Error updating schedules during auto-adjustment:', error);
+        toast({
+          title: "Auto-Adjustment Failed",
+          description: "Failed to adjust schedules automatically",
+          variant: "destructive"
+        });
+      });
+    });
+  };
+
   // Apply auto-adjustment once on initial load
   useEffect(() => {
     if (schedules.length && bays.length && !hasAutoAdjusted) {
@@ -1608,6 +1768,122 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     setNewBay(null);
   };
   
+  // Check if a manual resize operation would affect capacity
+  const checkCapacityImpact = (scheduleId: number, newEndDate: string) => {
+    const schedule = schedules.find(s => s.id === scheduleId);
+    if (!schedule) return null;
+    
+    const bay = bays.find(b => b.id === schedule.bayId);
+    if (!bay) return null;
+    
+    // Get the base capacity for this bay
+    const baseWeeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
+    
+    // Get all schedules in this bay
+    const baySchedules = schedules.filter(s => s.bayId === schedule.bayId && s.id !== scheduleId);
+    
+    // Calculate the new total hours based on the new end date
+    const originalStartDate = new Date(schedule.startDate);
+    const newEndDateTime = new Date(newEndDate);
+    const totalDays = differenceInDays(newEndDateTime, originalStartDate);
+    
+    // Approximate weekly hours based on new duration
+    const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
+    const weeklyHours = (schedule.totalHours || 1000) / totalWeeks;
+    
+    // Calculate current capacity usage in overlapping weeks
+    const overCapacityWeeks = [];
+    let currentDate = new Date(originalStartDate);
+    
+    while (currentDate <= newEndDateTime) {
+      const weekStart = startOfWeek(currentDate);
+      const weekEnd = endOfWeek(currentDate);
+      
+      // Count projects in this week
+      const projectsInWeek = baySchedules.filter(s => {
+        const scheduleStart = new Date(s.startDate);
+        const scheduleEnd = new Date(s.endDate);
+        return (scheduleStart <= weekEnd && scheduleEnd >= weekStart);
+      });
+      
+      const projectsCount = projectsInWeek.length + 1; // +1 for the current project
+      const totalWeeklyUsage = (projectsCount * weeklyHours);
+      
+      if (totalWeeklyUsage > baseWeeklyCapacity) {
+        overCapacityWeeks.push({
+          weekStart: format(weekStart, 'MMM d, yyyy'),
+          utilization: Math.round((totalWeeklyUsage / baseWeeklyCapacity) * 100)
+        });
+      }
+      
+      currentDate = addDays(currentDate, 7);
+    }
+    
+    if (overCapacityWeeks.length > 0) {
+      return {
+        scheduleId,
+        bayId: schedule.bayId,
+        newStartDate: schedule.startDate,
+        newEndDate,
+        totalHours: schedule.totalHours || 1000,
+        impact: 'over-capacity' as const,
+        percentage: Math.round(overCapacityWeeks.reduce((sum, week) => sum + week.utilization, 0) / overCapacityWeeks.length),
+        affectedProjects: baySchedules.map(s => {
+          const project = projects.find(p => p.id === s.projectId);
+          return {
+            id: s.id,
+            projectName: project?.name || 'Unknown',
+            projectNumber: project?.projectNumber || 'Unknown'
+          };
+        })
+      };
+    }
+    
+    return null;
+  };
+
+  // Function to apply a manual resize with a capacity warning
+  const applyManualResize = (scheduleId: number, newStartDate: string, newEndDate: string, row?: number) => {
+    const schedule = schedules.find(s => s.id === scheduleId);
+    if (!schedule) return;
+    
+    // Check if there's a capacity impact
+    const capacityImpact = checkCapacityImpact(scheduleId, newEndDate);
+    
+    if (capacityImpact) {
+      // Show warning dialog
+      setCapacityWarningData(capacityImpact);
+      setShowCapacityWarning(true);
+    } else {
+      // Apply the change directly
+      onScheduleChange(
+        scheduleId,
+        schedule.bayId,
+        newStartDate,
+        newEndDate,
+        schedule.totalHours || 1000,
+        row !== undefined ? row : (schedule.row || 0)
+      )
+      .then(() => {
+        toast({
+          title: "Schedule Updated",
+          description: "Project schedule has been updated",
+        });
+        
+        // Force refresh to show changes
+        queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+      })
+      .catch(error => {
+        console.error('Error updating schedule:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update schedule",
+          variant: "destructive"
+        });
+      });
+    }
+  };
+  
   // Render
   // Add custom CSS for drag and drop operations
   const customCSS = `
@@ -1848,6 +2124,89 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   return (
     <div className="mb-8 overflow-hidden">
       <style dangerouslySetInnerHTML={{ __html: customCSS }} />
+      
+      {/* Capacity Warning Alert Dialog */}
+      {showCapacityWarning && capacityWarningData && (
+        <AlertDialog open={showCapacityWarning}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                Capacity Warning
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                <div className="my-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md text-sm">
+                  <p>This manual change would result in <span className="font-bold text-amber-600">{capacityWarningData.percentage}%</span> capacity utilization during portions of the schedule.</p>
+                  <p className="mt-2">Bay capacity may be exceeded, which could lead to:</p>
+                  <ul className="list-disc pl-5 mt-1 space-y-1">
+                    <li>Resource constraints during production</li>
+                    <li>Delays in completing projects</li>
+                    <li>Conflicts with other schedules</li>
+                  </ul>
+                </div>
+                
+                <p className="my-2">Other affected projects in this bay:</p>
+                <div className="max-h-24 overflow-y-auto border border-gray-200 rounded p-2 mb-2">
+                  {capacityWarningData.affectedProjects.map(project => (
+                    <div key={project.id} className="text-sm py-1 border-b border-gray-100 last:border-0">
+                      <span className="font-medium">{project.projectNumber}</span> - {project.projectName}
+                    </div>
+                  ))}
+                </div>
+                
+                <p className="text-sm mt-4">Are you sure you want to proceed with this manual adjustment?</p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel 
+                onClick={() => {
+                  setShowCapacityWarning(false);
+                  setCapacityWarningData(null);
+                }}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (capacityWarningData) {
+                    onScheduleChange(
+                      capacityWarningData.scheduleId,
+                      capacityWarningData.bayId,
+                      capacityWarningData.newStartDate,
+                      capacityWarningData.newEndDate,
+                      capacityWarningData.totalHours,
+                      schedules.find(s => s.id === capacityWarningData.scheduleId)?.row || 0
+                    )
+                    .then(() => {
+                      toast({
+                        title: "Schedule Updated",
+                        description: "Manual adjustment applied successfully",
+                        duration: 5000
+                      });
+                      
+                      // Force refresh to show changes
+                      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+                    })
+                    .catch(error => {
+                      console.error('Error applying manual adjustment:', error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to apply manual adjustment",
+                        variant: "destructive"
+                      });
+                    });
+                  }
+                  setShowCapacityWarning(false);
+                  setCapacityWarningData(null);
+                }}
+              >
+                Apply Manual Change
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+      
       {/* EditBayDialog for existing bay edit */}
       {editingBay && (
         <EditBayDialog 
