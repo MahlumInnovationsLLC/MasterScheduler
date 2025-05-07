@@ -19,6 +19,7 @@ interface EditBayDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (bayId: number, data: Partial<ManufacturingBay>) => Promise<void>;
+  onDelete?: (bayId: number) => Promise<void>;
   isNewBay?: boolean;
 }
 
@@ -27,6 +28,7 @@ export function EditBayDialog({
   isOpen, 
   onClose, 
   onSave,
+  onDelete,
   isNewBay = false
 }: EditBayDialogProps) {
   const { toast } = useToast();
@@ -61,6 +63,9 @@ export function EditBayDialog({
     }
   }, [bay]);
 
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
+  
   const handleSave = async () => {
     if (!bay && !isNewBay) return;
     
@@ -97,6 +102,33 @@ export function EditBayDialog({
       setIsSaving(false);
     }
   };
+  
+  const handleDelete = async () => {
+    if (!bay || !bay.id || !onDelete) return;
+    
+    try {
+      setIsDeleting(true);
+      
+      await onDelete(bay.id);
+      
+      toast({
+        title: "Bay Deleted",
+        description: `Bay ${bay.bayNumber}: ${bay.name} has been deleted successfully.`,
+      });
+      
+      onClose();
+    } catch (error) {
+      console.error('Error deleting bay:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete bay. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -120,7 +152,7 @@ export function EditBayDialog({
               value={bayNumber}
               onChange={(e) => setBayNumber(parseInt(e.target.value) || 0)}
               className="col-span-3"
-              disabled={!isNewBay} // Only allow changing bay number for new bays
+              // Allow editing bay number for all bays
             />
           </div>
           
@@ -200,13 +232,56 @@ export function EditBayDialog({
           </div>
         </div>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSaving}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={isSaving || !name || bayNumber <= 0}>
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </Button>
+        <DialogFooter className="flex items-center justify-between">
+          <div>
+            {!isNewBay && onDelete && (
+              <>
+                {showDeleteConfirm ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-destructive">Are you sure?</span>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={handleDelete}
+                      disabled={isDeleting || isSaving}
+                    >
+                      {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={isDeleting}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    disabled={isSaving}
+                    className="text-destructive border-destructive hover:bg-destructive/10"
+                  >
+                    Delete Bay
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={onClose} disabled={isSaving || isDeleting}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSave} 
+              disabled={isSaving || isDeleting || !name || bayNumber <= 0}
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
