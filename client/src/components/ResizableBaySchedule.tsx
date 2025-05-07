@@ -21,8 +21,8 @@ interface ResizableBayScheduleProps {
   schedules: ManufacturingSchedule[];
   projects: Project[];
   bays: ManufacturingBay[];
-  onScheduleChange: (scheduleId: number, newBayId: number, newStartDate: string, newEndDate: string, totalHours?: number) => Promise<any>;
-  onScheduleCreate: (projectId: number, bayId: number, startDate: string, endDate: string, totalHours?: number) => Promise<any>;
+  onScheduleChange: (scheduleId: number, newBayId: number, newStartDate: string, newEndDate: string, totalHours?: number, rowIndex?: number) => Promise<any>;
+  onScheduleCreate: (projectId: number, bayId: number, startDate: string, endDate: string, totalHours?: number, rowIndex?: number) => Promise<any>;
   onBayCreate?: (bay: Partial<ManufacturingBay>) => Promise<any>;
   onBayUpdate?: (id: number, bay: Partial<ManufacturingBay>) => Promise<any>;
   onBayDelete?: (id: number) => Promise<any>;
@@ -426,7 +426,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Handle drag over
-  const handleDragOver = (e: React.DragEvent, bayId: number, slotIndex: number, rowIndex?: number) => {
+  const handleDragOver = (e: React.DragEvent, bayId: number, slotIndex: number, rowIndex: number = 0) => {
     // CRITICAL: We must call preventDefault to allow dropping
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -773,7 +773,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       });
       
       if (data.type === 'existing') {
-        // Update existing schedule
+        // Update existing schedule with row assignment
         // Make a direct API call for better reliability
         fetch(`/api/manufacturing-schedules/${data.id}`, {
           method: 'PATCH',
@@ -782,7 +782,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             bayId, 
             startDate: slotDate.toISOString(), 
             endDate: endDate.toISOString(),
-            totalHours: data.totalHours
+            totalHours: data.totalHours,
+            row: rowIndex // Add row index for vertical positioning
           }),
         })
         .then(response => {
@@ -819,13 +820,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           });
         });
       } else {
-        // Create new schedule
+        // Create new schedule with row assignment
         onScheduleCreate(
           data.projectId,
           bayId,
           slotDate.toISOString(),
           endDate.toISOString(),
-          data.totalHours
+          data.totalHours,
+          rowIndex // Include rowIndex for vertical positioning
         ).then(() => {
           toast({
             title: "Schedule Created",
@@ -893,7 +895,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       min-height: 24px !important;
     }
 
-    /* This is the key style that makes the project bars fill their row */
+    /* Enhanced styling for project bars to fill rows properly */
     .big-project-bar {
       box-sizing: border-box !important;
       border-width: 2px !important;
@@ -905,6 +907,37 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
+      height: 95% !important; /* Fill most of the height but leave a small gap */
+    }
+    
+    /* Row-specific positioning - these classes position bars in each of the 4 rows */
+    .row-0-bar {
+      top: 0% !important;
+      height: 24% !important;
+      transform: translateY(0%) !important;
+    }
+    
+    .row-1-bar {
+      top: 25% !important;
+      height: 24% !important;
+      transform: translateY(0%) !important;
+    }
+    
+    .row-2-bar {
+      top: 50% !important;
+      height: 24% !important;
+      transform: translateY(0%) !important;
+    }
+    
+    .row-3-bar {
+      top: 75% !important;
+      height: 24% !important;
+      transform: translateY(0%) !important;
+    }
+    
+    /* Row hover effects for better visualization */
+    .bay-row:hover {
+      background-color: rgba(255, 255, 255, 0.05);
     }
   `;
     
@@ -1103,7 +1136,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           ? 'bg-primary/40 border-primary border-2 z-10' 
                           : ''
                       }`}
-                      onDragOver={(e) => handleDragOver(e, bay.id, index)}
+                      onDragOver={(e) => {
+                        // Calculate which row within the cell the cursor is over
+                        const cellHeight = e.currentTarget.clientHeight;
+                        const relativeY = e.nativeEvent.offsetY;
+                        const rowIndex = Math.floor((relativeY / cellHeight) * 4);
+                        handleDragOver(e, bay.id, index, rowIndex);
+                      }}
                       onDragEnter={(e) => {
                         e.preventDefault();
                         // Add visual feedback on drag enter
@@ -1113,43 +1152,58 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         // Remove visual feedback when leaving cell
                         e.currentTarget.classList.remove('bg-primary/10');
                       }}
-                      onDrop={(e) => handleDrop(e, bay.id, index)}
+                      onDrop={(e) => {
+                        // Calculate which row within the cell the cursor is over
+                        const cellHeight = e.currentTarget.clientHeight;
+                        const relativeY = e.nativeEvent.offsetY;
+                        const rowIndex = Math.floor((relativeY / cellHeight) * 4);
+                        handleDrop(e, bay.id, index, rowIndex);
+                      }}
                     />
                   ))}
                 </div>
                 
-                {/* Row dividers */}
-                <div className="absolute inset-0 flex flex-col pointer-events-none">
-                  <div className="border-b border-gray-700/50 h-1/4 bay-row transition-colors"></div>
-                  <div className="border-b border-gray-700/50 h-1/4 bay-row transition-colors"></div>
-                  <div className="border-b border-gray-700/50 h-1/4 bay-row transition-colors"></div>
-                  <div className="h-1/4 bay-row transition-colors"></div>
+                {/* Row dividers - Interactive for row selection */}
+                <div className="absolute inset-0 flex flex-col">
+                  <div 
+                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
+                    onDragOver={(e) => handleDragOver(e, bay.id, 0, 0)}
+                    onDrop={(e) => handleDrop(e, bay.id, 0, 0)}
+                  ></div>
+                  <div 
+                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
+                    onDragOver={(e) => handleDragOver(e, bay.id, 0, 1)}
+                    onDrop={(e) => handleDrop(e, bay.id, 0, 1)}
+                  ></div>
+                  <div 
+                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
+                    onDragOver={(e) => handleDragOver(e, bay.id, 0, 2)}
+                    onDrop={(e) => handleDrop(e, bay.id, 0, 2)}
+                  ></div>
+                  <div 
+                    className="h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
+                    onDragOver={(e) => handleDragOver(e, bay.id, 0, 3)}
+                    onDrop={(e) => handleDrop(e, bay.id, 0, 3)}
+                  ></div>
                 </div>
-                
-                {/* Style for row highlight added to global style */}
                 
                 {/* Schedule bars */}
                 {scheduleBars
                   .filter(bar => bar.bayId === bay.id)
                   .map(bar => {
-                    // Calculate position based on row (0-3)
-                    // Each row is 25% of the bay height (64px total height)
-                    const rowHeight = 64 / 4; // 16px per row
-                    const top = (bar.row || 0) * rowHeight; // Position at the start of row
-                    const height = rowHeight; // Use the full row height
+                    // Use row-specific classes for positioning instead of top style
+                    const rowIndex = bar.row || 0;
+                    const rowClass = `row-${rowIndex}-bar`;
                     
                     return (
                       <div
                         key={bar.id}
-                        className="absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all big-project-bar"
+                        className={`absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all big-project-bar ${rowClass}`}
                         style={{
                           left: bar.left + 'px',
                           width: bar.width - 4 + 'px',  // -4 for border spacing
                           backgroundColor: bar.color,
-                          opacity: draggingSchedule?.id === bar.id ? 0.5 : 0.9,
-                          top: top + 'px',
-                          height: height + 'px', // Use the full row height (16px)
-                          minHeight: height + 'px' // Ensure consistent height
+                          opacity: draggingSchedule?.id === bar.id ? 0.5 : 0.9
                         }}
                         draggable
                         onDragStart={(e) => handleDragStart(e, 'existing', {
