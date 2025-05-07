@@ -2934,9 +2934,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         
                         {/* Content - displayed on top of the phases */}
                         <div className="absolute inset-0 flex items-start justify-between px-2 text-white font-semibold text-shadow-sm z-10">
-                          <div className="font-medium text-xs flex flex-col pt-1">
-                            <span className="whitespace-nowrap overflow-hidden text-ellipsis" style={{ maxWidth: '120px' }}>
-                              {bar.projectNumber}: {bar.projectName?.substring(0, 15) || ''}
+                          <div className="font-medium text-xs flex flex-col pt-1 w-full">
+                            <span className="whitespace-nowrap overflow-hidden text-ellipsis w-full">
+                              {bar.projectNumber}: {bar.projectName || ''}
                             </span>
                             <span className="font-normal text-[10px]">{bar.totalHours}h</span>
                           </div>
