@@ -2856,7 +2856,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       <div
                         key={bar.id}
                         data-schedule-id={bar.id}
-                        className={`absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all big-project-bar ${rowClass}`}
+                        className={`absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all big-project-bar schedule-bar ${rowClass}`}
                         style={{
                           left: bar.left + 'px',
                           width: bar.width - 4 + 'px',  // -4 for border spacing
@@ -3025,27 +3025,27 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                               <div className="mt-1 text-[9px] grid grid-cols-2 gap-x-2 gap-y-1">
                                 <div className="flex items-center">
                                   <div className="w-2 h-2 rounded-full bg-blue-600 mr-1"></div>
-                                  <span>FAB: {bar.fabPercentage}%</span>
+                                  <span className="percentage-label">FAB: {bar.fabPercentage}%</span>
                                 </div>
                                 <div className="flex items-center">
                                   <div className="w-2 h-2 rounded-full bg-violet-600 mr-1"></div>
-                                  <span>PAINT: {bar.paintPercentage}%</span>
+                                  <span className="percentage-label">PAINT: {bar.paintPercentage}%</span>
                                 </div>
                                 <div className="flex items-center">
                                   <div className="w-2 h-2 rounded-full bg-emerald-600 mr-1"></div>
-                                  <span>PROD: {bar.productionPercentage}%</span>
+                                  <span className="percentage-label">PROD: {bar.productionPercentage}%</span>
                                 </div>
                                 <div className="flex items-center">
                                   <div className="w-2 h-2 rounded-full bg-amber-600 mr-1"></div>
-                                  <span>IT: {bar.itPercentage}%</span>
+                                  <span className="percentage-label">IT: {bar.itPercentage}%</span>
                                 </div>
                                 <div className="flex items-center">
                                   <div className="w-2 h-2 rounded-full bg-red-600 mr-1"></div>
-                                  <span>NTC: {bar.ntcPercentage}%</span>
+                                  <span className="percentage-label">NTC: {bar.ntcPercentage}%</span>
                                 </div>
                                 <div className="flex items-center">
                                   <div className="w-2 h-2 rounded-full bg-purple-700 mr-1"></div>
-                                  <span>QC: {bar.qcPercentage}%</span>
+                                  <span className="percentage-label">QC: {bar.qcPercentage}%</span>
                                 </div>
                               </div>
                             </div>
