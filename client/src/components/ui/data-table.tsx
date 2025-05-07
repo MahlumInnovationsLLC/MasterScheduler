@@ -118,12 +118,13 @@ export function DataTable<TData, TValue>({
 
   // Define column widths
   const columnWidths = {
-    location: 80,
-    projectNumber: 220, // Significantly increased width to minimize text wrapping
-    name: 350, // Increased from 200px to 350px
-    pmOwner: 130,
-    progress: 120,
-    status: 100,
+    location: 96, // Increased by 20%
+    projectNumber: 220, // Already adjusted for text wrapping
+    name: 420, // Increased by 20%
+    pmOwner: 156, // Increased by 20%
+    progress: 144, // Increased by 20%
+    status: 120, // Increased by 20%
+    actions: 120, // Added actions column width
   };
 
   // Fixed row height for all rows
@@ -297,8 +298,12 @@ export function DataTable<TData, TValue>({
                             key={header.id}
                             className="px-4 font-semibold text-left whitespace-nowrap"
                             style={{ 
-                              minWidth: header.column.columnDef.size || '150px',
-                              width: header.column.columnDef.size || '150px',
+                              minWidth: typeof header.column.columnDef.size === 'number' 
+                                ? `${Math.round(header.column.columnDef.size * 1.2)}px` // Increase by 20%
+                                : header.column.columnDef.size || '180px', // Default size increased by 20%
+                              width: typeof header.column.columnDef.size === 'number'
+                                ? `${Math.round(header.column.columnDef.size * 1.2)}px` // Increase by 20%
+                                : header.column.columnDef.size || '180px', // Default size increased by 20%
                               background: 'var(--muted)',
                               borderBottom: '1px solid var(--border)',
                               borderRight: '1px solid var(--border-muted)',
@@ -351,8 +356,12 @@ export function DataTable<TData, TValue>({
                                 key={cell.id}
                                 className="px-4 whitespace-nowrap align-middle"
                                 style={{ 
-                                  minWidth: cell.column.columnDef.size || '150px',
-                                  width: cell.column.columnDef.size || '150px',
+                                  minWidth: typeof cell.column.columnDef.size === 'number' 
+                                    ? `${Math.round(cell.column.columnDef.size * 1.2)}px` // Increase by 20%
+                                    : cell.column.columnDef.size || '180px', // Default size increased by 20%
+                                  width: typeof cell.column.columnDef.size === 'number'
+                                    ? `${Math.round(cell.column.columnDef.size * 1.2)}px` // Increase by 20%
+                                    : cell.column.columnDef.size || '180px', // Default size increased by 20%
                                   borderRight: '1px solid var(--border-muted)',
                                   height: ROW_HEIGHT
                                 }}
