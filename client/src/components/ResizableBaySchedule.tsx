@@ -258,22 +258,38 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const handleDocumentDragEnd = () => {
       document.body.classList.remove('dragging-active');
       
-      // Clean up all highlight classes
-      document.querySelectorAll(
-        '.drag-hover, .active-drop-target, .week-cell-hover, .week-cell-resize-hover, .bay-row-highlight, .drop-target-highlight, .bg-primary/10, .bg-primary/20, .border-primary, .border-dashed'
-      ).forEach(el => {
-        el.classList.remove(
-          'drag-hover', 
-          'active-drop-target', 
-          'week-cell-hover', 
-          'week-cell-resize-hover',
-          'bay-row-highlight',
-          'drop-target-highlight',
-          'bg-primary/10',
-          'bg-primary/20',
-          'border-primary',
-          'border-dashed'
-        );
+      // Clean up all highlight classes - properly escape CSS class names with special characters
+      // Separate selectors to avoid issues with special characters
+      [
+        '.drag-hover', 
+        '.active-drop-target', 
+        '.week-cell-hover', 
+        '.week-cell-resize-hover', 
+        '.bay-row-highlight', 
+        '.drop-target-highlight', 
+        '.bg-primary\\/10', 
+        '.bg-primary\\/20', 
+        '.border-primary', 
+        '.border-dashed'
+      ].forEach(selector => {
+        try {
+          document.querySelectorAll(selector).forEach(el => {
+            el.classList.remove(
+              'drag-hover', 
+              'active-drop-target', 
+              'week-cell-hover', 
+              'week-cell-resize-hover',
+              'bay-row-highlight',
+              'drop-target-highlight',
+              'bg-primary/10',
+              'bg-primary/20',
+              'border-primary',
+              'border-dashed'
+            );
+          });
+        } catch (e) {
+          console.log(`Error cleaning up selector ${selector}:`, e);
+        }
       });
       
       // Remove row highlight classes
@@ -1295,18 +1311,30 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
     }
     
-    // Remove highlighted state from all cells and rows first
-    document.querySelectorAll('.drag-hover, .active-drop-target, .week-cell-hover, .week-cell-resize-hover').forEach(el => {
-      el.classList.remove('drag-hover', 'active-drop-target', 'week-cell-hover', 'week-cell-resize-hover');
-    });
-    
-    // Remove row highlights from all rows
-    document.querySelectorAll('[class*="row-"][class*="-highlight"]').forEach(el => {
-      // Remove all row highlight classes
-      for (let i = 0; i < 4; i++) {
-        el.classList.remove(`row-${i}-highlight`);
-      }
-    });
+    // Remove highlighted state from all cells and rows first - safely by handling selectors separately
+    try {
+      // Clean up simple class names
+      [
+        '.drag-hover', 
+        '.active-drop-target', 
+        '.week-cell-hover', 
+        '.week-cell-resize-hover'
+      ].forEach(selector => {
+        document.querySelectorAll(selector).forEach(el => {
+          el.classList.remove('drag-hover', 'active-drop-target', 'week-cell-hover', 'week-cell-resize-hover');
+        });
+      });
+      
+      // Remove row highlights from all rows
+      document.querySelectorAll('[class*="row-"][class*="-highlight"]').forEach(el => {
+        // Remove all row highlight classes
+        for (let i = 0; i < 4; i++) {
+          el.classList.remove(`row-${i}-highlight`);
+        }
+      });
+    } catch (error) {
+      console.error('Error cleaning up highlight classes in drag over:', error);
+    }
     
     // Determine row index if not provided based on cell position
     const cellHeight = e.currentTarget.clientHeight;
@@ -1342,24 +1370,49 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     });
     
     // Add prominent visual cue to the current cell
-    const target = e.currentTarget as HTMLElement;
-    target.classList.add('drop-target-highlight', 'bg-primary/20', 'border-primary', 'border-dashed', 'week-cell-hover');
-    
-    // Find all cells in this column for the bay to highlight them
-    const targetSlotIndex = target.getAttribute('data-slot-index');
-    if (targetSlotIndex) {
-      document.querySelectorAll(`[data-slot-index="${targetSlotIndex}"]`).forEach(el => {
-        el.classList.add('week-cell-resize-hover');
-      });
-    }
-    
-    // Highlight the specific row across the entire bay
-    const bayElement = target.closest('.bay-container');
-    if (bayElement) {
-      const rowElements = bayElement.querySelectorAll('.bay-row');
-      if (rowElements && rowElements.length > validRowIndex) {
-        rowElements[validRowIndex].classList.add('bay-row-highlight', 'bg-primary/10');
+    try {
+      const target = e.currentTarget as HTMLElement;
+      
+      // Add basic highlight class safely
+      target.classList.add('drop-target-highlight', 'week-cell-hover');
+      
+      // Add background and border classes separately to avoid selector issues
+      target.classList.add('border-primary', 'border-dashed');
+      target.classList.add('bg-primary/20');
+      
+      // Get the exact date from this cell
+      const dataDate = target.getAttribute('data-date');
+      
+      // Find all cells in this column for the bay to highlight them
+      const targetSlotIndex = target.getAttribute('data-slot-index');
+      if (targetSlotIndex) {
+        // CRUCIAL FIX: Use a more specific selector to target only the right column
+        document.querySelectorAll(`[data-slot-index="${targetSlotIndex}"][data-bay-id="${bayId}"]`).forEach(el => {
+          el.classList.add('week-cell-resize-hover');
+        });
       }
+      
+      // Highlight the specific row across the entire bay
+      const bayElement = target.closest('.bay-container');
+      if (bayElement) {
+        const rowElements = bayElement.querySelectorAll('.bay-row');
+        if (rowElements && rowElements.length > validRowIndex) {
+          rowElements[validRowIndex].classList.add('bay-row-highlight');
+          rowElements[validRowIndex].classList.add('bg-primary/10');
+        }
+      }
+      
+      // If we have a data-date, highlight all cells with the same date
+      if (dataDate) {
+        // Store this for the drop handler
+        target.setAttribute('data-exact-date', dataDate);
+        
+        // Extra precise targeting of the specific week column
+        const weekNumber = format(new Date(dataDate), 'w');
+        console.log(`Selected week ${weekNumber} with date ${dataDate}`);
+      }
+    } catch (error) {
+      console.error('Error adding cell highlights:', error);
     }
     
     // Add week number to the data attribute for debugging
@@ -1774,26 +1827,51 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       targetSlotIndex = slotIndex;
     }
     
-    // Remove highlighted state from all cells
-    document.querySelectorAll('.drag-hover, .active-drop-target, .week-cell-hover').forEach(el => {
-      el.classList.remove('drag-hover', 'active-drop-target', 'week-cell-hover');
-    });
-    
-    // Remove row highlights from all rows
-    document.querySelectorAll('[class*="row-"][class*="-highlight"]').forEach(el => {
-      // Remove all row highlight classes
-      for (let i = 0; i < 4; i++) {
-        el.classList.remove(`row-${i}-highlight`);
-      }
-    });
-    
-    // Remove legacy highlight classes for backward compatibility
-    document.querySelectorAll('.drop-target-highlight, .week-cell-resize-highlight').forEach(el => {
-      el.classList.remove('drop-target-highlight', 'bg-primary/20', 'border-primary', 'border-dashed', 'week-cell-resize-highlight');
-    });
-    document.querySelectorAll('.bay-row-highlight').forEach(el => {
-      el.classList.remove('bay-row-highlight', 'bg-primary/10');
-    });
+    // Remove highlighted state from all cells - safely with separate selectors
+    try {
+      // Clean up simple classes first
+      [
+        '.drag-hover', 
+        '.active-drop-target', 
+        '.week-cell-hover',
+        '.week-cell-resize-highlight',
+        '.drop-target-highlight'
+      ].forEach(selector => {
+        document.querySelectorAll(selector).forEach(el => {
+          el.classList.remove('drag-hover', 'active-drop-target', 'week-cell-hover', 'week-cell-resize-highlight', 'drop-target-highlight');
+        });
+      });
+      
+      // Clean up special classes with escaped characters
+      document.querySelectorAll('.border-primary').forEach(el => {
+        el.classList.remove('border-primary', 'border-dashed');
+      });
+      
+      // Handle special bg classes separately
+      document.querySelectorAll('[class*="bg-primary"]').forEach(el => {
+        if (el.classList.contains('bg-primary/10')) {
+          el.classList.remove('bg-primary/10');
+        }
+        if (el.classList.contains('bg-primary/20')) {
+          el.classList.remove('bg-primary/20');
+        }
+      });
+      
+      // Remove row highlights from all rows
+      document.querySelectorAll('[class*="row-"][class*="-highlight"]').forEach(el => {
+        // Remove all row highlight classes
+        for (let i = 0; i < 4; i++) {
+          el.classList.remove(`row-${i}-highlight`);
+        }
+      });
+      
+      // Remove bay-row-highlight class
+      document.querySelectorAll('.bay-row-highlight').forEach(el => {
+        el.classList.remove('bay-row-highlight');
+      });
+    } catch (error) {
+      console.error('Error cleaning up highlight classes:', error);
+    }
     
     // Remove dragging active class from body
     document.body.classList.remove('dragging-active');
@@ -1842,12 +1920,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return;
       }
       
-      // Get the date for this slot using the updated target slot index from data attributes
-      // First try to get the date directly from the data-date attribute on the target element
+      // Get the date for this slot using multiple reliable sources with fallbacks
       let slotDate: Date | null = null;
       
-      // Check for data-date on direct target
-      if (dataDate) {
+      // MOST RELIABLE: Check for data-exact-date which is specifically set during drag over
+      const exactDateStr = targetElement.getAttribute('data-exact-date');
+      if (exactDateStr) {
+        slotDate = new Date(exactDateStr);
+        console.log('Using precise date from data-exact-date attribute:', exactDateStr, slotDate);
+      }
+      // Next check for data-date on direct target
+      else if (dataDate) {
         slotDate = new Date(dataDate);
         console.log('Using date directly from target element data-date attribute:', dataDate, slotDate);
       }
@@ -1869,18 +1952,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log('Using date from slots array with targetSlotIndex:', targetSlotIndex, slotDate);
       }
       
-      // Force persist the exact slot date from the drop target
-      if (targetSlotIndex >= 0 && targetSlotIndex < slots.length) {
-        // Make absolutely sure we're using the exact date of the target slot
-        slotDate = new Date(slots[targetSlotIndex]?.date);
-        console.log('FORCED SLOT DATE to match exact weekly slot:', targetSlotIndex, slotDate);
-        
+      // CRITICAL: Store the EXACT slot date from the drop target before any modifications
+      // This ensures we remember precisely which week cell was targeted
+      if (slotDate) {
         // IMPORTANT: Keep track of the original target slot date before any phase calculations
         // This will be our real target start date for the schedule
         const exactTargetStartDate = new Date(slotDate);
         console.log('Exact target start date (before any FAB calculations):', exactTargetStartDate);
         
-        // Store this for later use
+        // Store this for later use - CRUCIAL for proper week positioning
         data.targetStartDate = exactTargetStartDate.toISOString();
       }
       
