@@ -1842,18 +1842,28 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
       
       // Get the date for this slot using the updated target slot index from data attributes
-      // If we have a week cell element with a data-date attribute, use that directly
+      // First try to get the date directly from the data-date attribute on the target element
       let slotDate: Date | null = null;
-      if (weekCellElement && weekCellElement.getAttribute('data-date')) {
-        const dateStr = weekCellElement.getAttribute('data-date');
-        if (dateStr) {
-          slotDate = new Date(dateStr);
-          console.log('Using date directly from data-date attribute:', dateStr, slotDate);
+      
+      // Check for data-date on direct target
+      if (dataDate) {
+        slotDate = new Date(dataDate);
+        console.log('Using date directly from target element data-date attribute:', dataDate, slotDate);
+      }
+      // Next try to find and check the closest week cell element
+      else {
+        const weekCellElement = targetElement.closest('[data-slot-index]') as HTMLElement;
+        if (weekCellElement && weekCellElement.getAttribute('data-date')) {
+          const dateStr = weekCellElement.getAttribute('data-date');
+          if (dateStr) {
+            slotDate = new Date(dateStr);
+            console.log('Using date from week cell element data-date attribute:', dateStr, slotDate);
+          }
         }
       }
       
-      // If we couldn't get the date from the attribute, use the targetSlotIndex
-      if (!slotDate) {
+      // If we couldn't get the date from any attribute, use the targetSlotIndex
+      if (!slotDate && targetSlotIndex >= 0 && targetSlotIndex < slots.length) {
         slotDate = slots[targetSlotIndex]?.date;
         console.log('Using date from slots array with targetSlotIndex:', targetSlotIndex, slotDate);
       }
