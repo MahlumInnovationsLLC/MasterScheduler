@@ -1355,6 +1355,58 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       outline: 1px solid rgba(99, 102, 241, 0.3) !important;
       z-index: 5 !important;
     }
+    
+    /* Row-specific target highlighting in cells */
+    .row-0-highlight::before {
+      content: '';
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 25% !important;
+      background-color: rgba(99, 102, 241, 0.15) !important;
+      border-bottom: 1px dashed rgba(99, 102, 241, 0.6) !important;
+      z-index: 1 !important;
+      pointer-events: none !important;
+    }
+    
+    .row-1-highlight::before {
+      content: '';
+      position: absolute !important;
+      top: 25% !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 25% !important;
+      background-color: rgba(99, 102, 241, 0.15) !important;
+      border-bottom: 1px dashed rgba(99, 102, 241, 0.6) !important;
+      z-index: 1 !important;
+      pointer-events: none !important;
+    }
+    
+    .row-2-highlight::before {
+      content: '';
+      position: absolute !important;
+      top: 50% !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 25% !important;
+      background-color: rgba(99, 102, 241, 0.15) !important;
+      border-bottom: 1px dashed rgba(99, 102, 241, 0.6) !important;
+      z-index: 1 !important;
+      pointer-events: none !important;
+    }
+    
+    .row-3-highlight::before {
+      content: '';
+      position: absolute !important;
+      top: 75% !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 25% !important;
+      background-color: rgba(99, 102, 241, 0.15) !important;
+      z-index: 1 !important;
+      pointer-events: none !important;
+    }
   `;
     
   return (
@@ -1696,7 +1748,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   {slots.map((slot, index) => (
                     <div 
                       key={index}
-                      className={`border-r border-gray-700 h-full ${
+                      className={`border-r border-gray-700 h-full week-cell ${
                         slot.isWeekend ? 'bg-gray-800/20' : ''
                       } ${isSameDay(slot.date, new Date()) ? 'bg-blue-900/20' : ''} ${
                         dropTarget?.bayId === bay.id && dropTarget.slotIndex === index 
@@ -1708,6 +1760,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         const cellHeight = e.currentTarget.clientHeight;
                         const relativeY = e.nativeEvent.offsetY;
                         const rowIndex = Math.floor((relativeY / cellHeight) * 4);
+                        
+                        // Show which cell row is being targeted with a data attribute
+                        e.currentTarget.setAttribute('data-target-row', rowIndex.toString());
+                        
+                        // Add visual highlight for better row targeting
+                        const highlightClass = `row-${rowIndex}-highlight`;
+                        
+                        // First, remove all row highlight classes
+                        for (let i = 0; i < 4; i++) {
+                          e.currentTarget.classList.remove(`row-${i}-highlight`);
+                        }
+                        
+                        // Add highlight for current row
+                        e.currentTarget.classList.add(highlightClass);
+                        
+                        // Call the main handler
                         handleDragOver(e, bay.id, index, rowIndex);
                       }}
                       onDragEnter={(e) => {
@@ -1718,13 +1786,34 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       onDragLeave={(e) => {
                         // Remove visual feedback when leaving cell
                         e.currentTarget.classList.remove('bg-primary/10');
+                        
+                        // Remove all row highlight classes
+                        for (let i = 0; i < 4; i++) {
+                          e.currentTarget.classList.remove(`row-${i}-highlight`);
+                        }
+                        
+                        // Reset data attribute
+                        e.currentTarget.removeAttribute('data-target-row');
                       }}
                       onDrop={(e) => {
                         // Calculate which row within the cell the cursor is over
                         const cellHeight = e.currentTarget.clientHeight;
                         const relativeY = e.nativeEvent.offsetY;
                         const rowIndex = Math.floor((relativeY / cellHeight) * 4);
+                        
+                        // Remove all row highlight classes
+                        for (let i = 0; i < 4; i++) {
+                          e.currentTarget.classList.remove(`row-${i}-highlight`);
+                        }
+                        
+                        // Reset data attribute
+                        e.currentTarget.removeAttribute('data-target-row');
+                        
+                        // Handle the drop with the specific row
                         handleDrop(e, bay.id, index, rowIndex);
+                        
+                        // Log the exact cell location for debugging
+                        console.log(`Project dropped at Bay ${bay.id}, Week ${index}, Row ${rowIndex}`);
                       }}
                     />
                   ))}
