@@ -528,9 +528,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/manufacturing-schedules", isAuthenticated, validateRequest(insertManufacturingScheduleSchema), async (req, res) => {
     try {
-      const schedule = await storage.createManufacturingSchedule(req.body);
+      // Ensure row parameter is processed correctly
+      const data = {
+        ...req.body,
+        row: req.body.row !== undefined ? parseInt(req.body.row) : 0 // Default to row 0 if not specified
+      };
+      console.log("Creating schedule with row data:", data);
+      
+      const schedule = await storage.createManufacturingSchedule(data);
       res.status(201).json(schedule);
     } catch (error) {
+      console.error("Error creating manufacturing schedule:", error);
       res.status(500).json({ message: "Error creating manufacturing schedule" });
     }
   });
@@ -538,12 +546,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/manufacturing-schedules/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const schedule = await storage.updateManufacturingSchedule(id, req.body);
+      // Ensure row is properly handled
+      const data = {
+        ...req.body,
+        row: req.body.row !== undefined ? parseInt(req.body.row) : undefined
+      };
+      console.log("Updating schedule with row data:", data);
+      
+      const schedule = await storage.updateManufacturingSchedule(id, data);
       if (!schedule) {
         return res.status(404).json({ message: "Manufacturing schedule not found" });
       }
       res.json(schedule);
     } catch (error) {
+      console.error("Error updating manufacturing schedule:", error);
       res.status(500).json({ message: "Error updating manufacturing schedule" });
     }
   });
