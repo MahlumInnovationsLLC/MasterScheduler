@@ -3137,6 +3137,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         <div className="p-4 space-y-3">
           {projects
             .filter(project => !schedules.some(schedule => schedule.projectId === project.id))
+            // Sort projects by project number (highest first)
+            .sort((a, b) => {
+              // Extract numeric values from project numbers
+              const aNum = parseInt(a.projectNumber.replace(/[^0-9]/g, '')) || 0;
+              const bNum = parseInt(b.projectNumber.replace(/[^0-9]/g, '')) || 0;
+              
+              // Sort descending (highest first)
+              return bNum - aNum;
+            })
             .map(project => (
               <div
                 key={project.id}
