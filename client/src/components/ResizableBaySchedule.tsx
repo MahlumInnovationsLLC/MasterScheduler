@@ -368,7 +368,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     setRecalculationVersion(prev => prev + 1);
   }, [schedules.length]);
 
-  // Set up sticky header behavior on scroll
+  // Set up sticky header behavior on scroll with improved positioning
   useEffect(() => {
     // Function to handle scroll events
     const handleScroll = () => {
@@ -376,6 +376,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Get the position of the original header
       const headerRect = weekHeaderRef.current.getBoundingClientRect();
+      
+      // Get the position of the sidebar
+      const sidebar = document.querySelector('.sidebar'); // Sidebar element
+      const sidebarWidth = sidebar ? sidebar.getBoundingClientRect().width : 0;
       
       // Position where we want the sticky header to become visible
       // We want it to appear when the original header is just out of view
@@ -385,12 +389,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       if (headerRect.top < appHeaderHeight) {
         // Make sticky header visible
         stickyHeaderRef.current.classList.remove('hidden');
-        stickyHeaderRef.current.style.width = `${headerRect.width}px`;
-        stickyHeaderRef.current.style.left = `${headerRect.left}px`;
         
-        // If there's a lot of horizontal content, make sure we get the horizontal scroll position too
+        // Set width to match the visible content area
+        stickyHeaderRef.current.style.width = `${headerRect.width}px`;
+        
+        // Calculate the correct left position accounting for the sidebar
+        // This ensures the header aligns with the content even with a sidebar
+        stickyHeaderRef.current.style.left = `${Math.max(sidebarWidth, headerRect.left)}px`;
+        
+        // If there's horizontal scrolling, smoothly adjust the header to match scroll position
         if (timelineContainerRef.current) {
-          stickyHeaderRef.current.style.transform = `translateX(${-timelineContainerRef.current.scrollLeft}px)`;
+          // Use requestAnimationFrame for smooth transitions during scroll
+          requestAnimationFrame(() => {
+            if (stickyHeaderRef.current) {
+              stickyHeaderRef.current.style.transform = `translateX(${-timelineContainerRef.current.scrollLeft}px)`;
+            }
+          });
         }
         
         setStickyHeaderVisible(true);
