@@ -938,17 +938,40 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     {bay.bayNumber}
                   </Badge>
                   <div>
-                    <div className="text-sm font-semibold">{bay.name}</div>
+                    <div className="text-sm font-semibold">
+                      <span className="font-semibold text-blue-400 mr-1">TEAM</span> {bay.name}
+                    </div>
                     <BayCapacityInfo bay={bay} />
                   </div>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setEditingBay(bay)}
-                >
-                  <PencilIcon className="h-3.5 w-3.5" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setEditingBay(bay)}
+                    title="Edit Team"
+                  >
+                    <PencilIcon className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="text-red-400 hover:text-red-500"
+                    onClick={() => {
+                      // Show confirmation dialog before deleting
+                      if (window.confirm(`Are you sure you want to delete Team ${bay.name}? All projects in this bay will be moved to the Unassigned section.`)) {
+                        handleDeleteBay(bay.id);
+                      }
+                    }}
+                    title="Delete Team"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18"></path>
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    </svg>
+                  </Button>
+                </div>
               </div>
               
               {/* Show 4 rows visually in the sidebar */}
@@ -973,7 +996,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     {bays.length + index + 1}
                   </Badge>
                   <div>
-                    <div className="text-sm font-semibold">Empty Bay</div>
+                    <div className="text-sm font-semibold">
+                      <span className="font-semibold text-blue-400 mr-1">TEAM</span> Empty
+                    </div>
                     <div className="text-xs text-gray-500">
                       No staff assigned
                     </div>
@@ -1143,25 +1168,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   })
                 }
                 
-                {/* Bay label (shows on each row) with delete button */}
-                <div className="absolute top-0 left-0 bg-gray-800/90 text-xs px-2 py-1 rounded-br z-20 flex items-center gap-2 group">
-                  <span className="font-semibold text-blue-400 mr-1">TEAM</span> {bay.name}
-                  <button 
-                    onClick={() => {
-                      // Show confirmation dialog before deleting
-                      if (window.confirm(`Are you sure you want to delete Team ${bay.name}? All projects in this bay will be moved to the Unassigned section.`)) {
-                        handleDeleteBay(bay.id);
-                      }
-                    }}
-                    className="text-red-400 hover:text-red-500 transition-colors bg-gray-700/50 hover:bg-gray-700 rounded-full p-0.5 flex items-center justify-center"
-                    title="Delete Bay"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 6h18"></path>
-                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                    </svg>
-                  </button>
+                {/* Bay name badge - no longer shows TEAM label here */}
+                <div className="absolute top-0 left-0 bg-gray-800/90 text-xs px-2 py-1 rounded-br z-20">
+                  {bay.name}
                 </div>
               </div>
             ))}
