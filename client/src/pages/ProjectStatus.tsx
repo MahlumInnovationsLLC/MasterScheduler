@@ -397,7 +397,7 @@ const ProjectStatus = () => {
           </div>
         </div>
       ),
-      { sortingFn: 'alphanumeric', size: 220 }),
+      { sortingFn: 'alphanumeric', size: 260 }),
     createColumn('pmOwner', 'pmOwnerId', 'PM Owner', 
       (value) => <div className="text-sm">{value || 'Unassigned'}</div>,
       { size: 150 }),
