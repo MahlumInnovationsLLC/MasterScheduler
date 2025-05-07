@@ -1162,10 +1162,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   })
                 }
                 
-                {/* Bay name badge - no longer shows TEAM label here */}
-                <div className="absolute top-0 left-0 bg-gray-800/90 text-xs px-2 py-1 rounded-br z-20">
-                  {bay.name}
-                </div>
+                {/* Bay name badge removed - now only shown in sidebar */}
               </div>
             ))}
             
@@ -1204,10 +1201,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   Empty Team (Add projects by creating a team first)
                 </div>
                 
-                {/* Team label */}
-                <div className="absolute top-0 left-0 bg-gray-800/80 text-xs px-2 py-1 rounded-br z-20">
-                  <span className="font-semibold text-blue-400 mr-1">TEAM</span> Empty
-                </div>
+                {/* Team label removed - now only shown in sidebar */}
               </div>
             ))}
             
