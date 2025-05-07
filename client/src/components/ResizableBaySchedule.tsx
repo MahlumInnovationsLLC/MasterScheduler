@@ -241,6 +241,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const startDate = new Date(schedule.startDate);
         const endDate = new Date(schedule.endDate);
         
+        // Get the FAB weeks for this project (default to 4 if not set)
+        const fabWeeks = project.fabWeeks || 4;
+        
         // Find a row that doesn't have a schedule overlapping with this one
         let assignedRow = -1;
         for (let row = 0; row < 4; row++) {
@@ -344,6 +347,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const barWidth = ((adjustedEndIndex - validStartIndex) + 1) * slotWidth;
         const barLeft = validStartIndex * slotWidth;
         
+        // Calculate FAB phase width based on view mode
+        let fabWidth = 0;
+        if (viewMode === 'day') {
+          fabWidth = fabWeeks * 7 * (slotWidth / 7); // Convert weeks to days
+        } else if (viewMode === 'week') {
+          fabWidth = fabWeeks * slotWidth; // Direct mapping for weeks
+        } else if (viewMode === 'month') {
+          fabWidth = Math.ceil(fabWeeks / 4) * slotWidth; // Approximate weeks to months
+        } else { // quarter
+          fabWidth = Math.ceil(fabWeeks / 13) * slotWidth; // Approximate weeks to quarters
+        }
+        
+        // Ensure minimum width and cap maximum
+        fabWidth = Math.max(slotWidth / 2, Math.min(fabWidth, barWidth * 0.5));
+        
         processedBars.push({
           id: schedule.id,
           projectId: schedule.projectId,
@@ -356,7 +374,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           width: barWidth,
           left: barLeft,
           color: getProjectColor(project.id),
-          row: assignedRow
+          row: assignedRow,
+          fabWeeks,
+          fabWidth
         });
       });
     });
