@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatDate } from '@/lib/utils';
-import { Clock, Calendar, Tool, Wrench, TestTube, CheckSquare, CheckCircle, Truck, Navigation } from 'lucide-react';
+import { Clock, Calendar, Hammer, Wrench, TestTube, CheckSquare, CheckCircle, Truck, Navigation } from 'lucide-react';
 
 interface ProjectPhaseInfoProps {
   project: any;
@@ -74,7 +74,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
       <div className="flex flex-wrap gap-3">
         {fabricationStart && (
           <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
-            <Tool className="h-4 w-4 text-blue-400" />
+            <Hammer className="h-4 w-4 text-blue-400" />
             <div>
               <div className="text-xs text-gray-400">FAB START</div>
               <div className="text-sm font-medium">{formatDate(fabricationStart)}</div>

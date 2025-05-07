@@ -587,8 +587,9 @@ const ProjectDetails = () => {
           </div>
         </div>
         
-        <div className="mt-5 flex gap-8">
-          <div>
+        {/* Project metrics */}
+        <div className="mt-5 grid grid-cols-5 gap-6">
+          <div className="col-span-1">
             <div className="text-sm text-gray-400 mb-1">Project Health</div>
             <div className="flex items-center gap-2">
               <div className="text-2xl font-bold">{projectHealth.score}<span className="text-sm">/100</span></div>
@@ -598,7 +599,7 @@ const ProjectDetails = () => {
             </div>
           </div>
           
-          <div>
+          <div className="col-span-1">
             <div className="text-sm text-gray-400 mb-1">Progress</div>
             <div className="flex items-center gap-3">
               <div className="w-32 bg-gray-800 rounded-full h-2.5">
@@ -611,7 +612,7 @@ const ProjectDetails = () => {
             </div>
           </div>
           
-          <div>
+          <div className="col-span-1">
             <div className="text-sm text-gray-400 mb-1">Tasks</div>
             <div className="flex items-center gap-2">
               <span className="text-lg font-bold">
@@ -621,7 +622,7 @@ const ProjectDetails = () => {
             </div>
           </div>
           
-          <div>
+          <div className="col-span-1">
             <div className="text-sm text-gray-400 mb-1">Billing</div>
             <div className="flex items-center gap-2">
               <span className="text-lg font-bold">
@@ -638,7 +639,7 @@ const ProjectDetails = () => {
             </div>
           </div>
           
-          <div>
+          <div className="col-span-1">
             <div className="text-sm text-gray-400 mb-1">Manufacturing</div>
             <div className="flex items-center gap-2">
               <span className="text-lg font-bold">
@@ -648,6 +649,11 @@ const ProjectDetails = () => {
                 {activeSchedule ? 'Active' : 'Not Scheduled'}
               </span>
             </div>
+          </div>
+          
+          {/* Timeline Information - Full width row */}
+          <div className="col-span-5 -mt-2">
+            <ProjectPhaseInfo project={project} />
           </div>
         </div>
       </div>
