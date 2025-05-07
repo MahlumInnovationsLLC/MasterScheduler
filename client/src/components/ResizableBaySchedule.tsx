@@ -2087,6 +2087,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Calculate how long the project will take considering capacity sharing
       const totalHours = data.totalHours || 1000; // Default to 1000 if not specified
       
+      // CRITICAL FIX: Enforce standard max capacity per week per bay for PROD hours (60%)
+      // Get the bay's base weekly capacity and apply the standard 60% utilization target
+      const standardMaxWeeklyCapacity = Math.round(baseWeeklyCapacity * 0.6);
+      console.log(`Standard max weekly capacity for bay (60% target): ${standardMaxWeeklyCapacity} hours`);
+      
+      // Calculate how many weeks this would take at standard 60% capacity
+      const standardWeeksNeeded = Math.ceil(totalHours / standardMaxWeeklyCapacity);
+      console.log(`Standard weeks needed at 60% capacity: ${standardWeeksNeeded} weeks`);
+      
       // Initialize variables for week-by-week calculation
       let remainingHours = totalHours;
       let currentDate = new Date(productionStartDate);
@@ -2098,6 +2107,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const weeklyAllocations: {[key: string]: number} = {};
       const weeklyProjects: {[key: string]: number} = {};
       
+      // CRITICAL FIX: First calculate the standard duration using 60% capacity
+      // Use the calculated standardWeeksNeeded to determine a reasonable initial duration
+      let standardProductionDays = standardWeeksNeeded * 7;
+      
+      // Calculate an approximate end date based on the standard duration first
+      // This will be our starting reference point
+      const standardEndDate = addDays(productionStartDate, standardProductionDays);
+      console.log(`Standard end date at 60% capacity: ${format(standardEndDate, 'yyyy-MM-dd')}`);
+      
+      // Now we'll use a modified algorithm that respects the standard 60% capacity limit
+      // but also factors in sharing capacity when multiple projects are in parallel
       while (remainingHours > 0) {
         // For each week, check how many projects are overlapping
         const weekStart = startOfWeek(currentDate);
@@ -2146,16 +2166,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         weeklyProjects[weekKey]++;
         
         // Calculate total projects and available capacity for this week
-        // Limit to maximum of 4 projects sharing capacity
+        // Limit to maximum of 4 projects sharing capacity  
         const totalProjects = Math.min(4, weeklyProjects[weekKey]);
         
-        // Determine the fair share of capacity for each project
-        const fairShareCapacity = baseWeeklyCapacity / totalProjects;
+        // CRITICAL FIX: Instead of using the full bay capacity, start with 60% standard capacity
+        // Determine the fair share of capacity for each project, but limit to 60% standard capacity
+        const standardWeeklyCapacityPerProject = standardMaxWeeklyCapacity / totalProjects;
         
         // Calculate how much capacity is actually available for this project
-        // considering what's already allocated to other projects
-        const targetTotalWeeklyHours = Math.min(baseWeeklyCapacity, fairShareCapacity * totalProjects);
-        const availableCapacity = Math.max(0, targetTotalWeeklyHours - weeklyAllocations[weekKey] + fairShareCapacity);
+        // considering what's already allocated to other projects, limited to standard 60% max
+        const targetTotalWeeklyHours = Math.min(standardMaxWeeklyCapacity, standardWeeklyCapacityPerProject * totalProjects);
+        const availableCapacity = Math.max(0, targetTotalWeeklyHours - weeklyAllocations[weekKey] + standardWeeklyCapacityPerProject);
         
         // Allocate hours for this week, limited by available capacity
         const hoursToAllocate = Math.min(remainingHours, availableCapacity);
@@ -2330,6 +2351,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Get the base capacity for this bay
     const baseWeeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
     
+    // ADDED: Calculate the standard max weekly capacity (60% target)
+    const standardMaxWeeklyCapacity = Math.round(baseWeeklyCapacity * 0.6);
+    
     // Get all schedules in this bay
     const baySchedules = schedules.filter(s => s.bayId === schedule.bayId && s.id !== scheduleId);
     
@@ -2360,10 +2384,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const projectsCount = projectsInWeek.length + 1; // +1 for the current project
       const totalWeeklyUsage = (projectsCount * weeklyHours);
       
-      if (totalWeeklyUsage > baseWeeklyCapacity) {
+      // CRITICAL FIX: Use standardMaxWeeklyCapacity (60% of base) instead of full capacity
+      // This enforces that manual resizes also respect the standard 60% capacity limitation
+      if (totalWeeklyUsage > standardMaxWeeklyCapacity) {
         overCapacityWeeks.push({
           weekStart: format(weekStart, 'MMM d, yyyy'),
-          utilization: Math.round((totalWeeklyUsage / baseWeeklyCapacity) * 100)
+          // Calculate utilization percent against the standard 60% capacity limit
+          utilization: Math.round((totalWeeklyUsage / standardMaxWeeklyCapacity) * 100)
         });
       }
       
