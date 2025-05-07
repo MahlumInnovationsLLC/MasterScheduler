@@ -1512,7 +1512,70 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
   };
 
-  // Handle drop
+  // Handle drop in unassigned area (removing project from bay)
+  const handleDropOnUnassigned = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Remove visual cue from the unassigned drop area
+    document.querySelector('.unassigned-drop-area')?.classList.remove('bg-primary/20', 'border-primary', 'border-dashed');
+    
+    // Remove dragging active class from body
+    document.body.classList.remove('dragging-active');
+    
+    try {
+      // Try multiple formats in case one fails
+      let dataStr = '';
+      try {
+        dataStr = e.dataTransfer.getData('application/json');
+      } catch (err) {
+        console.log('Error getting application/json data, trying text/plain...');
+        dataStr = e.dataTransfer.getData('text/plain');
+      }
+      
+      if (!dataStr) {
+        console.error('No data received in drop event');
+        return;
+      }
+      
+      console.log('Data received in unassigned drop area:', dataStr);
+      
+      const data = JSON.parse(dataStr);
+      if (!data || data.type !== 'existing') {
+        // We only allow dropping existing schedules back to unassigned
+        console.error('Invalid data or attempting to drop new project in unassigned area');
+        return;
+      }
+      
+      // Call the onScheduleDelete function with the schedule ID
+      if (onScheduleDelete && data.id) {
+        onScheduleDelete(data.id)
+          .then(() => {
+            toast({
+              title: "Project Unassigned",
+              description: "Project has been removed from the manufacturing schedule",
+            });
+          })
+          .catch(error => {
+            console.error('Error removing schedule:', error);
+            toast({
+              title: "Error",
+              description: "Failed to remove project from schedule",
+              variant: "destructive"
+            });
+          });
+      }
+    } catch (error) {
+      console.error('Error processing drop on unassigned area:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process drop operation",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Handle drop on a bay timeline
   const handleDrop = (e: React.DragEvent, bayId: number, slotIndex: number, rowIndex: number = 0) => {
     e.preventDefault();
     e.stopPropagation();
@@ -3030,6 +3093,24 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         className={`fixed right-0 top-0 bottom-0 bg-gray-800 z-40 w-80 shadow-xl transition-all duration-300 transform ${
           sidebarOpen ? 'translate-x-0' : 'translate-x-full'
         } overflow-auto border-l border-gray-700`}
+        onDragOver={(e) => {
+          // Always allow drop attempts - our handler will validate the data
+          e.preventDefault();
+          e.stopPropagation();
+          // Add visual indicator that this is a valid drop target
+          const target = e.currentTarget.querySelector('.unassigned-drop-area');
+          if (target && !target.classList.contains('bg-primary/20')) {
+            target.classList.add('bg-primary/20', 'border-primary', 'border-dashed');
+          }
+        }}
+        onDragLeave={(e) => {
+          // Remove visual indicator when dragging leaves the area
+          const target = e.currentTarget.querySelector('.unassigned-drop-area');
+          if (target) {
+            target.classList.remove('bg-primary/20', 'border-primary', 'border-dashed');
+          }
+        }}
+        onDrop={handleDropOnUnassigned}
       >
         <div className="p-4 border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
           <div className="flex items-center justify-between">
@@ -3044,6 +3125,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           <p className="text-sm text-gray-400">
             {projects.filter(project => !schedules.some(schedule => schedule.projectId === project.id)).length} projects available
           </p>
+        </div>
+        
+        {/* Drop area for moving projects back to unassigned */}
+        <div 
+          className="unassigned-drop-area mx-4 mt-4 p-3 border-2 border-dashed border-gray-600 rounded-md text-center text-gray-400 transition-colors"
+        >
+          <p>Drop projects here to unassign</p>
         </div>
         
         <div className="p-4 space-y-3">
