@@ -163,12 +163,43 @@ const getProjectColor = (projectId: number) => {
 };
 
 // Simple BayCapacityInfo component to show staffing breakdown
-const BayCapacityInfo = ({ bay }: { bay: ManufacturingBay }) => {
+const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSchedules: ManufacturingSchedule[] }) => {
   const assemblyStaff = bay.assemblyStaffCount || 0;
   const electricalStaff = bay.electricalStaffCount || 0;
   const hoursPerWeek = bay.hoursPerPersonPerWeek || 40;
   const staffCount = bay.staffCount || assemblyStaff + electricalStaff;
-  const totalCapacity = hoursPerWeek * staffCount;
+  const weeklyCapacity = hoursPerWeek * staffCount;
+  
+  // Calculate utilization using the same method as BayUtilizationCard
+  let weeklyUtilization = 0;
+  
+  // Get schedules for this bay
+  const baySchedules = allSchedules.filter(schedule => schedule.bayId === bay.id);
+  
+  if (baySchedules.length > 0) {
+    // Calculate the total weeks for each schedule and distribute hours evenly
+    baySchedules.forEach(schedule => {
+      if (schedule.startDate && schedule.endDate && schedule.totalHours) {
+        const startDate = new Date(schedule.startDate);
+        const endDate = new Date(schedule.endDate);
+        
+        // Calculate number of weeks (including partial weeks)
+        const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        const weeks = Math.max(1, Math.ceil(diffDays / 7));
+        
+        // Calculate hours per week for this schedule
+        const hoursPerWeek = schedule.totalHours / weeks;
+        
+        // Add to weekly utilization
+        weeklyUtilization += hoursPerWeek;
+      }
+    });
+  }
+  
+  // Calculate utilization percentage based on weekly hours
+  const utilization = weeklyCapacity > 0 ? Math.min(100, (weeklyUtilization / weeklyCapacity) * 100) : 0;
+  const roundedUtilization = Math.round(utilization);
   
   return (
     <div className="flex flex-col">
@@ -185,7 +216,7 @@ const BayCapacityInfo = ({ bay }: { bay: ManufacturingBay }) => {
         </div>
       </div>
       <div className="text-xs text-gray-400">
-        {totalCapacity}h/week capacity
+        {weeklyCapacity}h/week capacity {baySchedules.length > 0 && `(${roundedUtilization}% utilized)`}
       </div>
     </div>
   );
@@ -2357,7 +2388,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         <span className="text-gray-400 text-xs font-normal ml-1">- {bay.description}</span>
                       )}
                     </div>
-                    <BayCapacityInfo bay={bay} />
+                    <BayCapacityInfo bay={bay} allSchedules={schedules} />
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
