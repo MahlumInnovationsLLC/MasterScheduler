@@ -1276,9 +1276,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
     }
     
-    // Remove highlighted state from all cells
-    document.querySelectorAll('.drag-hover, .active-drop-target').forEach(el => {
-      el.classList.remove('drag-hover', 'active-drop-target');
+    // Remove highlighted state from all cells and rows first
+    document.querySelectorAll('.drag-hover, .active-drop-target, .week-cell-hover, .week-cell-resize-hover').forEach(el => {
+      el.classList.remove('drag-hover', 'active-drop-target', 'week-cell-hover', 'week-cell-resize-hover');
     });
     
     // Remove row highlights from all rows
@@ -1324,7 +1324,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // Add prominent visual cue to the current cell
     const target = e.currentTarget as HTMLElement;
-    target.classList.add('drop-target-highlight', 'bg-primary/20', 'border-primary', 'border-dashed');
+    target.classList.add('drop-target-highlight', 'bg-primary/20', 'border-primary', 'border-dashed', 'week-cell-hover');
+    
+    // Find all cells in this column for the bay to highlight them
+    const targetSlotIndex = target.getAttribute('data-slot-index');
+    if (targetSlotIndex) {
+      document.querySelectorAll(`[data-slot-index="${targetSlotIndex}"]`).forEach(el => {
+        el.classList.add('week-cell-resize-hover');
+      });
+    }
     
     // Highlight the specific row across the entire bay
     const bayElement = target.closest('.bay-container');
@@ -1336,7 +1344,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
     
     // Add week number to the data attribute for debugging
-    if (slots[slotIndex]) {
+    if (slots && slotIndex >= 0 && slotIndex < slots.length) {
       const weekNumber = format(slots[slotIndex].date, 'w');
       target.setAttribute('data-week-number', weekNumber);
       
@@ -2141,6 +2149,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       0% { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
       70% { border-color: rgba(59, 130, 246, 0.8); box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
       100% { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+    
+    /* Enhanced visual feedback for drag operations */
+    .week-cell-hover {
+      background-color: rgba(99, 102, 241, 0.3) !important;
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.6) !important;
+      z-index: 50 !important;
+      position: relative !important;
+    }
+    
+    .week-cell-resize-hover {
+      border: 1px solid rgba(99, 102, 241, 0.4) !important;
+      background-color: rgba(99, 102, 241, 0.1) !important;
+    }
+    
+    /* Increase visibility of drop targets */
+    .active-drop-target {
+      outline: 2px dashed rgba(99, 102, 241, 0.8) !important;
+      outline-offset: -2px !important;
+      background-color: rgba(99, 102, 241, 0.15) !important;
     }
     
     [draggable=true] {
