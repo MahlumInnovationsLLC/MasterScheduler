@@ -1430,12 +1430,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         {/* FAB phase indicator - always shown at BEGINNING of project */}
                         {bar.fabWidth && bar.fabWidth > 0 && (
                           <div 
-                            className="absolute top-0 left-0 h-full rounded-l-sm flex items-center justify-center overflow-hidden"
+                            className="absolute top-0 left-0 h-full rounded-l-md flex items-center justify-center overflow-hidden"
                             style={{
-                              width: `${Math.min(bar.fabWidth, bar.width * 0.2)}px`,
-                              backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                              borderRight: '2px dashed rgba(255, 255, 255, 0.6)',
-                              zIndex: 1
+                              width: `${bar.fabWidth}px`,
+                              backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                              borderRight: '3px dashed rgba(255, 255, 255, 0.7)',
+                              zIndex: 1,
+                              boxShadow: 'inset -2px 0px 4px rgba(0,0,0,0.2)'
                             }}
                           >
                             <span className="text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1">
@@ -1445,7 +1446,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         )}
                         
                         {/* Bar content - Production information */}
-                        <div className="absolute inset-0 flex items-center justify-between px-2 text-white font-semibold text-shadow-sm">
+                        <div 
+                          className="absolute inset-0 flex items-center justify-between px-2 text-white font-semibold text-shadow-sm"
+                          style={{
+                            paddingLeft: bar.fabWidth && bar.fabWidth > 0 ? `${Math.min(bar.fabWidth + 4, bar.width * 0.5)}px` : '8px'
+                          }}
+                        >
                           <div className="font-medium text-xs truncate">
                             {bar.projectNumber}
                           </div>
