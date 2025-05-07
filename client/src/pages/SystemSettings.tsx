@@ -726,6 +726,53 @@ const SystemSettings = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
+                  {/* Data Migration Section */}
+                  <div className="border border-primary/20 rounded-lg p-4 bg-primary/5">
+                    <h3 className="font-semibold text-lg mb-2 flex items-center">
+                      <CheckCircle2 className="mr-2 h-5 w-5 text-primary" />
+                      Data Migrations
+                    </h3>
+                    <p className="text-sm mb-4 text-gray-300">
+                      These actions update data in the system to match updated requirements.
+                    </p>
+                    
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">Update Default Project Hours</p>
+                        <p className="text-sm text-gray-400">
+                          Updates all projects and schedules with the old default of 40 hours to the new default of 1000 hours.
+                        </p>
+                      </div>
+                      
+                      <Button 
+                        variant="outline" 
+                        className="flex items-center border-primary text-primary hover:bg-primary/10"
+                        onClick={async () => {
+                          try {
+                            const response = await apiRequest('POST', '/api/admin/update-project-hours');
+                            const result = await response.json();
+                            
+                            toast({
+                              title: result.success ? "Hours Updated" : "Update Failed",
+                              description: result.message,
+                              variant: result.success ? "default" : "destructive"
+                            });
+                          } catch (error) {
+                            toast({
+                              title: "Update Failed",
+                              description: "Failed to update project hours: " + (error as Error).message,
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                      >
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        Update Hours
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Danger Zone */}
                   <div className="border border-destructive/20 rounded-lg p-4 bg-destructive/5">
                     <h3 className="font-semibold text-lg mb-2 flex items-center">
                       <AlertTriangle className="mr-2 h-5 w-5 text-destructive" />
