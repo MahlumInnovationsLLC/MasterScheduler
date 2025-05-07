@@ -767,6 +767,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       document.removeEventListener('mousemove', handleResizeMove);
       document.removeEventListener('mouseup', handleResizeEnd);
       document.body.style.cursor = '';
+      
+      // Reset resize hover state
+      document.querySelectorAll('.week-cell-resize-hover').forEach(el => {
+        el.classList.remove('week-cell-resize-hover');
+      });
+      setResizeHoverSlot(null);
       setResizingSchedule(null);
     }
   };
