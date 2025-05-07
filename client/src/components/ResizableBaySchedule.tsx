@@ -2575,8 +2575,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         details = 'Bay is empty';
                       }
                       
+                      // Get the weekly utilization percentage from the parent scope for consistency
+                      const weeklyUtilizationPercent = bay.weeklyCapacity > 0 
+                        ? Math.round((bay.weeklyUtilization / bay.weeklyCapacity) * 100) 
+                        : 0;
+                      
                       // Log to verify calculation is consistent with BayCapacityInfo
-                      console.log(`Bay ${bay.name} schedule display utilization: ${roundedUtilization}%`);
+                      console.log(`Bay ${bay.name} schedule display utilization: ${weeklyUtilizationPercent}%`);
                       
                       // Set colors based on status
                       const colors = {
@@ -2596,7 +2601,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           <div className="flex items-center gap-1">
                             <div className={`w-2 h-2 rounded-full ${colors[status]}`}></div>
                             <div className={`text-xs font-medium ${textColors[status]}`}>
-                              {label} {loadRatio > 0 ? `(${Math.round(loadRatio * 100)}%)` : ''}
+                              {label} {weeklyUtilizationPercent > 0 ? `(${weeklyUtilizationPercent}%)` : ''}
                             </div>
                           </div>
                           <div className="text-xs text-gray-400 mt-0.5">
