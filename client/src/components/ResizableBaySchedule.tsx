@@ -1145,11 +1145,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 
                 {/* Bay label (shows on each row) with delete button */}
                 <div className="absolute top-0 left-0 bg-gray-800/90 text-xs px-2 py-1 rounded-br z-20 flex items-center gap-2 group">
-                  <span>Bay {bay.bayNumber}</span>
+                  <span className="font-semibold text-blue-400 mr-1">TEAM</span> {bay.name}
                   <button 
                     onClick={() => {
                       // Show confirmation dialog before deleting
-                      if (window.confirm(`Are you sure you want to delete Bay ${bay.bayNumber}? All projects in this bay will be moved to the Unassigned section.`)) {
+                      if (window.confirm(`Are you sure you want to delete Team ${bay.name}? All projects in this bay will be moved to the Unassigned section.`)) {
                         handleDeleteBay(bay.id);
                       }
                     }}
@@ -1202,8 +1202,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 </div>
                 
                 {/* Bay label */}
-                <div className="absolute top-0 left-0 bg-gray-800/80 text-xs px-1 rounded-br z-20">
-                  Bay {bays.length + index + 1}
+                <div className="absolute top-0 left-0 bg-gray-800/80 text-xs px-2 py-1 rounded-br z-20">
+                  <span className="font-semibold text-blue-400 mr-1">TEAM</span> Empty
                 </div>
               </div>
             ))}
@@ -1237,7 +1237,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                <span>Add New Bay</span>
+                <span>Add New Team</span>
               </Button>
             </div>
           </div>

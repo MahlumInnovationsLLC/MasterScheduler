@@ -86,8 +86,8 @@ export function EditBayDialog({
       await onSave(bayId, bayData);
       
       toast({
-        title: `Bay ${isNewBay ? 'Created' : 'Updated'}`,
-        description: `Bay ${bayNumber}: ${name} has been ${isNewBay ? 'created' : 'updated'} successfully.`,
+        title: `Team ${isNewBay ? 'Created' : 'Updated'}`,
+        description: `Team ${name} has been ${isNewBay ? 'created' : 'updated'} successfully.`,
       });
       
       onClose();
@@ -112,8 +112,8 @@ export function EditBayDialog({
       await onDelete(bay.id);
       
       toast({
-        title: "Bay Deleted",
-        description: `Bay ${bay.bayNumber}: ${bay.name} has been deleted successfully.`,
+        title: "Team Deleted",
+        description: `Team ${bay.name} has been deleted successfully.`,
       });
       
       onClose();
@@ -134,17 +134,17 @@ export function EditBayDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{isNewBay ? 'Create New Bay' : `Edit Bay ${bay?.bayNumber}`}</DialogTitle>
+          <DialogTitle>{isNewBay ? 'Create New Team' : `Edit Team ${bay?.name}`}</DialogTitle>
           <DialogDescription>
             {isNewBay 
-              ? 'Add a new manufacturing bay with staff and capacity details.'
-              : `Update staff counts and capacity for ${bay?.name}.`}
+              ? 'Add a new manufacturing team with staff and capacity details.'
+              : `Update staff counts and capacity for Team ${bay?.name}.`}
           </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="bayNumber" className="text-right">Bay Number</Label>
+            <Label htmlFor="bayNumber" className="text-right">Team Number</Label>
             <Input
               id="bayNumber"
               type="number"
@@ -157,7 +157,7 @@ export function EditBayDialog({
           </div>
           
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">Bay Name</Label>
+            <Label htmlFor="name" className="text-right">Team Name</Label>
             <Input
               id="name"
               value={name}
@@ -264,7 +264,7 @@ export function EditBayDialog({
                     disabled={isSaving}
                     className="text-destructive border-destructive hover:bg-destructive/10"
                   >
-                    Delete Bay
+                    Delete Team
                   </Button>
                 )}
               </>
