@@ -188,6 +188,15 @@ export const projects = pgTable("projects", {
   // Project details
   percentComplete: decimal("percent_complete", { precision: 5, scale: 2 }).default("0").notNull(),
   totalHours: integer("total_hours").default(1000), // Total hours needed for manufacturing
+  
+  // Department hours percentage allocations
+  fabPercentage: decimal("fab_percentage", { precision: 5, scale: 2 }).default("27").notNull(),
+  paintPercentage: decimal("paint_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
+  productionPercentage: decimal("production_percentage", { precision: 5, scale: 2 }).default("60").notNull(),
+  itPercentage: decimal("it_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
+  ntcPercentage: decimal("ntc_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
+  qcPercentage: decimal("qc_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
+  
   fabWeeks: integer("fab_weeks").default(4), // Number of weeks for FAB phase (precedes production)
   dpasRating: text("dpas_rating"),
   stretchShortenGears: text("stretch_shorten_gears"),
@@ -249,6 +258,15 @@ export const archivedProjects = pgTable("archived_projects", {
   
   // Project details
   totalHours: integer("total_hours").default(1000), // Total hours needed for manufacturing
+  
+  // Department hours percentage allocations
+  fabPercentage: decimal("fab_percentage", { precision: 5, scale: 2 }).default("27").notNull(),
+  paintPercentage: decimal("paint_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
+  productionPercentage: decimal("production_percentage", { precision: 5, scale: 2 }).default("60").notNull(),
+  itPercentage: decimal("it_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
+  ntcPercentage: decimal("ntc_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
+  qcPercentage: decimal("qc_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
+  
   fabWeeks: integer("fab_weeks").default(4), // Number of weeks for FAB phase (precedes production)
   percentComplete: decimal("percent_complete", { precision: 5, scale: 2 }).default("0").notNull(),
   dpasRating: text("dpas_rating"),
