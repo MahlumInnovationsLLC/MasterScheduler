@@ -287,8 +287,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     affectedProjects: any[];
   } | null>(null);
   
-  // Track whether the auto-adjustment has been applied
-  const [hasAutoAdjusted, setHasAutoAdjusted] = useState(false);
+  // Track auto-adjusted bays using their IDs
+  const [autoAdjustedBays, setAutoAdjustedBays] = useState<Record<number, boolean>>({});
   
   // Force a recalculation when component mounts or when schedules change
   useEffect(() => {
@@ -296,7 +296,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   }, [schedules.length]);
   
   // Function to automatically adjust schedules to maintain 100% capacity usage
-  const applyAutoCapacityAdjustment = () => {
+  // Now takes optional bayId to only adjust a specific bay
+  const applyAutoCapacityAdjustment = (specificBayId?: number) => {
     if (!schedules.length || !bays.length) return;
     
     // Group schedules by bay
@@ -308,9 +309,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       return acc;
     }, {} as Record<number, typeof schedules>);
     
-    // Process each bay to optimize capacity
+    // Process each bay to optimize capacity (or just the specified bay)
     Object.entries(schedulesByBay).forEach(([bayIdStr, baySchedules]) => {
       const bayId = parseInt(bayIdStr);
+      
+      // Skip this bay if we're only processing a specific bay and this isn't it
+      if (specificBayId !== undefined && bayId !== specificBayId) return;
+      
       const bay = bays.find(b => b.id === bayId);
       if (!bay) return;
       
