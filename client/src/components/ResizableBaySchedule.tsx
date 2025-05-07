@@ -2480,9 +2480,37 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       });
                       const avgProjectsPerWeek = weeksCount > 0 ? totalProjectWeeks / weeksCount : 0;
                       
-                      // Calculate average loading
-                      const avgLoad = weeksCount > 0 ? totalLoad / weeksCount : 0;
-                      const loadRatio = maxCapacity > 0 ? avgLoad / maxCapacity : 0;
+                      // Calculate average loading - OLD METHOD (showing different percentages)
+                      // const avgLoad = weeksCount > 0 ? totalLoad / weeksCount : 0;
+                      // const loadRatio = maxCapacity > 0 ? avgLoad / maxCapacity : 0;
+                      
+                      // NEW METHOD - match BayUtilizationCard calculation
+                      // Calculate scheduled hours for this bay, distributed by week
+                      let weeklyUtilization = 0;
+                      
+                      if (baySchedules.length > 0) {
+                        // Calculate the total weeks for each schedule and distribute hours evenly
+                        baySchedules.forEach(schedule => {
+                          if (schedule.startDate && schedule.endDate && schedule.totalHours) {
+                            const startDate = new Date(schedule.startDate);
+                            const endDate = new Date(schedule.endDate);
+                            
+                            // Calculate number of weeks (including partial weeks)
+                            const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                            const weeks = Math.max(1, Math.ceil(diffDays / 7));
+                            
+                            // Calculate hours per week for this schedule
+                            const hoursPerWeek = schedule.totalHours / weeks;
+                            
+                            // Add to weekly utilization
+                            weeklyUtilization += hoursPerWeek;
+                          }
+                        });
+                      }
+                      
+                      // Calculate utilization percentage based on weekly hours
+                      const loadRatio = maxCapacity > 0 ? weeklyUtilization / maxCapacity : 0;
                       
                       // Create a more detailed analysis
                       const overloadedPercent = weeksCount > 0 ? (overloadedWeeks / weeksCount) * 100 : 0;
