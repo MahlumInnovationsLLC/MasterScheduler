@@ -1077,24 +1077,37 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const cellWidth = slotWidth / 4;
     
     if (resizingSchedule.direction === 'left') {
-      // Resizing from left (changing start date)
-      // Calculate which cell this would snap to (more precise than whole weeks)
-      const snapCell = Math.floor((resizingSchedule.initialLeft + deltaX) / cellWidth);
+      // Resizing from left (changing start date) - KEEPING END DATE FIXED
+      // Identify the right edge position (end date) that should remain fixed
+      const rightEdge = resizingSchedule.initialLeft + resizingSchedule.initialWidth;
+      
+      // Calculate potential new left position with delta
+      // We need to invert deltaX when moving left handle to the right
+      // This gives the expected behavior of shortening the project duration
+      let potentialLeft = resizingSchedule.initialLeft + deltaX;
+      
+      // Snap to grid cell
+      const snapCell = Math.round(potentialLeft / cellWidth);
       const snapLeft = snapCell * cellWidth;
       
-      // Update left position and width
+      // Update left position and recalculate width to maintain the fixed right edge
       newLeft = Math.max(0, snapLeft);
-      newWidth = resizingSchedule.initialWidth - (newLeft - resizingSchedule.initialLeft);
+      // Keep right edge constant, recalculate width
+      newWidth = rightEdge - newLeft;
       
       // Ensure minimum width
-      if (newWidth < cellWidth) {
-        newWidth = cellWidth;
-        newLeft = resizingSchedule.initialLeft + resizingSchedule.initialWidth - cellWidth;
+      const minWidth = cellWidth * 0.75; // Minimum width of 75% of a cell
+      if (newWidth < minWidth) {
+        newWidth = minWidth;
+        newLeft = rightEdge - minWidth;
       }
       
-      // Update visual appearance while dragging
+      // Apply visual update with real-time feedback
       barElement.style.left = `${newLeft}px`;
       barElement.style.width = `${newWidth}px`;
+      
+      // Add visual feedback classes during resize
+      barElement.classList.add('resizing-active');
     } else {
       // Resizing from right (changing end date)
       // Allow resizing by cell for more precise control
@@ -1115,6 +1128,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Update visual appearance while dragging
       barElement.style.width = `${newWidth}px`;
+      
+      // Add visual feedback classes during resize
+      barElement.classList.add('resizing-active');
+      if (!barElement.classList.contains('resize-from-right')) {
+        barElement.classList.add('resize-from-right');
+      }
       
       // Add debugging attributes
       barElement.dataset.newWidth = newWidth.toString();
@@ -1291,6 +1310,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Clear all column highlights from any cell
       document.querySelectorAll('.column-highlight').forEach(el => {
         el.classList.remove('column-highlight');
+      });
+      
+      // Clean up resizing visual effects
+      document.querySelectorAll('.resizing-active').forEach(el => {
+        el.classList.remove('resizing-active', 'resize-from-left', 'resize-from-right');
       });
       
       // Reset UI state

@@ -1086,3 +1086,20 @@
   overflow-x: auto;
   position: relative;
 }
+
+/* Visual feedback animations for resize operations */
+.resizing-active {
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.7) !important;
+  transition: all 0.05s ease-out;
+  z-index: 50 !important;
+}
+
+.resizing-active.resize-from-left {
+  border-left: 3px solid hsl(var(--primary)) !important;
+  box-shadow: -4px 0 8px rgba(var(--primary-rgb), 0.5), 0 0 0 2px rgba(var(--primary-rgb), 0.5) !important;
+}
+
+.resizing-active.resize-from-right {
+  border-right: 3px solid hsl(var(--primary)) !important;
+  box-shadow: 4px 0 8px rgba(var(--primary-rgb), 0.5), 0 0 0 2px rgba(var(--primary-rgb), 0.5) !important;
+}
