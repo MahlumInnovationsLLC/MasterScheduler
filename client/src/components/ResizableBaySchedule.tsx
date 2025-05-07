@@ -934,12 +934,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center">
-                  <Badge variant="outline" className="mr-2">
-                    {bay.bayNumber}
-                  </Badge>
+                  <div className="flex flex-col items-center mr-2">
+                    <span className="text-xs font-semibold text-blue-400 mb-1">TEAM</span>
+                    <Badge variant="outline">
+                      {bay.bayNumber}
+                    </Badge>
+                  </div>
                   <div>
                     <div className="text-sm font-semibold">
-                      <span className="font-semibold text-blue-400 mr-1">TEAM</span> {bay.name} 
+                      {bay.name} 
                       {bay.description && (
                         <span className="text-gray-400 text-xs font-normal ml-1">- {bay.description}</span>
                       )}
@@ -992,12 +995,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center">
-                  <Badge variant="outline" className="mr-2">
-                    {bays.length + index + 1}
-                  </Badge>
+                  <div className="flex flex-col items-center mr-2">
+                    <span className="text-xs font-semibold text-blue-400 mb-1">TEAM</span>
+                    <Badge variant="outline">
+                      {bays.length + index + 1}
+                    </Badge>
+                  </div>
                   <div>
                     <div className="text-sm font-semibold">
-                      <span className="font-semibold text-blue-400 mr-1">TEAM</span> Empty
+                      Empty
                     </div>
                     <div className="text-xs text-gray-500">
                       No staff assigned
