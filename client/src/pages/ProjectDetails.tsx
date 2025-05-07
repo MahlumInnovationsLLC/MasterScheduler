@@ -24,10 +24,12 @@ import { ProgressBadge } from '@/components/ui/progress-badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDate, formatCurrency, getProjectStatusColor, getBillingStatusInfo } from '@/lib/utils';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import { ProjectHealthCard } from '@/components/ProjectHealthCard';
 import { MilestonesList } from '@/components/MilestonesList';
+import { BillingMilestonesList } from '@/components/BillingMilestonesList';
 import { ProjectPhaseInfo } from '@/components/ProjectPhaseInfo';
 import { 
   Dialog, 
@@ -52,7 +54,6 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { addDays } from 'date-fns';
 import { Loader2 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ProjectDetails = () => {
   const { id } = useParams();
@@ -662,46 +663,68 @@ const ProjectDetails = () => {
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 bg-darkCard rounded-xl border border-gray-800">
           <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-            <h3 className="font-bold">Tasks & Milestones</h3>
+            <h3 className="font-bold">Project Activities</h3>
             <div className="flex gap-2">
               <Button variant="outline" size="sm">
                 <Filter className="h-4 w-4 mr-2" />
                 Filter
               </Button>
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditMilestoneId(null);
-                  setMilestoneForm({
-                    name: '',
-                    status: 'In Progress',
-                    date: new Date().toISOString().split('T')[0]
-                  });
-                  setIsMilestoneDialogOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Milestone
-              </Button>
-              <Button 
-                size="sm"
-                onClick={() => {
-                  setEditTaskId(null);
-                  setTaskForm({
-                    name: '',
-                    description: '',
-                    dueDate: new Date().toISOString().split('T')[0],
-                    milestoneId: milestones[0]?.id || 0
-                  });
-                  setTaskDialogOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Task
-              </Button>
             </div>
           </div>
+          
+          <Tabs defaultValue="tasks" className="w-full">
+            <TabsList className="bg-darkCard h-12 border-b border-gray-800 w-full grid grid-cols-2 rounded-none">
+              <TabsTrigger 
+                value="tasks" 
+                className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:rounded-none rounded-none"
+              >
+                Tasks & Milestones
+              </TabsTrigger>
+              <TabsTrigger 
+                value="billing" 
+                className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:rounded-none rounded-none"
+              >
+                Billing Milestones
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="tasks" className="border-0 m-0 p-0">
+              <div className="p-4 flex justify-end border-b border-gray-800">
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditMilestoneId(null);
+                      setMilestoneForm({
+                        name: '',
+                        status: 'In Progress',
+                        date: new Date().toISOString().split('T')[0]
+                      });
+                      setIsMilestoneDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Milestone
+                  </Button>
+                  <Button 
+                    size="sm"
+                    onClick={() => {
+                      setEditTaskId(null);
+                      setTaskForm({
+                        name: '',
+                        description: '',
+                        dueDate: new Date().toISOString().split('T')[0],
+                        milestoneId: milestones[0]?.id || 0
+                      });
+                      setTaskDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Task
+                  </Button>
+                </div>
+              </div>
           
           <div className="p-4 space-y-3">
             {milestones.map((milestone) => (
@@ -800,6 +823,12 @@ const ProjectDetails = () => {
               </React.Fragment>
             ))}
           </div>
+            </TabsContent>
+            
+            <TabsContent value="billing" className="border-0 m-0 p-0">
+              <BillingMilestonesList projectId={projectId} />
+            </TabsContent>
+          </Tabs>
         </div>
         
         <div className="space-y-6">
@@ -1018,45 +1047,7 @@ const ProjectDetails = () => {
             </div>
           </Card>
           
-          {/* Linked Billing Milestones */}
-          <Card className="bg-darkCard rounded-xl border border-gray-800">
-            <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-              <h3 className="font-bold">Billing Milestones</h3>
-              <Button variant="link" size="sm" className="text-primary h-auto p-0">View All</Button>
-            </div>
-            <div className="p-4">
-              <div className="space-y-3">
-                {billingMilestones.length > 0 ? (
-                  billingMilestones.map((milestone) => {
-                    const statusInfo = getBillingStatusInfo(
-                      milestone.status,
-                      milestone.targetInvoiceDate,
-                      milestone.actualInvoiceDate
-                    );
-                    
-                    return (
-                      <div key={milestone.id} className="bg-darkInput rounded-lg p-3">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">{milestone.name}</span>
-                          <span className={milestone.status === 'paid' ? 'text-success' : 'text-warning'}>
-                            {formatCurrency(milestone.amount)}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex justify-between items-center text-xs">
-                          <span className="text-gray-400">{formatDate(milestone.targetInvoiceDate)}</span>
-                          <ProgressBadge status={statusInfo.display} size="sm" />
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="bg-darkInput rounded-lg p-3 text-sm text-gray-400 text-center">
-                    No billing milestones found for this project.
-                  </div>
-                )}
-              </div>
-            </div>
-          </Card>
+          {/* We've moved the Billing Milestones to the tabbed interface */}
           
           {/* Bay Assignment */}
           <Card className="bg-darkCard rounded-xl border border-gray-800">
