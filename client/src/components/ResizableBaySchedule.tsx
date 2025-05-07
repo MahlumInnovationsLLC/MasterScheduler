@@ -959,10 +959,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       let productionDays = 0;
       
       // Process week by week until all hours are allocated
+      // Keep track of weekly allocations for capacity balancing
+      const weeklyAllocations: {[key: string]: number} = {};
+      const weeklyProjects: {[key: string]: number} = {};
+      
       while (remainingHours > 0) {
         // For each week, check how many projects are overlapping
         const weekStart = startOfWeek(currentDate);
+        const weekKey = format(weekStart, 'yyyy-MM-dd');
         const weekEnd = endOfWeek(currentDate);
+        
+        // Initialize this week's tracking if not already done
+        if (!weeklyAllocations[weekKey]) {
+          weeklyAllocations[weekKey] = 0;
+          weeklyProjects[weekKey] = 0;
+        }
         
         // Count overlapping projects in this week that are in production phase
         const projectsInWeek = overlappingSchedules.filter(s => {
@@ -978,19 +989,59 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           return (schedProductionStart <= weekEnd && scheduleEnd >= weekStart);
         });
         
-        // Calculate available capacity for this project in this week
-        // Up to 4 projects can share the capacity evenly
-        const totalProjects = Math.min(4, projectsInWeek.length + 1); // +1 for the current project
-        const availableCapacity = baseWeeklyCapacity / totalProjects;
+        // Add existing projects' weekly hours to our tracking
+        projectsInWeek.forEach(s => {
+          const projectTotalHours = s.totalHours || 1000;
+          const scheduleStartDate = new Date(s.startDate);
+          const scheduleEndDate = new Date(s.endDate);
+          const schedProject = projects.find(p => p.id === s.projectId);
+          const schedFabWeeks = schedProject?.fabWeeks || 4;
+          const schedProductionStart = addDays(scheduleStartDate, schedFabWeeks * 7);
+          
+          // Calculate how many weeks this project spans during production phase
+          const productionWeeks = Math.max(1, Math.ceil(differenceInDays(scheduleEndDate, schedProductionStart) / 7));
+          const weeklyHours = projectTotalHours / productionWeeks;
+          
+          // Add this project's hours to the current week
+          weeklyAllocations[weekKey] += weeklyHours;
+          weeklyProjects[weekKey]++;
+        });
         
-        // Allocate hours for this week
+        // Count current project for capacity calculation
+        weeklyProjects[weekKey]++;
+        
+        // Calculate total projects and available capacity for this week
+        // Limit to maximum of 4 projects sharing capacity
+        const totalProjects = Math.min(4, weeklyProjects[weekKey]);
+        
+        // Determine the fair share of capacity for each project
+        const fairShareCapacity = baseWeeklyCapacity / totalProjects;
+        
+        // Calculate how much capacity is actually available for this project
+        // considering what's already allocated to other projects
+        const targetTotalWeeklyHours = Math.min(baseWeeklyCapacity, fairShareCapacity * totalProjects);
+        const availableCapacity = Math.max(0, targetTotalWeeklyHours - weeklyAllocations[weekKey] + fairShareCapacity);
+        
+        // Allocate hours for this week, limited by available capacity
         const hoursToAllocate = Math.min(remainingHours, availableCapacity);
+        
+        // Add this allocation to our weekly tracking
+        weeklyAllocations[weekKey] += hoursToAllocate;
         remainingHours -= hoursToAllocate;
+        
+        // If we allocated less than the fair share, it means the week is very constrained
+        // and we should expect the project to extend further
         
         // Move to next week and update production days
         currentDate = addDays(currentDate, 7);
         endDate = currentDate;
         productionDays += 7;
+        
+        // Safety valve to prevent infinite loops if capacity is too constrained
+        if (productionDays > 365 * 2) { // 2 years max
+          console.warn('Project duration exceeds maximum allowed (2 years). Capacity may be too constrained.');
+          break;
+        }
       }
       
       // Calculate end date based on production days
@@ -1348,6 +1399,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       let weeksCount = 0;
                       let overloadedWeeks = 0;
                       
+                      // Calculate how many hours in each week and identify overloaded weeks
                       Object.keys(weeklyLoad).forEach(week => {
                         if (weeklyLoad[week] > 0) {
                           weeksCount++;
@@ -1360,25 +1412,44 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         }
                       });
                       
+                      // Calculate how many projects per week on average
+                      let totalProjectWeeks = 0;
+                      Object.keys(weeklyProjects).forEach(week => {
+                        totalProjectWeeks += weeklyProjects[week];
+                      });
+                      const avgProjectsPerWeek = weeksCount > 0 ? totalProjectWeeks / weeksCount : 0;
+                      
+                      // Calculate average loading
                       const avgLoad = weeksCount > 0 ? totalLoad / weeksCount : 0;
                       const loadRatio = maxCapacity > 0 ? avgLoad / maxCapacity : 0;
+                      
+                      // Create a more detailed analysis
+                      const overloadedPercent = weeksCount > 0 ? (overloadedWeeks / weeksCount) * 100 : 0;
                       
                       // Determine status based on load ratio and overloaded weeks
                       let status: 'success' | 'warning' | 'danger' = 'success';
                       let label = 'Good';
+                      let details = '';
                       
                       if (loadRatio > 1 || overloadedWeeks > 0) {
                         status = 'danger';
                         label = 'Overloaded';
+                        details = overloadedWeeks > 0 
+                          ? `${overloadedWeeks} weeks exceed capacity` 
+                          : 'Extended timeline needed';
                       } else if (loadRatio > 0.85) {
                         status = 'warning';
                         label = 'Near Capacity';
+                        details = 'High utilization';
                       } else if (loadRatio > 0.5) {
                         label = 'Balanced';
+                        details = 'Good utilization';
                       } else if (loadRatio > 0) {
                         label = 'Light Load';
+                        details = 'Capacity available';
                       } else {
                         label = 'No Projects';
+                        details = 'Bay is empty';
                       }
                       
                       // Set colors based on status
@@ -1395,12 +1466,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       };
                       
                       return (
-                        <>
-                          <div className={`w-2 h-2 rounded-full ${colors[status]}`}></div>
-                          <div className={`text-xs font-medium ${textColors[status]}`}>
-                            {label} {loadRatio > 0 ? `(${Math.round(loadRatio * 100)}%)` : ''}
+                        <div className="flex flex-col items-center">
+                          <div className="flex items-center gap-1">
+                            <div className={`w-2 h-2 rounded-full ${colors[status]}`}></div>
+                            <div className={`text-xs font-medium ${textColors[status]}`}>
+                              {label} {loadRatio > 0 ? `(${Math.round(loadRatio * 100)}%)` : ''}
+                            </div>
                           </div>
-                        </>
+                          <div className="text-xs text-gray-400 mt-0.5">
+                            {details}
+                            {avgProjectsPerWeek > 0 && ` • Avg ${avgProjectsPerWeek.toFixed(1)} projects/week`}
+                          </div>
+                        </div>
                       );
                     })()}
                   </div>
