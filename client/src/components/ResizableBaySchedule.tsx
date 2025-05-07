@@ -2106,27 +2106,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const prodDays = prodWeeksNeeded * 7;
       console.log(`Production phase days needed: ${prodDays} days`);
       
-      // Calculate end date directly from production phase duration plus FAB phase
-      const endDate = addDays(productionStartDate, prodDays);
-      
-      // Use a simplified approach with fixed production phase duration
-      // Calculate production days based on the weeks needed for 60% of hours at 100% capacity
-      const productionDays = prodDays;
-      
       // Safety valve check
-      if (productionDays > 365 * 2) { // 2 years max
+      if (prodDays > 365 * 2) { // 2 years max
         console.warn('Project duration exceeds maximum allowed (2 years). Capacity may be too constrained.');
       }
       
-      // Calculate end date based on production days
       // First get the exact start date that we're using
       const exactStartDate = data.targetStartDate ? new Date(data.targetStartDate) : slotDate;
       
       // Calculate the FAB phase duration from the exact start date
       const exactFabEndDate = addDays(exactStartDate, fabDays);
       
-      // Now calculate the end date by adding production days to the FAB end date
-      endDate = addDays(exactFabEndDate, productionDays);
+      // Now calculate the final end date by adding production days to the FAB end date
+      const finalEndDate = addDays(exactFabEndDate, prodDays);
       
       // Store the formatted target date for API - CRUCIAL for preserving exact week position
       const formattedExactStartDate = format(exactStartDate, 'yyyy-MM-dd');
@@ -2134,19 +2126,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.log('Calculated dates:', {
         exactStartDate: exactStartDate.toISOString(),
         fabEndDate: exactFabEndDate.toISOString(),
-        endDate: endDate.toISOString(),
+        finalEndDate: finalEndDate.toISOString(),
         fabDays,
-        productionDays
+        prodDays
       });
       
       console.log('Attempting to drop project:', {
         projectId: data.projectId || data.id,
         bayId,
         slotDate: slotDate.toISOString(),
-        endDate: endDate.toISOString(),
+        finalEndDate: finalEndDate.toISOString(),
         totalHours: totalHours,
         baseWeeklyCapacity,
-        productionDays,
+        prodDays,
         fabWeeks,
         overlappingProjects: overlappingSchedules.length,
         type: data.type
@@ -2158,7 +2150,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           projectId: data.projectId,
           bayId: targetBayId, 
           startDate: slotDate.toISOString(), 
-          endDate: endDate.toISOString(),
+          endDate: finalEndDate.toISOString(),
           totalHours: data.totalHours || 1000,
           row: targetRowIndex
         });
@@ -2174,7 +2166,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           data.id,
           targetBayId,
           startDateToUse,
-          endDate.toISOString(),
+          finalEndDate.toISOString(),
           data.totalHours || 1000,
           targetRowIndex
         )
@@ -2213,7 +2205,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           data.projectId,
           targetBayId,
           startDateToUse,
-          endDate.toISOString(),
+          finalEndDate.toISOString(),
           data.totalHours || 1000,
           targetRowIndex // Include rowIndex for vertical positioning
         )
