@@ -793,6 +793,30 @@
   z-index: 5;
 }
 
+/* Vertical column highlight during resize operations */
+.vertical-highlight-column {
+  background-color: rgba(var(--primary-rgb), 0.15) !important;
+  position: relative;
+  z-index: 5;
+}
+
+.vertical-highlight-column::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: hsl(var(--primary));
+}
+
+.vertical-highlight-column.left-resize::after {
+  left: 0;
+}
+
+.vertical-highlight-column.right-resize::after {
+  right: 0;
+}
+
 .dark .week-cell-hover {
   background-color: rgba(var(--primary-rgb), 0.25) !important;
 }
