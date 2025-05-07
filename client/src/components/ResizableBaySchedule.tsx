@@ -2087,117 +2087,35 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Calculate how long the project will take considering capacity sharing
       const totalHours = data.totalHours || 1000; // Default to 1000 if not specified
       
-      // CRITICAL FIX: Enforce standard max capacity per week per bay for PROD hours (60%)
-      // Get the bay's base weekly capacity and apply the standard 60% utilization target
-      const standardMaxWeeklyCapacity = Math.round(baseWeeklyCapacity * 0.6);
-      console.log(`Standard max weekly capacity for bay (60% target): ${standardMaxWeeklyCapacity} hours`);
+      // CRITICAL FIX: Calculate project duration properly
+      // Project's PROD phase gets 60% of the total hours
+      const prodHours = totalHours * 0.6;
+      console.log(`Production phase hours (60% of total): ${prodHours} hours`);
       
-      // Calculate how many weeks this would take at standard 60% capacity
-      const standardWeeksNeeded = Math.ceil(totalHours / standardMaxWeeklyCapacity);
-      console.log(`Standard weeks needed at 60% capacity: ${standardWeeksNeeded} weeks`);
+      // Use 100% of the bay's weekly capacity
+      const fullWeeklyCapacity = baseWeeklyCapacity;
+      console.log(`Bay weekly capacity (100%): ${fullWeeklyCapacity} hours`);
       
-      // Initialize variables for week-by-week calculation
-      let remainingHours = totalHours;
-      let currentDate = new Date(productionStartDate);
-      let endDate = new Date(productionStartDate);
-      let productionDays = 0;
+      // Calculate how many weeks the PROD phase will take using 100% bay capacity per week
+      // This is the critical calculation that prevents auto-stretching to the entire timeline
+      // We're using PROD hours (60% of total) and full weekly capacity (100% of bay)
+      const prodWeeksNeeded = Math.max(1, Math.ceil(prodHours / fullWeeklyCapacity));
+      console.log(`Production phase weeks needed (at 100% capacity per week): ${prodWeeksNeeded} weeks`);
       
-      // Process week by week until all hours are allocated
-      // Keep track of weekly allocations for capacity balancing
-      const weeklyAllocations: {[key: string]: number} = {};
-      const weeklyProjects: {[key: string]: number} = {};
+      // Explicitly calculate days needed for production phase based on weeks
+      const prodDays = prodWeeksNeeded * 7;
+      console.log(`Production phase days needed: ${prodDays} days`);
       
-      // CRITICAL FIX: First calculate the standard duration using 60% capacity
-      // Use the calculated standardWeeksNeeded to determine a reasonable initial duration
-      let standardProductionDays = standardWeeksNeeded * 7;
+      // Calculate end date directly from production phase duration plus FAB phase
+      const endDate = addDays(productionStartDate, prodDays);
       
-      // Calculate an approximate end date based on the standard duration first
-      // This will be our starting reference point
-      const standardEndDate = addDays(productionStartDate, standardProductionDays);
-      console.log(`Standard end date at 60% capacity: ${format(standardEndDate, 'yyyy-MM-dd')}`);
+      // Use a simplified approach with fixed production phase duration
+      // Calculate production days based on the weeks needed for 60% of hours at 100% capacity
+      const productionDays = prodDays;
       
-      // Now we'll use a modified algorithm that respects the standard 60% capacity limit
-      // but also factors in sharing capacity when multiple projects are in parallel
-      while (remainingHours > 0) {
-        // For each week, check how many projects are overlapping
-        const weekStart = startOfWeek(currentDate);
-        const weekKey = format(weekStart, 'yyyy-MM-dd');
-        const weekEnd = endOfWeek(currentDate);
-        
-        // Initialize this week's tracking if not already done
-        if (!weeklyAllocations[weekKey]) {
-          weeklyAllocations[weekKey] = 0;
-          weeklyProjects[weekKey] = 0;
-        }
-        
-        // Count overlapping projects in this week that are in production phase
-        const projectsInWeek = overlappingSchedules.filter(s => {
-          const scheduleStart = new Date(s.startDate);
-          // Add FAB phase to get production start date
-          const schedProject = projects.find(p => p.id === s.projectId);
-          const schedFabWeeks = schedProject?.fabWeeks || 4;
-          const schedProductionStart = addDays(scheduleStart, schedFabWeeks * 7);
-          const scheduleEnd = new Date(s.endDate);
-          
-          // IMPORTANT: Only count overlap if this week falls within the production phase
-          // It must be AFTER the FAB phase has ended and before the end date
-          return (schedProductionStart <= weekEnd && scheduleEnd >= weekStart);
-        });
-        
-        // Add existing projects' weekly hours to our tracking
-        projectsInWeek.forEach(s => {
-          const projectTotalHours = s.totalHours || 1000;
-          const scheduleStartDate = new Date(s.startDate);
-          const scheduleEndDate = new Date(s.endDate);
-          const schedProject = projects.find(p => p.id === s.projectId);
-          const schedFabWeeks = schedProject?.fabWeeks || 4;
-          const schedProductionStart = addDays(scheduleStartDate, schedFabWeeks * 7);
-          
-          // Calculate how many weeks this project spans during production phase
-          const productionWeeks = Math.max(1, Math.ceil(differenceInDays(scheduleEndDate, schedProductionStart) / 7));
-          const weeklyHours = projectTotalHours / productionWeeks;
-          
-          // Add this project's hours to the current week
-          weeklyAllocations[weekKey] += weeklyHours;
-          weeklyProjects[weekKey]++;
-        });
-        
-        // Count current project for capacity calculation
-        weeklyProjects[weekKey]++;
-        
-        // Calculate total projects and available capacity for this week
-        // Limit to maximum of 4 projects sharing capacity  
-        const totalProjects = Math.min(4, weeklyProjects[weekKey]);
-        
-        // CRITICAL FIX: Instead of using the full bay capacity, start with 60% standard capacity
-        // Determine the fair share of capacity for each project, but limit to 60% standard capacity
-        const standardWeeklyCapacityPerProject = standardMaxWeeklyCapacity / totalProjects;
-        
-        // Calculate how much capacity is actually available for this project
-        // considering what's already allocated to other projects, limited to standard 60% max
-        const targetTotalWeeklyHours = Math.min(standardMaxWeeklyCapacity, standardWeeklyCapacityPerProject * totalProjects);
-        const availableCapacity = Math.max(0, targetTotalWeeklyHours - weeklyAllocations[weekKey] + standardWeeklyCapacityPerProject);
-        
-        // Allocate hours for this week, limited by available capacity
-        const hoursToAllocate = Math.min(remainingHours, availableCapacity);
-        
-        // Add this allocation to our weekly tracking
-        weeklyAllocations[weekKey] += hoursToAllocate;
-        remainingHours -= hoursToAllocate;
-        
-        // If we allocated less than the fair share, it means the week is very constrained
-        // and we should expect the project to extend further
-        
-        // Move to next week and update production days
-        currentDate = addDays(currentDate, 7);
-        endDate = currentDate;
-        productionDays += 7;
-        
-        // Safety valve to prevent infinite loops if capacity is too constrained
-        if (productionDays > 365 * 2) { // 2 years max
-          console.warn('Project duration exceeds maximum allowed (2 years). Capacity may be too constrained.');
-          break;
-        }
+      // Safety valve check
+      if (productionDays > 365 * 2) { // 2 years max
+        console.warn('Project duration exceeds maximum allowed (2 years). Capacity may be too constrained.');
       }
       
       // Calculate end date based on production days
@@ -2351,8 +2269,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Get the base capacity for this bay
     const baseWeeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
     
-    // ADDED: Calculate the standard max weekly capacity (60% target)
-    const standardMaxWeeklyCapacity = Math.round(baseWeeklyCapacity * 0.6);
+    // FIXED: We need 100% bay utilization, not just 60%
+    // For consistency with the other fix, use the full bay capacity (100%)
+    const standardMaxWeeklyCapacity = baseWeeklyCapacity;
     
     // Get all schedules in this bay
     const baySchedules = schedules.filter(s => s.bayId === schedule.bayId && s.id !== scheduleId);
@@ -2384,12 +2303,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const projectsCount = projectsInWeek.length + 1; // +1 for the current project
       const totalWeeklyUsage = (projectsCount * weeklyHours);
       
-      // CRITICAL FIX: Use standardMaxWeeklyCapacity (60% of base) instead of full capacity
-      // This enforces that manual resizes also respect the standard 60% capacity limitation
+      // FIXED: Check against full bay capacity (100%)
+      // This enforces that manual resizes respect the bay's maximum capacity
       if (totalWeeklyUsage > standardMaxWeeklyCapacity) {
         overCapacityWeeks.push({
           weekStart: format(weekStart, 'MMM d, yyyy'),
-          // Calculate utilization percent against the standard 60% capacity limit
+          // Calculate utilization percent against the bay's full capacity
           utilization: Math.round((totalWeeklyUsage / standardMaxWeeklyCapacity) * 100)
         });
       }
