@@ -2115,10 +2115,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const prodDays = prodWeeksNeeded * 7;
       console.log(`Production phase days needed: ${prodDays} days`);
       
-      // Safety valve check
-      if (prodDays > 365 * 2) { // 2 years max
-        console.warn('Project duration exceeds maximum allowed (2 years). Capacity may be too constrained.');
+      // Safety valve check - HARD CAP the maximum duration
+      const MAX_PROD_DAYS = 60; // Maximum 8-9 weeks for production phase
+      const cappedProdDays = Math.min(prodDays, MAX_PROD_DAYS);
+      if (prodDays > MAX_PROD_DAYS) {
+        console.warn(`DURATION CAPPED: Project production phase reduced from ${prodDays} to ${MAX_PROD_DAYS} days to prevent excessive stretching`);
       }
+      // Use the capped value for further calculations
+      const prodDaysToUse = cappedProdDays;
       
       // First get the exact start date that we're using
       // CRITICAL FIX: Use the global variable we set in handleDragOver if available
