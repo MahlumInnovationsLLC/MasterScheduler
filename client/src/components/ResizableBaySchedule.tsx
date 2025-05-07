@@ -2370,9 +2370,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       <div className="flex">
         {/* Left sidebar with bay labels */}
         <div className="shrink-0 w-64 border-r border-gray-700">
-          <div className="h-12 flex items-end pb-1 pl-3 text-xs font-semibold text-gray-400">
-            Bays
+          {/* Title row aligned with the year row */}
+          <div className="h-6 border-b border-gray-700 flex items-center justify-center">
+            <div className="text-sm font-bold text-gray-300">BAYS</div>
           </div>
+          {/* Label row aligned with the week headers */}
+          <div className="h-12 border-b border-gray-700"></div>
           {/* Display edit button for each bay */}
           {bays.map(bay => (
             <div 
