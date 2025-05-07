@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { format, addDays, differenceInDays, isSameDay, addWeeks, addMonths, startOfMonth, endOfMonth } from 'date-fns';
-import { PlusCircle, GripVertical, Info, X, ChevronRight, PencilIcon, PlusIcon, Users, Zap } from 'lucide-react';
+import { PlusCircle, GripVertical, Info, X, ChevronRight, ChevronLeft, PencilIcon, PlusIcon, Users, Zap, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -1359,29 +1359,52 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         </div>
       </div>
       
-      {/* Unassigned projects panel */}
-      <div className="mt-6 bg-darkCard p-4 rounded-md border border-gray-700">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-base font-semibold">Unassigned Projects</h3>
-          <Button size="sm" variant="ghost" className="text-xs">
-            <ChevronRight className="h-4 w-4 mr-1" />
-            View All
-          </Button>
+      {/* Sidebar toggle button */}
+      <button 
+        className="fixed right-0 top-1/2 transform -translate-y-1/2 z-50 bg-gray-800 hover:bg-gray-700 p-2 rounded-l-lg shadow-xl transition-colors border-l border-t border-b border-gray-700"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+      >
+        {sidebarOpen ? 
+          <ChevronRight className="h-5 w-5" /> : 
+          <ChevronLeft className="h-5 w-5" />
+        }
+      </button>
+      
+      {/* Collapsible unassigned projects sidebar */}
+      <div 
+        className={`fixed right-0 top-0 bottom-0 bg-gray-800 z-40 w-80 shadow-xl transition-all duration-300 transform ${
+          sidebarOpen ? 'translate-x-0' : 'translate-x-full'
+        } overflow-auto border-l border-gray-700`}
+      >
+        <div className="p-4 border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Unassigned Projects</h3>
+            <button 
+              onClick={() => setSidebarOpen(false)}
+              className="p-1 rounded-full hover:bg-gray-700"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="text-sm text-gray-400">
+            {projects.filter(project => !schedules.some(schedule => schedule.projectId === project.id)).length} projects available
+          </p>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="p-4 space-y-3">
           {projects
             .filter(project => !schedules.some(schedule => schedule.projectId === project.id))
             .map(project => (
               <div
                 key={project.id}
-                className="relative p-3 rounded-md border border-gray-700 bg-gray-800/50 shadow-sm hover:bg-gray-800 cursor-grab active:cursor-grabbing transition-colors group"
-                draggable={true}
+                className="p-3 bg-gray-700 rounded-md shadow hover:shadow-md hover:bg-gray-600 transition cursor-grab"
+                draggable
                 onDragStart={(e) => handleDragStart(e, 'new', {
                   projectId: project.id,
                   projectName: project.name,
                   projectNumber: project.projectNumber,
-                  totalHours: project.totalHours || 40
+                  totalHours: project.totalHours || 1000
                 })}
                 onDragEnd={() => {
                   // Reset drag state when drag operation completes or is canceled
@@ -1389,25 +1412,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   setDropTarget(null);
                 }}
               >
-                <div className="text-sm font-medium">{project.projectNumber}</div>
-                <div className="text-xs text-gray-400 mt-1 line-clamp-1">{project.name}</div>
-                <div className="flex justify-between items-center mt-2">
-                  <Badge variant="outline" className="bg-gray-700/50">{project.totalHours || 40}h</Badge>
-                  <div className="flex items-center space-x-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: getProjectColor(project.id) }}
-                    ></div>
-                    
-                    {/* Edit button */}
-                    <a 
-                      href={`/project/${project.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center text-gray-400 hover:text-white"
-                    >
-                      <PencilIcon className="h-3.5 w-3.5" />
-                    </a>
+                <div className="font-medium mb-1">{project.projectNumber}</div>
+                <div className="text-sm text-gray-300 mb-2 line-clamp-2">{project.name}</div>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center text-xs text-gray-400">
+                    <Clock className="h-3 w-3 mr-1" />
+                    <span>{project.totalHours || 1000} hours</span>
                   </div>
+                  <a 
+                    href={`/project/${project.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <PencilIcon className="h-3.5 w-3.5" />
+                  </a>
                 </div>
               </div>
             ))}
