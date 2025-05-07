@@ -201,7 +201,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
               <BrainCircuit className="h-3 w-3 text-primary" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-0" align="end">
+          <PopoverContent className="w-[350px] p-0" align="end">
             <div className="p-3 border-b border-gray-800">
               <h4 className="font-medium text-sm flex items-center">
                 <BrainCircuit className="h-3 w-3 mr-2 text-primary" />
@@ -211,31 +211,145 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
                 {getOverallInsight()}
               </p>
             </div>
-            <div className="max-h-80 overflow-y-auto p-0">
-              {bayStatuses.map((bay) => (
-                <div 
-                  key={bay.bayId}
-                  className="border-b border-gray-800 last:border-b-0 p-3"
-                >
-                  <div className="flex items-start">
-                    <div className="mr-2 mt-0.5">
-                      {getStatusIcon(bay.status)}
-                    </div>
-                    <div>
-                      <div className="flex items-center">
-                        <h5 className="text-sm font-medium">{bay.bayName}</h5>
-                        <span className={`text-xs ml-2 ${getStatusColor(bay.status)}`}>
-                          {bay.utilization}%
-                        </span>
+            
+            <Tabs defaultValue="status" className="w-full">
+              <TabsList className="w-full grid grid-cols-3 border-b border-gray-800 rounded-none h-9">
+                <TabsTrigger value="status" className="text-xs">Status</TabsTrigger>
+                <TabsTrigger value="teams" className="text-xs">Teams</TabsTrigger>
+                <TabsTrigger value="recommendations" className="text-xs">Action Plan</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="status" className="m-0 max-h-[300px] overflow-y-auto">
+                {bayStatuses.map((bay) => (
+                  <div 
+                    key={bay.bayId}
+                    className="border-b border-gray-800 last:border-b-0 p-3"
+                  >
+                    <div className="flex items-start">
+                      <div className="mr-2 mt-0.5">
+                        {getStatusIcon(bay.status)}
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {bay.description}
-                      </p>
+                      <div>
+                        <div className="flex items-center">
+                          <h5 className="text-sm font-medium">{bay.bayName}</h5>
+                          <span className={`text-xs ml-2 ${getStatusColor(bay.status)}`}>
+                            {bay.utilization}%
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {bay.description}
+                        </p>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </TabsContent>
+              
+              <TabsContent value="teams" className="m-0 max-h-[300px] overflow-y-auto">
+                {bayStatuses.map((bay) => (
+                  <div 
+                    key={bay.bayId}
+                    className="border-b border-gray-800 last:border-b-0 p-3"
+                  >
+                    <div className="flex items-start">
+                      <div className="mr-2 mt-0.5">
+                        <Users className="h-3 w-3 text-gray-400" />
+                      </div>
+                      <div>
+                        <div className="flex items-center">
+                          <h5 className="text-sm font-medium">{bay.teamName}</h5>
+                          {bay.teamType && (
+                            <span className="text-xs ml-2 px-1.5 py-0.5 bg-gray-800 rounded text-gray-400">
+                              {bay.teamType}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center mt-1 gap-3 text-xs text-gray-400">
+                          <div className="flex items-center">
+                            <Users className="h-3 w-3 mr-1" />
+                            <span>{bay.staffCount} staff</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            <span>{bay.weeklyCapacity}hrs/week</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </TabsContent>
+              
+              <TabsContent value="recommendations" className="m-0 max-h-[300px] overflow-y-auto p-3">
+                <div className="grid gap-3">
+                  {bayStatuses.some(b => b.status === 'overloaded') && (
+                    <div className="bg-red-900/10 border border-red-900/30 rounded-md p-2.5">
+                      <h6 className="text-xs font-medium flex items-center">
+                        <AlertCircle className="h-3 w-3 text-red-500 mr-1" />
+                        <span>Overloaded Teams</span>
+                      </h6>
+                      <ul className="mt-1.5 space-y-1.5">
+                        {bayStatuses
+                          .filter(b => b.status === 'overloaded')
+                          .map(bay => bay.recommendations?.[0])
+                          .filter(Boolean)
+                          .map((rec, i) => (
+                            <li key={i} className="text-xs text-gray-400 flex">
+                              <span className="mr-1.5">•</span>
+                              <span>{rec}</span>
+                            </li>
+                          ))
+                        }
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {bayStatuses.some(b => b.status === 'balanced') && (
+                    <div className="bg-green-900/10 border border-green-900/30 rounded-md p-2.5">
+                      <h6 className="text-xs font-medium flex items-center">
+                        <Info className="h-3 w-3 text-green-500 mr-1" />
+                        <span>Balanced Teams</span>
+                      </h6>
+                      <ul className="mt-1.5 space-y-1.5">
+                        {bayStatuses
+                          .filter(b => b.status === 'balanced')
+                          .map(bay => bay.recommendations?.[0])
+                          .filter(Boolean)
+                          .map((rec, i) => (
+                            <li key={i} className="text-xs text-gray-400 flex">
+                              <span className="mr-1.5">•</span>
+                              <span>{rec}</span>
+                            </li>
+                          ))
+                        }
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {bayStatuses.some(b => b.status === 'underutilized') && (
+                    <div className="bg-blue-900/10 border border-blue-900/30 rounded-md p-2.5">
+                      <h6 className="text-xs font-medium flex items-center">
+                        <TrendingDown className="h-3 w-3 text-blue-500 mr-1" />
+                        <span>Underutilized Teams</span>
+                      </h6>
+                      <ul className="mt-1.5 space-y-1.5">
+                        {bayStatuses
+                          .filter(b => b.status === 'underutilized')
+                          .map(bay => bay.recommendations?.[0])
+                          .filter(Boolean)
+                          .map((rec, i) => (
+                            <li key={i} className="text-xs text-gray-400 flex">
+                              <span className="mr-1.5">•</span>
+                              <span>{rec}</span>
+                            </li>
+                          ))
+                        }
+                      </ul>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
+              </TabsContent>
+            </Tabs>
           </PopoverContent>
         </Popover>
       </div>
