@@ -51,7 +51,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
   
   // Calculate status for each bay
   const bayStatuses: BayStatus[] = React.useMemo(() => {
-    if (!bays.length) return [];
+    if (!bays || !bays.length) return [];
     
     // Debug the bay data and schedules
     console.log("All bays:", bays);
@@ -91,7 +91,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
           recommendations: ['Assign staff to this bay to begin utilizing it']
         };
         
-        // Calculate scheduled hours for this bay with time weighting and production phase focus
+        // Calculate scheduled hours with time weighting and production phase focus
         let weeklyUtilization = 0;
         
         if (baySchedules.length > 0) {
