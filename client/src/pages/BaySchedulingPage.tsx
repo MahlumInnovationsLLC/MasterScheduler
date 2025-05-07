@@ -151,15 +151,38 @@ const BaySchedulingPage = () => {
       const baySchedules = manufacturingSchedules.filter(schedule => schedule.bayId === bay.id);
       
       // Calculate capacity for this bay
-      const bayCapacity = (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 0);
+      const weeklyCapacity = (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 0);
       
-      if (bayCapacity === 0) return 0;
+      if (weeklyCapacity === 0) return 0;
       
-      // Calculate scheduled hours for this bay
-      const bayScheduledHours = baySchedules.reduce((sum, schedule) => sum + (schedule.totalHours || 0), 0);
+      // Calculate scheduled hours for this bay, but distributed by week
+      let weeklyUtilization = 0;
       
-      // Calculate utilization percentage for this bay
-      return Math.min(100, (bayScheduledHours / bayCapacity) * 100);
+      if (baySchedules.length > 0) {
+        // Calculate the total weeks for each schedule and distribute hours evenly
+        baySchedules.forEach(schedule => {
+          if (schedule.startDate && schedule.endDate && schedule.totalHours) {
+            const startDate = new Date(schedule.startDate);
+            const endDate = new Date(schedule.endDate);
+            
+            // Calculate number of weeks (including partial weeks)
+            const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            const weeks = Math.max(1, Math.ceil(diffDays / 7));
+            
+            // Calculate hours per week for this schedule
+            const hoursPerWeek = schedule.totalHours / weeks;
+            
+            // Add to weekly utilization
+            weeklyUtilization += hoursPerWeek;
+          }
+        });
+      }
+      
+      console.log(`Dashboard: Bay ${bay.name} - Weekly capacity: ${weeklyCapacity} hours, Weekly utilization: ${weeklyUtilization} hours`);
+      
+      // Calculate utilization percentage based on weekly hours
+      return Math.min(100, (weeklyUtilization / weeklyCapacity) * 100);
     });
     
     // Calculate average utilization across all staffed bays
