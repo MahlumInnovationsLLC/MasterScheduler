@@ -1285,8 +1285,126 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 </div>
               </div>
               
-              {/* Team capacity area - no row labels */}
-              <div className="flex-1 flex items-center justify-center">
+              {/* Team capacity area with work level indicator */}
+              <div className="flex-1 flex flex-col items-center justify-center gap-1">
+                {/* Work Level Indicator */}
+                {bay.staffCount > 0 && (
+                  <div className="flex items-center gap-1">
+                    {(() => {
+                      // Calculate weekly workload for this bay based on current projects
+                      const baySchedules = scheduleBars.filter(b => b.bayId === bay.id);
+                      
+                      // Calculate the maximum capacity per week for this bay
+                      const maxCapacity = (bay.hoursPerPersonPerWeek || 32) * (bay.staffCount || 1);
+                      
+                      // Check if any week exceeds capacity by looking at overlapping projects
+                      // Break down by weeks in the visible range
+                      const weeklyLoad: {[key: string]: number} = {};
+                      const weeklyProjects: {[key: string]: number} = {};
+                      
+                      // Initialize weeks
+                      slots.forEach(slot => {
+                        const weekStart = format(startOfWeek(slot.date), 'yyyy-MM-dd');
+                        if (!weeklyLoad[weekStart]) {
+                          weeklyLoad[weekStart] = 0;
+                          weeklyProjects[weekStart] = 0;
+                        }
+                      });
+                      
+                      // Calculate load for each week
+                      baySchedules.forEach(schedule => {
+                        const startDate = new Date(schedule.startDate);
+                        const endDate = new Date(schedule.endDate);
+                        const projectFabWeeks = schedule.fabWeeks || 4;
+                        const productionStartDate = addDays(startDate, projectFabWeeks * 7);
+                        
+                        // Only count hours during the production phase (after FAB phase)
+                        const totalWeeks = Math.ceil(differenceInDays(endDate, productionStartDate) / 7);
+                        if (totalWeeks <= 0) return; // No production phase yet
+                        
+                        const weeklyHours = (schedule.totalHours || 1000) / totalWeeks;
+                        
+                        // Distribute hours to each week in the production phase
+                        slots.forEach(slot => {
+                          const slotDate = slot.date;
+                          const weekStart = format(startOfWeek(slotDate), 'yyyy-MM-dd');
+                          
+                          // Only add hours if this week is in the production phase
+                          if (slotDate >= productionStartDate && slotDate <= endDate) {
+                            weeklyLoad[weekStart] += weeklyHours;
+                            
+                            // Count this project for this week if not already counted
+                            if (!weeklyProjects[weekStart]) {
+                              weeklyProjects[weekStart] = 0;
+                            }
+                            weeklyProjects[weekStart]++;
+                          }
+                        });
+                      });
+                      
+                      // Determine overall workload level
+                      let maxLoad = 0;
+                      let totalLoad = 0;
+                      let weeksCount = 0;
+                      let overloadedWeeks = 0;
+                      
+                      Object.keys(weeklyLoad).forEach(week => {
+                        if (weeklyLoad[week] > 0) {
+                          weeksCount++;
+                          totalLoad += weeklyLoad[week];
+                          maxLoad = Math.max(maxLoad, weeklyLoad[week]);
+                          
+                          if (weeklyLoad[week] > maxCapacity) {
+                            overloadedWeeks++;
+                          }
+                        }
+                      });
+                      
+                      const avgLoad = weeksCount > 0 ? totalLoad / weeksCount : 0;
+                      const loadRatio = maxCapacity > 0 ? avgLoad / maxCapacity : 0;
+                      
+                      // Determine status based on load ratio and overloaded weeks
+                      let status: 'success' | 'warning' | 'danger' = 'success';
+                      let label = 'Good';
+                      
+                      if (loadRatio > 1 || overloadedWeeks > 0) {
+                        status = 'danger';
+                        label = 'Overloaded';
+                      } else if (loadRatio > 0.85) {
+                        status = 'warning';
+                        label = 'Near Capacity';
+                      } else if (loadRatio > 0.5) {
+                        label = 'Balanced';
+                      } else if (loadRatio > 0) {
+                        label = 'Light Load';
+                      } else {
+                        label = 'No Projects';
+                      }
+                      
+                      // Set colors based on status
+                      const colors = {
+                        success: 'bg-green-500',
+                        warning: 'bg-yellow-500',
+                        danger: 'bg-red-500',
+                      };
+                      
+                      const textColors = {
+                        success: 'text-green-500',
+                        warning: 'text-yellow-500',
+                        danger: 'text-red-500',
+                      };
+                      
+                      return (
+                        <>
+                          <div className={`w-2 h-2 rounded-full ${colors[status]}`}></div>
+                          <div className={`text-xs font-medium ${textColors[status]}`}>
+                            {label} {loadRatio > 0 ? `(${Math.round(loadRatio * 100)}%)` : ''}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
                 <div className="text-xs text-gray-400">4 projects max</div>
               </div>
             </div>
