@@ -238,16 +238,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         if (!project || !bay) return;
         
-        const startDate = new Date(schedule.startDate);
-        const endDate = new Date(schedule.endDate);
-        
         // Get the FAB weeks for this project (default to 4 if not set)
         const fabWeeks = project.fabWeeks || 4;
+        
+        // Original start and end dates from the database
+        const originalStartDate = new Date(schedule.startDate);
+        const originalEndDate = new Date(schedule.endDate);
         
         // Find a row that doesn't have a schedule overlapping with this one
         let assignedRow = -1;
         for (let row = 0; row < 4; row++) {
-          if (startDate >= rowEndDates[row]) {
+          if (originalStartDate >= rowEndDates[row]) {
             assignedRow = row;
             break;
           }
@@ -261,96 +262,58 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         }
         
         // Update the end date for this row
-        rowEndDates[assignedRow] = new Date(endDate);
+        rowEndDates[assignedRow] = new Date(originalEndDate);
         
-        // Find the slot indices
+        // Find the slot indices for the original start date (where the bar begins)
         const startSlotIndex = slots.findIndex(slot => {
           if (viewMode === 'day') {
-            return isSameDay(slot.date, startDate) || slot.date > startDate;
+            return isSameDay(slot.date, originalStartDate) || slot.date > originalStartDate;
           } else if (viewMode === 'week') {
             const slotEndDate = addDays(slot.date, 6);
-            return (startDate >= slot.date && startDate <= slotEndDate);
+            return (originalStartDate >= slot.date && originalStartDate <= slotEndDate);
           } else if (viewMode === 'month') {
             const slotMonth = slot.date.getMonth();
             const slotYear = slot.date.getFullYear();
-            return (startDate.getMonth() === slotMonth && startDate.getFullYear() === slotYear);
+            return (originalStartDate.getMonth() === slotMonth && originalStartDate.getFullYear() === slotYear);
           } else { // quarter
             const slotQuarter = Math.floor(slot.date.getMonth() / 3);
             const slotYear = slot.date.getFullYear();
-            const startQuarter = Math.floor(startDate.getMonth() / 3);
-            return (startQuarter === slotQuarter && startDate.getFullYear() === slotYear);
+            const startQuarter = Math.floor(originalStartDate.getMonth() / 3);
+            return (startQuarter === slotQuarter && originalStartDate.getFullYear() === slotYear);
           }
         });
         
+        // Find the slot indices for the original end date
         const endSlotIndex = slots.findIndex(slot => {
           if (viewMode === 'day') {
-            return isSameDay(slot.date, endDate) || slot.date > endDate;
+            return isSameDay(slot.date, originalEndDate) || slot.date > originalEndDate;
           } else if (viewMode === 'week') {
             const slotEndDate = addDays(slot.date, 6);
-            return (endDate >= slot.date && endDate <= slotEndDate);
+            return (originalEndDate >= slot.date && originalEndDate <= slotEndDate);
           } else if (viewMode === 'month') {
             const slotMonth = slot.date.getMonth();
             const slotYear = slot.date.getFullYear();
-            return (endDate.getMonth() === slotMonth && endDate.getFullYear() === slotYear);
+            return (originalEndDate.getMonth() === slotMonth && originalEndDate.getFullYear() === slotYear);
           } else { // quarter
             const slotQuarter = Math.floor(slot.date.getMonth() / 3);
             const slotYear = slot.date.getFullYear();
-            const endQuarter = Math.floor(endDate.getMonth() / 3);
-            return (endQuarter === slotQuarter && endDate.getFullYear() === slotYear);
+            const endQuarter = Math.floor(originalEndDate.getMonth() / 3);
+            return (endQuarter === slotQuarter && originalEndDate.getFullYear() === slotYear);
           }
         });
         
-        // Calculate width and position based on capacity-adjusted duration
+        // Calculate slot indices
         const validStartIndex = startSlotIndex === -1 ? 0 : startSlotIndex;
         const validEndIndex = endSlotIndex === -1 ? slots.length - 1 : endSlotIndex;
         
-        // Get weekly capacity for this bay
-        const weeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
-        
-        // Calculate how many full weeks the project will take based on total hours
-        const totalHours = schedule.totalHours || 1000; // Default to 1000 if not specified
-        const fullWeeksNeeded = Math.floor(totalHours / weeklyCapacity);
-        
-        // Calculate remaining hours after full weeks
-        const remainingHours = totalHours % weeklyCapacity;
-        
-        // Calculate additional slots needed for remaining hours (partial week)
-        const additionalSlots = remainingHours > 0 ? 1 : 0; // At least one more slot for remainders
-        
-        // Calculate total slots needed
-        let totalSlotsNeeded;
-        if (viewMode === 'day') {
-          // For day view, each day is a slot
-          const dailyCapacity = weeklyCapacity / 5;
-          const daysNeeded = Math.ceil(totalHours / dailyCapacity);
-          totalSlotsNeeded = daysNeeded;
-        } else if (viewMode === 'week') {
-          // For week view, each slot is a week
-          totalSlotsNeeded = fullWeeksNeeded + additionalSlots;
-        } else if (viewMode === 'month') {
-          // For month view, approximate weeks per month
-          const weeksPerMonth = 4;
-          totalSlotsNeeded = Math.ceil((fullWeeksNeeded + additionalSlots) / weeksPerMonth);
-        } else { // quarter
-          // For quarter view, approximate weeks per quarter
-          const weeksPerQuarter = 13;
-          totalSlotsNeeded = Math.ceil((fullWeeksNeeded + additionalSlots) / weeksPerQuarter);
-        }
-        
-        // Ensure at least 1 slot
-        totalSlotsNeeded = Math.max(1, totalSlotsNeeded);
-        
-        // Apply the calculated width
-        const calculatedEndIndex = validStartIndex + totalSlotsNeeded - 1;
-        const adjustedEndIndex = Math.min(calculatedEndIndex, slots.length - 1);
-        
-        const barWidth = ((adjustedEndIndex - validStartIndex) + 1) * slotWidth;
+        // Calculate total bar width based on actual date range, not on capacity calculations
+        const barWidth = ((validEndIndex - validStartIndex) + 1) * slotWidth;
         const barLeft = validStartIndex * slotWidth;
         
-        // Calculate FAB phase width based on view mode
+        // Calculate FAB phase width - STRICTLY based on FAB weeks, not a percentage of total width
         let fabWidth = 0;
         if (viewMode === 'day') {
-          fabWidth = fabWeeks * 7 * (slotWidth / 7); // Convert weeks to days
+          fabWidth = fabWeeks * 7 * slotWidth / 7; // Convert weeks to days
         } else if (viewMode === 'week') {
           fabWidth = fabWeeks * slotWidth; // Direct mapping for weeks
         } else if (viewMode === 'month') {
@@ -359,8 +322,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           fabWidth = Math.ceil(fabWeeks / 13) * slotWidth; // Approximate weeks to quarters
         }
         
-        // Ensure minimum width and cap maximum
-        fabWidth = Math.max(slotWidth / 2, Math.min(fabWidth, barWidth * 0.5));
+        // Ensure minimum width but don't cap it based on total width percentage
+        fabWidth = Math.max(slotWidth / 2, fabWidth);
         
         processedBars.push({
           id: schedule.id,
@@ -1349,19 +1312,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           bayId: bar.bayId
                         })}
                       >
-                        {/* FAB phase indicator */}
+                        {/* FAB phase indicator - always shown, no longer limited by percentage of total bar */}
                         {bar.fabWidth && bar.fabWidth > 0 && (
                           <div 
                             className="absolute top-0 left-0 h-full rounded-l-sm flex items-center justify-center overflow-hidden"
                             style={{
-                              width: `${Math.min(bar.fabWidth, bar.width - 4)}px`,
+                              width: `${bar.fabWidth}px`,
                               backgroundColor: 'rgba(255, 255, 255, 0.25)',
                               borderRight: '2px dashed rgba(255, 255, 255, 0.6)',
                               zIndex: 1
                             }}
                           >
                             <span className="text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1">
-                              FAB
+                              FAB {bar.fabWeeks}w
                             </span>
                           </div>
                         )}
