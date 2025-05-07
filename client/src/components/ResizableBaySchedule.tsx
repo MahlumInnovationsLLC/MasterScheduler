@@ -201,7 +201,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   }, [initialBays]);
   const { toast } = useToast();
   const [draggingSchedule, setDraggingSchedule] = useState<any>(null);
-  const [resizingSchedule, setResizingSchedule] = useState<any>(null);
+  const [resizingSchedule, setResizingSchedule] = useState<{
+    id: number;
+    direction: 'left' | 'right';
+    startX: number;
+    initialWidth: number;
+    initialLeft: number;
+    initialStartDate: Date;
+    initialEndDate: Date;
+    projectId: number;
+    bayId: number;
+  } | null>(null);
   const [dropTarget, setDropTarget] = useState<{ bayId: number, slotIndex: number, rowIndex?: number } | null>(null);
   const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
   const [newBay, setNewBay] = useState<ManufacturingBay | null>(null);
