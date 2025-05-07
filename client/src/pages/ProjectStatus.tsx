@@ -60,6 +60,10 @@ const ProjectStatus = () => {
     queryKey: ['/api/projects'],
   });
   
+  const { data: manufacturingSchedules } = useQuery({
+    queryKey: ['/api/manufacturing-schedules'],
+  });
+  
   // Flag to track if initial auto-filtering has been applied
   const [hasAppliedInitialFilter, setHasAppliedInitialFilter] = useState(false);
   
@@ -458,14 +462,13 @@ const ProjectStatus = () => {
         );
         
         // Get the scheduling state for this project
-        const scheduleState = getProjectScheduleState(
-          manufacturingSchedules,
-          project.id
-        );
+        const scheduleState = manufacturingSchedules 
+          ? getProjectScheduleState(manufacturingSchedules, project.id)
+          : 'Unscheduled';
         
         return (
           <div className="flex items-center gap-2">
-            <ProgressBadge status="Active" />
+            <ProgressBadge status={status} />
             <ProgressBadge 
               status={scheduleState} 
               className={
