@@ -320,6 +320,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   const handleDragStart = (e: React.DragEvent, type: 'existing' | 'new', data: any) => {
     e.stopPropagation();
     
+    // Add a class to the body to indicate dragging is in progress
+    document.body.classList.add('dragging-active');
+    
     // CRITICAL: We must ensure the correct data is set for the drag operation
     try {
       // Set both formats for better browser compatibility
@@ -336,31 +339,50 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       console.log(`Drag started for ${type} project:`, data.projectNumber || 'Project');
       
-      // Create custom drag image
+      // Create a better custom drag image
       const dragImage = document.createElement('div');
-      dragImage.className = 'p-2 rounded-md shadow-lg border bg-primary text-white';
+      dragImage.className = 'p-3 rounded-md shadow-xl border border-primary/50 bg-primary text-white';
       dragImage.style.position = 'absolute';
       dragImage.style.top = '-1000px';
       dragImage.style.zIndex = '9999';
-      dragImage.style.padding = '10px';
-      dragImage.style.width = '200px';
+      dragImage.style.padding = '12px';
+      dragImage.style.width = '240px';
+      dragImage.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
       
+      // Add project number and name
       const projectInfo = document.createElement('div');
-      projectInfo.className = 'font-medium';
+      projectInfo.className = 'font-medium text-sm';
       projectInfo.textContent = data.projectNumber ? 
-        `${data.projectNumber}: ${data.projectName?.substring(0, 15) || ''}` : 
+        `${data.projectNumber}: ${data.projectName?.substring(0, 20) || ''}` : 
         'Project';
+      projectInfo.style.whiteSpace = 'nowrap';
+      projectInfo.style.overflow = 'hidden';
+      projectInfo.style.textOverflow = 'ellipsis';
       dragImage.appendChild(projectInfo);
       
-      const hoursInfo = document.createElement('div');
-      hoursInfo.className = 'text-white text-xs mt-1';
-      hoursInfo.textContent = `${data.totalHours || 40} hours`;
-      dragImage.appendChild(hoursInfo);
+      // Add hours info with icon
+      const hoursContainer = document.createElement('div');
+      hoursContainer.className = 'text-white text-xs mt-2 flex items-center';
+      hoursContainer.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 mr-1">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span>${data.totalHours || 40} hours</span>
+      `;
+      dragImage.appendChild(hoursContainer);
+      
+      // Add a hint label
+      const hintLabel = document.createElement('div');
+      hintLabel.className = 'text-white/70 text-xs mt-2 flex items-center';
+      hintLabel.textContent = 'Drop in a bay to schedule';
+      dragImage.appendChild(hintLabel);
       
       document.body.appendChild(dragImage);
       
       // Set drag image with offset
-      e.dataTransfer.setDragImage(dragImage, 30, 20);
+      e.dataTransfer.setDragImage(dragImage, 40, 25);
       
       // Clean up after a short delay
       setTimeout(() => {
@@ -368,6 +390,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           document.body.removeChild(dragImage);
         }
       }, 100);
+      
+      // Visual feedback on the original element being dragged
+      if (type === 'new') {
+        const element = e.currentTarget as HTMLElement;
+        element.classList.add('opacity-50', 'border-dashed');
+        
+        // Remove the visual feedback when drag ends
+        const cleanup = () => {
+          element.classList.remove('opacity-50', 'border-dashed');
+          document.body.classList.remove('dragging-active');
+          document.removeEventListener('dragend', cleanup);
+        };
+        
+        document.addEventListener('dragend', cleanup);
+      }
       
       // Update internal state
       if (type === 'existing' && data.id) {
@@ -382,6 +419,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
     } catch (error) {
       console.error('Error in drag start:', error);
+      document.body.classList.remove('dragging-active');
     }
   };
   
@@ -392,11 +430,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.dataTransfer.dropEffect = 'move';
     
     // Clear previous highlight
-    document.querySelectorAll('.bg-primary/10').forEach(el => {
-      el.classList.remove('bg-primary/10');
+    document.querySelectorAll('.drop-target-highlight').forEach(el => {
+      el.classList.remove('drop-target-highlight', 'bg-primary/20', 'border-primary', 'border-dashed');
     });
     document.querySelectorAll('.bay-row-highlight').forEach(el => {
-      el.classList.remove('bay-row-highlight');
+      el.classList.remove('bay-row-highlight', 'bg-primary/10');
     });
     
     // Determine row index if not provided
@@ -415,16 +453,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       rowIndex: validRowIndex
     });
     
-    // Add visual cue to the cell
+    // Add prominent visual cue to the cell
     const target = e.currentTarget as HTMLElement;
-    target.classList.add('bg-primary/10');
+    target.classList.add('drop-target-highlight', 'bg-primary/20', 'border-primary', 'border-dashed');
     
     // Highlight the specific row
     const bayElement = target.closest('.bay-container');
     if (bayElement) {
       const rowElements = bayElement.querySelectorAll('.bay-row');
       if (rowElements && rowElements.length > validRowIndex) {
-        rowElements[validRowIndex].classList.add('bay-row-highlight');
+        rowElements[validRowIndex].classList.add('bay-row-highlight', 'bg-primary/10');
       }
     }
   };
@@ -590,12 +628,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.stopPropagation();
     
     // Remove visual cue from all possible drop targets
-    document.querySelectorAll('.bg-primary/10').forEach(el => {
-      el.classList.remove('bg-primary/10');
+    document.querySelectorAll('.drop-target-highlight').forEach(el => {
+      el.classList.remove('drop-target-highlight', 'bg-primary/20', 'border-primary', 'border-dashed');
     });
     document.querySelectorAll('.bay-row-highlight').forEach(el => {
-      el.classList.remove('bay-row-highlight');
+      el.classList.remove('bay-row-highlight', 'bg-primary/10');
     });
+    
+    // Remove dragging active class from body
+    document.body.classList.remove('dragging-active');
     
     try {
       // Try multiple formats in case one fails
@@ -731,8 +772,38 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Render
+  // Add custom CSS for drag and drop operations
+  const customCSS = `
+    .dragging-active .drop-target-highlight {
+      animation: pulse 1.5s infinite;
+      border-width: 2px;
+    }
+    
+    .dragging-active .bay-row-highlight {
+      background-color: rgba(59, 130, 246, 0.2);
+      transition: all 0.2s ease-in-out;
+    }
+    
+    @keyframes pulse {
+      0% { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+      70% { border-color: rgba(59, 130, 246, 0.8); box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+      100% { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+    
+    [draggable=true] {
+      cursor: grab;
+    }
+    
+    [draggable=true]:active {
+      cursor: grabbing;
+    }
+  `;
+    
   return (
     <div className="mb-8 overflow-hidden">
+      <style jsx>
+        {customCSS}
+      </style>
       {/* EditBayDialog for existing bay edit */}
       {editingBay && (
         <EditBayDialog 
@@ -1051,14 +1122,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             .map(project => (
               <div
                 key={project.id}
-                className="relative p-3 rounded-md border border-gray-700 bg-gray-800/50 shadow-sm hover:bg-gray-800 transition-colors group"
-                draggable
+                className="relative p-3 rounded-md border border-gray-700 bg-gray-800/50 shadow-sm hover:bg-gray-800 cursor-grab active:cursor-grabbing transition-colors group"
+                draggable={true}
                 onDragStart={(e) => handleDragStart(e, 'new', {
                   projectId: project.id,
                   projectName: project.name,
                   projectNumber: project.projectNumber,
                   totalHours: project.totalHours || 40
                 })}
+                onDragEnd={() => {
+                  // Reset drag state when drag operation completes or is canceled
+                  setDraggingSchedule(null);
+                  setDropTarget(null);
+                }}
               >
                 <div className="text-sm font-medium">{project.projectNumber}</div>
                 <div className="text-xs text-gray-400 mt-1 line-clamp-1">{project.name}</div>
