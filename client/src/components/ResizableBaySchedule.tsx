@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ManufacturingBay, ManufacturingSchedule, Project } from '@shared/schema';
 import { EditBayDialog } from './EditBayDialog';
+import LoadingOverlay from './LoadingOverlay';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 
 interface ResizableBayScheduleProps {
@@ -3059,15 +3060,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       )}
       
       {/* Loading overlay for project moves */}
-      {isMovingProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center backdrop-blur-sm">
-          <div className="bg-gray-800 p-6 rounded-lg shadow-xl flex flex-col items-center">
-            <div className="w-12 h-12 border-4 border-t-transparent border-primary rounded-full animate-spin mb-4"></div>
-            <div className="text-white font-medium">Moving project...</div>
-            <div className="text-gray-400 text-sm mt-1">Please wait</div>
-          </div>
-        </div>
-      )}
+      <LoadingOverlay 
+        visible={isMovingProject} 
+        message="Moving project to new location. Please wait..." 
+      />
       
       <div className="flex">
         {/* Left sidebar with bay labels */}
