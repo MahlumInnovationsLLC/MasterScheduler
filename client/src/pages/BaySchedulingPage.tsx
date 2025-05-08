@@ -68,28 +68,43 @@ const BaySchedulingPage = () => {
     // Find the schedule container
     const scheduleContainer = document.querySelector('.overflow-x-auto');
     if (scheduleContainer) {
-      // Calculate the position of current week
+      // Get current date
       const today = new Date();
       const startOfYear = new Date(today.getFullYear(), 0, 1);
       
-      // Calculate days between the start of the year and today
+      // Calculate days since year start
       const daysSinceYearStart = Math.floor((today.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
       
-      // Estimate the pixel position based on the day width
-      let dayWidth = 50; // Default day width in pixels
-      if (viewMode === 'week') dayWidth = 150; // Week view width
-      if (viewMode === 'month') dayWidth = 200; // Month view width
-      if (viewMode === 'quarter') dayWidth = 250; // Quarter view width
+      // Get the bay column width
+      const bayColumnWidth = 343; // Width of the BAYS column based on observation
+
+      // Calculate column width based on view mode
+      let columnWidth = 0;
+      switch (viewMode) {
+        case 'day':
+          columnWidth = 50; // Day width
+          break;
+        case 'week':
+          columnWidth = 144; // Week column width based on screenshot
+          break;
+        case 'month':
+          columnWidth = 200; // Month view width
+          break;
+        case 'quarter':
+          columnWidth = 250; // Quarter view width
+          break;
+      }
       
-      // Calculate position - days since year start × day width
-      // subtract some offset to position current day at left edge next to bay column
-      const bayColumnWidth = 180; // Approximate width of bay details column
-      const position = (daysSinceYearStart * dayWidth) - 20; // Position current day at left edge
+      // Calculate current week number (1-based)
+      const currentWeek = Math.floor(daysSinceYearStart / 7) + 1;
+      
+      // Position calculation - place current week right after the bay column
+      const position = (currentWeek - 1) * columnWidth;
       
       // Set the scroll position
       scheduleContainer.scrollLeft = position;
       
-      console.log(`Scrolling to current day: ${daysSinceYearStart} days since year start, position ${position}px`);
+      console.log(`Scrolling to week ${currentWeek} (day ${daysSinceYearStart}), position ${position}px`);
     }
   };
   
