@@ -540,10 +540,10 @@ const ProjectDetails = () => {
                     <User className="h-4 w-4" /> {project.pmOwner || 'Unassigned'}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" /> {formatDate(project.startDate)} - {formatDate(project.estimatedCompletionDate)}
+                    <Calendar className="h-4 w-4" /> {formatDate(project.startDate)} - {formatDate(project.shipDate || project.estimatedCompletionDate)}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" /> {Math.ceil((new Date(project.estimatedCompletionDate).getTime() - new Date(project.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
+                    <Clock className="h-4 w-4" /> {Math.ceil((new Date(project.shipDate || project.estimatedCompletionDate).getTime() - new Date(project.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
                   </span>
                 </div>
               </div>
@@ -589,6 +589,26 @@ const ProjectDetails = () => {
         </div>
         
         {/* Project metrics */}
+        {/* Department Percentages - Full width row */}
+        <div className="mt-3 mb-2 grid grid-cols-4 gap-4">
+          <div className="bg-dark rounded border border-gray-800 p-2">
+            <div className="text-sm text-gray-400 mb-1">TOTAL HOURS</div>
+            <div className="text-lg font-bold">{project.totalHours || 40}</div>
+          </div>
+          <div className="bg-dark rounded border border-gray-800 p-2">
+            <div className="text-sm text-gray-400 mb-1">FABRICATION</div>
+            <div className="text-lg font-bold">{project.fabricationPercent || 15}%</div>
+          </div>
+          <div className="bg-dark rounded border border-gray-800 p-2">
+            <div className="text-sm text-gray-400 mb-1">ASSEMBLY</div>
+            <div className="text-lg font-bold">{project.assemblyPercent || 65}%</div>
+          </div>
+          <div className="bg-dark rounded border border-gray-800 p-2">
+            <div className="text-sm text-gray-400 mb-1">TESTING</div>
+            <div className="text-lg font-bold">{project.testingPercent || 20}%</div>
+          </div>
+        </div>
+
         <div className="mt-5 grid grid-cols-5 gap-6">
           <div className="col-span-1">
             <div className="text-sm text-gray-400 mb-1">Project Health</div>
