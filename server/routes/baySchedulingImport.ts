@@ -139,8 +139,8 @@ export async function importBayScheduling(req: Request, res: Response) {
             productionStartDate
           );
 
-          // Calculate project duration for reference - using milliseconds per day (not octal)
-          const msPerDay = 24 * 60 * 60 * 1000;
+          // Calculate project duration for reference - using hardcoded milliseconds per day
+          const msPerDay = 86400000; // 24 * 60 * 60 * 1000 hardcoded to avoid octal literals
           const totalDays = Math.ceil((endDate.getTime() - productionStartDate.getTime()) / msPerDay);
           
           // Create a new manufacturing schedule
@@ -210,7 +210,7 @@ function generateDepartmentSchedules(
   endDate: Date, 
   departmentPercentages?: Record<string, number>
 ): DepartmentSchedule[] {
-  const msPerDay = 24 * 60 * 60 * 1000;
+  const msPerDay = 86400000; // 24 * 60 * 60 * 1000 hardcoded to avoid octal literals
   const totalProjectDuration = endDate.getTime() - productionStartDate.getTime();
   const schedules: DepartmentSchedule[] = [];
   

@@ -191,7 +191,8 @@ function convertExcelDate(value: any): string | undefined {
       // Convert Excel date to JavaScript date
       // Date in Javascript = (Excel date - 25569) * 86400 * 1000
       // 25569 is the number of days between Jan 1, 1900 and Jan 1, 1970
-      const millisecondsPerDay = 24 * 60 * 60 * 1000;
+      // Use hardcoded value to avoid octal literal parsing issues in strict mode
+      const millisecondsPerDay = 86400000; // 24 hours * 60 minutes * 60 seconds * 1000 milliseconds
       const date = new Date((adjustedExcelDate - 25569) * millisecondsPerDay);
         
       if (!isNaN(date.getTime())) {
