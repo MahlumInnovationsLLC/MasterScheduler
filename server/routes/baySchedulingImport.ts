@@ -74,6 +74,10 @@ interface BaySchedulingImportData {
  */
 export async function importBayScheduling(req: Request, res: Response) {
   try {
+    console.log('-------------------------------------------');
+    console.log('STARTING COMPLETE BAY SCHEDULING REIMPORT - EVERY PROJECT WILL MOVE TO UNASSIGNED SECTION');
+    console.log('-------------------------------------------');
+
     const { schedules } = req.body;
     console.log("Received bay scheduling data for import:", schedules?.length || 0, "items");
     
@@ -99,6 +103,29 @@ export async function importBayScheduling(req: Request, res: Response) {
     // Get all projects and bays for reference
     const allProjects = await storage.getProjects();
     const allBays = await storage.getManufacturingBays();
+    
+    // STEP 1: REMOVE ALL EXISTING MANUFACTURING SCHEDULES - MOVE EVERYTHING TO UNASSIGNED
+    console.log('STEP 1: REMOVING ALL EXISTING MANUFACTURING SCHEDULES');
+    
+    // Get all existing manufacturing schedules
+    const allExistingSchedules = await storage.getAllManufacturingSchedules();
+    console.log(`Found ${allExistingSchedules.length} existing schedules to remove`);
+    
+    // Delete all existing schedules
+    let removedCount = 0;
+    for (const schedule of allExistingSchedules) {
+      try {
+        await storage.deleteManufacturingSchedule(schedule.id);
+        removedCount++;
+      } catch (error) {
+        console.error(`Error removing schedule ${schedule.id}:`, error);
+        results.errors++;
+        results.details.push(`Failed to remove existing schedule ${schedule.id}`);
+      }
+    }
+    
+    console.log(`Successfully removed ${removedCount} schedules - ALL PROJECTS NOW IN UNASSIGNED SECTION`);
+    console.log('-------------------------------------------');
 
     // Process each schedule
     for (const scheduleData of schedules) {
@@ -179,43 +206,55 @@ export async function importBayScheduling(req: Request, res: Response) {
           // Parse endDate first as it's required
           endDate = parseDateSafely(scheduleData.endDate);
           
-          // Handle missing productionStartDate by calculating it based on endDate and total hours
-          if (!scheduleData.productionStartDate) {
-            console.log(`No productionStartDate provided for project ${scheduleData.projectNumber}, calculating based on endDate`);
-            
-            // Get total hours (from import, project record, or default)
-            const totalProjectHours = scheduleData.totalHours || project.totalHours || 1000;
-            
-            // Determine the bay capacity to calculate project duration
-            // Try to get staff count and hours from the bay, use defaults if not available
-            const assemblyStaffCount = bay.assemblyStaffCount || 4;
-            const electricalStaffCount = bay.electricalStaffCount || 4;
-            const hoursPerPersonPerWeek = bay.hoursPerPersonPerWeek || 32;
-            
-            // Calculate total hours per week for this bay (total staff × hours per week)
-            const hoursPerWeek = (assemblyStaffCount + electricalStaffCount) * hoursPerPersonPerWeek;
-            
-            // Calculate project duration in weeks and days, ensuring we don't divide by zero
-            const durationInWeeks = hoursPerWeek > 0 ? totalProjectHours / hoursPerWeek : totalProjectHours / 32;
-            const durationInDays = Math.ceil(durationInWeeks * 5); // 5 working days per week
-            
-            // Calculate startDate by subtracting duration from endDate
-            const tempStartDate = new Date(endDate);
-            tempStartDate.setDate(tempStartDate.getDate() - durationInDays);
-            startDate = tempStartDate;
-            
-            console.log(`Calculated productionStartDate for project ${scheduleData.projectNumber}:`, {
-              totalHours: totalProjectHours,
-              staffCount: assemblyStaffCount + electricalStaffCount,
-              hoursPerWeek,
-              durationInWeeks,
-              durationInDays,
-              startDate: startDate.toISOString()
-            });
-          } else {
-            // Normal case where productionStartDate is provided
-            startDate = parseDateSafely(scheduleData.productionStartDate);
-          }
+          // COMPLETELY NEW APPROACH: ALWAYS calculate startDate from endDate using hours
+          // Even if productionStartDate is provided, we'll calculate our own based on hours
+          console.log(`WORKING BACKWARDS FROM END DATE for project ${scheduleData.projectNumber}`);
+          
+          // Get total hours (from import, project record, or default)
+          const totalProjectHours = scheduleData.totalHours || project.totalHours || 1000;
+          
+          // Determine the bay capacity to calculate realistic project duration
+          
+          // Using updated calculation for more accurate project duration:
+          // 1. Consider both assembly and electrical staff
+          // 2. Use realistic productive hours per person per day (6 hours/day is more realistic than 8)
+          // 3. Add buffer for uncertainties and interruptions
+          
+          const assemblyStaffCount = bay.assemblyStaffCount || 4;
+          const electricalStaffCount = bay.electricalStaffCount || 4;
+          const totalStaffCount = assemblyStaffCount + electricalStaffCount;
+          
+          // Use a more realistic productive hours per day per staff member (6 hours instead of 8)
+          const productiveHoursPerDayPerStaff = 6;
+          
+          // Calculate total productive hours per day for the entire team
+          const hoursPerDay = totalStaffCount * productiveHoursPerDayPerStaff;
+          
+          // Calculate calendar days needed, with 20% buffer for unforeseen delays
+          const rawDaysNeeded = totalProjectHours / hoursPerDay;
+          const daysWithBuffer = Math.ceil(rawDaysNeeded * 1.2);
+          
+          // Calendar days including weekends (5 work days per 7 calendar days)
+          const calendarDays = Math.ceil(daysWithBuffer * 1.4); // Account for weekends
+          
+          // Calculate startDate by working BACKWARDS from endDate
+          // This is the critical change - we ALWAYS work backwards from the end date
+          const tempStartDate = new Date(endDate);
+          tempStartDate.setDate(tempStartDate.getDate() - calendarDays);
+          startDate = tempStartDate;
+          
+          console.log(`BACKWARD CALCULATION for project ${scheduleData.projectNumber}:`, {
+            endDate: endDate.toISOString().split('T')[0],
+            totalHours: totalProjectHours,
+            totalStaff: totalStaffCount,
+            hoursPerDay,
+            rawDaysNeeded,
+            calendarDays,
+            startDate: startDate.toISOString().split('T')[0]
+          });
+          
+          // No more else case - we ALWAYS calculate from endDate backwards
+          // Even if productionStartDate was provided, we ignore it
           
           // Verify that parsing was successful
           if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
@@ -507,7 +546,7 @@ export async function importBayScheduling(req: Request, res: Response) {
     console.log(`Bay scheduling import complete: ${results.imported} imported, ${results.errors} errors, ${results.skipped} skipped`);
     res.json({ 
       success: true, 
-      message: `Successfully imported ${results.imported} schedules. ${results.errors} failed.`,
+      message: `🔄 ALL PROJECTS HAVE BEEN MOVED TO UNASSIGNED SECTION! ${results.imported} projects were scheduled based on end date working backwards. Projects are now ready for manual placement.`,
       imported: results.imported,
       errors: results.errors,
       details: results.details,
