@@ -74,7 +74,7 @@ function SalesDealForm({
   const isEditing = !!existingDeal;
   
   const [formData, setFormData] = useState({
-    dealNumber: existingDeal?.dealNumber || `DEAL-${Date.now().toString().slice(-6)}`,
+    dealNumber: existingDeal?.dealNumber || `DEAL-${new Date().getTime().toString().slice(-6)}`,
     name: existingDeal?.name || "",
     description: existingDeal?.description || "",
     clientName: existingDeal?.clientName || "",
