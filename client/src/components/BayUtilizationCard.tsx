@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, BrainCircuit, Info, AlertCircle, Users, Clock
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { calculateBayUtilization } from '@/lib/utils';
 
 interface Change {
   value: string;
@@ -91,82 +92,14 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
           recommendations: ['Assign staff to this bay to begin utilizing it']
         };
         
-        // Calculate scheduled hours with time weighting and production phase focus
-        let weeklyUtilization = 0;
+        // Use the standardized calculation method for this bay 
+        // by creating a single-bay array and passing it to our utility function
+        const singleBayArray = [bay];
+        const utilizationPercentage = calculateBayUtilization(singleBayArray, baySchedules);
+        const roundedUtilization = Math.round(utilizationPercentage);
         
-        if (baySchedules.length > 0) {
-          // Get current date for time-based weighting
-          const now = new Date();
-          // We'll analyze by week for the next 16 weeks (4 months)
-          const MAX_FUTURE_WEEKS = 16;
-          const weeklyHoursMap: Record<string, number> = {};
-          
-          // First, calculate the load by week across the next few months
-          baySchedules.forEach(schedule => {
-            if (schedule.startDate && schedule.endDate && schedule.totalHours) {
-              const startDate = new Date(schedule.startDate);
-              const endDate = new Date(schedule.endDate);
-              
-              // Skip projects that have already ended
-              if (endDate < now) return;
-              
-              // Calculate production hours per day for this schedule
-              const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-              const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-              const hoursPerDay = schedule.totalHours / diffDays;
-              
-              // Analyze each week starting from today
-              let currentWeekStart = new Date(now);
-              currentWeekStart.setHours(0, 0, 0, 0);
-              currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay()); // Start of current week
-              
-              for (let week = 0; week < MAX_FUTURE_WEEKS; week++) {
-                // Calculate week range
-                const weekStart = new Date(currentWeekStart);
-                weekStart.setDate(weekStart.getDate() + (week * 7));
-                const weekEnd = new Date(weekStart);
-                weekEnd.setDate(weekStart.getDate() + 6);
-                
-                // Skip if this week is completely before the project starts
-                if (weekEnd < startDate) continue;
-                
-                // Skip if this week is completely after the project ends
-                if (weekStart > endDate) continue;
-                
-                // Calculate overlap days between this week and the project
-                const overlapStart = new Date(Math.max(weekStart.getTime(), startDate.getTime()));
-                const overlapEnd = new Date(Math.min(weekEnd.getTime(), endDate.getTime()));
-                const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-                
-                // Calculate hours for this week based on overlap
-                const weekHours = hoursPerDay * Math.min(7, overlapDays);
-                
-                // Apply time-decay factor: more weight to current weeks, less to future weeks
-                const weekKey = weekStart.toISOString().substring(0, 10);
-                const timeDecayFactor = Math.max(0.25, 1 - (week * 0.05)); // 5% decay per week
-                
-                // Add to weekly hours map
-                if (!weeklyHoursMap[weekKey]) {
-                  weeklyHoursMap[weekKey] = 0;
-                }
-                weeklyHoursMap[weekKey] += weekHours * timeDecayFactor;
-              }
-            }
-          });
-          
-          // Now find the peak utilization by looking at the week with the most hours
-          // This accounts for when projects overlap in time
-          if (Object.keys(weeklyHoursMap).length > 0) {
-            const peakWeekHours = Math.max(...Object.values(weeklyHoursMap));
-            weeklyUtilization = peakWeekHours;
-          }
-        }
+        console.log(`Bay ${bay.name} - Utilization: ${roundedUtilization}% (using standardized calculation)`);
         
-        console.log(`Bay ${bay.name} - Weekly capacity: ${weeklyCapacity} hours, Weekly utilization: ${weeklyUtilization} hours`);
-        
-        // Calculate utilization percentage based on weekly hours
-        const utilization = Math.min(100, (weeklyUtilization / weeklyCapacity) * 100);
-        const roundedUtilization = Math.round(utilization);
         
         // Determine staff types
         const assemblyStaff = bay.assemblyStaffCount || 0;
@@ -209,7 +142,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
           ];
         }
         
-        console.log(`Bay ${bay.name} utilization: ${roundedUtilization}% (${weeklyUtilization}/${weeklyCapacity} weekly hours)`);
+        console.log(`Bay ${bay.name} utilization: ${roundedUtilization}% (using centralized calculation)`);
         
         return {
           bayId: bay.id,
