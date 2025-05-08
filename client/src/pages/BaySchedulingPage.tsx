@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { addDays, addWeeks, addMonths, format } from 'date-fns';
-import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
+import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, calculateBayUtilization } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -17,12 +17,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ManufacturingCard } from '@/components/ManufacturingCard';
 import { BayUtilizationCard } from '@/components/BayUtilizationCard';
 import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
+import BaySchedulingImport from '@/components/BaySchedulingImport';
 import { 
   ManufacturingBay, 
   ManufacturingSchedule, 
@@ -31,6 +39,9 @@ import {
 
 const BaySchedulingPage = () => {
   const { toast } = useToast();
+  
+  // State for import modal
+  const [showImportModal, setShowImportModal] = useState(false);
   
   // Force a refresh of manufacturing schedules when page loads
   // This ensures capacity sharing calculations are correctly applied
