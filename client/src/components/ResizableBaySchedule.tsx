@@ -1158,7 +1158,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       });
       
       // Get the time factor for date calculations based on view mode
-      const msPerDay = 24 * 60 * 60 * 1000;
+      const msPerDay = 86400000; // 24 * 60 * 60 * 1000 hardcoded to avoid octal literal issues
       const daysBetweenSlots = slots[1]?.date && slots[0]?.date 
         ? (slots[1].date.getTime() - slots[0].date.getTime()) / msPerDay 
         : viewMode === 'day' ? 1 : viewMode === 'week' ? 7 : viewMode === 'month' ? 30 : 90;

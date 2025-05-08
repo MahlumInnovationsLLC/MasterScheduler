@@ -364,9 +364,9 @@ const Dashboard = () => {
           type="forecast"
           chart={{
             labels: [
-              new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short' }),
+              new Date(Date.now() - 30 * 86400000).toLocaleDateString('en-US', { month: 'short' }), // Use hardcoded milliseconds per day (86400000) to avoid octal literal issues
               new Date().toLocaleDateString('en-US', { month: 'short' }),
-              new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short' })
+              new Date(Date.now() + 30 * 86400000).toLocaleDateString('en-US', { month: 'short' }) // Use hardcoded milliseconds per day (86400000) to avoid octal literal issues
             ],
             values: [
               billingStats?.milestones.completed || 0,
