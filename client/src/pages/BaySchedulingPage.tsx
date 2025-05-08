@@ -412,63 +412,94 @@ const BaySchedulingPage = () => {
   // Update date range based on view mode
   const updateDateRange = (mode: 'day' | 'week' | 'month' | 'quarter') => {
     const today = new Date();
-    // Maintain start date as January 1st of current year
+    
+    // Set a consistent start date to January 1st of current year
+    // This helps maintain consistency when switching between views
     const startDate = new Date(today.getFullYear(), 0, 1);
     let end;
     
+    // Configure view range based on selected time scale
     switch (mode) {
       case 'day':
-        end = addDays(today, 14); // 2 weeks view
+        // In day view, show 30 days (approximately 1 month)
+        end = addDays(today, 30);
         break;
       case 'week':
-        end = addWeeks(today, 4); // 4 weeks view
+        // In week view, show 16 weeks (approximately 4 months)
+        end = addWeeks(today, 16);
         break;
       case 'month':
-        end = addMonths(today, 6); // 6 months view
+        // In month view, show 12 months (1 year)
+        end = addMonths(today, 12);
         break;
       case 'quarter':
-        end = addMonths(today, 12); // 1 year view
+        // In quarter view, show 8 quarters (2 years)
+        end = addMonths(today, 24);
         break;
     }
     
+    // Update state with new date range
     setDateRange({ start: startDate, end });
+    
+    // Update the view mode
     setViewMode(mode);
     
+    // Indicate in console which view mode was selected
+    console.log(`Switching to ${mode} view mode with date range:`, 
+      { start: startDate.toISOString().split('T')[0], end: end.toISOString().split('T')[0] });
+    
     // After updating view mode, ensure we scroll to current date using direct method
+    // Delay slightly to ensure the DOM has updated
     setTimeout(() => {
       forceScrollToToday();
-    }, 500); // Slightly longer delay to ensure DOM updates
+    }, 500);
   };
   
-  // Navigate through time
+  // Navigate through time (forward or backward)
   const navigateTime = (direction: 'forward' | 'backward') => {
-    // Always keep January 1st of current year as the start date
+    // Always keep January 1st of current year as the start date for consistency
     const startDate = new Date(new Date().getFullYear(), 0, 1);
     let newEnd;
     
+    // Adjust the navigation increment based on view mode
     switch (viewMode) {
       case 'day':
+        // For day view, navigate by 10 days at a time
+        const dayIncrement = 10;
         newEnd = direction === 'forward' 
-          ? addDays(dateRange.end, 7) 
-          : addDays(dateRange.end, -7);
+          ? addDays(dateRange.end, dayIncrement) 
+          : addDays(dateRange.end, -dayIncrement);
         break;
+        
       case 'week':
+        // For week view, navigate by 4 weeks (approximately 1 month)
+        const weekIncrement = 4;
         newEnd = direction === 'forward' 
-          ? addWeeks(dateRange.end, 2) 
-          : addWeeks(dateRange.end, -2);
+          ? addWeeks(dateRange.end, weekIncrement) 
+          : addWeeks(dateRange.end, -weekIncrement);
         break;
+        
       case 'month':
+        // For month view, navigate by 3 months (1 quarter)
+        const monthIncrement = 3;
         newEnd = direction === 'forward' 
-          ? addMonths(dateRange.end, 2) 
-          : addMonths(dateRange.end, -2);
+          ? addMonths(dateRange.end, monthIncrement) 
+          : addMonths(dateRange.end, -monthIncrement);
         break;
+        
       case 'quarter':
+        // For quarter view, navigate by 6 months (half year)
+        const quarterIncrement = 6;
         newEnd = direction === 'forward' 
-          ? addMonths(dateRange.end, 3) 
-          : addMonths(dateRange.end, -3);
+          ? addMonths(dateRange.end, quarterIncrement) 
+          : addMonths(dateRange.end, -quarterIncrement);
         break;
     }
     
+    // Log navigation action
+    console.log(`Navigating ${direction} in ${viewMode} view mode`);
+    
+    // Update the date range
     setDateRange({ start: startDate, end: newEnd });
   };
   

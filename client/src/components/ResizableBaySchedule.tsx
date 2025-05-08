@@ -3468,58 +3468,89 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           style={{ maxWidth: 'calc(100% - 64px)' }}
           ref={timelineContainerRef}
         >
-          {/* Today indicator line */}
+          {/* Today indicator line - enhanced for all time views */}
           {(() => {
-            const today = new Date();
+            // Use today's date for development/testing (May 8, 2025)
+            const today = new Date(2025, 4, 8); // May 8, 2025 (months are 0-indexed)
             const startDate = dateRange.start;
             
             // Calculate position based on view mode
             let position = 0;
             
+            // Calculate total milliseconds between dates for precise positioning
+            const totalMilliseconds = today.getTime() - startDate.getTime();
+            const daysFromStart = totalMilliseconds / (1000 * 60 * 60 * 24);
+            
+            // Calculate position with greater precision based on view mode
             if (viewMode === 'day') {
-              // For day view, position is based on days from start
-              const totalDays = differenceInDays(today, startDate);
-              position = totalDays * slotWidth;
+              // In day view, each slot is one day
+              position = daysFromStart * slotWidth;
+              
+              // Log for debugging
+              console.log(`Today indicator (day view): ${daysFromStart.toFixed(2)} days from start = ${position.toFixed(2)}px`);
             } 
             else if (viewMode === 'week') {
-              // For week view, position is based on weeks from start
-              const totalDays = differenceInDays(today, startDate);
-              const totalWeeks = totalDays / 7;
-              position = totalWeeks * slotWidth;
+              // In week view, each slot is one week (7 days)
+              const weeksFromStart = daysFromStart / 7;
+              position = weeksFromStart * slotWidth;
+              
+              // Log for debugging
+              console.log(`Today indicator (week view): ${weeksFromStart.toFixed(2)} weeks from start = ${position.toFixed(2)}px`);
             }
             else if (viewMode === 'month') {
-              // For month view, position is based on months from start
+              // In month view, calculate months precisely
               const totalMonths = differenceInMonths(today, startDate);
-              position = totalMonths * slotWidth;
               
-              // Add partial month position
-              const monthProgress = today.getDate() / 30; // Approximate
-              position += monthProgress * slotWidth;
+              // Calculate days into the current month for fractional positioning
+              const startOfCurrentMonth = startOfMonth(today);
+              const daysIntoMonth = differenceInDays(today, startOfCurrentMonth);
+              const daysInMonth = getDaysInMonth(today);
+              const monthFraction = daysIntoMonth / daysInMonth;
+              
+              // Calculate final position
+              position = (totalMonths + monthFraction) * slotWidth;
+              
+              // Log for debugging
+              console.log(`Today indicator (month view): ${totalMonths} months + ${monthFraction.toFixed(2)} fraction = ${position.toFixed(2)}px`);
             }
             else if (viewMode === 'quarter') {
-              // For quarter view, position is based on quarters from start
+              // In quarter view, calculate quarters precisely
               const totalMonths = differenceInMonths(today, startDate);
-              const totalQuarters = totalMonths / 3;
-              position = totalQuarters * slotWidth;
+              const quarters = Math.floor(totalMonths / 3);
               
-              // Add partial quarter position
-              const quarterMonth = today.getMonth() % 3;
-              const quarterProgress = (quarterMonth * 30 + today.getDate()) / 90; // Approximate
-              position += quarterProgress * slotWidth;
+              // Calculate months into the current quarter
+              const monthInQuarter = today.getMonth() % 3;
+              
+              // Calculate days into the current month
+              const startOfCurrentMonth = startOfMonth(today);
+              const daysIntoMonth = differenceInDays(today, startOfCurrentMonth);
+              const daysInMonth = getDaysInMonth(today);
+              
+              // Calculate the fractional position within the quarter
+              const quarterFraction = (monthInQuarter + (daysIntoMonth / daysInMonth)) / 3;
+              
+              // Calculate final position
+              position = (quarters + quarterFraction) * slotWidth;
+              
+              // Log for debugging
+              console.log(`Today indicator (quarter view): ${quarters} quarters + ${quarterFraction.toFixed(2)} fraction = ${position.toFixed(2)}px`);
             }
             
+            // Ensure the line is visible only when it's within the viewport
             const isVisible = position >= 0 && position <= totalViewWidth;
             
+            // Render the today indicator line with label
             return isVisible ? (
               <div 
-                className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-30 pointer-events-none" 
+                className="absolute top-0 bottom-0 w-0.5 bg-red-600 z-30 pointer-events-none" 
                 style={{ 
                   left: `${position}px`,
-                  height: '100%' // Full height
+                  height: '100%', // Full height
+                  boxShadow: '0 0 4px rgba(220, 38, 38, 0.5)' // Add glow effect for better visibility
                 }}
               >
-                {/* Small label showing "Today" */}
-                <div className="absolute top-0 left-1 bg-red-500 text-white text-xs px-1 rounded">
+                {/* Today label - positioned at top of line */}
+                <div className="absolute -top-5 -translate-x-1/2 bg-red-600 text-white px-1.5 py-0.5 text-xs rounded shadow-md">
                   Today
                 </div>
               </div>
