@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { addDays, addWeeks, addMonths, format } from 'date-fns';
-import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
+import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, calculateBayUtilization } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +30,7 @@ import { ManufacturingCard } from '@/components/ManufacturingCard';
 import { BayUtilizationCard } from '@/components/BayUtilizationCard';
 import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
+import BaySchedulingImport from '@/components/BaySchedulingImport';
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
 import { 
   ManufacturingBay, 
@@ -65,6 +74,9 @@ const BaySchedulingPage = () => {
       }
     }, 300);
   }, []);
+  
+  // Import dialog state
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   
   // Filter states
   const [filterTeam, setFilterTeam] = useState<string | null>(null);
@@ -501,6 +513,25 @@ const BaySchedulingPage = () => {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Import Button */}
+          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-1">
+                <Upload className="h-4 w-4 mr-1" />
+                <span>Import</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>Bay Scheduling Import</DialogTitle>
+                <DialogDescription>
+                  Import a CSV file to place projects in manufacturing bays with appropriate department scheduling.
+                </DialogDescription>
+              </DialogHeader>
+              <BaySchedulingImport />
+            </DialogContent>
+          </Dialog>
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-1">
