@@ -47,12 +47,22 @@ function parseDateSafely(dateString: string): Date {
 }
 
 // Interface for bay scheduling import data from the frontend
+/**
+ * Interface representing the data structure for bay scheduling import
+ * Required fields:
+ *   - projectNumber: The unique identifier for the project
+ *   - endDate: The scheduled ship/completion date for the project
+ * Optional fields:
+ *   - productionStartDate: When production starts; will be calculated from endDate and totalHours if missing
+ *   - teamNumber: The manufacturing bay/team assigned to the project; if missing, project stays unassigned
+ *   - totalHours: The total labor hours for the project; updates master project data if provided
+ */
 interface BaySchedulingImportData {
-  projectNumber: string;
-  productionStartDate: string;
-  endDate: string;
-  teamNumber: number;
-  totalHours?: number; // New field to update project total hours
+  projectNumber: string;            // Must match existing project number exactly
+  productionStartDate?: string;     // Optional; will be calculated from endDate if not provided
+  endDate: string;                  // Required - maps to shipDate in master project data
+  teamNumber?: number;              // Optional; projects without teamNumber remain unassigned
+  totalHours?: number;              // Optional; updates project total hours if provided
 }
 
 /**
@@ -87,10 +97,16 @@ export async function importBayScheduling(req: Request, res: Response) {
     for (const scheduleData of schedules) {
       try {
         // Validate required fields
-        if (!scheduleData.projectNumber || !scheduleData.productionStartDate || 
-            !scheduleData.endDate || !scheduleData.teamNumber) {
+        if (!scheduleData.projectNumber || !scheduleData.endDate) {
           results.errors++;
           results.details.push(`Missing required fields for schedule: ${JSON.stringify(scheduleData)}`);
+          continue;
+        }
+        
+        // If teamNumber is missing, skip this project (leave it in the unassigned section)
+        if (!scheduleData.teamNumber) {
+          console.log(`Project ${scheduleData.projectNumber} has no teamNumber, keeping in unassigned section`);
+          results.skipped++;
           continue;
         }
 
@@ -105,22 +121,7 @@ export async function importBayScheduling(req: Request, res: Response) {
           continue;
         }
         
-        // Update project totalHours if provided in the import data
-        if (scheduleData.totalHours && scheduleData.totalHours > 0) {
-          try {
-            // Update the project with the new total hours
-            await storage.updateProject(project.id, {
-              totalHours: scheduleData.totalHours,
-              updatedAt: new Date().toISOString()
-            });
-            console.log(`Updated totalHours for project ${project.projectNumber} to ${scheduleData.totalHours}`);
-          } catch (error) {
-            console.error(`Error updating totalHours for project ${project.projectNumber}:`, error);
-            // Continue with the import even if updating totalHours fails
-          }
-        }
-
-        // Find the manufacturing bay/team
+        // Find the manufacturing bay/team first
         const bay = allBays.find(b => b.bayNumber === scheduleData.teamNumber);
         if (!bay) {
           results.errors++;
@@ -128,13 +129,78 @@ export async function importBayScheduling(req: Request, res: Response) {
           continue;
         }
 
+        // Update project master data with information from import
+        try {
+          const projectUpdates: any = {
+            updatedAt: new Date().toISOString()
+          };
+          
+          // Update totalHours if provided
+          if (scheduleData.totalHours && scheduleData.totalHours > 0) {
+            projectUpdates.totalHours = scheduleData.totalHours;
+          }
+          
+          // Update team assignment based on bay number
+          if (bay.team) {
+            projectUpdates.team = bay.team;
+          }
+          
+          // Update dates:
+          // - endDate maps to shipDate
+          // - productionStartDate maps to assemblyStart
+          // Parse dates now to ensure they're valid before updating project
+          const endDate = parseDateSafely(scheduleData.endDate);
+          projectUpdates.shipDate = endDate.toISOString();
+          
+          if (scheduleData.productionStartDate) {
+            const startDate = parseDateSafely(scheduleData.productionStartDate);
+            projectUpdates.assemblyStart = startDate.toISOString();
+          }
+          
+          // Update project record with all changes
+          await storage.updateProject(project.id, projectUpdates);
+          console.log(`Updated project ${project.projectNumber} master data with import information`);
+        } catch (error) {
+          console.error(`Error updating project ${project.projectNumber} master data:`, error);
+          // Continue with import even if project update fails
+        }
+
         // Parse dates safely to avoid octal literal errors
         let startDate: Date, endDate: Date;
         
         try {
-          // Safe date parsing to avoid octal literal errors with leading zeros
-          startDate = parseDateSafely(scheduleData.productionStartDate);
+          // Parse endDate first as it's required
           endDate = parseDateSafely(scheduleData.endDate);
+          
+          // Handle missing productionStartDate by calculating it based on endDate and total hours
+          if (!scheduleData.productionStartDate) {
+            console.log(`No productionStartDate provided for project ${scheduleData.projectNumber}, calculating based on endDate`);
+            
+            // Get total hours (from import, project record, or default)
+            const totalProjectHours = scheduleData.totalHours || project.totalHours || 1000;
+            
+            // Determine the bay capacity to calculate project duration
+            const assemblyStaffCount = bay.assemblyStaffCount || 4;
+            const electricalStaffCount = bay.electricalStaffCount || 4;
+            const hoursPerPersonPerWeek = bay.hoursPerPersonPerWeek || 32;
+            
+            // Calculate total hours per week for this bay
+            const hoursPerWeek = (assemblyStaffCount + electricalStaffCount) * hoursPerPersonPerWeek;
+            
+            // Calculate project duration in weeks and days
+            const durationInWeeks = totalProjectHours / hoursPerWeek;
+            const durationInDays = Math.ceil(durationInWeeks * 5); // 5 working days per week
+            
+            // Calculate startDate by subtracting duration from endDate
+            const tempStartDate = new Date(endDate);
+            tempStartDate.setDate(tempStartDate.getDate() - durationInDays);
+            startDate = tempStartDate;
+            
+            console.log(`Calculated productionStartDate for project ${scheduleData.projectNumber}: ${startDate.toISOString()}`);
+          } else {
+            // Normal case where productionStartDate is provided
+            startDate = parseDateSafely(scheduleData.productionStartDate);
+          }
           
           // Verify that parsing was successful
           if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
