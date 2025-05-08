@@ -974,48 +974,45 @@ const ProjectStatus = () => {
       
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="h-40"> {/* Increased height for better readability */}
-          <ProjectStatsCard 
-            title="Total Projects"
-            value={projectStats?.total || 0}
-            icon={<Folders className="text-primary h-5 w-5" />}
-            tags={[
-              { label: "Active", value: projectStats?.active || 0, status: "On Track" },
-              { label: "Delayed", value: projectStats?.delayed || 0, status: "Delayed" },
-              { label: "Critical", value: projectStats?.critical || 0, status: "Critical" }
-            ]}
-          />
-        </div>
+        <ProjectStatsCard 
+          title="Total Projects"
+          value={projectStats?.total || 0}
+          icon={<Folders className="text-primary h-5 w-5" />}
+          tags={[
+            { label: "Active", value: projectStats?.active || 0, status: "On Track" },
+            { label: "Delayed", value: projectStats?.delayed || 0, status: "Delayed" },
+            { label: "Critical", value: projectStats?.critical || 0, status: "Critical" }
+          ]}
+          className="h-48"
+        />
         
-        <div className="h-40"> {/* Increased height for better readability */}
-          <ProjectStatsCard 
-            title="Upcoming Milestones"
-            value={upcomingMilestones}
-            icon={<Flag className="text-accent h-5 w-5" />}
-            progress={{ 
-              value: upcomingMilestones > 0 && Array.isArray(billingMilestones) && billingMilestones.length > 0 
-                ? Math.round((upcomingMilestones / billingMilestones.length) * 100)
-                : 0, 
-              label: `${upcomingMilestones} due in 30 days` 
-            }}
-          />
-        </div>
+        <ProjectStatsCard 
+          title="Upcoming Milestones"
+          value={upcomingMilestones}
+          icon={<Flag className="text-accent h-5 w-5" />}
+          progress={{ 
+            value: upcomingMilestones > 0 && Array.isArray(billingMilestones) && billingMilestones.length > 0 
+              ? Math.round((upcomingMilestones / billingMilestones.length) * 100)
+              : 0, 
+            label: `${upcomingMilestones} due in 30 days` 
+          }}
+          className="h-48"
+        />
         
-        <div className="h-40"> {/* AI Insights Widget replacing Avg. Completion */}
+        <div className="h-48 overflow-hidden">
           <AIInsightsWidget projects={projects || []} />
         </div>
         
-        <div className="h-40"> {/* Increased height for better readability */}
-          <ProjectStatsCard 
-            title="Manufacturing"
-            value={`${manufacturingStats.active}/${manufacturingStats.total}`}
-            icon={<Building2 className="text-success h-5 w-5" />}
-            tags={[
-              { label: "Active", value: manufacturingStats.active, status: "On Track" },
-              { label: "Available", value: manufacturingStats.available, status: "Inactive" }
-            ]}
-          />
-        </div>
+        <ProjectStatsCard 
+          title="Manufacturing"
+          value={`${manufacturingStats.active}/${manufacturingStats.total}`}
+          icon={<Building2 className="text-success h-5 w-5" />}
+          tags={[
+            { label: "Active", value: manufacturingStats.active, status: "On Track" },
+            { label: "Available", value: manufacturingStats.available, status: "Inactive" }
+          ]}
+          className="h-48"
+        />
       </div>
       
       {/* Project Status Breakdown Row */}

@@ -25,6 +25,7 @@ interface ProjectStatsCardProps {
     value: number;
     label: string;
   };
+  className?: string;
 }
 
 export function ProjectStatsCard({
@@ -33,10 +34,11 @@ export function ProjectStatsCard({
   icon,
   change,
   tags,
-  progress
+  progress,
+  className
 }: ProjectStatsCardProps) {
   return (
-    <Card className="bg-darkCard rounded-xl p-4 border border-gray-800">
+    <Card className={`bg-darkCard rounded-xl p-4 border border-gray-800 ${className || ''}`}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-gray-400 font-medium">{title}</h3>
         <div className="p-2 rounded-lg bg-primary/10 flex items-center justify-center w-9 h-9">

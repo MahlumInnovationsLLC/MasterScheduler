@@ -78,7 +78,7 @@ export function AIInsightsWidget({ projects }: AIInsightsWidgetProps) {
   };
   
   return (
-    <Card className="bg-card rounded-xl p-4 border border-border mt-4">
+    <Card className="bg-card rounded-xl p-4 border border-border h-full">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-muted-foreground font-medium flex items-center">
           <Brain className="h-4 w-4 mr-2 text-primary" />
