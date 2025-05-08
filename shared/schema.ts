@@ -418,6 +418,10 @@ export const manufacturingSchedules = pgTable("manufacturing_schedules", {
   totalHours: integer("total_hours").default(1000), // Total hours needed for this project
   row: integer("row").default(0), // Row position within bay (0-3)
   status: manufacturingStatusEnum("status").default("scheduled").notNull(),
+  fabricationStart: date("fabrication_start"),
+  assemblyStart: date("assembly_start"),
+  ntcTestingStart: date("ntc_testing_start"),
+  qcStart: date("qc_start"),
   notes: text("notes"),
   equipment: text("equipment"),
   staffAssigned: text("staff_assigned"),
