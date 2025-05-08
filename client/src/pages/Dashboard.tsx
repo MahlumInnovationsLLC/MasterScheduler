@@ -384,6 +384,16 @@ const Dashboard = () => {
         />
       </div>
 
+      {/* Status Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="md:col-span-3">
+          <ProjectStatusBreakdownCard projects={projects || []} />
+        </div>
+        <div className="md:col-span-3">
+          <HighRiskProjectsCard projects={projects || []} />
+        </div>
+      </div>
+
       {/* Projects Table */}
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-xl font-sans font-bold">Next Projects Ready to Ship</h2>

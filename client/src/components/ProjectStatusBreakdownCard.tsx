@@ -1,174 +1,111 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts';
 import { Card } from '@/components/ui/card';
-import { Clock, AlertTriangle, CheckCircle, PauseCircle, ActivitySquare } from 'lucide-react';
+import { Clock, CheckCircle, PauseCircle, ActivitySquare, AlertTriangle } from 'lucide-react';
 import { Project } from '@shared/schema';
-import { getProjectStatusColor } from '@/lib/utils';
+import { getProjectScheduleState } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
 
 interface ProjectStatusBreakdownCardProps {
   projects: Project[];
 }
 
 export function ProjectStatusBreakdownCard({ projects }: ProjectStatusBreakdownCardProps) {
-  // Calculate status counts based on both status field and schedule state
+  // Fetch manufacturing schedules
+  const { data: manufacturingSchedules } = useQuery({
+    queryKey: ['/api/manufacturing-schedules'],
+  });
+  
+  // Calculate status counts for the specific categories we care about
   const statusCounts = React.useMemo(() => {
-    if (!projects || projects.length === 0) return [];
+    if (!projects || projects.length === 0) {
+      return {
+        unscheduled: 0,
+        scheduled: 0,
+        inProgress: 0,
+        complete: 0
+      };
+    }
     
-    // Count projects by status
-    const counts = {
-      'Pending': 0,
-      'In Progress': 0,
-      'Scheduled': 0,
-      'Not Started': 0,
-      'Delayed': 0,
-      'Critical': 0,
-      'Completed': 0,
-      'QC': 0
-    };
+    // Initialize counters
+    let unscheduled = 0;
+    let scheduled = 0;
+    let inProgress = 0;
+    let complete = 0;
     
-    // Helper function to map project and manufacturing schedule status to display status
-    const getDisplayStatus = (project: Project) => {
-      if (project.status === 'completed') return 'Completed';
-      if (project.status === 'critical') return 'Critical';
-      if (project.status === 'delayed') return 'Delayed';
-      
-      // For active projects, determine more specific state
-      if (project.status === 'active') {
-        const percentComplete = Number(project.percentComplete || 0);
-        
-        // If QC has started, project is in QC phase
-        if (project.qcStartDate && new Date(project.qcStartDate) <= new Date()) {
-          return 'QC';
-        }
-        
-        // If project has progress but no manufacturing schedule, it's in design/planning
-        if (percentComplete > 0 && percentComplete < 5) {
-          return 'Not Started';
-        } else if (percentComplete >= 5 && percentComplete < 20) {
-          return 'Scheduled';
-        } else if (percentComplete >= 20) {
-          return 'In Progress';
-        }
-        
-        return 'Pending';
+    // Count projects by schedule state
+    projects.forEach(project => {
+      // If project is completed, add to complete count
+      if (project.status === 'completed') {
+        complete++;
+        return;
       }
       
-      return 'Pending';
-    };
-    
-    // Count projects by their display status
-    projects.forEach(project => {
-      const status = getDisplayStatus(project);
-      if (counts[status] !== undefined) {
-        counts[status]++;
+      // For all other projects, categorize by their schedule state
+      const scheduleState = getProjectScheduleState(manufacturingSchedules, project.id);
+      
+      if (scheduleState === 'Unscheduled') {
+        unscheduled++;
+      } else if (scheduleState === 'Scheduled') {
+        scheduled++;
+      } else if (scheduleState === 'In Progress') {
+        inProgress++;
+      } else if (scheduleState === 'Complete') {
+        complete++;
       }
     });
     
-    // Convert to array format for chart
-    return Object.entries(counts)
-      .filter(([_, count]) => count > 0) // Only include statuses with projects
-      .map(([status, count]) => ({
-        status,
-        count
-      }))
-      .sort((a, b) => b.count - a.count); // Sort by count descending
-  }, [projects]);
+    return {
+      unscheduled,
+      scheduled,
+      inProgress,
+      complete
+    };
+  }, [projects, manufacturingSchedules]);
   
-  // Define colors for the different statuses
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'Completed': return '#22c55e'; // success green
-      case 'In Progress': return '#3b82f6'; // primary blue
-      case 'Scheduled': return '#6366f1'; // indigo
-      case 'Not Started': return '#a1a1aa'; // gray
-      case 'Pending': return '#d4d4d8'; // lighter gray
-      case 'QC': return '#8b5cf6'; // purple
-      case 'Delayed': return '#f97316'; // orange
-      case 'Critical': return '#ef4444'; // red
-      default: return '#d4d4d8'; // default gray
+  // Define status items
+  const statusItems = [
+    {
+      status: 'Unscheduled',
+      count: statusCounts.unscheduled,
+      icon: <PauseCircle className="h-6 w-6 text-gray-500" />,
+      color: 'text-gray-500'
+    },
+    {
+      status: 'Scheduled',
+      count: statusCounts.scheduled,
+      icon: <Clock className="h-6 w-6 text-indigo-500" />,
+      color: 'text-indigo-500'
+    },
+    {
+      status: 'In Progress',
+      count: statusCounts.inProgress,
+      icon: <ActivitySquare className="h-6 w-6 text-blue-500" />,
+      color: 'text-blue-500'
+    },
+    {
+      status: 'Complete',
+      count: statusCounts.complete,
+      icon: <CheckCircle className="h-6 w-6 text-success" />,
+      color: 'text-success'
     }
-  };
-  
-  // Get the icon for each status
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Completed': return <CheckCircle className="h-4 w-4 text-success" />;
-      case 'In Progress': return <ActivitySquare className="h-4 w-4 text-blue-500" />;
-      case 'Scheduled': return <Clock className="h-4 w-4 text-indigo-500" />;
-      case 'Not Started': return <PauseCircle className="h-4 w-4 text-gray-500" />;
-      case 'Pending': return <PauseCircle className="h-4 w-4 text-gray-400" />;
-      case 'QC': return <ActivitySquare className="h-4 w-4 text-purple-500" />;
-      case 'Delayed': return <AlertTriangle className="h-4 w-4 text-orange-500" />;
-      case 'Critical': return <AlertTriangle className="h-4 w-4 text-red-500" />;
-      default: return <Clock className="h-4 w-4 text-gray-500" />;
-    }
-  };
-  
+  ];
+
   return (
     <Card className="bg-card rounded-xl p-4 border border-border">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-muted-foreground font-medium">Project Status Breakdown</h3>
+        <h3 className="text-lg font-medium">Project Status Breakdown</h3>
       </div>
       
-      <div className="space-y-4">
-        <div className="h-52">
-          {statusCounts.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={statusCounts}
-                layout="vertical"
-                margin={{ top: 5, right: 5, bottom: 5, left: 5 }}
-              >
-                <XAxis type="number" hide />
-                <YAxis 
-                  type="category" 
-                  dataKey="status" 
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ 
-                    fill: 'var(--color-muted-foreground)', 
-                    fontSize: 12 
-                  }}
-                  width={100}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'var(--color-card)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '6px',
-                    color: 'var(--color-foreground)'
-                  }}
-                  itemStyle={{ color: 'var(--color-foreground)' }}
-                  labelStyle={{ color: 'var(--color-foreground)', fontWeight: 'bold' }}
-                  formatter={(value) => [`${value} projects`, 'Count']}
-                />
-                <Bar 
-                  dataKey="count" 
-                  radius={[4, 4, 4, 4]}
-                  background={{ fill: 'var(--color-accent-muted)' }}
-                >
-                  {statusCounts.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={getStatusColor(entry.status)} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-full flex items-center justify-center text-muted-foreground">
-              No project data available
-            </div>
-          )}
-        </div>
-        
-        <div className="grid grid-cols-2 gap-2">
-          {statusCounts.map((item) => (
+      <div>
+        <div className="grid grid-cols-4 gap-3">
+          {statusItems.map((item) => (
             <div 
               key={item.status}
-              className="flex items-center gap-2 bg-card/50 border border-border p-2 rounded-lg"
+              className="flex flex-col items-center justify-center p-3 rounded-lg bg-card/50 border border-border"
             >
-              {getStatusIcon(item.status)}
-              <div className="flex-1 text-sm">{item.status}</div>
-              <div className="text-sm font-medium">{item.count}</div>
+              {item.icon}
+              <div className={`text-xl font-bold mt-2 ${item.color}`}>{item.count}</div>
+              <div className="text-sm text-muted-foreground mt-1">{item.status}</div>
             </div>
           ))}
         </div>
