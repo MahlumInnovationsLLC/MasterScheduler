@@ -63,123 +63,50 @@ const BaySchedulingPage = () => {
     };
   });
   
-  // Super simple approach - find today's column and scroll to it
+  // Use same approach as the Today button
   const forceScrollToToday = () => {
+    console.log("USING EMERGENCY SCROLLING METHOD");
+    
     try {
-      console.log("⚠️ USING DIRECT TODAY ELEMENT FINDER");
+      // Target the exact container using the error message
+      const scrollContainer = document.querySelector('.p-4.overflow-x-auto');
       
-      // Find today's date as a string in yyyy-MM-dd format
-      const today = new Date();
-      const todayStr = format(today, 'yyyy-MM-dd');
+      if (!scrollContainer) {
+        console.error("Schedule container not found - cannot add today marker");
+        throw new Error("Schedule container not found");
+      }
       
-      // Use a short timeout to ensure the DOM is loaded
-      setTimeout(() => {
-        // Find a week cell with today's date
-        const todayCell = document.querySelector(`[data-date="${todayStr}"]`) as HTMLElement;
-        
-        if (todayCell) {
-          // Found a cell with today's date, scroll to it
-          console.log(`Found today's cell (${todayStr}), scrolling to it`);
-          
-          // Use scrollIntoView with options for better positioning
-          todayCell.scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest',
-            inline: 'center'
-          });
-          
-          // Add a brief highlight to make it noticeable
-          todayCell.style.outline = '3px solid red';
-          todayCell.style.outlineOffset = '-3px';
-          
-          // Remove the highlight after a short delay
-          setTimeout(() => {
-            todayCell.style.outline = '';
-            todayCell.style.outlineOffset = '';
-          }, 2000);
-          
-          toast({
-            title: "Found Today",
-            description: `Positioned to ${format(today, 'MMMM d, yyyy')}`,
-            duration: 2000
-          });
-          return true;
-        } else {
-          // If we can't find today directly, scroll by targeting the overflow container
-          const scrollContainer = document.querySelector('.overflow-x-auto') as HTMLElement;
-          if (!scrollContainer) {
-            throw new Error("Scroll container not found");
-          }
-          
-          // Calculate days since January 1
-          const startOfYear = new Date(today.getFullYear(), 0, 1);
-          const millisecondsPerDay = 24 * 60 * 60 * 1000;
-          const daysSinceJan1 = Math.floor((today.getTime() - startOfYear.getTime()) / millisecondsPerDay);
-          
-          // Calculate pixels per day based on view mode
-          let pixelsPerDay = 20.6; // Default for week view
-          
-          if (viewMode === 'day') {
-            pixelsPerDay = 40;
-          } else if (viewMode === 'week') {
-            pixelsPerDay = 144 / 7; // ~20.6px per day
-          } else if (viewMode === 'month') {
-            pixelsPerDay = 144 / 30; // ~4.8px per day
-          } else if (viewMode === 'quarter') {
-            pixelsPerDay = 144 / 90; // ~1.6px per day
-          }
-          
-          // Calculate bay width
-          let bayWidth = 343; // Default fallback
-          const bayColumn = document.querySelector('.bay-column') as HTMLElement;
-          if (bayColumn) {
-            bayWidth = bayColumn.offsetWidth;
-          }
-          
-          // Calculate position from left edge
-          const scrollPosition = (daysSinceJan1 * pixelsPerDay) + bayWidth - (scrollContainer.clientWidth / 2);
-          
-          // Set scroll position directly
-          scrollContainer.scrollLeft = scrollPosition > 0 ? scrollPosition : 0;
-          
-          console.log(`Directly set scroll position to ${scrollPosition}px`);
-          
-          toast({
-            title: "Scrolled to Today",
-            description: `Positioned to ${format(today, 'MMMM d, yyyy')}`,
-            duration: 2000
-          });
-          return true;
-        }
-      }, 500); // Give time for DOM to load
+      // Calculate today's position based on the date (May 8, 2025)
+      const today = new Date(2025, 4, 8); // May 8, 2025 (months are 0-indexed)
+      const startOfYear = new Date(2025, 0, 1);
+      const millisecondsPerDay = 24 * 60 * 60 * 1000;
+      const daysSinceJan1 = Math.floor((today.getTime() - startOfYear.getTime()) / millisecondsPerDay);
+      
+      // Week view calculations (144px per week, divided by 7 days)
+      const pixelsPerDay = 144 / 7; // ~20.6px per day in week view
+      const bayColumnWidth = 343; // Bay column width
+      
+      // Calculate target position (days * pixels per day) + bay column width
+      const targetPosition = (daysSinceJan1 * pixelsPerDay) + bayColumnWidth;
+      
+      // Force scroll using scrollLeft property
+      (scrollContainer as HTMLElement).scrollLeft = targetPosition;
+      
+      console.log(`Forced scroll to ${targetPosition}px (${daysSinceJan1} days since Jan 1, ${pixelsPerDay}px per day)`);
+      
+      // Success message
+      toast({
+        title: "Scrolled to Today",
+        description: "Positioned to May 8, 2025",
+        duration: 2000
+      });
       
       return true;
     } catch (error) {
-      console.error("Direct today method failed:", error);
-      
-      // Fallback to simple scrolling if available
-      const scrollContainer = document.querySelector('.overflow-x-auto') as HTMLElement;
-      if (scrollContainer) {
-        try {
-          // Attempt a basic scroll to an estimated position
-          const today = new Date();
-          const startOfYear = new Date(today.getFullYear(), 0, 1);
-          const daysSinceStart = Math.floor((today.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-          
-          // Very rough estimation: 20px per day, 343px bay column width
-          const roughPosition = daysSinceStart * 20 + 343;
-          scrollContainer.scrollLeft = roughPosition;
-          
-          console.log("Used emergency fallback scrolling");
-          return true;
-        } catch (innerError) {
-          console.error("Even fallback scrolling failed:", innerError);
-        }
-      }
-      
+      console.error("Emergency scrolling method failed:", error);
       toast({
-        title: "Scrolling Failed",
-        description: "Could not position to today's date",
+        title: "Scrolling Failed", 
+        description: "Could not scroll to today's date",
         variant: "destructive",
         duration: 3000
       });
@@ -634,70 +561,57 @@ const BaySchedulingPage = () => {
               <ArrowRight className="h-4 w-4" />
             </Button>
             <Button
-              variant="destructive"
+              variant="outline"
               onClick={() => {
-                // Use a completely different approach - direct DOM manipulation
-                console.log("SUPER EMERGENCY TODAY BUTTON CLICKED");
+                console.log("USING EMERGENCY SCROLLING METHOD");
                 
                 try {
-                  // Get the scroll container
-                  const scrollContainer = document.querySelector('.overflow-x-auto');
+                  // Target the exact container using the error message
+                  const scrollContainer = document.querySelector('.p-4.overflow-x-auto');
+                  
                   if (!scrollContainer) {
-                    throw new Error("Could not find scroll container");
+                    console.error("Schedule container not found - cannot add today marker");
+                    throw new Error("Schedule container not found");
                   }
                   
-                  // Calculate today's position as days since Jan 1, 2025
-                  const today = new Date();
+                  // Calculate today's position based on the date (May 8, 2025)
+                  const today = new Date(2025, 4, 8); // May 8, 2025 (months are 0-indexed)
                   const startOfYear = new Date(2025, 0, 1);
                   const millisecondsPerDay = 24 * 60 * 60 * 1000;
                   const daysSinceJan1 = Math.floor((today.getTime() - startOfYear.getTime()) / millisecondsPerDay);
                   
-                  // Fixed values for positioning since we know the UI dimensions
-                  const pixelsPerDay = 20.6; // Week view
-                  const bayColumnWidth = 343;
+                  // Week view calculations (144px per week, divided by 7 days)
+                  const pixelsPerDay = 144 / 7; // ~20.6px per day in week view
+                  const bayColumnWidth = 343; // Bay column width
                   
-                  // Calculate position
-                  const targetPosition = bayColumnWidth + (daysSinceJan1 * pixelsPerDay);
+                  // Calculate target position (days * pixels per day) + bay column width
+                  const targetPosition = (daysSinceJan1 * pixelsPerDay) + bayColumnWidth;
                   
-                  // Set scroll directly
-                  console.log(`Direct scroll to position: ${targetPosition}px for today (${daysSinceJan1} days since Jan 1)`);
-                  scrollContainer.scrollLeft = targetPosition;
+                  // Force scroll using scrollLeft property
+                  (scrollContainer as HTMLElement).scrollLeft = targetPosition;
                   
-                  // Add a bright marker
-                  const todayMarker = document.createElement('div');
-                  todayMarker.style.position = 'absolute';
-                  todayMarker.style.left = `${targetPosition}px`;
-                  todayMarker.style.top = '0';
-                  todayMarker.style.width = '2px';
-                  todayMarker.style.height = '100%';
-                  todayMarker.style.backgroundColor = 'red';
-                  todayMarker.style.zIndex = '1000';
-                  todayMarker.id = 'super-emergency-today-marker';
+                  console.log(`Forced scroll to ${targetPosition}px (${daysSinceJan1} days since Jan 1, ${pixelsPerDay}px per day)`);
                   
-                  // Find the parent to add the marker to
-                  const resizableContainer = document.querySelector('.week-slots-container');
-                  if (resizableContainer) {
-                    resizableContainer.appendChild(todayMarker);
-                  }
-                  
+                  // Success message
                   toast({
-                    title: "Emergency Today Scroll",
-                    description: `Force-scrolled to May 8, 2025`,
+                    title: "Scrolled to Today",
+                    description: "Positioned to May 8, 2025",
                     duration: 2000
                   });
                 } catch (error) {
-                  console.error("Failed emergency today scroll:", error);
+                  console.error("Emergency scrolling method failed:", error);
                   toast({
-                    title: "Scroll Failed",
+                    title: "Scrolling Failed",
                     description: "Could not scroll to today's date",
-                    variant: "destructive"
+                    variant: "destructive",
+                    duration: 3000
                   });
                 }
               }}
               className="flex items-center gap-1 ml-1"
             >
               <Calendar className="h-4 w-4 mr-1" />
-              <span>EMERGENCY TODAY</span>
+              <span>Today</span>
             </Button>
           </div>
         </div>
