@@ -17,12 +17,14 @@ import {
   Calendar,
   SearchIcon,
   ListFilter,
-  AlertTriangle
+  AlertTriangle,
+  PieChart
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
 import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
+import { ProjectStatusBreakdownCard } from '@/components/ProjectStatusBreakdownCard';
 import { DataTable } from '@/components/ui/data-table';
 import { ProgressBadge } from '@/components/ui/progress-badge';
 import {
@@ -1014,7 +1016,7 @@ const ProjectStatus = () => {
       {/* Risk Assessments Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="md:col-span-2">
-          {/* Additional project stats could go here */}
+          <ProjectStatusBreakdownCard projects={projects || []} />
         </div>
         <div>
           <HighRiskProjectsCard projects={projects || []} />
