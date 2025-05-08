@@ -9,6 +9,14 @@ import {
 } from '@shared/schema';
 import { countWorkingDays } from '@shared/utils/date-utils';
 
+// Bay Scheduling Import interface for simplified imports
+interface BaySchedulingImportData {
+  projectNumber: string;
+  productionStartDate: string;
+  endDate: string;
+  teamNumber: number;
+}
+
 // Helper function to convert various string values to proper boolean
 function convertToBoolean(value: any): boolean | null {
   if (value === undefined || value === null) return null;
