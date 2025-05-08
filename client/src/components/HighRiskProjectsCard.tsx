@@ -195,10 +195,13 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                             </span>
                           </div>
                         </div>
-                        <div className="ml-2 flex items-center">
+                        <div className="ml-2 flex flex-col items-end">
+                          <div className="text-[10px] font-light text-muted-foreground mb-1">
+                            Days Until Ship
+                          </div>
                           <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded dark:bg-amber-500/20 bg-amber-100 dark:text-amber-500 text-amber-800 border border-amber-300">
                             <Clock className="h-3 w-3 mr-1" />
-                            {getDaysUntilDate(project.ntcTestingDate || project.qcStartDate)} days
+                            {getDaysUntilDate(project.shipDate || project.ntcTestingDate || project.qcStartDate)} days
                           </span>
                         </div>
                       </div>
