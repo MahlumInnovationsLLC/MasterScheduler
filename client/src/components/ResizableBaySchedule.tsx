@@ -393,6 +393,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
 
   // Loading state for project moves
   const [isMovingProject, setIsMovingProject] = useState(false);
+  const [isUnassigningProject, setIsUnassigningProject] = useState(false);
   
   // Add state for warning popup when manual resizing affects capacity
   const [showCapacityWarning, setShowCapacityWarning] = useState(false);
@@ -1958,6 +1959,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Call the onScheduleDelete function with the schedule ID
       if (onScheduleDelete && data.id) {
+        // Show loading overlay
+        setIsUnassigningProject(true);
+        
         onScheduleDelete(data.id)
           .then(() => {
             toast({
@@ -1972,6 +1976,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               description: "Failed to remove project from schedule",
               variant: "destructive"
             });
+          })
+          .finally(() => {
+            // Hide loading overlay
+            setIsUnassigningProject(false);
           });
       }
     } catch (error) {
@@ -1981,6 +1989,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         description: "Failed to process drop operation",
         variant: "destructive"
       });
+      // Ensure loading overlay is hidden in case of error
+      setIsUnassigningProject(false);
     }
   };
   
@@ -3059,10 +3069,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         />
       )}
       
-      {/* Loading overlay for project moves */}
+      {/* Loading overlays for project operations */}
       <LoadingOverlay 
         visible={isMovingProject} 
         message="Moving project to new location. Please wait..." 
+      />
+      <LoadingOverlay 
+        visible={isUnassigningProject} 
+        message="Removing project from manufacturing schedule. Please wait..." 
       />
       
       <div className="flex">
