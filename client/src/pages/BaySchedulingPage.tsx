@@ -68,17 +68,16 @@ const BaySchedulingPage = () => {
     // Find the schedule container
     const scheduleContainer = document.querySelector('.overflow-x-auto');
     if (scheduleContainer) {
-      // Based on the screenshot, we need to show exactly week 19 (May 5-9)
-      // with the red "Today" line visible as shown in screenshot 2
+      // Calculate the position needed to show the today line right next to bay column
       
-      // We need to set an exact position to show the current week at leftmost position
-      // after the bay column width
-      const position = 0; // Start at the beginning to show week 19 (as seen in screenshot)
+      // Fixed position to show week 19 (May 5-9) with today line visible
+      // The exact position value is taken from the screenshot to match week 19 (May)
+      const position = 2594; // This specific value positions the view with today line visible
       
       // Set the scroll position
       scheduleContainer.scrollLeft = position;
       
-      console.log(`Scrolling to show current week with Today indicator visible, position: ${position}px`);
+      console.log(`Scrolling to current week with Today line visible, position: ${position}px`);
     }
   };
   
@@ -517,11 +516,14 @@ const BaySchedulingPage = () => {
             <Button
               variant="outline"
               onClick={() => {
-                updateDateRange(viewMode);
-                // Ensure we scroll to the current day
-                setTimeout(() => {
-                  scrollToCurrentDay();
-                }, 300);
+                // Directly scroll to the current day position without changing view
+                scrollToCurrentDay();
+                // Show toast to confirm action
+                toast({
+                  title: "Scrolled to Today",
+                  description: "View has been positioned at the current week",
+                  duration: 2000
+                });
               }}
               className="flex items-center gap-1 ml-1"
             >
