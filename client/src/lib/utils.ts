@@ -68,24 +68,24 @@ export function getProjectStatusColor(percentComplete: number, dueDate: Date | s
   const now = new Date();
   const daysUntilDue = differenceInDays(due, now);
   
-  // Critical - due date passed or very close with low completion
-  if ((daysUntilDue < 0 && percentComplete < 95) ||
-      (daysUntilDue < 3 && percentComplete < 80)) {
-    return { color: 'bg-danger', status: 'Critical' };
-  }
-  
-  // Delayed - behind expected progress
-  if ((daysUntilDue < 10 && percentComplete < 70) ||
-      (percentComplete < 0.5 * (100 - daysUntilDue))) {
-    return { color: 'bg-warning', status: 'Delayed' };
-  }
-  
   // Completed
   if (percentComplete >= 100) {
     return { color: 'bg-success', status: 'Completed' };
   }
   
-  // On track
+  // Critical - due date passed or very close with very low completion
+  if ((daysUntilDue < 0 && percentComplete < 90) ||
+      (daysUntilDue < 3 && percentComplete < 75)) {
+    return { color: 'bg-danger', status: 'Critical' };
+  }
+  
+  // Delayed - only mark as delayed if significantly behind expected progress
+  if ((daysUntilDue < 7 && percentComplete < 60) ||
+      (percentComplete < 0.4 * (100 - daysUntilDue) && daysUntilDue < 14)) {
+    return { color: 'bg-warning', status: 'Delayed' };
+  }
+  
+  // On track - most projects should show as Active
   return { color: 'bg-success', status: 'Active' };
 }
 

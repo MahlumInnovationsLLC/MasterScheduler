@@ -21,7 +21,7 @@ import { ProjectStatsCard } from '@/components/ProjectStatusCard';
 import { BillingStatusCard } from '@/components/BillingStatusCard';
 import { ManufacturingCard } from '@/components/ManufacturingCard';
 import { ProgressBadge } from '@/components/ui/progress-badge';
-import { formatDate, formatCurrency, getProjectStatusColor } from '@/lib/utils';
+import { formatDate, formatCurrency, getProjectStatusColor, getProjectScheduleState } from '@/lib/utils';
 import { DashboardTable } from '@/components/ui/dashboard-table';
 
 const Dashboard = () => {
