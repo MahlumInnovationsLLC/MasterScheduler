@@ -1,97 +1,119 @@
 import React from 'react';
-import { AlertTriangle, ExternalLink } from 'lucide-react';
-import { addDays, format, isWithinInterval } from 'date-fns';
-import { Button } from '@/components/ui/button';
+import { AlertTriangle, Calendar, ArrowRight, Clock } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { formatDate } from '@/lib/utils';
 import { Project } from '@shared/schema';
 
 interface HighRiskProjectsCardProps {
   projects: Project[];
 }
 
-export const HighRiskProjectsCard: React.FC<HighRiskProjectsCardProps> = ({ projects }) => {
-  const next2Weeks = {
-    start: new Date(),
-    end: addDays(new Date(), 14)
-  };
-
-  // Filter for high-risk projects starting within the next 2 weeks
-  const highRiskProjects = projects
-    .filter(project => {
-      // Check if project has a start date
-      if (!project.startDate) return false;
-      
-      // Convert string date to Date object
-      const startDate = new Date(project.startDate);
-      
-      // Check if project starts within the next 2 weeks
-      return isWithinInterval(startDate, next2Weeks);
-    })
-    // Sort by risk level (high to low) and then by start date (soonest first)
-    .sort((a, b) => {
-      // First sort by risk level
-      // Handle the case where riskLevel might not be defined
-      const getRiskValue = (project: Project) => {
-        if (!project.riskLevel) return 2; // medium
-        return project.riskLevel === 'high' ? 3 : project.riskLevel === 'medium' ? 2 : 1;
-      };
-      
-      const riskCompare = getRiskValue(b) - getRiskValue(a);
-      
-      if (riskCompare !== 0) return riskCompare;
-      
-      // Then sort by start date
-      return new Date(a.startDate || 0).getTime() - new Date(b.startDate || 0).getTime();
-    })
-    .slice(0, 3); // Take top 3 high risk projects
-
+export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
+  // Filter projects with ship dates within the next 2 weeks
+  const upcomingShipDates = React.useMemo(() => {
+    if (!projects || projects.length === 0) return [];
+    
+    const today = new Date();
+    const twoWeeksLater = new Date();
+    twoWeeksLater.setDate(today.getDate() + 14);
+    
+    return projects
+      .filter(project => {
+        if (!project.shipDate) return false;
+        const shipDate = new Date(project.shipDate);
+        return shipDate >= today && shipDate <= twoWeeksLater;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.shipDate || '');
+        const dateB = new Date(b.shipDate || '');
+        return dateA.getTime() - dateB.getTime();
+      })
+      .slice(0, 5); // Limit to top 5 projects
+  }, [projects]);
+  
+  // Count for the badge
+  const riskCount = upcomingShipDates.length;
+  
   return (
-    <div className="bg-darkCard rounded-xl border border-gray-800 p-4 h-full">
-      <h3 className="text-sm font-medium text-gray-400 mb-3">High Risk Projects</h3>
-      <p className="text-xs text-gray-400 mb-3">Projects requiring immediate attention in the next 2 weeks</p>
-      
-      {highRiskProjects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-[100px] text-center">
-          <div className="text-green-500 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-          </div>
-          <p className="text-sm text-gray-400">No high-risk projects in the next 2 weeks</p>
+    <Card className="bg-darkCard rounded-xl p-4 border border-gray-800">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-gray-400 font-medium">
+          At-Risk Ship Dates
+          {riskCount > 0 && (
+            <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-red-900 text-red-100">
+              {riskCount}
+            </span>
+          )}
+        </h3>
+        <div className="p-2 rounded-lg bg-red-500/10 flex items-center justify-center w-9 h-9">
+          <AlertTriangle className="text-red-500 h-5 w-5" />
         </div>
-      ) : (
-        <div className="space-y-3">
-          {highRiskProjects.map((project) => (
-            <div key={project.id} className="bg-red-900/10 border border-red-900/30 rounded-md p-3">
-              <div className="flex items-start justify-between">
-                <div className="flex">
-                  <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium text-sm">{project.projectNumber}: {project.name}</p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Starts {format(new Date(project.startDate || ''), 'MMM d, yyyy')}
+      </div>
+      
+      <div>
+        {riskCount === 0 ? (
+          <div className="py-3 text-center text-gray-400 text-sm">
+            No at-risk ship dates in the next 2 weeks
+          </div>
+        ) : (
+          <ul className="divide-y divide-gray-800">
+            {upcomingShipDates.map(project => (
+              <li key={project.id} className="py-2">
+                <div className="flex items-start">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-white line-clamp-1">
+                      {project.projectNumber}
                     </p>
-                    {project.pmOwner && (
-                      <p className="text-xs text-gray-400">PM: {project.pmOwner}</p>
-                    )}
+                    <p className="text-xs text-gray-400 line-clamp-1">
+                      {project.name}
+                    </p>
+                    <div className="flex items-center mt-1 text-xs text-amber-500">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      <span>Ships: {formatDate(project.shipDate)}</span>
+                    </div>
+                  </div>
+                  <div className="ml-2 flex items-center">
+                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-red-900/50 text-red-300">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {getDaysUntilShip(project.shipDate)} days
+                    </span>
                   </div>
                 </div>
-                <a href={`/project/${project.id}`}>
-                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </a>
-              </div>
-            </div>
-          ))}
-          
-          {highRiskProjects.length > 0 && (
-            <a href="/projects?filter=high-risk" className="text-xs text-primary hover:underline block text-center mt-2">
-              View all high-risk projects
-            </a>
-          )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      
+      {riskCount > 0 && (
+        <div className="mt-3 text-right">
+          <a href="/project-status" className="text-xs text-blue-400 hover:text-blue-300 inline-flex items-center">
+            View all at-risk projects <ArrowRight className="h-3 w-3 ml-1" />
+          </a>
         </div>
       )}
-    </div>
+    </Card>
   );
-};
+}
+
+// Helper function to calculate days until ship date
+function getDaysUntilShip(shipDateStr: string | null | undefined): number {
+  if (!shipDateStr) return 0;
+  
+  try {
+    const shipDate = new Date(shipDateStr);
+    const today = new Date();
+    
+    // Reset time portion to compare dates only
+    today.setHours(0, 0, 0, 0);
+    shipDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = Math.abs(shipDate.getTime() - today.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  } catch (e) {
+    console.error("Error calculating days until ship:", e);
+    return 0;
+  }
+}
+
+export default HighRiskProjectsCard;
