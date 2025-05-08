@@ -25,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
 import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
 import { ProjectStatusBreakdownCard } from '@/components/ProjectStatusBreakdownCard';
-import { AIInsightsButton } from '@/components/AIInsightsButton';
+import { AIInsightsWidget } from '@/components/AIInsightsWidget';
 import { DataTable } from '@/components/ui/data-table';
 import { ProgressBadge } from '@/components/ui/progress-badge';
 import {
@@ -1021,7 +1021,7 @@ const ProjectStatus = () => {
         </div>
         <div>
           <HighRiskProjectsCard projects={projects || []} />
-          <AIInsightsButton projects={projects || []} />
+          <AIInsightsWidget projects={projects || []} />
         </div>
       </div>
       
