@@ -553,7 +553,18 @@ function ProjectEdit() {
                       )}
                     />
                     
-                    <h3 className="text-md font-medium mt-4 mb-2">Department Allocation Percentages</h3>
+                    <div className="flex justify-between items-center mt-4 mb-2">
+                      <h3 className="text-md font-medium">Department Allocation Percentages</h3>
+                      <div className={`px-3 py-1 rounded-md text-sm font-medium flex gap-1 items-center ${
+                        totalPercentage > 100 
+                          ? 'bg-red-950/30 text-red-300 border border-red-800' 
+                          : totalPercentage === 100 
+                            ? 'bg-green-950/30 text-green-300 border border-green-800'
+                            : 'bg-yellow-950/30 text-yellow-300 border border-yellow-800'
+                      }`}>
+                        Total: <span className="font-bold">{totalPercentage}%</span>
+                      </div>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
@@ -1661,6 +1672,43 @@ function ProjectEdit() {
               )}
             </Button>
           </div>
+          
+          {/* Percentage Warning Alert Dialog */}
+          <AlertDialog open={isPercentageWarningOpen} onOpenChange={setIsPercentageWarningOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Department Allocation Warning</AlertDialogTitle>
+                <AlertDialogDescription>
+                  The total of your department percentages exceeds 100% ({totalPercentage}%). 
+                  This may cause scheduling and resource allocation issues.
+                  <div className="mt-2 p-2 bg-yellow-950/30 border border-yellow-800 rounded-md">
+                    <strong>Department Allocations:</strong>
+                    <ul className="mt-1 space-y-1 text-sm">
+                      <li>Fabrication: {form.watch('fabricationPercent') || 0}%</li>
+                      <li>Paint: {form.watch('paintPercent') || 0}%</li>
+                      <li>Assembly: {form.watch('assemblyPercent') || 0}%</li>
+                      <li>IT: {form.watch('itPercent') || 0}%</li>
+                      <li>NTC Testing: {form.watch('ntcTestingPercent') || 0}%</li>
+                      <li>QC: {form.watch('qcPercent') || 0}%</li>
+                      <li className="font-bold text-yellow-300">Total: {totalPercentage}%</li>
+                    </ul>
+                  </div>
+                  <p className="mt-3">
+                    Are you sure you want to proceed with these percentages?
+                  </p>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Go Back and Adjust</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handlePercentageWarningConfirm}
+                  className="bg-yellow-600 hover:bg-yellow-700"
+                >
+                  Save Anyway
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </form>
       </Form>
     </div>
