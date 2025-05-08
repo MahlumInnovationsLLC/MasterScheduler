@@ -86,6 +86,10 @@ const Dashboard = () => {
   const { data: manufacturingSchedules, isLoading: isLoadingManufacturing } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
   });
+  
+  const { data: manufacturingBays, isLoading: isLoadingBays } = useQuery({
+    queryKey: ['/api/manufacturing-bays'],
+  });
 
   // Calculate project stats
   const projectStats = React.useMemo(() => {
@@ -142,21 +146,42 @@ const Dashboard = () => {
 
   // Manufacturing bay stats
   const manufacturingStats = React.useMemo(() => {
-    if (!manufacturingSchedules) return null;
+    if (!manufacturingSchedules || !manufacturingBays) return null;
 
-    const active = manufacturingSchedules.filter(s => s.status === 'in_progress').length;
-    const scheduled = manufacturingSchedules.filter(s => s.status === 'scheduled').length;
+    // Get active bays (bays with active manufacturing schedules)
+    const activeBayIds = manufacturingSchedules
+      .filter(s => s.status === 'in_progress')
+      .map(s => s.bayId);
+    
+    // Remove duplicates to get unique active bays
+    const uniqueActiveBayIds = [...new Set(activeBayIds)];
+    const active = uniqueActiveBayIds.length;
+    
+    // Get scheduled bays (bays with scheduled manufacturing but not active)
+    const scheduledBayIds = manufacturingSchedules
+      .filter(s => s.status === 'scheduled')
+      .map(s => s.bayId);
+      
+    // Remove duplicates and exclude bays that are already active
+    const uniqueScheduledBayIds = [...new Set(scheduledBayIds)]
+      .filter(id => !uniqueActiveBayIds.includes(id));
+    const scheduled = uniqueScheduledBayIds.length;
+    
+    // For display purposes, count completed and maintenance schedules
     const completed = manufacturingSchedules.filter(s => s.status === 'complete').length;
     const maintenance = manufacturingSchedules.filter(s => s.status === 'maintenance').length;
+
+    // Total bays from the manufacturing bays data
+    const totalBays = manufacturingBays.length;
 
     return {
       active,
       scheduled,
       completed,
       maintenance,
-      total: active + scheduled
+      total: totalBays
     };
-  }, [manufacturingSchedules]);
+  }, [manufacturingSchedules, manufacturingBays]);
 
   // Helper function to format dates consistently
   const formatDate = (dateStr) => {
@@ -247,17 +272,36 @@ const Dashboard = () => {
       accessorKey: 'status',
       header: 'Status',
       cell: ({ row }) => {
+        // Get the project health status (Active, Critical, Delayed, etc.)
         const { status } = getProjectStatusColor(
           row.original.percentComplete,
           row.original.estimatedCompletionDate
         );
-        return <ProgressBadge status={status} animatePulse={status === 'Critical'} />;
+        
+        // Get the manufacturing schedule state (Unscheduled, Scheduled, In Progress, Complete)
+        const scheduleState = getProjectScheduleState(manufacturingSchedules, row.original.id);
+        
+        return (
+          <div className="flex flex-col gap-1">
+            <ProgressBadge status={status} animatePulse={status === 'Critical'} />
+            <ProgressBadge 
+              status={scheduleState} 
+              size="sm"
+              className={
+                scheduleState === 'Unscheduled' ? 'bg-gray-100 text-gray-800 border border-gray-600' :
+                scheduleState === 'Scheduled' ? 'bg-green-100 text-green-800 border border-green-600' :
+                scheduleState === 'In Progress' ? 'bg-blue-100 text-blue-800 border border-blue-600' :
+                'bg-green-100 text-green-800 border border-green-600'
+              }
+            />
+          </div>
+        );
       },
     },
 
   ];
 
-  if (isLoadingProjects || isLoadingBilling || isLoadingManufacturing) {
+  if (isLoadingProjects || isLoadingBilling || isLoadingManufacturing || isLoadingBays) {
     return (
       <div className="p-6">
         <h1 className="text-2xl font-sans font-bold mb-6">Dashboard</h1>
