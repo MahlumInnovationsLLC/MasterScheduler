@@ -63,73 +63,123 @@ const BaySchedulingPage = () => {
     };
   });
   
-  // Function to force scroll to current date regardless of indicators
+  // Super simple approach - find today's column and scroll to it
   const forceScrollToToday = () => {
-    console.log("Force scrolling to today's date - using direct date calculation");
     try {
-      // 1. Find the container
-      const scheduleContainer = document.querySelector('.overflow-x-auto');
-      if (!scheduleContainer) {
-        throw new Error("Couldn't find schedule container");
-      }
+      console.log("⚠️ USING DIRECT TODAY ELEMENT FINDER");
       
-      // 2. Calculate the days since Jan 1 of current year
+      // Find today's date as a string in yyyy-MM-dd format
       const today = new Date();
-      const startOfYear = new Date(today.getFullYear(), 0, 1);
-      const millisecondsPerDay = 24 * 60 * 60 * 1000;
-      const daysSinceJan1 = Math.floor((today.getTime() - startOfYear.getTime()) / millisecondsPerDay);
+      const todayStr = format(today, 'yyyy-MM-dd');
       
-      // 3. Get the container dimensions
-      const bayColumn = document.querySelector('.bay-column') as HTMLElement;
-      let bayColumnWidth = 343; // Default fallback
-      
-      if (bayColumn) {
-        bayColumnWidth = bayColumn.offsetWidth;
-      }
-      
-      // 4. Calculate horizontal scroll position based on view mode
-      let pixelsPerDay = 20; // Default for week view
-      
-      // Weekly view: each week column is around 144px wide (20.57px per day)
-      // We divide the pixel width by 7 to get pixels per day in the current view mode
-      if (viewMode === 'day') {
-        pixelsPerDay = 40; // Each day takes up more space in day view
-      } else if (viewMode === 'week') {
-        pixelsPerDay = 144 / 7; // ~20.57px per day in week view
-      } else if (viewMode === 'month') {
-        pixelsPerDay = 144 / 30; // ~4.8px per day in month view
-      } else if (viewMode === 'quarter') {
-        pixelsPerDay = 144 / 90; // ~1.6px per day in quarter view
-      }
-      
-      // Calculate position in pixels from left edge
-      const dayPosition = daysSinceJan1 * pixelsPerDay;
-      
-      // 5. Position so the today line is centered on screen, accounting for bayColumn width
-      const containerWidth = scheduleContainer.clientWidth;
-      const scrollPosition = Math.max(0, dayPosition - (containerWidth - bayColumnWidth) / 2);
-      
-      // 6. Set scroll position with animation for better UX
-      scheduleContainer.scrollTo({
-        left: scrollPosition,
-        behavior: 'smooth'
-      });
-      
-      console.log(`Scrolled to position ${scrollPosition}px (${daysSinceJan1} days since Jan 1, ${pixelsPerDay}px per day in ${viewMode} view)`);
-      
-      // 7. Add a success toast
-      toast({
-        title: "Scrolled to Today",
-        description: `Positioned to ${format(today, 'MMMM d, yyyy')}`,
-        duration: 2000
-      });
+      // Use a short timeout to ensure the DOM is loaded
+      setTimeout(() => {
+        // Find a week cell with today's date
+        const todayCell = document.querySelector(`[data-date="${todayStr}"]`) as HTMLElement;
+        
+        if (todayCell) {
+          // Found a cell with today's date, scroll to it
+          console.log(`Found today's cell (${todayStr}), scrolling to it`);
+          
+          // Use scrollIntoView with options for better positioning
+          todayCell.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'center'
+          });
+          
+          // Add a brief highlight to make it noticeable
+          todayCell.style.outline = '3px solid red';
+          todayCell.style.outlineOffset = '-3px';
+          
+          // Remove the highlight after a short delay
+          setTimeout(() => {
+            todayCell.style.outline = '';
+            todayCell.style.outlineOffset = '';
+          }, 2000);
+          
+          toast({
+            title: "Found Today",
+            description: `Positioned to ${format(today, 'MMMM d, yyyy')}`,
+            duration: 2000
+          });
+          return true;
+        } else {
+          // If we can't find today directly, scroll by targeting the overflow container
+          const scrollContainer = document.querySelector('.overflow-x-auto') as HTMLElement;
+          if (!scrollContainer) {
+            throw new Error("Scroll container not found");
+          }
+          
+          // Calculate days since January 1
+          const startOfYear = new Date(today.getFullYear(), 0, 1);
+          const millisecondsPerDay = 24 * 60 * 60 * 1000;
+          const daysSinceJan1 = Math.floor((today.getTime() - startOfYear.getTime()) / millisecondsPerDay);
+          
+          // Calculate pixels per day based on view mode
+          let pixelsPerDay = 20.6; // Default for week view
+          
+          if (viewMode === 'day') {
+            pixelsPerDay = 40;
+          } else if (viewMode === 'week') {
+            pixelsPerDay = 144 / 7; // ~20.6px per day
+          } else if (viewMode === 'month') {
+            pixelsPerDay = 144 / 30; // ~4.8px per day
+          } else if (viewMode === 'quarter') {
+            pixelsPerDay = 144 / 90; // ~1.6px per day
+          }
+          
+          // Calculate bay width
+          let bayWidth = 343; // Default fallback
+          const bayColumn = document.querySelector('.bay-column') as HTMLElement;
+          if (bayColumn) {
+            bayWidth = bayColumn.offsetWidth;
+          }
+          
+          // Calculate position from left edge
+          const scrollPosition = (daysSinceJan1 * pixelsPerDay) + bayWidth - (scrollContainer.clientWidth / 2);
+          
+          // Set scroll position directly
+          scrollContainer.scrollLeft = scrollPosition > 0 ? scrollPosition : 0;
+          
+          console.log(`Directly set scroll position to ${scrollPosition}px`);
+          
+          toast({
+            title: "Scrolled to Today",
+            description: `Positioned to ${format(today, 'MMMM d, yyyy')}`,
+            duration: 2000
+          });
+          return true;
+        }
+      }, 500); // Give time for DOM to load
       
       return true;
     } catch (error) {
-      console.error("Error in forceScrollToToday:", error);
+      console.error("Direct today method failed:", error);
+      
+      // Fallback to simple scrolling if available
+      const scrollContainer = document.querySelector('.overflow-x-auto') as HTMLElement;
+      if (scrollContainer) {
+        try {
+          // Attempt a basic scroll to an estimated position
+          const today = new Date();
+          const startOfYear = new Date(today.getFullYear(), 0, 1);
+          const daysSinceStart = Math.floor((today.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+          
+          // Very rough estimation: 20px per day, 343px bay column width
+          const roughPosition = daysSinceStart * 20 + 343;
+          scrollContainer.scrollLeft = roughPosition;
+          
+          console.log("Used emergency fallback scrolling");
+          return true;
+        } catch (innerError) {
+          console.error("Even fallback scrolling failed:", innerError);
+        }
+      }
+      
       toast({
-        title: "Scrolling Error",
-        description: "Could not scroll to today's date",
+        title: "Scrolling Failed",
+        description: "Could not position to today's date",
         variant: "destructive",
         duration: 3000
       });
