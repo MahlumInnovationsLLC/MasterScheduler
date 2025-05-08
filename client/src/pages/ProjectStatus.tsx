@@ -16,11 +16,13 @@ import {
   ArrowUpRight,
   Calendar,
   SearchIcon,
-  ListFilter
+  ListFilter,
+  AlertTriangle
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
+import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
 import { DataTable } from '@/components/ui/data-table';
 import { ProgressBadge } from '@/components/ui/progress-badge';
 import {
@@ -64,6 +66,13 @@ const ProjectStatus = () => {
     queryKey: ['/api/manufacturing-schedules'],
   });
   
+  const { data: billingMilestones } = useQuery({
+    queryKey: ['/api/billing-milestones'],
+  });
+  
+  const { data: manufacturingBays } = useQuery({
+    queryKey: ['/api/manufacturing-bays'],
+  });
   // Flag to track if initial auto-filtering has been applied
   const [hasAppliedInitialFilter, setHasAppliedInitialFilter] = useState(false);
   
@@ -276,7 +285,43 @@ const ProjectStatus = () => {
     });
   }, [projects, dateFilters]);
 
-  const upcomingMilestones = 7; // This would come from the billing milestones API
+  // Calculate upcoming milestones within the next 30 days
+  const upcomingMilestones = React.useMemo(() => {
+    if (!billingMilestones || !Array.isArray(billingMilestones)) return 0;
+    
+    const now = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(now.getDate() + 30);
+
+    return billingMilestones.filter(milestone => {
+      if (!milestone.dueDate) return false;
+      
+      try {
+        const dueDate = new Date(milestone.dueDate);
+        return !milestone.isPaid && dueDate >= now && dueDate <= thirtyDaysFromNow;
+      } catch (e) {
+        console.error("Error parsing milestone due date:", e);
+        return false;
+      }
+    }).length;
+  }, [billingMilestones]);
+  
+  // Calculate manufacturing bay statistics
+  const manufacturingStats = React.useMemo(() => {
+    if (!manufacturingBays || !Array.isArray(manufacturingBays)) return { active: 0, available: 0, total: 0 };
+    
+    const total = manufacturingBays.length;
+    const active = manufacturingBays.filter(bay => bay.isActive && 
+      Array.isArray(manufacturingSchedules) && 
+      manufacturingSchedules.some(schedule => schedule.bayId === bay.id)
+    ).length;
+    
+    return {
+      active,
+      available: total - active,
+      total
+    };
+  }, [manufacturingBays, manufacturingSchedules]);
 
   // Reset all filters
   const resetFilters = () => {
@@ -942,8 +987,10 @@ const ProjectStatus = () => {
           value={upcomingMilestones}
           icon={<Flag className="text-accent h-5 w-5" />}
           progress={{ 
-            value: 45, 
-            label: "45% complete" 
+            value: upcomingMilestones > 0 && Array.isArray(billingMilestones) && billingMilestones.length > 0 
+              ? Math.round((upcomingMilestones / billingMilestones.length) * 100)
+              : 0, 
+            label: `${upcomingMilestones} due in 30 days` 
           }}
         />
         
@@ -951,21 +998,27 @@ const ProjectStatus = () => {
           title="Avg. Completion"
           value={`${Math.round(projectStats?.avgCompletion || 0)}%`}
           icon={<DollarSign className="text-secondary h-5 w-5" />}
-          change={{ 
-            value: "5% this month", 
-            isPositive: true 
-          }}
         />
         
         <ProjectStatsCard 
           title="Manufacturing"
-          value="4/5"
+          value={`${manufacturingStats.active}/${manufacturingStats.total}`}
           icon={<Building2 className="text-success h-5 w-5" />}
           tags={[
-            { label: "Active", value: 4, status: "On Track" },
-            { label: "Available", value: 1, status: "Inactive" }
+            { label: "Active", value: manufacturingStats.active, status: "On Track" },
+            { label: "Available", value: manufacturingStats.available, status: "Inactive" }
           ]}
         />
+      </div>
+      
+      {/* Risk Assessments Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="md:col-span-2">
+          {/* Additional project stats could go here */}
+        </div>
+        <div>
+          <HighRiskProjectsCard projects={projects || []} />
+        </div>
       </div>
       
       {/* Project List Table */}
