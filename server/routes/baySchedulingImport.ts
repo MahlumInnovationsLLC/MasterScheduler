@@ -131,9 +131,7 @@ export async function importBayScheduling(req: Request, res: Response) {
 
         // Update project master data with information from import
         try {
-          const projectUpdates: any = {
-            updatedAt: new Date().toISOString()
-          };
+          const projectUpdates: any = {};
           
           // Update totalHours if provided
           if (scheduleData.totalHours && scheduleData.totalHours > 0) {
@@ -270,17 +268,34 @@ export async function importBayScheduling(req: Request, res: Response) {
           }
           
           // Update the existing schedule
-          const updatedSchedule = await storage.updateManufacturingSchedule(existingInBay.id, {
+          // Convert all dates to proper string format (YYYY-MM-DD) for database
+          const updateData = {
             startDate: startDate.toISOString().split('T')[0], // Store only the date part
             endDate: endDate.toISOString().split('T')[0], // Store only the date part
             // Use totalHours from import data if provided, otherwise keep existing value
             totalHours: scheduleData.totalHours || existingInBay.totalHours,
-            status: existingInBay.status || 'scheduled',
-            fabricationStart: fabricationStartDate instanceof Date ? fabricationStartDate.toISOString().split('T')[0] : null,
-            assemblyStart: assemblyStartDate instanceof Date ? assemblyStartDate.toISOString().split('T')[0] : null,
-            ntcTestingStart: ntcTestingStartDate instanceof Date ? ntcTestingStartDate.toISOString().split('T')[0] : null,
-            qcStart: qcStartDate instanceof Date ? qcStartDate.toISOString().split('T')[0] : null
-          });
+            status: existingInBay.status || 'scheduled'
+          };
+          
+          // Only add properly formatted dates
+          if (fabricationStartDate instanceof Date) {
+            updateData.fabricationStart = fabricationStartDate.toISOString().split('T')[0];
+          }
+          
+          if (assemblyStartDate instanceof Date) {
+            updateData.assemblyStart = assemblyStartDate.toISOString().split('T')[0];
+          }
+          
+          if (ntcTestingStartDate instanceof Date) {
+            updateData.ntcTestingStart = ntcTestingStartDate.toISOString().split('T')[0];
+          }
+          
+          if (qcStartDate instanceof Date) {
+            updateData.qcStart = qcStartDate.toISOString().split('T')[0];
+          }
+          
+          console.log(`Updating manufacturing schedule for project ${project.projectNumber} with:`, updateData);
+          const updatedSchedule = await storage.updateManufacturingSchedule(existingInBay.id, updateData);
           
           if (updatedSchedule) {
             results.imported++;
@@ -340,6 +355,7 @@ export async function importBayScheduling(req: Request, res: Response) {
           }
           
           // Create a new manufacturing schedule
+          // Create an object with basic required fields first
           const newSchedule: InsertManufacturingSchedule = {
             projectId: project.id,
             bayId: bay.id,
@@ -349,13 +365,26 @@ export async function importBayScheduling(req: Request, res: Response) {
             totalHours: scheduleData.totalHours || project.totalHours || 1000,
             status: 'scheduled',
             row: row, // Assign the schedule to the first available row
-            fabricationStart: fabricationStart instanceof Date ? fabricationStart.toISOString().split('T')[0] : null,
-            assemblyStart: assemblyStart instanceof Date ? assemblyStart.toISOString().split('T')[0] : null,
-            ntcTestingStart: ntcTestingStart instanceof Date ? ntcTestingStart.toISOString().split('T')[0] : null,
-            qcStart: qcStart instanceof Date ? qcStart.toISOString().split('T')[0] : null,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
           };
+          
+          // Only add properly formatted date fields
+          if (fabricationStart instanceof Date) {
+            newSchedule.fabricationStart = fabricationStart.toISOString().split('T')[0];
+          }
+          
+          if (assemblyStart instanceof Date) {
+            newSchedule.assemblyStart = assemblyStart.toISOString().split('T')[0];
+          }
+          
+          if (ntcTestingStart instanceof Date) {
+            newSchedule.ntcTestingStart = ntcTestingStart.toISOString().split('T')[0];
+          }
+          
+          if (qcStart instanceof Date) {
+            newSchedule.qcStart = qcStart.toISOString().split('T')[0];
+          }
+          
+          console.log(`Creating manufacturing schedule for project ${project.projectNumber} in bay ${bay.bayNumber}`, newSchedule);
           
           const createdSchedule = await storage.createManufacturingSchedule(newSchedule);
           
