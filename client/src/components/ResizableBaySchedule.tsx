@@ -845,7 +845,46 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Ensure minimum width for visibility
         barWidth = Math.max(20, barWidth);
         
-        const barLeft = validStartIndex * slotWidth;
+        // Calculate barLeft position more precisely based on view mode and actual date
+        let barLeft;
+        
+        if (viewMode === 'day') {
+          // Day mode: direct slot index calculation
+          barLeft = validStartIndex * slotWidth;
+        } 
+        else if (viewMode === 'week') {
+          // Week mode: position based on week slots
+          barLeft = validStartIndex * slotWidth;
+          
+          // Add fractional position within the week if needed
+          if (startDate.getDay() > 0) {
+            // Calculate day offset within week (0 = Monday in our layout)
+            const dayOffset = startDate.getDay() - 1;
+            if (dayOffset >= 0) {
+              // Add partial position
+              barLeft += (dayOffset / 7) * slotWidth;
+            }
+          }
+        } 
+        else if (viewMode === 'month') {
+          // Month mode: position based on month slots
+          barLeft = validStartIndex * slotWidth;
+          
+          // Add fractional position within the month if needed
+          const dayOffset = startDate.getDate() - 1;
+          const daysInMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0).getDate();
+          barLeft += (dayOffset / daysInMonth) * slotWidth;
+        } 
+        else { // quarter
+          // Quarter mode: position based on quarter slots
+          barLeft = validStartIndex * slotWidth;
+          
+          // Add fractional position within the quarter if needed
+          const quarterStart = new Date(startDate.getFullYear(), Math.floor(startDate.getMonth() / 3) * 3, 1);
+          const dayOffset = differenceInDays(startDate, quarterStart);
+          // Approximate 90 days per quarter
+          barLeft += (dayOffset / 90) * slotWidth;
+        }
         
         // Get department percentages from the project (or use defaults)
         const fabPercentage = parseFloat(project.fabPercentage as any) || 20;
@@ -3433,8 +3472,42 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           {(() => {
             const today = new Date();
             const startDate = dateRange.start;
-            const totalDays = differenceInDays(today, startDate);
-            const position = (totalDays / 7) * slotWidth;
+            
+            // Calculate position based on view mode
+            let position = 0;
+            
+            if (viewMode === 'day') {
+              // For day view, position is based on days from start
+              const totalDays = differenceInDays(today, startDate);
+              position = totalDays * slotWidth;
+            } 
+            else if (viewMode === 'week') {
+              // For week view, position is based on weeks from start
+              const totalDays = differenceInDays(today, startDate);
+              const totalWeeks = totalDays / 7;
+              position = totalWeeks * slotWidth;
+            }
+            else if (viewMode === 'month') {
+              // For month view, position is based on months from start
+              const totalMonths = differenceInMonths(today, startDate);
+              position = totalMonths * slotWidth;
+              
+              // Add partial month position
+              const monthProgress = today.getDate() / 30; // Approximate
+              position += monthProgress * slotWidth;
+            }
+            else if (viewMode === 'quarter') {
+              // For quarter view, position is based on quarters from start
+              const totalMonths = differenceInMonths(today, startDate);
+              const totalQuarters = totalMonths / 3;
+              position = totalQuarters * slotWidth;
+              
+              // Add partial quarter position
+              const quarterMonth = today.getMonth() % 3;
+              const quarterProgress = (quarterMonth * 30 + today.getDate()) / 90; // Approximate
+              position += quarterProgress * slotWidth;
+            }
+            
             const isVisible = position >= 0 && position <= totalViewWidth;
             
             return isVisible ? (
