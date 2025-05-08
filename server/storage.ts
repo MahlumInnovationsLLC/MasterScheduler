@@ -151,6 +151,8 @@ export interface IStorage {
   createManufacturingSchedule(schedule: InsertManufacturingSchedule): Promise<ManufacturingSchedule>;
   updateManufacturingSchedule(id: number, schedule: Partial<InsertManufacturingSchedule>): Promise<ManufacturingSchedule | undefined>;
   deleteManufacturingSchedule(id: number): Promise<boolean>;
+  getBayManufacturingSchedules(bayId: number): Promise<ManufacturingSchedule[]>;
+  getProjectManufacturingSchedules(projectId: number): Promise<ManufacturingSchedule[]>;
   
   // Sales Deals methods
   getSalesDeals(filters?: { isActive?: boolean, ownerId?: string, dealStage?: string, dealType?: string, priority?: string }): Promise<SalesDeal[]>;
@@ -662,6 +664,36 @@ export class DatabaseStorage implements IStorage {
   async deleteManufacturingSchedule(id: number): Promise<boolean> {
     await db.delete(manufacturingSchedules).where(eq(manufacturingSchedules.id, id));
     return true;
+  }
+  
+  async getBayManufacturingSchedules(bayId: number): Promise<ManufacturingSchedule[]> {
+    try {
+      const results = await db
+        .select()
+        .from(manufacturingSchedules)
+        .where(eq(manufacturingSchedules.bayId, bayId))
+        .orderBy(manufacturingSchedules.startDate);
+      
+      return castSqlResult<ManufacturingSchedule>(results);
+    } catch (error) {
+      console.error("Error fetching bay manufacturing schedules:", error);
+      return [];
+    }
+  }
+  
+  async getProjectManufacturingSchedules(projectId: number): Promise<ManufacturingSchedule[]> {
+    try {
+      const results = await db
+        .select()
+        .from(manufacturingSchedules)
+        .where(eq(manufacturingSchedules.projectId, projectId))
+        .orderBy(manufacturingSchedules.startDate);
+      
+      return castSqlResult<ManufacturingSchedule>(results);
+    } catch (error) {
+      console.error("Error fetching project manufacturing schedules:", error);
+      return [];
+    }
   }
   
   // Allowed Emails
