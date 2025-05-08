@@ -530,8 +530,8 @@ const ProjectDetails = () => {
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded bg-primary flex items-center justify-center text-white font-bold">
-                {project.projectNumber.slice(-2)}
+              <div className="h-10 w-10 rounded bg-primary flex items-center justify-center text-white font-bold text-sm">
+                {project.location || 'N/A'}
               </div>
               <div>
                 <h2 className="text-xl font-bold font-sans">{project.projectNumber}: {project.name}</h2>
