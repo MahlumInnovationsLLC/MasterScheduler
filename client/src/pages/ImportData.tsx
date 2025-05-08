@@ -568,10 +568,43 @@ const ImportDataPage = () => {
         return date.toISOString();
       }
       
-      // Handle string date format
+      // Handle string date format with various formats
       if (typeof excelDate === 'string') {
+        // Check if it's MM/DD/YYYY format
+        if (excelDate.includes('/')) {
+          const parts = excelDate.split('/');
+          if (parts.length === 3) {
+            // Parse using explicit base 10 to avoid octal interpretation of leading zeros
+            const month = parseInt(parts[0], 10);
+            const day = parseInt(parts[1], 10);
+            const year = parseInt(parts[2], 10);
+            
+            // Create date (month is 0-indexed in JS Date)
+            const date = new Date(year, month - 1, day);
+            return date.toISOString();
+          }
+        }
+        
+        // Check if it's YYYY-MM-DD format
+        if (excelDate.includes('-')) {
+          const parts = excelDate.split('-');
+          if (parts.length === 3) {
+            // Parse using explicit base 10 to avoid octal interpretation of leading zeros
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10);
+            const day = parseInt(parts[2], 10);
+            
+            // Create date (month is 0-indexed in JS Date)
+            const date = new Date(year, month - 1, day);
+            return date.toISOString();
+          }
+        }
+        
+        // Default date parsing fallback
         const date = new Date(excelDate);
-        return date.toISOString();
+        if (!isNaN(date.getTime())) {
+          return date.toISOString();
+        }
       }
       
       // Handle JavaScript Date object
@@ -580,7 +613,8 @@ const ImportDataPage = () => {
       }
       
       return null;
-    } catch {
+    } catch (error) {
+      console.error('Error parsing date:', excelDate, error);
       return null;
     }
   };
@@ -743,6 +777,40 @@ const ImportDataPage = () => {
         filename = 'manufacturing_schedule_template.xlsx';
         break;
       
+      case 'bay-scheduling':
+        template = [
+          {
+            'Project Number': 'T4-2024-001',
+            'Production Start Date': '5/1/2024',
+            'End Date': '5/15/2024',
+            'Team Number': 1
+          },
+          {
+            'Project Number': 'T4-2024-002',
+            'Production Start Date': '5/16/2024',
+            'End Date': '5/30/2024',
+            'Team Number': 2
+          }
+        ];
+        filename = 'bay_scheduling_import_template.csv';
+        // Generate CSV directly for this template
+        const csvContent = [
+          'Project Number,Production Start Date,End Date,Team Number', // CSV Header
+          ...template.map(row => 
+            `${row['Project Number']},${row['Production Start Date']},${row['End Date']},${row['Team Number']}`
+          )
+        ].join('\n');
+        
+        const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+        saveAs(csvBlob, filename);
+        
+        toast({
+          title: "Template Downloaded",
+          description: `The bay scheduling import template has been downloaded.`,
+        });
+        
+        return; // Exit early as we've already handled the file saving
+
       case 'delivery':
         template = [
           {
@@ -808,10 +876,11 @@ const ImportDataPage = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="projects" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-4 mb-6">
+            <TabsList className="grid grid-cols-5 mb-6">
               <TabsTrigger value="projects">Tier IV Projects</TabsTrigger>
               <TabsTrigger value="billing">Billing Milestones</TabsTrigger>
               <TabsTrigger value="manufacturing">Manufacturing Schedule</TabsTrigger>
+              <TabsTrigger value="bay-scheduling">Bay Scheduling</TabsTrigger>
               <TabsTrigger value="delivery">On Time Delivery</TabsTrigger>
             </TabsList>
             
@@ -882,13 +951,45 @@ const ImportDataPage = () => {
             <TabsContent value="manufacturing">
               <div className="space-y-4">
                 <div>
+                  <h3 className="text-md font-medium mb-2">Import Manufacturing Bays</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Upload your Manufacturing Schedule Excel file to import manufacturing bays and their assignments.
+                    The file should contain bay details, project assignments, and equipment information.
+                  </p>
+                  
+                  <div className="flex justify-between items-center gap-4">
+                    <div className="flex-1">
+                      <Label htmlFor="manufacturing-file" className="mb-2 block">Select Manufacturing Excel File</Label>
+                      <Input 
+                        id="manufacturing-file" 
+                        type="file" 
+                        accept=".xlsx,.xls" 
+                        onChange={(e) => handleFileUpload(e, 'manufacturing')}
+                        disabled={isUploading}
+                        className="cursor-pointer"
+                      />
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => downloadTemplate('manufacturing')}
+                    >
+                      <Download className="mr-2 h-4 w-4" /> Template
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="bay-scheduling">
+              <div className="space-y-4">
+                <div>
                   <h3 className="text-md font-medium mb-2">Import Bay Scheduling Data</h3>
                   <p className="text-sm text-gray-500 mb-4">
                     Upload CSV data to place projects in manufacturing bays with specific start and end dates.
                     This tool handles date formats safely and properly assigns projects to bays.
                   </p>
                   
-                  {/* Integrate BaySchedulingImport component directly */}
+                  {/* Integrate BaySchedulingImport component */}
                   <BaySchedulingImport />
                 </div>
               </div>
