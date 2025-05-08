@@ -144,13 +144,13 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                           <p className="text-xs text-muted-foreground line-clamp-1">
                             {project.name}
                           </p>
-                          <div className="flex items-center mt-1 text-xs text-blue-500">
+                          <div className="flex items-center mt-1 text-xs dark:text-blue-500 text-blue-700">
                             <LayoutGrid className="h-3 w-3 mr-1" />
                             <span>{project.bayName}</span>
                           </div>
                         </div>
                         <div className="ml-2 flex items-center">
-                          <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-blue-500/20 text-blue-500">
+                          <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded dark:bg-blue-500/20 bg-blue-100 dark:text-blue-500 text-blue-800 border border-blue-300">
                             <Activity className="h-3 w-3 mr-1" />
                             {project.currentPhase}
                           </span>
@@ -180,7 +180,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                           <p className="text-xs text-muted-foreground line-clamp-1">
                             {project.name}
                           </p>
-                          <div className="flex items-center mt-1 text-xs text-amber-500">
+                          <div className="flex items-center mt-1 text-xs dark:text-amber-500 text-amber-700">
                             <Calendar className="h-3 w-3 mr-1" />
                             <span>
                               {project.ntcTestingDate && 
@@ -196,7 +196,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                           </div>
                         </div>
                         <div className="ml-2 flex items-center">
-                          <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-amber-500/20 text-amber-500">
+                          <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded dark:bg-amber-500/20 bg-amber-100 dark:text-amber-500 text-amber-800 border border-amber-300">
                             <Clock className="h-3 w-3 mr-1" />
                             {getDaysUntilDate(project.ntcTestingDate || project.qcStartDate)} days
                           </span>
