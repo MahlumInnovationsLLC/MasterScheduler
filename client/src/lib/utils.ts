@@ -256,9 +256,7 @@ export function calculateBayUtilization(bays: any[], schedules: any[]): number {
           
           // Calculate production hours per day for this schedule
           const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-          // Use a hardcoded milliseconds per day to avoid octal literal parsing issues in strict mode
-          const millisecondsPerDay = 86400000; // 24 hours * 60 minutes * 60 seconds * 1000 milliseconds
-          const diffDays = Math.max(1, Math.ceil(diffTime / millisecondsPerDay));
+          const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
           const hoursPerDay = schedule.totalHours / diffDays;
           
           // Analyze each week starting from today
@@ -282,8 +280,7 @@ export function calculateBayUtilization(bays: any[], schedules: any[]): number {
             // Calculate overlap days between this week and the project
             const overlapStart = new Date(Math.max(weekStart.getTime(), startDate.getTime()));
             const overlapEnd = new Date(Math.min(weekEnd.getTime(), endDate.getTime()));
-            // Use the constant defined above to avoid octal literal parsing issues in strict mode
-            const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / millisecondsPerDay) + 1;
+            const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
             
             // Calculate hours for this week based on overlap
             const weekHours = hoursPerDay * Math.min(7, overlapDays);

@@ -563,9 +563,7 @@ const ImportDataPage = () => {
       if (typeof excelDate === 'number') {
         // Excel dates are number of days since 1900-01-01
         // But Excel incorrectly thinks 1900 was a leap year, so adjust for dates after Feb 28, 1900
-        // Use hardcoded milliseconds per day to avoid octal literal parsing issues in strict mode
-        const millisecondsPerDay = 86400000; // 24 hours * 60 minutes * 60 seconds * 1000 milliseconds
-        const date = new Date((excelDate - (excelDate > 59 ? 1 : 0) - 25569) * millisecondsPerDay);
+        const date = new Date((excelDate - (excelDate > 59 ? 1 : 0) - 25569) * 86400 * 1000);
         return date.toISOString();
       }
       
@@ -684,7 +682,7 @@ const ImportDataPage = () => {
             'Description': 'Initial design phase completion milestone',
             'Contract Reference': 'CON-2024-113',
             'Payment Terms': 'Net 30',
-            'Invoice Number': 'INV-2024-00042',
+            'Invoice Number': 'INV-2024-0042',
             'Percentage of Total': 25,
             'Billing Contact': 'Jane Smith',
             'Notes': 'Client requested invoice modification before payment'

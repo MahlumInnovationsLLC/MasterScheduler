@@ -19,11 +19,11 @@ const getOidcConfig = memoize(
       process.env.REPL_ID!
     );
   },
-  { maxAge: 3600000 } // 1 hour in milliseconds
+  { maxAge: 3600 * 1000 }
 );
 
 export function getSession() {
-  const sessionTtl = 7 * 86400000; // 7 days * 86400000 ms per day (1 week)
+  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,

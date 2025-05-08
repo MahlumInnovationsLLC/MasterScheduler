@@ -18,7 +18,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
 app.use((req, res, next) => {
-  const start = new Date().getTime();
+  const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
@@ -29,7 +29,7 @@ app.use((req, res, next) => {
   };
 
   res.on("finish", () => {
-    const duration = new Date().getTime() - start;
+    const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
