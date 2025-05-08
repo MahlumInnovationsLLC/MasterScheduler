@@ -40,7 +40,8 @@ import {
 const BaySchedulingPage = () => {
   const { toast } = useToast();
   
-  // State for import modal
+  // State for loading and import modal
+  const [isLoading, setIsLoading] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   
   // Force a refresh of manufacturing schedules when page loads
@@ -720,6 +721,16 @@ const BaySchedulingPage = () => {
           />
         </div>
       </div>
+      
+      {/* Loading overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center">
+            <div className="h-10 w-10 border-4 border-t-transparent border-primary rounded-full animate-spin mb-4"></div>
+            <p className="font-medium">Moving projects to Unassigned...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
