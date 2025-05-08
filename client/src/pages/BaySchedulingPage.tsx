@@ -521,33 +521,38 @@ const BaySchedulingPage = () => {
                 <Button 
                   variant="destructive" 
                   className="w-full"
+                  disabled={isLoading}
                   onClick={async () => {
                     // Add confirmation dialog
                     if (window.confirm("This will move ALL projects to the Unassigned section. Continue?")) {
                       setIsLoading(true);
                       try {
-                        const response = await fetch("/api/manufacturing-schedules/clear-all", {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                          },
-                        });
+                        console.log("Attempting to clear all manufacturing schedules...");
+                        
+                        // Use the API request utility for better error handling
+                        const response = await apiRequest("POST", "/api/manufacturing-schedules/clear-all", {});
                         
                         if (response.ok) {
                           const result = await response.json();
+                          console.log("Successfully cleared all schedules:", result);
+                          
                           toast({
                             title: "Success!",
-                            description: result.message,
+                            description: result.message || "All projects moved to Unassigned section.",
                             variant: "default",
                           });
-                          // Reload all data
-                          manufacturingSchedulesQuery.refetch();
-                          manufacturingBaysQuery.refetch();
-                          projectsQuery.refetch();
+                          
+                          // Properly invalidate queries instead of just refetching
+                          queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+                          queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-bays'] });
+                          queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
                         } else {
+                          const errorResponse = await response.text();
+                          console.error("Error response from server:", errorResponse);
+                          
                           toast({
                             title: "Error",
-                            description: "Failed to move projects to Unassigned section.",
+                            description: "Failed to move projects to Unassigned section. Please try again.",
                             variant: "destructive",
                           });
                         }
@@ -555,7 +560,7 @@ const BaySchedulingPage = () => {
                         console.error("Error clearing schedules:", error);
                         toast({
                           title: "Error",
-                          description: "An unexpected error occurred.",
+                          description: "An unexpected error occurred. Please try again later.",
                           variant: "destructive",
                         });
                       } finally {
