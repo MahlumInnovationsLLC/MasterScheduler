@@ -523,7 +523,7 @@ function ProjectEdit() {
                             <div className="grid grid-cols-[1fr_50px] gap-2">
                               <FormControl>
                                 <Slider 
-                                  value={[field.value || 15]} 
+                                  value={[field.value || 27]} 
                                   min={0} 
                                   max={100} 
                                   step={1}
@@ -532,7 +532,7 @@ function ProjectEdit() {
                               </FormControl>
                               <Input 
                                 type="number" 
-                                value={field.value || 15}
+                                value={field.value || 27}
                                 onChange={(e) => {
                                   const val = parseInt(e.target.value);
                                   if (!isNaN(val) && val >= 0 && val <= 100) {
@@ -544,42 +544,6 @@ function ProjectEdit() {
                             </div>
                             <FormDescription className="text-xs">
                               Fabrication phase percentage
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="assemblyPercent"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Assembly %</FormLabel>
-                            <div className="grid grid-cols-[1fr_50px] gap-2">
-                              <FormControl>
-                                <Slider 
-                                  value={[field.value || 65]} 
-                                  min={0} 
-                                  max={100} 
-                                  step={1}
-                                  onValueChange={(vals) => field.onChange(vals[0])}
-                                />
-                              </FormControl>
-                              <Input 
-                                type="number" 
-                                value={field.value || 65}
-                                onChange={(e) => {
-                                  const val = parseInt(e.target.value);
-                                  if (!isNaN(val) && val >= 0 && val <= 100) {
-                                    field.onChange(val);
-                                  }
-                                }} 
-                                className="w-[60px]"
-                              />
-                            </div>
-                            <FormDescription className="text-xs">
-                              Assembly phase percentage
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -616,6 +580,150 @@ function ProjectEdit() {
                             </div>
                             <FormDescription className="text-xs">
                               Paint phase percentage
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="assemblyPercent"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Assembly %</FormLabel>
+                            <div className="grid grid-cols-[1fr_50px] gap-2">
+                              <FormControl>
+                                <Slider 
+                                  value={[field.value || 45]} 
+                                  min={0} 
+                                  max={100} 
+                                  step={1}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                />
+                              </FormControl>
+                              <Input 
+                                type="number" 
+                                value={field.value || 45}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  if (!isNaN(val) && val >= 0 && val <= 100) {
+                                    field.onChange(val);
+                                  }
+                                }} 
+                                className="w-[60px]"
+                              />
+                            </div>
+                            <FormDescription className="text-xs">
+                              Assembly phase percentage
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="itPercent"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>IT %</FormLabel>
+                            <div className="grid grid-cols-[1fr_50px] gap-2">
+                              <FormControl>
+                                <Slider 
+                                  value={[field.value || 7]} 
+                                  min={0} 
+                                  max={100} 
+                                  step={1}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                />
+                              </FormControl>
+                              <Input 
+                                type="number" 
+                                value={field.value || 7}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  if (!isNaN(val) && val >= 0 && val <= 100) {
+                                    field.onChange(val);
+                                  }
+                                }} 
+                                className="w-[60px]"
+                              />
+                            </div>
+                            <FormDescription className="text-xs">
+                              IT phase percentage
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="ntcTestingPercent"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>NTC Testing %</FormLabel>
+                            <div className="grid grid-cols-[1fr_50px] gap-2">
+                              <FormControl>
+                                <Slider 
+                                  value={[field.value || 7]} 
+                                  min={0} 
+                                  max={100} 
+                                  step={1}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                />
+                              </FormControl>
+                              <Input 
+                                type="number" 
+                                value={field.value || 7}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  if (!isNaN(val) && val >= 0 && val <= 100) {
+                                    field.onChange(val);
+                                  }
+                                }} 
+                                className="w-[60px]"
+                              />
+                            </div>
+                            <FormDescription className="text-xs">
+                              NTC Testing phase percentage
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="qcPercent"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>QC %</FormLabel>
+                            <div className="grid grid-cols-[1fr_50px] gap-2">
+                              <FormControl>
+                                <Slider 
+                                  value={[field.value || 7]} 
+                                  min={0} 
+                                  max={100} 
+                                  step={1}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                />
+                              </FormControl>
+                              <Input 
+                                type="number" 
+                                value={field.value || 7}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  if (!isNaN(val) && val >= 0 && val <= 100) {
+                                    field.onChange(val);
+                                  }
+                                }} 
+                                className="w-[60px]"
+                              />
+                            </div>
+                            <FormDescription className="text-xs">
+                              QC phase percentage
                             </FormDescription>
                             <FormMessage />
                           </FormItem>

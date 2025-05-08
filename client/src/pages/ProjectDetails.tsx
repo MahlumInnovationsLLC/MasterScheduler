@@ -589,23 +589,38 @@ const ProjectDetails = () => {
         </div>
         
         {/* Project metrics */}
-        {/* Department Percentages - Full width row */}
-        <div className="mt-3 mb-2 grid grid-cols-4 gap-4">
-          <div className="bg-dark rounded border border-gray-800 p-2">
-            <div className="text-sm text-gray-400 mb-1">TOTAL HOURS</div>
-            <div className="text-lg font-bold">{project.totalHours || 40}</div>
+        {/* Department Percentages and Total Hours */}
+        <div className="mt-3 mb-2">
+          <div className="bg-dark rounded border border-gray-800 p-3 mb-2">
+            <div className="text-md font-semibold text-gray-300 mb-2">TOTAL HOURS</div>
+            <div className="text-2xl font-bold">{project.totalHours || 40}</div>
           </div>
-          <div className="bg-dark rounded border border-gray-800 p-2">
-            <div className="text-sm text-gray-400 mb-1">FABRICATION</div>
-            <div className="text-lg font-bold">{project.fabricationPercent || 15}%</div>
-          </div>
-          <div className="bg-dark rounded border border-gray-800 p-2">
-            <div className="text-sm text-gray-400 mb-1">ASSEMBLY</div>
-            <div className="text-lg font-bold">{project.assemblyPercent || 65}%</div>
-          </div>
-          <div className="bg-dark rounded border border-gray-800 p-2">
-            <div className="text-sm text-gray-400 mb-1">TESTING</div>
-            <div className="text-lg font-bold">{project.testingPercent || 20}%</div>
+          
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+            <div className="bg-dark rounded border border-gray-800 p-2">
+              <div className="text-xs text-gray-400 mb-1">FABRICATION</div>
+              <div className="text-lg font-bold">{project.fabricationPercent || 27}%</div>
+            </div>
+            <div className="bg-dark rounded border border-gray-800 p-2">
+              <div className="text-xs text-gray-400 mb-1">PAINT</div>
+              <div className="text-lg font-bold">{project.paintPercent || 7}%</div>
+            </div>
+            <div className="bg-dark rounded border border-gray-800 p-2">
+              <div className="text-xs text-gray-400 mb-1">ASSEMBLY</div>
+              <div className="text-lg font-bold">{project.assemblyPercent || 45}%</div>
+            </div>
+            <div className="bg-dark rounded border border-gray-800 p-2">
+              <div className="text-xs text-gray-400 mb-1">IT</div>
+              <div className="text-lg font-bold">{project.itPercent || 7}%</div>
+            </div>
+            <div className="bg-dark rounded border border-gray-800 p-2">
+              <div className="text-xs text-gray-400 mb-1">NTC TESTING</div>
+              <div className="text-lg font-bold">{project.ntcTestingPercent || 7}%</div>
+            </div>
+            <div className="bg-dark rounded border border-gray-800 p-2">
+              <div className="text-xs text-gray-400 mb-1">QC</div>
+              <div className="text-lg font-bold">{project.qcPercent || 7}%</div>
+            </div>
           </div>
         </div>
 
