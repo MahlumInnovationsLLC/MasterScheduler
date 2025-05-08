@@ -1019,20 +1019,9 @@ const ProjectStatus = () => {
         <div className="md:col-span-2">
           <ProjectStatusBreakdownCard projects={projects || []} />
         </div>
-        <div className="space-y-2">
+        <div>
           <HighRiskProjectsCard projects={projects || []} />
           <AIInsightsButton projects={projects || []} />
-          <div className="mt-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full flex items-center justify-center gap-2" 
-              onClick={() => navigate('/projects')}
-            >
-              <ArrowUpRight className="h-4 w-4" />
-              <span>View All Projects</span>
-            </Button>
-          </div>
         </div>
       </div>
       
