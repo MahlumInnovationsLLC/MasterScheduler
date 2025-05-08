@@ -1014,15 +1014,19 @@ const ProjectStatus = () => {
         />
       </div>
       
-      {/* Risk Assessments Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="md:col-span-2">
+      {/* Project Status Breakdown Row */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="md:col-span-3">
           <ProjectStatusBreakdownCard projects={projects || []} />
         </div>
-        <div>
-          <HighRiskProjectsCard projects={projects || []} />
+        <div className="md:col-span-1">
           <AIInsightsWidget projects={projects || []} />
         </div>
+      </div>
+      
+      {/* Current Production Status - Horizontal Card */}
+      <div className="mb-6">
+        <HighRiskProjectsCard projects={projects || []} />
       </div>
       
       {/* Project List Table */}
