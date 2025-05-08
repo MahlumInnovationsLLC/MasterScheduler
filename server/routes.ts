@@ -27,6 +27,7 @@ import {
   importManufacturingSchedules,
   importDeliveryTracking
 } from "./import";
+import { importBayScheduling } from "./routes/baySchedulingImport";
 import {
   getProjectDeliveryTracking,
   getAllDeliveryTracking,
@@ -688,6 +689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/manufacturing-bays", isAuthenticated, importManufacturingBays);
   app.post("/api/import/manufacturing-schedules", isAuthenticated, importManufacturingSchedules);
   app.post("/api/import/delivery-tracking", isAuthenticated, importDeliveryTracking);
+  app.post("/api/import/bay-scheduling", isAuthenticated, importBayScheduling);
   
   // Delivery Tracking routes 
   app.get("/api/delivery-tracking", getAllDeliveryTracking);

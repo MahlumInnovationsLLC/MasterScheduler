@@ -1,14 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, Download, Upload, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useMutation } from '@tanstack/react-query';
-import baySchedulingImportTemplate from '../templates/bay-scheduling-import-template.csv';
+import { Loader2, FileDown, Upload, Check, AlertTriangle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { cn } from '@/lib/utils';
+import templateCsvPath from '@/templates/bay-scheduling-import-template.csv';
 
 interface ImportData {
   projectNumber: string;
@@ -17,240 +17,312 @@ interface ImportData {
   teamNumber: number;
 }
 
-const BaySchedulingImport = () => {
+const BaySchedulingImport: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
-  const [importPreview, setImportPreview] = useState<ImportData[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [importResults, setImportResults] = useState<{
+    success?: boolean;
+    message?: string;
+    imported?: number;
+    errors?: number;
+    details?: string[];
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
+  // Function to download the template CSV file
   const handleDownloadTemplate = () => {
+    // Create an anchor element and trigger a download
     const link = document.createElement('a');
-    link.href = baySchedulingImportTemplate;
+    link.href = templateCsvPath;
     link.download = 'bay-scheduling-import-template.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
     toast({
-      title: 'Template Downloaded',
-      description: 'Fill it out and upload to import your scheduling data.',
+      title: 'Template downloaded',
+      description: 'Use this template to prepare your bay scheduling data for import.',
     });
   };
 
+  // Function to handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
-    
-    setFile(selectedFile);
-    setError(null);
-    
-    // Preview the file
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (!event.target?.result) return;
-      
-      try {
-        const contents = event.target.result as string;
-        const lines = contents.split('\n').filter(line => 
-          line.trim() && !line.startsWith('#')
-        );
-        
-        // Check if there's a header line
-        if (lines.length < 2) {
-          setError('File must contain a header row and at least one data row');
-          return;
-        }
-        
-        const headers = lines[0].split(',').map(h => h.trim());
-        const requiredHeaders = ['project_number', 'production_start_date', 'end_date', 'team_number'];
-        
-        // Validate headers
-        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
-        if (missingHeaders.length > 0) {
-          setError(`Missing required column headers: ${missingHeaders.join(', ')}`);
-          return;
-        }
-        
-        // Parse the data (skip header row)
-        const data = lines.slice(1).map(line => {
-          const values = line.split(',').map(v => v.trim());
-          return {
-            projectNumber: values[headers.indexOf('project_number')],
-            productionStartDate: values[headers.indexOf('production_start_date')],
-            endDate: values[headers.indexOf('end_date')],
-            teamNumber: parseInt(values[headers.indexOf('team_number')]) || 0
-          };
+    if (selectedFile) {
+      if (selectedFile.type !== 'text/csv' && !selectedFile.name.endsWith('.csv')) {
+        toast({
+          title: 'Invalid file type',
+          description: 'Please upload a CSV file.',
+          variant: 'destructive',
         });
-        
-        // Validate data
-        const invalidRows = data.filter(row => 
-          !row.projectNumber || 
-          !row.productionStartDate || 
-          !row.endDate || 
-          isNaN(row.teamNumber) || 
-          row.teamNumber < 1
-        );
-        
-        if (invalidRows.length > 0) {
-          setError(`File contains ${invalidRows.length} invalid rows. All fields are required and team number must be a positive number.`);
-          return;
-        }
-        
-        setImportPreview(data);
-        setShowPreview(true);
-      } catch (err) {
-        setError('Error parsing file. Please make sure it is a valid CSV file.');
-        console.error(err);
+        return;
       }
-    };
-    
-    reader.readAsText(selectedFile);
+      setFile(selectedFile);
+      setImportResults(null); // Clear previous results
+    }
   };
 
-  const importMutation = useMutation({
-    mutationFn: async (importData: ImportData[]) => {
-      const res = await apiRequest('POST', '/api/import/bay-scheduling', {
-        schedules: importData
-      });
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      setFile(null);
-      setImportPreview([]);
-      setShowPreview(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+  // Function to parse CSV file
+  const parseCSV = async (file: File): Promise<ImportData[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
       
-      queryClient.invalidateQueries({queryKey: ['/api/manufacturing-schedules']});
-      queryClient.invalidateQueries({queryKey: ['/api/manufacturing-bays']});
+      reader.onload = (event) => {
+        try {
+          const csv = event.target?.result as string;
+          const lines = csv.split('\n');
+          
+          // Extract headers (first line)
+          const headers = lines[0].split(',').map(header => header.trim());
+          
+          // Check required headers
+          const requiredHeaders = ['projectNumber', 'productionStartDate', 'endDate', 'teamNumber'];
+          const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+          
+          if (missingHeaders.length > 0) {
+            reject(`CSV missing required headers: ${missingHeaders.join(', ')}`);
+            return;
+          }
+          
+          // Parse data rows
+          const schedules: ImportData[] = [];
+          
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue; // Skip empty lines
+            
+            const values = line.split(',').map(value => value.trim());
+            if (values.length !== headers.length) {
+              continue; // Skip invalid rows
+            }
+            
+            // Create object with properties from headers
+            const schedule: any = {};
+            headers.forEach((header, index) => {
+              schedule[header] = values[index];
+            });
+            
+            // Convert teamNumber to number
+            schedule.teamNumber = parseInt(schedule.teamNumber, 10);
+            
+            // Validate dates
+            if (!isValidDate(schedule.productionStartDate) || !isValidDate(schedule.endDate)) {
+              continue; // Skip invalid dates
+            }
+            
+            schedules.push(schedule as ImportData);
+          }
+          
+          resolve(schedules);
+        } catch (error) {
+          reject(`Failed to parse CSV: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      };
       
+      reader.onerror = () => reject('Error reading file');
+      reader.readAsText(file);
+    });
+  };
+
+  // Helper function to validate a date string
+  const isValidDate = (dateString: string): boolean => {
+    if (!dateString) return false;
+    
+    // Check format (YYYY-MM-DD)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return false;
+    
+    // Check if it's a valid date
+    const date = new Date(dateString);
+    return !isNaN(date.getTime());
+  };
+
+  // Function to handle file upload and import
+  const handleImport = async () => {
+    if (!file) {
       toast({
-        title: 'Import Successful',
-        description: `Imported ${data.imported} project schedules successfully.`,
-      });
-    },
-    onError: (error: any) => {
-      setError(error.message || 'Failed to import bay scheduling data');
-      toast({
-        title: 'Import Failed',
-        description: error.message || 'An error occurred while importing the data.',
+        title: 'No file selected',
+        description: 'Please select a CSV file to import.',
         variant: 'destructive',
       });
-    }
-  });
-
-  const handleImport = () => {
-    if (importPreview.length === 0) {
-      setError('No valid data to import');
       return;
     }
     
-    importMutation.mutate(importPreview);
+    setIsUploading(true);
+    setImportResults(null);
+    
+    try {
+      // Parse the CSV file
+      const parsedData = await parseCSV(file);
+      
+      // Check if we have any valid schedules
+      if (parsedData.length === 0) {
+        toast({
+          title: 'Empty or invalid file',
+          description: 'No valid schedules found in the CSV file.',
+          variant: 'destructive',
+        });
+        setIsUploading(false);
+        return;
+      }
+      
+      // Send the data to the server
+      const response = await apiRequest('POST', '/api/import/bay-scheduling', {
+        schedules: parsedData
+      });
+      
+      const result = await response.json();
+      
+      // Update the UI with the results
+      setImportResults(result);
+      
+      // Show a toast notification
+      if (result.success) {
+        toast({
+          title: 'Import successful',
+          description: `Imported ${result.imported} bay schedules.`,
+        });
+      } else {
+        toast({
+          title: 'Import failed',
+          description: result.message || 'An unknown error occurred.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      setImportResults({
+        success: false,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      
+      toast({
+        title: 'Import failed',
+        description: error instanceof Error ? error.message : String(error),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Function to reset the form
+  const handleReset = () => {
+    setFile(null);
+    setImportResults(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full max-w-3xl">
       <CardHeader>
         <CardTitle>Bay Scheduling Import</CardTitle>
         <CardDescription>
-          Import project schedules by uploading a CSV file with project number, dates, and team assignment.
+          Import bay scheduling data from a CSV file to place projects in manufacturing bays
+          with proper department allocations.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        
-        <div className="grid w-full items-center gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="template">Template</Label>
-            <Button variant="outline" onClick={handleDownloadTemplate}>
-              <Download className="mr-2 h-4 w-4" />
-              Download CSV Template
-            </Button>
-          </div>
-          
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="file">Upload File</Label>
-            <Input
-              id="file"
-              type="file"
-              accept=".csv"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              disabled={importMutation.isPending}
-            />
-          </div>
+      
+      <CardContent className="space-y-6">
+        {/* Template download section */}
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="template">Download Template</Label>
+          <p className="text-sm text-muted-foreground">
+            Use our template CSV file to prepare your bay scheduling data, then upload it below.
+          </p>
+          <Button 
+            variant="outline" 
+            onClick={handleDownloadTemplate}
+            className="gap-2 mt-2 w-fit"
+          >
+            <FileDown className="h-4 w-4" />
+            Download Template
+          </Button>
         </div>
         
-        {showPreview && importPreview.length > 0 && (
-          <div className="mt-4">
-            <h3 className="text-lg font-medium mb-2">Preview ({importPreview.length} projects)</h3>
-            <div className="border rounded-md">
-              <div className="grid grid-cols-4 bg-secondary p-2 font-medium">
-                <div>Project Number</div>
-                <div>Start Date</div>
-                <div>End Date</div>
-                <div>Team</div>
-              </div>
-              <div className="max-h-48 overflow-y-auto">
-                {importPreview.slice(0, 5).map((item, index) => (
-                  <div 
-                    key={index} 
-                    className="grid grid-cols-4 p-2 hover:bg-gray-900 border-t border-gray-800"
-                  >
-                    <div>{item.projectNumber}</div>
-                    <div>{item.productionStartDate}</div>
-                    <div>{item.endDate}</div>
-                    <div>{item.teamNumber}</div>
-                  </div>
-                ))}
-                {importPreview.length > 5 && (
-                  <div className="p-2 text-center text-gray-400 border-t border-gray-800">
-                    ... and {importPreview.length - 5} more items
-                  </div>
-                )}
-              </div>
+        {/* File upload section */}
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="file">Upload CSV File</Label>
+          <Input
+            id="file"
+            type="file"
+            accept=".csv"
+            onChange={handleFileChange}
+            disabled={isUploading}
+            ref={fileInputRef}
+          />
+          {file && (
+            <p className="text-sm text-muted-foreground">
+              Selected file: {file.name} ({Math.round(file.size / 1024)} KB)
+            </p>
+          )}
+        </div>
+        
+        {/* Import results section */}
+        {importResults && (
+          <Alert variant={importResults.success ? "default" : "destructive"}>
+            <div className="flex items-center gap-2">
+              {importResults.success ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <AlertTriangle className="h-4 w-4" />
+              )}
+              <AlertTitle>
+                {importResults.success ? "Import Successful" : "Import Failed"}
+              </AlertTitle>
             </div>
-          </div>
+            <AlertDescription>
+              {importResults.message}
+              
+              {importResults.success && importResults.imported && (
+                <div className="mt-2">
+                  <p>
+                    <strong>Imported:</strong> {importResults.imported} schedule(s)
+                    {importResults.errors && importResults.errors > 0 && (
+                      <span>, <strong>Errors:</strong> {importResults.errors}</span>
+                    )}
+                  </p>
+                </div>
+              )}
+              
+              {/* Error details */}
+              {importResults.details && importResults.details.length > 0 && (
+                <div className="mt-2">
+                  <p className="font-semibold">Error details:</p>
+                  <ul className="list-disc pl-5 mt-1 text-sm">
+                    {importResults.details.slice(0, 5).map((detail, index) => (
+                      <li key={index}>{detail}</li>
+                    ))}
+                    {importResults.details.length > 5 && (
+                      <li>...and {importResults.details.length - 5} more errors</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
         )}
       </CardContent>
+      
       <CardFooter className="flex justify-between">
-        <Button
-          variant="outline"
-          onClick={() => {
-            setFile(null);
-            setImportPreview([]);
-            setShowPreview(false);
-            setError(null);
-            if (fileInputRef.current) {
-              fileInputRef.current.value = '';
-            }
-          }}
-          disabled={importMutation.isPending}
-        >
-          Cancel
+        <Button variant="outline" onClick={handleReset} disabled={isUploading}>
+          Reset
         </Button>
-        <Button
-          variant="default"
-          onClick={handleImport}
-          disabled={importMutation.isPending || importPreview.length === 0}
+        <Button 
+          onClick={handleImport} 
+          disabled={!file || isUploading}
+          className={cn("gap-2", isUploading && "opacity-80")}
         >
-          {importMutation.isPending ? (
+          {isUploading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
               Importing...
             </>
           ) : (
             <>
-              <Upload className="mr-2 h-4 w-4" />
+              <Upload className="h-4 w-4" />
               Import Data
             </>
           )}
