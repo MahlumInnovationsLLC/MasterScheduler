@@ -55,8 +55,8 @@ const BaySchedulingPage = () => {
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'quarter'>('week');
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
-    // Start range from beginning of the year
-    const startDate = new Date(today.getFullYear(), 0, 1); // January 1st of current year
+    // Start range from July 2024 for more past date visibility
+    const startDate = new Date(2024, 6, 1); // July 1st, 2024
     return {
       start: startDate,
       end: addWeeks(today, 24) // Show 24 weeks ahead from today
