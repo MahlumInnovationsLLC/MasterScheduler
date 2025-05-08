@@ -63,111 +63,83 @@ const BaySchedulingPage = () => {
     };
   });
   
-  // Function to scroll to current day in the schedule - separated from any references to component state
-  const scrollToCurrentDay = (mode = 'week') => {
-    console.log(`Attempting to scroll to current day position (view mode: ${mode})`);
-    
+  // Function to force scroll to current date regardless of indicators
+  const forceScrollToToday = () => {
+    console.log("Force scrolling to today's date - using direct date calculation");
     try {
-      // Find the schedule container element
+      // 1. Find the container
       const scheduleContainer = document.querySelector('.overflow-x-auto');
       if (!scheduleContainer) {
-        throw new Error('Could not find schedule container');
+        throw new Error("Couldn't find schedule container");
       }
-  
-      // Find the Today indicator element or the cell for today's date
-      // Try multiple selectors to find today's indicator
-      const todayIndicators = [
-        document.querySelector('.today-indicator'), 
-        document.querySelector('[data-today="true"]'),
-        document.querySelector('.today-cell'),
-        // Try to find by specific data-date attribute with today's date
-        document.querySelector(`[data-date="${format(new Date(), 'yyyy-MM-dd')}"]`)
-      ];
       
-      // Get first non-null element
-      const todayIndicator = todayIndicators.find(el => el !== null);
+      // 2. Calculate the days since Jan 1 of current year
+      const today = new Date();
+      const startOfYear = new Date(today.getFullYear(), 0, 1);
+      const millisecondsPerDay = 24 * 60 * 60 * 1000;
+      const daysSinceJan1 = Math.floor((today.getTime() - startOfYear.getTime()) / millisecondsPerDay);
       
-      if (!todayIndicator) {
-        // Fallback to a more accurate calculation based on current view mode
-        const today = new Date();
-        const startDate = new Date(today.getFullYear(), 0, 1); // Jan 1 of current year
-        const diffDays = Math.round((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-        
-        // Get the bay column width - more robust handling if element isn't found
-        const bayColumn = document.querySelector('.bay-column');
-        const bayColumnWidth = bayColumn ? bayColumn.getBoundingClientRect().width : 343; // Default width if element not found
-        
-        // Calculate position based on the provided view mode with more precise pixel measurements
-        let dayWidth;
-        switch(mode) {
-          case 'day':
-            dayWidth = 40; // 40px per day in day view
-            break;
-          case 'week':
-            dayWidth = 20; // ~20px per day in week view (140px / 7 days)
-            break;
-          case 'month':
-            dayWidth = 7; // ~7px per day in month view (210px / 30 days)
-            break;
-          case 'quarter':
-            dayWidth = 2; // ~2px per day in quarter view (180px / 90 days)
-            break;
-          default:
-            dayWidth = 20; // Default to week view sizing
-        }
-        
-        // Calculate the position with bay column offset
-        const calculatedPosition = diffDays * dayWidth;
-        
-        // Apply the calculated position
-        scheduleContainer.scrollLeft = Math.max(0, calculatedPosition);
-        console.log(`Using calculated fallback position: ${calculatedPosition}px (${diffDays} days since Jan 1, ${dayWidth}px per day in ${mode} view)`);
-        
-        // Show toast notification for debugging
-        toast({
-          title: "Auto-scrolling",
-          description: `Using calculated position for current day (${format(today, 'MMM d')})`,
-          duration: 2000
-        });
-        
-        return true; // Still consider this a success even though we used fallback
+      // 3. Get the container dimensions
+      const bayColumn = document.querySelector('.bay-column') as HTMLElement;
+      let bayColumnWidth = 343; // Default fallback
+      
+      if (bayColumn) {
+        bayColumnWidth = bayColumn.offsetWidth;
       }
-  
-      // Get the bay column width
-      const bayColumn = document.querySelector('.bay-column');
-      const bayColumnWidth = bayColumn ? bayColumn.getBoundingClientRect().width : 343;
       
-      // Calculate position to place the today indicator at left edge after bay column
-      // Get the position of today indicator relative to its container
-      const todayRect = todayIndicator.getBoundingClientRect();
-      const containerRect = scheduleContainer.getBoundingClientRect();
+      // 4. Calculate horizontal scroll position based on view mode
+      let pixelsPerDay = 20; // Default for week view
       
-      // Calculate the position to scroll to (indicator position - bay column width)
-      const position = todayRect.left - containerRect.left - bayColumnWidth;
+      // Weekly view: each week column is around 144px wide (20.57px per day)
+      // We divide the pixel width by 7 to get pixels per day in the current view mode
+      if (viewMode === 'day') {
+        pixelsPerDay = 40; // Each day takes up more space in day view
+      } else if (viewMode === 'week') {
+        pixelsPerDay = 144 / 7; // ~20.57px per day in week view
+      } else if (viewMode === 'month') {
+        pixelsPerDay = 144 / 30; // ~4.8px per day in month view
+      } else if (viewMode === 'quarter') {
+        pixelsPerDay = 144 / 90; // ~1.6px per day in quarter view
+      }
       
-      // Set the scroll position with a small offset to make the today line fully visible
-      scheduleContainer.scrollLeft = position > 0 ? position : 0;
+      // Calculate position in pixels from left edge
+      const dayPosition = daysSinceJan1 * pixelsPerDay;
       
-      console.log(`Successfully scrolled to today indicator, position: ${position}px`);
+      // 5. Position so the today line is centered on screen, accounting for bayColumn width
+      const containerWidth = scheduleContainer.clientWidth;
+      const scrollPosition = Math.max(0, dayPosition - (containerWidth - bayColumnWidth) / 2);
       
-      // Show toast notification for debugging
+      // 6. Set scroll position with animation for better UX
+      scheduleContainer.scrollTo({
+        left: scrollPosition,
+        behavior: 'smooth'
+      });
+      
+      console.log(`Scrolled to position ${scrollPosition}px (${daysSinceJan1} days since Jan 1, ${pixelsPerDay}px per day in ${viewMode} view)`);
+      
+      // 7. Add a success toast
       toast({
-        title: "Auto-scrolling",
-        description: `Positioned to today (${format(new Date(), 'MMM d')})`,
+        title: "Scrolled to Today",
+        description: `Positioned to ${format(today, 'MMMM d, yyyy')}`,
         duration: 2000
       });
       
       return true;
     } catch (error) {
-      console.error('Error in scrollToCurrentDay:', error);
+      console.error("Error in forceScrollToToday:", error);
       toast({
-        title: "Auto-scrolling error",
-        description: "Could not automatically scroll to today's date",
+        title: "Scrolling Error",
+        description: "Could not scroll to today's date",
         variant: "destructive",
         duration: 3000
       });
       return false;
     }
+  };
+  
+  // Original function kept for backward compatibility but now calls our new function
+  const scrollToCurrentDay = (mode = 'week') => {
+    return forceScrollToToday();
   };
   
   // Filter states
@@ -192,46 +164,16 @@ const BaySchedulingPage = () => {
     if (manufacturingBays.length > 0 && manufacturingSchedules.length > 0) {
       console.log('Manufacturing data loaded, attempting to scroll to current day');
       
-      // We need to wait for the DOM to fully render the schedule
-      // Use a sequence of delays with progressive backoff to ensure we catch it
-      let attempts = 0;
-      const maxAttempts = 5;
-      
-      const attemptScroll = () => {
-        try {
-          const success = scrollToCurrentDay(viewMode);
-          
-          if (!success && attempts < maxAttempts) {
-            attempts++;
-            console.log(`Scroll attempt ${attempts} of ${maxAttempts} failed, retrying in ${250 * attempts}ms`);
-            return false;
-          }
-          return true;
-        } catch (error) {
-          console.error('Error during initial scroll to current day:', error);
-          return false;
-        }
-      };
-      
-      // Attempt the first scroll after a short delay
+      // Wait a bit longer to ensure DOM is fully rendered
       const initialTimeout = setTimeout(() => {
-        // If first attempt fails, try a few more times with increasing delays
-        if (!attemptScroll() && attempts < maxAttempts) {
-          const intervalId = setInterval(() => {
-            if (attemptScroll() || attempts >= maxAttempts) {
-              clearInterval(intervalId);
-            }
-          }, 250 * attempts); // Increase delay for each attempt
-          
-          // Clean up interval if component unmounts
-          return () => clearInterval(intervalId);
-        }
-      }, 800); // Initial delay is longer to ensure schedule is fully rendered
+        // Use our direct calculation method instead of trying to find DOM elements
+        forceScrollToToday();
+      }, 1000); // Give the rendering a full second to complete
       
       // Clean up timeout if component unmounts
       return () => clearTimeout(initialTimeout);
     }
-  }, [manufacturingBays, manufacturingSchedules, viewMode]);
+  }, [manufacturingBays, manufacturingSchedules]);
   
   // Create bay mutation
   const createBayMutation = useMutation({
@@ -514,10 +456,10 @@ const BaySchedulingPage = () => {
     setDateRange({ start: startDate, end });
     setViewMode(mode);
     
-    // After updating view mode, ensure we scroll to current date
+    // After updating view mode, ensure we scroll to current date using direct method
     setTimeout(() => {
-      scrollToCurrentDay();
-    }, 300);
+      forceScrollToToday();
+    }, 500); // Slightly longer delay to ensure DOM updates
   };
   
   // Navigate through time
@@ -644,23 +586,8 @@ const BaySchedulingPage = () => {
             <Button
               variant="outline"
               onClick={() => {
-                // Use the improved scrollToCurrentDay function with current viewMode
-                const success = scrollToCurrentDay(viewMode);
-                
-                // Show appropriate toast based on success
-                if (success) {
-                  toast({
-                    title: "Scrolled to Today",
-                    description: `View positioned at ${format(new Date(), 'MMMM d, yyyy')}`,
-                    duration: 2000
-                  });
-                } else {
-                  toast({
-                    title: "Estimated Position",
-                    description: "Using best estimate for today's position. The today indicator may not be visible in the current view.",
-                    duration: 3000
-                  });
-                }
+                // Directly call our new forceScrollToToday function
+                forceScrollToToday();
               }}
               className="flex items-center gap-1 ml-1"
             >
