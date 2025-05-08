@@ -88,6 +88,11 @@ export async function importBayScheduling(req: Request, res: Response) {
       details: [] as string[],
       skipped: 0
     };
+    
+    // Helper function to format dates consistently throughout the import
+    const formatDateForDB = (date: Date): string => {
+      return date.toISOString().split('T')[0]; // Store only the date part (YYYY-MM-DD)
+    };
 
     // Get all projects and bays for reference
     const allProjects = await storage.getProjects();
@@ -180,15 +185,16 @@ export async function importBayScheduling(req: Request, res: Response) {
             const totalProjectHours = scheduleData.totalHours || project.totalHours || 1000;
             
             // Determine the bay capacity to calculate project duration
+            // Try to get staff count and hours from the bay, use defaults if not available
             const assemblyStaffCount = bay.assemblyStaffCount || 4;
             const electricalStaffCount = bay.electricalStaffCount || 4;
             const hoursPerPersonPerWeek = bay.hoursPerPersonPerWeek || 32;
             
-            // Calculate total hours per week for this bay
+            // Calculate total hours per week for this bay (total staff × hours per week)
             const hoursPerWeek = (assemblyStaffCount + electricalStaffCount) * hoursPerPersonPerWeek;
             
-            // Calculate project duration in weeks and days
-            const durationInWeeks = totalProjectHours / hoursPerWeek;
+            // Calculate project duration in weeks and days, ensuring we don't divide by zero
+            const durationInWeeks = hoursPerWeek > 0 ? totalProjectHours / hoursPerWeek : totalProjectHours / 32;
             const durationInDays = Math.ceil(durationInWeeks * 5); // 5 working days per week
             
             // Calculate startDate by subtracting duration from endDate
@@ -196,7 +202,14 @@ export async function importBayScheduling(req: Request, res: Response) {
             tempStartDate.setDate(tempStartDate.getDate() - durationInDays);
             startDate = tempStartDate;
             
-            console.log(`Calculated productionStartDate for project ${scheduleData.projectNumber}: ${startDate.toISOString()}`);
+            console.log(`Calculated productionStartDate for project ${scheduleData.projectNumber}:`, {
+              totalHours: totalProjectHours,
+              staffCount: assemblyStaffCount + electricalStaffCount,
+              hoursPerWeek,
+              durationInWeeks,
+              durationInDays,
+              startDate: startDate.toISOString()
+            });
           } else {
             // Normal case where productionStartDate is provided
             startDate = parseDateSafely(scheduleData.productionStartDate);
@@ -268,13 +281,58 @@ export async function importBayScheduling(req: Request, res: Response) {
           }
           
           // Update the existing schedule
+          // Calculate department dates based on percentages if dates are missing
+          const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          // Get department percentages from the project (or use defaults)
+          const fabricationPercent = project.fabricationPercent || 15;
+          const assemblyPercent = project.assemblyPercent || 65;
+          const testingPercent = project.testingPercent || 20;
+          
+          // Recalculate all department dates based on the new start and end dates
+          // This ensures that when a project's dates change, all department dates are properly updated
+          
+          // Safe way to subtract days to avoid octal literal issues
+          const subtractDays = (date: Date, days: number): Date => {
+            const result = new Date(date.getTime());
+            result.setDate(result.getDate() - days);
+            return result;
+          };
+          
+          const addDays = (date: Date, days: number): Date => {
+            const result = new Date(date.getTime());
+            result.setDate(result.getDate() + days);
+            return result;
+          };
+          
+          // Calculate department start dates
+          // Fabrication starts before the production start date based on its percentage
+          const fabricationDays = Math.ceil((totalDays * fabricationPercent) / 100);
+          const fabricationStart = subtractDays(startDate, fabricationDays);
+          
+          // Assembly starts at the production start date
+          const assemblyStart = new Date(startDate.getTime());
+          
+          // Testing starts after assembly based on assembly percentage
+          const assemblyDays = Math.ceil((totalDays * assemblyPercent) / 100);
+          const ntcTestingStart = addDays(startDate, assemblyDays);
+          
+          // QC phase typically starts near the end
+          const qcDays = project.qcDays || 5; // Default to 5 days if not specified
+          const qcStart = subtractDays(endDate, qcDays);
+            
+          // Format dates for database storage (YYYY-MM-DD)
           // Convert all dates to proper string format (YYYY-MM-DD) for database
           const updateData = {
             startDate: startDate.toISOString().split('T')[0], // Store only the date part
             endDate: endDate.toISOString().split('T')[0], // Store only the date part
             // Use totalHours from import data if provided, otherwise keep existing value
             totalHours: scheduleData.totalHours || existingInBay.totalHours,
-            status: existingInBay.status || 'scheduled'
+            status: existingInBay.status || 'scheduled',
+            fabricationStart: fabricationStart.toISOString().split('T')[0],
+            assemblyStart: assemblyStart.toISOString().split('T')[0],
+            ntcTestingStart: ntcTestingStart.toISOString().split('T')[0],
+            qcStart: qcStart.toISOString().split('T')[0]
           };
           
           // Only add properly formatted dates
@@ -346,13 +404,28 @@ export async function importBayScheduling(req: Request, res: Response) {
           const baySchedules = await storage.getBayManufacturingSchedules(bay.id);
           
           // Determine which rows are already in use
-          const usedRows = new Set(baySchedules.map(s => s.row).filter(r => r !== null && r !== undefined));
+          const usedRows = new Set(baySchedules
+            .filter(s => s.projectId !== project.id) // Exclude this project's schedules
+            .map(s => s.row)
+            .filter(r => r !== null && r !== undefined));
           
-          // Find the first available row starting from 1
-          let row = 1;
-          while (usedRows.has(row)) {
-            row++;
+          // First check if project already has a row in this bay before
+          const existingRowInBay = baySchedules
+            .find(s => s.projectId === project.id && s.bayId === bay.id)?.row;
+          
+          // If project already had a row in this bay, use the same row
+          let row = existingRowInBay;
+          
+          // If not, find the first available row starting from 1
+          if (!row) {
+            row = 1;
+            while (usedRows.has(row)) {
+              row++;
+            }
           }
+          
+          console.log(`Assigning project ${project.projectNumber} to bay ${bay.bayNumber} row ${row}`);
+          
           
           // Create a new manufacturing schedule
           // Create an object with basic required fields first
