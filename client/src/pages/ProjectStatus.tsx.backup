@@ -983,7 +983,7 @@ const ProjectStatus = () => {
             { label: "Delayed", value: projectStats?.delayed || 0, status: "Delayed" },
             { label: "Critical", value: projectStats?.critical || 0, status: "Critical" }
           ]}
-          className="h-72"
+          className="h-64"
         />
         
         <ProjectStatsCard 
@@ -996,7 +996,7 @@ const ProjectStatus = () => {
               : 0, 
             label: `${upcomingMilestones} due in 30 days` 
           }}
-          className="h-72"
+          className="h-64"
         />
         
         <div className="h-72 overflow-hidden">
@@ -1011,7 +1011,7 @@ const ProjectStatus = () => {
             { label: "Active", value: manufacturingStats.active, status: "On Track" },
             { label: "Available", value: manufacturingStats.available, status: "Inactive" }
           ]}
-          className="h-72"
+          className="h-64"
         />
       </div>
       
