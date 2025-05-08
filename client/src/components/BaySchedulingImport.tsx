@@ -11,11 +11,17 @@ import { cn } from '@/lib/utils';
 // Inline template instead of importing CSV file
 const templateCsvContent = `projectNumber,productionStartDate,endDate,teamNumber,totalHours
 804205,2025-06-01,2025-07-15,1,1200
-804206,2025-06-15,2025-08-01,2,850
-804207,2025-07-01,2025-08-15,3,1500`;
+804206,,2025-08-01,2,850
+804207,2025-07-01,2025-08-15,3,1500
+804208,2025-07-15,2025-09-01,,2000`;
 
 // Utility function to safely convert date string to ISO format, preventing octal literal issues
-const safeDateToISOString = (dateString: string): string => {
+const safeDateToISOString = (dateString?: string): string | undefined => {
+  // Handle empty or undefined date strings
+  if (!dateString || dateString === '') {
+    return undefined;
+  }
+  
   // Handle different date formats
   let year, month, day;
   
@@ -49,12 +55,20 @@ const safeDateToISOString = (dateString: string): string => {
   return date.toISOString();
 };
 
+/**
+ * Interface representing the data structure for bay scheduling import
+ * - projectNumber: Required - The unique identifier for the project
+ * - endDate: Required - The scheduled ship/completion date for the project
+ * - productionStartDate: Optional - When production starts; calculated from endDate if missing
+ * - teamNumber: Optional - The bay/team assigned; projects without teamNumber stay unassigned
+ * - totalHours: Optional - Total labor hours; updates master project data if provided
+ */
 interface ImportData {
   projectNumber: string;
-  productionStartDate: string;
   endDate: string;
-  teamNumber: number;
-  totalHours?: number; // Optional to maintain backward compatibility with existing CSVs
+  productionStartDate?: string;
+  teamNumber?: number;
+  totalHours?: number;
 }
 
 const BaySchedulingImport: React.FC = () => {
@@ -125,13 +139,20 @@ const BaySchedulingImport: React.FC = () => {
           // Extract headers (first line)
           const headers = lines[0].split(',').map(header => header.trim());
           
-          // Check required headers
-          const requiredHeaders = ['projectNumber', 'productionStartDate', 'endDate', 'teamNumber'];
-          const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+          // Check required headers (only projectNumber and endDate are truly required)
+          const requiredHeaders = ['projectNumber', 'endDate'];
+          const optionalHeaders = ['productionStartDate', 'teamNumber', 'totalHours'];
+          const missingRequiredHeaders = requiredHeaders.filter(h => !headers.includes(h));
           
-          if (missingHeaders.length > 0) {
-            reject(`CSV missing required headers: ${missingHeaders.join(', ')}`);
+          if (missingRequiredHeaders.length > 0) {
+            reject(`CSV missing required headers: ${missingRequiredHeaders.join(', ')}`);
             return;
+          }
+          
+          // Check for optional headers and log warnings if any are missing
+          const missingOptionalHeaders = optionalHeaders.filter(h => !headers.includes(h));
+          if (missingOptionalHeaders.length > 0) {
+            console.warn(`CSV missing optional headers: ${missingOptionalHeaders.join(', ')}`);
           }
           
           // Parse data rows
@@ -152,27 +173,45 @@ const BaySchedulingImport: React.FC = () => {
               schedule[header] = values[index];
             });
             
-            // Convert numeric fields to numbers
-            schedule.teamNumber = parseInt(schedule.teamNumber, 10);
+            // Convert teamNumber to number if present (optional field)
+            if (schedule.teamNumber && schedule.teamNumber.trim() !== '') {
+              schedule.teamNumber = parseInt(schedule.teamNumber, 10);
+              if (isNaN(schedule.teamNumber)) {
+                console.warn(`Invalid teamNumber value for project ${schedule.projectNumber}: ${schedule.teamNumber}`);
+                schedule.teamNumber = undefined; // Clear invalid value
+              }
+            } else {
+              schedule.teamNumber = undefined; // Empty or missing teamNumber
+            }
             
-            // Convert totalHours to number if present
-            if (schedule.totalHours) {
+            // Convert totalHours to number if present (optional field)
+            if (schedule.totalHours && schedule.totalHours.trim() !== '') {
               schedule.totalHours = parseInt(schedule.totalHours, 10);
               // Validate that totalHours is a positive number
               if (isNaN(schedule.totalHours) || schedule.totalHours <= 0) {
                 console.warn(`Invalid totalHours value for project ${schedule.projectNumber}: ${schedule.totalHours}`);
                 schedule.totalHours = undefined; // Clear invalid value
               }
+            } else {
+              schedule.totalHours = undefined; // Empty or missing totalHours
             }
             
-            // Validate dates
-            if (!isValidDate(schedule.productionStartDate) || !isValidDate(schedule.endDate)) {
-              console.warn(`Skipping row with invalid dates: ${schedule.projectNumber}`);
-              continue; // Skip invalid dates
+            // Validate end date which is required
+            if (!isValidDate(schedule.endDate)) {
+              console.warn(`Skipping row with invalid endDate: ${schedule.projectNumber}`);
+              continue; // Skip invalid endDate
+            }
+            
+            // Validate productionStartDate which is optional
+            if (schedule.productionStartDate && !isValidDate(schedule.productionStartDate)) {
+              console.warn(`Invalid productionStartDate for project ${schedule.projectNumber}: ${schedule.productionStartDate}`);
+              schedule.productionStartDate = undefined;
             }
             
             // Use our safe date parsing to ensure dates are in correct ISO format
-            schedule.productionStartDate = safeDateToISOString(schedule.productionStartDate);
+            if (schedule.productionStartDate) {
+              schedule.productionStartDate = safeDateToISOString(schedule.productionStartDate);
+            }
             schedule.endDate = safeDateToISOString(schedule.endDate);
             
             schedules.push(schedule as ImportData);
@@ -190,8 +229,9 @@ const BaySchedulingImport: React.FC = () => {
   };
 
   // Helper function to validate a date string
-  const isValidDate = (dateString: string): boolean => {
-    if (!dateString) return false;
+  const isValidDate = (dateString?: string): boolean => {
+    // Empty string or undefined is valid for optional date fields
+    if (!dateString || dateString === '') return true;
     
     // Check YYYY-MM-DD format
     const isoFormat = /^\d{4}-\d{2}-\d{2}$/;
@@ -329,8 +369,9 @@ const BaySchedulingImport: React.FC = () => {
       <CardHeader>
         <CardTitle>Bay Scheduling Import</CardTitle>
         <CardDescription>
-          Import bay scheduling data from a CSV file to place projects in manufacturing bays
-          with proper department allocations.
+          Import bay scheduling data from a CSV file to assign projects to manufacturing bays, 
+          update production dates, and set team assignments. Only endDate and projectNumber are required.
+          If productionStartDate is omitted, it will be calculated based on total hours and team capacity.
         </CardDescription>
       </CardHeader>
       
@@ -339,7 +380,12 @@ const BaySchedulingImport: React.FC = () => {
         <div className="flex flex-col gap-2">
           <Label htmlFor="template">Download Template</Label>
           <p className="text-sm text-muted-foreground">
-            Use our template CSV file to prepare your bay scheduling data, then upload it below.
+            Use our template CSV file to prepare your bay scheduling data. The format includes:
+            <br />• projectNumber - Required (must match existing project exactly)
+            <br />• endDate - Required (ship date for the project in YYYY-MM-DD format)
+            <br />• productionStartDate - Optional (calculated if omitted)
+            <br />• teamNumber - Optional (leave blank for unassigned projects)
+            <br />• totalHours - Optional (updates master project data if provided)
           </p>
           <Button 
             variant="outline" 
