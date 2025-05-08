@@ -217,17 +217,67 @@ export async function importBayScheduling(req: Request, res: Response) {
         const existingInBay = existingSchedules.find(s => s.bayId === bay.id);
         
         if (existingInBay) {
+          // Calculate department dates if not already set
+          let fabricationStartDate = existingInBay.fabricationStart ? new Date(existingInBay.fabricationStart) : null;
+          let assemblyStartDate = existingInBay.assemblyStart ? new Date(existingInBay.assemblyStart) : null;
+          let ntcTestingStartDate = existingInBay.ntcTestingStart ? new Date(existingInBay.ntcTestingStart) : null;
+          let qcStartDate = existingInBay.qcStart ? new Date(existingInBay.qcStart) : null;
+          
+          // If any phase dates are missing, calculate them
+          if (!fabricationStartDate || !assemblyStartDate || !ntcTestingStartDate || !qcStartDate) {
+            // Calculate department dates based on percentages
+            const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+            
+            // Get department percentages from the project (or use defaults)
+            const fabricationPercent = project.fabricationPercent || 15;
+            const assemblyPercent = project.assemblyPercent || 65;
+            const testingPercent = project.testingPercent || 20;
+            
+            // Safe way to subtract days to avoid octal literal issues
+            const subtractDays = (date: Date, days: number): Date => {
+              const result = new Date(date.getTime());
+              result.setDate(result.getDate() - days);
+              return result;
+            };
+            
+            const addDays = (date: Date, days: number): Date => {
+              const result = new Date(date.getTime());
+              result.setDate(result.getDate() + days);
+              return result;
+            };
+            
+            // Calculate department start dates if not already set
+            if (!fabricationStartDate) {
+              const fabricationDays = Math.ceil((totalDays * fabricationPercent) / 100);
+              fabricationStartDate = subtractDays(startDate, fabricationDays);
+            }
+            
+            if (!assemblyStartDate) {
+              assemblyStartDate = new Date(startDate.getTime());
+            }
+            
+            if (!ntcTestingStartDate) {
+              const assemblyDays = Math.ceil((totalDays * assemblyPercent) / 100);
+              ntcTestingStartDate = addDays(startDate, assemblyDays);
+            }
+            
+            if (!qcStartDate) {
+              const qcDays = project.qcDays || 5; // Default to 5 days if not specified
+              qcStartDate = subtractDays(endDate, qcDays);
+            }
+          }
+          
           // Update the existing schedule
           const updatedSchedule = await storage.updateManufacturingSchedule(existingInBay.id, {
-            startDate: startDate.toISOString(),
-            endDate: endDate.toISOString(),
+            startDate: startDate.toISOString().split('T')[0], // Store only the date part
+            endDate: endDate.toISOString().split('T')[0], // Store only the date part
             // Use totalHours from import data if provided, otherwise keep existing value
             totalHours: scheduleData.totalHours || existingInBay.totalHours,
             status: existingInBay.status || 'scheduled',
-            fabricationStart: existingInBay.fabricationStart,
-            assemblyStart: existingInBay.assemblyStart,
-            ntcTestingStart: existingInBay.ntcTestingStart,
-            qcStart: existingInBay.qcStart
+            fabricationStart: fabricationStartDate instanceof Date ? fabricationStartDate.toISOString().split('T')[0] : null,
+            assemblyStart: assemblyStartDate instanceof Date ? assemblyStartDate.toISOString().split('T')[0] : null,
+            ntcTestingStart: ntcTestingStartDate instanceof Date ? ntcTestingStartDate.toISOString().split('T')[0] : null,
+            qcStart: qcStartDate instanceof Date ? qcStartDate.toISOString().split('T')[0] : null
           });
           
           if (updatedSchedule) {
@@ -291,16 +341,16 @@ export async function importBayScheduling(req: Request, res: Response) {
           const newSchedule: InsertManufacturingSchedule = {
             projectId: project.id,
             bayId: bay.id,
-            startDate: startDate.toISOString(),
-            endDate: endDate.toISOString(),
+            startDate: startDate.toISOString().split('T')[0], // Store only the date part
+            endDate: endDate.toISOString().split('T')[0], // Store only the date part
             // Use totalHours from import data if provided, otherwise use project's totalHours or default
             totalHours: scheduleData.totalHours || project.totalHours || 1000,
             status: 'scheduled',
             row: row, // Assign the schedule to the first available row
-            fabricationStart: fabricationStart.toISOString(),
-            assemblyStart: assemblyStart.toISOString(),
-            ntcTestingStart: ntcTestingStart.toISOString(),
-            qcStart: qcStart.toISOString(),
+            fabricationStart: fabricationStart instanceof Date ? fabricationStart.toISOString().split('T')[0] : null,
+            assemblyStart: assemblyStart instanceof Date ? assemblyStart.toISOString().split('T')[0] : null,
+            ntcTestingStart: ntcTestingStart instanceof Date ? ntcTestingStart.toISOString().split('T')[0] : null,
+            qcStart: qcStart instanceof Date ? qcStart.toISOString().split('T')[0] : null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
