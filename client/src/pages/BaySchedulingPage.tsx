@@ -55,25 +55,30 @@ const BaySchedulingPage = () => {
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'quarter'>('week');
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
-    // Start range 8 weeks in the past to allow scrolling back
-    const startDate = addWeeks(today, -8);
+    // Start range from beginning of the year
+    const startDate = new Date(today.getFullYear(), 0, 1); // January 1st of current year
     return {
       start: startDate,
       end: addWeeks(today, 24) // Show 24 weeks ahead from today
     };
   });
   
+  // Function to scroll to current day in the schedule
+  const scrollToCurrentDay = () => {
+    // Find the current week element and scroll to it
+    const scheduleContainer = document.querySelector('.overflow-x-auto');
+    if (scheduleContainer) {
+      // We want to position the current date near the bay column
+      const bayColumnWidth = 180; // Approximate width of bay details column
+      scheduleContainer.scrollLeft = bayColumnWidth;
+    }
+  };
+  
   // Scroll to current week on initial load
   useEffect(() => {
     // Use setTimeout to ensure DOM is ready
     setTimeout(() => {
-      // Find the current week element and scroll to it
-      const scheduleContainer = document.querySelector('.overflow-x-auto');
-      if (scheduleContainer) {
-        // We want to position the current week near the bay column
-        const bayColumnWidth = 180; // Approximate width of bay details column
-        scheduleContainer.scrollLeft = bayColumnWidth;
-      }
+      scrollToCurrentDay();
     }, 300);
   }, []);
   
@@ -352,6 +357,8 @@ const BaySchedulingPage = () => {
   // Update date range based on view mode
   const updateDateRange = (mode: 'day' | 'week' | 'month' | 'quarter') => {
     const today = new Date();
+    // Maintain start date as January 1st of current year
+    const startDate = new Date(today.getFullYear(), 0, 1);
     let end;
     
     switch (mode) {
@@ -369,50 +376,45 @@ const BaySchedulingPage = () => {
         break;
     }
     
-    setDateRange({ start: today, end });
+    setDateRange({ start: startDate, end });
     setViewMode(mode);
+    
+    // After updating view mode, ensure we scroll to current date
+    setTimeout(() => {
+      scrollToCurrentDay();
+    }, 300);
   };
   
   // Navigate through time
   const navigateTime = (direction: 'forward' | 'backward') => {
-    let newStart, newEnd;
+    // Always keep January 1st of current year as the start date
+    const startDate = new Date(new Date().getFullYear(), 0, 1);
+    let newEnd;
     
     switch (viewMode) {
       case 'day':
-        newStart = direction === 'forward' 
-          ? addDays(dateRange.start, 7) 
-          : addDays(dateRange.start, -7);
         newEnd = direction === 'forward' 
           ? addDays(dateRange.end, 7) 
           : addDays(dateRange.end, -7);
         break;
       case 'week':
-        newStart = direction === 'forward' 
-          ? addWeeks(dateRange.start, 2) 
-          : addWeeks(dateRange.start, -2);
         newEnd = direction === 'forward' 
           ? addWeeks(dateRange.end, 2) 
           : addWeeks(dateRange.end, -2);
         break;
       case 'month':
-        newStart = direction === 'forward' 
-          ? addMonths(dateRange.start, 2) 
-          : addMonths(dateRange.start, -2);
         newEnd = direction === 'forward' 
           ? addMonths(dateRange.end, 2) 
           : addMonths(dateRange.end, -2);
         break;
       case 'quarter':
-        newStart = direction === 'forward' 
-          ? addMonths(dateRange.start, 3) 
-          : addMonths(dateRange.start, -3);
         newEnd = direction === 'forward' 
           ? addMonths(dateRange.end, 3) 
           : addMonths(dateRange.end, -3);
         break;
     }
     
-    setDateRange({ start: newStart, end: newEnd });
+    setDateRange({ start: startDate, end: newEnd });
   };
   
   return (
