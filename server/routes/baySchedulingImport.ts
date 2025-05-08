@@ -112,24 +112,34 @@ export async function importBayScheduling(req: Request, res: Response) {
           const assemblyPercent = project.assemblyPercent || 65;
           const testingPercent = project.testingPercent || 20;
           
+          // Safe way to subtract days to avoid octal literal issues
+          const subtractDays = (date: Date, days: number): Date => {
+            const result = new Date(date.getTime());
+            result.setDate(result.getDate() - days);
+            return result;
+          };
+          
+          const addDays = (date: Date, days: number): Date => {
+            const result = new Date(date.getTime());
+            result.setDate(result.getDate() + days);
+            return result;
+          };
+          
           // Calculate department start dates
           // Fabrication starts before the production start date based on its percentage
           const fabricationDays = Math.ceil((totalDays * fabricationPercent) / 100);
-          const fabricationStart = new Date(startDate);
-          fabricationStart.setDate(fabricationStart.getDate() - fabricationDays);
+          const fabricationStart = subtractDays(startDate, fabricationDays);
           
           // Assembly starts at the production start date
-          const assemblyStart = new Date(startDate);
+          const assemblyStart = new Date(startDate.getTime());
           
           // Testing starts after assembly based on assembly percentage
           const assemblyDays = Math.ceil((totalDays * assemblyPercent) / 100);
-          const ntcTestingStart = new Date(startDate);
-          ntcTestingStart.setDate(ntcTestingStart.getDate() + assemblyDays);
+          const ntcTestingStart = addDays(startDate, assemblyDays);
           
           // QC phase typically starts near the end
           const qcDays = project.qcDays || 5; // Default to 5 days if not specified
-          const qcStart = new Date(endDate);
-          qcStart.setDate(qcStart.getDate() - qcDays);
+          const qcStart = subtractDays(endDate, qcDays);
           
           // Create a new manufacturing schedule
           const newSchedule: InsertManufacturingSchedule = {

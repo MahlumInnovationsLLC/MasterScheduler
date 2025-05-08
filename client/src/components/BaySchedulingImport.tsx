@@ -10,6 +10,14 @@ import { apiRequest } from '@/lib/queryClient';
 import { cn } from '@/lib/utils';
 import templateCsvPath from '@/templates/bay-scheduling-import-template.csv';
 
+// Utility function to safely convert date string to ISO format, preventing octal literal issues
+const safeDateToISOString = (dateString: string): string => {
+  const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+  // JavaScript months are 0-indexed, so we subtract 1 from the month
+  const date = new Date(year, month - 1, day);
+  return date.toISOString();
+};
+
 interface ImportData {
   projectNumber: string;
   productionStartDate: string;
@@ -108,8 +116,13 @@ const BaySchedulingImport: React.FC = () => {
             
             // Validate dates
             if (!isValidDate(schedule.productionStartDate) || !isValidDate(schedule.endDate)) {
+              console.warn(`Skipping row with invalid dates: ${schedule.projectNumber}`);
               continue; // Skip invalid dates
             }
+            
+            // Use our safe date parsing to ensure dates are in correct ISO format
+            schedule.productionStartDate = safeDateToISOString(schedule.productionStartDate);
+            schedule.endDate = safeDateToISOString(schedule.endDate);
             
             schedules.push(schedule as ImportData);
           }
@@ -132,9 +145,21 @@ const BaySchedulingImport: React.FC = () => {
     // Check format (YYYY-MM-DD)
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return false;
     
-    // Check if it's a valid date
-    const date = new Date(dateString);
-    return !isNaN(date.getTime());
+    // Safely parse the date to avoid octal literal issues
+    try {
+      const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+      // JavaScript months are 0-indexed, so we subtract 1 from the month
+      const date = new Date(year, month - 1, day);
+      
+      // Validate result by checking if the components match what we provided
+      return (
+        date.getFullYear() === year &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day
+      );
+    } catch (e) {
+      return false;
+    }
   };
 
   // Function to handle file upload and import
