@@ -1,0 +1,9 @@
+project_number,production_start_date,end_date,team_number
+803001,2025-05-15,2025-06-15,1
+803002,2025-05-20,2025-06-10,2
+# Add your bay scheduling information above
+# Format: 
+# project_number - The project number identifier (required)
+# production_start_date - When production starts in YYYY-MM-DD format (required)
+# end_date - When production ends in YYYY-MM-DD format (required)
+# team_number - The team/bay number where the project should be scheduled (required)

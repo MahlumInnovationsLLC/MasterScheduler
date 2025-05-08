@@ -88,6 +88,11 @@ const projectSchema = z.object({
   // Manufacturing details
   totalHours: z.number().min(0).optional(),
   
+  // Department allocation percentages
+  fabricationPercent: z.number().min(0).max(100).default(15),
+  assemblyPercent: z.number().min(0).max(100).default(65),
+  testingPercent: z.number().min(0).max(100).default(20),
+  
   // Status and notes
   status: z.string(),
   priority: z.string().optional(),
@@ -179,6 +184,11 @@ function ProjectEdit() {
         // Manufacturing details
         totalHours: project.totalHours ? Number(project.totalHours) : 40,
         
+        // Department allocation percentages
+        fabricationPercent: project.fabricationPercent ? Number(project.fabricationPercent) : 15,
+        assemblyPercent: project.assemblyPercent ? Number(project.assemblyPercent) : 65,
+        testingPercent: project.testingPercent ? Number(project.testingPercent) : 20,
+        
         // New field with calculated days
         poDroppedToDeliveryDays: calculatedDays,
         
@@ -226,7 +236,26 @@ function ProjectEdit() {
   // Mutations for updating and deleting projects
   const updateMutation = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
-      const res = await apiRequest('PUT', `/api/projects/${projectId}`, data);
+      // Fix for date timezone issues - ensure all dates are set to noon UTC
+      // This prevents the "saving as previous day" issue due to timezone conversion
+      const fixedData = { ...data };
+      
+      // Process all date fields to ensure consistent UTC handling
+      Object.keys(fixedData).forEach(key => {
+        if (fixedData[key] instanceof Date) {
+          // Create a new date at noon UTC which prevents timezone issues
+          const date = new Date(fixedData[key]);
+          const utcDate = new Date(Date.UTC(
+            date.getFullYear(), 
+            date.getMonth(), 
+            date.getDate(), 
+            12, 0, 0
+          ));
+          fixedData[key] = utcDate;
+        }
+      });
+      
+      const res = await apiRequest('PUT', `/api/projects/${projectId}`, fixedData);
       return await res.json();
     },
     onSuccess: () => {
@@ -476,6 +505,117 @@ function ProjectEdit() {
                         </FormItem>
                       )}
                     />
+                    
+                    <h3 className="text-md font-medium mt-4 mb-2">Department Allocation Percentages</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="fabricationPercent"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Fabrication %</FormLabel>
+                            <div className="grid grid-cols-[1fr_50px] gap-2">
+                              <FormControl>
+                                <Slider 
+                                  value={[field.value || 15]} 
+                                  min={0} 
+                                  max={100} 
+                                  step={1}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                />
+                              </FormControl>
+                              <Input 
+                                type="number" 
+                                value={field.value || 15}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  if (!isNaN(val) && val >= 0 && val <= 100) {
+                                    field.onChange(val);
+                                  }
+                                }} 
+                                className="w-[60px]"
+                              />
+                            </div>
+                            <FormDescription className="text-xs">
+                              Fabrication phase percentage
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="assemblyPercent"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Assembly %</FormLabel>
+                            <div className="grid grid-cols-[1fr_50px] gap-2">
+                              <FormControl>
+                                <Slider 
+                                  value={[field.value || 65]} 
+                                  min={0} 
+                                  max={100} 
+                                  step={1}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                />
+                              </FormControl>
+                              <Input 
+                                type="number" 
+                                value={field.value || 65}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  if (!isNaN(val) && val >= 0 && val <= 100) {
+                                    field.onChange(val);
+                                  }
+                                }} 
+                                className="w-[60px]"
+                              />
+                            </div>
+                            <FormDescription className="text-xs">
+                              Assembly phase percentage
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="testingPercent"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Testing %</FormLabel>
+                            <div className="grid grid-cols-[1fr_50px] gap-2">
+                              <FormControl>
+                                <Slider 
+                                  value={[field.value || 20]} 
+                                  min={0} 
+                                  max={100} 
+                                  step={1}
+                                  onValueChange={(vals) => field.onChange(vals[0])}
+                                />
+                              </FormControl>
+                              <Input 
+                                type="number" 
+                                value={field.value || 20}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value);
+                                  if (!isNaN(val) && val >= 0 && val <= 100) {
+                                    field.onChange(val);
+                                  }
+                                }} 
+                                className="w-[60px]"
+                              />
+                            </div>
+                            <FormDescription className="text-xs">
+                              Testing/QA phase percentage
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     
                     <FormField
                       control={form.control}
