@@ -65,12 +65,31 @@ const BaySchedulingPage = () => {
   
   // Function to scroll to current day in the schedule
   const scrollToCurrentDay = () => {
-    // Find the current week element and scroll to it
+    // Find the schedule container
     const scheduleContainer = document.querySelector('.overflow-x-auto');
     if (scheduleContainer) {
-      // We want to position the current date near the bay column
+      // Calculate the position of current week
+      const today = new Date();
+      const startOfYear = new Date(today.getFullYear(), 0, 1);
+      
+      // Calculate days between the start of the year and today
+      const daysSinceYearStart = Math.floor((today.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+      
+      // Estimate the pixel position based on the day width
+      let dayWidth = 50; // Default day width in pixels
+      if (viewMode === 'week') dayWidth = 150; // Week view width
+      if (viewMode === 'month') dayWidth = 200; // Month view width
+      if (viewMode === 'quarter') dayWidth = 250; // Quarter view width
+      
+      // Calculate position - days since year start × day width
+      // subtract some offset to position current day at left edge next to bay column
       const bayColumnWidth = 180; // Approximate width of bay details column
-      scheduleContainer.scrollLeft = bayColumnWidth;
+      const position = (daysSinceYearStart * dayWidth) - 20; // Position current day at left edge
+      
+      // Set the scroll position
+      scheduleContainer.scrollLeft = position;
+      
+      console.log(`Scrolling to current day: ${daysSinceYearStart} days since year start, position ${position}px`);
     }
   };
   
@@ -508,7 +527,13 @@ const BaySchedulingPage = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={() => updateDateRange(viewMode)}
+              onClick={() => {
+                updateDateRange(viewMode);
+                // Ensure we scroll to the current day
+                setTimeout(() => {
+                  scrollToCurrentDay();
+                }, 300);
+              }}
               className="flex items-center gap-1 ml-1"
             >
               <Calendar className="h-4 w-4 mr-1" />
