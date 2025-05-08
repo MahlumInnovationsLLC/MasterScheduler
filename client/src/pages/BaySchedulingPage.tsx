@@ -415,18 +415,6 @@ const BaySchedulingPage = () => {
     setDateRange({ start: newStart, end: newEnd });
   };
   
-  // Function to handle successful import
-  const handleImportSuccess = () => {
-    setShowImportModal(false);
-    toast({
-      title: "Import Successful",
-      description: "Projects have been successfully imported into the bay scheduling system.",
-    });
-    // Refresh data after import
-    queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-  };
-  
   return (
     <div className="px-4 py-4 md:py-6 md:px-6">
       <div className="flex flex-col gap-1 mb-6">
@@ -524,15 +512,6 @@ const BaySchedulingPage = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline"
-            onClick={() => setShowImportModal(true)}
-            className="gap-1"
-          >
-            <Upload className="h-4 w-4 mr-1" />
-            <span>Import</span>
-          </Button>
-          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-1">
@@ -586,19 +565,6 @@ const BaySchedulingPage = () => {
           />
         </div>
       </div>
-      
-      {/* Import Dialog */}
-      <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Import Bay Scheduling Data</DialogTitle>
-            <DialogDescription>
-              Upload CSV data to place projects into manufacturing bays with the correct dates and team assignments.
-            </DialogDescription>
-          </DialogHeader>
-          <BaySchedulingImport onSuccess={handleImportSuccess} />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

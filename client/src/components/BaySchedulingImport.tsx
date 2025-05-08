@@ -25,11 +25,7 @@ interface ImportData {
   teamNumber: number;
 }
 
-interface BaySchedulingImportProps {
-  onSuccess?: () => void;
-}
-
-const BaySchedulingImport: React.FC<BaySchedulingImportProps> = ({ onSuccess }) => {
+const BaySchedulingImport: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [importResults, setImportResults] = useState<{
@@ -211,11 +207,6 @@ const BaySchedulingImport: React.FC<BaySchedulingImportProps> = ({ onSuccess }) 
           title: 'Import successful',
           description: `Imported ${result.imported} bay schedules.`,
         });
-        
-        // Call the onSuccess callback if provided
-        if (onSuccess) {
-          onSuccess();
-        }
       } else {
         toast({
           title: 'Import failed',
