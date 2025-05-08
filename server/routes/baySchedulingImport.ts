@@ -2,6 +2,50 @@ import { Request, Response } from 'express';
 import { storage } from '../storage';
 import { InsertManufacturingSchedule } from '@shared/schema';
 
+/**
+ * Safely parse a date string to avoid octal literal errors with leading zeros
+ * When JavaScript parses date strings with formats like "05/08/2023", 
+ * the leading zero can cause the value to be interpreted as an octal literal in strict mode
+ * This function safely handles those cases
+ */
+function parseDateSafely(dateString: string): Date {
+  if (!dateString) {
+    throw new Error('Date string is empty or undefined');
+  }
+  
+  // Handle standard ISO format
+  if (dateString.includes('T') || dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return new Date(dateString);
+  }
+  
+  // Handle MM/DD/YYYY format with potential leading zeros
+  if (dateString.includes('/')) {
+    const parts = dateString.split('/');
+    if (parts.length === 3) {
+      // Extract parts ensuring no octal interpretation
+      const month = parseInt(parts[0], 10);
+      const day = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      
+      // Validate ranges
+      if (month < 1 || month > 12) throw new Error(`Invalid month: ${month}`);
+      if (day < 1 || day > 31) throw new Error(`Invalid day: ${day}`);
+      if (year < 2000 || year > 2100) throw new Error(`Invalid year: ${year}`);
+      
+      // Create date using numeric values (month is 0-based in JavaScript)
+      return new Date(year, month - 1, day);
+    }
+  }
+  
+  // Last resort: try direct parsing
+  const result = new Date(dateString);
+  if (isNaN(result.getTime())) {
+    throw new Error(`Unable to parse date: ${dateString}`);
+  }
+  
+  return result;
+}
+
 // Interface for bay scheduling import data from the frontend
 interface BaySchedulingImportData {
   projectNumber: string;
@@ -68,13 +112,21 @@ export async function importBayScheduling(req: Request, res: Response) {
           continue;
         }
 
-        // Parse dates
-        const startDate = new Date(scheduleData.productionStartDate);
-        const endDate = new Date(scheduleData.endDate);
+        // Parse dates safely to avoid octal literal errors
+        let startDate: Date, endDate: Date;
         
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        try {
+          // Safe date parsing to avoid octal literal errors with leading zeros
+          startDate = parseDateSafely(scheduleData.productionStartDate);
+          endDate = parseDateSafely(scheduleData.endDate);
+          
+          // Verify that parsing was successful
+          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            throw new Error("Date parsing resulted in invalid dates");
+          }
+        } catch (error) {
           results.errors++;
-          results.details.push(`Invalid date format for project ${scheduleData.projectNumber}`);
+          results.details.push(`Invalid date format for project ${scheduleData.projectNumber}: ${error.message}`);
           continue;
         }
 
@@ -89,7 +141,7 @@ export async function importBayScheduling(req: Request, res: Response) {
             endDate: endDate.toISOString(),
             // Keep other existing data
             totalHours: existingInBay.totalHours,
-            scheduleStatus: existingInBay.scheduleStatus,
+            status: existingInBay.status || 'scheduled',
             fabricationStart: existingInBay.fabricationStart,
             assemblyStart: existingInBay.assemblyStart,
             ntcTestingStart: existingInBay.ntcTestingStart,
@@ -141,6 +193,18 @@ export async function importBayScheduling(req: Request, res: Response) {
           const qcDays = project.qcDays || 5; // Default to 5 days if not specified
           const qcStart = subtractDays(endDate, qcDays);
           
+          // Find all existing schedules for this bay to determine available rows
+          const baySchedules = await storage.getBayManufacturingSchedules(bay.id);
+          
+          // Determine which rows are already in use
+          const usedRows = new Set(baySchedules.map(s => s.row).filter(r => r !== null && r !== undefined));
+          
+          // Find the first available row starting from 1
+          let row = 1;
+          while (usedRows.has(row)) {
+            row++;
+          }
+          
           // Create a new manufacturing schedule
           const newSchedule: InsertManufacturingSchedule = {
             projectId: project.id,
@@ -148,7 +212,8 @@ export async function importBayScheduling(req: Request, res: Response) {
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
             totalHours: project.totalHours || 1000, // Default to 1000 hours if not specified
-            scheduleStatus: 'scheduled',
+            status: 'scheduled',
+            row: row, // Assign the schedule to the first available row
             fabricationStart: fabricationStart.toISOString(),
             assemblyStart: assemblyStart.toISOString(),
             ntcTestingStart: ntcTestingStart.toISOString(),
