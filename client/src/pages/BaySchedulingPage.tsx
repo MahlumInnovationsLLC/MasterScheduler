@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { addDays, addWeeks, addMonths, format } from 'date-fns';
-import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
+import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, calculateBayUtilization } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +30,7 @@ import { ManufacturingCard } from '@/components/ManufacturingCard';
 import { BayUtilizationCard } from '@/components/BayUtilizationCard';
 import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
+import BaySchedulingImport from '@/components/BaySchedulingImport';
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
 import { 
   ManufacturingBay, 
@@ -528,6 +537,28 @@ const BaySchedulingPage = () => {
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
+          
+          {/* Bay Scheduling Import Dialog */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-1">
+                <Upload className="h-4 w-4 mr-1" />
+                <span>Import Schedule</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Import Bay Scheduling</DialogTitle>
+                <DialogDescription>
+                  Upload a CSV file to place projects in manufacturing bays with proper department allocations.
+                </DialogDescription>
+              </DialogHeader>
+              <BaySchedulingImport onImportSuccess={() => {
+                // Refresh manufacturing schedules after successful import
+                queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+              }} />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
       
