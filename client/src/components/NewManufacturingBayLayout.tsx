@@ -374,21 +374,25 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
                     <div className="flex-1 overflow-x-auto max-w-[calc(100vw-280px)]" id={`bay-${bay.id}-timeline`}>
                       <div className="flex relative">
                         {/* Today indicator line */}
-                        <div className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10" style={{
-                          left: (() => {
-                            const today = new Date();
-                            const startDate = new Date(dateRange.start);
-                            const diffDays = Math.round((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-                            
-                            if (viewMode === 'day') {
-                              return `${diffDays * 40}px`; // 40px per day
-                            } else if (viewMode === 'week') {
-                              return `${(diffDays / 7) * 160}px`; // 160px per week
-                            } else {
-                              return `${(diffDays / 30) * 320}px`; // 320px per month
-                            }
-                          })()
-                        }}></div>
+                        <div 
+                          className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 today-indicator" 
+                          data-today="true"
+                          style={{
+                            left: (() => {
+                              const today = new Date();
+                              const startDate = new Date(dateRange.start);
+                              const diffDays = Math.round((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+                              
+                              if (viewMode === 'day') {
+                                return `${diffDays * 40}px`; // 40px per day
+                              } else if (viewMode === 'week') {
+                                return `${(diffDays / 7) * 160}px`; // 160px per week
+                              } else {
+                                return `${(diffDays / 30) * 320}px`; // 320px per month
+                              }
+                            })()
+                          }}
+                        ></div>
                       
                         {viewMode === 'day' ? (
                           // Day slots - 14 days
@@ -409,10 +413,11 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
                                 key={i}
                                 data-date={format(date, 'yyyy-MM-dd')}
                                 data-bay-id={bay.id}
+                                data-today={isToday ? "true" : "false"}
                                 className={`
                                   w-10 h-12 border-r border-border/30
                                   ${isWeekend ? 'bg-gray-800/30' : ''}
-                                  ${isToday ? 'bg-blue-900/20' : ''}
+                                  ${isToday ? 'bg-blue-900/20 today-cell' : ''}
                                   ${daySchedule ? '' : 'droppable-slot hover:bg-blue-500/10'}
                                   ${dragOverSlot === `slot-${bay.id}-${format(date, 'yyyy-MM-dd')}` ? 'bg-blue-500/20' : ''}
                                 `}
