@@ -23,6 +23,8 @@ import { ManufacturingCard } from '@/components/ManufacturingCard';
 import { ProgressBadge } from '@/components/ui/progress-badge';
 import { formatDate, formatCurrency, getProjectStatusColor, getProjectScheduleState, calculateBayUtilization } from '@/lib/utils';
 import { DashboardTable } from '@/components/ui/dashboard-table';
+import { ProjectStatusBreakdownCard } from '@/components/ProjectStatusBreakdownCard';
+import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
 
 const Dashboard = () => {
   const { data: projects, isLoading: isLoadingProjects } = useQuery({
