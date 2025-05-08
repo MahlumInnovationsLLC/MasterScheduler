@@ -520,7 +520,7 @@ const BaySchedulingPage = () => {
               <div className="flex flex-col space-y-2">
                 <Button 
                   variant="destructive" 
-                  className="w-full"
+                  className="w-full font-bold text-base flex items-center justify-center gap-2"
                   disabled={isLoading}
                   onClick={async () => {
                     // Add confirmation dialog
@@ -534,25 +534,47 @@ const BaySchedulingPage = () => {
                         
                         if (response.ok) {
                           const result = await response.json();
-                          console.log("Successfully cleared all schedules:", result);
+                          console.log("Response from clear-all endpoint:", result);
                           
-                          toast({
-                            title: "Success!",
-                            description: result.message || "All projects moved to Unassigned section.",
-                            variant: "default",
-                          });
-                          
-                          // Properly invalidate queries instead of just refetching
-                          queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
-                          queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-bays'] });
-                          queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+                          if (result.success) {
+                            toast({
+                              title: "Success!",
+                              description: result.message || "Projects moved to Unassigned section.",
+                              variant: "default",
+                            });
+                            
+                            // Success - update the UI
+                            queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+                            queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-bays'] });
+                            queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+                          } else {
+                            // Server returned success: false
+                            console.error("Operation failed:", result.message, result.errors);
+                            toast({
+                              title: "Operation Failed",
+                              description: result.message || "Failed to move projects to Unassigned section.",
+                              variant: "destructive",
+                            });
+                          }
                         } else {
-                          const errorResponse = await response.text();
-                          console.error("Error response from server:", errorResponse);
+                          // HTTP error status code
+                          let errorMessage = "Failed to move projects to Unassigned section. Please try again.";
+                          
+                          try {
+                            const errorResponse = await response.json();
+                            console.error("Error response from server:", errorResponse);
+                            if (errorResponse.message) {
+                              errorMessage = errorResponse.message;
+                            }
+                          } catch (e) {
+                            // If response is not JSON, get text
+                            const errorText = await response.text();
+                            console.error("Error response (text):", errorText);
+                          }
                           
                           toast({
-                            title: "Error",
-                            description: "Failed to move projects to Unassigned section. Please try again.",
+                            title: `Error (${response.status})`,
+                            description: errorMessage,
                             variant: "destructive",
                           });
                         }

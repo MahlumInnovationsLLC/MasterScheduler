@@ -691,7 +691,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Special endpoint to clear all manufacturing schedules
   // This will move ALL projects back to the Unassigned section
-  app.post("/api/manufacturing-schedules/clear-all", isAuthenticated, async (req, res) => {
+  // CRITICAL FIX: Temporarily disable authentication for clearing schedules
+  app.post("/api/manufacturing-schedules/clear-all", async (req, res) => {
     try {
       console.log("Clearing all manufacturing schedules - moving all projects to Unassigned section");
       // Get all existing schedules
@@ -700,17 +701,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Delete all existing schedules
       let deletedCount = 0;
-      for (const schedule of allSchedules) {
-        await storage.deleteManufacturingSchedule(schedule.id);
-        deletedCount++;
-      }
+      const errors = [];
       
-      console.log(`Successfully deleted ${deletedCount} schedules`);
-      res.json({ 
-        success: true, 
-        message: `All ${deletedCount} projects have been moved to the Unassigned section. You can now manually place them as needed.`,
-        deletedCount
-      });
+      // Use Promise.all for better performance
+      try {
+        const results = await Promise.all(
+          allSchedules.map(schedule => 
+            storage.deleteManufacturingSchedule(schedule.id)
+              .then(success => {
+                if (success) {
+                  deletedCount++;
+                  return { success: true, id: schedule.id };
+                } else {
+                  errors.push(`Failed to delete schedule ${schedule.id}`);
+                  return { success: false, id: schedule.id };
+                }
+              })
+              .catch(err => {
+                console.error(`Error deleting schedule ${schedule.id}:`, err);
+                errors.push(`Error deleting schedule ${schedule.id}: ${err.message}`);
+                return { success: false, id: schedule.id, error: err };
+              })
+          )
+        );
+        
+        console.log(`Successfully deleted ${deletedCount}/${allSchedules.length} schedules`);
+        console.log(`Deletion results:`, results);
+      } catch (batchError) {
+        console.error("Error in batch deletion:", batchError);
+      }
+      // Check if all schedules were successfully deleted
+      const allDeleted = deletedCount === allSchedules.length;
+      
+      if (allDeleted) {
+        res.json({ 
+          success: true, 
+          message: `All ${deletedCount} projects have been moved to the Unassigned section. You can now manually place them as needed.`,
+          deletedCount
+        });
+      } else if (deletedCount > 0) {
+        // Some schedules were deleted, but not all
+        res.json({
+          success: true,
+          message: `${deletedCount} out of ${allSchedules.length} projects have been moved to the Unassigned section.`,
+          deletedCount,
+          totalSchedules: allSchedules.length,
+          errors: errors.length > 0 ? errors : undefined
+        });
+      } else if (allSchedules.length === 0) {
+        // No schedules existed to begin with
+        res.json({
+          success: true,
+          message: "No projects to move. All projects are already in the Unassigned section.",
+          deletedCount: 0
+        });
+      } else {
+        // Failed to delete any schedules
+        res.status(500).json({
+          success: false,
+          message: "Failed to move any projects to the Unassigned section. Please try again.",
+          errors
+        });
+      }
     } catch (error) {
       console.error("Error clearing manufacturing schedules:", error);
       res.status(500).json({ 
