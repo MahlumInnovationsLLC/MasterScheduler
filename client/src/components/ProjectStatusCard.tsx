@@ -2,7 +2,11 @@ import React from 'react';
 import { 
   Folders,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  PauseCircle,
+  Clock,
+  ActivitySquare,
+  CheckCircle
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -25,6 +29,12 @@ interface ProjectStatsCardProps {
     value: number;
     label: string;
   };
+  stateBreakdown?: {
+    unscheduled: number;
+    scheduled: number;
+    inProgress: number;
+    complete: number;
+  };
   className?: string;
 }
 
@@ -35,8 +45,37 @@ export function ProjectStatsCard({
   change,
   tags,
   progress,
+  stateBreakdown,
   className
 }: ProjectStatsCardProps) {
+  // Define state breakdown items if provided
+  const stateItems = stateBreakdown ? [
+    {
+      status: 'Unscheduled',
+      count: stateBreakdown.unscheduled,
+      icon: <PauseCircle className="h-4 w-4 text-gray-500" />,
+      color: 'text-gray-500'
+    },
+    {
+      status: 'Scheduled',
+      count: stateBreakdown.scheduled,
+      icon: <Clock className="h-4 w-4 text-indigo-500" />,
+      color: 'text-indigo-500'
+    },
+    {
+      status: 'In Progress',
+      count: stateBreakdown.inProgress,
+      icon: <ActivitySquare className="h-4 w-4 text-blue-500" />,
+      color: 'text-blue-500'
+    },
+    {
+      status: 'Complete',
+      count: stateBreakdown.complete,
+      icon: <CheckCircle className="h-4 w-4 text-success" />,
+      color: 'text-success'
+    }
+  ] : [];
+
   return (
     <Card className={`bg-darkCard rounded-xl p-4 border border-gray-800 ${className || ''}`}>
       <div className="flex items-center justify-between mb-3">
@@ -74,6 +113,25 @@ export function ProjectStatsCard({
               </ProgressBadge>
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Project State Breakdown */}
+      {stateBreakdown && (
+        <div className="mt-4">
+          <h4 className="text-xs text-gray-400 mb-2">Project State Breakdown</h4>
+          <div className="grid grid-cols-4 gap-2">
+            {stateItems.map((item) => (
+              <div 
+                key={item.status}
+                className="flex flex-col items-center justify-center p-2 rounded-lg bg-card/50 border border-border"
+              >
+                {item.icon}
+                <div className={`text-sm font-bold mt-1 ${item.color}`}>{item.count}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{item.status}</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </Card>

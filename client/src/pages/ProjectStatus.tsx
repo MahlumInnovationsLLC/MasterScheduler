@@ -219,6 +219,46 @@ const ProjectStatus = () => {
       avgCompletion
     };
   }, [projects]);
+  
+  // Calculate project state breakdown
+  const projectStateBreakdown = React.useMemo(() => {
+    if (!projects || projects.length === 0) return null;
+    
+    // Initialize counters
+    let unscheduled = 0;
+    let scheduled = 0;
+    let inProgress = 0;
+    let complete = 0;
+    
+    // Count projects by schedule state
+    projects.forEach(project => {
+      // If project is completed, add to complete count
+      if (project.status === 'completed') {
+        complete++;
+        return;
+      }
+      
+      // For all other projects, categorize by their schedule state
+      const scheduleState = getProjectScheduleState(manufacturingSchedules, project.id);
+      
+      if (scheduleState === 'Unscheduled') {
+        unscheduled++;
+      } else if (scheduleState === 'Scheduled') {
+        scheduled++;
+      } else if (scheduleState === 'In Progress') {
+        inProgress++;
+      } else if (scheduleState === 'Complete') {
+        complete++;
+      }
+    });
+    
+    return {
+      unscheduled,
+      scheduled,
+      inProgress,
+      complete
+    };
+  }, [projects, manufacturingSchedules]);
 
   // Apply date filters to projects
   const filteredProjects = React.useMemo(() => {
@@ -983,6 +1023,7 @@ const ProjectStatus = () => {
             { label: "Delayed", value: projectStats?.delayed || 0, status: "Delayed" },
             { label: "Critical", value: projectStats?.critical || 0, status: "Critical" }
           ]}
+          stateBreakdown={projectStateBreakdown || undefined}
           className="h-72"
         />
         
@@ -1015,12 +1056,7 @@ const ProjectStatus = () => {
         />
       </div>
       
-      {/* Project Status Breakdown Row */}
-      <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-6">
-        <div>
-          <ProjectStatusBreakdownCard projects={projects || []} />
-        </div>
-      </div>
+      {/* Project Status Breakdown now part of Total Projects card */}
       
       {/* Current Production Status - Horizontal Card */}
       <div className="mb-6">
