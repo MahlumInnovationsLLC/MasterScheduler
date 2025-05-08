@@ -89,11 +89,10 @@ export async function importBayScheduling(req: Request, res: Response) {
             endDate: endDate.toISOString(),
             // Keep other existing data
             totalHours: existingInBay.totalHours,
-            scheduleStatus: existingInBay.scheduleStatus,
-            fabricationStart: existingInBay.fabricationStart,
-            assemblyStart: existingInBay.assemblyStart,
-            ntcTestingStart: existingInBay.ntcTestingStart,
-            qcStart: existingInBay.qcStart
+            status: existingInBay.status,
+            notes: existingInBay.notes,
+            equipment: existingInBay.equipment,
+            staffAssigned: existingInBay.staffAssigned
           });
           
           if (updatedSchedule) {
@@ -104,32 +103,8 @@ export async function importBayScheduling(req: Request, res: Response) {
             results.details.push(`Failed to update schedule for project ${project.projectNumber}`);
           }
         } else {
-          // Calculate department dates based on percentages
+          // Calculate project duration for reference
           const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-          
-          // Get department percentages from the project (or use defaults)
-          const fabricationPercent = project.fabricationPercent || 15;
-          const assemblyPercent = project.assemblyPercent || 65;
-          const testingPercent = project.testingPercent || 20;
-          
-          // Calculate department start dates
-          // Fabrication starts before the production start date based on its percentage
-          const fabricationDays = Math.ceil((totalDays * fabricationPercent) / 100);
-          const fabricationStart = new Date(startDate);
-          fabricationStart.setDate(fabricationStart.getDate() - fabricationDays);
-          
-          // Assembly starts at the production start date
-          const assemblyStart = new Date(startDate);
-          
-          // Testing starts after assembly based on assembly percentage
-          const assemblyDays = Math.ceil((totalDays * assemblyPercent) / 100);
-          const ntcTestingStart = new Date(startDate);
-          ntcTestingStart.setDate(ntcTestingStart.getDate() + assemblyDays);
-          
-          // QC phase typically starts near the end
-          const qcDays = project.qcDays || 5; // Default to 5 days if not specified
-          const qcStart = new Date(endDate);
-          qcStart.setDate(qcStart.getDate() - qcDays);
           
           // Create a new manufacturing schedule
           const newSchedule: InsertManufacturingSchedule = {
@@ -138,11 +113,7 @@ export async function importBayScheduling(req: Request, res: Response) {
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
             totalHours: project.totalHours || 1000, // Default to 1000 hours if not specified
-            scheduleStatus: 'scheduled',
-            fabricationStart: fabricationStart.toISOString(),
-            assemblyStart: assemblyStart.toISOString(),
-            ntcTestingStart: ntcTestingStart.toISOString(),
-            qcStart: qcStart.toISOString(),
+            status: 'scheduled',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
@@ -157,10 +128,10 @@ export async function importBayScheduling(req: Request, res: Response) {
             results.details.push(`Failed to create schedule for project ${project.projectNumber}`);
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error processing schedule:', error);
         results.errors++;
-        results.details.push(`Error importing schedule for project ${scheduleData.projectNumber || 'unknown'}: ${error.message}`);
+        results.details.push(`Error importing schedule for project ${scheduleData.projectNumber || 'unknown'}: ${error.message || 'Unknown error'}`);
       }
     }
 
@@ -174,12 +145,12 @@ export async function importBayScheduling(req: Request, res: Response) {
       skipped: results.skipped
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in importBayScheduling:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Error importing bay scheduling data', 
-      error: error.message 
+      error: error.message || 'Unknown error' 
     });
   }
 }
