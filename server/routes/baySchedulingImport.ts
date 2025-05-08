@@ -141,9 +141,11 @@ export async function importBayScheduling(req: Request, res: Response) {
           }
           
           // Update team assignment based on bay number
-          if (bay.team) {
-            projectUpdates.team = bay.team;
-          }
+          // Always set the team field to match the teamNumber from the import
+          // This is critical for proper bay assignment display
+          projectUpdates.team = `${scheduleData.teamNumber}`;
+          
+          console.log(`Setting project ${project.projectNumber} team to "${scheduleData.teamNumber}" based on teamNumber in import`);
           
           // Update dates:
           // - endDate maps to shipDate

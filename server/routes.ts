@@ -691,6 +691,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/delivery-tracking", isAuthenticated, importDeliveryTracking);
   app.post("/api/import/bay-scheduling", isAuthenticated, importBayScheduling);
   
+  // Debug endpoint for the bay scheduling import (temporary - remove in production)
+  app.post("/api/debug/bay-scheduling-import", async (req, res) => {
+    try {
+      console.log("Starting debug bay scheduling import endpoint");
+      
+      // Sample test data using real project numbers from the database
+      const testData = {
+        schedules: [
+          {
+            projectNumber: "804653",
+            productionStartDate: "2025-06-01",
+            endDate: "2025-07-15",
+            teamNumber: 1,
+            totalHours: 1200
+          },
+          {
+            projectNumber: "804814",
+            productionStartDate: "2025-05-15",
+            endDate: "2025-08-01",
+            teamNumber: 2,
+            totalHours: 850
+          },
+          {
+            projectNumber: "804654",
+            productionStartDate: "2025-07-01",
+            endDate: "2025-08-15",
+            teamNumber: 3,
+            totalHours: 1500
+          }
+        ]
+      };
+      
+      // Mock the request object with our test data
+      const mockReq = {
+        body: testData
+      } as Request;
+      
+      // Create a mock response object to capture the response
+      const mockRes = {
+        status: (code: number) => ({
+          json: (data: any) => {
+            console.log(`Debug response (${code}):`, JSON.stringify(data, null, 2));
+            return res.status(code).json(data);
+          }
+        }),
+        json: (data: any) => {
+          console.log("Debug response:", JSON.stringify(data, null, 2));
+          return res.json(data);
+        }
+      } as unknown as Response;
+      
+      // Call the import function directly with our mock objects
+      console.log("Calling importBayScheduling with test data");
+      await importBayScheduling(mockReq, mockRes);
+      
+    } catch (error) {
+      console.error("Error in debug bay scheduling import:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error in debug import",
+        error: error.message
+      });
+    }
+  });
+  
   // Delivery Tracking routes 
   app.get("/api/delivery-tracking", getAllDeliveryTracking);
   app.get("/api/delivery-tracking/analytics", getDeliveryAnalytics);
