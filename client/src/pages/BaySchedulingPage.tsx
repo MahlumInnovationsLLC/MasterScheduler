@@ -523,8 +523,8 @@ const BaySchedulingPage = () => {
                   className="w-full font-bold text-base flex items-center justify-center gap-2"
                   disabled={isLoading}
                   onClick={async () => {
-                    // Add confirmation dialog
-                    if (window.confirm("This will move ALL projects to the Unassigned section. Continue?")) {
+                    // Add confirmation dialog with more context
+                    if (window.confirm("⚠️ IMPORTANT: This will reset ALL bay assignments and move ALL projects to the Unassigned section.\n\nThis action cannot be undone. Continue?")) {
                       setIsLoading(true);
                       try {
                         console.log("Attempting to clear all manufacturing schedules...");
@@ -591,7 +591,7 @@ const BaySchedulingPage = () => {
                     }
                   }}
                 >
-                  🔄 Move ALL to Unassigned
+                  🔄 Reset All Bay Assignments
                 </Button>
                 <AIInsightsModal />
               </div>
@@ -754,7 +754,8 @@ const BaySchedulingPage = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center">
             <div className="h-10 w-10 border-4 border-t-transparent border-primary rounded-full animate-spin mb-4"></div>
-            <p className="font-medium">Moving projects to Unassigned...</p>
+            <p className="font-medium">Resetting All Bay Assignments...</p>
+            <p className="text-sm text-muted-foreground mt-1">This may take a moment</p>
           </div>
         </div>
       )}
