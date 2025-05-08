@@ -52,6 +52,7 @@ interface BaySchedulingImportData {
   productionStartDate: string;
   endDate: string;
   teamNumber: number;
+  totalHours?: number; // New field to update project total hours
 }
 
 /**
@@ -103,6 +104,21 @@ export async function importBayScheduling(req: Request, res: Response) {
           results.details.push(`Project not found with number: ${scheduleData.projectNumber}`);
           continue;
         }
+        
+        // Update project totalHours if provided in the import data
+        if (scheduleData.totalHours && scheduleData.totalHours > 0) {
+          try {
+            // Update the project with the new total hours
+            await storage.updateProject(project.id, {
+              totalHours: scheduleData.totalHours,
+              updatedAt: new Date().toISOString()
+            });
+            console.log(`Updated totalHours for project ${project.projectNumber} to ${scheduleData.totalHours}`);
+          } catch (error) {
+            console.error(`Error updating totalHours for project ${project.projectNumber}:`, error);
+            // Continue with the import even if updating totalHours fails
+          }
+        }
 
         // Find the manufacturing bay/team
         const bay = allBays.find(b => b.bayNumber === scheduleData.teamNumber);
@@ -139,8 +155,8 @@ export async function importBayScheduling(req: Request, res: Response) {
           const updatedSchedule = await storage.updateManufacturingSchedule(existingInBay.id, {
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
-            // Keep other existing data
-            totalHours: existingInBay.totalHours,
+            // Use totalHours from import data if provided, otherwise keep existing value
+            totalHours: scheduleData.totalHours || existingInBay.totalHours,
             status: existingInBay.status || 'scheduled',
             fabricationStart: existingInBay.fabricationStart,
             assemblyStart: existingInBay.assemblyStart,
@@ -211,7 +227,8 @@ export async function importBayScheduling(req: Request, res: Response) {
             bayId: bay.id,
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
-            totalHours: project.totalHours || 1000, // Default to 1000 hours if not specified
+            // Use totalHours from import data if provided, otherwise use project's totalHours or default
+            totalHours: scheduleData.totalHours || project.totalHours || 1000,
             status: 'scheduled',
             row: row, // Assign the schedule to the first available row
             fabricationStart: fabricationStart.toISOString(),

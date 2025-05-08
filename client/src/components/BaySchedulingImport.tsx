@@ -9,10 +9,10 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { cn } from '@/lib/utils';
 // Inline template instead of importing CSV file
-const templateCsvContent = `projectNumber,productionStartDate,endDate,teamNumber
-804205,2025-06-01,2025-07-15,1
-804206,2025-06-15,2025-08-01,2
-804207,2025-07-01,2025-08-15,3`;
+const templateCsvContent = `projectNumber,productionStartDate,endDate,teamNumber,totalHours
+804205,2025-06-01,2025-07-15,1,1200
+804206,2025-06-15,2025-08-01,2,850
+804207,2025-07-01,2025-08-15,3,1500`;
 
 // Utility function to safely convert date string to ISO format, preventing octal literal issues
 const safeDateToISOString = (dateString: string): string => {
@@ -54,6 +54,7 @@ interface ImportData {
   productionStartDate: string;
   endDate: string;
   teamNumber: number;
+  totalHours?: number; // Optional to maintain backward compatibility with existing CSVs
 }
 
 const BaySchedulingImport: React.FC = () => {
@@ -151,8 +152,18 @@ const BaySchedulingImport: React.FC = () => {
               schedule[header] = values[index];
             });
             
-            // Convert teamNumber to number
+            // Convert numeric fields to numbers
             schedule.teamNumber = parseInt(schedule.teamNumber, 10);
+            
+            // Convert totalHours to number if present
+            if (schedule.totalHours) {
+              schedule.totalHours = parseInt(schedule.totalHours, 10);
+              // Validate that totalHours is a positive number
+              if (isNaN(schedule.totalHours) || schedule.totalHours <= 0) {
+                console.warn(`Invalid totalHours value for project ${schedule.projectNumber}: ${schedule.totalHours}`);
+                schedule.totalHours = undefined; // Clear invalid value
+              }
+            }
             
             // Validate dates
             if (!isValidDate(schedule.productionStartDate) || !isValidDate(schedule.endDate)) {
