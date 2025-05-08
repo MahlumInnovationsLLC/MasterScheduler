@@ -111,7 +111,9 @@ function ProjectEdit() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('general');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isPercentageWarningOpen, setIsPercentageWarningOpen] = useState(false);
   const [deletingProject, setDeletingProject] = useState(false);
+  const [totalPercentage, setTotalPercentage] = useState(100);
 
   // Extract project ID from the URL
   const currentPath = window.location.pathname;
@@ -239,6 +241,34 @@ function ProjectEdit() {
     }
   }, [project, form]);
 
+  // Calculate total percentage and check for warnings
+  const calculateTotalPercentage = () => {
+    const fabricationPercent = form.watch('fabricationPercent') || 0;
+    const paintPercent = form.watch('paintPercent') || 0;
+    const assemblyPercent = form.watch('assemblyPercent') || 0;
+    const itPercent = form.watch('itPercent') || 0;
+    const ntcTestingPercent = form.watch('ntcTestingPercent') || 0;
+    const qcPercent = form.watch('qcPercent') || 0;
+    
+    const total = fabricationPercent + paintPercent + assemblyPercent + 
+                  itPercent + ntcTestingPercent + qcPercent;
+    
+    setTotalPercentage(total);
+    return total;
+  };
+  
+  // Watch for changes in percentage fields
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (['fabricationPercent', 'paintPercent', 'assemblyPercent', 
+           'itPercent', 'ntcTestingPercent', 'qcPercent'].includes(name as string)) {
+        calculateTotalPercentage();
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form]);
+
   // Mutations for updating and deleting projects
   const updateMutation = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
@@ -307,7 +337,18 @@ function ProjectEdit() {
   });
 
   function onSubmit(data: ProjectFormValues) {
+    // Check if total percentage exceeds 100%
+    const total = calculateTotalPercentage();
+    if (total > 100) {
+      setIsPercentageWarningOpen(true);
+      return;
+    }
     updateMutation.mutate(data);
+  }
+  
+  function handlePercentageWarningConfirm() {
+    setIsPercentageWarningOpen(false);
+    updateMutation.mutate(form.getValues());
   }
 
   function handleDelete() {
