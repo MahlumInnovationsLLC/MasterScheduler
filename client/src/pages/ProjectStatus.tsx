@@ -999,7 +999,7 @@ const ProjectStatus = () => {
           className="h-64"
         />
         
-        <div className="h-64 overflow-hidden">
+        <div className="h-72 overflow-hidden">
           <AIInsightsWidget projects={projects || []} />
         </div>
         

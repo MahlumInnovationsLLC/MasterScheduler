@@ -232,7 +232,7 @@ export function AIInsightsWidget({ projects }: AIInsightsWidgetProps) {
           onClick={() => setLocation('/projects')}
         >
           <ArrowUpRight className="h-4 w-4" />
-          <span>View All Projects</span>
+          <span>View All</span>
         </Button>
       </div>
     </Card>
