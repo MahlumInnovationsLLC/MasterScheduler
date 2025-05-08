@@ -634,15 +634,70 @@ const BaySchedulingPage = () => {
               <ArrowRight className="h-4 w-4" />
             </Button>
             <Button
-              variant="outline"
+              variant="destructive"
               onClick={() => {
-                // Directly call our new forceScrollToToday function
-                forceScrollToToday();
+                // Use a completely different approach - direct DOM manipulation
+                console.log("SUPER EMERGENCY TODAY BUTTON CLICKED");
+                
+                try {
+                  // Get the scroll container
+                  const scrollContainer = document.querySelector('.overflow-x-auto');
+                  if (!scrollContainer) {
+                    throw new Error("Could not find scroll container");
+                  }
+                  
+                  // Calculate today's position as days since Jan 1, 2025
+                  const today = new Date();
+                  const startOfYear = new Date(2025, 0, 1);
+                  const millisecondsPerDay = 24 * 60 * 60 * 1000;
+                  const daysSinceJan1 = Math.floor((today.getTime() - startOfYear.getTime()) / millisecondsPerDay);
+                  
+                  // Fixed values for positioning since we know the UI dimensions
+                  const pixelsPerDay = 20.6; // Week view
+                  const bayColumnWidth = 343;
+                  
+                  // Calculate position
+                  const targetPosition = bayColumnWidth + (daysSinceJan1 * pixelsPerDay);
+                  
+                  // Set scroll directly
+                  console.log(`Direct scroll to position: ${targetPosition}px for today (${daysSinceJan1} days since Jan 1)`);
+                  scrollContainer.scrollLeft = targetPosition;
+                  
+                  // Add a bright marker
+                  const todayMarker = document.createElement('div');
+                  todayMarker.style.position = 'absolute';
+                  todayMarker.style.left = `${targetPosition}px`;
+                  todayMarker.style.top = '0';
+                  todayMarker.style.width = '2px';
+                  todayMarker.style.height = '100%';
+                  todayMarker.style.backgroundColor = 'red';
+                  todayMarker.style.zIndex = '1000';
+                  todayMarker.id = 'super-emergency-today-marker';
+                  
+                  // Find the parent to add the marker to
+                  const resizableContainer = document.querySelector('.week-slots-container');
+                  if (resizableContainer) {
+                    resizableContainer.appendChild(todayMarker);
+                  }
+                  
+                  toast({
+                    title: "Emergency Today Scroll",
+                    description: `Force-scrolled to May 8, 2025`,
+                    duration: 2000
+                  });
+                } catch (error) {
+                  console.error("Failed emergency today scroll:", error);
+                  toast({
+                    title: "Scroll Failed",
+                    description: "Could not scroll to today's date",
+                    variant: "destructive"
+                  });
+                }
               }}
               className="flex items-center gap-1 ml-1"
             >
               <Calendar className="h-4 w-4 mr-1" />
-              <span>Today</span>
+              <span>EMERGENCY TODAY</span>
             </Button>
           </div>
         </div>
