@@ -871,15 +871,14 @@ const ImportDataPage = () => {
         <CardHeader>
           <CardTitle>Data Import Tool</CardTitle>
           <CardDescription>
-            Import project, billing, and manufacturing data from Excel files
+            Import project, billing, and bay scheduling data
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="projects" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-5 mb-6">
+            <TabsList className="grid grid-cols-4 mb-6">
               <TabsTrigger value="projects">Tier IV Projects</TabsTrigger>
               <TabsTrigger value="billing">Billing Milestones</TabsTrigger>
-              <TabsTrigger value="manufacturing">Manufacturing Schedule</TabsTrigger>
               <TabsTrigger value="bay-scheduling">Bay Scheduling</TabsTrigger>
               <TabsTrigger value="delivery">On Time Delivery</TabsTrigger>
             </TabsList>
@@ -948,38 +947,7 @@ const ImportDataPage = () => {
               </div>
             </TabsContent>
             
-            <TabsContent value="manufacturing">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-md font-medium mb-2">Import Manufacturing Bays</h3>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Upload your Manufacturing Schedule Excel file to import manufacturing bays and their assignments.
-                    The file should contain bay details, project assignments, and equipment information.
-                  </p>
-                  
-                  <div className="flex justify-between items-center gap-4">
-                    <div className="flex-1">
-                      <Label htmlFor="manufacturing-file" className="mb-2 block">Select Manufacturing Excel File</Label>
-                      <Input 
-                        id="manufacturing-file" 
-                        type="file" 
-                        accept=".xlsx,.xls" 
-                        onChange={(e) => handleFileUpload(e, 'manufacturing')}
-                        disabled={isUploading}
-                        className="cursor-pointer"
-                      />
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => downloadTemplate('manufacturing')}
-                    >
-                      <Download className="mr-2 h-4 w-4" /> Template
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-            
+
             <TabsContent value="bay-scheduling">
               <div className="space-y-4">
                 <div>
