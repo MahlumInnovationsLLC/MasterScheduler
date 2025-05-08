@@ -56,6 +56,7 @@ function parseDateSafely(dateString: string): Date {
  *   - productionStartDate: When production starts; will be calculated from endDate and totalHours if missing
  *   - teamNumber: The manufacturing bay/team assigned to the project; if missing, project stays unassigned
  *   - totalHours: The total labor hours for the project; updates master project data if provided
+ *   - row: The specific row within the bay where the project should be placed
  */
 interface BaySchedulingImportData {
   projectNumber: string;            // Must match existing project number exactly
@@ -63,6 +64,7 @@ interface BaySchedulingImportData {
   endDate: string;                  // Required - maps to shipDate in master project data
   teamNumber?: number;              // Optional; projects without teamNumber remain unassigned
   totalHours?: number;              // Optional; updates project total hours if provided
+  row?: number;                     // Optional; specific row within the bay (explicit vertical position)
 }
 
 /**
@@ -225,9 +227,22 @@ export async function importBayScheduling(req: Request, res: Response) {
           continue;
         }
 
-        // Check if this project already has a schedule in this bay
+        // Clear any existing schedules for this project first
+        // This ensures we fully overwrite existing schedule data on each import
         const existingSchedules = await storage.getProjectManufacturingSchedules(project.id);
-        const existingInBay = existingSchedules.find(s => s.bayId === bay.id);
+        
+        // Find if this project already exists in ANY bay
+        const existingInAnyBay = existingSchedules.find(s => s.projectId === project.id);
+        if (existingInAnyBay) {
+          console.log(`Found existing schedule for project ${project.projectNumber}, will overwrite with new data`);
+          // Delete existing schedule
+          await storage.deleteManufacturingSchedule(existingInAnyBay.id);
+          console.log(`Deleted existing schedule ${existingInAnyBay.id} for project ${project.projectNumber}`);
+        }
+        
+        // Now create a fresh schedule for this project in the specified bay
+        // Find if this project already has a specific schedule in THIS bay (unlikely after delete, but check anyway)
+        const existingInBay = existingSchedules.find(s => s.bayId === bay.id && s.projectId === project.id);
         
         if (existingInBay) {
           // Calculate department dates if not already set
@@ -403,24 +418,37 @@ export async function importBayScheduling(req: Request, res: Response) {
           // Find all existing schedules for this bay to determine available rows
           const baySchedules = await storage.getBayManufacturingSchedules(bay.id);
           
-          // Determine which rows are already in use
-          const usedRows = new Set(baySchedules
-            .filter(s => s.projectId !== project.id) // Exclude this project's schedules
-            .map(s => s.row)
-            .filter(r => r !== null && r !== undefined));
+          // If the import data specifies a row, use that
+          let row: number;
           
-          // First check if project already has a row in this bay before
-          const existingRowInBay = baySchedules
-            .find(s => s.projectId === project.id && s.bayId === bay.id)?.row;
-          
-          // If project already had a row in this bay, use the same row
-          let row = existingRowInBay;
-          
-          // If not, find the first available row starting from 1
-          if (!row) {
-            row = 1;
-            while (usedRows.has(row)) {
-              row++;
+          if (typeof scheduleData.row === 'number' && scheduleData.row > 0) {
+            // Use the explicitly provided row from import
+            row = scheduleData.row;
+            console.log(`Using explicit row ${row} from import data for project ${project.projectNumber}`);
+          } else {
+            // Otherwise determine row automatically
+            
+            // Determine which rows are already in use in this bay
+            const usedRows = new Set(baySchedules
+              .filter(s => s.projectId !== project.id) // Exclude this project's schedules
+              .map(s => s.row)
+              .filter(r => r !== null && r !== undefined));
+            
+            // Check if project already had a row in this bay before
+            const existingRowInBay = baySchedules
+              .find(s => s.projectId === project.id && s.bayId === bay.id)?.row;
+            
+            // If project already had a row in this bay, use the same row
+            if (existingRowInBay) {
+              row = existingRowInBay;
+              console.log(`Using existing row ${row} for project ${project.projectNumber} in bay ${bay.bayNumber}`);
+            } else {
+              // Find the first available row starting from 1
+              row = 1;
+              while (usedRows.has(row)) {
+                row++;
+              }
+              console.log(`Assigned row ${row} to project ${project.projectNumber} in bay ${bay.bayNumber}`);
             }
           }
           

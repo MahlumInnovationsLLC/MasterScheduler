@@ -662,8 +662,15 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteManufacturingSchedule(id: number): Promise<boolean> {
-    await db.delete(manufacturingSchedules).where(eq(manufacturingSchedules.id, id));
-    return true;
+    try {
+      // Delete the schedule with the given ID
+      const result = await db.delete(manufacturingSchedules).where(eq(manufacturingSchedules.id, id));
+      console.log(`Deleted manufacturing schedule with ID ${id}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to delete manufacturing schedule ${id}:`, error);
+      return false;
+    }
   }
   
   async getBayManufacturingSchedules(bayId: number): Promise<ManufacturingSchedule[]> {
