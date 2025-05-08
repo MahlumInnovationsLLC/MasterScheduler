@@ -89,9 +89,12 @@ const projectSchema = z.object({
   totalHours: z.number().min(0).optional(),
   
   // Department allocation percentages
-  fabricationPercent: z.number().min(0).max(100).default(15),
-  assemblyPercent: z.number().min(0).max(100).default(65),
-  testingPercent: z.number().min(0).max(100).default(20),
+  fabricationPercent: z.number().min(0).max(100).default(27),
+  paintPercent: z.number().min(0).max(100).default(7),
+  assemblyPercent: z.number().min(0).max(100).default(45),
+  itPercent: z.number().min(0).max(100).default(7),
+  ntcTestingPercent: z.number().min(0).max(100).default(7),
+  qcPercent: z.number().min(0).max(100).default(7),
   
   // Status and notes
   status: z.string(),
@@ -185,9 +188,12 @@ function ProjectEdit() {
         totalHours: project.totalHours ? Number(project.totalHours) : 40,
         
         // Department allocation percentages
-        fabricationPercent: project.fabricationPercent ? Number(project.fabricationPercent) : 15,
-        assemblyPercent: project.assemblyPercent ? Number(project.assemblyPercent) : 65,
-        testingPercent: project.testingPercent ? Number(project.testingPercent) : 20,
+        fabricationPercent: project.fabricationPercent ? Number(project.fabricationPercent) : 27,
+        paintPercent: project.paintPercent ? Number(project.paintPercent) : 7,
+        assemblyPercent: project.assemblyPercent ? Number(project.assemblyPercent) : 45,
+        itPercent: project.itPercent ? Number(project.itPercent) : 7,
+        ntcTestingPercent: project.ntcTestingPercent ? Number(project.ntcTestingPercent) : 7,
+        qcPercent: project.qcPercent ? Number(project.qcPercent) : 7,
         
         // New field with calculated days
         poDroppedToDeliveryDays: calculatedDays,
@@ -582,14 +588,14 @@ function ProjectEdit() {
                       
                       <FormField
                         control={form.control}
-                        name="testingPercent"
+                        name="paintPercent"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Testing %</FormLabel>
+                            <FormLabel>Paint %</FormLabel>
                             <div className="grid grid-cols-[1fr_50px] gap-2">
                               <FormControl>
                                 <Slider 
-                                  value={[field.value || 20]} 
+                                  value={[field.value || 7]} 
                                   min={0} 
                                   max={100} 
                                   step={1}
@@ -598,7 +604,7 @@ function ProjectEdit() {
                               </FormControl>
                               <Input 
                                 type="number" 
-                                value={field.value || 20}
+                                value={field.value || 7}
                                 onChange={(e) => {
                                   const val = parseInt(e.target.value);
                                   if (!isNaN(val) && val >= 0 && val <= 100) {
@@ -609,7 +615,7 @@ function ProjectEdit() {
                               />
                             </div>
                             <FormDescription className="text-xs">
-                              Testing/QA phase percentage
+                              Paint phase percentage
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
