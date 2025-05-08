@@ -424,8 +424,8 @@ const BaySchedulingPage = () => {
         </p>
       </div>
       
-      {/* Stats row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      {/* Top row - Stats cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="md:col-span-1">
           <BayUtilizationCard
             title="Bay Utilization"
@@ -435,9 +435,6 @@ const BaySchedulingPage = () => {
             bays={manufacturingBays}
             schedules={manufacturingSchedules}
           />
-        </div>
-        <div className="md:col-span-1">
-          <HighRiskProjectsCard projects={projects} />
         </div>
         <div className="md:col-span-1">
           <ManufacturingCard
@@ -466,6 +463,13 @@ const BaySchedulingPage = () => {
               <AIInsightsModal />
             </CardContent>
           </Card>
+        </div>
+      </div>
+      
+      {/* Production Status - Horizontal Card */}
+      <div className="mb-6">
+        <div className="w-full">
+          <HighRiskProjectsCard projects={projects} />
         </div>
       </div>
       

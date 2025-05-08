@@ -125,7 +125,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
             No active projects or upcoming NTC/QC dates
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Today's Active Projects Section */}
             {activeCount > 0 && (
               <div>
