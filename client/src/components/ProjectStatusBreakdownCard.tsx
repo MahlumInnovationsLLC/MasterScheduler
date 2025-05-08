@@ -105,9 +105,9 @@ export function ProjectStatusBreakdownCard({ projects }: ProjectStatusBreakdownC
   };
   
   return (
-    <Card className="bg-darkCard rounded-xl p-4 border border-gray-800">
+    <Card className="bg-card rounded-xl p-4 border border-border">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-gray-400 font-medium">Project Status Breakdown</h3>
+        <h3 className="text-muted-foreground font-medium">Project Status Breakdown</h3>
       </div>
       
       <div className="space-y-4">
@@ -126,25 +126,26 @@ export function ProjectStatusBreakdownCard({ projects }: ProjectStatusBreakdownC
                   axisLine={false}
                   tickLine={false}
                   tick={{ 
-                    fill: '#9ca3af', 
+                    fill: 'var(--color-muted-foreground)', 
                     fontSize: 12 
                   }}
                   width={100}
                 />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: '#1f2937', 
-                    border: '1px solid #374151',
-                    borderRadius: '6px'
+                    backgroundColor: 'var(--color-card)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '6px',
+                    color: 'var(--color-foreground)'
                   }}
-                  itemStyle={{ color: '#e5e7eb' }}
-                  labelStyle={{ color: '#e5e7eb', fontWeight: 'bold' }}
+                  itemStyle={{ color: 'var(--color-foreground)' }}
+                  labelStyle={{ color: 'var(--color-foreground)', fontWeight: 'bold' }}
                   formatter={(value) => [`${value} projects`, 'Count']}
                 />
                 <Bar 
                   dataKey="count" 
                   radius={[4, 4, 4, 4]}
-                  background={{ fill: '#374151' }}
+                  background={{ fill: 'var(--color-accent-muted)' }}
                 >
                   {statusCounts.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={getStatusColor(entry.status)} />
@@ -153,7 +154,7 @@ export function ProjectStatusBreakdownCard({ projects }: ProjectStatusBreakdownC
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-full flex items-center justify-center text-gray-400">
+            <div className="h-full flex items-center justify-center text-muted-foreground">
               No project data available
             </div>
           )}
@@ -163,10 +164,10 @@ export function ProjectStatusBreakdownCard({ projects }: ProjectStatusBreakdownC
           {statusCounts.map((item) => (
             <div 
               key={item.status}
-              className="flex items-center gap-2 bg-gray-800/50 p-2 rounded-lg"
+              className="flex items-center gap-2 bg-card/50 border border-border p-2 rounded-lg"
             >
               {getStatusIcon(item.status)}
-              <div className="flex-1 text-sm text-gray-300">{item.status}</div>
+              <div className="flex-1 text-sm">{item.status}</div>
               <div className="text-sm font-medium">{item.count}</div>
             </div>
           ))}

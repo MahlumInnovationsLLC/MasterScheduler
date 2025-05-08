@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
 import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
 import { ProjectStatusBreakdownCard } from '@/components/ProjectStatusBreakdownCard';
+import { AIInsightsButton } from '@/components/AIInsightsButton';
 import { DataTable } from '@/components/ui/data-table';
 import { ProgressBadge } from '@/components/ui/progress-badge';
 import {
@@ -1018,8 +1019,20 @@ const ProjectStatus = () => {
         <div className="md:col-span-2">
           <ProjectStatusBreakdownCard projects={projects || []} />
         </div>
-        <div>
+        <div className="space-y-2">
           <HighRiskProjectsCard projects={projects || []} />
+          <AIInsightsButton projects={projects || []} />
+          <div className="mt-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full flex items-center justify-center gap-2" 
+              onClick={() => navigate('/projects')}
+            >
+              <ArrowUpRight className="h-4 w-4" />
+              <span>View All Projects</span>
+            </Button>
+          </div>
         </div>
       </div>
       

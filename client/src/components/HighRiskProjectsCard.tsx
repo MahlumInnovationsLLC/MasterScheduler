@@ -35,36 +35,36 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
   const riskCount = upcomingShipDates.length;
   
   return (
-    <Card className="bg-darkCard rounded-xl p-4 border border-gray-800">
+    <Card className="bg-card rounded-xl p-4 border border-border">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-gray-400 font-medium">
+        <h3 className="text-muted-foreground font-medium">
           At-Risk Ship Dates
           {riskCount > 0 && (
-            <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-red-900 text-red-100">
+            <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-destructive/20 text-destructive">
               {riskCount}
             </span>
           )}
         </h3>
-        <div className="p-2 rounded-lg bg-red-500/10 flex items-center justify-center w-9 h-9">
-          <AlertTriangle className="text-red-500 h-5 w-5" />
+        <div className="p-2 rounded-lg bg-destructive/10 flex items-center justify-center w-9 h-9">
+          <AlertTriangle className="text-destructive h-5 w-5" />
         </div>
       </div>
       
       <div>
         {riskCount === 0 ? (
-          <div className="py-3 text-center text-gray-400 text-sm">
+          <div className="py-3 text-center text-muted-foreground text-sm">
             No at-risk ship dates in the next 2 weeks
           </div>
         ) : (
-          <ul className="divide-y divide-gray-800">
+          <ul className="divide-y divide-border">
             {upcomingShipDates.map(project => (
               <li key={project.id} className="py-2">
                 <div className="flex items-start">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-white line-clamp-1">
+                    <p className="text-sm font-medium line-clamp-1">
                       {project.projectNumber}
                     </p>
-                    <p className="text-xs text-gray-400 line-clamp-1">
+                    <p className="text-xs text-muted-foreground line-clamp-1">
                       {project.name}
                     </p>
                     <div className="flex items-center mt-1 text-xs text-amber-500">
@@ -73,7 +73,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                     </div>
                   </div>
                   <div className="ml-2 flex items-center">
-                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-red-900/50 text-red-300">
+                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-destructive/20 text-destructive">
                       <Clock className="h-3 w-3 mr-1" />
                       {getDaysUntilShip(project.shipDate)} days
                     </span>
@@ -87,7 +87,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
       
       {riskCount > 0 && (
         <div className="mt-3 text-right">
-          <a href="/project-status" className="text-xs text-blue-400 hover:text-blue-300 inline-flex items-center">
+          <a href="/project-status" className="text-xs text-primary hover:text-primary/80 inline-flex items-center">
             View all at-risk projects <ArrowRight className="h-3 w-3 ml-1" />
           </a>
         </div>
