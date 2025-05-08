@@ -8,7 +8,11 @@ import { Loader2, FileDown, Upload, Check, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { cn } from '@/lib/utils';
-import templateCsvPath from '@/templates/bay-scheduling-import-template.csv';
+// Inline template instead of importing CSV file
+const templateCsvContent = `projectNumber,productionStartDate,endDate,teamNumber
+804205,2025-06-01,2025-07-15,1
+804206,2025-06-15,2025-08-01,2
+804207,2025-07-01,2025-08-15,3`;
 
 // Utility function to safely convert date string to ISO format, preventing octal literal issues
 const safeDateToISOString = (dateString: string): string => {
@@ -67,13 +71,22 @@ const BaySchedulingImport: React.FC = () => {
 
   // Function to download the template CSV file
   const handleDownloadTemplate = () => {
+    // Create a blob from our inline template
+    const blob = new Blob([templateCsvContent], { type: 'text/csv;charset=utf-8' });
+    
+    // Create an object URL for the blob
+    const url = URL.createObjectURL(blob);
+    
     // Create an anchor element and trigger a download
     const link = document.createElement('a');
-    link.href = templateCsvPath;
+    link.href = url;
     link.download = 'bay-scheduling-import-template.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    // Release the object URL
+    URL.revokeObjectURL(url);
     
     toast({
       title: 'Template downloaded',
