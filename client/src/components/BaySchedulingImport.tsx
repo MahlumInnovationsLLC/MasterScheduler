@@ -10,10 +10,10 @@ import { apiRequest } from '@/lib/queryClient';
 import { cn } from '@/lib/utils';
 // Inline template instead of importing CSV file
 const templateCsvContent = `projectNumber,productionStartDate,endDate,teamNumber,totalHours
-804205,2025-06-01,2025-07-15,1,1200
-804206,,2025-08-01,2,850
-804207,2025-07-01,2025-08-15,3,1500
-804208,2025-07-15,2025-09-01,,2000`;
+804205,06/01/2025,07/15/2025,1,1200
+804206,,08/01/2025,2,850
+804207,07/01/2025,08/15/2025,3,1500
+804208,07/15/2025,09/01/2025,,2000`;
 
 // Utility function to safely convert date string to ISO format, preventing octal literal issues
 const safeDateToISOString = (dateString?: string): string | undefined => {
@@ -25,23 +25,43 @@ const safeDateToISOString = (dateString?: string): string | undefined => {
   // Handle different date formats
   let year, month, day;
   
-  // Handle YYYY-MM-DD format
-  if (dateString.includes('-')) {
-    [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
-  } 
-  // Handle MM/DD/YYYY format
-  else if (dateString.includes('/')) {
+  // Prioritize MM/DD/YYYY format (preferred format)
+  if (dateString.includes('/')) {
     const parts = dateString.split('/');
+    if (parts.length !== 3) {
+      throw new Error(`Invalid MM/DD/YYYY date format: ${dateString}`);
+    }
     month = parseInt(parts[0], 10); // Always use base 10 to prevent octal issues
     day = parseInt(parts[1], 10);
     year = parseInt(parts[2], 10);
+  } 
+  // Handle YYYY-MM-DD format as fallback
+  else if (dateString.includes('-')) {
+    const parts = dateString.split('-');
+    if (parts.length !== 3) {
+      throw new Error(`Invalid YYYY-MM-DD date format: ${dateString}`);
+    }
+    year = parseInt(parts[0], 10);
+    month = parseInt(parts[1], 10);
+    day = parseInt(parts[2], 10);
   } else {
-    throw new Error(`Invalid date format: ${dateString}`);
+    throw new Error(`Invalid date format: ${dateString}. Please use MM/DD/YYYY format.`);
   }
   
   // Validate date components
   if (isNaN(year) || isNaN(month) || isNaN(day)) {
     throw new Error(`Invalid date components: year=${year}, month=${month}, day=${day}`);
+  }
+  
+  // Validate date ranges
+  if (month < 1 || month > 12) {
+    throw new Error(`Invalid month value: ${month}. Month must be between 1 and 12.`);
+  }
+  
+  // Check days in month (accounting for leap years)
+  const daysInMonth = new Date(year, month, 0).getDate();
+  if (day < 1 || day > daysInMonth) {
+    throw new Error(`Invalid day: ${day} for month: ${month}. Day must be between 1 and ${daysInMonth}.`);
   }
   
   // JavaScript months are 0-indexed, so we subtract 1 from the month
@@ -369,9 +389,10 @@ const BaySchedulingImport: React.FC = () => {
       <CardHeader>
         <CardTitle>Bay Scheduling Import</CardTitle>
         <CardDescription>
-          Import bay scheduling data from a CSV file to assign projects to manufacturing bays, 
-          update production dates, and set team assignments. Only endDate and projectNumber are required.
-          If productionStartDate is omitted, it will be calculated based on total hours and team capacity.
+          Import bay scheduling data from a CSV file to automatically assign projects to manufacturing bays
+          with proper bar lengths. Projects will be immediately placed in their respective team bays
+          with correct durations based on hours. The import also updates master project dates 
+          and team assignments directly from the CSV.
         </CardDescription>
       </CardHeader>
       
@@ -382,10 +403,10 @@ const BaySchedulingImport: React.FC = () => {
           <p className="text-sm text-muted-foreground">
             Use our template CSV file to prepare your bay scheduling data. The format includes:
             <br />• projectNumber - Required (must match existing project exactly)
-            <br />• endDate - Required (ship date for the project in YYYY-MM-DD format)
-            <br />• productionStartDate - Optional (calculated if omitted)
-            <br />• teamNumber - Optional (leave blank for unassigned projects)
-            <br />• totalHours - Optional (updates master project data if provided)
+            <br />• endDate - Required (ship date in MM/DD/YYYY format, example: 07/15/2025)
+            <br />• productionStartDate - Optional (start date in MM/DD/YYYY format, example: 06/01/2025)
+            <br />• teamNumber - Optional (numeric team ID, leave blank for unassigned projects)
+            <br />• totalHours - Optional (numeric total hours, updates master project data)
           </p>
           <Button 
             variant="outline" 
