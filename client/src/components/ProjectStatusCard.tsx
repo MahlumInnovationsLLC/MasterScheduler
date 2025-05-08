@@ -128,7 +128,7 @@ export function ProjectStatsCard({
               >
                 {item.icon}
                 <div className={`text-sm font-bold mt-1 ${item.color}`}>{item.count}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{item.status}</div>
+                <div className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">{item.status}</div>
               </div>
             ))}
           </div>
