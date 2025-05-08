@@ -15,64 +15,77 @@ const templateCsvContent = `projectNumber,productionStartDate,endDate,teamNumber
 804207,07/01/2025,08/15/2025,3,1500
 804208,07/15/2025,09/01/2025,,2000`;
 
-// Utility function to safely convert date string to ISO format, preventing octal literal issues
+// Utility function to safely convert date string to ISO format, with preference for MM/DD/YYYY
 const safeDateToISOString = (dateString?: string): string | undefined => {
   // Handle empty or undefined date strings
   if (!dateString || dateString === '') {
     return undefined;
   }
   
-  // Handle different date formats
-  let year, month, day;
-  
-  // Prioritize MM/DD/YYYY format (preferred format)
-  if (dateString.includes('/')) {
-    const parts = dateString.split('/');
-    if (parts.length !== 3) {
-      throw new Error(`Invalid MM/DD/YYYY date format: ${dateString}`);
+  try {
+    // Handle different date formats
+    let year, month, day;
+    
+    // Prioritize MM/DD/YYYY format (preferred format)
+    if (dateString.includes('/')) {
+      const parts = dateString.split('/');
+      if (parts.length !== 3) {
+        console.warn(`Invalid MM/DD/YYYY date format: ${dateString}`);
+        return undefined;
+      }
+      month = parseInt(parts[0], 10); // Always use base 10 to prevent octal issues
+      day = parseInt(parts[1], 10);
+      year = parseInt(parts[2], 10);
+    } 
+    // Handle YYYY-MM-DD format as fallback
+    else if (dateString.includes('-')) {
+      const parts = dateString.split('-');
+      if (parts.length !== 3) {
+        console.warn(`Invalid YYYY-MM-DD date format: ${dateString}`);
+        return undefined;
+      }
+      year = parseInt(parts[0], 10);
+      month = parseInt(parts[1], 10);
+      day = parseInt(parts[2], 10);
+    } else {
+      console.warn(`Invalid date format: ${dateString}. Please use MM/DD/YYYY format.`);
+      return undefined;
     }
-    month = parseInt(parts[0], 10); // Always use base 10 to prevent octal issues
-    day = parseInt(parts[1], 10);
-    year = parseInt(parts[2], 10);
-  } 
-  // Handle YYYY-MM-DD format as fallback
-  else if (dateString.includes('-')) {
-    const parts = dateString.split('-');
-    if (parts.length !== 3) {
-      throw new Error(`Invalid YYYY-MM-DD date format: ${dateString}`);
+    
+    // Validate date components
+    if (isNaN(year) || isNaN(month) || isNaN(day)) {
+      console.warn(`Invalid date components: year=${year}, month=${month}, day=${day}`);
+      return undefined;
     }
-    year = parseInt(parts[0], 10);
-    month = parseInt(parts[1], 10);
-    day = parseInt(parts[2], 10);
-  } else {
-    throw new Error(`Invalid date format: ${dateString}. Please use MM/DD/YYYY format.`);
+    
+    // Validate date ranges
+    if (month < 1 || month > 12) {
+      console.warn(`Invalid month value: ${month}. Month must be between 1 and 12.`);
+      return undefined;
+    }
+    
+    // Check days in month (accounting for leap years)
+    const daysInMonth = new Date(year, month, 0).getDate();
+    if (day < 1 || day > daysInMonth) {
+      console.warn(`Invalid day: ${day} for month: ${month}. Day must be between 1 and ${daysInMonth}.`);
+      return undefined;
+    }
+    
+    // JavaScript months are 0-indexed, so we subtract 1 from the month
+    const date = new Date(year, month - 1, day);
+    
+    // Check if the date is valid by comparing the components
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+      console.warn(`Invalid date: ${dateString} (parsed as ${date.toISOString()})`);
+      return undefined;
+    }
+    
+    // Return only the date part in ISO format (YYYY-MM-DD)
+    return date.toISOString().substring(0, 10);
+  } catch (error) {
+    console.error(`Error processing date ${dateString}:`, error);
+    return undefined;
   }
-  
-  // Validate date components
-  if (isNaN(year) || isNaN(month) || isNaN(day)) {
-    throw new Error(`Invalid date components: year=${year}, month=${month}, day=${day}`);
-  }
-  
-  // Validate date ranges
-  if (month < 1 || month > 12) {
-    throw new Error(`Invalid month value: ${month}. Month must be between 1 and 12.`);
-  }
-  
-  // Check days in month (accounting for leap years)
-  const daysInMonth = new Date(year, month, 0).getDate();
-  if (day < 1 || day > daysInMonth) {
-    throw new Error(`Invalid day: ${day} for month: ${month}. Day must be between 1 and ${daysInMonth}.`);
-  }
-  
-  // JavaScript months are 0-indexed, so we subtract 1 from the month
-  const date = new Date(year, month - 1, day);
-  
-  // Check if the date is valid by comparing the components
-  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-    throw new Error(`Invalid date: ${dateString} (parsed as ${date.toISOString()})`);
-  }
-  
-  return date.toISOString();
 };
 
 /**
@@ -248,53 +261,63 @@ const BaySchedulingImport: React.FC = () => {
     });
   };
 
-  // Helper function to validate a date string
+  // Helper function to validate a date string with preference for MM/DD/YYYY format
   const isValidDate = (dateString?: string): boolean => {
     // Empty string or undefined is valid for optional date fields
     if (!dateString || dateString === '') return true;
     
-    // Check YYYY-MM-DD format
-    const isoFormat = /^\d{4}-\d{2}-\d{2}$/;
-    // Check MM/DD/YYYY format
+    // Check MM/DD/YYYY format (preferred format)
     const slashFormat = /^(0?[1-9]|1[0-2])\/(0?[1-9]|[12][0-9]|3[01])\/\d{4}$/;
     
-    if (!isoFormat.test(dateString) && !slashFormat.test(dateString)) {
-      console.warn(`Invalid date format: ${dateString}. Expected YYYY-MM-DD or MM/DD/YYYY`);
+    // Check YYYY-MM-DD format (secondary format)
+    const isoFormat = /^\d{4}-\d{2}-\d{2}$/;
+    
+    // First check the preferred MM/DD/YYYY format
+    const isSlashFormat = slashFormat.test(dateString);
+    const isIsoFormat = isoFormat.test(dateString);
+    
+    if (!isSlashFormat && !isIsoFormat) {
+      console.warn(`Invalid date format: ${dateString}. Expected MM/DD/YYYY format (preferred) or YYYY-MM-DD`);
       return false;
     }
     
-    // Safely parse the date to avoid octal literal issues
+    // Safely parse the date components based on format
     try {
       let year, month, day;
       
-      if (dateString.includes('-')) {
-        [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
-      } else if (dateString.includes('/')) {
+      if (isSlashFormat) {
+        // Parse MM/DD/YYYY format
         const parts = dateString.split('/');
         month = parseInt(parts[0], 10); // Always use base 10 to prevent octal issues
         day = parseInt(parts[1], 10);
         year = parseInt(parts[2], 10);
       } else {
+        // Parse YYYY-MM-DD format
+        [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+      }
+      
+      // Validate the numeric range of components
+      if (isNaN(year) || isNaN(month) || isNaN(day)) {
+        console.warn(`Invalid date components: year=${year}, month=${month}, day=${day}`);
         return false;
       }
       
-      // Validate the components
       if (month < 1 || month > 12) {
         console.warn(`Invalid month: ${month}`);
         return false;
       }
       
-      // Check days in month (allowing for leap years)
+      // Check days in month (accounting for leap years)
       const daysInMonth = new Date(year, month, 0).getDate();
       if (day < 1 || day > daysInMonth) {
         console.warn(`Invalid day: ${day} for month: ${month}`);
         return false;
       }
       
-      // JavaScript months are 0-indexed, so we subtract 1 from the month
+      // Create date object (JavaScript months are 0-indexed)
       const date = new Date(year, month - 1, day);
       
-      // Validate result by checking if the components match what we provided
+      // Validate the date by comparing original components with what JavaScript produced
       return (
         date.getFullYear() === year &&
         date.getMonth() === month - 1 &&
@@ -459,6 +482,13 @@ const BaySchedulingImport: React.FC = () => {
                     {importResults.errors && importResults.errors > 0 && (
                       <span>, <strong>Errors:</strong> {importResults.errors}</span>
                     )}
+                  </p>
+                  <p className="text-sm mt-1">
+                    Projects have been assigned to their bays with proper bar lengths calculated 
+                    based on total hours and team capacity. 
+                    <a href="/bay-scheduling" className="text-primary hover:underline ml-1">
+                      Go to Bay Scheduling page to view changes
+                    </a>
                   </p>
                 </div>
               )}
