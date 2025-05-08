@@ -688,6 +688,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/billing-milestones", isAuthenticated, importBillingMilestones);
   app.post("/api/import/manufacturing-bays", isAuthenticated, importManufacturingBays);
   app.post("/api/import/manufacturing-schedules", isAuthenticated, importManufacturingSchedules);
+  
+  // Special endpoint to clear all manufacturing schedules
+  // This will move ALL projects back to the Unassigned section
+  app.post("/api/manufacturing-schedules/clear-all", isAuthenticated, async (req, res) => {
+    try {
+      console.log("Clearing all manufacturing schedules - moving all projects to Unassigned section");
+      // Get all existing schedules
+      const allSchedules = await storage.getManufacturingSchedules();
+      console.log(`Found ${allSchedules.length} schedules to clear`);
+      
+      // Delete all existing schedules
+      let deletedCount = 0;
+      for (const schedule of allSchedules) {
+        await storage.deleteManufacturingSchedule(schedule.id);
+        deletedCount++;
+      }
+      
+      console.log(`Successfully deleted ${deletedCount} schedules`);
+      res.json({ 
+        success: true, 
+        message: `All ${deletedCount} projects have been moved to the Unassigned section. You can now manually place them as needed.`,
+        deletedCount
+      });
+    } catch (error) {
+      console.error("Error clearing manufacturing schedules:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error clearing manufacturing schedules",
+        error: String(error)
+      });
+    }
+  });
   app.post("/api/import/delivery-tracking", isAuthenticated, importDeliveryTracking);
   app.post("/api/import/bay-scheduling", isAuthenticated, importBayScheduling);
   

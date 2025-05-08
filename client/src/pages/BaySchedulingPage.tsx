@@ -516,7 +516,57 @@ const BaySchedulingPage = () => {
                   Optimize your manufacturing schedule with AI-powered insights.
                 </p>
               </div>
-              <AIInsightsModal />
+              <div className="flex flex-col space-y-2">
+                <Button 
+                  variant="destructive" 
+                  className="w-full"
+                  onClick={async () => {
+                    // Add confirmation dialog
+                    if (window.confirm("This will move ALL projects to the Unassigned section. Continue?")) {
+                      setIsLoading(true);
+                      try {
+                        const response = await fetch("/api/manufacturing-schedules/clear-all", {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                        });
+                        
+                        if (response.ok) {
+                          const result = await response.json();
+                          toast({
+                            title: "Success!",
+                            description: result.message,
+                            variant: "default",
+                          });
+                          // Reload all data
+                          manufacturingSchedulesQuery.refetch();
+                          manufacturingBaysQuery.refetch();
+                          projectsQuery.refetch();
+                        } else {
+                          toast({
+                            title: "Error",
+                            description: "Failed to move projects to Unassigned section.",
+                            variant: "destructive",
+                          });
+                        }
+                      } catch (error) {
+                        console.error("Error clearing schedules:", error);
+                        toast({
+                          title: "Error",
+                          description: "An unexpected error occurred.",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }
+                  }}
+                >
+                  🔄 Move ALL to Unassigned
+                </Button>
+                <AIInsightsModal />
+              </div>
             </CardContent>
           </Card>
         </div>
