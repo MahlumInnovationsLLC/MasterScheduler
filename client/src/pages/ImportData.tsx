@@ -682,7 +682,7 @@ const ImportDataPage = () => {
             'Description': 'Initial design phase completion milestone',
             'Contract Reference': 'CON-2024-113',
             'Payment Terms': 'Net 30',
-            'Invoice Number': 'INV-2024-0042',
+            'Invoice Number': 'INV-2024-00042',
             'Percentage of Total': 25,
             'Billing Contact': 'Jane Smith',
             'Notes': 'Client requested invoice modification before payment'
