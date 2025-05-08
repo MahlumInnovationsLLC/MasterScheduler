@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UploadCloud, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import BaySchedulingImport from "@/components/BaySchedulingImport";
 
 // Helper function to convert Excel data with column headers
 const convertRowsWithHeaders = (
@@ -881,31 +882,14 @@ const ImportDataPage = () => {
             <TabsContent value="manufacturing">
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-md font-medium mb-2">Import Manufacturing Schedule Data</h3>
+                  <h3 className="text-md font-medium mb-2">Import Bay Scheduling Data</h3>
                   <p className="text-sm text-gray-500 mb-4">
-                    Upload your Production Forecast Excel file to import manufacturing bay and schedule data.
-                    The file should contain project numbers, bay assignments, and date ranges.
+                    Upload CSV data to place projects in manufacturing bays with specific start and end dates.
+                    This tool handles date formats safely and properly assigns projects to bays.
                   </p>
                   
-                  <div className="flex justify-between items-center gap-4">
-                    <div className="flex-1">
-                      <Label htmlFor="manufacturing-file" className="mb-2 block">Select Manufacturing Excel File</Label>
-                      <Input 
-                        id="manufacturing-file" 
-                        type="file" 
-                        accept=".xlsx,.xls" 
-                        onChange={(e) => handleFileUpload(e, 'manufacturing')}
-                        disabled={isUploading}
-                        className="cursor-pointer"
-                      />
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => downloadTemplate('manufacturing')}
-                    >
-                      <Download className="mr-2 h-4 w-4" /> Template
-                    </Button>
-                  </div>
+                  {/* Integrate BaySchedulingImport component directly */}
+                  <BaySchedulingImport />
                 </div>
               </div>
             </TabsContent>

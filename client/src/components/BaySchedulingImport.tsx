@@ -12,9 +12,36 @@ import templateCsvPath from '@/templates/bay-scheduling-import-template.csv';
 
 // Utility function to safely convert date string to ISO format, preventing octal literal issues
 const safeDateToISOString = (dateString: string): string => {
-  const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+  // Handle different date formats
+  let year, month, day;
+  
+  // Handle YYYY-MM-DD format
+  if (dateString.includes('-')) {
+    [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+  } 
+  // Handle MM/DD/YYYY format
+  else if (dateString.includes('/')) {
+    const parts = dateString.split('/');
+    month = parseInt(parts[0], 10); // Always use base 10 to prevent octal issues
+    day = parseInt(parts[1], 10);
+    year = parseInt(parts[2], 10);
+  } else {
+    throw new Error(`Invalid date format: ${dateString}`);
+  }
+  
+  // Validate date components
+  if (isNaN(year) || isNaN(month) || isNaN(day)) {
+    throw new Error(`Invalid date components: year=${year}, month=${month}, day=${day}`);
+  }
+  
   // JavaScript months are 0-indexed, so we subtract 1 from the month
   const date = new Date(year, month - 1, day);
+  
+  // Check if the date is valid by comparing the components
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    throw new Error(`Invalid date: ${dateString} (parsed as ${date.toISOString()})`);
+  }
+  
   return date.toISOString();
 };
 
@@ -142,12 +169,44 @@ const BaySchedulingImport: React.FC = () => {
   const isValidDate = (dateString: string): boolean => {
     if (!dateString) return false;
     
-    // Check format (YYYY-MM-DD)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return false;
+    // Check YYYY-MM-DD format
+    const isoFormat = /^\d{4}-\d{2}-\d{2}$/;
+    // Check MM/DD/YYYY format
+    const slashFormat = /^(0?[1-9]|1[0-2])\/(0?[1-9]|[12][0-9]|3[01])\/\d{4}$/;
+    
+    if (!isoFormat.test(dateString) && !slashFormat.test(dateString)) {
+      console.warn(`Invalid date format: ${dateString}. Expected YYYY-MM-DD or MM/DD/YYYY`);
+      return false;
+    }
     
     // Safely parse the date to avoid octal literal issues
     try {
-      const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+      let year, month, day;
+      
+      if (dateString.includes('-')) {
+        [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+      } else if (dateString.includes('/')) {
+        const parts = dateString.split('/');
+        month = parseInt(parts[0], 10); // Always use base 10 to prevent octal issues
+        day = parseInt(parts[1], 10);
+        year = parseInt(parts[2], 10);
+      } else {
+        return false;
+      }
+      
+      // Validate the components
+      if (month < 1 || month > 12) {
+        console.warn(`Invalid month: ${month}`);
+        return false;
+      }
+      
+      // Check days in month (allowing for leap years)
+      const daysInMonth = new Date(year, month, 0).getDate();
+      if (day < 1 || day > daysInMonth) {
+        console.warn(`Invalid day: ${day} for month: ${month}`);
+        return false;
+      }
+      
       // JavaScript months are 0-indexed, so we subtract 1 from the month
       const date = new Date(year, month - 1, day);
       
@@ -158,6 +217,7 @@ const BaySchedulingImport: React.FC = () => {
         date.getDate() === day
       );
     } catch (e) {
+      console.error(`Error validating date ${dateString}:`, e);
       return false;
     }
   };
