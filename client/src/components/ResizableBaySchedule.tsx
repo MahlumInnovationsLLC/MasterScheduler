@@ -2803,6 +2803,77 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
   };
   
+  // Force lock all current project positions to prevent automatic row shuffling
+  const lockAllProjectPositions = useCallback(() => {
+    if (!schedules.length) {
+      toast({
+        title: "No Projects Found",
+        description: "There are no projects in the schedule to lock.",
+      });
+      return;
+    }
+    
+    // Show loading state
+    setIsMovingProject(true);
+    
+    // Create a promise array for all update operations
+    const updatePromises = schedules.map(schedule => {
+      const currentBayId = schedule.bayId;
+      const currentRow = schedule.row || 0;
+      
+      console.log(`Locking schedule ${schedule.id} in bay ${currentBayId} row ${currentRow}`);
+      
+      // Call API to update the schedule with its current values, forcing row position
+      return onScheduleChange(
+        schedule.id,
+        currentBayId,
+        schedule.startDate,
+        schedule.endDate,
+        schedule.totalHours || 1000,
+        currentRow
+      );
+    });
+    
+    // Execute all updates
+    Promise.all(updatePromises)
+      .then(() => {
+        setIsMovingProject(false);
+        toast({
+          title: "All Positions Locked",
+          description: `Successfully locked ${schedules.length} projects in their current positions.`,
+          duration: 5000,
+        });
+        
+        // Force refresh data
+        queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+      })
+      .catch(error => {
+        setIsMovingProject(false);
+        console.error('Error locking project positions:', error);
+        toast({
+          title: "Error",
+          description: "Failed to lock some project positions.",
+          variant: "destructive"
+        });
+      });
+  }, [schedules, onScheduleChange]);
+  
+  // Run once when schedules are loaded (if there are any)
+  useEffect(() => {
+    const AUTO_LOCK_ON_LOAD = true; // Set this to false if you want to disable automatic locking
+    
+    if (schedules.length > 0 && AUTO_LOCK_ON_LOAD) {
+      console.log(`Auto-locking ${schedules.length} projects in their current positions...`);
+      
+      // Wait a bit for the UI to fully initialize
+      const timer = setTimeout(() => {
+        lockAllProjectPositions();
+      }, 2000); // 2 second delay
+      
+      return () => clearTimeout(timer);
+    }
+  }, [schedules, lockAllProjectPositions]); // Make sure to include dependencies
+  
   // Render
   // Add custom CSS for drag and drop operations
   const customCSS = `
