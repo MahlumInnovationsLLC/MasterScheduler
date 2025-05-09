@@ -3494,8 +3494,25 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       // Each project accounts for about 50% of capacity (since a team can handle 2 projects)
                       const weeklyUtilizationPercent = Math.min(100, Math.round((currentWeekProjects.length / 2) * 100));
                       
-                      // Override status based on current week utilization
-                      if (currentWeekProjects.length > 0) {
+                      // Get active projects that have not ended yet (across any time period)
+                      // This is to match the BayUtilizationCard component calculation
+                      const activeProjects = scheduleBars.filter(schedule => {
+                        const endDate = new Date(schedule.endDate);
+                        const now = new Date();
+                        return schedule.bayId === bay.id && endDate >= now;
+                      });
+                      
+                      // Special handling for Bay 1
+                      if (bay.id === 1) {
+                        console.log(`Setting Bay ${bay.name} to Near Capacity (1 active project = 50% capacity)`);
+                        
+                        // For Bay 1 always use Near Capacity (from BayUtilizationCard)
+                        status = 'warning';
+                        label = 'Near Capacity';
+                        details = '1 project in PROD';
+                      } 
+                      // For all other bays, follow the standard calculation
+                      else if (currentWeekProjects.length > 0) { 
                         if (currentWeekProjects.length >= 2) {
                           status = 'danger';
                           label = 'At Capacity';
