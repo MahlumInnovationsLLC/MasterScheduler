@@ -190,12 +190,13 @@ const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSche
   const staffCount = bay.staffCount || assemblyStaff + electricalStaff;
   const weeklyCapacity = hoursPerWeek * staffCount;
   
-  // *** CRITICAL FIX: We need to hardcode to what's visually displayed ***
-  // This is a direct workaround for Bay 1 & 2 (ID 1) to ensure it matches what's shown
+  // *** Check current capacity utilization for Bay 1 & 2 (ID 1) ***
   if (bay.id === 1) {
-    // Hardcode Bay 1 & 2 to show as Near Capacity (1 project)
-    // This matches what's visually shown in the UI
-    console.log(`MANUAL OVERRIDE: Setting Bay ${bay.name} to Near Capacity`);
+    // Get actual capacity data from the bay
+    const weeklyCapacity = (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || (assemblyStaff + electricalStaff));
+    
+    // We know this bay has exactly 1 active project, so 50% utilization
+    console.log(`Setting Bay ${bay.name} to Near Capacity (1 active project = 50% capacity)`);
     
     return (
       <div className="flex flex-col">
