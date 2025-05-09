@@ -29,11 +29,31 @@ export const ManufacturingCard: React.FC<ManufacturingCardProps> = ({
   stats
 }) => {
   // Helper function to determine the color based on utilization percentage
+  // Updated for the simplified bay utilization model:
+  // 0% = Available (blue)
+  // 50% = Near Capacity (amber)
+  // 100% = At Capacity (red)
   const getUtilizationColor = (value: number) => {
-    if (value < 30) return 'text-amber-500';
-    if (value < 70) return 'text-blue-500';
-    if (value < 85) return 'text-green-500';
-    return 'text-red-500';
+    if (value === 0) return 'text-blue-500'; // Available
+    if (value === 50) return 'text-amber-500'; // Near Capacity
+    if (value === 100) return 'text-red-500'; // At Capacity
+    
+    // For average values that don't match exactly
+    if (value < 25) return 'text-blue-500'; // Mostly Available
+    if (value < 75) return 'text-amber-500'; // Mostly Near Capacity
+    return 'text-red-500'; // Mostly At Capacity
+  };
+  
+  // Helper function to get status text based on utilization
+  const getUtilizationStatus = (value: number) => {
+    if (value === 0) return 'Available (0 projects)';
+    if (value === 50) return 'Near Capacity (1 project)';
+    if (value === 100) return 'At Capacity (2+ projects)';
+    
+    // For average values across multiple bays
+    if (value < 25) return 'Mostly Available';
+    if (value < 75) return 'Mostly Near Capacity';
+    return 'Mostly At Capacity';
   };
   
   // Utilization card content
@@ -58,16 +78,20 @@ export const ManufacturingCard: React.FC<ManufacturingCardProps> = ({
             </div>
           )}
         </div>
-        {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+        <p className="text-xs text-gray-400 mt-1">
+          {subtitle || getUtilizationStatus(numericValue)}
+        </p>
         
         <div className="mt-3 w-full bg-gray-800 rounded-full h-2.5">
           <div 
             className={`h-2.5 rounded-full ${
-              numericValue < 30 ? 'bg-amber-600' : 
-              numericValue < 70 ? 'bg-blue-600' :
-              numericValue < 85 ? 'bg-green-600' : 'bg-red-600'
+              numericValue === 0 ? 'bg-blue-600' : 
+              numericValue === 50 ? 'bg-amber-600' :
+              numericValue === 100 ? 'bg-red-600' :
+              numericValue < 25 ? 'bg-blue-600' :
+              numericValue < 75 ? 'bg-amber-600' : 'bg-red-600'
             }`}
-            style={{ width: `${numericValue}%` }}
+            style={{ width: `${Math.max(3, numericValue)}%` }}
           ></div>
         </div>
       </>

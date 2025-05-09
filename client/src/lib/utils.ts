@@ -214,6 +214,50 @@ export function checkScheduleConflict(
 }
 
 /**
+ * Get bay status information based on utilization percentage
+ * Follows the project standard: 0=Available, 50=Near Capacity, 100=At Capacity
+ */
+export function getBayStatusInfo(utilization: number): { status: string, color: string, description: string } {
+  if (utilization === 0) {
+    return {
+      status: 'Available',
+      color: 'text-blue-500',
+      description: 'No projects currently assigned'
+    };
+  } else if (utilization === 50) {
+    return {
+      status: 'Near Capacity',
+      color: 'text-amber-500',
+      description: '1 project assigned (50% capacity)'
+    };
+  } else if (utilization === 100) {
+    return {
+      status: 'At Capacity',
+      color: 'text-red-500',
+      description: '2+ projects assigned (100% capacity)'
+    };
+  } else if (utilization < 25) {
+    return {
+      status: 'Mostly Available',
+      color: 'text-blue-500',
+      description: 'Most bays have no projects assigned'
+    };
+  } else if (utilization < 75) {
+    return {
+      status: 'Mixed Capacity',
+      color: 'text-amber-500',
+      description: 'Mix of available and near-capacity bays'
+    };
+  } else {
+    return {
+      status: 'Mostly At Capacity',
+      color: 'text-red-500',
+      description: 'Most bays are at full capacity'
+    };
+  }
+}
+
+/**
  * Calculate bay utilization percentage based on staffing and scheduled work
  * This is the standardized calculation used across the application
  */
