@@ -178,6 +178,8 @@ export interface IStorage {
   getArchivedProjects(): Promise<ArchivedProject[]>;
   getArchivedProject(id: number): Promise<ArchivedProject | undefined>;
   archiveProject(projectId: number, userId: string, reason?: string): Promise<ArchivedProject | undefined>;
+  restoreProject(projectId: number, userId: string): Promise<Project | undefined>;
+  removeManufacturingScheduleByProjectId(projectId: number): Promise<boolean>;
   
   // Delivered Projects methods
   getDeliveredProjects(): Promise<any[]>;
