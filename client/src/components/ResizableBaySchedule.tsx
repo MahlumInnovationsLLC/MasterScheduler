@@ -193,9 +193,6 @@ const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSche
   // Get schedules for this bay
   const baySchedules = allSchedules.filter(schedule => schedule.bayId === bay.id);
   
-  // Calculate utilization - ONLY for the current week's projects in PROD phase
-  let currentWeekUtilization = 0;
-  
   // Set up the current week boundaries
   const now = new Date();
   const currentWeekStart = startOfWeek(now);
@@ -212,11 +209,28 @@ const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSche
   
   // Since each team can handle about 2 projects at once, calculate current capacity
   // Each project accounts for about 50% of capacity
-  currentWeekUtilization = Math.min(weeklyCapacity, (currentWeekProjects.length / 2) * weeklyCapacity);
+  const currentWeekUtilization = Math.min(weeklyCapacity, (currentWeekProjects.length / 2) * weeklyCapacity);
   
   // Calculate utilization percentage based on weekly hours
   const utilization = weeklyCapacity > 0 ? Math.min(100, (currentWeekUtilization / weeklyCapacity) * 100) : 0;
   const roundedUtilization = Math.round(utilization);
+  
+  // Calculate total PROD hours and weeks for more accurate utilization
+  const totalProdHours = baySchedules.reduce((sum, schedule) => sum + (schedule.totalHours || 0), 0);
+  
+  // Get total PROD weeks by looking at all schedule durations
+  const totalProdWeeks = baySchedules.reduce((sum, schedule) => {
+    const startDate = new Date(schedule.startDate);
+    const endDate = new Date(schedule.endDate);
+    // Convert days to weeks and round up
+    const weeks = Math.ceil(differenceInDays(endDate, startDate) / 7);
+    return sum + weeks;
+  }, 0);
+  
+  // Calculate utilization based on PROD hours / available PROD weeks
+  const prodUtilization = totalProdWeeks > 0 
+    ? Math.min(100, Math.round((totalProdHours / (totalProdWeeks * weeklyCapacity)) * 100)) 
+    : 0;
   
   // Determine the status label based on current week projects
   let statusLabel = "";
@@ -247,8 +261,9 @@ const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSche
       </div>
       <div className="text-xs text-gray-400">
         {weeklyCapacity}h/week capacity 
-        {/* Only show percentage for Available status */}
-        {currentWeekProjects.length === 0 && roundedUtilization > 0 ? ` (${roundedUtilization}% utilized)` : ` (${statusLabel})`}
+        {/* Always show percentage along with status */}
+        {` (${roundedUtilization}% utilized)`}
+        {currentWeekProjects.length > 0 && ` - ${statusLabel}`}
       </div>
     </div>
   );
