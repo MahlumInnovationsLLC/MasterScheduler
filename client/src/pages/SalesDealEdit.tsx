@@ -64,7 +64,7 @@ const salesDealSchema = z.object({
   value: z.coerce.number().gte(0, "Value must be a positive number").optional().nullable(),
   currency: z.string().default("USD"),
   dealType: z.enum(["unsolicited_bid", "unfinanced_restrict", "developed_direct", "developed_public_bid"]),
-  dealStage: z.enum(["verbal_commit", "project_launch", "site_core_activity", "submit_decide", "not_started"]),
+  dealStage: z.enum(["verbal_commit", "project_launch", "site_core_activity", "submit_decide", "not_started", "fruit_loop"]),
   createdDate: z.date().optional().nullable(),
   expectedCloseDate: z.date().optional().nullable(),
   actualCloseDate: z.date().optional().nullable(),
