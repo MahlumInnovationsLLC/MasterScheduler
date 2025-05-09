@@ -558,12 +558,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/manufacturing-schedules", isAuthenticated, validateRequest(insertManufacturingScheduleSchema), async (req, res) => {
     try {
-      // Ensure row parameter is processed correctly
+      // CRITICAL FIX: Ensure row parameter is processed correctly and enforced
       const data = {
         ...req.body,
         row: req.body.row !== undefined ? parseInt(req.body.row) : 0 // Default to row 0 if not specified
       };
-      console.log("Creating schedule with row data:", data);
+      console.log("Creating schedule with EXACT row data:", data);
+      console.log("IMPORTANT: Using row value:", data.row, "as directly specified by UI");
       
       // First create the schedule
       const schedule = await storage.createManufacturingSchedule(data);
@@ -673,12 +674,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/manufacturing-schedules/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      // Ensure row is properly handled
+      // CRITICAL FIX: Ensure row is properly handled and respected exactly as sent from client
       const data = {
         ...req.body,
         row: req.body.row !== undefined ? parseInt(req.body.row) : undefined
       };
-      console.log("Updating schedule with row data:", data);
+      console.log("Updating schedule with EXACT row data:", data);
+      console.log("IMPORTANT: Using row value:", data.row, "EXACTLY as specified by UI");
       
       // First get the original schedule to access the projectId
       const originalSchedule = await storage.getManufacturingSchedule(id);

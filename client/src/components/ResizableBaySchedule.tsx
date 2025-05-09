@@ -2372,166 +2372,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         (data.type !== 'existing' || s.id !== data.id)
       );
       
-      // Enhanced function to determine the best row to place the project based on overlaps
-      // This checks ALL phases of projects, not just the overall start/end dates
+      // CRITICAL: DISABLED AUTO-PLACEMENT FUNCTION
+      // This function has been completely disabled per user request
+      // Instead we always use the exact row the user dragged to
       const findOptimalRow = (newStartDate: Date, newEndDate: Date, preferredRow: number = targetRowIndex) => {
-        // Make sure preferred row is valid
-        const safePreferredRow = (preferredRow !== null && preferredRow !== undefined && 
-                                 preferredRow >= 0 && preferredRow < 4) ? preferredRow : 0;
-        
-        // This will hold how many overlaps exist per row for each phase
-        const rowOverlaps = [0, 0, 0, 0];
-        const rowPhaseOverlaps = [
-          { fab: 0, paint: 0, prod: 0, it: 0, ntc: 0, qc: 0 },
-          { fab: 0, paint: 0, prod: 0, it: 0, ntc: 0, qc: 0 },
-          { fab: 0, paint: 0, prod: 0, it: 0, ntc: 0, qc: 0 },
-          { fab: 0, paint: 0, prod: 0, it: 0, ntc: 0, qc: 0 }
-        ];
-        
-        // Check each existing schedule against each row
-        overlappingSchedules.forEach(schedule => {
-          const scheduleStart = new Date(schedule.startDate);
-          const scheduleEnd = new Date(schedule.endDate);
-          
-          // Safely handle null/undefined row values
-          const safeRow = (schedule.row !== null && schedule.row !== undefined && 
-                          schedule.row >= 0 && schedule.row < 4) ? schedule.row : 0;
-          
-          // First, check overall project overlap
-          const overlap = !(scheduleEnd < newStartDate || scheduleStart > newEndDate);
-          if (overlap) {
-            // Use safeRow which is guaranteed to be in 0-3 range
-            rowOverlaps[safeRow]++;
-            
-            // Find the associated project to get phase dates
-            const project = projects.find(p => p.id === schedule.projectId);
-            if (project) {
-              // Calculate phase date ranges based on project data
-              type PhaseType = { type: string, start: Date, end: Date };
-              const phases: PhaseType[] = [];
-              
-              // Add FAB phase if dates exist
-              if (project.fabricationStart && project.wrapDate) {
-                phases.push({ 
-                  type: 'fab', 
-                  start: new Date(project.fabricationStart), 
-                  end: new Date(project.wrapDate) 
-                });
-              }
-              
-              // Add PAINT phase if dates exist
-              if (project.wrapDate && project.assemblyStart) {
-                phases.push({ 
-                  type: 'paint', 
-                  start: new Date(project.wrapDate), 
-                  end: new Date(project.assemblyStart) 
-                });
-              }
-              
-              // Add PROD phase if dates exist
-              if (project.assemblyStart && project.ntcTestingDate) {
-                phases.push({ 
-                  type: 'prod', 
-                  start: new Date(project.assemblyStart), 
-                  end: new Date(project.ntcTestingDate) 
-                });
-              }
-              
-              // Add IT phase if dates exist
-              if (project.ntcTestingDate) {
-                phases.push({ 
-                  type: 'it', 
-                  start: new Date(project.ntcTestingDate), 
-                  end: addDays(new Date(project.ntcTestingDate), 1) 
-                });
-              }
-              
-              // Add NTC phase if dates exist
-              if (project.ntcTestingDate && project.qcStartDate) {
-                phases.push({ 
-                  type: 'ntc', 
-                  start: new Date(project.ntcTestingDate), 
-                  end: new Date(project.qcStartDate) 
-                });
-              }
-              
-              // Add QC phase if dates exist
-              if (project.qcStartDate && project.executiveReviewDate) {
-                phases.push({ 
-                  type: 'qc', 
-                  start: new Date(project.qcStartDate), 
-                  end: new Date(project.executiveReviewDate) 
-                });
-              }
-              
-              // Check each phase for overlap with the new project timeframe
-              phases.forEach(phase => {
-                if (!(phase.end < newStartDate || phase.start > newEndDate)) {
-                  // Always use safeRow which is guaranteed to be valid
-                  switch(phase.type) {
-                    case 'fab': rowPhaseOverlaps[safeRow].fab++; break;
-                    case 'paint': rowPhaseOverlaps[safeRow].paint++; break; 
-                    case 'prod': rowPhaseOverlaps[safeRow].prod++; break;
-                    case 'it': rowPhaseOverlaps[safeRow].it++; break;
-                    case 'ntc': rowPhaseOverlaps[safeRow].ntc++; break;
-                    case 'qc': rowPhaseOverlaps[safeRow].qc++; break;
-                  }
-                }
-              });
-            }
-          }
-        });
-        
-        console.log(`Row overlaps for new project: ${JSON.stringify(rowOverlaps)}`);
-        console.log(`Phase-specific overlaps: ${JSON.stringify(rowPhaseOverlaps)}`);
-        console.log(`IMPROVED ROW ASSIGNMENT ACTIVE - checking for optimal row placement to avoid overlaps`);
-        // Detailed logging for troubleshooting
-        const existingProjectsInBay = overlappingSchedules.map(s => {
-          const project = projects.find(p => p.id === s.projectId);
-          return {
-            id: s.id,
-            projectId: s.projectId,
-            projectNumber: project?.projectNumber || 'Unknown',
-            row: s.row,
-            startDate: s.startDate,
-            endDate: s.endDate
-          };
-        });
-        console.log(`Existing projects in bay:`, existingProjectsInBay);
-        
-        // First choice: use the user's preferred row if it has no overlaps at all
-        if (safePreferredRow >= 0 && safePreferredRow < 4 && rowOverlaps[safePreferredRow] === 0) {
-          console.log(`Using preferred row ${safePreferredRow} as it has no overlaps`);
-          return safePreferredRow;
-        }
-        
-        // Second choice: find any completely empty row with no overlaps
-        for (let i = 0; i < 4; i++) {
-          if (rowOverlaps[i] === 0) {
-            console.log(`Found completely empty row ${i} with no overlaps`);
-            return i;
-          }
-        }
-        
-        // Third choice: find row with fewest phase overlaps
-        // Calculate a "phase overlap score" for each row
-        const phaseOverlapScores = rowPhaseOverlaps.map(phases => 
-          phases.fab + phases.paint + phases.prod + phases.it + phases.ntc + phases.qc
-        );
-        
-        // If there's a row with no phase overlaps (even if the overall project dates overlap)
-        // this means we can fit the project in between phases of other projects
-        if (Math.min(...phaseOverlapScores) === 0) {
-          const bestRow = phaseOverlapScores.indexOf(0);
-          console.log(`Found row ${bestRow} with no phase overlaps (can fit between phases)`);
-          return bestRow;
-        }
-        
-        // Fourth choice: use row with fewest overall project overlaps
-        const minOverlaps = Math.min(...rowOverlaps);
-        const bestRow = rowOverlaps.indexOf(minOverlaps);
-        console.log(`Using best available row ${bestRow} with ${minOverlaps} overlaps`);
-        return bestRow;
+        // DISABLED AUTO-PLACEMENT:
+        // Always return the user's preferred row without any optimization
+        console.log(`AUTO-PLACEMENT DISABLED: Using exact row ${preferredRow} selected by user`);
+        return preferredRow;
       };
       
       // Calculate how long the project will take considering capacity sharing
@@ -2654,7 +2502,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
         // User specifically requested to disable all auto-placement logic
         // Always use the exact row the user dragged to, ignoring the findOptimalRow function
-        // const optimalRow = findOptimalRow(exactStartDate, finalEndDate, preferredRowIndex);
+        // DO NOT USE findOptimalRow - it was causing the wrong row selection
+        // findOptimalRow has been completely disabled to ensure projects always place exactly where dropped
         const finalRowIndex = preferredRowIndex;
         
         console.log(`Updating schedule with MANUAL ROW ASSIGNMENT: bay=${finalBayId} row=${finalRowIndex}`);
