@@ -320,8 +320,16 @@ const ManufacturingBay = () => {
               throw error;
             }
           }}
-          onScheduleCreate={async (projectId, bayId, startDate, endDate) => {
+          onScheduleCreate={async (projectId, bayId, startDate, endDate, row) => {
             try {
+              console.log(`Creating new schedule with EXACT row placement: Bay=${bayId}, Row=${row}, Project=${projectId}`);
+              
+              // Get the current drag row from the document body if available
+              const preferredRow = document.body.getAttribute('data-current-drag-row');
+              const rowValue = row !== undefined ? row : (preferredRow ? parseInt(preferredRow) : 0);
+              
+              console.log(`Row determined from params or data attribute: ${rowValue}`);
+              
               const response = await fetch('/api/manufacturing-schedules', {
                 method: 'POST',
                 headers: {
@@ -332,7 +340,8 @@ const ManufacturingBay = () => {
                   bayId,
                   startDate,
                   endDate,
-                  status: 'scheduled'
+                  status: 'scheduled',
+                  row: rowValue // CRITICAL: Include the row in the creation request
                 }),
               });
               

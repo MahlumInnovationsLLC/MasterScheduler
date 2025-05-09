@@ -121,7 +121,7 @@ interface ManufacturingBayLayoutProps {
   projects: Project[];
   bays: Bay[];
   onScheduleChange: (scheduleId: number, newBayId: number, newStartDate: string, newEndDate: string) => Promise<void>;
-  onScheduleCreate: (projectId: number, bayId: number, startDate: string, endDate: string) => Promise<void>;
+  onScheduleCreate: (projectId: number, bayId: number, startDate: string, endDate: string, row?: number) => Promise<void>;
   onUpdateBay?: (bayId: number, name: string, description: string, team: string) => Promise<void>;
 }
 
@@ -834,11 +834,17 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
     
     try {
       // Create manufacturing schedule
+      // Get the intended row from the dialog inputs (always default to 0 for now to let user specify)
+      const preferredRow = 0;
+      
+      console.log(`MANUAL ROW ASSIGNMENT from scheduling dialog: Using row=${preferredRow} for new project placement`);
+      
       await onScheduleCreate(
         selectedProject,
         selectedBay,
         schedulingStartDate,
-        schedulingEndDate
+        schedulingEndDate,
+        preferredRow // CRITICAL: Pass the row explicitly
       );
       
       // Update project status to in_progress if current date is between start and end dates
@@ -967,11 +973,21 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
         } else {
           // Create new schedule
           try {
+            // CRITICAL: Get row information from where the user dropped the project
+            // The clientY position will help determine which row the user intended (we need to do additional math)
+            
+            // Get the drop position from data attributes
+            const targetRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
+            
+            console.log(`DRAG END - USING EXACT DROP ROW: Bay=${bayId}, Row=${targetRowIndex}, Project=${projectId}`);
+            
+            // Always use the exact row where the user dropped the project
             await onScheduleCreate(
               projectId,
               bayId,
               startDate,
-              endDate
+              endDate,
+              targetRowIndex // CRITICAL: Pass the exact row where user dropped
             );
             
             // Update project status to active if current date is between start and end dates
