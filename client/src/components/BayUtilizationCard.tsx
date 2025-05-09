@@ -14,7 +14,7 @@ interface BayStatus {
   bayId: number;
   bayName: string;
   utilization: number;
-  status: 'underutilized' | 'balanced' | 'overloaded';
+  status: 'no-projects' | 'at-capacity' | 'near-capacity';
   description: string;
   teamName: string;
   staffCount: number;
@@ -114,37 +114,53 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
             ? 'Assembly' 
             : 'Electrical';
         
-        // Determine status and recommendations
-        let status: 'underutilized' | 'balanced' | 'overloaded';
+        // Determine status and recommendations based on project count and utilization
+        let status: 'no-projects' | 'at-capacity' | 'near-capacity';
         let description: string;
         let recommendations: string[] = [];
         
-        if (roundedUtilization < 30) {
-          status = 'underutilized';
-          description = `${bay.name} is significantly underutilized. Consider assigning more projects.`;
+        // Get the active projects for this bay
+        const activeProjects = baySchedules.filter(schedule => {
+          // Define current date
+          const now = new Date();
+          const startDate = new Date(schedule.startDate);
+          const endDate = new Date(schedule.endDate);
+          // Check if the schedule is current (not in the past or future)
+          return startDate <= now && endDate >= now;
+        });
+        
+        // Log for debugging
+        console.log(`Bay ${bay.name} has ${activeProjects.length} projects assigned to it`);
+        
+        if (activeProjects.length === 0) {
+          status = 'no-projects';
+          description = `${bay.name} currently has no active projects scheduled.`;
           recommendations = [
-            'Assign additional projects to increase utilization',
-            'Consider temporarily reassigning staff to other teams',
-            'Check for upcoming projects that can be scheduled earlier'
+            'Assign projects to utilize this bay',
+            'Check upcoming projects that could be allocated here',
+            'Consider temporary reassignment of staff if no projects are imminent'
           ];
-        } else if (roundedUtilization > 85) {
-          status = 'overloaded';
-          description = `${bay.name} is approaching or exceeding capacity. Consider redistributing workload.`;
+        } else if (activeProjects.length >= 2 || roundedUtilization >= 85) {
+          status = 'at-capacity';
+          description = `${bay.name} is at full capacity with ${activeProjects.length} active projects.`;
           recommendations = [
-            'Redistribute projects to less utilized teams where possible',
-            'Consider adding temporary staff to handle peak workload',
+            'Monitor workload closely to prevent bottlenecks',
+            'Consider adding temporary staff to handle peak workload if needed',
             'Review project timelines for potential adjustments',
-            'Identify tasks that could be subcontracted'
+            'Identify tasks that could be subcontracted if delays occur'
           ];
         } else {
-          status = 'balanced';
-          description = `${bay.name} has a balanced workload.`;
+          status = 'near-capacity';
+          description = `${bay.name} is running at optimal capacity with ${activeProjects.length} active project(s).`;
           recommendations = [
             'Maintain current staffing and project allocation',
-            'Monitor for changes in project scope that may affect capacity',
+            'Monitor for changes in project scope that may affect capacity', 
             'Prepare contingency plans for unexpected staffing changes'
           ];
         }
+        
+        // Log the final status for debugging
+        console.log(`Bay ${bay.name} final status: ${status === 'no-projects' ? 'Available' : status === 'at-capacity' ? 'At Capacity' : 'Near Capacity'} with ${activeProjects.length} active projects`);
         
         console.log(`Bay ${bay.name} utilization: ${roundedUtilization}% (using centralized calculation)`);
         
@@ -165,18 +181,18 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
   
   // Get overall insight
   const getOverallInsight = () => {
-    const overloaded = bayStatuses.filter(b => b.status === 'overloaded').length;
-    const underutilized = bayStatuses.filter(b => b.status === 'underutilized').length;
-    const balanced = bayStatuses.filter(b => b.status === 'balanced').length;
+    const atCapacity = bayStatuses.filter(b => b.status === 'at-capacity').length;
+    const noProjects = bayStatuses.filter(b => b.status === 'no-projects').length;
+    const nearCapacity = bayStatuses.filter(b => b.status === 'near-capacity').length;
     
-    if (overloaded > 0 && underutilized > 0) {
-      return 'Opportunity to balance workload by shifting projects from overloaded teams to underutilized teams.';
-    } else if (overloaded > 0) {
-      return 'Some teams are overloaded. Consider hiring additional staff or redistributing work.';
-    } else if (underutilized > 0 && underutilized === bayStatuses.length) {
-      return 'All teams are underutilized. Consider taking on more projects or adjusting staffing levels.';
-    } else if (underutilized > 0) {
-      return 'Some teams have capacity for additional projects.';
+    if (atCapacity > 0 && noProjects > 0) {
+      return 'Opportunity to balance workload by shifting projects from at-capacity teams to available bays.';
+    } else if (atCapacity > 0) {
+      return 'Some teams are at full capacity. Consider hiring additional staff or redistributing work.';
+    } else if (noProjects > 0 && noProjects === bayStatuses.length) {
+      return 'All bays currently have no projects. Consider taking on more projects or adjusting staffing levels.';
+    } else if (noProjects > 0) {
+      return 'Some bays have capacity for additional projects.';
     } else {
       return 'Team workloads are well-balanced across all bays. Maintaining this balance will optimize productivity.';
     }
@@ -185,11 +201,11 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
   // Generate status color
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'underutilized':
+      case 'no-projects':
         return 'text-blue-500';
-      case 'balanced':
-        return 'text-green-500';
-      case 'overloaded':
+      case 'near-capacity':
+        return 'text-amber-500';
+      case 'at-capacity':
         return 'text-red-500';
       default:
         return 'text-gray-500';
@@ -199,11 +215,11 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
   // Generate status icon
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'underutilized':
+      case 'no-projects':
         return <TrendingDown className="h-3 w-3 text-blue-500" />;
-      case 'balanced':
-        return <Info className="h-3 w-3 text-green-500" />;
-      case 'overloaded':
+      case 'near-capacity':
+        return <Info className="h-3 w-3 text-amber-500" />;
+      case 'at-capacity':
         return <AlertCircle className="h-3 w-3 text-red-500" />;
       default:
         return <Info className="h-3 w-3 text-gray-500" />;
@@ -315,15 +331,15 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
               
               <TabsContent value="recommendations" className="m-0 max-h-[300px] overflow-y-auto p-3">
                 <div className="grid gap-3">
-                  {bayStatuses.some(b => b.status === 'overloaded') && (
+                  {bayStatuses.some(b => b.status === 'at-capacity') && (
                     <div className="bg-red-900/10 border border-red-900/30 rounded-md p-2.5">
                       <h6 className="text-xs font-medium flex items-center">
                         <AlertCircle className="h-3 w-3 text-red-500 mr-1" />
-                        <span>Overloaded Teams</span>
+                        <span>At Capacity Teams</span>
                       </h6>
                       <ul className="mt-1.5 space-y-1.5">
                         {bayStatuses
-                          .filter(b => b.status === 'overloaded')
+                          .filter(b => b.status === 'at-capacity')
                           .map(bay => bay.recommendations?.[0])
                           .filter(Boolean)
                           .map((rec, i) => (
@@ -337,15 +353,15 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
                     </div>
                   )}
                   
-                  {bayStatuses.some(b => b.status === 'balanced') && (
-                    <div className="bg-green-900/10 border border-green-900/30 rounded-md p-2.5">
+                  {bayStatuses.some(b => b.status === 'near-capacity') && (
+                    <div className="bg-amber-900/10 border border-amber-900/30 rounded-md p-2.5">
                       <h6 className="text-xs font-medium flex items-center">
-                        <Info className="h-3 w-3 text-green-500 mr-1" />
-                        <span>Balanced Teams</span>
+                        <Info className="h-3 w-3 text-amber-500 mr-1" />
+                        <span>Near Capacity Teams</span>
                       </h6>
                       <ul className="mt-1.5 space-y-1.5">
                         {bayStatuses
-                          .filter(b => b.status === 'balanced')
+                          .filter(b => b.status === 'near-capacity')
                           .map(bay => bay.recommendations?.[0])
                           .filter(Boolean)
                           .map((rec, i) => (
@@ -359,15 +375,15 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
                     </div>
                   )}
                   
-                  {bayStatuses.some(b => b.status === 'underutilized') && (
+                  {bayStatuses.some(b => b.status === 'no-projects') && (
                     <div className="bg-blue-900/10 border border-blue-900/30 rounded-md p-2.5">
                       <h6 className="text-xs font-medium flex items-center">
                         <TrendingDown className="h-3 w-3 text-blue-500 mr-1" />
-                        <span>Underutilized Teams</span>
+                        <span>Available Bays</span>
                       </h6>
                       <ul className="mt-1.5 space-y-1.5">
                         {bayStatuses
-                          .filter(b => b.status === 'underutilized')
+                          .filter(b => b.status === 'no-projects')
                           .map(bay => bay.recommendations?.[0])
                           .filter(Boolean)
                           .map((rec, i) => (
@@ -431,21 +447,21 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
             <>
               <div className="bg-red-900/10 p-1.5 rounded text-center">
                 <div className="font-medium text-red-500">
-                  {bayStatuses.filter(b => b.status === 'overloaded').length}
+                  {bayStatuses.filter(b => b.status === 'at-capacity').length}
                 </div>
-                <div className="text-[10px] text-gray-400">Overloaded</div>
+                <div className="text-[10px] text-gray-400">At Capacity</div>
               </div>
-              <div className="bg-green-900/10 p-1.5 rounded text-center">
-                <div className="font-medium text-green-500">
-                  {bayStatuses.filter(b => b.status === 'balanced').length}
+              <div className="bg-amber-900/10 p-1.5 rounded text-center">
+                <div className="font-medium text-amber-500">
+                  {bayStatuses.filter(b => b.status === 'near-capacity').length}
                 </div>
-                <div className="text-[10px] text-gray-400">Balanced</div>
+                <div className="text-[10px] text-gray-400">Near Capacity</div>
               </div>
               <div className="bg-blue-900/10 p-1.5 rounded text-center">
                 <div className="font-medium text-blue-500">
-                  {bayStatuses.filter(b => b.status === 'underutilized').length}
+                  {bayStatuses.filter(b => b.status === 'no-projects').length}
                 </div>
-                <div className="text-[10px] text-gray-400">Underutilized</div>
+                <div className="text-[10px] text-gray-400">Available</div>
               </div>
             </>
           ) : (
