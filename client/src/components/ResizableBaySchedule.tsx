@@ -1755,7 +1755,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Handle saving an edited bay
-  const handleSaveBayEdit = (bayId: number, data: Partial<ManufacturingBay>) => {
+  const handleSaveBayEdit = async (bayId: number, data: Partial<ManufacturingBay>): Promise<void> => {
     try {
       if (!data) {
         toast({
@@ -1763,7 +1763,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           description: "Invalid bay data",
           variant: "destructive"
         });
-        return;
+        return Promise.resolve();
       }
       
       // Make sure we have valid staff counts
@@ -1776,7 +1776,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       if (onBayUpdate && bayId > 0) {
         // Use the parent component's mutation with promise
-        onBayUpdate(bayId, updatedData)
+        return onBayUpdate(bayId, updatedData)
           .then((updatedBay) => {
             console.log('Bay updated successfully:', updatedBay);
             
@@ -2353,7 +2353,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const productionStartDate = addDays(slotDate, fabDays);
       
       // Get the bay's base weekly capacity 
-      const baseWeeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
+      // Handle null/undefined values safely
+      const hoursPerWeek = bay.hoursPerPersonPerWeek !== null && bay.hoursPerPersonPerWeek !== undefined 
+          ? bay.hoursPerPersonPerWeek : 40;
+      const staffCount = bay.staffCount !== null && bay.staffCount !== undefined 
+          ? bay.staffCount : 1;
+      const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
       
       // Find overlapping schedules in the same bay
       const overlappingSchedules = schedules.filter(s => 
@@ -2823,7 +2828,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     if (!bay) return null;
     
     // Get the base capacity for this bay
-    const baseWeeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
+    // Handle null/undefined values safely
+    const hoursPerWeek = bay.hoursPerPersonPerWeek !== null && bay.hoursPerPersonPerWeek !== undefined 
+        ? bay.hoursPerPersonPerWeek : 40;
+    const staffCount = bay.staffCount !== null && bay.staffCount !== undefined 
+        ? bay.staffCount : 1;
+    const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
     
     // FIXED: We need 100% bay utilization, not just 60%
     // For consistency with the other fix, use the full bay capacity (100%)
@@ -3501,7 +3511,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               {/* Team capacity area with work level indicator */}
               <div className="flex-1 flex flex-col items-center justify-center gap-1">
                 {/* Work Level Indicator */}
-                {bay.staffCount > 0 && (
+                {(bay.staffCount !== null && bay.staffCount !== undefined && bay.staffCount > 0) && (
                   <div className="flex items-center gap-1">
                     {(() => {
                       // Calculate weekly workload for this bay based on current projects
@@ -3511,7 +3521,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       // Get the hours per person from the bay settings, with no fallback to any hardcoded value
                       const hoursPerPerson = bay.hoursPerPersonPerWeek || 0;
                       // Calculate total staff count (either from direct staffCount or from assembly + electrical)
-                      const totalStaff = bay.staffCount || (bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0) || 1;
+                      // Handle null/undefined values safely
+                      const staffCount = bay.staffCount !== null && bay.staffCount !== undefined ? bay.staffCount : 0;
+                      const assemblyStaff = bay.assemblyStaffCount !== null && bay.assemblyStaffCount !== undefined ? bay.assemblyStaffCount : 0;
+                      const electricalStaff = bay.electricalStaffCount !== null && bay.electricalStaffCount !== undefined ? bay.electricalStaffCount : 0;
+                      const totalStaff = staffCount > 0 ? staffCount : (assemblyStaff + electricalStaff) || 1;
                       // Calculate maximum capacity based on actual bay data
                       const maxCapacity = hoursPerPerson * totalStaff;
                       
@@ -3663,7 +3677,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       const currentWeekEnd = endOfWeek(now);
                       
                       // Calculate staff count from either direct staffCount or from assembly + electrical
-                      const bayStaffCount = bay.staffCount || (bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0); 
+                      // Handle null/undefined values safely
+                      const bayDirectStaff = bay.staffCount !== null && bay.staffCount !== undefined ? bay.staffCount : 0;
+                      const bayAssemblyStaff = bay.assemblyStaffCount !== null && bay.assemblyStaffCount !== undefined ? bay.assemblyStaffCount : 0;
+                      const bayElectricalStaff = bay.electricalStaffCount !== null && bay.electricalStaffCount !== undefined ? bay.electricalStaffCount : 0;
+                      const bayStaffCount = bayDirectStaff > 0 ? bayDirectStaff : (bayAssemblyStaff + bayElectricalStaff); 
                       // Get the hours per person from the bay settings with no hardcoded fallback
                       const bayHoursPerWeek = bay.hoursPerPersonPerWeek || 0;
                       // Calculate weekly capacity using actual bay-specific hours
