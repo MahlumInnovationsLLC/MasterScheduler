@@ -3320,8 +3320,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       // Calculate weekly workload for this bay based on current projects
                       const baySchedules = scheduleBars.filter(b => b.bayId === bay.id);
                       
-                      // Calculate the maximum capacity per week for this bay
-                      const maxCapacity = (bay.hoursPerPersonPerWeek || 32) * (bay.staffCount || 1);
+                      // Calculate the maximum capacity per week for this bay using bay-specific hours
+                      // Get the correct hours per person (prioritize hoursPerPersonPerWeek but fallback to hoursPerWeek if exists)
+                      const hoursPerPerson = bay.hoursPerPersonPerWeek || bay.hoursPerWeek || 0;
+                      // Calculate total staff count (either from direct staffCount or from assembly + electrical)
+                      const totalStaff = bay.staffCount || (bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0) || 1;
+                      // Calculate maximum capacity based on actual bay data
+                      const maxCapacity = hoursPerPerson * totalStaff;
                       
                       // Check if any week exceeds capacity by looking at overlapping projects
                       // Break down by weeks in the visible range
@@ -3470,8 +3475,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       const currentWeekStart = startOfWeek(now);
                       const currentWeekEnd = endOfWeek(now);
                       
+                      // Calculate staff count from either direct staffCount or from assembly + electrical
                       const bayStaffCount = bay.staffCount || (bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0); 
-                      const bayHoursPerWeek = bay.hoursPerPersonPerWeek || 40;
+                      // Get the correct hours per person (prioritize hoursPerPersonPerWeek but fallback to hoursPerWeek if exists)
+                      const bayHoursPerWeek = bay.hoursPerPersonPerWeek || bay.hoursPerWeek || 0;
+                      // Calculate weekly capacity using actual bay-specific hours
                       const weeklyCapacity = bayHoursPerWeek * bayStaffCount;
                       
                       // Find projects that are active in the current week

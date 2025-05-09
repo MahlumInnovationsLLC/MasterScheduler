@@ -76,8 +76,12 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
         // Get schedules for this bay
         const baySchedules = schedules.filter(schedule => schedule.bayId === bay.id);
         
-        // Calculate capacity for this bay
-        const weeklyCapacity = (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 0);
+        // Calculate capacity for this bay - always use the bay's specific data
+        const hoursPerPerson = bay.hoursPerPersonPerWeek || bay.hoursPerWeek;
+        // Calculate total staff count (either from direct staffCount or from assembly + electrical)
+        const totalStaff = bay.staffCount || (bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0);
+        // Calculate weekly capacity based on actual bay data
+        const weeklyCapacity = hoursPerPerson * totalStaff;
         
         if (weeklyCapacity === 0) return {
           bayId: bay.id,
