@@ -380,7 +380,10 @@ const Dashboard = () => {
           title="Bay Utilization"
           value={manufacturingStats?.utilization || 0}
           type="utilization"
-          subtitle={`${manufacturingStats?.active || 0} bays active, ${manufacturingStats?.scheduled || 0} scheduled`}
+          subtitle={manufacturingStats ? 
+            getBayStatusInfo(manufacturingStats.utilization).description :
+            'No bay utilization data available'
+          }
         />
       </div>
 
