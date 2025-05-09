@@ -86,6 +86,7 @@ function SalesDealForm({
     dealType: existingDeal?.dealType || "new_business",
     dealStage: existingDeal?.dealStage || "prospecting",
     priority: existingDeal?.priority || "medium",
+    status: existingDeal?.status || "Not Started",
     probability: existingDeal?.probability?.toString() || "50",
     notes: existingDeal?.notes || "",
     vertical: existingDeal?.vertical || "East", // Default to "East" instead of "Fast"
@@ -158,7 +159,7 @@ function SalesDealForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.clientName) {
+    if (!formData.name) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -221,13 +222,12 @@ function SalesDealForm({
       
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="clientName">Client Name *</Label>
+          <Label htmlFor="clientName">Client Name</Label>
           <Input
             id="clientName"
             name="clientName"
             value={formData.clientName}
             onChange={handleInputChange}
-            required
           />
         </div>
         
@@ -311,7 +311,7 @@ function SalesDealForm({
         </div>
       </div>
       
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="dealType">Deal Type</Label>
           <Select
@@ -348,7 +348,9 @@ function SalesDealForm({
             </SelectContent>
           </Select>
         </div>
-        
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="priority">Priority</Label>
           <Select
@@ -363,6 +365,27 @@ function SalesDealForm({
               <SelectItem value="medium">Medium</SelectItem>
               <SelectItem value="high">High</SelectItem>
               <SelectItem value="urgent">Urgent</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="status">Status</Label>
+          <Select
+            value={formData.status}
+            onValueChange={(value) => handleSelectChange("status", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Not Started">Not Started</SelectItem>
+              <SelectItem value="In Progress">In Progress</SelectItem>
+              <SelectItem value="On Hold">On Hold</SelectItem>
+              <SelectItem value="Complete">Complete</SelectItem>
+              <SelectItem value="AT RISK">AT RISK</SelectItem>
+              <SelectItem value="No Bid">No Bid</SelectItem>
+              <SelectItem value="Submittal Missed">Submittal Missed</SelectItem>
             </SelectContent>
           </Select>
         </div>
