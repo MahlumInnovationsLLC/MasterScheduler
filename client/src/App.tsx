@@ -20,6 +20,7 @@ import ImportData from "@/pages/ImportData";
 import SystemSettings from "@/pages/SystemSettings";
 import UserPreferences from "@/pages/UserPreferences";
 import SalesForecast from "@/pages/SalesForecast";
+import SalesDealEdit from "@/pages/SalesDealEdit";
 import AuthPage from "@/pages/auth-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import NotFound from "@/pages/not-found";
@@ -70,6 +71,7 @@ function Router() {
             <ProtectedRoute path="/delivery-tracking" component={OnTimeDelivery} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />
             <ProtectedRoute path="/sales-forecast" component={SalesForecast} />
+            <ProtectedRoute path="/sales-deal/:id/edit" component={SalesDealEdit} />
             <ProtectedRoute path="/reports" component={Reports} />
             <ProtectedRoute path="/import" component={ImportData} />
             <ProtectedRoute path="/settings/system" component={SystemSettings} />

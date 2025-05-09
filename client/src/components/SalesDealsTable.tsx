@@ -16,16 +16,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { SalesDeal } from "@shared/schema";
 import { formatCurrency } from "@/lib/formatters";
 import { getDealStageColor, getPriorityColor } from "@/lib/deal-colors";
+import { useLocation } from "wouter";
+import { Edit, Trash2 } from "lucide-react";
 
 interface SalesDealsTableProps {
   deals: SalesDeal[];
+  onDelete?: (id: number) => void;
 }
 
-export function SalesDealsTable({ deals }: SalesDealsTableProps) {
+export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [, navigate] = useLocation();
 
   const columns = useMemo<ColumnDef<SalesDeal>[]>(() => [
     {
@@ -135,7 +140,33 @@ export function SalesDealsTable({ deals }: SalesDealsTableProps) {
       header: "Vertical",
       cell: ({ row }) => <div>{row.original.vertical}</div>,
     },
-  ], []);
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <div className="flex gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="text-blue-500 hover:text-blue-700 hover:bg-blue-100"
+            onClick={() => navigate(`/sales-deal/${row.original.id}/edit`)}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          {onDelete && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="text-red-500 hover:text-red-700 hover:bg-red-100"
+              onClick={() => onDelete(row.original.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ], [navigate, onDelete]);
 
   const table = useReactTable({
     data: deals,
