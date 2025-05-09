@@ -900,7 +900,7 @@ export default function SalesForecast() {
               <Plus className="mr-2 h-4 w-4" /> New Deal
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{selectedDeal ? "Edit Deal" : "Create New Deal"}</DialogTitle>
               <DialogDescription>
