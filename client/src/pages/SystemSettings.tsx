@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, AlertTriangle, CheckCircle2, Trash2, UserPlus, Edit, Lock, Shield, UserCheck, UserX } from 'lucide-react';
+import { 
+  AlertCircle, 
+  AlertTriangle, 
+  CheckCircle2, 
+  Trash2, 
+  UserPlus, 
+  Edit, 
+  Lock, 
+  Shield, 
+  UserCheck, 
+  UserX, 
+  RefreshCw,
+  ArchiveRestore
+} from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -39,11 +52,13 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import { apiRequest } from '../lib/queryClient';
+import { queryClient, apiRequest } from '../lib/queryClient';
 
 const SystemSettings = () => {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isMovingProjects, setIsMovingProjects] = useState(false);
+  const [isRestoringProject, setIsRestoringProject] = useState(false);
   const [deleteResult, setDeleteResult] = useState<{
     success: boolean;
     message: string;
@@ -284,6 +299,130 @@ const SystemSettings = () => {
     });
   };
   
+  // Function to handle moving all projects to unassigned
+  const handleMoveAllProjectsToUnassigned = async () => {
+    if (!window.confirm("⚠️ IMPORTANT: This will reset ALL bay assignments and move ALL projects to the Unassigned section.\n\nThis action cannot be undone. Continue?")) {
+      return;
+    }
+    
+    try {
+      setIsMovingProjects(true);
+      const response = await apiRequest("POST", "/api/manufacturing-schedules/clear-all", {});
+      
+      if (response.ok) {
+        const result = await response.json();
+        
+        if (result.success) {
+          toast({
+            title: "Success!",
+            description: result.message || "Projects moved to Unassigned section.",
+            variant: "default",
+          });
+          
+          // Update the UI
+          queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-bays'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+        } else {
+          toast({
+            title: "Operation Failed",
+            description: result.message || "Failed to move projects to Unassigned section.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        let errorMessage = "Failed to move projects to Unassigned section. Please try again.";
+        
+        try {
+          const errorResponse = await response.json();
+          if (errorResponse.message) {
+            errorMessage = errorResponse.message;
+          }
+        } catch (e) {
+          // If response is not JSON, get text
+          const errorText = await response.text();
+          console.error("Error response (text):", errorText);
+        }
+        
+        toast({
+          title: "Operation Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Operation Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error clearing manufacturing schedules:", error);
+    } finally {
+      setIsMovingProjects(false);
+    }
+  };
+  
+  // Query for archived projects
+  const { 
+    data: archivedProjects = [], 
+    isLoading: archivedProjectsLoading,
+    error: archivedProjectsError 
+  } = useQuery({
+    queryKey: ['/api/projects/archived'],
+    enabled: !!user && user.role === 'admin',
+  });
+  
+  // Function to handle restoring an archived project
+  const handleRestoreProject = async (projectId: number) => {
+    if (!window.confirm("Are you sure you want to restore this project? It will be moved back to active projects.")) {
+      return;
+    }
+    
+    try {
+      setIsRestoringProject(true);
+      const response = await apiRequest("PUT", `/api/projects/${projectId}/restore`, {});
+      
+      if (response.ok) {
+        toast({
+          title: "Success!",
+          description: "Project has been restored successfully.",
+          variant: "default",
+        });
+        
+        // Update the UI
+        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/projects/archived'] });
+      } else {
+        let errorMessage = "Failed to restore project. Please try again.";
+        
+        try {
+          const errorResponse = await response.json();
+          if (errorResponse.message) {
+            errorMessage = errorResponse.message;
+          }
+        } catch (e) {
+          const errorText = await response.text();
+          console.error("Error response (text):", errorText);
+        }
+        
+        toast({
+          title: "Operation Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Operation Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error restoring project:", error);
+    } finally {
+      setIsRestoringProject(false);
+    }
+  };
+  
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'admin':
@@ -319,10 +458,11 @@ const SystemSettings = () => {
         </Alert>
       ) : (
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid grid-cols-3 w-[400px]">
+          <TabsList className="grid grid-cols-4 w-[600px]">
             <TabsTrigger value="users">User Management</TabsTrigger>
             <TabsTrigger value="access">Access Control</TabsTrigger>
             <TabsTrigger value="system">Data Management</TabsTrigger>
+            <TabsTrigger value="archived">Archived Projects</TabsTrigger>
           </TabsList>
           
           {/* User Management Tab */}
