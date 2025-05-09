@@ -71,10 +71,10 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
       header: "Deal Owner",
       cell: ({ row }) => (
         <div className="flex items-center">
-          <div className="h-8 w-8 rounded-full bg-primary/10 mr-2 flex items-center justify-center text-primary font-semibold">
-            {row.original.ownerName.split(" ").map(n => n[0]).join("")}
+          <div className="h-8 w-8 rounded-full bg-primary/10 dark:bg-primary/20 mr-2 flex items-center justify-center text-primary font-semibold">
+            {row.original.ownerName?.split(" ").map(n => n[0]).join("") || ""}
           </div>
-          <div>{row.original.ownerName}</div>
+          <div className="dark:text-white">{row.original.ownerName}</div>
         </div>
       ),
     },
@@ -82,7 +82,7 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
       accessorKey: "value",
       header: "$ Value",
       cell: ({ row }) => (
-        <div className="font-mono font-medium">
+        <div className="font-mono font-medium dark:text-green-400">
           {formatCurrency(row.original.value)}
         </div>
       ),
@@ -113,13 +113,13 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
           status = "Not Started";
         }
         
-        return <div className="text-sm">{status}</div>;
+        return <div className="text-sm dark:text-gray-300">{status}</div>;
       },
     },
     {
       accessorKey: "dueDate",
       header: "Due Date",
-      cell: ({ row }) => <div>N/A</div>,
+      cell: ({ row }) => <div className="dark:text-gray-300">N/A</div>,
     },
     {
       accessorKey: "priority",
@@ -138,7 +138,7 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
     {
       accessorKey: "vertical",
       header: "Vertical",
-      cell: ({ row }) => <div>{row.original.vertical}</div>,
+      cell: ({ row }) => <div className="dark:text-gray-300">{row.original.vertical}</div>,
     },
     {
       id: "actions",
@@ -148,7 +148,7 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
           <Button 
             variant="ghost" 
             size="icon"
-            className="text-blue-500 hover:text-blue-700 hover:bg-blue-100"
+            className="text-blue-500 hover:text-blue-700 hover:bg-blue-100 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/50"
             onClick={() => navigate(`/sales-deal/${row.original.id}/edit`)}
           >
             <Edit className="h-4 w-4" />
@@ -157,7 +157,7 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
             <Button 
               variant="ghost" 
               size="icon"
-              className="text-red-500 hover:text-red-700 hover:bg-red-100"
+              className="text-red-500 hover:text-red-700 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/50"
               onClick={() => onDelete(row.original.id)}
             >
               <Trash2 className="h-4 w-4" />
