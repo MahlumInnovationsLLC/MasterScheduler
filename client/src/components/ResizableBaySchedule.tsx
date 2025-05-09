@@ -1325,11 +1325,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         resizingSchedule.row
       );
       
-      // After manual resize, trigger auto-capacity adjustment in 500ms
-      // This gives time for the manual change to be applied first
-      setTimeout(() => {
-        applyAutoCapacityAdjustment();
-      }, 500);
+      // No longer automatically adjusting other projects after resize
+      // Auto-adjustment should only happen when the user clicks the Auto Adjust button
     } catch (error) {
       console.error('Error updating schedule after resize:', error);
       toast({
