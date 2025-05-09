@@ -1150,10 +1150,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
+      // Create an audit log entry for role change
+      const performedBy = req.user?.id || "system";
+      await storage.createUserAuditLog(
+        req.params.id,
+        "ROLE_CHANGE",
+        performedBy,
+        { role: updatedUser.role, isApproved: updatedUser.isApproved },
+        { role, isApproved },
+        `Role changed to ${role} and approval status set to ${isApproved ? 'approved' : 'pending'}`
+      );
+      
       res.json(updatedUser);
     } catch (error) {
       console.error("Error updating user role:", error);
       res.status(500).json({ message: "Error updating user role" });
+    }
+  });
+  
+  // Route to update user status (active, inactive, archived)
+  app.put("/api/users/:id/status", isAdmin, async (req, res) => {
+    try {
+      const { status, reason } = req.body;
+      if (!status || !['active', 'inactive', 'archived'].includes(status)) {
+        return res.status(400).json({ message: "Valid status is required (active, inactive, or archived)" });
+      }
+      
+      const performedBy = req.user?.id || "system";
+      const updatedUser = await storage.updateUserStatus(req.params.id, status, performedBy, reason || "");
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      res.status(500).json({ message: "Error updating user status" });
+    }
+  });
+  
+  // Route to archive a user
+  app.put("/api/users/:id/archive", isAdmin, async (req, res) => {
+    try {
+      const { reason } = req.body;
+      if (!reason) {
+        return res.status(400).json({ message: "Reason for archiving is required" });
+      }
+      
+      const performedBy = req.user?.id || "system";
+      const archivedUser = await storage.archiveUser(req.params.id, performedBy, reason);
+      
+      if (!archivedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(archivedUser);
+    } catch (error) {
+      console.error("Error archiving user:", error);
+      res.status(500).json({ message: "Error archiving user" });
+    }
+  });
+  
+  // Route to get audit logs for a specific user
+  app.get("/api/users/:id/audit-logs", isAdmin, async (req, res) => {
+    try {
+      const auditLogs = await storage.getUserAuditLogs(req.params.id);
+      res.json(auditLogs);
+    } catch (error) {
+      console.error("Error fetching user audit logs:", error);
+      res.status(500).json({ message: "Error fetching user audit logs" });
+    }
+  });
+  
+  // Route to get all user audit logs
+  app.get("/api/user-audit-logs", isAdmin, async (req, res) => {
+    try {
+      const allAuditLogs = await storage.getAllUserAuditLogs();
+      res.json(allAuditLogs);
+    } catch (error) {
+      console.error("Error fetching all user audit logs:", error);
+      res.status(500).json({ message: "Error fetching all user audit logs" });
     }
   });
   
