@@ -532,32 +532,63 @@ export async function importBillingMilestones(req: Request, res: Response) {
     // Process each milestone
     for (const rawMilestoneData of milestonesData) {
       try {
+        // Flexible field mapping for milestone data
+        // First extract key fields with flexible column name recognition
+        const milestoneName = rawMilestoneData['Milestone'] || rawMilestoneData['Milestone Name'] || 
+                            rawMilestoneData['Billing Item'] || rawMilestoneData['Billing Milestone'] || 
+                            rawMilestoneData['Description'];
+        
+        const projectNumber = rawMilestoneData['Project Number'] || rawMilestoneData['Proj #'] || 
+                            rawMilestoneData['Project #'] || rawMilestoneData['Project'];
+        
+        const amount = rawMilestoneData['Amount'] || rawMilestoneData['Value'] || 
+                      rawMilestoneData['Milestone Amount'] || rawMilestoneData['Billing Amount'] || '0';
+        
+        const targetDate = rawMilestoneData['Target Invoice Date'] || rawMilestoneData['Target Date'] || 
+                          rawMilestoneData['Due Date'] || rawMilestoneData['Invoice Date'];
+        
         // Map Excel template fields to database schema
         const milestoneData: any = {
-          name: rawMilestoneData['Milestone'],
-          description: rawMilestoneData['Description'],
-          amount: typeof rawMilestoneData['Amount'] === 'number' 
-            ? rawMilestoneData['Amount'] 
-            : parseFloat(rawMilestoneData['Amount'] || '0'),
-          targetDate: rawMilestoneData['Target Invoice Date'] || rawMilestoneData['Target Date'],
-          invoiceDate: rawMilestoneData['Actual Invoice Date'],
-          paymentReceivedDate: rawMilestoneData['Payment Received Date'],
+          name: milestoneName,
+          description: rawMilestoneData['Description'] || rawMilestoneData['Notes'] || '',
+          amount: typeof amount === 'number' ? amount : parseFloat(String(amount).replace(/[^0-9.-]/g, '') || '0'),
+          targetDate: targetDate,
+          invoiceDate: rawMilestoneData['Actual Invoice Date'] || rawMilestoneData['Invoice Date'],
+          paymentReceivedDate: rawMilestoneData['Payment Received Date'] || rawMilestoneData['Received Date'],
           status: (rawMilestoneData['Status'] || 'upcoming').toLowerCase(),
-          notes: rawMilestoneData['Notes'],
-          contractReference: rawMilestoneData['Contract Reference'],
-          invoiceNumber: rawMilestoneData['Invoice Number'],
+          notes: rawMilestoneData['Notes'] || '',
+          contractReference: rawMilestoneData['Contract Reference'] || '',
+          invoiceNumber: rawMilestoneData['Invoice Number'] || '',
           percentageOfTotal: typeof rawMilestoneData['Percentage of Total'] === 'number'
             ? rawMilestoneData['Percentage of Total']
-            : parseFloat(rawMilestoneData['Percentage of Total'] || '0'),
-          paymentTerms: rawMilestoneData['Payment Terms'],
-          billingContact: rawMilestoneData['Billing Contact'],
+            : parseFloat(String(rawMilestoneData['Percentage of Total'] || '0').replace('%', '')),
+          paymentTerms: rawMilestoneData['Payment Terms'] || '',
+          billingContact: rawMilestoneData['Billing Contact'] || '',
           // Store project number temporarily for lookup
-          _projectNumber: rawMilestoneData['Proj #'] || rawMilestoneData['Project Number'] || rawMilestoneData['Project #']
+          _projectNumber: projectNumber
         };
 
-        // Normalize data
+        // Validate only required fields: Project Number, Milestone, Amount, Target Invoice Date
+        let validationErrors = [];
+        
+        if (!milestoneData._projectNumber) {
+          validationErrors.push('Project Number is required');
+        }
+        
         if (!milestoneData.name) {
-          throw new Error('Milestone name is required');
+          validationErrors.push('Milestone name is required');
+        }
+        
+        if (isNaN(milestoneData.amount)) {
+          validationErrors.push('Amount must be a valid number');
+        }
+        
+        if (!milestoneData.targetDate) {
+          validationErrors.push('Target Invoice Date is required');
+        }
+        
+        if (validationErrors.length > 0) {
+          throw new Error(validationErrors.join(', '));
         }
 
         // Format dates using our enhanced converter
@@ -565,60 +596,77 @@ export async function importBillingMilestones(req: Request, res: Response) {
         milestoneData.invoiceDate = convertExcelDate(milestoneData.invoiceDate);
         milestoneData.paymentReceivedDate = convertExcelDate(milestoneData.paymentReceivedDate);
 
-        let projectNumber = milestoneData._projectNumber;
+        // Save the project number from temporary field and remove it
+        const milestoneProjectNumber = milestoneData._projectNumber;
         delete milestoneData._projectNumber; // Remove temporary field
         
         // Handle projectNumber being 'undefined' as a string
-        if (projectNumber === 'undefined') {
-          projectNumber = '';
-        }
+        const normalizedProjectNumber = milestoneProjectNumber === 'undefined' ? '' : milestoneProjectNumber;
         
-        // Look up project by number if available
-        if (projectNumber && projectNumber !== '') {
-          const project = await storage.getProjectByNumber(projectNumber);
+        // Look up project by number or try to match by number in string
+        if (normalizedProjectNumber && normalizedProjectNumber !== '') {
+          // First try exact match on project number
+          const project = await storage.getProjectByNumber(normalizedProjectNumber);
           if (project) {
             milestoneData.projectId = project.id;
+            console.log(`Found exact project match by number: ${normalizedProjectNumber} for milestone: ${milestoneData.name}`);
           } else {
-            // Try to find any project with matching name in the milestone description
-            if (milestoneData.description) {
-              const projects = await storage.getProjects();
+            // Get all projects to try different matching strategies
+            const projects = await storage.getProjects();
+            
+            // Try to match project number ignoring formatting
+            // (e.g., "12345" might match "12-345" or "#12345")
+            const numberWithoutFormatting = normalizedProjectNumber.replace(/\D/g, '');
+            const projectByNumberFormat = projects.find(p => 
+              p.projectNumber && p.projectNumber.replace(/\D/g, '') === numberWithoutFormatting
+            );
+
+            if (projectByNumberFormat) {
+              milestoneData.projectId = projectByNumberFormat.id;
+              console.log(`Found project by number formatting variation: ${normalizedProjectNumber} -> ${projectByNumberFormat.projectNumber} for milestone: ${milestoneData.name}`);
+            } 
+            // Try to find project where the milestone description contains the project name
+            else if (milestoneData.description) {
               const matchingProject = projects.find(p => 
-                milestoneData.description.includes(p.name) || 
+                (p.name && milestoneData.description.includes(p.name)) || 
                 (p.projectNumber && milestoneData.description.includes(p.projectNumber))
               );
               
               if (matchingProject) {
                 milestoneData.projectId = matchingProject.id;
-                console.log(`Linked milestone to project by name match: ${milestoneData.name} -> ${matchingProject.name}`);
-              } else {
-                results.errors++;
-                results.details.push(`Could not find project with number: ${projectNumber} for milestone: ${milestoneData.name}`);
-                continue;
+                console.log(`Linked milestone to project by description match: ${milestoneData.name} -> ${matchingProject.name}`);
+              } 
+              // Try to find project where the milestone name contains the project number
+              else {
+                const projectNumberInName = projects.find(p => 
+                  p.projectNumber && milestoneData.name.includes(p.projectNumber)
+                );
+                
+                if (projectNumberInName) {
+                  milestoneData.projectId = projectNumberInName.id;
+                  console.log(`Linked milestone to project by name containing project number: ${milestoneData.name} -> ${projectNumberInName.projectNumber}`);
+                } else {
+                  results.errors++;
+                  results.details.push(`Could not find project with number: ${normalizedProjectNumber} for milestone: ${milestoneData.name}`);
+                  continue;
+                }
               }
             } else {
               results.errors++;
-              results.details.push(`Could not find project with number: ${projectNumber} for milestone: ${milestoneData.name}`);
+              results.details.push(`Could not find project with number: ${normalizedProjectNumber} for milestone: ${milestoneData.name}`);
               continue;
             }
           }
-        } else if (!milestoneData.projectId) {
-          // If no project is specified, assign to the first project for now
-          // This is a placeholder and can be manually corrected later
-          const projects = await storage.getProjects();
-          if (projects.length > 0) {
-            milestoneData.projectId = projects[0].id;
-            console.log(`No project specified for milestone: ${milestoneData.name}. Temporarily assigned to ${projects[0].name}`);
-          } else {
-            results.errors++;
-            results.details.push(`No project specified for milestone: ${milestoneData.name} and no projects exist`);
-            continue;
-          }
+        } else {
+          results.errors++;
+          results.details.push(`Project Number is required for milestone: ${milestoneData.name}`);
+          continue;
         }
 
         // Create the billing milestone
         await storage.createBillingMilestone(milestoneData as InsertBillingMilestone);
         results.imported++;
-        results.details.push(`Imported billing milestone: ${milestoneData.name} for project ${projectNumber}`);
+        results.details.push(`Imported billing milestone: ${milestoneData.name} for project ${normalizedProjectNumber}`);
       } catch (error) {
         console.error('Error importing billing milestone:', rawMilestoneData, error);
         results.errors++;
