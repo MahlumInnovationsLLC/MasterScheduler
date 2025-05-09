@@ -1489,6 +1489,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     
+    // First, store the current bay ID in a data attribute on the drag element
+    // This ensures we know which bay the drag started in
+    const dragElement = e.currentTarget as HTMLElement;
+    if (dragElement && !dragElement.hasAttribute('data-original-bay-id')) {
+      dragElement.setAttribute('data-original-bay-id', bayId.toString());
+      console.log(`Setting original bay ID: ${bayId} on element`, dragElement);
+    }
+    
     // Get the main scrollable container for auto-scroll
     const mainScrollContainer = document.querySelector('.main-content') as HTMLElement;
     
@@ -1564,6 +1572,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.error('Error cleaning up highlight classes in drag over:', error);
     }
     
+    // CRITICAL: Verify we're still in the same bay we started with
+    const originalBayId = parseInt(dragElement.getAttribute('data-original-bay-id') || '0');
+    
+    // If we've moved to a different bay than where we started, force the calculated row to be from 0-3
+    // This prevents the row from being outside the 4 rows per bay
+    if (bayId !== originalBayId && originalBayId > 0) {
+      console.log(`Bay mismatch: Original ${originalBayId}, Current ${bayId} - fixing row to stay in original bay`);
+      // Don't update the bay in the dragElement, keep the original
+    }
+    
     // Determine row index if not provided based on cell position
     const cellHeight = e.currentTarget.clientHeight;
     const relativeY = e.nativeEvent.offsetY;
@@ -1571,6 +1589,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       ? rowIndex 
       : Math.floor((relativeY / cellHeight) * 4);
     
+    // CRITICAL: Ensure the row is between 0-3 regardless of bay changes
     const validRowIndex = Math.max(0, Math.min(3, calculatedRowIndex));
     
     // Add highlight to the current target cell
@@ -2050,6 +2069,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // Read data attributes from the drop target element for more precise week targeting
     let targetElement = e.target as HTMLElement;
+    // CRITICAL: Never override the original bay ID from the parameters
+    // This ensures we stick to the bay where the drag operation started
     let targetBayId = bayId;
     let targetSlotIndex = slotIndex;
     let targetRowIndex = rowIndex;
@@ -2065,7 +2086,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // PRIORITY ORDER:
     // 1. data-exact-slot-index (set during drag over)
     // 2. data-slot-index
-    if (dataBayId) targetBayId = parseInt(dataBayId);
+    // CRITICAL FIX: Only update bay ID if it matches the original bay to prevent jumping to other bays
+    if (dataBayId) {
+      const parsedBayId = parseInt(dataBayId);
+      // Verify this is the same bay to prevent cross-bay jumping
+      if (parsedBayId === bayId) {
+        targetBayId = parsedBayId;
+      } else {
+        console.log(`Bay ID mismatch - sticking with original bay ${bayId} instead of ${parsedBayId}`);
+      }
+    }
+    
     if (dataExactSlotIndex) {
       targetSlotIndex = parseInt(dataExactSlotIndex);
       console.log('Using exact slot index from data-exact-slot-index:', targetSlotIndex);
@@ -2073,7 +2104,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       targetSlotIndex = parseInt(dataSlotIndex);
       console.log('Using slot index from data-slot-index:', targetSlotIndex);
     }
-    if (dataRow) targetRowIndex = parseInt(dataRow);
+    
+    if (dataRow) {
+      const parsedRow = parseInt(dataRow);
+      // Ensure row is between 0-3
+      targetRowIndex = Math.min(3, Math.max(0, parsedRow));
+    }
     
     // Then try to find the closest cell marker element with data-slot-index if needed
     if (!dataSlotIndex || !dataBayId) {
@@ -2085,10 +2121,24 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const cellRow = cellElement.getAttribute('data-row');
         const cellDate = cellElement.getAttribute('data-date');
         
-        // Only override if not already set from direct target
-        if (!dataBayId && cellBayId) targetBayId = parseInt(cellBayId);
+        // Only override if not already set from direct target and ensure we don't change bays
+        if (!dataBayId && cellBayId) {
+          const parsedCellBayId = parseInt(cellBayId);
+          // Only update if this cell is in the same bay as the original drop target
+          if (parsedCellBayId === bayId) {
+            targetBayId = parsedCellBayId;
+          } else {
+            console.log(`Cell bay ID mismatch - sticking with original bay ${bayId} instead of ${parsedCellBayId}`);
+          }
+        }
+        
         if (!dataSlotIndex && cellSlotIndex) targetSlotIndex = parseInt(cellSlotIndex);
-        if (!dataRow && cellRow) targetRowIndex = parseInt(cellRow);
+        
+        if (!dataRow && cellRow) {
+          const parsedCellRow = parseInt(cellRow);
+          // Ensure row is between 0-3
+          targetRowIndex = Math.min(3, Math.max(0, parsedCellRow));
+        }
         
         console.log('Precise drop target detected from cell element:', {
           element: cellElement,
