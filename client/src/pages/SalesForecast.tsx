@@ -444,6 +444,9 @@ function SalesDealForm({
               <SelectItem value="West">West</SelectItem>
               <SelectItem value="North">North</SelectItem>
               <SelectItem value="South">South</SelectItem>
+              <SelectItem value="DoD">DoD</SelectItem>
+              <SelectItem value="FedCiv">FedCiv</SelectItem>
+              <SelectItem value="Services">Services</SelectItem>
             </SelectContent>
           </Select>
         </div>

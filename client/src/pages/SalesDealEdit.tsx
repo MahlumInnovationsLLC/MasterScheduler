@@ -627,6 +627,11 @@ function SalesDealEdit() {
                           <SelectItem value="West">West</SelectItem>
                           <SelectItem value="North">North</SelectItem>
                           <SelectItem value="South">South</SelectItem>
+                          <SelectItem value="DoD">DoD</SelectItem>
+                          <SelectItem value="FedCiv">FedCiv</SelectItem>
+                          <SelectItem value="Services">Services</SelectItem>
+                          <SelectItem value="House">House</SelectItem>
+                          <SelectItem value="INT">INT</SelectItem>
                         </SelectContent>
                       </Select>
                     </FormControl>
