@@ -220,102 +220,38 @@ export function checkScheduleConflict(
 export function calculateBayUtilization(bays: any[], schedules: any[]): number {
   if (!bays || !bays.length || !schedules || !schedules.length) return 0;
   
-  // Filter to only include bays with staff assigned
-  const staffedBays = bays.filter(bay => bay.staffCount && bay.staffCount > 0);
+  // Filter to only include active bays (with isActive=true or undefined)
+  const activeBays = bays.filter(bay => bay.isActive !== false);
   
-  if (staffedBays.length === 0) return 0;
+  if (activeBays.length === 0) return 0;
   
-  // Calculate individual bay utilizations
-  const bayUtilizations = staffedBays.map(bay => {
-    // Get schedules for this bay
-    const baySchedules = schedules.filter(schedule => schedule.bayId === bay.id);
+  // Simplified approach based on project count per bay
+  // Using the rule: 0 projects = 0%, 1 project = 50%, 2+ projects = 100%
+  const bayUtilizations = activeBays.map(bay => {
+    // Get active schedules for this bay (not completed)
+    const now = new Date();
+    const activeSchedules = schedules.filter(schedule => {
+      return schedule.bayId === bay.id && 
+             new Date(schedule.endDate) >= now && 
+             schedule.status !== 'complete';
+    });
     
-    // Calculate capacity for this bay - always use the bay's specific hours per week (no fallback to nonexistent property)
-    const hoursPerPerson = bay.hoursPerPersonPerWeek || 0;
-    // Calculate total staff count (either from direct staffCount or from assembly + electrical)
-    const totalStaff = bay.staffCount || (bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0);
-    // Calculate weekly capacity based on actual bay data
-    const weeklyCapacity = hoursPerPerson * totalStaff;
-    
-    if (weeklyCapacity === 0) return 0;
-    
-    // Calculate scheduled hours with time weighting and production phase focus
-    let weeklyUtilization = 0;
-    
-    if (baySchedules.length > 0) {
-      // Get current date for time-based weighting
-      const now = new Date();
-      // We'll analyze by week for the next 16 weeks (4 months)
-      const MAX_FUTURE_WEEKS = 16;
-      const weeklyHoursMap: Record<string, number> = {};
-      
-      // First, calculate the load by week across the next few months
-      baySchedules.forEach(schedule => {
-        if (schedule.startDate && schedule.endDate && schedule.totalHours) {
-          const startDate = new Date(schedule.startDate);
-          const endDate = new Date(schedule.endDate);
-          
-          // Skip projects that have already ended
-          if (endDate < now) return;
-          
-          // Calculate production hours per day for this schedule
-          const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-          const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-          const hoursPerDay = schedule.totalHours / diffDays;
-          
-          // Analyze each week starting from today
-          let currentWeekStart = new Date(now);
-          currentWeekStart.setHours(0, 0, 0, 0);
-          currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay()); // Start of current week
-          
-          for (let week = 0; week < MAX_FUTURE_WEEKS; week++) {
-            // Calculate week range
-            const weekStart = new Date(currentWeekStart);
-            weekStart.setDate(weekStart.getDate() + (week * 7));
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekStart.getDate() + 6);
-            
-            // Skip if this week is completely before the project starts
-            if (weekEnd < startDate) continue;
-            
-            // Skip if this week is completely after the project ends
-            if (weekStart > endDate) continue;
-            
-            // Calculate overlap days between this week and the project
-            const overlapStart = new Date(Math.max(weekStart.getTime(), startDate.getTime()));
-            const overlapEnd = new Date(Math.min(weekEnd.getTime(), endDate.getTime()));
-            const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-            
-            // Calculate hours for this week based on overlap
-            const weekHours = hoursPerDay * Math.min(7, overlapDays);
-            
-            // Apply time-decay factor: more weight to current weeks, less to future weeks
-            const weekKey = weekStart.toISOString().substring(0, 10);
-            const timeDecayFactor = Math.max(0.25, 1 - (week * 0.05)); // 5% decay per week
-            
-            // Add to weekly hours map
-            if (!weeklyHoursMap[weekKey]) {
-              weeklyHoursMap[weekKey] = 0;
-            }
-            weeklyHoursMap[weekKey] += weekHours * timeDecayFactor;
-          }
-        }
-      });
-      
-      // Now find the peak utilization by looking at the week with the most hours
-      // This accounts for when projects overlap in time
-      if (Object.keys(weeklyHoursMap).length > 0) {
-        const peakWeekHours = Math.max(...Object.values(weeklyHoursMap));
-        weeklyUtilization = peakWeekHours;
-      }
+    // Apply simplified utilization model:
+    // 0 projects = 0% (Available)
+    // 1 project = 50% (Near Capacity)
+    // 2+ projects = 100% (At Capacity)
+    if (activeSchedules.length >= 2) {
+      return 100; // At Capacity (2+ projects)
+    } else if (activeSchedules.length === 1) {
+      return 50;  // Near Capacity (1 project)
     }
-    
-    // Calculate utilization percentage based on weekly hours
-    return Math.min(100, (weeklyUtilization / weeklyCapacity) * 100);
+    return 0;     // Available (0 projects)
   });
   
-  // Calculate average utilization across all staffed bays
-  const avgUtilization = bayUtilizations.reduce((sum, util) => sum + util, 0) / staffedBays.length;
+  // Calculate average utilization across all active bays
+  const totalUtilization = bayUtilizations.reduce((sum, util) => sum + util, 0);
+  const avgUtilization = activeBays.length > 0 ? totalUtilization / activeBays.length : 0;
   
+  console.log(`Bay utilization calculation: ${Math.round(avgUtilization)}% (based on project count per bay)`);
   return Math.round(avgUtilization);
 }
