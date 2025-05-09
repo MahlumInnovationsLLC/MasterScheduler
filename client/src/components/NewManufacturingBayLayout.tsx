@@ -80,7 +80,7 @@ interface ManufacturingBayLayoutProps {
   projects: Project[];
   bays: Bay[];
   onScheduleChange: (scheduleId: number, newBayId: number, newStartDate: string, newEndDate: string) => Promise<void>;
-  onScheduleCreate: (projectId: number, bayId: number, startDate: string, endDate: string) => Promise<void>;
+  onScheduleCreate: (projectId: number, bayId: number, startDate: string, endDate: string, row?: number) => Promise<void>;
   onUpdateBay?: (bayId: number, name: string, description: string, team: string) => Promise<void>;
 }
 
