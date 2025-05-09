@@ -40,8 +40,9 @@ import {
 const BaySchedulingPage = () => {
   const { toast } = useToast();
   
-  // State for import modal
+  // State for import modal and loading
   const [showImportModal, setShowImportModal] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   
   // Force a refresh of manufacturing schedules when page loads
   // This ensures capacity sharing calculations are correctly applied
@@ -348,6 +349,7 @@ const BaySchedulingPage = () => {
     rowIndex?: number
   ) => {
     try {
+      setIsLoading(true);
       console.log(`Updating schedule ${scheduleId} to bay ${newBayId}, row ${rowIndex}`);
       const result = await updateScheduleMutation.mutateAsync({
         scheduleId,
@@ -370,6 +372,8 @@ const BaySchedulingPage = () => {
         variant: "destructive"
       });
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -383,6 +387,7 @@ const BaySchedulingPage = () => {
     rowIndex?: number
   ) => {
     try {
+      setIsLoading(true);
       await createScheduleMutation.mutateAsync({
         projectId,
         bayId,
@@ -394,17 +399,22 @@ const BaySchedulingPage = () => {
       return true;
     } catch (error) {
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
   
   // Handler for schedule deletion
   const handleScheduleDelete = async (scheduleId: number) => {
     try {
+      setIsLoading(true);
       await deleteScheduleMutation.mutateAsync(scheduleId);
       return true;
     } catch (error) {
       console.error('Error deleting schedule:', error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -703,6 +713,17 @@ const BaySchedulingPage = () => {
           />
         </div>
       </div>
+      
+      {/* Loading overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center">
+            <div className="h-10 w-10 border-4 border-t-transparent border-primary rounded-full animate-spin mb-4"></div>
+            <p className="font-medium">Updating Schedule...</p>
+            <p className="text-sm text-muted-foreground mt-1">This may take a moment</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
