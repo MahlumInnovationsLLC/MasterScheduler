@@ -1610,26 +1610,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Store this for the drop handler - CRUCIAL for preserving week position
         // CRITICAL FIX: Always use this format to ensure consistent date handling
         const dateObj = new Date(dataDate);
-        // CRITICAL FIX: Force exact dates to start at beginning of the week 
-        // This fixes the week placement issues where projects would snap to wrong week
-        const exactWeekStart = format(startOfWeek(dateObj, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        // CRITICAL FIX: Instead of using startOfWeek, use the exact date from the column
+        // This ensures projects align perfectly with the grid columns
+        const exactDateToUse = dataDate;
         
         // IMPORTANT: Set a global variable with this date for use in the drop handler
-        (window as any).lastExactDate = exactWeekStart;
+        (window as any).lastExactDate = exactDateToUse;
         
-        target.setAttribute('data-exact-date', exactWeekStart);
-        console.log(`Storing exact week start date: ${exactWeekStart} (from date ${dataDate})`);
+        target.setAttribute('data-exact-date', exactDateToUse);
+        console.log(`Storing exact date: ${exactDateToUse} (from date ${dataDate})`);
         
         // Also store this date on the parent bay element for better target identification
         const parentBay = target.closest('.bay-container');
         if (parentBay) {
-          parentBay.setAttribute('data-last-dragover-date', exactWeekStart);
+          parentBay.setAttribute('data-last-dragover-date', exactDateToUse);
         }
         
         // Also add this date to active drop elements that don't have a date
         document.querySelectorAll('.active-drop-target').forEach(el => {
           if (!el.hasAttribute('data-exact-date')) {
-            el.setAttribute('data-exact-date', exactWeekStart);
+            el.setAttribute('data-exact-date', exactDateToUse);
           }
         });
         
