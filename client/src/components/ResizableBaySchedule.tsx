@@ -3080,7 +3080,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       transform: none !important;
     }
 
-    /* Enhanced styling for project bars with much smaller height */
+    /* Enhanced styling for project bars with much smaller height and precise row positioning */
     .big-project-bar {
       box-sizing: border-box !important;
       border-width: 1px !important;
@@ -3092,17 +3092,32 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       display: flex !important;
       align-items: center !important;
       justify-content: flex-start !important;
-      height: 25% !important; /* Only 25% of row height */
-      /* Vertically center the bar in its row */
-      top: 37.5% !important; 
+      height: 6px !important; /* Fixed smaller height */
+      /* Vertically center the bar properly within its designated row */
+      top: calc(12.5% - 3px) !important; /* Row 0 - center of first 25% of bay */
     }
     
-    /* Department phase colors - match height of smaller project bars */
+    /* Make the project bar in row 1 properly centered in that row */
+    .row-1 .big-project-bar {
+      top: calc(37.5% - 3px) !important; /* Row 1 - center of second 25% of bay */
+    }
+    
+    /* Make the project bar in row 2 properly centered in that row */
+    .row-2 .big-project-bar {
+      top: calc(62.5% - 3px) !important; /* Row 2 - center of third 25% of bay */
+    }
+    
+    /* Make the project bar in row 3 properly centered in that row */
+    .row-3 .big-project-bar {
+      top: calc(87.5% - 3px) !important; /* Row 3 - center of fourth 25% of bay */
+    }
+    
+    /* Department phase colors - match height of smaller project bars and align precisely */
     .dept-phase {
-      height: 25% !important;
+      height: 6px !important;
       position: absolute !important;
+      /* Inherits the same top position from its parent .big-project-bar */
       top: 0 !important;
-      top: 37.5% !important; /* To match bar positioning */
     }
     
     .dept-fab-phase {
