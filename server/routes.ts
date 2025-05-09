@@ -585,22 +585,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Calculate total days for the project
             const totalDays = differenceInDays(endDate, startDate);
+            console.log(`Total project days: ${totalDays} from ${startDate} to ${endDate}`);
             
-            // Default phase percentages if not set in the project
-            const fabPercent = project.fabricationPercent || 27;
-            const paintPercent = project.paintPercent || 7;
-            const assemblyPercent = project.assemblyPercent || 60; // PROD phase
-            const itPercent = project.itPercent || 7;
-            const ntcPercent = project.ntcTestingPercent || 7;
-            const qcPercent = project.qcPercent || 7;
+            // Get phase percentages from the project schema fields (Schema has fabPercentage, etc)
+            // Convert to number since schema uses decimal type
+            const fabPercent = (project.fabPercentage !== null && project.fabPercentage !== undefined) ? 
+                Number(project.fabPercentage) : 27;
+            const paintPercent = (project.paintPercentage !== null && project.paintPercentage !== undefined) ? 
+                Number(project.paintPercentage) : 7;
+            const assemblyPercent = (project.productionPercentage !== null && project.productionPercentage !== undefined) ? 
+                Number(project.productionPercentage) : 60; // PROD phase
+            const itPercent = (project.itPercentage !== null && project.itPercentage !== undefined) ? 
+                Number(project.itPercentage) : 7;
+            const ntcPercent = (project.ntcPercentage !== null && project.ntcPercentage !== undefined) ? 
+                Number(project.ntcPercentage) : 7;
+            const qcPercent = (project.qcPercentage !== null && project.qcPercentage !== undefined) ? 
+                Number(project.qcPercentage) : 7;
+            
+            console.log(`Using phase percentages: FAB=${fabPercent}%, PAINT=${paintPercent}%, PROD=${assemblyPercent}%, IT=${itPercent}%, NTC=${ntcPercent}%, QC=${qcPercent}%`);
             
             // Calculate days for each phase
             const fabDays = Math.round((fabPercent / 100) * totalDays);
             const paintDays = Math.round((paintPercent / 100) * totalDays);
             const assemblyDays = Math.round((assemblyPercent / 100) * totalDays);
             const itDays = Math.round((itPercent / 100) * totalDays);
-            const ntcDays = Math.round((ntcTestingPercent / 100) * totalDays);
+            const ntcDays = Math.round((ntcPercent / 100) * totalDays);
             const qcDays = Math.round((qcPercent / 100) * totalDays);
+            
+            console.log(`Phase durations in days: FAB=${fabDays}, PAINT=${paintDays}, PROD=${assemblyDays}, IT=${itDays}, NTC=${ntcDays}, QC=${qcDays}`);
             
             // Calculate phase start dates
             // FAB starts at project start
@@ -694,22 +706,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Calculate total days for the project
             const totalDays = differenceInDays(endDate, startDate);
+            console.log(`Total project days: ${totalDays} from ${startDate} to ${endDate}`);
             
-            // Default phase percentages if not set in the project
-            const fabPercent = project.fabricationPercent || 27;
-            const paintPercent = project.paintPercent || 7;
-            const assemblyPercent = project.assemblyPercent || 60; // PROD phase
-            const itPercent = project.itPercent || 7;
-            const ntcPercent = project.ntcTestingPercent || 7;
-            const qcPercent = project.qcPercent || 7;
+            // Get phase percentages from the project schema fields (Schema has fabPercentage, etc)
+            // Convert to number since schema uses decimal type
+            const fabPercent = (project.fabPercentage !== null && project.fabPercentage !== undefined) ? 
+                Number(project.fabPercentage) : 27;
+            const paintPercent = (project.paintPercentage !== null && project.paintPercentage !== undefined) ? 
+                Number(project.paintPercentage) : 7;
+            const assemblyPercent = (project.productionPercentage !== null && project.productionPercentage !== undefined) ? 
+                Number(project.productionPercentage) : 60; // PROD phase
+            const itPercent = (project.itPercentage !== null && project.itPercentage !== undefined) ? 
+                Number(project.itPercentage) : 7;
+            const ntcPercent = (project.ntcPercentage !== null && project.ntcPercentage !== undefined) ? 
+                Number(project.ntcPercentage) : 7;
+            const qcPercent = (project.qcPercentage !== null && project.qcPercentage !== undefined) ? 
+                Number(project.qcPercentage) : 7;
+            
+            console.log(`Using phase percentages: FAB=${fabPercent}%, PAINT=${paintPercent}%, PROD=${assemblyPercent}%, IT=${itPercent}%, NTC=${ntcPercent}%, QC=${qcPercent}%`);
             
             // Calculate days for each phase
             const fabDays = Math.round((fabPercent / 100) * totalDays);
             const paintDays = Math.round((paintPercent / 100) * totalDays);
             const assemblyDays = Math.round((assemblyPercent / 100) * totalDays);
             const itDays = Math.round((itPercent / 100) * totalDays);
-            const ntcDays = Math.round((ntcTestingPercent / 100) * totalDays);
+            const ntcDays = Math.round((ntcPercent / 100) * totalDays);
             const qcDays = Math.round((qcPercent / 100) * totalDays);
+            
+            console.log(`Phase durations in days: FAB=${fabDays}, PAINT=${paintDays}, PROD=${assemblyDays}, IT=${itDays}, NTC=${ntcDays}, QC=${qcDays}`);
             
             // Create project update with new dates from the schedule
             const projectUpdate: any = {};
