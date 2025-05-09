@@ -39,7 +39,8 @@ export const dealStageEnum = pgEnum("deal_stage", [
   "project_launch",
   "site_core_activity", 
   "submit_decide",
-  "not_started"
+  "not_started",
+  "fruit_loop"
 ]);
 
 export const dealPriorityEnum = pgEnum("deal_priority", [

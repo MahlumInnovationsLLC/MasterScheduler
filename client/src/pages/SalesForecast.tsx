@@ -345,6 +345,7 @@ function SalesDealForm({
               <SelectItem value="site_core_activity">Site Core Activity</SelectItem>
               <SelectItem value="submit_decide">Submit & Decide</SelectItem>
               <SelectItem value="not_started">Not Started</SelectItem>
+              <SelectItem value="fruit_loop">Fruit Loop</SelectItem>
             </SelectContent>
           </Select>
         </div>
