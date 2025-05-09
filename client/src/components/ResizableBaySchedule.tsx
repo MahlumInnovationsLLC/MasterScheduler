@@ -1,5 +1,18 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { format, addDays, differenceInDays, differenceInMonths, isSameDay, addWeeks, addMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
+import { 
+  format, 
+  addDays, 
+  differenceInDays, 
+  differenceInMonths, 
+  isSameDay, 
+  addWeeks, 
+  addMonths, 
+  startOfMonth, 
+  endOfMonth, 
+  startOfWeek, 
+  endOfWeek,
+  getDaysInMonth
+} from 'date-fns';
 import { PlusCircle, GripVertical, Info, X, ChevronRight, ChevronLeft, PencilIcon, PlusIcon, Users, Zap, Clock as ClockIcon, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
