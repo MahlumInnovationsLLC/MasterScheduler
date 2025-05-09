@@ -20,7 +20,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ChevronLeft, Loader2 } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, ChevronLeft, Loader2 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FormDescription } from '@/components/ui/form';
@@ -112,8 +112,11 @@ function ProjectEdit() {
   const [activeTab, setActiveTab] = useState('general');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPercentageWarningOpen, setIsPercentageWarningOpen] = useState(false);
+  const [isShipDateWarningOpen, setIsShipDateWarningOpen] = useState(false);
   const [deletingProject, setDeletingProject] = useState(false);
   const [totalPercentage, setTotalPercentage] = useState(100);
+  const [originalShipDate, setOriginalShipDate] = useState<Date | null>(null);
+  const [pendingFormData, setPendingFormData] = useState<ProjectFormValues | null>(null);
 
   // Extract project ID from the URL
   const currentPath = window.location.pathname;
@@ -124,6 +127,18 @@ function ProjectEdit() {
     queryKey: [`/api/projects/${projectId}`],
     enabled: !!projectId,
   });
+  
+  // Check if project has a manufacturing schedule
+  const { data: manufacturingSchedules } = useQuery({
+    queryKey: ['/api/manufacturing-schedules'],
+    enabled: !!projectId,
+  });
+  
+  // Determine if this project is scheduled in a manufacturing bay
+  const isProjectScheduled = React.useMemo(() => {
+    if (!manufacturingSchedules || !projectId) return false;
+    return manufacturingSchedules.some((schedule: any) => schedule.projectId === parseInt(projectId));
+  }, [manufacturingSchedules, projectId]);
 
   // Create form with react-hook-form
   const form = useForm<ProjectFormValues>({
@@ -168,6 +183,11 @@ function ProjectEdit() {
   // Update form when project data is loaded
   useEffect(() => {
     if (project) {
+      // Save the original ship date for comparison
+      if (project.shipDate) {
+        setOriginalShipDate(new Date(project.shipDate));
+      }
+      
       // Calculate the number of days between contract date and delivery date if available
       let calculatedDays = 30; // Default
       if (project.contractDate && project.deliveryDate) {
