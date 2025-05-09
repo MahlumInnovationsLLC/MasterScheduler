@@ -3080,7 +3080,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       transform: none !important;
     }
 
-    /* Enhanced styling for project bars with percentage-based height */
+    /* Enhanced styling for project bars with much smaller height */
     .big-project-bar {
       box-sizing: border-box !important;
       border-width: 1px !important;
@@ -3092,14 +3092,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       display: flex !important;
       align-items: center !important;
       justify-content: flex-start !important;
-      height: 100% !important; /* Fill the row completely */
+      height: 25% !important; /* Only 25% of row height */
+      /* Vertically center the bar in its row */
+      top: 37.5% !important; 
     }
     
-    /* Department phase colors - full height to match project bars */
+    /* Department phase colors - match height of smaller project bars */
     .dept-phase {
-      height: 100% !important;
+      height: 25% !important;
       position: absolute !important;
       top: 0 !important;
+      top: 37.5% !important; /* To match bar positioning */
     }
     
     .dept-fab-phase {
@@ -3142,7 +3145,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
        The row classes are already defined above and having duplicates was causing positioning issues.
        Do not add these class definitions back as they conflict with the correct ones above. */
     
-    /* Resize handles - full height to match project bars */
+    /* Resize handles - match height of smaller project bars */
     .resize-handle {
       position: absolute !important;
       top: 0 !important;
