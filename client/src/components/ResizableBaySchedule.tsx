@@ -1647,6 +1647,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       rowIndex: validRowIndex
     });
     
+    // CRITICAL FIX: Set the row index in the global body attribute
+    // This ensures it's available when the drop handler runs
+    document.body.setAttribute('data-current-drag-row', validRowIndex.toString());
+    document.body.setAttribute('data-current-drag-bay', bayId.toString());
+    
     // Add prominent visual cue to the current cell - ENHANCED VERSION WITH COLUMN HIGHLIGHTING
     try {
       const target = e.currentTarget as HTMLElement;
