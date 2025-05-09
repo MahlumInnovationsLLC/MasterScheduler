@@ -1036,6 +1036,127 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     }
   }
+  
+  async removeManufacturingScheduleByProjectId(projectId: number): Promise<boolean> {
+    try {
+      console.log(`Removing manufacturing schedules for project ID ${projectId}`);
+      
+      const result = await db
+        .delete(manufacturingSchedules)
+        .where(eq(manufacturingSchedules.projectId, projectId));
+      
+      console.log(`Successfully removed manufacturing schedules for project ID ${projectId}`);
+      return true;
+    } catch (error) {
+      console.error(`Error removing manufacturing schedules for project ID ${projectId}:`, error);
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      return false;
+    }
+  }
+  
+  async restoreProject(projectId: number, userId: string): Promise<Project | undefined> {
+    try {
+      // Begin transaction
+      return await db.transaction(async (tx) => {
+        // 1. Fetch the archived project
+        const [archivedProject] = await tx
+          .select()
+          .from(archivedProjects)
+          .where(eq(archivedProjects.id, projectId));
+          
+        if (!archivedProject) {
+          console.error(`Archived project with ID ${projectId} not found for restoration`);
+          return undefined;
+        }
+        
+        // 2. Create project entry with recovered data
+        const projectData = {
+          id: archivedProject.originalId, // Use the original ID
+          projectNumber: archivedProject.projectNumber,
+          name: archivedProject.name,
+          description: archivedProject.description,
+          pmOwnerId: archivedProject.pmOwnerId,
+          pmOwner: archivedProject.pmOwner,
+          team: archivedProject.team,
+          location: archivedProject.location,
+          contractDate: archivedProject.contractDate,
+          startDate: archivedProject.startDate,
+          estimatedCompletionDate: archivedProject.estimatedCompletionDate,
+          actualCompletionDate: archivedProject.actualCompletionDate,
+          chassisETA: archivedProject.chassisETA,
+          fabricationStart: archivedProject.fabricationStart,
+          assemblyStart: archivedProject.assemblyStart,
+          wrapDate: archivedProject.wrapDate,
+          ntcTestingDate: archivedProject.ntcTestingDate,
+          qcStartDate: archivedProject.qcStartDate,
+          executiveReviewDate: archivedProject.executiveReviewDate,
+          shipDate: archivedProject.shipDate,
+          deliveryDate: archivedProject.deliveryDate,
+          percentComplete: archivedProject.percentComplete,
+          dpasRating: archivedProject.dpasRating,
+          stretchShortenGears: archivedProject.stretchShortenGears,
+          lltsOrdered: archivedProject.lltsOrdered,
+          qcDays: archivedProject.qcDays,
+          meAssigned: archivedProject.meAssigned,
+          meDesignOrdersPercent: archivedProject.meDesignOrdersPercent,
+          eeAssigned: archivedProject.eeAssigned,
+          eeDesignOrdersPercent: archivedProject.eeDesignOrdersPercent,
+          iteAssigned: archivedProject.iteAssigned,
+          itDesignOrdersPercent: archivedProject.itDesignOrdersPercent,
+          ntcDesignOrdersPercent: archivedProject.ntcDesignOrdersPercent,
+          status: "active", // Set status back to active
+          hasBillingMilestones: archivedProject.hasBillingMilestones,
+          notes: archivedProject.notes ? 
+            archivedProject.notes + 
+            `\n\n[${new Date().toISOString()}] Project restored from archive by user ID ${userId}` :
+            `[${new Date().toISOString()}] Project restored from archive by user ID ${userId}`,
+          rawData: archivedProject.rawData,
+          createdAt: archivedProject.originalCreatedAt,
+          updatedAt: new Date(),
+        };
+        
+        // 3. Insert into projects table
+        const [restoredProject] = await tx
+          .insert(projects)
+          .values(projectData)
+          .returning();
+        
+        if (!restoredProject) {
+          throw new Error(`Failed to insert restored project ${projectId}`);
+        }
+        
+        // 4. Delete the archived project
+        await tx
+          .delete(archivedProjects)
+          .where(eq(archivedProjects.id, projectId));
+          
+        // 5. Create a notification for the project restoration
+        await tx
+          .insert(notifications)
+          .values({
+            title: "Project Restored",
+            message: `Project ${restoredProject.projectNumber}: ${restoredProject.name} has been restored from the archive.`,
+            type: "system",
+            priority: "medium",
+            relatedProjectId: restoredProject.id,
+            createdAt: new Date(),
+          });
+        
+        console.log(`Project ${projectId} (${restoredProject.projectNumber}) restored successfully`);
+        return restoredProject;
+      });
+    } catch (error) {
+      console.error(`Error restoring project ${projectId}:`, error);
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      return undefined;
+    }
+  }
 
   // Delivered Projects methods
   async getDeliveredProjects(): Promise<any[]> {
