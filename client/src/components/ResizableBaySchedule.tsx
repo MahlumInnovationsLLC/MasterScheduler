@@ -2076,18 +2076,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // CRITICAL FIX: Get the stored original bay and row values from the document
-    // This ensures we place the project in the exact bay and row it was initially dragged from
+    // Get the stored bay ID from the document, but use the current row value
+    // This allows us to keep the bay consistent but enable dropping on any row
     const originalBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || '0');
-    const originalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
+    const currentRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
     
-    // FORCIBLY OVERRIDE the bay and row to ensure consistent behavior
-    // This is the key to keeping projects in the same bay and row
+    // Keep the bay ID consistent (projects stay in the same bay)
+    // But use the current row where the user is hovering
     let targetBayId = originalBayId > 0 ? originalBayId : bayId;
-    let targetRowIndex = originalRowIndex >= 0 ? originalRowIndex : Math.min(3, Math.max(0, rowIndex));
+    let targetRowIndex = Math.min(3, Math.max(0, rowIndex !== undefined ? rowIndex : currentRowIndex));
     
-    console.log(`DROP HANDLER using forced bay: ${targetBayId} and row: ${targetRowIndex} `);
-    console.log(`(Original stored values: bay=${originalBayId}, row=${originalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
+    console.log(`DROP HANDLER using bay: ${targetBayId} with row: ${targetRowIndex} `);
+    console.log(`(Current stored values: bay=${originalBayId}, current row=${currentRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
     
     // Read data attributes from the drop target element for more precise week targeting
     let targetElement = e.target as HTMLElement;
@@ -2521,17 +2521,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           bayElement.appendChild(placeholderDiv);
         }
         
-        // CRITICAL: Use the forced bay ID and row index set during drag operations
-        // This ensures the schedule is created in the exact bay and row where the user placed it
-        const forcedBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || '0');
-        const forcedRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
+        // Get the bay ID from the global data attribute (keeps projects in same bay)
+        // But use the target row index where the user actually dropped (allows placing on any row)
+        const storedBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || '0');
+        const currentRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
         
-        // Use the forced values if available, otherwise fall back to the targetBayId/targetRowIndex
-        const finalBayId = forcedBayId > 0 ? forcedBayId : targetBayId;
-        const finalRowIndex = forcedRowIndex >= 0 ? forcedRowIndex : targetRowIndex;
+        // Use the stored bay ID if available, but always use the target row index
+        // This allows projects to be placed on any row within the bay
+        const finalBayId = storedBayId > 0 ? storedBayId : targetBayId;
+        const finalRowIndex = targetRowIndex; // Use the row where the project was dropped
         
-        console.log(`Creating schedule with FORCED values: bay=${finalBayId} row=${finalRowIndex}`);
-        console.log(`(Original values were: bay=${targetBayId} row=${targetRowIndex})`);
+        console.log(`Creating schedule with bay=${finalBayId} row=${finalRowIndex}`);
+        console.log(`(Current values: bay=${targetBayId} row=${targetRowIndex}, stored values: bay=${storedBayId} row=${currentRowIndex})`);
         
         // Call the API with our forced values
         onScheduleCreate(
