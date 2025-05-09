@@ -37,7 +37,7 @@ import {
   getDeliveryAnalytics
 } from "./routes/deliveryTracking";
 import { countWorkingDays } from "@shared/utils/date-utils";
-import { format } from "date-fns";
+import { format, differenceInDays, addDays } from "date-fns";
 import {
   analyzeProjectHealth,
   generateBillingInsights,
@@ -576,20 +576,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (project) {
             // Create project update with new dates from the schedule
+            const startDate = new Date(data.startDate);
+            const endDate = new Date(data.endDate);
+            
+            // CRITICAL FIX: Calculate all phase dates based on the schedule
+            // This ensures that the PROD phase shown in the bay schedule is correctly 
+            // reflected in the project data
+            
+            // Calculate total days for the project
+            const totalDays = differenceInDays(endDate, startDate);
+            
+            // Default phase percentages if not set in the project
+            const fabPercent = project.fabricationPercent || 27;
+            const paintPercent = project.paintPercent || 7;
+            const assemblyPercent = project.assemblyPercent || 60; // PROD phase
+            const itPercent = project.itPercent || 7;
+            const ntcPercent = project.ntcTestingPercent || 7;
+            const qcPercent = project.qcPercent || 7;
+            
+            // Calculate days for each phase
+            const fabDays = Math.round((fabPercent / 100) * totalDays);
+            const paintDays = Math.round((paintPercent / 100) * totalDays);
+            const assemblyDays = Math.round((assemblyPercent / 100) * totalDays);
+            const itDays = Math.round((itPercent / 100) * totalDays);
+            const ntcDays = Math.round((ntcTestingPercent / 100) * totalDays);
+            const qcDays = Math.round((qcPercent / 100) * totalDays);
+            
+            // Calculate phase start dates
+            // FAB starts at project start
+            const fabStartDate = startDate;
+            // PAINT starts after FAB 
+            const paintStartDate = addDays(startDate, fabDays);
+            // Assembly (PROD) starts after PAINT
+            const assemblyStartDate = addDays(paintStartDate, paintDays);
+            // IT starts after most of Assembly
+            const itStartDate = addDays(assemblyStartDate, Math.round(assemblyDays * 0.8));
+            // NTC testing starts after IT
+            const ntcTestingDate = addDays(itStartDate, itDays);
+            // QC starts after NTC
+            const qcStartDate = addDays(ntcTestingDate, ntcDays);
+            // Executive review happens near the end
+            const executiveReviewDate = addDays(qcStartDate, Math.round(qcDays * 0.8));
+            
             const projectUpdate = {
-              startDate: format(new Date(data.startDate), 'yyyy-MM-dd'),
+              startDate: format(startDate, 'yyyy-MM-dd'),
               // Use the schedule's end date to update the project's estimated completion 
-              estimatedCompletionDate: format(new Date(data.endDate), 'yyyy-MM-dd'),
+              estimatedCompletionDate: format(endDate, 'yyyy-MM-dd'),
               // CRITICAL: Always update shipDate to match the schedule's end date
               // This ensures that when a project is placed in bay schedule, 
               // its ship date is synchronized with the end of the project bar
-              shipDate: format(new Date(data.endDate), 'yyyy-MM-dd'),
+              shipDate: format(endDate, 'yyyy-MM-dd'),
               // Only update deliveryDate if it's not already set
               ...(
                 !project.deliveryDate 
-                  ? { deliveryDate: format(new Date(data.endDate), 'yyyy-MM-dd') }
+                  ? { deliveryDate: format(endDate, 'yyyy-MM-dd') }
                   : {}
-              )
+              ),
+              
+              // CRITICAL: Update all phase dates to match the schedule
+              fabricationStart: format(fabStartDate, 'yyyy-MM-dd'),
+              assemblyStart: format(assemblyStartDate, 'yyyy-MM-dd'),
+              wrapDate: format(paintStartDate, 'yyyy-MM-dd'),
+              ntcTestingDate: format(ntcTestingDate, 'yyyy-MM-dd'),
+              qcStartDate: format(qcStartDate, 'yyyy-MM-dd'),
+              executiveReviewDate: format(executiveReviewDate, 'yyyy-MM-dd'),
             };
             
             console.log(`Updating project ${data.projectId} with dates from schedule: `, projectUpdate);
@@ -638,30 +688,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const project = await storage.getProject(projectId);
           
           if (project) {
+            // Need both start and end dates for calculation
+            const startDate = data.startDate ? new Date(data.startDate) : new Date(originalSchedule.startDate);
+            const endDate = data.endDate ? new Date(data.endDate) : new Date(originalSchedule.endDate);
+            
+            // Calculate total days for the project
+            const totalDays = differenceInDays(endDate, startDate);
+            
+            // Default phase percentages if not set in the project
+            const fabPercent = project.fabricationPercent || 27;
+            const paintPercent = project.paintPercent || 7;
+            const assemblyPercent = project.assemblyPercent || 60; // PROD phase
+            const itPercent = project.itPercent || 7;
+            const ntcPercent = project.ntcTestingPercent || 7;
+            const qcPercent = project.qcPercent || 7;
+            
+            // Calculate days for each phase
+            const fabDays = Math.round((fabPercent / 100) * totalDays);
+            const paintDays = Math.round((paintPercent / 100) * totalDays);
+            const assemblyDays = Math.round((assemblyPercent / 100) * totalDays);
+            const itDays = Math.round((itPercent / 100) * totalDays);
+            const ntcDays = Math.round((ntcTestingPercent / 100) * totalDays);
+            const qcDays = Math.round((qcPercent / 100) * totalDays);
+            
             // Create project update with new dates from the schedule
             const projectUpdate: any = {};
             
-            // Only update dates that were changed in the schedule
+            // Always update all dates when either start or end date changes
+            // This ensures the phase dates are kept in sync
+            
+            // Basic dates
             if (data.startDate) {
-              projectUpdate.startDate = format(new Date(data.startDate), 'yyyy-MM-dd');
+              projectUpdate.startDate = format(startDate, 'yyyy-MM-dd');
             }
             
             if (data.endDate) {
-              // Always update estimated completion date when the schedule end date changes
-              projectUpdate.estimatedCompletionDate = format(new Date(data.endDate), 'yyyy-MM-dd');
-              
-              // CRITICAL: Always update ship date to match the schedule's end date
-              // This ensures that when a project is moved or resized in bay schedule,
-              // its ship date is synchronized with the end of the project bar
-              projectUpdate.shipDate = format(new Date(data.endDate), 'yyyy-MM-dd');
+              projectUpdate.estimatedCompletionDate = format(endDate, 'yyyy-MM-dd');
+              projectUpdate.shipDate = format(endDate, 'yyyy-MM-dd');
               
               // Only update deliveryDate if the project end date is after the current delivery date
               // or if deliveryDate is not set
               if (!project.deliveryDate || 
                   (new Date(data.endDate) > new Date(project.deliveryDate))) {
-                projectUpdate.deliveryDate = format(new Date(data.endDate), 'yyyy-MM-dd');
+                projectUpdate.deliveryDate = format(endDate, 'yyyy-MM-dd');
               }
             }
+            
+            // CRITICAL: Update all phase dates based on the new schedule
+            // Calculate phase start dates
+            const fabStartDate = startDate;
+            const paintStartDate = addDays(startDate, fabDays);
+            const assemblyStartDate = addDays(paintStartDate, paintDays);
+            const itStartDate = addDays(assemblyStartDate, Math.round(assemblyDays * 0.8));
+            const ntcTestingDate = addDays(itStartDate, itDays);
+            const qcStartDate = addDays(ntcTestingDate, ntcDays);
+            const executiveReviewDate = addDays(qcStartDate, Math.round(qcDays * 0.8));
+            
+            // Add phase dates to update object
+            projectUpdate.fabricationStart = format(fabStartDate, 'yyyy-MM-dd');
+            projectUpdate.wrapDate = format(paintStartDate, 'yyyy-MM-dd');
+            projectUpdate.assemblyStart = format(assemblyStartDate, 'yyyy-MM-dd');
+            projectUpdate.ntcTestingDate = format(ntcTestingDate, 'yyyy-MM-dd');
+            projectUpdate.qcStartDate = format(qcStartDate, 'yyyy-MM-dd');
+            projectUpdate.executiveReviewDate = format(executiveReviewDate, 'yyyy-MM-dd');
             
             if (Object.keys(projectUpdate).length > 0) {
               console.log(`Updating project ${projectId} with dates from schedule: `, projectUpdate);
