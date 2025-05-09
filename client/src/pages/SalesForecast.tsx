@@ -730,7 +730,7 @@ export default function SalesForecast() {
   const [dealToConvert, setDealToConvert] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("all");
   const [filter, setFilter] = useState("");
-  const [viewMode, setViewMode] = useState<"card" | "table">("card"); // Toggle between card and table views
+  const [viewMode, setViewMode] = useState<"card" | "table">("table"); // Toggle between card and table views, default to table view
   const { toast } = useToast();
   const queryClient = useQueryClient();
   

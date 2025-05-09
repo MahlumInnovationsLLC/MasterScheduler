@@ -46,22 +46,22 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
       accessorKey: "dealNumber",
       header: "Project",
       cell: ({ row }) => (
-        <div className="flex items-start">
-          <div className="font-medium">{row.original.dealNumber}</div>
-          <div className="ml-1 text-sm text-muted-foreground">{row.original.name}</div>
+        <div className="flex flex-col space-y-1">
+          <div className="font-medium dark:text-white">{row.original.dealNumber}</div>
+          <div className="text-sm text-muted-foreground dark:text-gray-300">{row.original.name}</div>
         </div>
       ),
     },
     {
       accessorKey: "clientName",
       header: "Client",
-      cell: ({ row }) => <div>{row.original.clientName}</div>,
+      cell: ({ row }) => <div className="dark:text-white">{row.original.clientName}</div>,
     },
     {
       accessorKey: "dealType",
       header: "Deal Type",
       cell: ({ row }) => (
-        <div className="text-sm capitalize">
+        <div className="text-sm capitalize dark:text-gray-300">
           {row.original.dealType.replace(/_/g, " ")}
         </div>
       ),
@@ -180,13 +180,13 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
   });
 
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border dark:border-gray-700">
       <Table>
-        <TableHeader>
+        <TableHeader className="bg-gray-50 dark:bg-gray-800">
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
+            <TableRow key={headerGroup.id} className="dark:border-gray-700">
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
+                <TableHead key={header.id} className="font-semibold text-gray-700 dark:text-gray-200">
                   {header.isPlaceholder
                     ? null
                     : flexRender(
@@ -204,17 +204,18 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
+                className="hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700"
               >
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
+                  <TableCell key={cell.id} className="dark:text-gray-200">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
               </TableRow>
             ))
           ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
+            <TableRow className="dark:border-gray-700">
+              <TableCell colSpan={columns.length} className="h-24 text-center dark:text-gray-300">
                 No deals found.
               </TableCell>
             </TableRow>
