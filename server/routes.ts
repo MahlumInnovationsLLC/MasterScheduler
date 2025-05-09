@@ -579,8 +579,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const projectUpdate = {
               startDate: format(new Date(data.startDate), 'yyyy-MM-dd'),
               // Use the schedule's end date to update the project's estimated completion 
-              // and delivery dates if they're not already set
               estimatedCompletionDate: format(new Date(data.endDate), 'yyyy-MM-dd'),
+              // CRITICAL: Always update shipDate to match the schedule's end date
+              // This ensures that when a project is placed in bay schedule, 
+              // its ship date is synchronized with the end of the project bar
+              shipDate: format(new Date(data.endDate), 'yyyy-MM-dd'),
               // Only update deliveryDate if it's not already set
               ...(
                 !project.deliveryDate 
@@ -646,6 +649,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (data.endDate) {
               // Always update estimated completion date when the schedule end date changes
               projectUpdate.estimatedCompletionDate = format(new Date(data.endDate), 'yyyy-MM-dd');
+              
+              // CRITICAL: Always update ship date to match the schedule's end date
+              // This ensures that when a project is moved or resized in bay schedule,
+              // its ship date is synchronized with the end of the project bar
+              projectUpdate.shipDate = format(new Date(data.endDate), 'yyyy-MM-dd');
               
               // Only update deliveryDate if the project end date is after the current delivery date
               // or if deliveryDate is not set
