@@ -3080,7 +3080,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       transform: none !important;
     }
 
-    /* Enhanced styling for project bars with much smaller height and precise row positioning */
+    /* Project bars that fill the ENTIRE ROW height (25% of bay) */
     .big-project-bar {
       box-sizing: border-box !important;
       border-width: 1px !important;
@@ -3092,31 +3092,31 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       display: flex !important;
       align-items: center !important;
       justify-content: flex-start !important;
-      height: 6px !important; /* Fixed smaller height */
-      /* Vertically center the bar properly within its designated row */
-      top: calc(12.5% - 3px) !important; /* Row 0 - center of first 25% of bay */
+      height: 25% !important; /* FULL ROW HEIGHT - exactly 25% of bay */
+      top: 0 !important; /* No offset - fill the entire row */
     }
     
-    /* Make the project bar in row 1 properly centered in that row */
+    /* Row positions - each row gets its own vertical position */
+    .row-0 .big-project-bar {
+      top: 0% !important; /* Row 0 starts at top of bay */
+    }
+    
     .row-1 .big-project-bar {
-      top: calc(37.5% - 3px) !important; /* Row 1 - center of second 25% of bay */
+      top: 25% !important; /* Row 1 starts at 25% of bay height */
     }
     
-    /* Make the project bar in row 2 properly centered in that row */
     .row-2 .big-project-bar {
-      top: calc(62.5% - 3px) !important; /* Row 2 - center of third 25% of bay */
+      top: 50% !important; /* Row 2 starts at 50% of bay height */
     }
     
-    /* Make the project bar in row 3 properly centered in that row */
     .row-3 .big-project-bar {
-      top: calc(87.5% - 3px) !important; /* Row 3 - center of fourth 25% of bay */
+      top: 75% !important; /* Row 3 starts at 75% of bay height */
     }
     
-    /* Department phase colors - match height of smaller project bars and align precisely */
+    /* Department phase colors - MATCH THE FULL ROW HEIGHT */
     .dept-phase {
-      height: 6px !important;
+      height: 100% !important; /* Full height of the project bar */
       position: absolute !important;
-      /* Inherits the same top position from its parent .big-project-bar */
       top: 0 !important;
     }
     
