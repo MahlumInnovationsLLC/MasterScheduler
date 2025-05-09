@@ -3044,25 +3044,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       min-height: 24px !important;
     }
     
-    /* Row positioning */
+    /* Row positioning - FIXED to ensure row snapping works correctly */
     .row-0-bar {
-      top: 0%;
+      top: 0% !important;
       height: 25% !important;
+      transform: none !important;
     }
     
     .row-1-bar {
-      top: 25%;
+      top: 25% !important;
       height: 25% !important;
+      transform: none !important;
     }
     
     .row-2-bar {
-      top: 50%;
+      top: 50% !important;
       height: 25% !important;
+      transform: none !important;
     }
     
     .row-3-bar {
-      top: 75%;
+      top: 75% !important;
       height: 25% !important;
+      transform: none !important;
     }
 
     /* Enhanced styling for project bars to fill rows properly */
@@ -3123,30 +3127,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       z-index: 6 !important;
     }
     
-    /* Row-specific positioning - these classes position bars in each of the 4 rows */
-    .row-0-bar {
-      top: 0% !important;
-      height: 24% !important;
-      transform: translateY(0%) !important;
-    }
-    
-    .row-1-bar {
-      top: 25% !important;
-      height: 24% !important;
-      transform: translateY(0%) !important;
-    }
-    
-    .row-2-bar {
-      top: 50% !important;
-      height: 24% !important;
-      transform: translateY(0%) !important;
-    }
-    
-    .row-3-bar {
-      top: 75% !important;
-      height: 24% !important;
-      transform: translateY(0%) !important;
-    }
+    /* CRITICAL FIX: Row-specific positioning - This part is intentionally REMOVED as it was creating conflicts
+       The row classes are already defined above and having duplicates was causing positioning issues.
+       Do not add these class definitions back as they conflict with the correct ones above. */
     
     /* Resize handles */
     .resize-handle {
