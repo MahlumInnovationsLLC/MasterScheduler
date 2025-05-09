@@ -637,10 +637,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   lastLogin: true,
 });
 
-export const insertUserAuditLogSchema = createInsertSchema(userAuditLogs).omit({
-  id: true,
-  timestamp: true,
-});
+// User Audit Log insert schema is defined later
 
 export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,
@@ -714,9 +711,18 @@ export const insertSalesDealSchema = createInsertSchema(salesDeals).omit({
   updatedAt: true,
 });
 
+// Create insert schema for user audit logs
+export const insertUserAuditLogSchema = createInsertSchema(userAuditLogs).omit({
+  id: true,
+  timestamp: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type UserAuditLog = typeof userAuditLogs.$inferSelect;
+export type InsertUserAuditLog = z.infer<typeof insertUserAuditLogSchema>;
 
 export type SalesDeal = typeof salesDeals.$inferSelect;
 export type InsertSalesDeal = z.infer<typeof insertSalesDealSchema>;

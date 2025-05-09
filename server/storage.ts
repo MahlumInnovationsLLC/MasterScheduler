@@ -12,6 +12,7 @@ import {
   archivedProjects,
   deliveryTracking,
   salesDeals,
+  userAuditLogs,
   type User,
   type InsertUser,
   type Project,
@@ -38,6 +39,8 @@ import {
   type InsertDeliveryTracking,
   type SalesDeal,
   type InsertSalesDeal,
+  type UserAuditLog,
+  type InsertUserAuditLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, or } from "drizzle-orm";
@@ -92,6 +95,13 @@ export interface IStorage {
   upsertUser(user: InsertUser): Promise<User>;
   updateUserRole(id: string, role: string, isApproved: boolean): Promise<User | undefined>;
   updateUserLastLogin(id: string): Promise<User | undefined>;
+  
+  // User archiving and audit logs
+  updateUserStatus(id: string, status: string, performedBy: string, details: string): Promise<User | undefined>;
+  archiveUser(id: string, performedBy: string, reason: string): Promise<User | undefined>;
+  getUserAuditLogs(userId: string): Promise<any[]>;
+  getAllUserAuditLogs(): Promise<any[]>;
+  createUserAuditLog(userId: string, action: string, performedBy: string, previousData?: any, newData?: any, details?: string): Promise<any>;
   
   // User Preferences methods
   getUserPreferences(userId: string): Promise<UserPreference | undefined>;
@@ -273,6 +283,91 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error updating user last login:", error);
       return undefined;
+    }
+  }
+  
+  // User archiving and audit logs methods
+  async updateUserStatus(id: string, status: string, performedBy: string, details: string): Promise<User | undefined> {
+    try {
+      // First get the existing user data for audit logging
+      const currentUser = await this.getUser(id);
+      if (!currentUser) {
+        return undefined;
+      }
+      
+      // Update the user's status
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          status: status,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, id))
+        .returning();
+      
+      // Create an audit log entry
+      await this.createUserAuditLog(
+        id,
+        "STATUS_CHANGE",
+        performedBy,
+        { status: currentUser.status },
+        { status: status },
+        details
+      );
+      
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      return undefined;
+    }
+  }
+  
+  async archiveUser(id: string, performedBy: string, reason: string): Promise<User | undefined> {
+    return await this.updateUserStatus(id, 'archived', performedBy, reason);
+  }
+  
+  async getUserAuditLogs(userId: string): Promise<UserAuditLog[]> {
+    return await safeQuery<UserAuditLog>(() =>
+      db.select()
+        .from(userAuditLogs)
+        .where(eq(userAuditLogs.userId, userId))
+        .orderBy(desc(userAuditLogs.timestamp))
+    );
+  }
+  
+  async getAllUserAuditLogs(): Promise<UserAuditLog[]> {
+    return await safeQuery<UserAuditLog>(() =>
+      db.select()
+        .from(userAuditLogs)
+        .orderBy(desc(userAuditLogs.timestamp))
+    );
+  }
+  
+  async createUserAuditLog(
+    userId: string, 
+    action: string, 
+    performedBy: string, 
+    previousData?: any, 
+    newData?: any, 
+    details?: string
+  ): Promise<UserAuditLog> {
+    try {
+      const [log] = await db
+        .insert(userAuditLogs)
+        .values({
+          userId,
+          action,
+          performedBy,
+          previousData: previousData ? JSON.stringify(previousData) : null,
+          newData: newData ? JSON.stringify(newData) : null,
+          details,
+          timestamp: new Date()
+        })
+        .returning();
+      return log;
+    } catch (error) {
+      console.error("Error creating user audit log:", error);
+      throw error;
     }
   }
   
