@@ -186,7 +186,7 @@ const getProjectColor = (projectId: number) => {
 const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSchedules: ManufacturingSchedule[] }) => {
   const assemblyStaff = bay.assemblyStaffCount || 0;
   const electricalStaff = bay.electricalStaffCount || 0;
-  const hoursPerWeek = bay.hoursPerPersonPerWeek || 40;
+  const hoursPerWeek = bay.hoursPerPersonPerWeek || 0; // No fallback to hardcoded value
   const staffCount = bay.staffCount || assemblyStaff + electricalStaff;
   const weeklyCapacity = hoursPerWeek * staffCount;
   
@@ -469,7 +469,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       if (!bay) return;
       
       // Get the bay's capacity
-      const baseWeeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
+      const baseWeeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 0) * (bay.staffCount || 1));
       
       // Sort schedules by start date (top rows first)
       const sortedSchedules = [...baySchedules].sort((a, b) => {
@@ -671,7 +671,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       if (!bay) return;
       
       // Get the base capacity for this bay
-      const baseWeeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || 1));
+      const baseWeeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 0) * (bay.staffCount || 1));
       
       // Sort schedules by start date
       const sortedSchedules = [...baySchedules].sort((a, b) => 
