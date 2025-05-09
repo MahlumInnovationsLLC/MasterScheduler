@@ -110,6 +110,13 @@ export const sessions = pgTable(
 );
 
 // Users Table
+// User status enum
+export const userStatusEnum = pgEnum("user_status", [
+  "active",
+  "inactive",
+  "archived",
+]);
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
   username: varchar("username").unique().notNull(),
@@ -123,17 +130,40 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   role: text("role").default("pending"),  // Using text for backward compatibility
   isApproved: boolean("is_approved").default(false),
+  status: userStatusEnum("status").default("active"),
   lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // User Relations
+// User Audit Logs Table
+export const userAuditLogs = pgTable("user_audit_logs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  action: text("action").notNull(), // e.g., "created", "updated", "archived", "restored", "role_changed", etc.
+  performedBy: varchar("performed_by").references(() => users.id).notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  previousData: jsonb("previous_data"),
+  newData: jsonb("new_data"),
+  details: text("details"), // Additional context about the change
+});
+
 export const usersRelations = relations(users, ({ one, many }) => ({
   preferences: one(userPreferences, {
     fields: [users.id],
     references: [userPreferences.userId],
     relationName: "userPreferences",
+  }),
+  auditLogs: many(userAuditLogs, { 
+    relationName: "userAuditLogs",
+    fields: [users.id],
+    references: [userAuditLogs.userId] 
+  }),
+  actionsPerformed: many(userAuditLogs, { 
+    relationName: "actionsPerformed", 
+    fields: [users.id],
+    references: [userAuditLogs.performedBy] 
   }),
   projects: many(projects),
   salesDeals: many(salesDeals),
@@ -603,7 +633,13 @@ export const insertUserSchema = createInsertSchema(users).pick({
   profileImageUrl: true,
   role: true,
   isApproved: true,
+  status: true, 
   lastLogin: true,
+});
+
+export const insertUserAuditLogSchema = createInsertSchema(userAuditLogs).omit({
+  id: true,
+  timestamp: true,
 });
 
 export const insertProjectSchema = createInsertSchema(projects).omit({
