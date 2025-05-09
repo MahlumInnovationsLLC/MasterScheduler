@@ -2804,8 +2804,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
     
     .dragging-active .bay-row-highlight {
-      background-color: rgba(59, 130, 246, 0.2);
+      background-color: rgba(59, 130, 246, 0.3);
       transition: all 0.2s ease-in-out;
+      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.6);
+    }
+    
+    /* Row-specific highlight styles with increased visibility */
+    .dragging-active [class*="row-"][class*="-highlight"] {
+      position: relative;
+      background-color: rgba(99, 102, 241, 0.2);
+      box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.8);
+      z-index: 2;
     }
     
     @keyframes pulse {
@@ -3737,6 +3746,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         // Show which cell row is being targeted with data attributes
                         e.currentTarget.setAttribute('data-target-row', rowIndex.toString());
                         e.currentTarget.setAttribute('data-week-number', format(slot.date, 'w'));
+                        
+                        // CRITICAL: Update the global data-current-drag-row attribute
+                        // This ensures the drop handler knows exactly which row to use
+                        document.body.setAttribute('data-current-drag-row', rowIndex.toString());
                         
                         // Add visual highlight for better row targeting
                         const highlightClass = `row-${rowIndex}-highlight`;
