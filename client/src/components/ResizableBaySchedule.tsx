@@ -3058,29 +3058,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     /* Row positioning - Fixed with proper height values for single row placement */
     .row-0-bar {
       top: 0% !important;
-      height: 20px !important;
+      height: 25% !important; /* Match row height at 25% of bay */
       transform: none !important;
     }
     
     .row-1-bar {
       top: 25% !important;
-      height: 20px !important;
+      height: 25% !important; /* Match row height at 25% of bay */
       transform: none !important;
     }
     
     .row-2-bar {
       top: 50% !important;
-      height: 20px !important;
+      height: 25% !important; /* Match row height at 25% of bay */
       transform: none !important;
     }
     
     .row-3-bar {
       top: 75% !important;
-      height: 20px !important;
+      height: 25% !important; /* Match row height at 25% of bay */
       transform: none !important;
     }
 
-    /* Enhanced styling for project bars with fixed height */
+    /* Enhanced styling for project bars with percentage-based height */
     .big-project-bar {
       box-sizing: border-box !important;
       border-width: 1px !important;
@@ -3092,12 +3092,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       display: flex !important;
       align-items: center !important;
       justify-content: flex-start !important;
-      height: 20px !important; /* Fixed height to match row height */
+      height: 100% !important; /* Fill the row completely */
     }
     
-    /* Department phase colors - fixed height to match project bars */
+    /* Department phase colors - full height to match project bars */
     .dept-phase {
-      height: 20px !important;
+      height: 100% !important;
       position: absolute !important;
       top: 0 !important;
     }
@@ -3142,11 +3142,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
        The row classes are already defined above and having duplicates was causing positioning issues.
        Do not add these class definitions back as they conflict with the correct ones above. */
     
-    /* Resize handles - fixed height to match project bars */
+    /* Resize handles - full height to match project bars */
     .resize-handle {
       position: absolute !important;
       top: 0 !important;
-      height: 20px !important;
+      height: 100% !important;
       width: 12px !important;
       display: flex !important;
       align-items: center !important;
