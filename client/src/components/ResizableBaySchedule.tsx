@@ -1492,9 +1492,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // First, store the current bay ID in a data attribute on the drag element
     // This ensures we know which bay the drag started in
     const dragElement = e.currentTarget as HTMLElement;
+    
+    // CRITICAL: Record initial bay and row when first starting to drag
+    // This ensures we track where the drag originated from
     if (dragElement && !dragElement.hasAttribute('data-original-bay-id')) {
       dragElement.setAttribute('data-original-bay-id', bayId.toString());
       console.log(`Setting original bay ID: ${bayId} on element`, dragElement);
+      
+      // Also store the initial row
+      const initialRow = Math.max(0, Math.min(3, rowIndex));
+      dragElement.setAttribute('data-original-row', initialRow.toString());
+      console.log(`Setting original row: ${initialRow} on element`, dragElement);
+      
+      // Store on the document as well for global access
+      document.body.setAttribute('data-current-drag-bay', bayId.toString());
+      document.body.setAttribute('data-current-drag-row', initialRow.toString());
     }
     
     // Get the main scrollable container for auto-scroll
@@ -1572,25 +1584,31 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.error('Error cleaning up highlight classes in drag over:', error);
     }
     
-    // CRITICAL: Verify we're still in the same bay we started with
-    const originalBayId = parseInt(dragElement.getAttribute('data-original-bay-id') || '0');
+    // CRITICAL: Get stored values for original bay and row
+    // This ensures we're consistently using the same bay/row throughout the drag operation
+    const originalBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || dragElement.getAttribute('data-original-bay-id') || '0');
+    const originalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || dragElement.getAttribute('data-original-row') || '0');
     
-    // If we've moved to a different bay than where we started, force the calculated row to be from 0-3
-    // This prevents the row from being outside the 4 rows per bay
-    if (bayId !== originalBayId && originalBayId > 0) {
-      console.log(`Bay mismatch: Original ${originalBayId}, Current ${bayId} - fixing row to stay in original bay`);
-      // Don't update the bay in the dragElement, keep the original
-    }
+    // FORCE BAY AND ROW - This is the key to fixing the issue
+    // We override both the bay and row values with our stored values
+    // This ensures projects always drop in the same bay/row they started in
+    const forcedBayId = originalBayId > 0 ? originalBayId : bayId;
     
-    // Determine row index if not provided based on cell position
+    // We use the original row from where the drag started
+    // This ensures projects stay in exactly the row where they were initially dragged
+    const forcedRowIndex = originalRowIndex >= 0 ? originalRowIndex : Math.max(0, Math.min(3, rowIndex));
+    
+    console.log(`Using forced bay ${forcedBayId} and row ${forcedRowIndex} (original bay: ${originalBayId}, original row: ${originalRowIndex})`);
+    
+    // Determine row index if not provided based on cell position - but we'll override it with our forced row
     const cellHeight = e.currentTarget.clientHeight;
     const relativeY = e.nativeEvent.offsetY;
     const calculatedRowIndex = rowIndex !== undefined 
       ? rowIndex 
       : Math.floor((relativeY / cellHeight) * 4);
     
-    // CRITICAL: Ensure the row is between 0-3 regardless of bay changes
-    const validRowIndex = Math.max(0, Math.min(3, calculatedRowIndex));
+    // Set the valid row index to our forced row
+    const validRowIndex = forcedRowIndex;
     
     // Add highlight to the current target cell
     if (e.currentTarget) {
@@ -2067,13 +2085,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
+    // CRITICAL FIX: Get the stored original bay and row values from the document
+    // This ensures we place the project in the exact bay and row it was initially dragged from
+    const originalBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || '0');
+    const originalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
+    
+    // FORCIBLY OVERRIDE the bay and row to ensure consistent behavior
+    // This is the key to keeping projects in the same bay and row
+    let targetBayId = originalBayId > 0 ? originalBayId : bayId;
+    let targetRowIndex = originalRowIndex >= 0 ? originalRowIndex : Math.min(3, Math.max(0, rowIndex));
+    
+    console.log(`DROP HANDLER using forced bay: ${targetBayId} and row: ${targetRowIndex} `);
+    console.log(`(Original stored values: bay=${originalBayId}, row=${originalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
+    
     // Read data attributes from the drop target element for more precise week targeting
     let targetElement = e.target as HTMLElement;
-    // CRITICAL: Never override the original bay ID from the parameters
-    // This ensures we stick to the bay where the drag operation started
-    let targetBayId = bayId;
     let targetSlotIndex = slotIndex;
-    let targetRowIndex = rowIndex;
     
     // First try the direct target element for data attributes
     const dataBayId = targetElement.getAttribute('data-bay-id');
@@ -2082,21 +2109,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const dataRow = targetElement.getAttribute('data-row');
     const dataDate = targetElement.getAttribute('data-date');
     
-    // Apply any attributes found directly on the target
-    // PRIORITY ORDER:
-    // 1. data-exact-slot-index (set during drag over)
-    // 2. data-slot-index
-    // CRITICAL FIX: Only update bay ID if it matches the original bay to prevent jumping to other bays
-    if (dataBayId) {
-      const parsedBayId = parseInt(dataBayId);
-      // Verify this is the same bay to prevent cross-bay jumping
-      if (parsedBayId === bayId) {
-        targetBayId = parsedBayId;
-      } else {
-        console.log(`Bay ID mismatch - sticking with original bay ${bayId} instead of ${parsedBayId}`);
-      }
-    }
-    
+    // For SLOT INDEX ONLY (not bay or row), use the data attributes if available
+    // We still want the week/date precision from the drop target
     if (dataExactSlotIndex) {
       targetSlotIndex = parseInt(dataExactSlotIndex);
       console.log('Using exact slot index from data-exact-slot-index:', targetSlotIndex);
@@ -2105,66 +2119,30 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.log('Using slot index from data-slot-index:', targetSlotIndex);
     }
     
-    if (dataRow) {
-      const parsedRow = parseInt(dataRow);
-      // Ensure row is between 0-3
-      targetRowIndex = Math.min(3, Math.max(0, parsedRow));
-    }
-    
     // Then try to find the closest cell marker element with data-slot-index if needed
-    if (!dataSlotIndex || !dataBayId) {
+    if (!dataSlotIndex) {
       const cellElement = targetElement.closest('[data-slot-index]') as HTMLElement;
       if (cellElement) {
-        // Update from data attributes if they exist and weren't found directly
-        const cellBayId = cellElement.getAttribute('data-bay-id');
+        // Update slot index if not already set
         const cellSlotIndex = cellElement.getAttribute('data-slot-index');
-        const cellRow = cellElement.getAttribute('data-row');
         const cellDate = cellElement.getAttribute('data-date');
         
-        // Only override if not already set from direct target and ensure we don't change bays
-        if (!dataBayId && cellBayId) {
-          const parsedCellBayId = parseInt(cellBayId);
-          // Only update if this cell is in the same bay as the original drop target
-          if (parsedCellBayId === bayId) {
-            targetBayId = parsedCellBayId;
-          } else {
-            console.log(`Cell bay ID mismatch - sticking with original bay ${bayId} instead of ${parsedCellBayId}`);
-          }
+        if (cellSlotIndex) {
+          targetSlotIndex = parseInt(cellSlotIndex);
+          console.log('Using slot index from cell element:', targetSlotIndex);
         }
         
-        if (!dataSlotIndex && cellSlotIndex) targetSlotIndex = parseInt(cellSlotIndex);
-        
-        if (!dataRow && cellRow) {
-          const parsedCellRow = parseInt(cellRow);
-          // Ensure row is between 0-3
-          targetRowIndex = Math.min(3, Math.max(0, parsedCellRow));
-        }
-        
-        console.log('Precise drop target detected from cell element:', {
+        console.log('Drop target date info:', {
           element: cellElement,
-          bayId: targetBayId,
           slotIndex: targetSlotIndex,
-          rowIndex: targetRowIndex,
-          date: cellDate || dataDate,
-          attributes: {
-            bayId: cellBayId,
-            slotIndex: cellSlotIndex,
-            row: cellRow
-          }
+          date: cellDate || dataDate
         });
       }
     } else {
-      console.log('Precise drop target detected from direct target:', {
+      console.log('Drop target date info from direct target:', {
         element: targetElement,
-        bayId: targetBayId,
         slotIndex: targetSlotIndex,
-        rowIndex: targetRowIndex,
-        date: dataDate,
-        attributes: {
-          bayId: dataBayId,
-          slotIndex: dataSlotIndex,
-          row: dataRow
-        }
+        date: dataDate
       });
     }
     
@@ -2460,13 +2438,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           projectElement.classList.add('animate-pulse', 'opacity-50');
         }
         
+        // CRITICAL: Use the forced bay ID and row index set during drag operations
+        // This ensures the schedule is updated in the exact bay and row where it was dragged
+        const forcedBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || '0');
+        const forcedRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
+        
+        // Use the forced values if available, otherwise fall back to the targetBayId/targetRowIndex
+        const finalBayId = forcedBayId > 0 ? forcedBayId : targetBayId;
+        const finalRowIndex = forcedRowIndex >= 0 ? forcedRowIndex : targetRowIndex;
+        
+        console.log(`Updating schedule with FORCED values: bay=${finalBayId} row=${finalRowIndex}`);
+        console.log(`(Original values were: bay=${targetBayId} row=${targetRowIndex})`);
+        
+        // Call the API with our forced values
         onScheduleChange(
           data.id,
-          targetBayId,
+          finalBayId,
           startDateToUse,
           formattedFinalEndDate,
           data.totalHours || 1000,
-          targetRowIndex
+          finalRowIndex
         )
         .then(result => {
           console.log('Schedule successfully updated:', result);
@@ -2539,13 +2530,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           bayElement.appendChild(placeholderDiv);
         }
         
+        // CRITICAL: Use the forced bay ID and row index set during drag operations
+        // This ensures the schedule is created in the exact bay and row where the user placed it
+        const forcedBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || '0');
+        const forcedRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
+        
+        // Use the forced values if available, otherwise fall back to the targetBayId/targetRowIndex
+        const finalBayId = forcedBayId > 0 ? forcedBayId : targetBayId;
+        const finalRowIndex = forcedRowIndex >= 0 ? forcedRowIndex : targetRowIndex;
+        
+        console.log(`Creating schedule with FORCED values: bay=${finalBayId} row=${finalRowIndex}`);
+        console.log(`(Original values were: bay=${targetBayId} row=${targetRowIndex})`);
+        
+        // Call the API with our forced values
         onScheduleCreate(
           data.projectId,
-          targetBayId,
+          finalBayId,
           startDateToUse,
           formattedFinalEndDate,
           data.totalHours || 1000,
-          targetRowIndex // Include rowIndex for vertical positioning
+          finalRowIndex // Include rowIndex for vertical positioning
         )
         .then(() => {
           // Find the target bay to show proper bay number in toast
@@ -2745,13 +2749,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       setIsMovingProject(true);
       
       // Apply the change directly
+      // CRITICAL: Keep the exact same bay and row that the schedule currently has
+      // This prevents any automatic row reordering when resizing
+      // The row parameter is only used when explicitly dragging to a new row
+      const fixedRow = row !== undefined ? row : (schedule.row || 0);
+      console.log(`Manual resize keeping fixed row: ${fixedRow} for schedule ${scheduleId}`);
+      
       onScheduleChange(
         scheduleId,
         schedule.bayId,
         newStartDate,
         finalEndDate, // Use the exact end date chosen by the user
         schedule.totalHours || 1000,
-        row !== undefined ? row : (schedule.row || 0)
+        fixedRow // Keep the same row to prevent automatic reordering
       )
       .then(() => {
         toast({
