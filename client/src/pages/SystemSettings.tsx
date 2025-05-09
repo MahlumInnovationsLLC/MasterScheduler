@@ -281,11 +281,11 @@ const SystemSettings = () => {
   
   // Mutation for archiving users
   const archiveUserMutation = useMutation({
-    mutationFn: async (userId: string) => {
+    mutationFn: async (data: { userId: string, reason: string }) => {
       return await apiRequest(
         "PUT", 
-        `/api/users/${userId}/archive`,
-        {}
+        `/api/users/${data.userId}/archive`,
+        { reason: data.reason }
       );
     },
     onSuccess: () => {
@@ -309,14 +309,37 @@ const SystemSettings = () => {
     }
   });
   
-  // Function to handle archiving a user
+  // State for archive reason dialog
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [archiveReason, setArchiveReason] = useState("");
+  const [userToArchive, setUserToArchive] = useState<string | null>(null);
+
+  // Function to open the archive reason dialog
   const handleArchiveUser = (userId: string) => {
-    if (!window.confirm("Are you sure you want to archive this user? They will no longer be able to access the system.")) {
+    setUserToArchive(userId);
+    setArchiveReason("");
+    setShowArchiveDialog(true);
+  };
+
+  // Function to submit the archive request with reason
+  const submitArchiveUser = () => {
+    if (!userToArchive) return;
+    
+    if (!archiveReason.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "A reason for archiving the user is required",
+        variant: "destructive"
+      });
       return;
     }
     
     setIsArchivingUser(true);
-    archiveUserMutation.mutate(userId);
+    archiveUserMutation.mutate({ 
+      userId: userToArchive, 
+      reason: archiveReason 
+    });
+    setShowArchiveDialog(false);
   };
   
   const handleCreateAllowedEmail = () => {
@@ -494,6 +517,50 @@ const SystemSettings = () => {
 
   return (
     <div className="container mx-auto py-6 max-w-6xl px-4 sm:px-6">
+      {/* Archive User Dialog */}
+      <Dialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Archive User</DialogTitle>
+            <DialogDescription>
+              Provide a reason for archiving this user. They will no longer be able to access the system.
+              This action is tracked for audit purposes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="archiveReason">Reason for Archiving</Label>
+              <textarea
+                id="archiveReason"
+                className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                placeholder="Please provide a reason for archiving this user"
+                value={archiveReason}
+                onChange={(e) => setArchiveReason(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowArchiveDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={submitArchiveUser} 
+              disabled={isArchivingUser || !archiveReason.trim()}
+              className={!archiveReason.trim() ? "opacity-50 cursor-not-allowed" : ""}
+            >
+              {isArchivingUser ? (
+                <>
+                  <div className="animate-spin mr-2 h-4 w-4 border-b-2 border-white rounded-full" />
+                  Archiving...
+                </>
+              ) : (
+                "Archive User"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">System Settings</h1>
       </div>
@@ -691,36 +758,15 @@ const SystemSettings = () => {
                               </Dialog>
                               
                               {/* Archive User Button */}
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button 
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-red-500 hover:text-red-700"
-                                    disabled={user.status === 'archived'}
-                                  >
-                                    <UserX className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Archive User</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to archive this user? They will no longer be able to access the system.
-                                      This action is tracked for audit purposes.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction 
-                                      onClick={() => handleArchiveUser(user.id)}
-                                      className="bg-red-600 hover:bg-red-700"
-                                    >
-                                      Archive User
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                              <Button 
+                                variant="ghost"
+                                size="icon"
+                                className="text-red-500 hover:text-red-700"
+                                disabled={user.status === 'archived'}
+                                onClick={() => handleArchiveUser(user.id)}
+                              >
+                                <UserX className="h-4 w-4" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
