@@ -1079,7 +1079,7 @@ export default function SalesForecast() {
         </div>
       ) : (
         <div className="bg-white rounded-md shadow">
-          <SalesDealsTable deals={filteredDeals} />
+          <SalesDealsTable deals={filteredDeals} onDelete={handleDeleteDeal} />
         </div>
       )}
       
