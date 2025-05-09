@@ -13,7 +13,9 @@ import {
   UserCheck, 
   UserX, 
   RefreshCw,
-  ArchiveRestore
+  ArchiveRestore,
+  MoveRight,
+  ArrowUpCircle
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -912,6 +914,54 @@ const SystemSettings = () => {
                     </div>
                   </div>
                   
+                  {/* Manufacturing Management Section */}
+                  <div className="border border-yellow-600/20 rounded-lg p-4 bg-yellow-500/5">
+                    <h3 className="font-semibold text-lg mb-2 flex items-center">
+                      <RefreshCw className="mr-2 h-5 w-5 text-yellow-500" />
+                      Manufacturing Management
+                    </h3>
+                    <p className="text-sm mb-4 text-gray-300">
+                      Operations that affect the manufacturing scheduling system.
+                    </p>
+                    
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">Reset Bay Assignments</p>
+                        <p className="text-sm text-gray-400">
+                          Move all projects to the Unassigned section and clear all bay assignments.
+                        </p>
+                      </div>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" className="flex items-center border-yellow-500 text-yellow-500 hover:bg-yellow-500/10">
+                            <MoveRight className="mr-2 h-4 w-4" />
+                            Move All Projects to Unassigned
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will reset ALL bay assignments and move ALL projects to the Unassigned section.
+                              This action cannot be undone and will affect all production planning.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleMoveAllProjectsToUnassigned}
+                              disabled={isMovingProjects}
+                              className="bg-yellow-600 text-white hover:bg-yellow-700"
+                            >
+                              {isMovingProjects ? "Processing..." : "Yes, Move All Projects"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                  
                   {/* Danger Zone */}
                   <div className="border border-destructive/20 rounded-lg p-4 bg-destructive/5">
                     <h3 className="font-semibold text-lg mb-2 flex items-center">
@@ -980,6 +1030,99 @@ const SystemSettings = () => {
                   </Alert>
                 </CardFooter>
               )}
+            </Card>
+          </TabsContent>
+          
+          {/* Archived Projects Tab */}
+          <TabsContent value="archived" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Archived Projects</CardTitle>
+                <CardDescription>
+                  View and restore previously archived projects.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {archivedProjectsLoading ? (
+                  <div className="flex justify-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : archivedProjectsError ? (
+                  <Alert className="bg-destructive/20 border-destructive">
+                    <AlertCircle className="h-5 w-5 text-destructive" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>
+                      {(archivedProjectsError as Error).message || "Failed to load archived projects"}
+                    </AlertDescription>
+                  </Alert>
+                ) : archivedProjects.length === 0 ? (
+                  <div className="text-center p-6 space-y-2">
+                    <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <ArchiveRestore className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-medium">No Archived Projects</h3>
+                    <p className="text-sm text-gray-400">
+                      There are no archived projects in the system.
+                    </p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Project Number</TableHead>
+                        <TableHead>Project Name</TableHead>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Archived Date</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {archivedProjects.map((project: any) => (
+                        <TableRow key={project.id} className="hover:bg-primary/5">
+                          <TableCell className="font-medium">{project.projectNumber}</TableCell>
+                          <TableCell>{project.name}</TableCell>
+                          <TableCell>{project.client || 'N/A'}</TableCell>
+                          <TableCell>
+                            {project.archivedAt ? new Date(project.archivedAt).toLocaleString() : 'Unknown'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="hover:text-primary"
+                                >
+                                  <ArrowUpCircle className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Restore Project</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to restore "{project.name}" (#{project.projectNumber})?
+                                    This will move the project back to active status.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleRestoreProject(project.id)}
+                                    disabled={isRestoringProject}
+                                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                                  >
+                                    {isRestoringProject ? "Restoring..." : "Restore Project"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>

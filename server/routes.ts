@@ -1277,6 +1277,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching archived project" });
     }
   });
+
+  // Route to restore an archived project
+  app.put("/api/projects/:id/restore", isAuthenticated, hasEditRights, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const restoredProject = await storage.restoreProject(projectId, userId);
+      
+      if (!restoredProject) {
+        return res.status(404).json({ message: "Project not found or could not be restored" });
+      }
+      
+      // Clean up any manufacturing schedules if they exist
+      try {
+        await storage.removeManufacturingScheduleByProjectId(projectId);
+      } catch (cleanupError) {
+        console.error(`Warning: Could not clean up manufacturing schedules for project ${projectId}:`, cleanupError);
+        // Continue with restoration even if cleanup fails
+      }
+      
+      res.status(200).json({
+        success: true, 
+        message: `Project ${restoredProject.projectNumber} successfully restored`,
+        restoredProject
+      });
+    } catch (error) {
+      console.error(`Error restoring project ${req.params.id}:`, error);
+      res.status(500).json({ message: "Error restoring project" });
+    }
+  });
+
+  // Create an alias for archived-projects at /projects/archived for API consistency
+  app.get("/api/projects/archived", async (req, res) => {
+    try {
+      const archivedProjects = await storage.getArchivedProjects();
+      res.json(archivedProjects);
+    } catch (error) {
+      console.error("Error fetching archived projects:", error);
+      res.status(500).json({ message: "Error fetching archived projects" });
+    }
+  });
   
   // Delivered Projects Routes
   app.get("/api/delivered-projects", async (req, res) => {
