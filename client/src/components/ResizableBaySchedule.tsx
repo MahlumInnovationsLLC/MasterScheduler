@@ -2076,18 +2076,36 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // Get the stored bay ID from the document, but use the current row value
-    // This allows us to keep the bay consistent but enable dropping on any row
+    // CRITICAL FIX: Get both the bay and row from global attributes
+    // This allows us to keep the bay consistent while allowing row selection
     const originalBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || '0');
-    const currentRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
+    const globalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
+    
+    // ENHANCED ROW SELECTION: 
+    // 1. First check if rowIndex from direct handler is valid (not undefined & >= 0)
+    // 2. Then check the global attribute (set during cell hover) 
+    // 3. Finally fall back to 0 as a safe default
+    let targetRowIndex;
+    
+    if (rowIndex !== undefined && rowIndex >= 0) {
+      console.log(`Using direct row parameter: ${rowIndex}`);
+      targetRowIndex = rowIndex;
+    } else if (globalRowIndex >= 0) {
+      console.log(`Using global row attribute: ${globalRowIndex}`);
+      targetRowIndex = globalRowIndex;
+    } else {
+      console.log(`No valid row found, using default row 0`);
+      targetRowIndex = 0;
+    }
+    
+    // Safety bounds check on row (0-3 only)
+    targetRowIndex = Math.min(3, Math.max(0, targetRowIndex));
     
     // Keep the bay ID consistent (projects stay in the same bay)
-    // But use the current row where the user is hovering
     let targetBayId = originalBayId > 0 ? originalBayId : bayId;
-    let targetRowIndex = Math.min(3, Math.max(0, rowIndex !== undefined ? rowIndex : currentRowIndex));
     
     console.log(`DROP HANDLER using bay: ${targetBayId} with row: ${targetRowIndex} `);
-    console.log(`(Current stored values: bay=${originalBayId}, current row=${currentRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
+    console.log(`(Current stored values: bay=${originalBayId}, current row=${globalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
     
     // Read data attributes from the drop target element for more precise week targeting
     let targetElement = e.target as HTMLElement;
