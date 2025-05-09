@@ -3040,21 +3040,112 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       z-index: 2;
     }
     
+    /* Show row numbers when dragging */
+    .dragging-active .bay-row .dragging-active\:opacity-100 {
+      opacity: 1 !important;
+    }
+    
     /* Row-specific highlights for each row */
     .row-0-highlight {
-      background-color: rgba(99, 102, 241, 0.3) !important;
+      background-color: rgba(99, 102, 241, 0.4) !important;
+      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.8) !important;
+      z-index: 30 !important;
+      position: relative !important;
     }
     
     .row-1-highlight {
-      background-color: rgba(99, 102, 241, 0.3) !important;
+      background-color: rgba(99, 102, 241, 0.4) !important;
+      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.8) !important;
+      z-index: 30 !important;
+      position: relative !important;
     }
     
     .row-2-highlight {
-      background-color: rgba(99, 102, 241, 0.3) !important;
+      background-color: rgba(99, 102, 241, 0.4) !important;
+      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.8) !important;
+      z-index: 30 !important;
+      position: relative !important;
     }
     
     .row-3-highlight {
+      background-color: rgba(99, 102, 241, 0.4) !important;
+      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.8) !important;
+      z-index: 30 !important;
+      position: relative !important;
+    }
+    
+    /* Row target highlighting for entire rows */
+    .row-target-highlight {
+      background-color: rgba(99, 102, 241, 0.2) !important;
+      box-shadow: inset 0 0 0 4px rgba(59, 130, 246, 0.4) !important;
+    }
+    
+    .row-0-target::before {
+      content: "ROW 1";
+      position: absolute;
+      left: -6px;
+      top: 0;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      font-size: 10px;
+      font-weight: bold;
+      color: rgb(59, 130, 246);
+      pointer-events: none;
+      opacity: 0.9;
+    }
+    
+    .row-1-target::before {
+      content: "ROW 2";
+      position: absolute;
+      left: -6px;
+      top: 0;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      font-size: 10px;
+      font-weight: bold;
+      color: rgb(59, 130, 246);
+      pointer-events: none;
+      opacity: 0.9;
+    }
+    
+    .row-2-target::before {
+      content: "ROW 3";
+      position: absolute;
+      left: -6px;
+      top: 0;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      font-size: 10px;
+      font-weight: bold;
+      color: rgb(59, 130, 246);
+      pointer-events: none;
+      opacity: 0.9;
+    }
+    
+    .row-3-target::before {
+      content: "ROW 4";
+      position: absolute;
+      left: -6px;
+      top: 0;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      font-size: 10px;
+      font-weight: bold;
+      color: rgb(59, 130, 246);
+      pointer-events: none;
+      opacity: 0.9;
+    }
+    
+    /* Cell highlight for individual cells within rows */
+    .cell-highlight {
       background-color: rgba(99, 102, 241, 0.3) !important;
+      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.9) !important;
+      z-index: 40 !important;
+      position: relative !important;
     }
     
     @keyframes pulse {
@@ -4194,14 +4285,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     </div>
                   </div>
                   <div 
-                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
-                    onDragOver={(e) => handleDragOver(e, bay.id, 0, 1)}
+                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
+                    onDragOver={(e) => {
+                      // Add strong visual indicator for this row
+                      e.currentTarget.classList.add('row-target-highlight', 'row-1-target');
+                      handleDragOver(e, bay.id, 0, 1);
+                    }}
+                    onDragLeave={(e) => {
+                      // Remove the highlight when leaving this row
+                      e.currentTarget.classList.remove('row-target-highlight', 'row-1-target');
+                    }}
                     onDrop={(e) => {
                       // Set global row data attribute to row 1
                       document.body.setAttribute('data-current-drag-row', '1');
                       handleDrop(e, bay.id, 0, 1);
                     }}
                   >
+                    {/* Row 2 label */}
+                    <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
+                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
+                        2
+                      </div>
+                    </div>
+                    
                     {/* Row 2 cell markers */}
                     <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
                       {slots.map((slot, index) => (
@@ -4212,6 +4318,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           data-slot-index={index}
                           data-date={format(slot.date, 'yyyy-MM-dd')}
                           data-bay-id={bay.id}
+                          data-row-index="1"
+                          onDragOver={(e) => {
+                            // Prevent event from propagating to parent elements
+                            e.stopPropagation();
+                            
+                            // Store the row index in a body attribute for the drop handler
+                            document.body.setAttribute('data-current-drag-row', '1');
+                            
+                            // Add highlight classes
+                            e.currentTarget.classList.add('cell-highlight', 'row-1-highlight');
+                            
+                            // Call the main handler
+                            handleDragOver(e, bay.id, index, 1);
+                          }}
+                          onDragLeave={(e) => {
+                            e.currentTarget.classList.remove('cell-highlight', 'row-1-highlight');
+                          }}
                         >
                           <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
                         </div>
@@ -4219,14 +4342,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     </div>
                   </div>
                   <div 
-                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
-                    onDragOver={(e) => handleDragOver(e, bay.id, 0, 2)}
+                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
+                    onDragOver={(e) => {
+                      // Add strong visual indicator for this row
+                      e.currentTarget.classList.add('row-target-highlight', 'row-2-target');
+                      handleDragOver(e, bay.id, 0, 2);
+                    }}
+                    onDragLeave={(e) => {
+                      // Remove the highlight when leaving this row
+                      e.currentTarget.classList.remove('row-target-highlight', 'row-2-target');
+                    }}
                     onDrop={(e) => {
                       // Set global row data attribute to row 2
                       document.body.setAttribute('data-current-drag-row', '2');
                       handleDrop(e, bay.id, 0, 2);
                     }}
                   >
+                    {/* Row 3 label */}
+                    <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
+                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
+                        3
+                      </div>
+                    </div>
+                    
                     {/* Row 3 cell markers */}
                     <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
                       {slots.map((slot, index) => (
@@ -4237,6 +4375,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           data-slot-index={index}
                           data-date={format(slot.date, 'yyyy-MM-dd')}
                           data-bay-id={bay.id}
+                          data-row-index="2"
+                          onDragOver={(e) => {
+                            // Prevent event from propagating to parent elements
+                            e.stopPropagation();
+                            
+                            // Store the row index in a body attribute for the drop handler
+                            document.body.setAttribute('data-current-drag-row', '2');
+                            
+                            // Add highlight classes
+                            e.currentTarget.classList.add('cell-highlight', 'row-2-highlight');
+                            
+                            // Call the main handler
+                            handleDragOver(e, bay.id, index, 2);
+                          }}
+                          onDragLeave={(e) => {
+                            e.currentTarget.classList.remove('cell-highlight', 'row-2-highlight');
+                          }}
                         >
                           <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
                         </div>
@@ -4244,14 +4399,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     </div>
                   </div>
                   <div 
-                    className="h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
-                    onDragOver={(e) => handleDragOver(e, bay.id, 0, 3)}
+                    className="h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
+                    onDragOver={(e) => {
+                      // Add strong visual indicator for this row
+                      e.currentTarget.classList.add('row-target-highlight', 'row-3-target');
+                      handleDragOver(e, bay.id, 0, 3);
+                    }}
+                    onDragLeave={(e) => {
+                      // Remove the highlight when leaving this row
+                      e.currentTarget.classList.remove('row-target-highlight', 'row-3-target');
+                    }}
                     onDrop={(e) => {
                       // Set global row data attribute to row 3
                       document.body.setAttribute('data-current-drag-row', '3');
                       handleDrop(e, bay.id, 0, 3);
                     }}
                   >
+                    {/* Row 4 label */}
+                    <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
+                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
+                        4
+                      </div>
+                    </div>
+                    
                     {/* Row 4 cell markers */}
                     <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
                       {slots.map((slot, index) => (
@@ -4262,6 +4432,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           data-slot-index={index}
                           data-date={format(slot.date, 'yyyy-MM-dd')}
                           data-bay-id={bay.id}
+                          data-row-index="3"
+                          onDragOver={(e) => {
+                            // Prevent event from propagating to parent elements
+                            e.stopPropagation();
+                            
+                            // Store the row index in a body attribute for the drop handler
+                            document.body.setAttribute('data-current-drag-row', '3');
+                            
+                            // Add highlight classes
+                            e.currentTarget.classList.add('cell-highlight', 'row-3-highlight');
+                            
+                            // Call the main handler
+                            handleDragOver(e, bay.id, index, 3);
+                          }}
+                          onDragLeave={(e) => {
+                            e.currentTarget.classList.remove('cell-highlight', 'row-3-highlight');
+                          }}
                         >
                           <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
                         </div>
