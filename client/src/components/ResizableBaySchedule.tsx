@@ -468,8 +468,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const bay = bays.find(b => b.id === bayId);
       if (!bay) return;
       
-      // Get the bay's capacity
-      const baseWeeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 0) * (bay.staffCount || 1));
+      // Get the bay's capacity with null safety
+      // Handle null/undefined values safely
+      const hoursPerWeek = bay.hoursPerPersonPerWeek !== null && bay.hoursPerPersonPerWeek !== undefined 
+          ? bay.hoursPerPersonPerWeek : 0;
+      const staffCount = bay.staffCount !== null && bay.staffCount !== undefined 
+          ? bay.staffCount : 1;
+      const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
       
       // Sort schedules by start date (top rows first)
       const sortedSchedules = [...baySchedules].sort((a, b) => {
@@ -674,7 +679,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       if (!bay) return;
       
       // Get the base capacity for this bay
-      const baseWeeklyCapacity = Math.max(1, (bay.hoursPerPersonPerWeek || 0) * (bay.staffCount || 1));
+      // Handle null/undefined values safely
+      const hoursPerWeek = bay.hoursPerPersonPerWeek !== null && bay.hoursPerPersonPerWeek !== undefined 
+          ? bay.hoursPerPersonPerWeek : 0;
+      const staffCount = bay.staffCount !== null && bay.staffCount !== undefined 
+          ? bay.staffCount : 1;
+      const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
       
       // Sort schedules by start date
       const sortedSchedules = [...baySchedules].sort((a, b) => 
@@ -2355,6 +2365,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Enhanced function to determine the best row to place the project based on overlaps
       // This checks ALL phases of projects, not just the overall start/end dates
       const findOptimalRow = (newStartDate: Date, newEndDate: Date, preferredRow: number = targetRowIndex) => {
+        // Make sure preferred row is valid
+        const safePreferredRow = (preferredRow !== null && preferredRow !== undefined && 
+                                 preferredRow >= 0 && preferredRow < 4) ? preferredRow : 0;
+        
         // This will hold how many overlaps exist per row for each phase
         const rowOverlaps = [0, 0, 0, 0];
         const rowPhaseOverlaps = [
@@ -2368,14 +2382,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         overlappingSchedules.forEach(schedule => {
           const scheduleStart = new Date(schedule.startDate);
           const scheduleEnd = new Date(schedule.endDate);
-          const row = schedule.row !== undefined ? schedule.row : 0;
           
-          if (row < 0 || row >= 4) return; // Skip invalid rows
+          // Safely handle null/undefined row values
+          const safeRow = (schedule.row !== null && schedule.row !== undefined && 
+                          schedule.row >= 0 && schedule.row < 4) ? schedule.row : 0;
           
           // First, check overall project overlap
           const overlap = !(scheduleEnd < newStartDate || scheduleStart > newEndDate);
-          if (overlap && row >= 0 && row < 4) {
-            rowOverlaps[row]++;
+          if (overlap) {
+            // Use safeRow which is guaranteed to be in 0-3 range
+            rowOverlaps[safeRow]++;
             
             // Find the associated project to get phase dates
             const project = projects.find(p => p.id === schedule.projectId);
@@ -2441,16 +2457,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               // Check each phase for overlap with the new project timeframe
               phases.forEach(phase => {
                 if (!(phase.end < newStartDate || phase.start > newEndDate)) {
-                  // Record which specific phase overlaps in this row (with type safety check)
-                  if (row >= 0 && row < 4) {
-                    switch(phase.type) {
-                      case 'fab': rowPhaseOverlaps[row].fab++; break;
-                      case 'paint': rowPhaseOverlaps[row].paint++; break; 
-                      case 'prod': rowPhaseOverlaps[row].prod++; break;
-                      case 'it': rowPhaseOverlaps[row].it++; break;
-                      case 'ntc': rowPhaseOverlaps[row].ntc++; break;
-                      case 'qc': rowPhaseOverlaps[row].qc++; break;
-                    }
+                  // Always use safeRow which is guaranteed to be valid
+                  switch(phase.type) {
+                    case 'fab': rowPhaseOverlaps[safeRow].fab++; break;
+                    case 'paint': rowPhaseOverlaps[safeRow].paint++; break; 
+                    case 'prod': rowPhaseOverlaps[safeRow].prod++; break;
+                    case 'it': rowPhaseOverlaps[safeRow].it++; break;
+                    case 'ntc': rowPhaseOverlaps[safeRow].ntc++; break;
+                    case 'qc': rowPhaseOverlaps[safeRow].qc++; break;
                   }
                 }
               });
@@ -2476,9 +2490,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`Existing projects in bay:`, existingProjectsInBay);
         
         // First choice: use the user's preferred row if it has no overlaps at all
-        if (rowOverlaps[preferredRow] === 0) {
-          console.log(`Using preferred row ${preferredRow} as it has no overlaps`);
-          return preferredRow;
+        if (safePreferredRow >= 0 && safePreferredRow < 4 && rowOverlaps[safePreferredRow] === 0) {
+          console.log(`Using preferred row ${safePreferredRow} as it has no overlaps`);
+          return safePreferredRow;
         }
         
         // Second choice: find any completely empty row with no overlaps
