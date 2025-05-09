@@ -323,7 +323,45 @@ export class DatabaseStorage implements IStorage {
   }
   
   async archiveUser(id: string, performedBy: string, reason: string): Promise<User | undefined> {
-    return await this.updateUserStatus(id, 'archived', performedBy, reason);
+    try {
+      // First get the existing user data for audit logging
+      const currentUser = await this.getUser(id);
+      if (!currentUser) {
+        return undefined;
+      }
+      
+      // Update the user's status to archived and set isApproved to false
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          status: 'archived',
+          isApproved: false,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, id))
+        .returning();
+      
+      // Create an audit log entry for status change
+      await this.createUserAuditLog(
+        id,
+        "STATUS_CHANGE",
+        performedBy,
+        { 
+          status: currentUser.status,
+          isApproved: currentUser.isApproved 
+        },
+        { 
+          status: 'archived',
+          isApproved: false 
+        },
+        reason
+      );
+      
+      return updatedUser;
+    } catch (error) {
+      console.error("Error archiving user:", error);
+      return undefined;
+    }
   }
   
   async getUserAuditLogs(userId: string): Promise<UserAuditLog[]> {

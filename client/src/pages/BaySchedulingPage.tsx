@@ -40,8 +40,7 @@ import {
 const BaySchedulingPage = () => {
   const { toast } = useToast();
   
-  // State for loading and import modal
-  const [isLoading, setIsLoading] = useState(false);
+  // State for import modal
   const [showImportModal, setShowImportModal] = useState(false);
   
   // Force a refresh of manufacturing schedules when page loads
@@ -549,81 +548,6 @@ const BaySchedulingPage = () => {
                 </p>
               </div>
               <div className="flex flex-col space-y-2">
-                <Button 
-                  variant="destructive" 
-                  className="w-full font-bold text-base flex items-center justify-center gap-2"
-                  disabled={isLoading}
-                  onClick={async () => {
-                    // Add confirmation dialog with more context
-                    if (window.confirm("⚠️ IMPORTANT: This will reset ALL bay assignments and move ALL projects to the Unassigned section.\n\nThis action cannot be undone. Continue?")) {
-                      setIsLoading(true);
-                      try {
-                        console.log("Attempting to clear all manufacturing schedules...");
-                        
-                        // Use the API request utility for better error handling
-                        const response = await apiRequest("POST", "/api/manufacturing-schedules/clear-all", {});
-                        
-                        if (response.ok) {
-                          const result = await response.json();
-                          console.log("Response from clear-all endpoint:", result);
-                          
-                          if (result.success) {
-                            toast({
-                              title: "Success!",
-                              description: result.message || "Projects moved to Unassigned section.",
-                              variant: "default",
-                            });
-                            
-                            // Success - update the UI
-                            queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
-                            queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-bays'] });
-                            queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-                          } else {
-                            // Server returned success: false
-                            console.error("Operation failed:", result.message, result.errors);
-                            toast({
-                              title: "Operation Failed",
-                              description: result.message || "Failed to move projects to Unassigned section.",
-                              variant: "destructive",
-                            });
-                          }
-                        } else {
-                          // HTTP error status code
-                          let errorMessage = "Failed to move projects to Unassigned section. Please try again.";
-                          
-                          try {
-                            const errorResponse = await response.json();
-                            console.error("Error response from server:", errorResponse);
-                            if (errorResponse.message) {
-                              errorMessage = errorResponse.message;
-                            }
-                          } catch (e) {
-                            // If response is not JSON, get text
-                            const errorText = await response.text();
-                            console.error("Error response (text):", errorText);
-                          }
-                          
-                          toast({
-                            title: `Error (${response.status})`,
-                            description: errorMessage,
-                            variant: "destructive",
-                          });
-                        }
-                      } catch (error) {
-                        console.error("Error clearing schedules:", error);
-                        toast({
-                          title: "Error",
-                          description: "An unexpected error occurred. Please try again later.",
-                          variant: "destructive",
-                        });
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }
-                  }}
-                >
-                  🔄 Reset All Bay Assignments
-                </Button>
                 <AIInsightsModal />
               </div>
             </CardContent>
@@ -779,17 +703,6 @@ const BaySchedulingPage = () => {
           />
         </div>
       </div>
-      
-      {/* Loading overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center">
-            <div className="h-10 w-10 border-4 border-t-transparent border-primary rounded-full animate-spin mb-4"></div>
-            <p className="font-medium">Resetting All Bay Assignments...</p>
-            <p className="text-sm text-muted-foreground mt-1">This may take a moment</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

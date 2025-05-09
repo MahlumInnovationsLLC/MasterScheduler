@@ -809,45 +809,101 @@ const SystemSettings = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Date/Time</TableHead>
-                        <TableHead>Admin</TableHead>
+                        <TableHead>Performed By</TableHead>
                         <TableHead>Action</TableHead>
-                        <TableHead>User</TableHead>
-                        <TableHead>Details</TableHead>
+                        <TableHead>Target User</TableHead>
+                        <TableHead>Changes / Reason</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {userAuditLogs.map((log: any) => (
-                        <TableRow key={log.id}>
-                          <TableCell>
-                            {new Date(log.timestamp).toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              {log.adminUsername}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant="outline" 
-                              className={
-                                log.action === 'archive'
-                                  ? 'bg-red-950 text-white border border-red-600'
-                                  : log.action === 'update'
-                                    ? 'bg-blue-950 text-white border border-blue-600'
-                                    : 'bg-green-950 text-white border border-green-600'
-                              }
-                            >
-                              {log.action.charAt(0).toUpperCase() + log.action.slice(1)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{log.targetUsername}</TableCell>
-                          <TableCell>
-                            <div className="max-w-xs overflow-hidden text-ellipsis">
-                              {log.details || "No details provided"}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {userAuditLogs.map((log: any) => {
+                        // Parse JSON data for detailed changes
+                        let previousData = null;
+                        let newData = null;
+                        
+                        try {
+                          if (log.previousData) {
+                            previousData = JSON.parse(log.previousData);
+                          }
+                        } catch (e) {
+                          console.error("Error parsing previousData:", e);
+                        }
+                        
+                        try {
+                          if (log.newData) {
+                            newData = JSON.parse(log.newData);
+                          }
+                        } catch (e) {
+                          console.error("Error parsing newData:", e);
+                        }
+                        
+                        // Format change details
+                        let changeDetails = [];
+                        if (previousData && newData) {
+                          if (previousData.status !== undefined && newData.status !== undefined) {
+                            changeDetails.push(`Status: ${previousData.status} → ${newData.status}`);
+                          }
+                          
+                          if (previousData.role !== undefined && newData.role !== undefined && 
+                              previousData.role !== newData.role) {
+                            changeDetails.push(`Role: ${previousData.role} → ${newData.role}`);
+                          }
+                          
+                          if (previousData.isApproved !== undefined && newData.isApproved !== undefined && 
+                              previousData.isApproved !== newData.isApproved) {
+                            changeDetails.push(`Approval: ${previousData.isApproved ? 'Approved' : 'Not Approved'} → ${newData.isApproved ? 'Approved' : 'Not Approved'}`);
+                          }
+                        }
+                        
+                        return (
+                          <TableRow key={log.id}>
+                            <TableCell>
+                              {new Date(log.timestamp).toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                {log.performedBy}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant="outline" 
+                                className={
+                                  log.action === 'STATUS_CHANGE' || log.action === 'archive'
+                                    ? 'bg-red-950 text-white border border-red-600'
+                                    : log.action === 'update'
+                                      ? 'bg-blue-950 text-white border border-blue-600'
+                                      : 'bg-green-950 text-white border border-green-600'
+                                }
+                              >
+                                {log.action === 'STATUS_CHANGE' ? 'Status Change' : 
+                                  log.action.charAt(0).toUpperCase() + log.action.slice(1)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{log.userId}</TableCell>
+                            <TableCell>
+                              <div className="max-w-xs">
+                                {changeDetails.length > 0 ? (
+                                  <div className="flex flex-col gap-1">
+                                    {changeDetails.map((detail, idx) => (
+                                      <div key={idx} className="text-xs">
+                                        {detail}
+                                      </div>
+                                    ))}
+                                    {log.details && (
+                                      <div className="text-xs mt-1 italic">
+                                        Reason: {log.details}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  log.details || "No details provided"
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}
