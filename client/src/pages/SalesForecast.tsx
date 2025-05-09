@@ -103,7 +103,7 @@ function SalesDealForm({
         ...formData,
         ownerId: user?.id,
         ownerName: user?.name || user?.username,
-        value: formData.value ? parseFloat(formData.value) : null,
+        value: formData.value ? formData.value.toString() : null,
         probability: formData.probability ? parseInt(formData.probability) : 50,
         expectedCloseDate: formData.expectedCloseDate ? format(formData.expectedCloseDate, "yyyy-MM-dd") : null,
         lastContactDate: formData.lastContactDate ? format(formData.lastContactDate, "yyyy-MM-dd") : null,
@@ -132,7 +132,7 @@ function SalesDealForm({
     mutationFn: async (data: any) => {
       const res = await apiRequest("PUT", `/api/sales-deals/${existingDeal?.id}`, {
         ...data,
-        value: data.value ? parseFloat(data.value) : null,
+        value: data.value ? data.value.toString() : null,
         probability: data.probability ? parseInt(data.probability) : 50,
         expectedCloseDate: data.expectedCloseDate ? format(data.expectedCloseDate, "yyyy-MM-dd") : null,
         lastContactDate: data.lastContactDate ? format(data.lastContactDate, "yyyy-MM-dd") : null,
