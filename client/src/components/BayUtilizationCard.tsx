@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, BrainCircuit, Info, AlertCircle, Users, Clock, CalendarRange } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { calculateBayUtilization } from '@/lib/utils';
+import { AlertCircle, BrainCircuit, ChevronRight, Clock, Info, TrendingDown, Users } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Change {
   value: string;
@@ -42,21 +41,19 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
 }) => {
   const [showAIDetails, setShowAIDetails] = useState(false);
   
-  // Helper function to determine the color based on utilization percentage
-  const getUtilizationColor = (value: number) => {
-    if (value < 30) return 'text-amber-500';
-    if (value < 70) return 'text-blue-500';
-    if (value < 85) return 'text-green-500';
+  // Function to generate color based on utilization percentage
+  const getUtilizationColor = (utilization: number) => {
+    if (utilization < 40) {
+      return 'text-blue-500';
+    } else if (utilization < 75) {
+      return 'text-amber-500';
+    }
     return 'text-red-500';
   };
   
   // Calculate status for each bay
   const bayStatuses: BayStatus[] = React.useMemo(() => {
     if (!bays || !bays.length) return [];
-    
-    // Debug the bay data and schedules
-    console.log("All bays:", bays);
-    console.log("All schedules:", schedules);
     
     // Track which bays we've processed to avoid duplicates
     const processedBayIds = new Set<number>();
@@ -76,7 +73,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
         // Get schedules for this bay
         const baySchedules = schedules.filter(schedule => schedule.bayId === bay.id);
         
-        // Calculate capacity for this bay - always use the bay's specific data (no fallback to nonexistent property)
+        // Calculate capacity for this bay - always use the bay's specific data (no fallback)
         const hoursPerPerson = bay.hoursPerPersonPerWeek || 0;
         // Calculate total staff count (either from direct staffCount or from assembly + electrical)
         const totalStaff = bay.staffCount || (bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0);
@@ -96,14 +93,23 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
           recommendations: ['Assign staff to this bay to begin utilizing it']
         };
         
-        // Use the standardized calculation method for this bay 
-        // by creating a single-bay array and passing it to our utility function
-        const singleBayArray = [bay];
-        const utilizationPercentage = calculateBayUtilization(singleBayArray, baySchedules);
-        const roundedUtilization = Math.round(utilizationPercentage);
+        // Get projects assigned to this bay (non-ended projects)
+        const activeProjects = baySchedules.filter(schedule => {
+          const endDate = new Date(schedule.endDate);
+          const now = new Date();
+          return endDate >= now;
+        });
         
-        console.log(`Bay ${bay.name} - Utilization: ${roundedUtilization}% (using standardized calculation)`);
-        
+        // Simple capacity calculation:
+        // 0 projects = 0% (no-projects)
+        // 1 project = 50% (near-capacity)
+        // 2+ projects = 100% (at-capacity)
+        let utilization = 0;
+        if (activeProjects.length >= 2) {
+          utilization = 100; // At Capacity
+        } else if (activeProjects.length === 1) {
+          utilization = 50;  // Near Capacity
+        }
         
         // Determine staff types
         const assemblyStaff = bay.assemblyStaffCount || 0;
@@ -114,46 +120,20 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
             ? 'Assembly' 
             : 'Electrical';
         
-        // Determine status and recommendations based on project count and utilization
+        // Determine status and recommendations based on project count
         let status: 'no-projects' | 'at-capacity' | 'near-capacity';
         let description: string;
         let recommendations: string[] = [];
         
-        // Get the active projects for this bay
-        // First determine if the active projects calculation should ignore current date (use schedule bars)
-        let activeProjects = [];
-        
-        // Bay 1 special case handling - hardcode to 1 active project
-        if (bay.id === 1) {
-          console.log("Special case handling for Bay 1 - adding 1 active project");
-          // We know from logs that Bay 1 should have 1 active project and 50% utilization
-          activeProjects = [{ id: 'placeholder' }]; // Use a placeholder to get length = 1
-          // Force utilization to 50% for Bay 1
-          roundedUtilization = 50;
-        } else {
-          // Regular calculation for other bays
-          activeProjects = baySchedules.filter(schedule => {
-            // Define current date
-            const now = new Date();
-            const startDate = new Date(schedule.startDate);
-            const endDate = new Date(schedule.endDate);
-            // Check if the schedule is current (not in the past or future)
-            return startDate <= now && endDate >= now;
-          });
-        }
-        
-        // Log for debugging
-        console.log(`Bay ${bay.name} has ${activeProjects.length} projects assigned to it`);
-        
         if (activeProjects.length === 0) {
           status = 'no-projects';
-          description = `${bay.name} currently has no active projects scheduled.`;
+          description = `${bay.name} currently has no projects scheduled.`;
           recommendations = [
             'Assign projects to utilize this bay',
             'Check upcoming projects that could be allocated here',
             'Consider temporary reassignment of staff if no projects are imminent'
           ];
-        } else if (activeProjects.length >= 2 || roundedUtilization >= 85) {
+        } else if (activeProjects.length >= 2) {
           status = 'at-capacity';
           description = `${bay.name} is at full capacity with ${activeProjects.length} active projects.`;
           recommendations = [
@@ -162,9 +142,9 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
             'Review project timelines for potential adjustments',
             'Identify tasks that could be subcontracted if delays occur'
           ];
-        } else {
+        } else { // activeProjects.length === 1
           status = 'near-capacity';
-          description = `${bay.name} is running at optimal capacity with ${activeProjects.length} active project(s).`;
+          description = `${bay.name} is running at optimal capacity with ${activeProjects.length} active project.`;
           recommendations = [
             'Maintain current staffing and project allocation',
             'Monitor for changes in project scope that may affect capacity', 
@@ -172,15 +152,10 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
           ];
         }
         
-        // Log the final status for debugging
-        console.log(`Bay ${bay.name} final status: ${status === 'no-projects' ? 'Available' : status === 'at-capacity' ? 'At Capacity' : 'Near Capacity'} with ${activeProjects.length} active projects`);
-        
-        console.log(`Bay ${bay.name} utilization: ${roundedUtilization}% (using centralized calculation)`);
-        
         return {
           bayId: bay.id,
           bayName: bay.name,
-          utilization: roundedUtilization,
+          utilization: utilization,
           status,
           description,
           teamName: bay.team || 'General',
@@ -416,72 +391,57 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
         </Popover>
       </div>
       
-      <div className="flex items-end space-x-1">
-        <span className={`text-2xl font-bold ${color}`}>{numericValue}%</span>
-        {change && (
-          <div className="flex items-center text-xs mb-1 ml-2">
-            {change.isPositive ? (
-              <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-            ) : (
-              <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
-            )}
-            <span className={change.isPositive ? 'text-green-500' : 'text-red-500'}>
-              {change.value}
-            </span>
+      {/* Main card content */}
+      <div className="flex items-baseline justify-between">
+        <div className="space-y-2">
+          <div className={`text-2xl font-bold ${color}`}>
+            {value}%
           </div>
-        )}
-      </div>
-      {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
-      
-      <div className="mt-3 w-full bg-gray-800 rounded-full h-2.5">
-        <div 
-          className={`h-2.5 rounded-full ${
-            numericValue < 30 ? 'bg-amber-600' : 
-            numericValue < 70 ? 'bg-blue-600' :
-            numericValue < 85 ? 'bg-green-600' : 'bg-red-600'
-          }`}
-          style={{ width: `${numericValue}%` }}
-        ></div>
-      </div>
-      
-      <div className="mt-3">
-        <div className="flex items-center justify-between text-xs text-gray-400">
-          <span>Team Status</span>
-          <button 
-            className="text-primary text-xs hover:underline"
-            onClick={() => setShowAIDetails(!showAIDetails)}
-          >
-            View AI Insights
-          </button>
-        </div>
-        
-        <div className="mt-2 grid grid-cols-3 gap-1 text-xs">
-          {bayStatuses.length > 0 ? (
-            <>
-              <div className="bg-red-900/10 p-1.5 rounded text-center">
-                <div className="font-medium text-red-500">
-                  {bayStatuses.filter(b => b.status === 'at-capacity').length}
-                </div>
-                <div className="text-[10px] text-gray-400">At Capacity</div>
-              </div>
-              <div className="bg-amber-900/10 p-1.5 rounded text-center">
-                <div className="font-medium text-amber-500">
-                  {bayStatuses.filter(b => b.status === 'near-capacity').length}
-                </div>
-                <div className="text-[10px] text-gray-400">Near Capacity</div>
-              </div>
-              <div className="bg-blue-900/10 p-1.5 rounded text-center">
-                <div className="font-medium text-blue-500">
-                  {bayStatuses.filter(b => b.status === 'no-projects').length}
-                </div>
-                <div className="text-[10px] text-gray-400">Available</div>
-              </div>
-            </>
-          ) : (
-            <div className="col-span-3 text-center py-2 text-gray-400">
-              No active teams
+          {subtitle && (
+            <p className="text-xs text-gray-400">{subtitle}</p>
+          )}
+          {change && (
+            <div className={`flex items-center text-xs ${change.isPositive ? 'text-green-500' : 'text-red-500'}`}>
+              <span>{change.value}</span>
+              <ChevronRight className={`h-3 w-3 ml-0.5 ${change.isPositive ? '' : 'rotate-90'}`} />
             </div>
           )}
+        </div>
+        
+        {/* Bay status overview */}
+        <div className="flex gap-2">
+          {/* At Capacity */}
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-1 text-xs text-gray-400">
+              <div className="h-2 w-2 rounded-full bg-red-500" />
+              <span>At Capacity</span>
+            </div>
+            <div className="text-xs font-medium">
+              {bayStatuses.filter(b => b.status === 'at-capacity').length}
+            </div>
+          </div>
+          
+          {/* Near Capacity */}
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-1 text-xs text-gray-400">
+              <div className="h-2 w-2 rounded-full bg-amber-500" />
+              <span>Near Capacity</span>
+            </div>
+            <div className="text-xs font-medium">
+              {bayStatuses.filter(b => b.status === 'near-capacity').length}
+            </div>
+          </div>
+          
+          {/* No Projects */}
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-1 text-xs text-gray-400">
+              <div className="h-2 w-2 rounded-full bg-blue-500" />
+              <span>Available</span>
+            </div>
+            <div className="text-xs font-medium">
+              {bayStatuses.filter(b => b.status === 'no-projects').length}
+            </div>
+          </div>
         </div>
       </div>
     </div>
