@@ -1854,7 +1854,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Handle deleting a bay
-  const handleDeleteBay = (bayId: number) => {
+  const handleDeleteBay = async (bayId: number): Promise<void> => {
     try {
       if (!bayId) {
         toast({
@@ -1862,7 +1862,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           description: "Invalid bay ID",
           variant: "destructive"
         });
-        return;
+        return Promise.resolve();
       }
       
       const bayToDelete = bays.find(b => b.id === bayId);
@@ -1926,7 +1926,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Handle creating a new bay
-  const handleCreateBay = (bayId: number, data: Partial<ManufacturingBay>) => {
+  const handleCreateBay = async (bayId: number, data: Partial<ManufacturingBay>): Promise<void> => {
     try {
       if (!data) {
         toast({
@@ -1934,7 +1934,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           description: "Invalid bay data",
           variant: "destructive"
         });
-        return;
+        return Promise.resolve();
       }
       
       // Make sure we have valid staff counts
