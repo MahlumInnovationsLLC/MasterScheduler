@@ -2646,14 +2646,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Use the forced bay ID if available, otherwise fall back to the targetBayId
         const finalBayId = forcedBayId > 0 ? forcedBayId : targetBayId;
         
-        // Use our intelligent row assignment algorithm to find the optimal row
-        // This is the key improvement for avoiding overlaps when moving existing projects
-        const optimalRow = findOptimalRow(exactStartDate, finalEndDate, preferredRowIndex);
-        const finalRowIndex = optimalRow;
+        // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
+        // User specifically requested to disable all auto-placement logic
+        // Always use the exact row the user dragged to, ignoring the findOptimalRow function
+        // const optimalRow = findOptimalRow(exactStartDate, finalEndDate, preferredRowIndex);
+        const finalRowIndex = preferredRowIndex;
         
-        console.log(`Updating schedule with intelligent placement: bay=${finalBayId} row=${finalRowIndex}`);
-        console.log(`(Original target row was: ${targetRowIndex}, preferred row: ${preferredRowIndex})`);
-        console.log(`Intelligent placement chose row ${finalRowIndex} to avoid overlaps with existing projects`);
+        console.log(`Updating schedule with MANUAL ROW ASSIGNMENT: bay=${finalBayId} row=${finalRowIndex}`);
+        console.log(`(Original target row was: ${targetRowIndex}, user selected row: ${preferredRowIndex})`);
+        console.log(`Auto-placement logic DISABLED - using exact row where user dropped project`);
         
         // Call the API with our forced values
         onScheduleChange(
@@ -2964,11 +2965,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       setIsMovingProject(true);
       
       // Apply the change directly
-      // CRITICAL: Keep the exact same bay and row that the schedule currently has
-      // This prevents any automatic row reordering when resizing
-      // The row parameter is only used when explicitly dragging to a new row
-      const fixedRow = row !== undefined ? row : (schedule.row || 0);
-      console.log(`Manual resize keeping fixed row: ${fixedRow} for schedule ${scheduleId}`);
+      // Get the user's selected row if available, otherwise keep the current row
+      // The row parameter is explicitly used when the user drags to a new row
+      const userSelectedRow = parseInt(document.body.getAttribute('data-current-drag-row') || '-1');
+      const fixedRow = row !== undefined ? row : 
+                      (userSelectedRow >= 0 ? userSelectedRow : (schedule.row || 0));
+      console.log(`Manual resize using row: ${fixedRow} for schedule ${scheduleId} (user selected: ${userSelectedRow})`);
+      console.log(`Auto-placement logic DISABLED - using exact row where user dropped or resized project`);
       
       onScheduleChange(
         scheduleId,
@@ -3443,10 +3446,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     // Show loading state
                     setIsMovingProject(true);
                     
-                    // CRITICAL: Find the schedule and use its current row value to keep it in place
-                    const schedule = schedules.find(s => s.id === capacityWarningData.scheduleId);
-                    const currentRow = schedule?.row || 0;
-                    console.log(`Capacity warning override keeping fixed row: ${currentRow} for schedule ${capacityWarningData.scheduleId}`);
+                    // CRITICAL: Get the user's selected row from the global attribute
+                    // This ensures we use the exact row where the user dropped the project, not the schedule's current row
+                    const preferredRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
+                    console.log(`Capacity warning override using user-selected row: ${preferredRowIndex} for schedule ${capacityWarningData.scheduleId}`);
                     
                     onScheduleChange(
                       capacityWarningData.scheduleId,
@@ -3454,7 +3457,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       capacityWarningData.newStartDate,
                       capacityWarningData.newEndDate,
                       capacityWarningData.totalHours,
-                      currentRow // Keep the project in its current row
+                      preferredRowIndex // Use the user's selected row
                     )
                     .then(() => {
                       // Clear loading state
