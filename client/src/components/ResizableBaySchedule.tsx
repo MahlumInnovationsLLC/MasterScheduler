@@ -2349,6 +2349,52 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         (data.type !== 'existing' || s.id !== data.id)
       );
       
+      // Determine the best row to place the project based on overlaps
+      // Try to stagger projects properly in the bay's rows
+      const findOptimalRow = (newStartDate: Date, newEndDate: Date, preferredRow: number = targetRowIndex) => {
+        // This will hold how many overlaps exist per row
+        const rowOverlaps = [0, 0, 0, 0];
+        
+        // Check each existing schedule against each row
+        overlappingSchedules.forEach(schedule => {
+          const scheduleStart = new Date(schedule.startDate);
+          const scheduleEnd = new Date(schedule.endDate);
+          
+          // Check if this schedule overlaps with our new date range
+          const overlap = !(scheduleEnd < newStartDate || scheduleStart > newEndDate);
+          
+          if (overlap) {
+            // If there's an overlap, increment the count for the schedule's row
+            const row = schedule.row !== undefined ? schedule.row : 0;
+            if (row >= 0 && row < 4) {
+              rowOverlaps[row]++;
+            }
+          }
+        });
+        
+        console.log(`Row overlaps for new project: ${JSON.stringify(rowOverlaps)}`);
+        
+        // First choice: use the user's preferred row if it has no overlaps
+        if (rowOverlaps[preferredRow] === 0) {
+          console.log(`Using preferred row ${preferredRow} as it has no overlaps`);
+          return preferredRow;
+        }
+        
+        // Second choice: find any row with no overlaps
+        for (let i = 0; i < 4; i++) {
+          if (rowOverlaps[i] === 0) {
+            console.log(`Found open row ${i} with no overlaps`);
+            return i;
+          }
+        }
+        
+        // Third choice: find row with fewest overlaps
+        const minOverlaps = Math.min(...rowOverlaps);
+        const bestRow = rowOverlaps.indexOf(minOverlaps);
+        console.log(`Using best available row ${bestRow} with ${minOverlaps} overlaps`);
+        return bestRow;
+      };
+      
       // Calculate how long the project will take considering capacity sharing
       const totalHours = data.totalHours || 1000; // Default to 1000 if not specified
       
