@@ -193,7 +193,6 @@ function SalesDealForm({
             name="dealNumber"
             value={formData.dealNumber}
             onChange={handleInputChange}
-            disabled
           />
         </div>
         
