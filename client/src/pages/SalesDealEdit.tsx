@@ -615,7 +615,20 @@ function SalesDealEdit() {
                   <FormItem>
                     <FormLabel>Vertical</FormLabel>
                     <FormControl>
-                      <Input {...field} value={field.value || ""} />
+                      <Select
+                        value={field.value || ""}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select vertical" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="East">East</SelectItem>
+                          <SelectItem value="West">West</SelectItem>
+                          <SelectItem value="North">North</SelectItem>
+                          <SelectItem value="South">South</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -74,7 +74,7 @@ function SalesDealForm({
   const isEditing = !!existingDeal;
   
   const [formData, setFormData] = useState({
-    dealNumber: existingDeal?.dealNumber || `DEAL-${Date.now().toString().slice(-6)}`,
+    dealNumber: existingDeal?.dealNumber || `8-${Date.now().toString().slice(-6)}`,
     name: existingDeal?.name || "",
     description: existingDeal?.description || "",
     clientName: existingDeal?.clientName || "",
@@ -88,6 +88,7 @@ function SalesDealForm({
     priority: existingDeal?.priority || "medium",
     probability: existingDeal?.probability?.toString() || "50",
     notes: existingDeal?.notes || "",
+    vertical: existingDeal?.vertical || "East", // Default to "East" instead of "Fast"
     expectedCloseDate: existingDeal?.expectedCloseDate ? new Date(existingDeal.expectedCloseDate) : null,
     lastContactDate: existingDeal?.lastContactDate ? new Date(existingDeal.lastContactDate) : null,
   });
@@ -425,6 +426,26 @@ function SalesDealForm({
               />
             </PopoverContent>
           </Popover>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="space-y-2">
+          <Label htmlFor="vertical">Vertical</Label>
+          <Select
+            value={formData.vertical || "East"}
+            onValueChange={(value) => handleSelectChange("vertical", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select vertical" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="East">East</SelectItem>
+              <SelectItem value="West">West</SelectItem>
+              <SelectItem value="North">North</SelectItem>
+              <SelectItem value="South">South</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       
