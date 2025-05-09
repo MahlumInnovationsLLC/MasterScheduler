@@ -3801,6 +3801,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         const relativeY = e.nativeEvent.offsetY;
                         const rowIndex = Math.floor((relativeY / cellHeight) * 4);
                         
+                        // CRITICAL: Update global data attribute with current row
+                        // This ensures the drop handler can use the current row where the mouse is
+                        document.body.setAttribute('data-current-drag-row', rowIndex.toString());
+                        
                         // Remove all highlight classes
                         for (let i = 0; i < 4; i++) {
                           e.currentTarget.classList.remove(`row-${i}-highlight`);
@@ -3827,7 +3831,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   <div 
                     className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
                     onDragOver={(e) => handleDragOver(e, bay.id, 0, 0)}
-                    onDrop={(e) => handleDrop(e, bay.id, 0, 0)}
+                    onDrop={(e) => {
+                      // Set global row data attribute to row 0
+                      document.body.setAttribute('data-current-drag-row', '0');
+                      handleDrop(e, bay.id, 0, 0);
+                    }}
                   >
                     {/* Row 1 cell markers */}
                     <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
@@ -3848,7 +3856,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   <div 
                     className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
                     onDragOver={(e) => handleDragOver(e, bay.id, 0, 1)}
-                    onDrop={(e) => handleDrop(e, bay.id, 0, 1)}
+                    onDrop={(e) => {
+                      // Set global row data attribute to row 1
+                      document.body.setAttribute('data-current-drag-row', '1');
+                      handleDrop(e, bay.id, 0, 1);
+                    }}
                   >
                     {/* Row 2 cell markers */}
                     <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
@@ -3869,7 +3881,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   <div 
                     className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
                     onDragOver={(e) => handleDragOver(e, bay.id, 0, 2)}
-                    onDrop={(e) => handleDrop(e, bay.id, 0, 2)}
+                    onDrop={(e) => {
+                      // Set global row data attribute to row 2
+                      document.body.setAttribute('data-current-drag-row', '2');
+                      handleDrop(e, bay.id, 0, 2);
+                    }}
                   >
                     {/* Row 3 cell markers */}
                     <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
@@ -3890,7 +3906,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   <div 
                     className="h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
                     onDragOver={(e) => handleDragOver(e, bay.id, 0, 3)}
-                    onDrop={(e) => handleDrop(e, bay.id, 0, 3)}
+                    onDrop={(e) => {
+                      // Set global row data attribute to row 3
+                      document.body.setAttribute('data-current-drag-row', '3');
+                      handleDrop(e, bay.id, 0, 3);
+                    }}
                   >
                     {/* Row 4 cell markers */}
                     <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
