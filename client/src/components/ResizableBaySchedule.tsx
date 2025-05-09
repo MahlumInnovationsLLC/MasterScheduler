@@ -190,83 +190,110 @@ const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSche
   const staffCount = bay.staffCount || assemblyStaff + electricalStaff;
   const weeklyCapacity = hoursPerWeek * staffCount;
   
-  // Calculate utilization with time weighting and production phase focus
-  let weeklyUtilization = 0;
-  
   // Get schedules for this bay
   const baySchedules = allSchedules.filter(schedule => schedule.bayId === bay.id);
   
+  // Calculate utilization using direct schedule hours
+  let weeklyUtilization = 0;
+  
   if (baySchedules.length > 0) {
-    // Get current date for time-based weighting
+    // Get current date
     const now = new Date();
-    // We'll analyze by week for the next 16 weeks (4 months)
-    const MAX_FUTURE_WEEKS = 16;
+    
+    // Create a week-by-week analysis of utilization for current and future projects
     const weeklyHoursMap: Record<string, number> = {};
     
-    // First, calculate the load by week across the next few months
+    // Calculate average hours per week for each project and build a utilization map
     baySchedules.forEach(schedule => {
       if (schedule.startDate && schedule.endDate && schedule.totalHours) {
         const startDate = new Date(schedule.startDate);
         const endDate = new Date(schedule.endDate);
         
-        // Skip projects that have already ended
-        if (endDate < now) return;
+        // Calculate total duration in weeks
+        const diffDays = Math.max(1, differenceInDays(endDate, startDate));
+        const weeks = Math.max(1, Math.ceil(diffDays / 7));
         
-        // Calculate production hours per day for this schedule
-        const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-        const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-        const hoursPerDay = schedule.totalHours / diffDays;
+        // Calculate average hours per week for this project
+        const hoursPerWeek = schedule.totalHours / weeks;
         
-        // Analyze each week starting from today
+        // Identify active projects (started but not finished)
+        const isActive = startDate <= now && endDate >= now;
+        
+        // Active projects have higher weight in utilization calculation
+        const activeMultiplier = isActive ? 1.2 : 1.0;
+        
+        // Add to utilization
+        weeklyUtilization += hoursPerWeek * activeMultiplier;
+        
+        // Add hours to weekly map for detailed analysis
+        // Process the next 4 weeks for current visualization
         let currentWeekStart = new Date(now);
         currentWeekStart.setHours(0, 0, 0, 0);
         currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay()); // Start of current week
         
-        for (let week = 0; week < MAX_FUTURE_WEEKS; week++) {
-          // Calculate week range
+        for (let week = 0; week < 4; week++) {
           const weekStart = new Date(currentWeekStart);
           weekStart.setDate(weekStart.getDate() + (week * 7));
           const weekEnd = new Date(weekStart);
           weekEnd.setDate(weekStart.getDate() + 6);
           
-          // Skip if this week is completely before the project starts
-          if (weekEnd < startDate) continue;
-          
-          // Skip if this week is completely after the project ends
-          if (weekStart > endDate) continue;
-          
-          // Calculate overlap days between this week and the project
-          const overlapStart = new Date(Math.max(weekStart.getTime(), startDate.getTime()));
-          const overlapEnd = new Date(Math.min(weekEnd.getTime(), endDate.getTime()));
-          const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-          
-          // Calculate hours for this week based on overlap
-          const weekHours = hoursPerDay * Math.min(7, overlapDays);
-          
-          // Apply time-decay factor: more weight to current weeks, less to future weeks
-          const weekKey = weekStart.toISOString().substring(0, 10);
-          const timeDecayFactor = Math.max(0.25, 1 - (week * 0.05)); // 5% decay per week
-          
-          // Add to weekly hours map
-          if (!weeklyHoursMap[weekKey]) {
-            weeklyHoursMap[weekKey] = 0;
+          // If project overlaps with this week
+          if (!(weekEnd < startDate || weekStart > endDate)) {
+            const weekKey = weekStart.toISOString().substring(0, 10);
+            
+            if (!weeklyHoursMap[weekKey]) {
+              weeklyHoursMap[weekKey] = 0;
+            }
+            
+            // Calculate hours for this specific week (accounting for partial overlap)
+            let weekHours = hoursPerWeek;
+            
+            // If project starts or ends during this week, prorate the hours
+            if (startDate >= weekStart && startDate <= weekEnd) {
+              // Project starts during this week - reduce hours proportionally
+              const daysInWeek = Math.min(7, differenceInDays(weekEnd, startDate) + 1);
+              weekHours = (daysInWeek / 7) * hoursPerWeek;
+            } else if (endDate >= weekStart && endDate <= weekEnd) {
+              // Project ends during this week - reduce hours proportionally
+              const daysInWeek = Math.min(7, differenceInDays(endDate, weekStart) + 1);
+              weekHours = (daysInWeek / 7) * hoursPerWeek;
+            }
+            
+            weeklyHoursMap[weekKey] += weekHours;
           }
-          weeklyHoursMap[weekKey] += weekHours * timeDecayFactor;
         }
       }
     });
     
-    // Now find the peak utilization by looking at the week with the most hours
-    // This accounts for when projects overlap in time
+    // Use the highest weekly utilization for our current workload indicator
     if (Object.keys(weeklyHoursMap).length > 0) {
-      const peakWeekHours = Math.max(...Object.values(weeklyHoursMap));
-      weeklyUtilization = peakWeekHours;
+      const maxWeeklyHours = Math.max(...Object.values(weeklyHoursMap));
+      
+      // If the calculated max weekly hours is higher, use that instead
+      if (maxWeeklyHours > weeklyUtilization) {
+        weeklyUtilization = maxWeeklyHours;
+      }
+    }
+    
+    // Ensure we report at least 25% utilization if there are any active projects
+    // This prevents showing empty bays when they actually have work in them
+    const activeProjects = baySchedules.filter(schedule => {
+      const startDate = new Date(schedule.startDate);
+      const endDate = new Date(schedule.endDate);
+      return startDate <= now && endDate >= now;
+    });
+    
+    if (activeProjects.length > 0 && weeklyUtilization < (weeklyCapacity * 0.25)) {
+      weeklyUtilization = weeklyCapacity * 0.25; // Minimum 25% for active projects
     }
   }
   
   // Calculate utilization percentage based on weekly hours
   const utilization = weeklyCapacity > 0 ? Math.min(100, (weeklyUtilization / weeklyCapacity) * 100) : 0;
   const roundedUtilization = Math.round(utilization);
+  
+  // Log for debugging
+  console.log(`Bay ${bay.name} utilization: ${roundedUtilization}% (using centralized calculation)`);
   
   return (
     <div className="flex flex-col">
@@ -3456,9 +3483,42 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         details = 'Bay is empty';
                       }
                       
-                      // Get the weekly utilization percentage from the parent scope for consistency
-                      const weeklyUtilizationPercent = bay.weeklyCapacity > 0 
-                        ? Math.round((bay.weeklyUtilization / bay.weeklyCapacity) * 100) 
+                      // Calculate weekly capacity and utilization locally to avoid type errors
+                      const bayStaffCount = bay.staffCount || (bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0); 
+                      const bayHoursPerWeek = bay.hoursPerPersonPerWeek || 40;
+                      const weeklyCapacity = bayHoursPerWeek * bayStaffCount;
+                      
+                      // Calculate utilization percentage based on current bay schedules
+                      const baySchedulesForUtilization = scheduleBars.filter(b => b.bayId === bay.id);
+                      let scheduledHoursPerWeek = 0;
+                      
+                      if (baySchedulesForUtilization.length > 0) {
+                        // Calculate average hours per week across all schedules
+                        baySchedulesForUtilization.forEach(schedule => {
+                          if (schedule.startDate && schedule.endDate && schedule.totalHours) {
+                            const startDate = new Date(schedule.startDate);
+                            const endDate = new Date(schedule.endDate);
+                            const diffDays = Math.max(1, differenceInDays(endDate, startDate));
+                            const weeks = Math.max(1, Math.ceil(diffDays / 7));
+                            scheduledHoursPerWeek += (schedule.totalHours / weeks);
+                          }
+                        });
+                      }
+                      
+                      // Calculate percentage with a minimum of 25% if there are active projects
+                      const activeProjects = baySchedulesForUtilization.filter(schedule => {
+                        const now = new Date();
+                        const startDate = new Date(schedule.startDate);
+                        const endDate = new Date(schedule.endDate);
+                        return startDate <= now && endDate >= now;
+                      });
+                      
+                      if (activeProjects.length > 0 && scheduledHoursPerWeek < (weeklyCapacity * 0.25)) {
+                        scheduledHoursPerWeek = weeklyCapacity * 0.25; // Minimum 25% for active projects
+                      }
+                      
+                      const weeklyUtilizationPercent = weeklyCapacity > 0 
+                        ? Math.round((scheduledHoursPerWeek / weeklyCapacity) * 100) 
                         : 0;
                       
                       // Log to verify calculation is consistent with BayCapacityInfo
