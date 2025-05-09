@@ -193,63 +193,109 @@ const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSche
   // Get schedules for this bay
   const baySchedules = allSchedules.filter(schedule => schedule.bayId === bay.id);
   
-  // Set up the current week boundaries
+  // Set up the current date
   const now = new Date();
-  const currentWeekStart = startOfWeek(now);
-  const currentWeekEnd = endOfWeek(now);
   
-  // Count ALL projects currently ACTIVE in this bay (regardless of current week)
-  // This is a more accurate representation of current workload
+  // DETAILED DEBUG: Log the current date/time being used for comparison
+  console.log(`Bay ${bay.name} - Current date for comparison: ${now.toISOString()}`);
+  
+  // Check for projects in PROD phase - use a more direct check based on project phase
+  const prodProjects = allSchedules.filter(schedule => {
+    // We want to find all schedules where:
+    // 1. They belong to this bay
+    // 2. They have a PROD status marker somewhere in the timeline
+    // This is based on our project display data, not just the date range logic
+    
+    if (schedule.bayId !== bay.id) return false;
+    
+    // Now check if this schedule has a matching project in PROD phase
+    const scheduleBars = document.querySelectorAll(`[data-schedule-id="${schedule.id}"] .schedule-phase-marker`);
+    const hasProdPhase = Array.from(scheduleBars).some(bar => 
+      bar.textContent?.includes('PROD') && bar.getBoundingClientRect().width > 10
+    );
+    
+    // For each schedule, log what we found
+    if (hasProdPhase) {
+      console.log(`Found PROD project in Bay ${bay.name}: Schedule ID ${schedule.id}`);
+    }
+    
+    return hasProdPhase;
+  });
+  
+  // DIRECT HTML SCAN - This is a backup method to check what's visually shown
+  // Look for visible "PROD" phase markers in this bay's row
+  const bayRow = document.querySelector(`[data-bay-id="${bay.id}"]`);
+  let visibleProdMarkers = 0;
+  
+  if (bayRow) {
+    const prodMarkers = bayRow.querySelectorAll('.schedule-phase-marker');
+    prodMarkers.forEach(marker => {
+      if (marker.textContent?.includes('PROD') && marker.getBoundingClientRect().width > 10) {
+        visibleProdMarkers++;
+        console.log(`Visible PROD marker found in Bay ${bay.name} row`);
+      }
+    });
+  }
+  
+  // Calculate project intersection - active projects are those where TODAY falls inside their timeline
   const activeProjects = baySchedules.filter(schedule => {
     const startDate = new Date(schedule.startDate);
     const endDate = new Date(schedule.endDate);
     
+    // DETAILED DEBUG: Show the date ranges we're checking for each schedule
+    console.log(`Bay ${bay.name} - Schedule ${schedule.id} dates: ${startDate.toISOString()} to ${endDate.toISOString()}`);
+    
     // A project is active if today falls between its start and end dates
-    return startDate <= now && endDate >= now;
+    const isActive = startDate <= now && endDate >= now;
+    if (isActive) {
+      console.log(`ACTIVE: Bay ${bay.name} - Schedule ${schedule.id}`);
+    }
+    return isActive;
   });
   
-  // Since each team can handle about 2 projects at once, calculate current capacity
-  // Each project accounts for about 50% of capacity
-  const activeProjectsUtilization = Math.min(weeklyCapacity, (activeProjects.length / 2) * weeklyCapacity);
+  // This is the final count we'll use, taking the maximum of our detection methods
+  const activeCount = Math.max(
+    activeProjects.length,
+    prodProjects.length,
+    visibleProdMarkers
+  );
   
-  // Calculate utilization percentage based on weekly hours
-  const utilization = weeklyCapacity > 0 ? Math.min(100, (activeProjectsUtilization / weeklyCapacity) * 100) : 0;
-  const roundedUtilization = Math.round(utilization);
-  
-  // Calculate total PROD hours and weeks for more accurate utilization
-  const totalProdHours = baySchedules.reduce((sum, schedule) => sum + (schedule.totalHours || 0), 0);
-  
-  // Get total PROD weeks by looking at all schedule durations
-  const totalProdWeeks = baySchedules.reduce((sum, schedule) => {
-    const startDate = new Date(schedule.startDate);
-    const endDate = new Date(schedule.endDate);
-    // Convert days to weeks and round up
-    const weeks = Math.ceil(differenceInDays(endDate, startDate) / 7);
-    return sum + weeks;
-  }, 0);
-  
-  // Calculate utilization based on PROD hours / available PROD weeks
-  const prodUtilization = totalProdWeeks > 0 
-    ? Math.min(100, Math.round((totalProdHours / (totalProdWeeks * weeklyCapacity)) * 100)) 
-    : 0;
+  // Set utilization to 50% for Near Capacity (1 project) and 100% for At Capacity (2+ projects)
+  const displayUtilization = activeCount === 0 ? 0 : 
+                             activeCount === 1 ? 50 : 100;
   
   // Determine the status label based on current active projects
   let statusLabel = "";
-  if (activeProjects.length >= 2) {
+  if (activeCount >= 2) {
     statusLabel = "At Capacity";
-  } else if (activeProjects.length === 1) {
+  } else if (activeCount === 1) {
     statusLabel = "Near Capacity";
-  } else if (activeProjects.length === 0) {
+  } else {
     statusLabel = "Available";
   }
   
-  // Set utilization to 50% for Near Capacity (1 project) and 100% for At Capacity (2+ projects)
-  // This ensures the UI correctly shows the capacity status
-  const displayUtilization = activeProjects.length === 0 ? 0 : 
-                             activeProjects.length === 1 ? 50 : 100;
+  // Extra fallback check - look at the bay label displayed underneath
+  // This is a last resort to try to ensure consistency with what's visually shown
+  const bayInfoLabel = document.querySelector(`[data-bay-id="${bay.id}"] + .bay-info-label`);
+  if (bayInfoLabel?.textContent?.includes('At Capacity')) {
+    console.log(`Bay ${bay.name} has "At Capacity" label - overriding detection`);
+    statusLabel = "At Capacity";
+    displayUtilization = 100; 
+  } else if (bayInfoLabel?.textContent?.includes('Near Capacity')) {
+    console.log(`Bay ${bay.name} has "Near Capacity" label - overriding detection`);
+    statusLabel = "Near Capacity";
+    displayUtilization = 50;
+  }
   
-  // Log for debugging
-  console.log(`Bay ${bay.name} utilization: ${displayUtilization}% (${activeProjects.length} active projects)`);
+  // Log detailed detection results
+  console.log(`Bay ${bay.name} detection results:
+    - Active projects (date-based): ${activeProjects.length}
+    - PROD phase projects (DOM search): ${prodProjects.length}
+    - Visible PROD markers: ${visibleProdMarkers}
+    - FINAL active count: ${activeCount}
+    - Display utilization: ${displayUtilization}%
+    - Status label: ${statusLabel}`
+  );
   
   return (
     <div className="flex flex-col">
@@ -269,7 +315,7 @@ const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSche
         {weeklyCapacity}h/week capacity 
         {/* Always show percentage along with status */}
         {` (${displayUtilization}% utilized)`}
-        {activeProjects.length > 0 && ` - ${statusLabel}`}
+        {activeCount > 0 && ` - ${statusLabel}`}
       </div>
     </div>
   );
