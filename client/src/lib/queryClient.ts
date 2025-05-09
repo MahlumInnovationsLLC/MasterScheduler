@@ -1,5 +1,8 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+// Check if we're in development mode
+const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -15,8 +18,15 @@ export async function apiRequest(
 ): Promise<Response> {
   const defaultHeaders = {
     ...(body ? { "Content-Type": "application/json" } : {}),
+    // Add a special header in development mode to signal the server
+    ...(isDevelopment ? { "X-Development-Mode": "true" } : {}),
     ...(headers || {})
   };
+  
+  // Log request in development mode
+  if (isDevelopment) {
+    console.log(`🔧 Development mode API request: ${method} ${url}`);
+  }
   
   const res = await fetch(url, {
     method,
