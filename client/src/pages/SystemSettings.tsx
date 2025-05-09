@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -54,18 +54,30 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import { queryClient, apiRequest } from '../lib/queryClient';
+import { queryClient, apiRequest, getQueryFn } from '../lib/queryClient';
+import { useQuery as tanstackUseQuery, useQueryClient } from '@tanstack/react-query';
 
 const SystemSettings = () => {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isMovingProjects, setIsMovingProjects] = useState(false);
   const [isRestoringProject, setIsRestoringProject] = useState(false);
+  const [isArchivingUser, setIsArchivingUser] = useState(false);
   const [deleteResult, setDeleteResult] = useState<{
     success: boolean;
     message: string;
     totalDeleted?: number;
   } | null>(null);
+
+  // User audit logs query
+  const {
+    data: userAuditLogs = [],
+    isLoading: userAuditLogsLoading,
+    error: userAuditLogsError
+  } = tanstackUseQuery({
+    queryKey: ['/api/user-audit-logs'],
+    queryFn: getQueryFn({})
+  });
 
   const handleDeleteAllProjects = async () => {
     try {
@@ -145,7 +157,7 @@ const SystemSettings = () => {
     data: users = [] as User[], 
     isLoading: usersLoading,
     error: usersError 
-  } = useQuery<User[]>({
+  } = tanstackUseQuery<User[]>({
     queryKey: ['/api/users'],
     enabled: !!user && user.role === 'admin',
   });
@@ -155,7 +167,7 @@ const SystemSettings = () => {
     data: allowedEmails = [] as AllowedEmail[], 
     isLoading: allowedEmailsLoading,
     error: allowedEmailsError 
-  } = useQuery<AllowedEmail[]>({
+  } = tanstackUseQuery<AllowedEmail[]>({
     queryKey: ['/api/allowed-emails'],
     enabled: !!user && user.role === 'admin',
   });
@@ -267,6 +279,46 @@ const SystemSettings = () => {
     }
   });
   
+  // Mutation for archiving users
+  const archiveUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return await apiRequest(
+        "PUT", 
+        `/api/users/${userId}/archive`,
+        {}
+      );
+    },
+    onSuccess: () => {
+      toast({
+        title: "User Archived",
+        description: "User has been archived successfully.",
+        variant: "default"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-audit-logs'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Archive Failed",
+        description: `Error archiving user: ${error.message}`,
+        variant: "destructive"
+      });
+    },
+    onSettled: () => {
+      setIsArchivingUser(false);
+    }
+  });
+  
+  // Function to handle archiving a user
+  const handleArchiveUser = (userId: string) => {
+    if (!window.confirm("Are you sure you want to archive this user? They will no longer be able to access the system.")) {
+      return;
+    }
+    
+    setIsArchivingUser(true);
+    archiveUserMutation.mutate(userId);
+  };
+  
   const handleCreateAllowedEmail = () => {
     if (!newEmailPattern.emailPattern) {
       toast({
@@ -369,7 +421,7 @@ const SystemSettings = () => {
     data: archivedProjects = [], 
     isLoading: archivedProjectsLoading,
     error: archivedProjectsError 
-  } = useQuery({
+  } = tanstackUseQuery({
     queryKey: ['/api/archived-projects'],
     enabled: !!user && user.role === 'admin',
   });
