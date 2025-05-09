@@ -21,7 +21,7 @@ import { SalesDeal } from "@shared/schema";
 import { formatCurrency } from "@/lib/formatters";
 import { getDealStageColor, getPriorityColor } from "@/lib/deal-colors";
 import { useLocation } from "wouter";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react";
 
 interface SalesDealsTableProps {
   deals: SalesDeal[];
@@ -35,7 +35,24 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
   const columns = useMemo<ColumnDef<SalesDeal>[]>(() => [
     {
       accessorKey: "dealNumber",
-      header: "Project",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent"
+        >
+          Project
+          <span className="ml-2">
+            {column.getIsSorted() === "asc" ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="h-4 w-4 opacity-50" />
+            )}
+          </span>
+        </Button>
+      ),
       cell: ({ row }) => (
         <div className="flex flex-col space-y-1">
           <div className="font-medium dark:text-white">{row.original.dealNumber}</div>
@@ -45,12 +62,46 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
     },
     {
       accessorKey: "clientName",
-      header: "Client",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent"
+        >
+          Client
+          <span className="ml-2">
+            {column.getIsSorted() === "asc" ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="h-4 w-4 opacity-50" />
+            )}
+          </span>
+        </Button>
+      ),
       cell: ({ row }) => <div className="dark:text-white">{row.original.clientName}</div>,
     },
     {
       accessorKey: "dealType",
-      header: "Deal Type",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent"
+        >
+          Deal Type
+          <span className="ml-2">
+            {column.getIsSorted() === "asc" ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="h-4 w-4 opacity-50" />
+            )}
+          </span>
+        </Button>
+      ),
       cell: ({ row }) => (
         <div className="text-sm capitalize dark:text-gray-300">
           {row.original.dealType.replace(/_/g, " ")}
@@ -59,7 +110,24 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
     },
     {
       accessorKey: "ownerName",
-      header: "Deal Owner",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent"
+        >
+          Deal Owner
+          <span className="ml-2">
+            {column.getIsSorted() === "asc" ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="h-4 w-4 opacity-50" />
+            )}
+          </span>
+        </Button>
+      ),
       cell: ({ row }) => (
         <div className="flex items-center">
           <div className="h-8 w-8 rounded-full bg-primary/10 dark:bg-primary/20 mr-2 flex items-center justify-center text-primary font-semibold">
@@ -71,7 +139,24 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
     },
     {
       accessorKey: "value",
-      header: "$ Value",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent"
+        >
+          $ Value
+          <span className="ml-2">
+            {column.getIsSorted() === "asc" ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="h-4 w-4 opacity-50" />
+            )}
+          </span>
+        </Button>
+      ),
       cell: ({ row }) => (
         <div className="font-mono font-medium dark:text-green-400">
           {formatCurrency(row.original.value)}
@@ -80,7 +165,24 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
     },
     {
       accessorKey: "dealStage",
-      header: "Deal Stage",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent"
+        >
+          Deal Stage
+          <span className="ml-2">
+            {column.getIsSorted() === "asc" ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="h-4 w-4 opacity-50" />
+            )}
+          </span>
+        </Button>
+      ),
       cell: ({ row }) => {
         const stage = row.original.dealStage;
         const color = getDealStageColor(stage);
@@ -93,7 +195,24 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
     },
     {
       accessorKey: "status",
-      header: "Status",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent"
+        >
+          Status
+          <span className="ml-2">
+            {column.getIsSorted() === "asc" ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="h-4 w-4 opacity-50" />
+            )}
+          </span>
+        </Button>
+      ),
       cell: ({ row }) => {
         const stage = row.original.dealStage;
         let status = "On Hold";
@@ -109,12 +228,46 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
     },
     {
       accessorKey: "dueDate",
-      header: "Due Date",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent"
+        >
+          Due Date
+          <span className="ml-2">
+            {column.getIsSorted() === "asc" ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="h-4 w-4 opacity-50" />
+            )}
+          </span>
+        </Button>
+      ),
       cell: ({ row }) => <div className="dark:text-gray-300">N/A</div>,
     },
     {
       accessorKey: "priority",
-      header: "Priority",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent"
+        >
+          Priority
+          <span className="ml-2">
+            {column.getIsSorted() === "asc" ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="h-4 w-4 opacity-50" />
+            )}
+          </span>
+        </Button>
+      ),
       cell: ({ row }) => {
         const priority = row.original.priority;
         const color = getPriorityColor(priority);
@@ -128,12 +281,29 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
     },
     {
       accessorKey: "vertical",
-      header: "Vertical",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent"
+        >
+          Vertical
+          <span className="ml-2">
+            {column.getIsSorted() === "asc" ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="h-4 w-4 opacity-50" />
+            )}
+          </span>
+        </Button>
+      ),
       cell: ({ row }) => <div className="dark:text-gray-300">{row.original.vertical}</div>,
     },
     {
       id: "actions",
-      header: "Actions",
+      header: () => <div className="text-right">Actions</div>,
       cell: ({ row }) => (
         <div className="flex gap-2">
           <Button 
