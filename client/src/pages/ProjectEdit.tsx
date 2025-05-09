@@ -27,6 +27,7 @@ import { FormDescription } from '@/components/ui/form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { format } from 'date-fns';
 import { cn, formatDate } from '@/lib/utils';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { 
@@ -363,12 +364,33 @@ function ProjectEdit() {
       setIsPercentageWarningOpen(true);
       return;
     }
+    
+    // Check if this is a scheduled project and if ship date has been changed
+    if (isProjectScheduled && data.shipDate && originalShipDate && 
+        data.shipDate.getTime() !== originalShipDate.getTime()) {
+      // Store the form data to use after confirmation
+      setPendingFormData(data);
+      // Show warning dialog about ship date changes affecting the manufacturing schedule
+      setIsShipDateWarningOpen(true);
+      return;
+    }
+    
+    // Otherwise proceed with normal update
     updateMutation.mutate(data);
   }
   
   function handlePercentageWarningConfirm() {
     setIsPercentageWarningOpen(false);
     updateMutation.mutate(form.getValues());
+  }
+  
+  function handleShipDateWarningConfirm() {
+    setIsShipDateWarningOpen(false);
+    // Use the stored pending form data for the update
+    if (pendingFormData) {
+      updateMutation.mutate(pendingFormData);
+      setPendingFormData(null);
+    }
   }
 
   function handleDelete() {
@@ -1725,6 +1747,61 @@ function ProjectEdit() {
                   className="bg-yellow-600 hover:bg-yellow-700"
                 >
                   Save Anyway
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          
+          {/* Ship Date Warning Alert Dialog */}
+          <AlertDialog open={isShipDateWarningOpen} onOpenChange={setIsShipDateWarningOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  <div className="flex items-center">
+                    <AlertTriangle className="h-5 w-5 text-amber-400 mr-2" />
+                    Warning: Manufacturing Schedule Impact
+                  </div>
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  <p className="mb-3">
+                    This project is currently scheduled in a manufacturing bay. Changing the ship date 
+                    will automatically update the end date in the manufacturing schedule.
+                  </p>
+                  
+                  <div className="mt-2 p-3 bg-amber-950/30 border border-amber-800 rounded-md">
+                    <p className="text-amber-200 font-medium mb-1">Important:</p>
+                    <p className="text-sm text-amber-100">
+                      This change may affect other projects in the schedule and could create scheduling conflicts.
+                    </p>
+                  </div>
+                  
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    <div className="p-2 bg-gray-800/50 rounded-md">
+                      <p className="text-sm font-medium text-gray-400">Original Ship Date:</p>
+                      <p className="font-medium">
+                        {originalShipDate ? format(originalShipDate, 'MMM d, yyyy') : 'None'}
+                      </p>
+                    </div>
+                    <div className="p-2 bg-gray-800/50 rounded-md">
+                      <p className="text-sm font-medium text-gray-400">New Ship Date:</p>
+                      <p className="font-medium">
+                        {form.watch('shipDate') ? format(form.watch('shipDate'), 'MMM d, yyyy') : 'None'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <p className="mt-4">
+                    Are you sure you want to continue with this change?
+                  </p>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleShipDateWarningConfirm}
+                  className="bg-amber-600 hover:bg-amber-700"
+                >
+                  Update Ship Date
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
