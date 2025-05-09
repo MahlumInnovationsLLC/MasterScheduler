@@ -34,15 +34,6 @@ export function SalesDealsTable({ deals, onDelete }: SalesDealsTableProps) {
 
   const columns = useMemo<ColumnDef<SalesDeal>[]>(() => [
     {
-      accessorKey: "id",
-      header: () => <div className="sr-only">ID</div>,
-      cell: ({ row }) => (
-        <div className="w-[30px]">
-          <input type="checkbox" className="rounded border-gray-300" />
-        </div>
-      ),
-    },
-    {
       accessorKey: "dealNumber",
       header: "Project",
       cell: ({ row }) => (
