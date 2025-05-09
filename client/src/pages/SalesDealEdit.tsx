@@ -252,8 +252,15 @@ function SalesDealEdit() {
                     <FormItem>
                       <FormLabel>Deal Number</FormLabel>
                       <FormControl>
-                        <Input {...field} disabled />
+                        <Input 
+                          {...field} 
+                          disabled={user?.role !== 'admin'} 
+                          placeholder="Example: 8-12345"
+                        />
                       </FormControl>
+                      <FormDescription>
+                        {user?.role === 'admin' ? 'All deal numbers should start with "8-"' : 'Only admins can edit deal numbers'}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
