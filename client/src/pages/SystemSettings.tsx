@@ -460,8 +460,9 @@ const SystemSettings = () => {
         </Alert>
       ) : (
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid grid-cols-4 w-[600px]">
+          <TabsList className="grid grid-cols-5 w-[750px]">
             <TabsTrigger value="users">User Management</TabsTrigger>
+            <TabsTrigger value="userHistory">User History</TabsTrigger>
             <TabsTrigger value="access">Access Control</TabsTrigger>
             <TabsTrigger value="system">Data Management</TabsTrigger>
             <TabsTrigger value="archived">Archived Projects</TabsTrigger>
@@ -530,79 +531,222 @@ const SystemSettings = () => {
                           <TableCell>{user.email || 'N/A'}</TableCell>
                           <TableCell>{getRoleBadge(user.role)}</TableCell>
                           <TableCell>
-                            {user.isApproved ? (
-                              <Badge variant="outline" className="bg-green-950 text-white border border-green-600 font-medium">
-                                Approved
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-yellow-950 text-white border border-yellow-600 font-medium">
-                                Pending
-                              </Badge>
-                            )}
+                            <div className="flex flex-col gap-1">
+                              {user.isApproved ? (
+                                <Badge variant="outline" className="bg-green-950 text-white border border-green-600 font-medium">
+                                  Approved
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-yellow-950 text-white border border-yellow-600 font-medium">
+                                  Pending
+                                </Badge>
+                              )}
+                              {user.status && (
+                                <Badge 
+                                  variant="outline" 
+                                  className={`font-medium ${
+                                    user.status === 'active' 
+                                      ? 'bg-blue-950 text-white border border-blue-600' 
+                                      : user.status === 'inactive' 
+                                        ? 'bg-gray-950 text-white border border-gray-600' 
+                                        : 'bg-red-950 text-white border border-red-600'
+                                  }`}
+                                >
+                                  {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon"
-                                  onClick={() => setEditingUser(user)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Edit User</DialogTitle>
-                                  <DialogDescription>
-                                    Modify role and approval status for {editingUser?.username}.
-                                  </DialogDescription>
-                                </DialogHeader>
-                                
-                                {editingUser && (
-                                  <div className="space-y-4 py-4">
-                                    <div className="space-y-2">
-                                      <Label htmlFor="role">Role</Label>
-                                      <Select 
-                                        value={editingUser.role} 
-                                        onValueChange={value => setEditingUser({...editingUser, role: value})}
-                                      >
-                                        <SelectTrigger>
-                                          <SelectValue placeholder="Select role" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="admin">Administrator</SelectItem>
-                                          <SelectItem value="editor">Editor</SelectItem>
-                                          <SelectItem value="viewer">Viewer</SelectItem>
-                                          <SelectItem value="pending">Pending</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                    
-                                    <div className="flex items-center space-x-2">
-                                      <Switch 
-                                        id="approved" 
-                                        checked={editingUser.isApproved}
-                                        onCheckedChange={checked => setEditingUser({...editingUser, isApproved: checked})}
-                                      />
-                                      <Label htmlFor="approved">User is approved</Label>
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                <DialogFooter>
-                                  <Button variant="outline" onClick={() => setEditingUser(null)}>
-                                    Cancel
+                            <div className="flex justify-end gap-1">
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => setEditingUser(user)}
+                                  >
+                                    <Edit className="h-4 w-4" />
                                   </Button>
-                                  <Button onClick={handleUpdateUser} disabled={updateUserMutation.isPending}>
-                                    {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Edit User</DialogTitle>
+                                    <DialogDescription>
+                                      Modify role and approval status for {editingUser?.username}.
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  
+                                  {editingUser && (
+                                    <div className="space-y-4 py-4">
+                                      <div className="space-y-2">
+                                        <Label htmlFor="role">Role</Label>
+                                        <Select 
+                                          value={editingUser.role} 
+                                          onValueChange={value => setEditingUser({...editingUser, role: value})}
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Select role" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="admin">Administrator</SelectItem>
+                                            <SelectItem value="editor">Editor</SelectItem>
+                                            <SelectItem value="viewer">Viewer</SelectItem>
+                                            <SelectItem value="pending">Pending</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      
+                                      <div className="space-y-2">
+                                        <Label htmlFor="status">Status</Label>
+                                        <Select 
+                                          value={editingUser.status || 'active'} 
+                                          onValueChange={value => setEditingUser({...editingUser, status: value})}
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Select status" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="active">Active</SelectItem>
+                                            <SelectItem value="inactive">Inactive</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      
+                                      <div className="flex items-center space-x-2">
+                                        <Switch 
+                                          id="approved" 
+                                          checked={editingUser.isApproved}
+                                          onCheckedChange={checked => setEditingUser({...editingUser, isApproved: checked})}
+                                        />
+                                        <Label htmlFor="approved">User is approved</Label>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  <DialogFooter>
+                                    <Button variant="outline" onClick={() => setEditingUser(null)}>
+                                      Cancel
+                                    </Button>
+                                    <Button onClick={handleUpdateUser} disabled={updateUserMutation.isPending}>
+                                      {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                              
+                              {/* Archive User Button */}
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-red-500 hover:text-red-700"
+                                    disabled={user.status === 'archived'}
+                                  >
+                                    <UserX className="h-4 w-4" />
                                   </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Archive User</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to archive this user? They will no longer be able to access the system.
+                                      This action is tracked for audit purposes.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleArchiveUser(user.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Archive User
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* User History Tab */}
+          <TabsContent value="userHistory" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Audit History</CardTitle>
+                <CardDescription>
+                  View a history of user management actions for auditing purposes.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {userAuditLogsLoading ? (
+                  <div className="flex justify-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : userAuditLogsError ? (
+                  <Alert className="bg-destructive/20 border-destructive">
+                    <AlertCircle className="h-5 w-5 text-destructive" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>
+                      {(userAuditLogsError as Error).message || "Failed to load user audit logs"}
+                    </AlertDescription>
+                  </Alert>
+                ) : userAuditLogs.length === 0 ? (
+                  <div className="text-center p-6 text-gray-500">
+                    No user audit logs found.
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date/Time</TableHead>
+                        <TableHead>Admin</TableHead>
+                        <TableHead>Action</TableHead>
+                        <TableHead>User</TableHead>
+                        <TableHead>Details</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {userAuditLogs.map((log: any) => (
+                        <TableRow key={log.id}>
+                          <TableCell>
+                            {new Date(log.timestamp).toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              {log.adminUsername}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant="outline" 
+                              className={
+                                log.action === 'archive'
+                                  ? 'bg-red-950 text-white border border-red-600'
+                                  : log.action === 'update'
+                                    ? 'bg-blue-950 text-white border border-blue-600'
+                                    : 'bg-green-950 text-white border border-green-600'
+                              }
+                            >
+                              {log.action.charAt(0).toUpperCase() + log.action.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{log.targetUsername}</TableCell>
+                          <TableCell>
+                            <div className="max-w-xs overflow-hidden text-ellipsis">
+                              {log.details || "No details provided"}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
