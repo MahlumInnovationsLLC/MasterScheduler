@@ -2743,15 +2743,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Use the stored bay ID if available
         const finalBayId = storedBayId > 0 ? storedBayId : targetBayId;
         
-        // Use our intelligent row assignment algorithm to find the optimal row
-        // THIS IS THE CRITICAL IMPROVEMENT: Instead of just using the row where the user dropped,
-        // we'll find the best row that avoids overlaps with existing projects
-        const optimalRow = findOptimalRow(exactStartDate, finalEndDate, targetRowIndex);
-        const finalRowIndex = optimalRow;
+        // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
+        // User specifically requested to disable all auto-placement logic
+        // Always use the exact row the user dragged to
+        const finalRowIndex = targetRowIndex;
         
-        console.log(`Creating schedule with bay=${finalBayId} row=${finalRowIndex} (optimal row assignment)`);
-        console.log(`(Original target row was: ${targetRowIndex}, stored row: ${currentRowIndex})`);
-        console.log(`Intelligent placement chose row ${finalRowIndex} to avoid overlaps with existing projects`);
+        console.log(`Creating schedule with bay=${finalBayId} row=${finalRowIndex} (MANUAL ROW ASSIGNMENT)`);
+        console.log(`(Directly using user-selected row: ${targetRowIndex})`);
+        console.log(`Auto-placement logic DISABLED - using exact row where user dropped project`);
         
         // Call the API with our forced values
         onScheduleCreate(
@@ -3033,12 +3032,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.6);
     }
     
-    /* Row-specific highlight styles with increased visibility */
+    /* ENHANCED Row-specific highlight styles with greatly increased visibility */
     .dragging-active [class*="row-"][class*="-highlight"] {
       position: relative;
-      background-color: rgba(99, 102, 241, 0.2);
-      box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.8);
+      background-color: rgba(99, 102, 241, 0.3);
+      box-shadow: inset 0 0 0 3px rgba(99, 102, 241, 0.9);
       z-index: 2;
+    }
+    
+    /* Row-specific highlights for each row */
+    .row-0-highlight {
+      background-color: rgba(99, 102, 241, 0.3) !important;
+    }
+    
+    .row-1-highlight {
+      background-color: rgba(99, 102, 241, 0.3) !important;
+    }
+    
+    .row-2-highlight {
+      background-color: rgba(99, 102, 241, 0.3) !important;
+    }
+    
+    .row-3-highlight {
+      background-color: rgba(99, 102, 241, 0.3) !important;
     }
     
     @keyframes pulse {
@@ -4121,14 +4137,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 {/* Row dividers - Interactive for row selection with grid-cell visual guides  */}
                 <div className="absolute inset-0 flex flex-col">
                   <div 
-                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer" 
-                    onDragOver={(e) => handleDragOver(e, bay.id, 0, 0)}
+                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
+                    onDragOver={(e) => {
+                      // Add strong visual indicator for this row
+                      e.currentTarget.classList.add('row-target-highlight', 'row-0-target');
+                      handleDragOver(e, bay.id, 0, 0);
+                    }}
+                    onDragLeave={(e) => {
+                      // Remove the highlight when leaving this row
+                      e.currentTarget.classList.remove('row-target-highlight', 'row-0-target');
+                    }}
                     onDrop={(e) => {
                       // Set global row data attribute to row 0
                       document.body.setAttribute('data-current-drag-row', '0');
                       handleDrop(e, bay.id, 0, 0);
                     }}
                   >
+                    {/* Row 1 label */}
+                    <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
+                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
+                        1
+                      </div>
+                    </div>
+                    
                     {/* Row 1 cell markers */}
                     <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
                       {slots.map((slot, index) => (
@@ -4139,6 +4170,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           data-slot-index={index}
                           data-date={format(slot.date, 'yyyy-MM-dd')}
                           data-bay-id={bay.id}
+                          data-row-index="0"
+                          onDragOver={(e) => {
+                            // Prevent event from propagating to parent elements
+                            e.stopPropagation();
+                            
+                            // Store the row index in a body attribute for the drop handler
+                            document.body.setAttribute('data-current-drag-row', '0');
+                            
+                            // Add highlight classes
+                            e.currentTarget.classList.add('cell-highlight', 'row-0-highlight');
+                            
+                            // Call the main handler
+                            handleDragOver(e, bay.id, index, 0);
+                          }}
+                          onDragLeave={(e) => {
+                            e.currentTarget.classList.remove('cell-highlight', 'row-0-highlight');
+                          }}
                         >
                           <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
                         </div>
