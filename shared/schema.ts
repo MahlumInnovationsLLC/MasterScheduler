@@ -49,6 +49,16 @@ export const dealPriorityEnum = pgEnum("deal_priority", [
   "urgent"
 ]);
 
+export const dealStatusEnum = pgEnum("deal_status", [
+  "AT RISK",
+  "Submittal Missed",
+  "Complete",
+  "In Progress",
+  "No Bid",
+  "On Hold",
+  "Not Started"
+]);
+
 export const projectRiskLevelEnum = pgEnum("project_risk_level", [
   "low",
   "medium",
@@ -550,7 +560,7 @@ export const salesDeals = pgTable("sales_deals", {
   description: text("description"),
   
   // Client/Customer Information
-  clientName: text("client_name").notNull(),
+  clientName: text("client_name"),
   clientLocation: text("client_location"),
   clientContactName: text("client_contact_name"),
   clientContactEmail: text("client_contact_email"),
@@ -573,6 +583,7 @@ export const salesDeals = pgTable("sales_deals", {
   
   // Tracking and Status
   priority: dealPriorityEnum("priority").default("medium"),
+  status: dealStatusEnum("status").default("Not Started"),
   probability: integer("probability").default(50), // Percentage 0-100
   notes: text("notes"),
   isActive: boolean("is_active").default(true),
