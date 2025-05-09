@@ -1493,20 +1493,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // This ensures we know which bay the drag started in
     const dragElement = e.currentTarget as HTMLElement;
     
-    // CRITICAL: Record initial bay and row when first starting to drag
-    // This ensures we track where the drag originated from
+    // CRITICAL: Update with the current row whenever dragging over
+    // This ensures we track the actual row where the cursor is hovering
+    const currentRow = Math.max(0, Math.min(3, rowIndex));
+    document.body.setAttribute('data-current-drag-row', currentRow.toString());
+    
+    // Record initial bay ID only if not set yet
     if (dragElement && !dragElement.hasAttribute('data-original-bay-id')) {
       dragElement.setAttribute('data-original-bay-id', bayId.toString());
       console.log(`Setting original bay ID: ${bayId} on element`, dragElement);
       
-      // Also store the initial row
-      const initialRow = Math.max(0, Math.min(3, rowIndex));
-      dragElement.setAttribute('data-original-row', initialRow.toString());
-      console.log(`Setting original row: ${initialRow} on element`, dragElement);
-      
-      // Store on the document as well for global access
+      // Store bay on the document as well for global access
       document.body.setAttribute('data-current-drag-bay', bayId.toString());
-      document.body.setAttribute('data-current-drag-row', initialRow.toString());
     }
     
     // Get the main scrollable container for auto-scroll
@@ -1584,31 +1582,24 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.error('Error cleaning up highlight classes in drag over:', error);
     }
     
-    // CRITICAL: Get stored values for original bay and row
-    // This ensures we're consistently using the same bay/row throughout the drag operation
+    // Get stored values for bay ID and current row
+    // This ensures we keep the bay consistent but allow row to update
     const originalBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || dragElement.getAttribute('data-original-bay-id') || '0');
-    const originalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || dragElement.getAttribute('data-original-row') || '0');
+    const currentRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
     
-    // FORCE BAY AND ROW - This is the key to fixing the issue
-    // We override both the bay and row values with our stored values
-    // This ensures projects always drop in the same bay/row they started in
+    // Keep the bay ID consistent (for placement), but use the current row
+    // This allows dropping on any row in the bay
     const forcedBayId = originalBayId > 0 ? originalBayId : bayId;
     
-    // We use the original row from where the drag started
-    // This ensures projects stay in exactly the row where they were initially dragged
-    const forcedRowIndex = originalRowIndex >= 0 ? originalRowIndex : Math.max(0, Math.min(3, rowIndex));
+    // Use the current row where the user is dragging
+    const validRowIndex = Math.max(0, Math.min(3, rowIndex !== undefined ? rowIndex : currentRowIndex));
     
-    console.log(`Using forced bay ${forcedBayId} and row ${forcedRowIndex} (original bay: ${originalBayId}, original row: ${originalRowIndex})`);
+    console.log(`Using bay ${forcedBayId} with current row: ${validRowIndex}`);
     
-    // Determine row index if not provided based on cell position - but we'll override it with our forced row
+    // Just for logging - calculate row position if needed
     const cellHeight = e.currentTarget.clientHeight;
     const relativeY = e.nativeEvent.offsetY;
-    const calculatedRowIndex = rowIndex !== undefined 
-      ? rowIndex 
-      : Math.floor((relativeY / cellHeight) * 4);
-    
-    // Set the valid row index to our forced row
-    const validRowIndex = forcedRowIndex;
+    const calculatedRowFromMouse = Math.floor((relativeY / cellHeight) * 4);
     
     // Add highlight to the current target cell
     if (e.currentTarget) {
