@@ -100,15 +100,19 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
           return endDate >= now;
         });
         
-        // Simple capacity calculation:
-        // 0 projects = 0% (no-projects)
-        // 1 project = 50% (near-capacity)
-        // 2+ projects = 100% (at-capacity)
+        // Simple capacity calculation following project standards:
+        // 0 projects = 0% (Available)
+        // 1 project = 50% (Near Capacity)
+        // 2+ projects = 100% (At Capacity)
         let utilization = 0;
         if (activeProjects.length >= 2) {
           utilization = 100; // At Capacity
+          console.log(`Bay ${bay.name} at 100% capacity with ${activeProjects.length} projects`);
         } else if (activeProjects.length === 1) {
           utilization = 50;  // Near Capacity
+          console.log(`Bay ${bay.name} at 50% capacity with 1 project`);
+        } else {
+          console.log(`Bay ${bay.name} at 0% capacity with no projects`);
         }
         
         // Determine staff types
@@ -127,29 +131,32 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
         
         if (activeProjects.length === 0) {
           status = 'no-projects';
-          description = `${bay.name} currently has no projects scheduled.`;
+          description = `${bay.name} is Available with no projects scheduled.`;
           recommendations = [
             'Assign projects to utilize this bay',
             'Check upcoming projects that could be allocated here',
             'Consider temporary reassignment of staff if no projects are imminent'
           ];
+          console.log(`Bay ${bay.name} final status: Available with 0 active projects`);
         } else if (activeProjects.length >= 2) {
           status = 'at-capacity';
-          description = `${bay.name} is at full capacity with ${activeProjects.length} active projects.`;
+          description = `${bay.name} is At Capacity with ${activeProjects.length} active projects.`;
           recommendations = [
             'Monitor workload closely to prevent bottlenecks',
             'Consider adding temporary staff to handle peak workload if needed',
             'Review project timelines for potential adjustments',
             'Identify tasks that could be subcontracted if delays occur'
           ];
+          console.log(`Bay ${bay.name} final status: At Capacity with ${activeProjects.length} active projects`);
         } else { // activeProjects.length === 1
           status = 'near-capacity';
-          description = `${bay.name} is running at optimal capacity with ${activeProjects.length} active project.`;
+          description = `${bay.name} is Near Capacity with 1 active project.`;
           recommendations = [
             'Maintain current staffing and project allocation',
             'Monitor for changes in project scope that may affect capacity', 
             'Prepare contingency plans for unexpected staffing changes'
           ];
+          console.log(`Bay ${bay.name} final status: Near Capacity with 1 active project`);
         }
         
         return {

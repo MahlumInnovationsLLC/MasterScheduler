@@ -227,7 +227,10 @@ export function calculateBayUtilization(bays: any[], schedules: any[]): number {
   
   // Simplified approach based on project count per bay
   // Using the rule: 0 projects = 0%, 1 project = 50%, 2+ projects = 100%
-  const bayUtilizations = activeBays.map(bay => {
+  const bayUtilizations: number[] = [];
+  
+  // Process each bay individually
+  activeBays.forEach(bay => {
     // Get active schedules for this bay (not completed)
     const now = new Date();
     const activeSchedules = schedules.filter(schedule => {
@@ -236,20 +239,22 @@ export function calculateBayUtilization(bays: any[], schedules: any[]): number {
              schedule.status !== 'complete';
     });
     
-    // Apply simplified utilization model:
-    // 0 projects = 0% (Available)
-    // 1 project = 50% (Near Capacity)
-    // 2+ projects = 100% (At Capacity)
+    // Apply simplified utilization model and push to array
     if (activeSchedules.length >= 2) {
-      return 100; // At Capacity (2+ projects)
+      bayUtilizations.push(100); // At Capacity (2+ projects)
     } else if (activeSchedules.length === 1) {
-      return 50;  // Near Capacity (1 project)
+      bayUtilizations.push(50);  // Near Capacity (1 project)
+    } else {
+      bayUtilizations.push(0);   // Available (0 projects)
     }
-    return 0;     // Available (0 projects)
   });
   
   // Calculate average utilization across all active bays
-  const totalUtilization = bayUtilizations.reduce((sum, util) => sum + util, 0);
+  let totalUtilization = 0;
+  for (const util of bayUtilizations) {
+    totalUtilization += util;
+  }
+  
   const avgUtilization = activeBays.length > 0 ? totalUtilization / activeBays.length : 0;
   
   console.log(`Bay utilization calculation: ${Math.round(avgUtilization)}% (based on project count per bay)`);
