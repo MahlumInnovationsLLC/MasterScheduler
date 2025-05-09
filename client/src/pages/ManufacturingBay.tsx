@@ -12,7 +12,7 @@ import {
   MoreHorizontal,
   Download
 } from 'lucide-react';
-import { ManufacturingBayLayout } from '@/components/NewManufacturingBayLayout';
+import { ManufacturingBayLayout } from '@/components/ManufacturingBayLayout';
 
 import { Button } from '@/components/ui/button';
 import { ManufacturingCard } from '@/components/ManufacturingCard';

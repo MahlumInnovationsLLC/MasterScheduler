@@ -242,6 +242,25 @@ const BaySlot = ({
   
   const dateLabel = getDateLabel();
   
+  // Track mouse movement to determine which row the user is interacting with
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const relativeY = e.clientY - rect.top;
+    const rowHeight = 12; // Height of each slot row in pixels
+    
+    // Calculate which row within the bay (0-3, meaning rows 1-4)
+    const targetRowIndex = Math.floor(relativeY / rowHeight);
+    
+    // Ensure row is within valid range
+    const normalizedRowIndex = Math.max(0, Math.min(3, targetRowIndex));
+    
+    // Store the row in data attribute to ensure we can access it later
+    document.body.setAttribute('data-current-drag-row', normalizedRowIndex.toString());
+    
+    // DEBUG: Uncomment to see row tracking in real-time
+    // console.log(`MOUSE OVER: Slot=${slot.id}, Row=${normalizedRowIndex}, Y-Position=${relativeY}px`);
+  };
+  
   return (
     <div 
       className={`
@@ -256,6 +275,8 @@ const BaySlot = ({
       id={slot.id}
       style={{ width: `${slotWidth}px` }}
       onDoubleClick={() => onDoubleClick(slot)}
+      onMouseMove={handleMouseMove}
+      data-testid={`bay-slot-${slot.bayId}`}
     >
       <div className="text-xs text-gray-400">
         {dateLabel}
@@ -264,6 +285,14 @@ const BaySlot = ({
       {isToday && (
         <div className="absolute bottom-1 right-1 w-1.5 h-1.5 bg-primary rounded-full"></div>
       )}
+      
+      {/* Visual row indicators for debugging - hidden in production */}
+      <div className="absolute top-0 left-0 w-full opacity-5 pointer-events-none">
+        <div className="h-3 border-b border-primary"></div>
+        <div className="h-3 border-b border-primary"></div>
+        <div className="h-3 border-b border-primary"></div>
+        <div className="h-3 border-b border-primary"></div>
+      </div>
     </div>
   );
 };
@@ -911,6 +940,46 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
     try {
       const projectId = parseInt(active.id.toString());
       const overSlotId = over.id.toString();
+      
+      // Get the cursor position from the DragEndEvent
+      const { delta } = event;
+      const dropY = delta.y; // Vertical position relative to start
+      
+      // Calculate which row the user dropped the project into (1-4)
+      // In our layout, each bay has 4 potential rows for placing projects
+      // We need to determine which row based on where in the bay the cursor is
+      const targetElement = document.getElementById(overSlotId);
+      const rowHeight = 12; // Height of each row in pixels
+      let targetRow = 0; // Default row
+      
+      if (targetElement) {
+        const rect = targetElement.getBoundingClientRect();
+        
+        // The activatorEvent is a MouseEvent or TouchEvent that has clientY property
+        const ev = event.activatorEvent as MouseEvent | TouchEvent;
+        let clientY = 0;
+        
+        if ('clientY' in ev) {
+          // It's a MouseEvent
+          clientY = ev.clientY;
+        } else if (ev.touches && ev.touches[0]) {
+          // It's a TouchEvent
+          clientY = ev.touches[0].clientY;
+        }
+        
+        // Calculate which row within the bay based on drop position
+        // Row is 0-based index, so 0=row1, 1=row2, 2=row3, 3=row4
+        const relativeY = clientY - rect.top;
+        targetRow = Math.floor(relativeY / rowHeight);
+        
+        // Ensure row is within valid range (0-3)
+        targetRow = Math.max(0, Math.min(3, targetRow));
+        
+        // Store the row in data attribute to ensure we can access it later
+        document.body.setAttribute('data-current-drag-row', targetRow.toString());
+        
+        console.log(`DROP DETECTED: Bay=${overSlotId}, Row=${targetRow}, Y-Position=${relativeY}px`);
+      }
       
       // Extract bay ID and date from the slot ID
       const match = overSlotId.match(/slot-(\d+)-(\d{4}-\d{2}-\d{2})/);
