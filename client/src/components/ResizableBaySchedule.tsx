@@ -198,21 +198,22 @@ const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSche
   const currentWeekStart = startOfWeek(now);
   const currentWeekEnd = endOfWeek(now);
   
-  // Count projects in PROD phase during the current week
-  const currentWeekProjects = baySchedules.filter(schedule => {
+  // Count ALL projects currently ACTIVE in this bay (regardless of current week)
+  // This is a more accurate representation of current workload
+  const activeProjects = baySchedules.filter(schedule => {
     const startDate = new Date(schedule.startDate);
     const endDate = new Date(schedule.endDate);
     
-    // Check if schedule overlaps with current week
-    return !(endDate < currentWeekStart || startDate > currentWeekEnd);
+    // A project is active if today falls between its start and end dates
+    return startDate <= now && endDate >= now;
   });
   
   // Since each team can handle about 2 projects at once, calculate current capacity
   // Each project accounts for about 50% of capacity
-  const currentWeekUtilization = Math.min(weeklyCapacity, (currentWeekProjects.length / 2) * weeklyCapacity);
+  const activeProjectsUtilization = Math.min(weeklyCapacity, (activeProjects.length / 2) * weeklyCapacity);
   
   // Calculate utilization percentage based on weekly hours
-  const utilization = weeklyCapacity > 0 ? Math.min(100, (currentWeekUtilization / weeklyCapacity) * 100) : 0;
+  const utilization = weeklyCapacity > 0 ? Math.min(100, (activeProjectsUtilization / weeklyCapacity) * 100) : 0;
   const roundedUtilization = Math.round(utilization);
   
   // Calculate total PROD hours and weeks for more accurate utilization
@@ -232,18 +233,23 @@ const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSche
     ? Math.min(100, Math.round((totalProdHours / (totalProdWeeks * weeklyCapacity)) * 100)) 
     : 0;
   
-  // Determine the status label based on current week projects
+  // Determine the status label based on current active projects
   let statusLabel = "";
-  if (currentWeekProjects.length >= 2) {
+  if (activeProjects.length >= 2) {
     statusLabel = "At Capacity";
-  } else if (currentWeekProjects.length === 1) {
+  } else if (activeProjects.length === 1) {
     statusLabel = "Near Capacity";
-  } else if (currentWeekProjects.length === 0) {
+  } else if (activeProjects.length === 0) {
     statusLabel = "Available";
   }
   
+  // Set utilization to 50% for Near Capacity (1 project) and 100% for At Capacity (2+ projects)
+  // This ensures the UI correctly shows the capacity status
+  const displayUtilization = activeProjects.length === 0 ? 0 : 
+                             activeProjects.length === 1 ? 50 : 100;
+  
   // Log for debugging
-  console.log(`Bay ${bay.name} utilization: ${roundedUtilization}% (${currentWeekProjects.length} projects in current week)`);
+  console.log(`Bay ${bay.name} utilization: ${displayUtilization}% (${activeProjects.length} active projects)`);
   
   return (
     <div className="flex flex-col">
@@ -262,8 +268,8 @@ const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSche
       <div className="text-xs text-gray-400">
         {weeklyCapacity}h/week capacity 
         {/* Always show percentage along with status */}
-        {` (${roundedUtilization}% utilized)`}
-        {currentWeekProjects.length > 0 && ` - ${statusLabel}`}
+        {` (${displayUtilization}% utilized)`}
+        {activeProjects.length > 0 && ` - ${statusLabel}`}
       </div>
     </div>
   );
