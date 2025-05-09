@@ -370,7 +370,7 @@ const SystemSettings = () => {
     isLoading: archivedProjectsLoading,
     error: archivedProjectsError 
   } = useQuery({
-    queryKey: ['/api/projects/archived'],
+    queryKey: ['/api/archived-projects'],
     enabled: !!user && user.role === 'admin',
   });
   
@@ -393,7 +393,7 @@ const SystemSettings = () => {
         
         // Update the UI
         queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/projects/archived'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/archived-projects'] });
       } else {
         let errorMessage = "Failed to restore project. Please try again.";
         
