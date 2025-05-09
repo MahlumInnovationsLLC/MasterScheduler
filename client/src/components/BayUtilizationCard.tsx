@@ -87,7 +87,7 @@ export const BayUtilizationCard: React.FC<BayUtilizationCardProps> = ({
           bayId: bay.id,
           bayName: bay.name,
           utilization: 0,
-          status: 'balanced' as const,
+          status: 'no-projects' as const,
           description: 'No staff assigned to this bay',
           teamName: bay.team || 'Unnamed Team',
           staffCount: 0,
