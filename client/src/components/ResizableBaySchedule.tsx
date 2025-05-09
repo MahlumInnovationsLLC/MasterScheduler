@@ -792,24 +792,35 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Use adjusted end date if calculated, otherwise use original
         const endDate = schedule.calculatedEndDate || new Date(schedule.endDate);
         
-        // Find a row that doesn't have a schedule overlapping with this one
-        let assignedRow = -1;
-        for (let row = 0; row < 4; row++) {
-          if (startDate >= rowEndDates[row]) {
-            assignedRow = row;
-            break;
+        // CRITICAL FIX: RESPECT THE ROW FROM DATABASE
+        // Check if the schedule has a row value in the database, and use it directly
+        let assignedRow = typeof schedule.row === 'number' ? schedule.row : -1;
+        
+        // Only use automatic row assignment if no row is specified in the database
+        if (assignedRow === -1) {
+          // Find a row that doesn't have a schedule overlapping with this one
+          for (let row = 0; row < 4; row++) {
+            if (startDate >= rowEndDates[row]) {
+              assignedRow = row;
+              break;
+            }
+          }
+          
+          // If all rows are occupied, use the one that ends soonest
+          if (assignedRow === -1) {
+            const endTimes = rowEndDates.map(d => d.getTime());
+            const minTime = Math.min(...endTimes);
+            assignedRow = endTimes.indexOf(minTime);
           }
         }
         
-        // If all rows are occupied, use the one that ends soonest
-        if (assignedRow === -1) {
-          const endTimes = rowEndDates.map(d => d.getTime());
-          const minTime = Math.min(...endTimes);
-          assignedRow = endTimes.indexOf(minTime);
-        }
+        // Ensure row is within valid range
+        assignedRow = Math.min(3, Math.max(0, assignedRow));
         
         // Update the end date for this row
         rowEndDates[assignedRow] = new Date(endDate);
+        
+        console.log(`Schedule ${schedule.id} positioned in row ${assignedRow} ${typeof schedule.row === 'number' ? '(using database row)' : '(auto-assigned)'}`)
         
         // Find the slot indices for the original start date (where the bar begins)
         const startSlotIndex = slots.findIndex(slot => {
