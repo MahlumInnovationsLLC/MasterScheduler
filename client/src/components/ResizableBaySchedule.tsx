@@ -3321,8 +3321,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       const baySchedules = scheduleBars.filter(b => b.bayId === bay.id);
                       
                       // Calculate the maximum capacity per week for this bay using bay-specific hours
-                      // Get the correct hours per person (prioritize hoursPerPersonPerWeek but fallback to hoursPerWeek if exists)
-                      const hoursPerPerson = bay.hoursPerPersonPerWeek || bay.hoursPerWeek || 0;
+                      // Get the hours per person from the bay settings, with no fallback to any hardcoded value
+                      const hoursPerPerson = bay.hoursPerPersonPerWeek || 0;
                       // Calculate total staff count (either from direct staffCount or from assembly + electrical)
                       const totalStaff = bay.staffCount || (bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0) || 1;
                       // Calculate maximum capacity based on actual bay data
@@ -3477,8 +3477,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       
                       // Calculate staff count from either direct staffCount or from assembly + electrical
                       const bayStaffCount = bay.staffCount || (bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0); 
-                      // Get the correct hours per person (prioritize hoursPerPersonPerWeek but fallback to hoursPerWeek if exists)
-                      const bayHoursPerWeek = bay.hoursPerPersonPerWeek || bay.hoursPerWeek || 0;
+                      // Get the hours per person from the bay settings with no hardcoded fallback
+                      const bayHoursPerWeek = bay.hoursPerPersonPerWeek || 0;
                       // Calculate weekly capacity using actual bay-specific hours
                       const weeklyCapacity = bayHoursPerWeek * bayStaffCount;
                       
