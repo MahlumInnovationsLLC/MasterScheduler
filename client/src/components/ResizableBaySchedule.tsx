@@ -3111,13 +3111,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     // Show loading state
                     setIsMovingProject(true);
                     
+                    // CRITICAL: Find the schedule and use its current row value to keep it in place
+                    const schedule = schedules.find(s => s.id === capacityWarningData.scheduleId);
+                    const currentRow = schedule?.row || 0;
+                    console.log(`Capacity warning override keeping fixed row: ${currentRow} for schedule ${capacityWarningData.scheduleId}`);
+                    
                     onScheduleChange(
                       capacityWarningData.scheduleId,
                       capacityWarningData.bayId,
                       capacityWarningData.newStartDate,
                       capacityWarningData.newEndDate,
                       capacityWarningData.totalHours,
-                      schedules.find(s => s.id === capacityWarningData.scheduleId)?.row || 0
+                      currentRow // Keep the project in its current row
                     )
                     .then(() => {
                       // Clear loading state
