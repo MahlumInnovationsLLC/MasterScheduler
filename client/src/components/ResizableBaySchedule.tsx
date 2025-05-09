@@ -3055,35 +3055,35 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       min-height: 24px !important;
     }
     
-    /* Row positioning - FIXED to ensure row snapping works correctly */
+    /* Row positioning - Fixed with proper height values for single row placement */
     .row-0-bar {
       top: 0% !important;
-      height: 25% !important;
+      height: 20px !important;
       transform: none !important;
     }
     
     .row-1-bar {
       top: 25% !important;
-      height: 25% !important;
+      height: 20px !important;
       transform: none !important;
     }
     
     .row-2-bar {
       top: 50% !important;
-      height: 25% !important;
+      height: 20px !important;
       transform: none !important;
     }
     
     .row-3-bar {
       top: 75% !important;
-      height: 25% !important;
+      height: 20px !important;
       transform: none !important;
     }
 
-    /* Enhanced styling for project bars to fill rows properly */
+    /* Enhanced styling for project bars with fixed height */
     .big-project-bar {
       box-sizing: border-box !important;
-      border-width: 2px !important;
+      border-width: 1px !important;
       overflow: visible !important;
       position: relative !important; 
       z-index: 20 !important;
@@ -3092,12 +3092,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       display: flex !important;
       align-items: center !important;
       justify-content: flex-start !important;
-      height: 95% !important; /* Fill most of the height but leave a small gap */
+      height: 20px !important; /* Fixed height to match row height */
     }
     
-    /* Department phase colors */
+    /* Department phase colors - fixed height to match project bars */
     .dept-phase {
-      height: 100% !important;
+      height: 20px !important;
       position: absolute !important;
       top: 0 !important;
     }
@@ -3142,11 +3142,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
        The row classes are already defined above and having duplicates was causing positioning issues.
        Do not add these class definitions back as they conflict with the correct ones above. */
     
-    /* Resize handles */
+    /* Resize handles - fixed height to match project bars */
     .resize-handle {
       position: absolute !important;
       top: 0 !important;
-      bottom: 0 !important;
+      height: 20px !important;
       width: 12px !important;
       display: flex !important;
       align-items: center !important;
