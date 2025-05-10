@@ -190,71 +190,30 @@ const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSche
   const staffCount = bay.staffCount || assemblyStaff + electricalStaff;
   const weeklyCapacity = hoursPerWeek * staffCount;
   
-  // *** Check current capacity utilization for Bay 1 & 2 (ID 1) ***
-  if (bay.id === 1) {
-    // Get actual capacity data from the bay
-    const weeklyCapacity = (bay.hoursPerPersonPerWeek || 40) * (bay.staffCount || (assemblyStaff + electricalStaff));
-    
-    // We know this bay has exactly 1 active project, so 50% utilization
-    console.log(`Setting Bay ${bay.name} to Near Capacity (1 active project = 50% capacity)`);
-    
-    return (
-      <div className="flex flex-col">
-        <div className="text-xs text-gray-400 mb-1">
-          <div className="flex items-center">
-            <div className="flex items-center mr-3">
-              <Users className="h-3 w-3 mr-1 text-blue-400" />
-              <span>{assemblyStaff}</span>
-            </div>
-            <div className="flex items-center">
-              <Zap className="h-3 w-3 mr-1 text-amber-400" />
-              <span>{electricalStaff}</span>
-            </div>
-          </div>
-        </div>
-        <div className="text-xs text-gray-400">
-          {weeklyCapacity}h/week capacity {` (50% utilized) - Near Capacity`}
-        </div>
-      </div>
-    );
-  }
-  
-  // For all other bays, keep the existing logic
   // Get schedules for this bay
   const baySchedules = allSchedules.filter(schedule => schedule.bayId === bay.id);
   
-  // CRITICAL FIX: Instead of relying on date calculations, check if this bay has any projects assigned to it
-  const projectsInBay = baySchedules.length;
+  // Get active projects in current week (using the same logic as the main component)
+  const now = new Date();
+  const currentWeekStart = startOfWeek(now);
+  const currentWeekEnd = endOfWeek(now);
   
-  console.log(`Bay ${bay.name} has ${projectsInBay} projects assigned to it`);
+  // Find projects that are active in the current week
+  const currentWeekProjects = baySchedules.filter(schedule => {
+    const scheduleStart = new Date(schedule.startDate);
+    const scheduleEnd = new Date(schedule.endDate);
+    return !(scheduleEnd < currentWeekStart || scheduleStart > currentWeekEnd);
+  });
   
-  // ALTERNATIVE APPROACH: Look for the "At Capacity" or "Near Capacity" text in the bay labels
-  // Check if there's a text below showing "At Capacity" or the number of projects
-  const atCapacityElement = document.querySelector(`.bay-row[data-bay-id="${bay.id}"] ~ .at-capacity-label`);
-  const projectCountElement = document.querySelector(`.bay-row[data-bay-id="${bay.id}"] ~ .project-count-label`);
+  // Count projects in bay for the current week
+  const activeCount = currentWeekProjects.length;
   
-  let activeCount = 0;
+  console.log(`Bay ${bay.name} has ${activeCount} projects in current week`);
   
-  if (atCapacityElement?.textContent?.includes('At Capacity')) {
-    console.log(`Found "At Capacity" label for Bay ${bay.name}`);
-    activeCount = 2; // At Capacity means 2+ projects
-  } else if (projectCountElement) {
-    const text = projectCountElement.textContent || '';
-    const match = text.match(/(\d+)\s+projects?\s+in\s+PROD/i);
-    if (match && match[1]) {
-      activeCount = parseInt(match[1], 10);
-      console.log(`Found ${activeCount} projects in PROD for Bay ${bay.name} from label`);
-    }
-  }
-  
-  // If we still don't have a count, use the number of assigned projects (capped at 2)
-  if (activeCount === 0) {
-    activeCount = Math.min(2, projectsInBay);
-  }
-  
+  // Standard capacity calculation based on project count
   // Set utilization to 50% for Near Capacity (1 project) and 100% for At Capacity (2+ projects)
   const displayUtilization = activeCount === 0 ? 0 : 
-                             activeCount === 1 ? 50 : 100;
+                            activeCount === 1 ? 50 : 100;
   
   // Determine the status label based on current active projects
   let statusLabel = "";
@@ -264,12 +223,6 @@ const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSche
     statusLabel = "Near Capacity";
   } else {
     statusLabel = "Available";
-  }
-  
-  // Manual override for Bay 3 & 4 (ID 2) based on what's visually displayed
-  if (bay.id === 2) {
-    statusLabel = "At Capacity";
-    activeCount = 2;
   }
   
   console.log(`Bay ${bay.name} final status: ${statusLabel} with ${activeCount} active projects`);
