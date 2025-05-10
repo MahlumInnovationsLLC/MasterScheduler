@@ -210,10 +210,34 @@ const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSche
   
   console.log(`Bay ${bay.name} has ${activeCount} projects in current week`);
   
-  // Standard capacity calculation based on project count
-  // Set utilization to 50% for Near Capacity (1 project) and 100% for At Capacity (2+ projects)
-  const displayUtilization = activeCount === 0 ? 0 : 
-                            activeCount === 1 ? 50 : 100;
+  // Calculate actual weekly hours used by each project
+  let totalHoursUsedThisWeek = 0;
+  
+  currentWeekProjects.forEach(schedule => {
+    // Get project to check its phase
+    const project = projects.find(p => p.id === schedule.projectId);
+    if (!project) return;
+    
+    // Calculate total project duration in weeks
+    const startDate = new Date(schedule.startDate);
+    const endDate = new Date(schedule.endDate);
+    const totalDays = Math.ceil(Math.abs(endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
+    
+    // Calculate weekly hours for this project
+    const projectWeeklyHours = (schedule.totalHours || 0) / totalWeeks;
+    
+    // Add to total hours
+    totalHoursUsedThisWeek += projectWeeklyHours;
+  });
+  
+  // Calculate actual utilization percentage based on hours
+  const actualUtilization = weeklyCapacity > 0 ? 
+    Math.min(100, Math.round((totalHoursUsedThisWeek / weeklyCapacity) * 100)) : 0;
+  
+  // For status labels, use the project count method
+  // Set status based on number of projects (0 = Available, 1 = Near Capacity, 2+ = At Capacity)
+  const displayUtilization = actualUtilization;
   
   // Determine the status label based on current active projects
   let statusLabel = "";
