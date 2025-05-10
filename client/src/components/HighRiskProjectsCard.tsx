@@ -251,8 +251,18 @@ function getDaysUntilDate(dateStr: string | null | undefined): number {
     today.setHours(0, 0, 0, 0);
     targetDate.setHours(0, 0, 0, 0);
     
-    const diffTime = Math.abs(targetDate.getTime() - today.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // If date is in the past, show "0 days" instead of counting days in the past
+    if (targetDate < today) {
+      console.log(`Ship date ${dateStr} is in the past, showing 0 days`);
+      return 0;
+    }
+    
+    // Calculate days until the date (don't use absolute value)
+    const diffTime = targetDate.getTime() - today.getTime();
+    const daysDiff = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    console.log(`Days until ${dateStr}: ${daysDiff} days (from ${today.toISOString().split('T')[0]})`);
+    return daysDiff;
   } catch (e) {
     console.error("Error calculating days until date:", e);
     return 0;
@@ -263,6 +273,7 @@ function getDaysUntilDate(dateStr: string | null | undefined): number {
 function getCurrentPhase(project: any, today: Date): string {
   // Get relevant dates
   const fabStart = project.fabricationStart ? new Date(project.fabricationStart) : null;
+  const paintStart = project.wrapDate ? new Date(project.wrapDate) : null; // Paint/Wrap phase
   const assemblyStart = project.assemblyStart ? new Date(project.assemblyStart) : null;
   const ntcDate = project.ntcTestingDate ? new Date(project.ntcTestingDate) : null;
   const qcStart = project.qcStartDate ? new Date(project.qcStartDate) : null;
@@ -273,7 +284,17 @@ function getCurrentPhase(project: any, today: Date): string {
   today = new Date(today);
   today.setHours(0, 0, 0, 0);
   
-  // Determine current phase based on today's date
+  // Normalize all dates
+  if (fabStart) fabStart.setHours(0, 0, 0, 0);
+  if (paintStart) paintStart.setHours(0, 0, 0, 0);
+  if (assemblyStart) assemblyStart.setHours(0, 0, 0, 0);
+  if (ntcDate) ntcDate.setHours(0, 0, 0, 0);
+  if (qcStart) qcStart.setHours(0, 0, 0, 0);
+  if (execReview) execReview.setHours(0, 0, 0, 0);
+  if (shipDate) shipDate.setHours(0, 0, 0, 0);
+  
+  // CRITICAL: Determine phase transitions - the order matters!
+  // We need to check from the end of the timeline backwards
   if (shipDate && today >= shipDate) {
     return "Shipping";
   } else if (execReview && today >= execReview) {
@@ -283,7 +304,11 @@ function getCurrentPhase(project: any, today: Date): string {
   } else if (ntcDate && today >= ntcDate) {
     return "NTC Testing";
   } else if (assemblyStart && today >= assemblyStart) {
-    return "Assembly";
+    // This is the critical case for 805304 - it should show "Production" not "Pre-Production"
+    // For UI purposes, we're showing "Production" instead of "Assembly" to be clearer
+    return "Production";
+  } else if (paintStart && today >= paintStart) {
+    return "Paint";
   } else if (fabStart && today >= fabStart) {
     return "Fabrication";
   } else {
