@@ -183,7 +183,7 @@ const getProjectColor = (projectId: number) => {
 };
 
 // Simple BayCapacityInfo component to show staffing breakdown
-const BayCapacityInfo = ({ bay, allSchedules }: { bay: ManufacturingBay, allSchedules: ManufacturingSchedule[] }) => {
+const BayCapacityInfo = ({ bay, allSchedules, projects }: { bay: ManufacturingBay, allSchedules: ManufacturingSchedule[], projects: Project[] }) => {
   const assemblyStaff = bay.assemblyStaffCount || 0;
   const electricalStaff = bay.electricalStaffCount || 0;
   const hoursPerWeek = bay.hoursPerPersonPerWeek || 0; // No fallback to hardcoded value
