@@ -3683,17 +3683,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         return schedule.bayId === bay.id && endDate >= now;
                       });
                       
-                      // Special handling for Bay 1
-                      if (bay.id === 1) {
-                        console.log(`Setting Bay ${bay.name} to Near Capacity (1 active project = 50% capacity)`);
-                        
-                        // For Bay 1 always use Near Capacity (from BayUtilizationCard)
-                        status = 'warning';
-                        label = 'Near Capacity';
-                        details = '1 project in PROD';
-                      } 
-                      // For all other bays, follow the standard calculation
-                      else if (currentWeekProjects.length > 0) { 
+                      // For ALL bays, use the same standard calculation based on current week projects
+                      if (currentWeekProjects.length > 0) { 
                         if (currentWeekProjects.length >= 2) {
                           status = 'danger';
                           label = 'At Capacity';
