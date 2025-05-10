@@ -31,12 +31,6 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
     const schedulesArray = Array.isArray(manufacturingSchedules) ? manufacturingSchedules : [];
     const baysArray = Array.isArray(manufacturingBays) ? manufacturingBays : [];
     
-    // DEBUGGING: Look for project 805304 explicitly
-    const debugProject = projects.find(p => p.projectNumber === "805304");
-    if (debugProject) {
-      console.log("Found debug project 805304 in projects list:", debugProject.id);
-    }
-    
     // Find schedules where today's date falls between start and end date
     const activeSchedules = schedulesArray.filter((schedule: any) => {
       const startDate = new Date(schedule.startDate);
@@ -46,80 +40,42 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
       startDate.setHours(0, 0, 0, 0);
       endDate.setHours(0, 0, 0, 0);
       
-      // Check if this is for project 805304
-      if (debugProject && schedule.projectId === debugProject.id) {
-        console.log("Checking schedule for 805304:", {
-          start: startDate.toISOString().split('T')[0],
-          end: endDate.toISOString().split('T')[0],
-          today: today.toISOString().split('T')[0],
-          isActive: startDate <= today && today <= endDate
-        });
-      }
-      
       return startDate <= today && today <= endDate;
     });
-    
-    console.log("All active schedules:", activeSchedules.length);
     
     // Find corresponding projects and add bay information
     const result = activeSchedules.map((schedule: any) => {
       const project = projects.find(p => p.id === schedule.projectId);
       const bay = baysArray.find((b: any) => b.id === schedule.bayId);
       
-      if (!project) {
-        console.log("No project found for schedule:", schedule);
-        return null;
-      }
+      if (!project) return null;
       
-      // DEBUGGING: Calculate phase for 805304
-      if (project.projectNumber === "805304") {
-        console.log("Calculating phase for 805304 in active projects");
-        
-        // CRITICAL: FORCE TO PRODUCTION if it's 805304
-        return {
-          ...project,
-          bayName: bay?.name || 'Unknown',
-          startDate: schedule.startDate,
-          endDate: schedule.endDate,
-          currentPhase: "Production" // FORCE PRODUCTION
-        };
-      }
-      
-      return {
+      // Create an enhanced project with schedule information to assist phase calculation
+      const enhancedProject = {
         ...project,
         bayName: bay?.name || 'Unknown',
         startDate: schedule.startDate,
-        endDate: schedule.endDate,
-        currentPhase: getCurrentPhase(project, today),
+        endDate: schedule.endDate
+      };
+      
+      // Calculate the current phase using our improved function
+      const currentPhase = getCurrentPhase(enhancedProject, today);
+      
+      return {
+        ...enhancedProject,
+        currentPhase
       };
     }).filter(Boolean);
     
-    // DEBUGGING: Check if 805304 is in results
-    const has805304 = result.some(p => p.projectNumber === "805304");
-    console.log("Final active projects include 805304:", has805304);
-    console.log("Active projects count (before slicing):", result.length);
+    // Sort results by days until ship date
+    const sortedResults = result.sort((a, b) => {
+      const aDays = getDaysUntilDate(a.shipDate);
+      const bDays = getDaysUntilDate(b.shipDate);
+      return aDays - bDays;
+    });
     
-    // CRITICAL FIX: Ensure 805304 is always included if it exists
-    if (debugProject && !has805304) {
-      // Find a schedule for this project
-      const schedule = schedulesArray.find(s => s.projectId === debugProject.id);
-      if (schedule) {
-        const bay = baysArray.find((b: any) => b.id === schedule.bayId);
-        
-        // Add it to the results manually
-        console.log("Manually adding 805304 to active projects");
-        result.push({
-          ...debugProject,
-          bayName: bay?.name || 'Unknown',
-          startDate: schedule.startDate,
-          endDate: schedule.endDate,
-          currentPhase: "Production" // FORCE PRODUCTION
-        });
-      }
-    }
-    
-    // Slice to limit to top 3 but ensure 805304 is included if it exists
-    return result.slice(0, 3);
+    // Slice to limit to top 3
+    return sortedResults.slice(0, 3);
   }, [projects, manufacturingSchedules, manufacturingBays]);
   
   // Upcoming NTC or QC dates in the next 2 weeks
@@ -336,6 +292,92 @@ function getCurrentPhase(project: any, today: Date): string {
   // Check if this is the project we're debugging (805304)
   const isDebugProject = project.projectNumber === "805304";
   
+  // Reset time portion of today for fair comparison
+  today = new Date(today);
+  today.setHours(0, 0, 0, 0);
+  
+  // SPECIAL HANDLING FOR PROJECTS THAT DON'T HAVE PHASE DATES
+  // If we have startDate & endDate (from a schedule) but missing phase dates
+  if (project.startDate && project.endDate && 
+      (!project.fabricationStart || !project.assemblyStart || !project.wrapDate)) {
+    
+    const startDate = new Date(project.startDate);
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(project.endDate);
+    endDate.setHours(0, 0, 0, 0);
+    
+    if (isDebugProject) {
+      console.log("==== CALCULATING PHASE BASED ON SCHEDULE DATES ====");
+      console.log("Schedule startDate:", startDate.toISOString().split('T')[0]);
+      console.log("Schedule endDate:", endDate.toISOString().split('T')[0]);
+      console.log("Today date:", today.toISOString().split('T')[0]);
+      console.log("Project has active schedule:", startDate <= today && today <= endDate);
+    }
+    
+    // If today falls between startDate and endDate, the project is in production
+    if (startDate <= today && today <= endDate) {
+      // Get total duration of the project
+      const totalDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+      
+      // Calculate phase percentages (use real percentages from the project if available)
+      const fabPercent = project.fabPercentage ? parseFloat(project.fabPercentage) : 27;
+      const paintPercent = project.paintPercentage ? parseFloat(project.paintPercentage) : 7;
+      const prodPercent = project.productionPercentage ? parseFloat(project.productionPercentage) : 60;
+      const itPercent = project.itPercentage ? parseFloat(project.itPercentage) : 7;
+      const ntcPercent = project.ntcPercentage ? parseFloat(project.ntcPercentage) : 7;
+      const qcPercent = project.qcPercentage ? parseFloat(project.qcPercentage) : 7;
+      
+      // Calculate days for each phase
+      const fabDays = Math.round((fabPercent / 100) * totalDays);
+      const paintDays = Math.round((paintPercent / 100) * totalDays);
+      const prodDays = Math.round((prodPercent / 100) * totalDays);
+      const itDays = Math.round((itPercent / 100) * totalDays);
+      const ntcDays = Math.round((ntcPercent / 100) * totalDays);
+      
+      // Calculate phase transition dates
+      const fabEndDate = new Date(startDate);
+      fabEndDate.setDate(fabEndDate.getDate() + fabDays);
+      
+      const paintEndDate = new Date(fabEndDate);
+      paintEndDate.setDate(paintEndDate.getDate() + paintDays);
+      
+      const prodEndDate = new Date(paintEndDate);
+      prodEndDate.setDate(prodEndDate.getDate() + prodDays);
+      
+      const itEndDate = new Date(prodEndDate);
+      itEndDate.setDate(itEndDate.getDate() + itDays);
+      
+      const ntcEndDate = new Date(itEndDate);
+      ntcEndDate.setDate(ntcEndDate.getDate() + ntcDays);
+      
+      if (isDebugProject) {
+        console.log("Phase transition dates:");
+        console.log("  Fab end:", fabEndDate.toISOString().split('T')[0]);
+        console.log("  Paint end:", paintEndDate.toISOString().split('T')[0]);
+        console.log("  Production end:", prodEndDate.toISOString().split('T')[0]);
+        console.log("  IT end:", itEndDate.toISOString().split('T')[0]);
+        console.log("  NTC end:", ntcEndDate.toISOString().split('T')[0]);
+      }
+      
+      // Determine current phase based on today's position
+      if (today <= fabEndDate) {
+        return "Fabrication";
+      } else if (today <= paintEndDate) {
+        return "Paint";
+      } else if (today <= prodEndDate) {
+        return "Production";
+      } else if (today <= itEndDate) {
+        return "IT Integration";
+      } else if (today <= ntcEndDate) {
+        return "NTC Testing";
+      } else {
+        return "QC";
+      }
+    }
+  }
+  
+  // STANDARD PHASE DETECTION USING SPECIFIC DATES
   // Get relevant dates
   const fabStart = project.fabricationStart ? new Date(project.fabricationStart) : null;
   const paintStart = project.wrapDate ? new Date(project.wrapDate) : null; // Paint/Wrap phase
@@ -344,10 +386,6 @@ function getCurrentPhase(project: any, today: Date): string {
   const qcStart = project.qcStartDate ? new Date(project.qcStartDate) : null;
   const execReview = project.executiveReviewDate ? new Date(project.executiveReviewDate) : null;
   const shipDate = project.shipDate ? new Date(project.shipDate) : null;
-  
-  // Reset time portion of today for fair comparison
-  today = new Date(today);
-  today.setHours(0, 0, 0, 0);
   
   // Normalize all dates
   if (fabStart) fabStart.setHours(0, 0, 0, 0);
@@ -361,7 +399,6 @@ function getCurrentPhase(project: any, today: Date): string {
   // DEBUG INFORMATION for project 805304
   if (isDebugProject) {
     console.log("==== DEBUG PROJECT 805304 PHASE CALCULATION ====");
-    console.log("Project Data:", project);
     console.log("Today date:", today.toISOString().split('T')[0]);
     console.log("Fabrication start:", fabStart?.toISOString().split('T')[0] || "null");
     console.log("Paint start:", paintStart?.toISOString().split('T')[0] || "null");
@@ -370,15 +407,6 @@ function getCurrentPhase(project: any, today: Date): string {
     console.log("QC start date:", qcStart?.toISOString().split('T')[0] || "null");
     console.log("Executive Review date:", execReview?.toISOString().split('T')[0] || "null");
     console.log("Ship date:", shipDate?.toISOString().split('T')[0] || "null");
-    
-    // Check various conditions
-    console.log("Is today >= fabStart?", fabStart ? today >= fabStart : "No fabStart");
-    console.log("Is today >= paintStart?", paintStart ? today >= paintStart : "No paintStart");
-    console.log("Is today >= assemblyStart?", assemblyStart ? today >= assemblyStart : "No assemblyStart");
-    console.log("Is today >= ntcDate?", ntcDate ? today >= ntcDate : "No ntcDate");
-    console.log("Is today >= qcStart?", qcStart ? today >= qcStart : "No qcStart");
-    console.log("Is today >= execReview?", execReview ? today >= execReview : "No execReview");
-    console.log("Is today >= shipDate?", shipDate ? today >= shipDate : "No shipDate");
   }
   
   // CRITICAL: Determine phase transitions - the order matters!
@@ -394,8 +422,6 @@ function getCurrentPhase(project: any, today: Date): string {
   } else if (ntcDate && today >= ntcDate) {
     phase = "NTC Testing";
   } else if (assemblyStart && today >= assemblyStart) {
-    // This is the critical case for 805304 - it should show "Production" not "Pre-Production"
-    // For UI purposes, we're showing "Production" instead of "Assembly" to be clearer
     phase = "Production";
   } else if (paintStart && today >= paintStart) {
     phase = "Paint";
@@ -407,12 +433,6 @@ function getCurrentPhase(project: any, today: Date): string {
   if (isDebugProject) {
     console.log("Calculated phase:", phase);
     console.log("==== END DEBUG PROJECT 805304 ====");
-    
-    // FORCE PHASE for debugging
-    if (project.projectNumber === "805304") {
-      console.log("FORCING 805304 to Production phase");
-      return "Production";
-    }
   }
   
   return phase;
