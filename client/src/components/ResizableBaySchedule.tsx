@@ -421,6 +421,61 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Per user request: "When starting to scroll right on page upload, I get this funky extra week header bar that is not aligning, Please just remove this."
   }, []);
   
+  // Auto-scroll to current week implementation
+  const scrollToCurrentWeek = useCallback(() => {
+    console.log("Auto-scrolling to current week");
+    
+    try {
+      // Get the timeline container from our ref
+      const scrollContainer = timelineContainerRef.current;
+      
+      if (!scrollContainer) {
+        console.error("Timeline container not found - cannot auto-scroll to today");
+        return false;
+      }
+      
+      // Calculate today's position based on the date (May 11, 2025)
+      const today = new Date(2025, 4, 11); // May 11, 2025 (months are 0-indexed)
+      const startOfYear = new Date(2025, 0, 1);
+      const millisecondsPerDay = 24 * 60 * 60 * 1000;
+      const daysSinceJan1 = Math.floor((today.getTime() - startOfYear.getTime()) / millisecondsPerDay);
+      
+      // Week view calculations (144px per week, divided by 7 days)
+      const pixelsPerDay = 144 / 7; // ~20.6px per day in week view
+      const bayColumnWidth = 256; // Bay column width - adjusted for this component
+      
+      // Calculate target position (days * pixels per day) + bay column width
+      const targetPosition = (daysSinceJan1 * pixelsPerDay) + bayColumnWidth;
+      
+      // Force scroll using scrollLeft property
+      scrollContainer.scrollLeft = targetPosition - (scrollContainer.clientWidth / 3); // Position today 1/3 from left
+      
+      console.log(`Auto-scrolled to ${targetPosition}px (${daysSinceJan1} days since Jan 1, ${pixelsPerDay}px per day)`);
+      
+      // Success toast
+      toast({
+        title: "Positioned at Current Week",
+        description: "Automatically scrolled to the current week (May 11, 2025)",
+        duration: 2000
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Auto-scrolling to current week failed:", error);
+      return false;
+    }
+  }, [toast]);
+  
+  // Add auto-scroll effect that runs when component mounts
+  useEffect(() => {
+    // Wait for rendering to complete before attempting to scroll
+    const timeoutId = setTimeout(() => {
+      scrollToCurrentWeek();
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [scrollToCurrentWeek]);
+  
   // Function to automatically adjust schedules to maintain 100% capacity usage
   // Now takes optional bayId to only adjust a specific bay
   const applyAutoCapacityAdjustment = (specificBayId?: number) => {
