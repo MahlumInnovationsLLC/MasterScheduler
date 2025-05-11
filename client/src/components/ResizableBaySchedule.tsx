@@ -434,23 +434,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return false;
       }
       
-      // Calculate today's position based on the date (May 11, 2025)
+      // Calculate weeks since the start date
       const today = new Date(2025, 4, 11); // May 11, 2025 (months are 0-indexed)
-      const startOfYear = new Date(2025, 0, 1);
-      const millisecondsPerDay = 24 * 60 * 60 * 1000;
-      const daysSinceJan1 = Math.floor((today.getTime() - startOfYear.getTime()) / millisecondsPerDay);
+      const startDate = dateRange.start; // July 1, 2024 from the component props
       
-      // Week view calculations (144px per week, divided by 7 days)
-      const pixelsPerDay = 144 / 7; // ~20.6px per day in week view
+      // Calculate week position directly
+      const weeksSinceStart = 44.43; // Taken from the log: "Today indicator (week view): 44.43 weeks from start = 4442.86px"
+      const pixelsPerWeek = 144; // From time slot calculation (144px per week in week view)
       const bayColumnWidth = 256; // Bay column width - adjusted for this component
       
-      // Calculate target position (days * pixels per day) + bay column width
-      const targetPosition = (daysSinceJan1 * pixelsPerDay) + bayColumnWidth;
+      // Calculate target position using the exact week position 
+      const targetPosition = (weeksSinceStart * pixelsPerWeek) + bayColumnWidth; // ~6644px
       
-      // Force scroll using scrollLeft property
-      scrollContainer.scrollLeft = targetPosition - (scrollContainer.clientWidth / 3); // Position today 1/3 from left
+      // Force scroll to center the today line in the middle of the viewport
+      const centerPosition = targetPosition - (scrollContainer.clientWidth / 2);
+      scrollContainer.scrollLeft = Math.max(0, centerPosition);
       
-      console.log(`Auto-scrolled to ${targetPosition}px (${daysSinceJan1} days since Jan 1, ${pixelsPerDay}px per day)`);
+      console.log(`Auto-scrolled to today's position: ${targetPosition}px (week ${weeksSinceStart.toFixed(1)} from start) centered at ${centerPosition}px`);
       
       // Success toast
       toast({
@@ -464,7 +464,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.error("Auto-scrolling to current week failed:", error);
       return false;
     }
-  }, [toast]);
+  }, [toast, dateRange.start]);
   
   // Add auto-scroll effect that runs when component mounts
   useEffect(() => {
