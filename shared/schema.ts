@@ -417,6 +417,13 @@ export const billingMilestones = pgTable("billing_milestones", {
   actualInvoiceDate: date("actual_invoice_date"),
   paymentReceivedDate: date("payment_received_date"),
   status: billingStatusEnum("status").default("upcoming").notNull(),
+  // Additional fields for enhanced Excel imports
+  contractReference: text("contract_reference"),
+  paymentTerms: text("payment_terms"),
+  invoiceNumber: text("invoice_number"),
+  percentageOfTotal: text("percentage_of_total"),
+  billingContact: text("billing_contact"),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -672,6 +679,14 @@ export const insertBillingMilestoneSchema = createInsertSchema(billingMilestones
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  // Make additional fields optional with proper validation
+  contractReference: z.string().optional(),
+  paymentTerms: z.string().optional(),
+  invoiceNumber: z.string().optional(),
+  percentageOfTotal: z.string().optional(),
+  billingContact: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 export const insertManufacturingBaySchema = createInsertSchema(manufacturingBays).omit({
