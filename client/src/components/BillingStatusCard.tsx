@@ -65,17 +65,8 @@ interface GoalDialogRef {
   openDialog: (type: 'month' | 'week') => void;
 }
 
-function GoalSettingDialog({ 
-  title, 
-  chart, 
-  goals,
-  selectedMonthIndex,
-  selectedWeekIndex,
-  onGoalCreate,
-  onGoalUpdate,
-  defaultGoalType = 'month',
-  ref
-}: {
+// Type for the GoalSettingDialog props
+interface GoalSettingDialogProps {
   title: string;
   chart?: {
     labels: string[];
@@ -96,19 +87,35 @@ function GoalSettingDialog({
   onGoalCreate?: (year: number, month: number, targetAmount: number, description: string, week?: number) => void;
   onGoalUpdate?: (year: number, month: number, targetAmount: number, description: string, week?: number) => void;
   defaultGoalType?: 'month' | 'week';
-}) {
+}
+
+// GoalSettingDialog component with forwardRef to expose methods
+const GoalSettingDialog = React.forwardRef<GoalDialogRef, GoalSettingDialogProps>(function GoalDialogComponent(props, ref) {
+  const { 
+    title, 
+    chart, 
+    goals,
+    selectedMonthIndex,
+    selectedWeekIndex,
+    onGoalCreate,
+    onGoalUpdate,
+    defaultGoalType = 'month',
+  } = props;
   const [isOpen, setIsOpen] = useState(false);
   const [goalAmount, setGoalAmount] = useState("");
   const [goalDescription, setGoalDescription] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [goalType, setGoalType] = useState<'month' | 'week'>(defaultGoalType);
   const [currentDate, setCurrentDate] = useState<{year: number, month: number, week?: number} | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   
-  // Method to open the dialog with specified goal type
-  const openDialog = (type: 'month' | 'week') => {
-    setGoalType(type);
-    handleOpenCreate();
-  };
+  // Expose the openDialog method via the ref
+  useImperativeHandle(ref, () => ({
+    openDialog: (type: 'month' | 'week') => {
+      setGoalType(type);
+      handleOpenCreate();
+    }
+  }));
   
   const handleOpenCreate = () => {
     if (selectedMonthIndex !== undefined && chart) {
@@ -143,48 +150,48 @@ function GoalSettingDialog({
         }
       });
       
-      if (existingGoal) {
-        // We're editing
-        setIsEditing(true);
-        setGoalAmount(existingGoal.targetAmount.toString());
-        setGoalDescription(existingGoal.description || "");
+        if (existingGoal) {
+          // We're editing
+          setIsEditing(true);
+          setGoalAmount(existingGoal.targetAmount.toString());
+          setGoalDescription(existingGoal.description || "");
+        } else {
+          // We're creating
+          setIsEditing(false);
+          setGoalAmount("");
+          setGoalDescription("");
+        }
+        
+        setIsOpen(true);
+      }
+    };
+  
+    const handleSave = () => {
+      if (!currentDate || !goalAmount) return;
+      
+      const amount = parseFloat(goalAmount);
+      if (isNaN(amount)) return;
+      
+      if (isEditing) {
+        onGoalUpdate && onGoalUpdate(
+          currentDate.year,
+          currentDate.month,
+          amount,
+          goalDescription,
+          currentDate.week
+        );
       } else {
-        // We're creating
-        setIsEditing(false);
-        setGoalAmount("");
-        setGoalDescription("");
+        onGoalCreate && onGoalCreate(
+          currentDate.year,
+          currentDate.month,
+          amount,
+          goalDescription,
+          currentDate.week
+        );
       }
       
-      setIsOpen(true);
-    }
-  };
-  
-  const handleSave = () => {
-    if (!currentDate || !goalAmount) return;
-    
-    const amount = parseFloat(goalAmount);
-    if (isNaN(amount)) return;
-    
-    if (isEditing) {
-      onGoalUpdate && onGoalUpdate(
-        currentDate.year,
-        currentDate.month,
-        amount,
-        goalDescription,
-        currentDate.week
-      );
-    } else {
-      onGoalCreate && onGoalCreate(
-        currentDate.year,
-        currentDate.month,
-        amount,
-        goalDescription,
-        currentDate.week
-      );
-    }
-    
-    setIsOpen(false);
-  };
+      setIsOpen(false);
+    };
   
   return (
     <div id="goal-dialog-container">
@@ -317,6 +324,8 @@ export function BillingStatusCard({
   onGoalCreate,
   onGoalUpdate
 }: BillingStatusCardProps) {
+  // Create a ref for the goal dialog
+  const goalDialogRef = useRef<GoalDialogRef>(null);
   const getIcon = () => {
     switch (type) {
       case 'revenue':
@@ -610,56 +619,82 @@ export function BillingStatusCard({
               
               {/* Fiscal Week Chart */}
               <div className={`${isFullWidthForecast ? 'flex justify-between h-40' : 'grid grid-cols-6 gap-1 h-20'}`}>
-                {chart.weekValues && chart.weekValues.slice(0, 6).map((val, idx) => {
+                {(() => {
                   // Get the selected month's year and month based on selectedMonthIndex
                   const today = new Date();
                   const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
                   
                   // Get fiscal weeks for this month
                   const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
-                  const weekNumber = fiscalWeeks[idx]?.weekNumber || idx + 1;
                   
-                  const matchingGoal = goals?.find(g => 
-                    g.year === targetDate.getFullYear() && 
-                    g.month === targetDate.getMonth() + 1 && 
-                    g.week === weekNumber
-                  );
+                  // If we have weekValues in the chart but not for all weeks in the month,
+                  // distribute the values accordingly
+                  const weekValues = chart.weekValues || [];
                   
-                  // Determine if this week has met or exceeded its goal
-                  const hasGoal = !!matchingGoal;
-                  const isExceedingGoal = hasGoal && val >= (matchingGoal?.targetAmount || 0);
-                  
-                  return (
-                    <div key={idx} className={`${isFullWidthForecast ? 'flex-1 mx-1' : ''} bg-blue-500 bg-opacity-20 relative rounded-sm ${selectedWeekIndex === idx ? 'ring-1 ring-blue-400' : ''}`}>
+                  // Map over the actual fiscal weeks for the month rather than just the values
+                  return fiscalWeeks.map((fiscalWeek, idx) => {
+                    // Use the week value if available, otherwise default to 0
+                    const val = weekValues[idx] || 0;
+                    const weekNumber = fiscalWeek.weekNumber;
+                    
+                    // Find the matching goal for this specific month and week number
+                    const matchingGoal = goals?.find(g => 
+                      g.year === targetDate.getFullYear() && 
+                      g.month === targetDate.getMonth() + 1 && 
+                      g.week === weekNumber
+                    );
+                    
+                    // Determine if this week has met or exceeded its goal
+                    const hasGoal = !!matchingGoal;
+                    const isExceedingGoal = hasGoal && val >= (matchingGoal?.targetAmount || 0);
+                    
+                    // Calculate max value for scaling
+                    const maxWeekValue = Math.max(
+                      ...weekValues, 
+                      ...(goals?.filter(g => 
+                        g.year === targetDate.getFullYear() && 
+                        g.month === targetDate.getMonth() + 1 && 
+                        g.week !== undefined
+                      ).map(g => g.targetAmount) || []),
+                      1 // Ensure non-zero
+                    );
+                    
+                    return (
                       <div 
-                        className={`absolute bottom-0 w-full rounded-sm ${isExceedingGoal ? 'bg-green-400' : 'bg-blue-400'}`}
-                        style={{ height: `${(val / Math.max(...chart.weekValues.slice(0, 6), 1)) * 100}%` }}
-                      ></div>
-                      
-                      {/* Goal marker line if this week has a goal */}
-                      {hasGoal && (
+                        key={idx} 
+                        className={`${isFullWidthForecast ? 'flex-1 mx-1' : ''} bg-blue-500 bg-opacity-20 relative rounded-sm ${selectedWeekIndex === idx ? 'ring-1 ring-blue-400' : ''}`}
+                        onClick={() => onWeekSelect && onWeekSelect(targetDate.getFullYear(), weekNumber)}
+                      >
                         <div 
-                          className={`absolute w-full border-t-2 ${isExceedingGoal ? 'border-green-700' : 'border-amber-400'} border-dashed`}
-                          style={{ 
-                            bottom: `${(matchingGoal.targetAmount / Math.max(...chart.weekValues.slice(0, 6), 1)) * 100}%` 
-                          }}
+                          className={`absolute bottom-0 w-full rounded-sm ${isExceedingGoal ? 'bg-green-400' : 'bg-blue-400'}`}
+                          style={{ height: `${(val / maxWeekValue) * 100}%` }}
                         ></div>
-                      )}
+                        
+                        {/* Goal marker line if this week has a goal */}
+                        {hasGoal && (
+                          <div 
+                            className={`absolute w-full border-t-2 ${isExceedingGoal ? 'border-green-700' : 'border-amber-400'} border-dashed`}
+                            style={{ 
+                              bottom: `${(matchingGoal.targetAmount / maxWeekValue) * 100}%` 
+                            }}
+                          ></div>
+                        )}
 
-                      {/* Value label above the bar for full-width view */}
-                      {isFullWidthForecast && (
-                        <div className="absolute w-full text-center -top-6 text-xs">
-                          {new Intl.NumberFormat('en-US', { 
-                            style: 'currency', 
-                            currency: 'USD',
-                            notation: 'compact',
-                            maximumFractionDigits: 1
-                          }).format(val)}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        {/* Value label above the bar for full-width view */}
+                        {isFullWidthForecast && (
+                          <div className="absolute w-full text-center -top-6 text-xs">
+                            {new Intl.NumberFormat('en-US', { 
+                              style: 'currency', 
+                              currency: 'USD',
+                              notation: 'compact',
+                              maximumFractionDigits: 1
+                            }).format(val)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
               </div>
               
               {/* Weekly Goal Status */}
@@ -694,16 +729,9 @@ export function BillingStatusCard({
                     className="h-8"
                     onClick={() => {
                       if (onGoalCreate) {
-                        // Force goalType to be 'week' since we're in the weekly section
-                        setGoalType('week');
-                        
-                        // Show dialog for creating goal
-                        const dialogContainer = document.getElementById('goal-dialog-container');
-                        if (dialogContainer) {
-                          const createButton = dialogContainer.querySelector('#create-goal-button');
-                          if (createButton instanceof HTMLButtonElement) {
-                            createButton.click();
-                          }
+                        // Show dialog for creating goal - using the ref
+                        if (goalDialogRef.current) {
+                          goalDialogRef.current.openDialog('week');
                         }
                       }
                     }}
