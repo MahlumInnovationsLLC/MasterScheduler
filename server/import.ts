@@ -754,8 +754,8 @@ export async function importBillingMilestones(req: Request, res: Response) {
           const project = await storage.getProjectByNumber(normalizedProjectNumber);
           if (project) {
             // Store the project ID we'll use for the database insert
-            const projectId = project.id;
-            console.log(`Found exact project match by number: ${normalizedProjectNumber} for milestone: ${milestoneName}`);
+            milestoneData.projectId = project.id;
+            console.log(`Found exact project match by number: ${normalizedProjectNumber} for milestone: ${milestoneName} (ID: ${project.id})`);
           } else {
             // Get all projects to try different matching strategies
             const projects = await storage.getProjects();
