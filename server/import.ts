@@ -596,6 +596,12 @@ export async function importBillingMilestones(req: Request, res: Response) {
           paymentReceivedDate: string | null;
           description: string;
           status: string;
+          contractReference: string;
+          paymentTerms: string;
+          invoiceNumber: string;
+          percentageOfTotal: string;
+          billingContact: string;
+          notes: string;
         } = {
           projectId: null,
           name: '',
@@ -604,7 +610,13 @@ export async function importBillingMilestones(req: Request, res: Response) {
           invoiceDate: null,
           paymentReceivedDate: null,
           description: '',
-          status: 'upcoming'
+          status: 'upcoming',
+          contractReference: '',
+          paymentTerms: '',
+          invoiceNumber: '',
+          percentageOfTotal: '',
+          billingContact: '',
+          notes: ''
         };
         
         // EXTRACT DATA FIELDS - with flexible column name recognition
@@ -706,6 +718,46 @@ export async function importBillingMilestones(req: Request, res: Response) {
         const status = (rawMilestoneData['Status'] || rawMilestoneData['status'] || 'upcoming').toLowerCase();
         const description = rawMilestoneData['Description'] || rawMilestoneData['description'] || rawMilestoneData['Notes'] || '';
         
+        // Extract additional fields with flexible column name matching
+        const contractReference = 
+          rawMilestoneData['Contract Reference'] || 
+          rawMilestoneData['Contract'] || 
+          rawMilestoneData['Reference Number'] || 
+          rawMilestoneData['Contract Number'] || 
+          '';
+        
+        const paymentTerms = 
+          rawMilestoneData['Payment Terms'] || 
+          rawMilestoneData['Terms'] || 
+          '';
+        
+        const invoiceNumber = 
+          rawMilestoneData['Invoice Number'] || 
+          rawMilestoneData['Invoice #'] || 
+          rawMilestoneData['Invoice No.'] || 
+          '';
+        
+        const percentageOfTotal = 
+          rawMilestoneData['Percentage of Total'] || 
+          rawMilestoneData['Percentage'] || 
+          rawMilestoneData['% of Total'] || 
+          '';
+        
+        const billingContact = 
+          rawMilestoneData['Billing Contact'] || 
+          rawMilestoneData['Contact'] || 
+          rawMilestoneData['Client Contact'] || 
+          '';
+        
+        const notes = 
+          rawMilestoneData['Notes'] || 
+          rawMilestoneData['Comments'] || 
+          rawMilestoneData['Additional Notes'] || 
+          '';
+        
+        // Print all column headers from the raw data
+        console.log('Available Excel column headers:', Object.keys(rawMilestoneData));
+        
         // Store all data fields in milestoneData with proper null handling
         milestoneData.amount = amount;
         milestoneData.targetDate = typeof targetInvoiceDate === 'string' ? targetInvoiceDate : null;
@@ -713,6 +765,14 @@ export async function importBillingMilestones(req: Request, res: Response) {
         milestoneData.paymentReceivedDate = typeof paymentReceivedDate === 'string' ? paymentReceivedDate : null;
         milestoneData.description = description;
         milestoneData.status = status;
+        
+        // Store additional fields
+        milestoneData.contractReference = contractReference;
+        milestoneData.paymentTerms = paymentTerms;
+        milestoneData.invoiceNumber = invoiceNumber;
+        milestoneData.percentageOfTotal = percentageOfTotal;
+        milestoneData.billingContact = billingContact;
+        milestoneData.notes = notes;
 
         // FIND MATCHING PROJECT ID
         
@@ -859,7 +919,13 @@ export async function importBillingMilestones(req: Request, res: Response) {
           projectId: milestoneData.projectId,
           amount: milestoneData.amount,
           targetDate: milestoneData.targetDate,
-          status: milestoneData.status
+          status: milestoneData.status,
+          contractReference: milestoneData.contractReference,
+          paymentTerms: milestoneData.paymentTerms,
+          invoiceNumber: milestoneData.invoiceNumber,
+          percentageOfTotal: milestoneData.percentageOfTotal,
+          billingContact: milestoneData.billingContact,
+          notes: milestoneData.notes
         });
         
         // Extra validation logging for projectId
@@ -931,13 +997,13 @@ export async function importBillingMilestones(req: Request, res: Response) {
           actualInvoiceDate: milestoneData.invoiceDate || null,
           paymentReceivedDate: milestoneData.paymentReceivedDate || null,
           status: validStatus,
-          // Add additional fields from Column headers
-          contractReference: rawMilestoneData['Contract Reference'] || '',
-          paymentTerms: rawMilestoneData['Payment Terms'] || '',
-          invoiceNumber: rawMilestoneData['Invoice Number'] || '',
-          percentageOfTotal: rawMilestoneData['Percentage of Total'] || '',
-          billingContact: rawMilestoneData['Billing Contact'] || '', 
-          notes: rawMilestoneData['Notes'] || ''
+          // Use our extracted and processed fields
+          contractReference: milestoneData.contractReference || '',
+          paymentTerms: milestoneData.paymentTerms || '',
+          invoiceNumber: milestoneData.invoiceNumber || '',
+          percentageOfTotal: milestoneData.percentageOfTotal || '',
+          billingContact: milestoneData.billingContact || '', 
+          notes: milestoneData.notes || ''
           // createdAt and updatedAt are added automatically by the database
         };
         
