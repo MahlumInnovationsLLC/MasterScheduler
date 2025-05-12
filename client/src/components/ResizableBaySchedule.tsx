@@ -715,7 +715,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           schedule.bayId,
           schedule.startDate,
           item.newEndDate,
-          schedule.totalHours || 1000,
+          schedule.totalHours !== null ? Number(schedule.totalHours) : 1000,
           schedule.row || 0
         );
       }))
@@ -2620,7 +2620,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       };
       
       // Calculate how long the project will take considering capacity sharing
-      const totalHours = data.totalHours || 1000; // Default to 1000 if not specified
+      const totalHours = data.totalHours !== null ? Number(data.totalHours) : 1000; // Default to 1000 if not specified
       
       // CRITICAL FIX: Calculate project duration properly
       // Project's PROD phase gets 60% of the total hours
@@ -2751,7 +2751,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           finalBayId,
           startDateToUse,
           formattedFinalEndDate,
-          data.totalHours || 1000,
+          data.totalHours !== null ? Number(data.totalHours) : 1000,
           finalRowIndex
         )
         .then(result => {
@@ -2854,7 +2854,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           finalBayId,
           startDateToUse,
           formattedFinalEndDate,
-          data.totalHours || 1000,
+          data.totalHours !== null ? Number(data.totalHours) : 1000,
           finalRowIndex // Include rowIndex for vertical positioning
         )
         .then(() => {
