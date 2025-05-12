@@ -1678,14 +1678,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.error('Error cleaning up highlight classes in drag over:', error);
     }
     
-    // Get stored values for bay ID and current row
-    // This ensures we keep the bay consistent but allow row to update
-    const originalBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || dragElement.getAttribute('data-original-bay-id') || '0');
+    // CRITICAL BUG FIX: ALWAYS use the current bay where user is dragging! 
+    // Previous logic was trying to keep consistent bay which caused projects to jump to wrong bay
+    // We want to use EXACTLY the bay where the user is currently dragging
+    const currentBayId = bayId; // Directly use the bayId parameter from the current event
     const currentRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
     
-    // Keep the bay ID consistent (for placement), but use the current row
-    // This allows dropping on any row in the bay
-    const forcedBayId = originalBayId > 0 ? originalBayId : bayId;
+    // CRITICAL FIX: ALWAYS use the EXACT current bay where cursor is
+    // DO NOT reference stored/original bay ID - this is what caused projects to jump
+    const forcedBayId = currentBayId;
     
     // Use the current row where the user is dragging
     const validRowIndex = Math.max(0, Math.min(3, rowIndex !== undefined ? rowIndex : currentRowIndex));
