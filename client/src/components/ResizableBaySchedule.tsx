@@ -390,31 +390,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Add a version counter to force recalculation of schedules
   const [recalculationVersion, setRecalculationVersion] = useState(1);
 
-  // Define a compatible type that works with our scheduleBars processing function
-  type MinimalSchedule = {
-    id: number;
-    bayId: number;
-    projectId: number;
-    startDate: string;
-    endDate: string;
-    totalHours?: number | null;
-    row?: number | null;
-    status?: string;
-    equipment?: string | null;
-    createdAt?: Date | null;
-    updatedAt?: Date | null;
-    // Fix date types to match schema
-    fabricationStart?: string | null; 
-    assemblyStart?: string | null;
-    ntcTestingStart?: string | null;
-    qcStart?: string | null;
-    notes?: string | null;
-    staffAssigned?: string | null;
-  };
-  
-  // Add state for temporary schedules that will be displayed before API confirmation
-  const [temporarySchedules, setTemporarySchedules] = useState<MinimalSchedule[]>([]);
-
   // Loading state for project moves
   const [isMovingProject, setIsMovingProject] = useState(false);
   const [isUnassigningProject, setIsUnassigningProject] = useState(false);
@@ -708,24 +683,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   
   // Map schedules to visual bars
   const scheduleBars = useMemo(() => {
-    if (!slots.length) return [];
+    if (!schedules.length || !slots.length) return [];
     
     console.log(`Recalculating schedule bars (version ${recalculationVersion}): ensuring capacity sharing only starts AFTER FAB phase ends`);
     
-    // Combine real schedules with temporary ones for display
-    // This allows us to show updated capacity info before API confirms changes
-    const combinedSchedules = [...schedules, ...temporarySchedules];
-    
-    if (!combinedSchedules.length) return [];
-    
     // First, group schedules by bay
-    const schedulesByBay = combinedSchedules.reduce((acc, schedule) => {
+    const schedulesByBay = schedules.reduce((acc, schedule) => {
       if (!acc[schedule.bayId]) {
         acc[schedule.bayId] = [];
       }
       acc[schedule.bayId].push(schedule);
       return acc;
-    }, {} as Record<number, Array<ManufacturingSchedule | MinimalSchedule>>);
+    }, {} as Record<number, typeof schedules>);
     
     // Process each bay's schedules to assign rows within the bay (for overlapping projects)
     const processedBars: ScheduleBar[] = [];
@@ -1064,7 +1033,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     });
     
     return processedBars;
-  }, [schedules, temporarySchedules, projects, bays, slots, viewMode, slotWidth, recalculationVersion]);
+  }, [schedules, projects, bays, slots, viewMode, slotWidth, recalculationVersion]);
   
   // Handle drag start
   // Handle the start of resize operation
@@ -2675,29 +2644,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`(Directly using user-selected row: ${targetRowIndex})`);
         console.log(`Auto-placement logic DISABLED - using exact row where user dropped project`);
         
-        // CRITICAL FIX: Create a temporary schedule locally for immediate UI update
-        // This allows the bay utilization percentages to update without waiting for the API
-        const tempScheduleId = -Date.now(); // Use a negative timestamp as temp ID
-        const tempSchedule: MinimalSchedule = {
-          id: tempScheduleId,
-          projectId: data.projectId,
-          bayId: finalBayId,
-          startDate: startDateToUse,
-          endDate: formattedFinalEndDate,
-          totalHours: data.totalHours || 1000,
-          row: finalRowIndex,
-          status: "scheduled"
-        };
-        
-        // Add the temporary schedule to local state immediately
-        console.log(`Creating temporary schedule ${tempScheduleId} in bay ${finalBayId} for immediate UI update`);
-        
-        // Add the temporary schedule to our state
-        setTemporarySchedules(prev => [...prev, tempSchedule]);
-        
-        // Force UI update by incrementing recalculation version
-        setRecalculationVersion(prev => prev + 1);
-        
         // Call the API with our forced values
         onScheduleCreate(
           data.projectId,
@@ -2718,16 +2664,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           // Clear loading state
           setIsMovingProject(false);
           
-          // Clear temporary schedules since we've now received the real data
-          setTemporarySchedules([]);
-          
-          // Force refresh data through the API to get actual data with real IDs
-          queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
-          
-          // Force recalculation with correct data from server
-          setTimeout(() => {
-            setRecalculationVersion(prev => prev + 1);
-          }, 500);
+          // Force refresh to show changes after a delay
+          setTimeout(() => window.location.reload(), 1000);
         })
         .catch(err => {
           // Clear loading state
@@ -2881,41 +2819,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // No capping - use the exact dates chosen by the user
     const finalEndDate = newEndDate;
     
-    // Get the user's selected row if available, otherwise keep the current row
-    // The row parameter is explicitly used when the user drags to a new row
-    const userSelectedRow = parseInt(document.body.getAttribute('data-current-drag-row') || '-1');
-    const fixedRow = row !== undefined ? row : 
-                    (userSelectedRow >= 0 ? userSelectedRow : (schedule.row || 0));
-    
-    // CRITICAL FIX: Create temporary schedule for immediate UI updates
-    // Find the existing schedule to copy its properties
-    const existingSchedule = schedules.find(s => s.id === scheduleId);
-    if (existingSchedule) {
-      // Create a temporary version of this schedule with the new dates
-      const tempSchedule: MinimalSchedule = {
-        id: existingSchedule.id,
-        projectId: existingSchedule.projectId,
-        bayId: existingSchedule.bayId,
-        startDate: newStartDate,
-        endDate: finalEndDate,
-        totalHours: existingSchedule.totalHours,
-        row: fixedRow,
-        status: existingSchedule.status as string,
-        equipment: existingSchedule.equipment,
-        notes: existingSchedule.notes,
-        staffAssigned: existingSchedule.staffAssigned
-      };
-      
-      // Replace any existing temporary version of this schedule
-      const filteredTempSchedules = temporarySchedules.filter(ts => ts.id !== scheduleId);
-      
-      // Update the temporary schedules array
-      setTemporarySchedules([...filteredTempSchedules, tempSchedule]);
-      
-      // Force UI update immediately
-      console.log(`Added temporary schedule for ${scheduleId} to prevent stale bay utilization data`);
-    }
-    
     if (capacityImpact) {
       // Show warning dialog
       setCapacityWarningData(capacityImpact);
@@ -2952,10 +2855,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Show loading state
       setIsMovingProject(true);
       
+      // Apply the change directly
+      // Get the user's selected row if available, otherwise keep the current row
+      // The row parameter is explicitly used when the user drags to a new row
+      const userSelectedRow = parseInt(document.body.getAttribute('data-current-drag-row') || '-1');
+      const fixedRow = row !== undefined ? row : 
+                      (userSelectedRow >= 0 ? userSelectedRow : (schedule.row || 0));
       console.log(`Manual resize using row: ${fixedRow} for schedule ${scheduleId} (user selected: ${userSelectedRow})`);
       console.log(`Auto-placement logic DISABLED - using exact row where user dropped or resized project`);
       
-      // Apply the change to the server after updating local state
       onScheduleChange(
         scheduleId,
         schedule.bayId,
