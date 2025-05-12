@@ -173,7 +173,14 @@ export async function importBillingMilestones(req: Request, res: Response) {
           targetInvoiceDate: targetInvoiceDate || new Date().toISOString().split('T')[0],
           actualInvoiceDate: actualInvoiceDate,
           paymentReceivedDate: paymentReceivedDate,
-          status: status
+          status: status,
+          // Add additional fields from source data
+          contractReference: rowMilestoneData['Contract Reference'] || rowMilestoneData['Contract'] || '',
+          paymentTerms: rowMilestoneData['Payment Terms'] || '',
+          invoiceNumber: rowMilestoneData['Invoice Number'] || rowMilestoneData['Invoice #'] || '',
+          percentageOfTotal: rowMilestoneData['Percentage of Total'] || rowMilestoneData['Percentage'] || '',
+          billingContact: rowMilestoneData['Billing Contact'] || rowMilestoneData['Contact'] || '',
+          notes: rowMilestoneData['Notes'] || ''
         };
         
         // Log the data we're about to insert
@@ -181,7 +188,13 @@ export async function importBillingMilestones(req: Request, res: Response) {
           projectId: insertData.projectId,
           name: insertData.name,
           amount: insertData.amount,
-          targetInvoiceDate: insertData.targetInvoiceDate
+          targetInvoiceDate: insertData.targetInvoiceDate,
+          // Log additional fields
+          contractReference: insertData.contractReference,
+          paymentTerms: insertData.paymentTerms,
+          invoiceNumber: insertData.invoiceNumber,
+          percentageOfTotal: insertData.percentageOfTotal,
+          billingContact: insertData.billingContact
         });
         
         // CREATE THE MILESTONE IN DATABASE
