@@ -834,16 +834,30 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         // Only use automatic row assignment if no row is specified in the database
         if (assignedRow === -1) {
-          // IMPROVED: Find a row that doesn't have a schedule overlapping with this one IN TIME
-          // Check actual date overlaps, not just end dates
-          for (let row = 0; row < rowEndDates.length; row++) {
-            // Check if this row is available for this time period by checking against all processed bars
-            const hasOverlap = processedBars.some(bar => 
+          // FIXED: Check for time-based overlaps in each row
+          // This allows adding a project in the same row AFTER another project has ended
+          for (let row = 0; row < 4; row++) { // Check first 4 rows first (visual rows)
+            // CRITICAL FIX: Check if this row is available for this time period by checking against all processed bars
+            // We specifically check if projects DON'T overlap in time (one ends before the other starts)
+            const barsInSameRow = processedBars.filter(bar => 
               bar.row === row && 
-              bar.bayId === bayId && 
-              !(startDate >= bar.endDate || endDate <= bar.startDate)
+              bar.bayId === bayId
             );
             
+            // If no bars in this row, it's completely free
+            if (barsInSameRow.length === 0) {
+              assignedRow = row;
+              break;
+            }
+            
+            // Check if the new schedule would overlap with any existing bars in this row
+            const hasOverlap = barsInSameRow.some(bar => {
+              // No overlap if new schedule starts after existing bar ends OR ends before existing bar starts
+              const noOverlap = startDate >= bar.endDate || endDate <= bar.startDate;
+              return !noOverlap; // We want to check for overlap, so invert the condition
+            });
+            
+            // If there's no overlap with any bars in this row, we can use it
             if (!hasOverlap) {
               assignedRow = row;
               break;
@@ -2436,9 +2450,62 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // This function has been completely disabled per user request
       // Instead we always use the exact row the user dragged to
       const findOptimalRow = (newStartDate: Date, newEndDate: Date, preferredRow: number = targetRowIndex) => {
-        // DISABLED AUTO-PLACEMENT:
-        // Always return the user's preferred row without any optimization
-        console.log(`AUTO-PLACEMENT DISABLED: Using exact row ${preferredRow} selected by user`);
+        // First, check if the user's preferred row is available (no time overlaps)
+        // This allows projects to be placed in the same row AFTER another project has ended
+        console.log(`Checking if preferred row ${preferredRow} is available...`);
+        
+        // Get all schedules for this bay
+        const baySchedules = schedules.filter(s => s.bayId === targetBayId);
+        
+        // Check if there's any overlap with existing schedules in this row
+        const hasOverlap = baySchedules.some(schedule => {
+          // Skip if not in the same row
+          if (schedule.row !== preferredRow) return false;
+          
+          const scheduleStart = new Date(schedule.startDate);
+          const scheduleEnd = new Date(schedule.endDate);
+          
+          // Check if they overlap in time
+          // No overlap if new project starts after schedule ends OR ends before schedule starts
+          const noOverlap = newStartDate >= scheduleEnd || newEndDate <= scheduleStart;
+          
+          // Return true if there IS overlap
+          return !noOverlap;
+        });
+        
+        if (!hasOverlap) {
+          console.log(`Row ${preferredRow} has no time overlaps - using it as requested`);
+          return preferredRow;
+        }
+        
+        // If the preferred row has overlaps, we should try to find another available row
+        console.log(`Row ${preferredRow} has overlaps, looking for another available row...`);
+        
+        // Try each row to find one without overlaps
+        for (let row = 0; row < 4; row++) {
+          // Skip the row we already checked
+          if (row === preferredRow) continue;
+          
+          const rowHasOverlap = baySchedules.some(schedule => {
+            if (schedule.row !== row) return false;
+            
+            const scheduleStart = new Date(schedule.startDate);
+            const scheduleEnd = new Date(schedule.endDate);
+            
+            // Check if they overlap in time
+            const noOverlap = newStartDate >= scheduleEnd || newEndDate <= scheduleStart;
+            return !noOverlap;
+          });
+          
+          if (!rowHasOverlap) {
+            console.log(`Found available row ${row} with no time overlaps`);
+            return row;
+          }
+        }
+        
+        // If we get here, all rows have overlaps
+        // Fall back to user's preferred row
+        console.log(`All rows have overlaps, using preferred row ${preferredRow} anyway`);
         return preferredRow;
       };
       
