@@ -60,6 +60,7 @@ import { useQuery as tanstackUseQuery, useQueryClient } from '@tanstack/react-qu
 const SystemSettings = () => {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeletingMilestones, setIsDeletingMilestones] = useState(false);
   const [isMovingProjects, setIsMovingProjects] = useState(false);
   const [isRestoringProject, setIsRestoringProject] = useState(false);
   const [isArchivingUser, setIsArchivingUser] = useState(false);
@@ -114,6 +115,56 @@ const SystemSettings = () => {
       });
     } finally {
       setIsDeleting(false);
+    }
+  };
+  
+  // Function to handle deletion of all billing milestones
+  const handleDeleteAllBillingMilestones = async () => {
+    try {
+      setIsDeletingMilestones(true);
+      
+      const response = await apiRequest("DELETE", "/api/billing-milestones/delete-all", {});
+      
+      if (response.ok) {
+        const result = await response.json();
+        
+        toast({
+          title: "Success!",
+          description: `All billing milestones have been deleted. ${result.count || 0} entries removed.`,
+          variant: "default",
+        });
+        
+        // Update the UI by invalidating the billing milestones query
+        queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+      } else {
+        let errorMessage = "Failed to delete billing milestones. Please try again.";
+        
+        try {
+          const errorResponse = await response.json();
+          if (errorResponse.message) {
+            errorMessage = errorResponse.message;
+          }
+        } catch (e) {
+          // If response is not JSON, get text
+          const errorText = await response.text();
+          console.error("Error response (text):", errorText);
+        }
+        
+        toast({
+          title: "Operation Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Operation Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error deleting billing milestones:", error);
+    } finally {
+      setIsDeletingMilestones(false);
     }
   };
 
@@ -1270,7 +1321,7 @@ const SystemSettings = () => {
                       These actions are irreversible and will permanently delete data from the system.
                     </p>
                     
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center mb-6">
                       <div>
                         <p className="font-medium">Delete All Projects</p>
                         <p className="text-sm text-gray-400">
@@ -1301,6 +1352,44 @@ const SystemSettings = () => {
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
                               {isDeleting ? "Deleting..." : "Yes, Delete Everything"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                    
+                    {/* Delete All Billing Milestones */}
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">Delete All Billing Milestones</p>
+                        <p className="text-sm text-gray-400">
+                          This will remove all billing milestones from the system. This is useful for clearing duplicate entries after imports.
+                        </p>
+                      </div>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" className="flex items-center">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete All Milestones
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete ALL billing milestones 
+                              from the database. You will need to reimport them after this operation.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleDeleteAllBillingMilestones}
+                              disabled={isDeletingMilestones}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              {isDeletingMilestones ? "Deleting..." : "Yes, Delete All Milestones"}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
