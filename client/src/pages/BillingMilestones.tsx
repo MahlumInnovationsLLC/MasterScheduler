@@ -837,18 +837,7 @@ const BillingMilestones = () => {
                         ></div>
                       </div>
                       
-                      {/* At Risk indicator (shown as a warning line at the top of projected) */}
-                      {atRisk > 0 && (
-                        <div 
-                          className="absolute w-16 h-1 bg-warning" 
-                          style={{
-                            bottom: `${projectedHeight}%`,
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            opacity: 0.7
-                          }}
-                        ></div>
-                      )}
+                      {/* At Risk indicator - shown as part of the legend below */}
                     </div>
                     <div className="mt-2 text-sm text-gray-400">{month}</div>
                     <div className="text-xs text-gray-500 mt-1">
