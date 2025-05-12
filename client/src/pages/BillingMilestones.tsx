@@ -27,6 +27,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { formatDate, formatCurrency, getBillingStatusInfo } from '@/lib/utils';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import BillingMilestoneForm from '@/components/BillingMilestoneForm';
@@ -35,9 +43,16 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 
 const BillingMilestones = () => {
   const [showMilestoneForm, setShowMilestoneForm] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedMilestone, setSelectedMilestone] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
+  
+  // Handler for viewing milestone details
+  const handleViewMilestoneDetails = (milestone: any) => {
+    setSelectedMilestone(milestone);
+    setShowDetailsDialog(true);
+  };
   
   const { data: billingMilestones, isLoading: isLoadingBilling } = useQuery({
     queryKey: ['/api/billing-milestones'],
@@ -235,7 +250,10 @@ const BillingMilestones = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>View Details</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleViewMilestoneDetails(row.original)}>
+                <FileText className="h-4 w-4 mr-2" />
+                View Details
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleEditMilestone(row.original)}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Milestone
@@ -437,6 +455,124 @@ const BillingMilestones = () => {
           </div>
         </div>
       </div>
+
+      {/* Billing Milestone Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Billing Milestone Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about this billing milestone.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedMilestone && (
+            <div className="grid gap-4 py-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium">Project Number</h3>
+                  <p className="text-sm mt-1">
+                    {projects?.find(p => p.id === selectedMilestone.projectId)?.projectNumber || '-'}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium">Project Name</h3>
+                  <p className="text-sm mt-1">
+                    {projects?.find(p => p.id === selectedMilestone.projectId)?.name || '-'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium">Milestone Name</h3>
+                  <p className="text-sm mt-1">{selectedMilestone.name}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium">Status</h3>
+                  <div className="mt-1">
+                    <ProgressBadge status={selectedMilestone.status} />
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium">Description</h3>
+                <p className="text-sm mt-1">{selectedMilestone.description || '-'}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium">Amount</h3>
+                  <p className="text-sm mt-1 font-medium">{formatCurrency(selectedMilestone.amount)}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium">Percentage of Total</h3>
+                  <p className="text-sm mt-1">{selectedMilestone.percentageOfTotal || '-'}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium">Target Date</h3>
+                  <p className="text-sm mt-1">{formatDate(selectedMilestone.targetInvoiceDate)}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium">Actual Invoice Date</h3>
+                  <p className="text-sm mt-1">{selectedMilestone.actualInvoiceDate ? formatDate(selectedMilestone.actualInvoiceDate) : '-'}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium">Payment Received Date</h3>
+                  <p className="text-sm mt-1">{selectedMilestone.paymentReceivedDate ? formatDate(selectedMilestone.paymentReceivedDate) : '-'}</p>
+                </div>
+              </div>
+              
+              <div className="border-t pt-4 mt-2">
+                <h3 className="text-sm font-medium mb-2">Additional Information</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-sm font-medium">Contract Reference</h3>
+                    <p className="text-sm mt-1">{selectedMilestone.contractReference || '-'}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium">Invoice Number</h3>
+                    <p className="text-sm mt-1">{selectedMilestone.invoiceNumber || '-'}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div>
+                    <h3 className="text-sm font-medium">Payment Terms</h3>
+                    <p className="text-sm mt-1">{selectedMilestone.paymentTerms || '-'}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium">Billing Contact</h3>
+                    <p className="text-sm mt-1">{selectedMilestone.billingContact || '-'}</p>
+                  </div>
+                </div>
+                
+                <div className="mt-3">
+                  <h3 className="text-sm font-medium">Notes</h3>
+                  <p className="text-sm mt-1">{selectedMilestone.notes || '-'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setShowDetailsDialog(false)}>
+              Close
+            </Button>
+            <Button onClick={() => {
+              setShowDetailsDialog(false);
+              handleEditMilestone(selectedMilestone);
+            }}>
+              Edit Milestone
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Billing Milestone Form Dialog */}
       <BillingMilestoneForm
