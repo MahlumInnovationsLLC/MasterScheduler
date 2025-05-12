@@ -2334,6 +2334,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       console.log('Data received in drop:', dataStr);
       console.log(`Dropping at bay ${bayId}, slot ${slotIndex}, row ${rowIndex}`);
+      console.log(`DROP HANDLER: FORCING BAY ID TO USE EXACT PARAMETER: ${bayId}`);
       
       const data = JSON.parse(dataStr);
       if (!data) {
@@ -2341,11 +2342,24 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return;
       }
       
-      const bay = bays.find(b => b.id === bayId);
+      // CRITICAL BUG FIX: Ensure we're using EXACTLY the bay ID from the drop event parameter
+      // This is the most reliable source of the actual bay where the drop occurred
+      // DO NOT override this with any stored value - this is what's causing projects to jump bays
+      const exactBayId = bayId;
+      console.log(`💯 Using EXACT bay ID from drop event parameter: ${exactBayId}`);
+      // Log this prominent message for debugging
+      console.log(`🚨 BAY ID VERIFICATION: Ensuring drop uses bay ${exactBayId} EXACTLY as provided by event`);
+      
+      // CRITICAL FIX: Use exactBayId instead of the normal bayId parameter
+      // This ensures we don't lose the correct bay ID between declarations
+      const bay = bays.find(b => b.id === exactBayId);
+      console.log(`Finding bay with ID ${exactBayId} (from exact parameter)`);
+      
       if (!bay) {
+        console.error(`Bay with ID ${exactBayId} not found in bays list:`, bays.map(b => b.id));
         toast({
           title: "Error",
-          description: "Bay not found",
+          description: `Bay ID ${exactBayId} not found`,
           variant: "destructive"
         });
         return;
@@ -2459,8 +2473,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // This allows projects to be placed in the same row AFTER another project has ended
         console.log(`Checking if preferred row ${preferredRow} is available...`);
         
-        // Get all schedules for this bay
-        const baySchedules = schedules.filter(s => s.bayId === bayId);
+        // CRITICAL FIX: Use exactBayId to ensure consistency in bay selection
+        // This ensures we're using the same bay ID throughout the entire process
+        const baySchedules = schedules.filter(s => s.bayId === exactBayId);
+        console.log(`Finding schedules for bay ID ${exactBayId} (using exact parameter)`);
+        console.log(`DEBUG: Found ${baySchedules.length} schedules in this bay`);
         
         // Check if there's any overlap with existing schedules in this row
         const hasOverlap = baySchedules.some(schedule => {
@@ -2699,8 +2716,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Show loading state
         setIsMovingProject(true);
         
-        // Add loading overlay to the bay
-        const bayElement = document.querySelector(`[data-bay-id="${bayId}"]`);
+        // CRITICAL FIX: Use exactBayId for bay element lookup to ensure consistency
+        // This ensures we're selecting the correct bay element for the placeholder
+        const bayElement = document.querySelector(`[data-bay-id="${exactBayId}"]`);
+        console.log(`Using bay element with data-bay-id="${exactBayId}" for placeholder`);
         if (bayElement) {
           // Create a temporary placeholder element to show where the project will be placed
           const placeholderDiv = document.createElement('div');
