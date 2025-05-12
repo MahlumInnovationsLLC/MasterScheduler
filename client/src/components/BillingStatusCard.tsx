@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef, useImperativeHandle, useRef } from 'react';
 import { 
   DollarSign,
   Flag,
@@ -60,6 +60,11 @@ interface BillingStatusCardProps {
 }
 
 // Goal Setting Dialog Component
+// Define the dialog ref type
+interface GoalDialogRef {
+  openDialog: (type: 'month' | 'week') => void;
+}
+
 function GoalSettingDialog({ 
   title, 
   chart, 
@@ -67,7 +72,9 @@ function GoalSettingDialog({
   selectedMonthIndex,
   selectedWeekIndex,
   onGoalCreate,
-  onGoalUpdate
+  onGoalUpdate,
+  defaultGoalType = 'month',
+  ref
 }: {
   title: string;
   chart?: {
@@ -88,13 +95,20 @@ function GoalSettingDialog({
   selectedWeekIndex?: number;
   onGoalCreate?: (year: number, month: number, targetAmount: number, description: string, week?: number) => void;
   onGoalUpdate?: (year: number, month: number, targetAmount: number, description: string, week?: number) => void;
+  defaultGoalType?: 'month' | 'week';
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [goalAmount, setGoalAmount] = useState("");
   const [goalDescription, setGoalDescription] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const [goalType, setGoalType] = useState<'month' | 'week'>('month');
+  const [goalType, setGoalType] = useState<'month' | 'week'>(defaultGoalType);
   const [currentDate, setCurrentDate] = useState<{year: number, month: number, week?: number} | null>(null);
+  
+  // Method to open the dialog with specified goal type
+  const openDialog = (type: 'month' | 'week') => {
+    setGoalType(type);
+    handleOpenCreate();
+  };
   
   const handleOpenCreate = () => {
     if (selectedMonthIndex !== undefined && chart) {
