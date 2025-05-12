@@ -706,11 +706,11 @@ export async function importBillingMilestones(req: Request, res: Response) {
         const status = (rawMilestoneData['Status'] || rawMilestoneData['status'] || 'upcoming').toLowerCase();
         const description = rawMilestoneData['Description'] || rawMilestoneData['description'] || rawMilestoneData['Notes'] || '';
         
-        // Store all data fields in milestoneData
+        // Store all data fields in milestoneData with proper null handling
         milestoneData.amount = amount;
-        milestoneData.targetDate = targetInvoiceDate;
-        milestoneData.invoiceDate = actualInvoiceDate;
-        milestoneData.paymentReceivedDate = paymentReceivedDate;
+        milestoneData.targetDate = typeof targetInvoiceDate === 'string' ? targetInvoiceDate : null;
+        milestoneData.invoiceDate = typeof actualInvoiceDate === 'string' ? actualInvoiceDate : null;
+        milestoneData.paymentReceivedDate = typeof paymentReceivedDate === 'string' ? paymentReceivedDate : null;
         milestoneData.description = description;
         milestoneData.status = status;
 
@@ -946,16 +946,16 @@ export async function importBillingMilestones(req: Request, res: Response) {
           // We use as any to bypass the type checking since we know the data is correctly formatted
           await storage.createBillingMilestone(billingMilestoneData as any);
           results.imported++;
-          results.details.push(`Imported billing milestone: ${milestoneData.name} for project ${normalizedProjectNumber}`);
+          results.details.push(`Imported billing milestone: ${billingMilestoneData.name} for project ${normalizedProjectNumber}`);
         } catch (createError) {
           console.error('Error creating billing milestone:', createError);
           results.errors++;
-          results.details.push(`Error creating milestone ${milestoneData.name}: ${(createError as Error).message}`);
+          results.details.push(`Error creating milestone ${billingMilestoneData.name}: ${(createError as Error).message}`);
         }
       } catch (error) {
         console.error('Error importing billing milestone:', error);
         results.errors++;
-        results.details.push(`Error with milestone ${rawMilestoneData['Milestone'] || milestoneData.name || 'Unknown'}: ${(error as Error).message}`);
+        results.details.push(`Error with milestone ${rawMilestoneData['Milestone'] || (rawMilestoneData['Milestone Name'] || 'Unknown')}: ${(error as Error).message}`);
       }
     }
 
