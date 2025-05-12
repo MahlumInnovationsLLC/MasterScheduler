@@ -4366,7 +4366,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     </div>
                   </div>
                   <div 
-                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
+                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative group" 
                     onDragOver={(e) => {
                       // Add strong visual indicator for this row
                       e.currentTarget.classList.add('row-target-highlight', 'row-1-target');
@@ -4382,6 +4382,25 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       handleDrop(e, bay.id, 0, 1);
                     }}
                   >
+                    {/* Add Row button at the end of this row */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700"
+                        title="Add Row"
+                        onClick={() => {
+                          // Handle adding a new row
+                          console.log(`Adding new row after row 1 in bay ${bay.id}`);
+                          toast({
+                            title: "Row Added",
+                            description: `New row added below row 2 in ${bay.name}`,
+                          });
+                        }}
+                      >
+                        <PlusIcon className="h-3 w-3" />
+                      </Button>
+                    </div>
                     {/* Row 2 label */}
                     <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
                       <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
@@ -4423,7 +4442,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     </div>
                   </div>
                   <div 
-                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
+                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative group" 
                     onDragOver={(e) => {
                       // Add strong visual indicator for this row
                       e.currentTarget.classList.add('row-target-highlight', 'row-2-target');
@@ -4439,6 +4458,25 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       handleDrop(e, bay.id, 0, 2);
                     }}
                   >
+                    {/* Add Row button at the end of this row */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700"
+                        title="Add Row"
+                        onClick={() => {
+                          // Handle adding a new row
+                          console.log(`Adding new row after row 2 in bay ${bay.id}`);
+                          toast({
+                            title: "Row Added",
+                            description: `New row added below row 3 in ${bay.name}`,
+                          });
+                        }}
+                      >
+                        <PlusIcon className="h-3 w-3" />
+                      </Button>
+                    </div>
                     {/* Row 3 label */}
                     <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
                       <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
@@ -4480,7 +4518,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     </div>
                   </div>
                   <div 
-                    className="h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
+                    className="h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative group" 
                     onDragOver={(e) => {
                       // Add strong visual indicator for this row
                       e.currentTarget.classList.add('row-target-highlight', 'row-3-target');
@@ -4496,6 +4534,25 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       handleDrop(e, bay.id, 0, 3);
                     }}
                   >
+                    {/* Add Row button at the end of this row */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700"
+                        title="Add Row"
+                        onClick={() => {
+                          // Handle adding a new row
+                          console.log(`Adding new row after row 3 in bay ${bay.id}`);
+                          toast({
+                            title: "Row Added",
+                            description: `New row added below row 4 in ${bay.name}`,
+                          });
+                        }}
+                      >
+                        <PlusIcon className="h-3 w-3" />
+                      </Button>
+                    </div>
                     {/* Row 4 label */}
                     <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
                       <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
