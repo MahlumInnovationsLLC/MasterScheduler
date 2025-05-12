@@ -367,17 +367,39 @@ const ImportDataPage = () => {
         };
       });
 
+      console.log(`Prepared ${milestones.length} billing milestones for import`);
+      
+      // Log sample data
+      if (milestones.length > 0) {
+        console.log('Sample billing milestone data:', milestones[0]);
+      }
+      
+      // Filter out any milestone without a project number
+      const validMilestones = milestones.filter(m => {
+        if (!m._projectNumber) {
+          console.warn('Skipping milestone with missing project number:', m.name);
+          return false;
+        }
+        return true;
+      });
+      
+      if (validMilestones.length === 0) {
+        throw new Error('No valid billing milestones found with project numbers. Please check your Excel file.');
+      }
+      
       // Call API to save data
+      console.log(`Sending ${validMilestones.length} valid billing milestones to server`);
       const response = await fetch('/api/import/billing-milestones', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(milestones),
+        body: JSON.stringify(validMilestones),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Server returned error for billing milestone import:', errorData);
         throw new Error(errorData.message || 'Failed to import billing milestones');
       }
 

@@ -662,6 +662,8 @@ export async function importBillingMilestones(req: Request, res: Response) {
         
         // Look up project by number or try to match by number in string
         if (normalizedProjectNumber && normalizedProjectNumber !== '') {
+          console.log(`Looking for project with number: ${normalizedProjectNumber} for milestone: ${milestoneData.name}`);
+          
           // First try exact match on project number
           const project = await storage.getProjectByNumber(normalizedProjectNumber);
           if (project) {
@@ -670,10 +672,13 @@ export async function importBillingMilestones(req: Request, res: Response) {
           } else {
             // Get all projects to try different matching strategies
             const projects = await storage.getProjects();
+            console.log(`No exact match found, trying fuzzy matching across ${projects.length} projects`);
             
             // Try to match project number ignoring formatting
             // (e.g., "12345" might match "12-345" or "#12345")
             const numberWithoutFormatting = normalizedProjectNumber.replace(/\D/g, '');
+            console.log(`Looking for projects with numeric part: ${numberWithoutFormatting}`);
+            
             const projectByNumberFormat = projects.find(p => 
               p.projectNumber && p.projectNumber.replace(/\D/g, '') === numberWithoutFormatting
             );
@@ -682,36 +687,71 @@ export async function importBillingMilestones(req: Request, res: Response) {
               milestoneData.projectId = projectByNumberFormat.id;
               console.log(`Found project by number formatting variation: ${normalizedProjectNumber} -> ${projectByNumberFormat.projectNumber} for milestone: ${milestoneData.name}`);
             } 
-            // Try to find project where the milestone description contains the project name
-            else if (milestoneData.description) {
-              const matchingProject = projects.find(p => 
-                (p.name && milestoneData.description.includes(p.name)) || 
-                (p.projectNumber && milestoneData.description.includes(p.projectNumber))
+            // Enhanced: Try exact prefix match (partial beginning match)
+            else {
+              console.log(`No format match, trying exact prefix match`);
+              const prefixMatch = projects.find(p => 
+                p.projectNumber && (
+                  p.projectNumber.startsWith(normalizedProjectNumber) || 
+                  normalizedProjectNumber.startsWith(p.projectNumber)
+                )
               );
               
-              if (matchingProject) {
-                milestoneData.projectId = matchingProject.id;
-                console.log(`Linked milestone to project by description match: ${milestoneData.name} -> ${matchingProject.name}`);
-              } 
-              // Try to find project where the milestone name contains the project number
-              else {
-                const projectNumberInName = projects.find(p => 
-                  p.projectNumber && milestoneData.name.includes(p.projectNumber)
+              if (prefixMatch) {
+                milestoneData.projectId = prefixMatch.id;
+                console.log(`Found project by prefix match: ${normalizedProjectNumber} matches with ${prefixMatch.projectNumber} for milestone: ${milestoneData.name}`);
+              }
+              // Try to find project where the milestone description contains the project name
+              else if (milestoneData.description) {
+                console.log(`No prefix match, trying description match`);
+                const matchingProject = projects.find(p => 
+                  (p.name && milestoneData.description.includes(p.name)) || 
+                  (p.projectNumber && milestoneData.description.includes(p.projectNumber))
                 );
                 
-                if (projectNumberInName) {
-                  milestoneData.projectId = projectNumberInName.id;
-                  console.log(`Linked milestone to project by name containing project number: ${milestoneData.name} -> ${projectNumberInName.projectNumber}`);
-                } else {
-                  results.errors++;
-                  results.details.push(`Could not find project with number: ${normalizedProjectNumber} for milestone: ${milestoneData.name}`);
-                  continue;
+                if (matchingProject) {
+                  milestoneData.projectId = matchingProject.id;
+                  console.log(`Linked milestone to project by description match: ${milestoneData.name} -> ${matchingProject.name}`);
+                } 
+                // Try to find project where the milestone name contains the project number
+                else {
+                  console.log(`No description match, trying milestone name contains project number`);
+                  const projectNumberInName = projects.find(p => 
+                    p.projectNumber && milestoneData.name.includes(p.projectNumber)
+                  );
+                  
+                  if (projectNumberInName) {
+                    milestoneData.projectId = projectNumberInName.id;
+                    console.log(`Linked milestone to project by name containing project number: ${milestoneData.name} -> ${projectNumberInName.projectNumber}`);
+                  } else {
+                    // Last resort - try to get the first few digits match
+                    console.log(`Trying first digits match as last resort`);
+                    const firstDigits = numberWithoutFormatting.substring(0, Math.min(6, numberWithoutFormatting.length));
+                    if (firstDigits.length >= 3) {
+                      const digitMatch = projects.find(p => 
+                        p.projectNumber && p.projectNumber.replace(/\D/g, '').startsWith(firstDigits)
+                      );
+                      
+                      if (digitMatch) {
+                        milestoneData.projectId = digitMatch.id;
+                        console.log(`Found project by first digits match: ${firstDigits} from ${normalizedProjectNumber} matches with ${digitMatch.projectNumber} for milestone: ${milestoneData.name}`);
+                      } else {
+                        results.errors++;
+                        results.details.push(`Could not find project with number: ${normalizedProjectNumber} for milestone: ${milestoneData.name}`);
+                        continue;
+                      }
+                    } else {
+                      results.errors++;
+                      results.details.push(`Could not find project with number: ${normalizedProjectNumber} for milestone: ${milestoneData.name}`);
+                      continue;
+                    }
+                  }
                 }
+              } else {
+                results.errors++;
+                results.details.push(`Could not find project with number: ${normalizedProjectNumber} for milestone: ${milestoneData.name}`);
+                continue;
               }
-            } else {
-              results.errors++;
-              results.details.push(`Could not find project with number: ${normalizedProjectNumber} for milestone: ${milestoneData.name}`);
-              continue;
             }
           }
         } else {
@@ -720,14 +760,42 @@ export async function importBillingMilestones(req: Request, res: Response) {
           continue;
         }
 
-        // Create the billing milestone
-        await storage.createBillingMilestone(milestoneData as InsertBillingMilestone);
-        results.imported++;
-        results.details.push(`Imported billing milestone: ${milestoneData.name} for project ${normalizedProjectNumber}`);
+        // Log milestone data before creating
+        console.log("Final milestone data ready for import:", {
+          name: milestoneData.name,
+          projectId: milestoneData.projectId,
+          amount: milestoneData.amount,
+          targetDate: milestoneData.targetDate,
+          status: milestoneData.status
+        });
+        
+        // Make sure the data matches our schema type
+        const insertData: InsertBillingMilestone = {
+          projectId: milestoneData.projectId,
+          name: milestoneData.name || '',
+          description: milestoneData.description || '',
+          amount: milestoneData.amount || 0,
+          targetInvoiceDate: milestoneData.targetDate || new Date().toISOString().split('T')[0],
+          actualInvoiceDate: milestoneData.invoiceDate || null,
+          paymentReceivedDate: milestoneData.paymentReceivedDate || null,
+          status: milestoneData.status || 'upcoming'
+          // createdAt and updatedAt are added automatically by the database
+        };
+        
+        try {
+          // Create the billing milestone
+          await storage.createBillingMilestone(insertData);
+          results.imported++;
+          results.details.push(`Imported billing milestone: ${milestoneData.name} for project ${normalizedProjectNumber}`);
+        } catch (createError) {
+          console.error('Error creating billing milestone:', createError);
+          results.errors++;
+          results.details.push(`Error creating milestone ${milestoneData.name}: ${(createError as Error).message}`);
+        }
       } catch (error) {
         console.error('Error importing billing milestone:', rawMilestoneData, error);
         results.errors++;
-        results.details.push(`Error with milestone ${rawMilestoneData['Milestone']}: ${(error as Error).message}`);
+        results.details.push(`Error with milestone ${rawMilestoneData['Milestone'] || 'Unknown'}: ${(error as Error).message}`);
       }
     }
 
