@@ -12,7 +12,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { format, addMonths } from 'date-fns';
+import { format, addMonths, addWeeks, getWeek, getMonth, getYear } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,14 +38,21 @@ interface BillingStatusCardProps {
   chart?: {
     labels: string[];
     values: number[];
+    weekLabels?: string[];
+    weekValues?: number[];
   };
   onMonthSelect?: (year: number, month: number) => void;
   selectedMonthIndex?: number;
+  onWeekSelect?: (year: number, week: number) => void;
+  selectedWeekIndex?: number;
+  showFiscalWeeks?: boolean;
+  fiscalWeekDisplay?: 'below' | 'inline';
   goals?: { 
     year: number; 
     month: number; 
     targetAmount: number; 
-    description?: string 
+    description?: string;
+    week?: number; 
   }[];
   onGoalCreate?: (year: number, month: number, targetAmount: number, description: string) => void;
   onGoalUpdate?: (year: number, month: number, targetAmount: number, description: string) => void;
