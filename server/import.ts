@@ -1008,11 +1008,25 @@ export async function importBillingMilestones(req: Request, res: Response) {
         };
         
         try {
-          // Create the billing milestone 
-          // We use as any to bypass the type checking since we know the data is correctly formatted
-          await storage.createBillingMilestone(billingMilestoneData as any);
-          results.imported++;
-          results.details.push(`Imported billing milestone: ${billingMilestoneData.name} for project ${normalizedProjectNumber}`);
+          // Check if this milestone already exists for this project
+          const existingMilestones = await storage.getProjectBillingMilestones(milestoneData.projectId);
+          const existingMilestone = existingMilestones.find(m => 
+            m.name === billingMilestoneData.name && 
+            m.projectId === billingMilestoneData.projectId
+          );
+          
+          if (existingMilestone) {
+            // Update the existing milestone rather than creating a new one
+            console.log(`Updating existing milestone: ${billingMilestoneData.name} for project ${normalizedProjectNumber} (ID: ${existingMilestone.id})`);
+            await storage.updateBillingMilestone(existingMilestone.id, billingMilestoneData as any);
+            results.imported++;
+            results.details.push(`Updated billing milestone: ${billingMilestoneData.name} for project ${normalizedProjectNumber}`);
+          } else {
+            // Create a new milestone
+            await storage.createBillingMilestone(billingMilestoneData as any);
+            results.imported++;
+            results.details.push(`Imported billing milestone: ${billingMilestoneData.name} for project ${normalizedProjectNumber}`);
+          }
         } catch (createError) {
           console.error('Error creating billing milestone:', createError);
           results.errors++;
