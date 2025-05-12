@@ -390,8 +390,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Add a version counter to force recalculation of schedules
   const [recalculationVersion, setRecalculationVersion] = useState(1);
 
+  // Define a minimal schedule type for our temporary schedules (only required fields)
+  type MinimalSchedule = {
+    id: number;
+    bayId: number;
+    projectId: number;
+    startDate: string;
+    endDate: string;
+    totalHours?: number;
+    row?: number;
+    status?: string;
+  };
+  
   // Add state for temporary schedules that will be displayed before API confirmation
-  const [temporarySchedules, setTemporarySchedules] = useState<ManufacturingSchedule[]>([]);
+  const [temporarySchedules, setTemporarySchedules] = useState<MinimalSchedule[]>([]);
 
   // Loading state for project moves
   const [isMovingProject, setIsMovingProject] = useState(false);
@@ -2669,9 +2681,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Add the temporary schedule to local state immediately
         console.log(`Creating temporary schedule ${tempScheduleId} in bay ${finalBayId} for immediate UI update`);
         
-        // Update local schedules array with temporary schedule
-        const updatedSchedules = [...schedules, tempSchedule];
-        // We're not directly setting state but the next recalculation will use this updated array
+        // Add the temporary schedule to our state
+        setTemporarySchedules(prev => [...prev, tempSchedule]);
         
         // Force UI update by incrementing recalculation version
         setRecalculationVersion(prev => prev + 1);
@@ -2695,6 +2706,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           
           // Clear loading state
           setIsMovingProject(false);
+          
+          // Clear temporary schedules since we've now received the real data
+          setTemporarySchedules([]);
           
           // Force refresh data through the API to get actual data with real IDs
           queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
@@ -2862,23 +2876,27 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const fixedRow = row !== undefined ? row : 
                     (userSelectedRow >= 0 ? userSelectedRow : (schedule.row || 0));
     
-    // CRITICAL FIX: Update local state immediately before API call to ensure UI updates faster
-    // Create a new array with the updated schedule
-    const updatedSchedules = schedules.map(s => {
-      if (s.id === scheduleId) {
-        // Return a new object with updated properties
-        return {
-          ...s,
-          startDate: newStartDate,
-          endDate: finalEndDate,
-          row: fixedRow
-        };
-      }
-      return s;
-    });
-    
-    // Force UI update immediately
-    console.log(`Immediate local update for schedule ${scheduleId} to prevent stale bay utilization data`);
+    // CRITICAL FIX: Create temporary schedule for immediate UI updates
+    // Find the existing schedule to copy its properties
+    const existingSchedule = schedules.find(s => s.id === scheduleId);
+    if (existingSchedule) {
+      // Create a temporary version of this schedule with the new dates
+      const tempSchedule: ManufacturingSchedule = {
+        ...existingSchedule,
+        startDate: newStartDate,
+        endDate: finalEndDate,
+        row: fixedRow
+      };
+      
+      // Replace any existing temporary version of this schedule
+      const filteredTempSchedules = temporarySchedules.filter(ts => ts.id !== scheduleId);
+      
+      // Update the temporary schedules array
+      setTemporarySchedules([...filteredTempSchedules, tempSchedule]);
+      
+      // Force UI update immediately
+      console.log(`Added temporary schedule for ${scheduleId} to prevent stale bay utilization data`);
+    }
     
     if (capacityImpact) {
       // Show warning dialog
