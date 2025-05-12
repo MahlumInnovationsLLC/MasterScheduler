@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { format, addMonths, addWeeks, getWeek, getMonth, getYear } from 'date-fns';
+import { getFiscalWeeksForMonth, getFiscalWeekLabel } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -618,7 +619,7 @@ export function BillingStatusCard({
               {selectedWeekIndex !== undefined && (
                 <div className={`${isFullWidthForecast ? 'mt-6 flex justify-between items-center' : 'mt-3 flex justify-between items-center text-sm'}`}>
                   <div>
-                    <span className="text-gray-400">Week {chart.weekLabels[selectedWeekIndex]} Total:</span>
+                    <span className="text-gray-400">{chart.weekLabels[selectedWeekIndex]} Total:</span>
                     <span className={`ml-2 font-bold ${isFullWidthForecast ? 'text-lg' : ''}`}>
                       {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(chart.weekValues[selectedWeekIndex])}
                     </span>
