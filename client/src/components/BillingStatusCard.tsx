@@ -445,7 +445,7 @@ export function BillingStatusCard({
                 <div className="flex flex-wrap gap-1 mb-4">
                   <Button
                     variant={selectedWeekIndex === undefined ? "default" : "outline"}
-                    size="xs"
+                    size="sm"
                     onClick={() => {
                       onWeekSelect && onWeekSelect(0, 0);
                     }}
@@ -458,7 +458,7 @@ export function BillingStatusCard({
                     <Button
                       key={index}
                       variant={index === selectedWeekIndex ? "default" : "outline"}
-                      size="xs"
+                      size="sm"
                       onClick={() => {
                         onWeekSelect && onWeekSelect(week.weekNumber, week.weekNumber);
                         setGoalType('week');
@@ -472,7 +472,7 @@ export function BillingStatusCard({
                   {selectedWeekIndex !== undefined && (
                     <Button
                       variant="ghost"
-                      size="xs"
+                      size="sm"
                       onClick={() => {
                         setGoalType('week');
                         handleOpenCreate();
@@ -596,28 +596,51 @@ function Chart({ data, labels, selectedIndex }: {
   labels: string[],
   selectedIndex?: number
 }) {
-  const max = Math.max(...data, 1);
+  // Add a small value to ensure bars have minimum height for better visualization
+  const max = Math.max(...data, 1); 
   
   return (
-    <div className="flex h-full w-full items-end space-x-2">
-      {data.map((value, i) => (
-        <div
-          key={i}
-          className="relative flex flex-1 flex-col items-center"
-        >
-          <div 
-            className={`w-full rounded-md ${
-              selectedIndex === i ? 'bg-primary' : 'bg-muted'
-            }`}
-            style={{ 
-              height: `${Math.max(4, (value / max) * 100)}%`,
-            }}
-          />
-          <span className="mt-1 text-[10px] text-muted-foreground w-full text-center truncate">
-            {labels[i]}
-          </span>
-        </div>
-      ))}
+    <div className="flex h-full w-full items-end space-x-1">
+      {data.map((value, i) => {
+        // Calculate height percentage with minimum height for visibility
+        const heightPercent = Math.max(5, (value / max) * 100);
+        
+        return (
+          <div
+            key={i}
+            className="relative flex flex-1 flex-col items-center"
+          >
+            {/* Bar column with blue highlighting for selected month/week */}
+            <div 
+              className={`w-full rounded-sm ${
+                selectedIndex === i ? 'bg-blue-500' : 'bg-blue-200'
+              }`}
+              style={{ 
+                height: `${heightPercent}%`,
+              }}
+            />
+            
+            {/* Value label on top of bar if value is significant */}
+            {value > 0 && (
+              <div className="absolute top-0 w-full text-center transform -translate-y-5">
+                <span className="text-[9px] font-medium">
+                  {value >= 1000000 
+                    ? `$${(value / 1000000).toFixed(1)}M` 
+                    : value >= 1000 
+                      ? `$${(value / 1000).toFixed(0)}K` 
+                      : `$${value}`
+                  }
+                </span>
+              </div>
+            )}
+            
+            {/* Month/week label below bar */}
+            <span className="mt-1 text-[10px] text-muted-foreground w-full text-center truncate">
+              {labels[i]}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
