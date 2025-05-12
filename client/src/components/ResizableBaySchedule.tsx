@@ -13,7 +13,20 @@ import {
   endOfWeek,
   getDaysInMonth
 } from 'date-fns';
-import { PlusCircle, GripVertical, Info, X, ChevronRight, ChevronLeft, PencilIcon, PlusIcon, Users, Zap, Clock as ClockIcon, AlertTriangle as ExclamationTriangleIcon } from 'lucide-react';
+import { 
+  PlusCircle, 
+  GripVertical, 
+  Info, 
+  X, 
+  ChevronRight, 
+  ChevronLeft, 
+  PencilIcon, 
+  PlusIcon, 
+  Users, 
+  Zap, 
+  Clock as ClockIcon, 
+  AlertTriangle 
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -332,7 +345,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             0, // bayId 0 represents "unassigned"
             schedule.startDate,
             schedule.endDate,
-            schedule.totalHours || undefined,
+            schedule.totalHours !== null ? Number(schedule.totalHours) : undefined,
             0 // rowIndex 0 for unassigned
           );
         }
@@ -5231,7 +5244,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       ))}
                     </ul>
                     <p className="mt-4 text-amber-600 dark:text-amber-400">
-                      <ExclamationTriangleIcon className="w-4 h-4 inline mr-1" />
+                      <AlertTriangle className="w-4 h-4 inline mr-1" />
                       Current and future projects will be moved to the unassigned section.
                     </p>
                   </>
