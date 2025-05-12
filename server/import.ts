@@ -877,17 +877,36 @@ export async function importBillingMilestones(req: Request, res: Response) {
           console.log(`Unknown amount type (${typeof milestoneData.amount}), defaulting to 0`);
         }
         
+        // Make sure we have a valid project ID before creating the milestone
+        if (!milestoneData.projectId) {
+          results.errors++;
+          results.details.push(`Missing project ID for milestone: ${milestoneData.name}`);
+          continue;
+        }
+        
+        // Convert status to a valid enum value
+        let validStatus: 'upcoming' | 'invoiced' | 'paid' | 'delayed' = 'upcoming';
+        const statusLower = milestoneData.status.toLowerCase();
+        
+        if (statusLower.includes('invoice') || statusLower.includes('billed')) {
+          validStatus = 'invoiced';
+        } else if (statusLower.includes('paid') || statusLower.includes('payment')) {
+          validStatus = 'paid';
+        } else if (statusLower.includes('delay') || statusLower.includes('late')) {
+          validStatus = 'delayed';
+        }
+        
         // Make sure the data matches our schema type with proper field names
         const insertData: InsertBillingMilestone = {
-          projectId: milestoneData.projectId,
+          projectId: Number(milestoneData.projectId), 
           name: milestoneData.name || '',
           description: milestoneData.description || '',
-          // amount is a decimal in the database, so we need a number
+          // The amount field should be a number, not a string
           amount: finalAmount, 
           targetInvoiceDate: milestoneData.targetDate || new Date().toISOString().split('T')[0],
           actualInvoiceDate: milestoneData.invoiceDate || null,
           paymentReceivedDate: milestoneData.paymentReceivedDate || null,
-          status: milestoneData.status || 'upcoming'
+          status: validStatus
           // createdAt and updatedAt are added automatically by the database
         };
         
