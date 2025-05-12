@@ -31,8 +31,11 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
     const schedulesArray = Array.isArray(manufacturingSchedules) ? manufacturingSchedules : [];
     const baysArray = Array.isArray(manufacturingBays) ? manufacturingBays : [];
     
-    // IMPROVED: Find ALL schedules where today's date falls between start and end date
-    // Also ensure we capture all the schedules that are actually active today
+    // MODIFIED APPROACH: Find schedules that are currently active OR scheduled to start soon
+    // This will show more projects in the Current Production Status widget
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 14); // Show projects starting within 2 weeks
+    
     const activeSchedules = schedulesArray.filter((schedule: any) => {
       const startDate = new Date(schedule.startDate);
       const endDate = new Date(schedule.endDate);
@@ -41,15 +44,18 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
       startDate.setHours(0, 0, 0, 0);
       endDate.setHours(0, 0, 0, 0);
       
-      // Check if today falls within this schedule's timeframe
+      // Check if schedule is active today OR starting soon
       const isActiveToday = startDate <= today && today <= endDate;
+      const isStartingSoon = today < startDate && startDate <= nextWeek;
       
-      // For debugging - log active schedules
+      // For debugging - log active and upcoming schedules
       if (isActiveToday) {
-        console.log(`Found active schedule: Project ID ${schedule.projectId}, Bay ID ${schedule.bayId} (${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]})`);
+        console.log(`Found ACTIVE schedule: Project ID ${schedule.projectId}, Bay ID ${schedule.bayId} (${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]})`);
+      } else if (isStartingSoon) {
+        console.log(`Found UPCOMING schedule: Project ID ${schedule.projectId}, Bay ID ${schedule.bayId} (${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]})`);
       }
       
-      return isActiveToday;
+      return isActiveToday || isStartingSoon;
     });
     
     // Log the total count of active schedules for debugging
@@ -141,7 +147,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
     <Card className="bg-card rounded-xl p-4 border border-border">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-muted-foreground font-medium">
-          Current Production Status
+          Current & Upcoming Production
           {(activeCount + upcomingCount) > 0 && (
             <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-primary/20 text-primary">
               {activeCount + upcomingCount}
@@ -165,7 +171,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
               <div>
                 <h4 className="text-xs font-semibold mb-1 text-muted-foreground flex items-center">
                   <Wrench className="h-3 w-3 mr-1" /> 
-                  Projects In Production Today
+                  Active & Upcoming Projects (Next 14 Days)
                 </h4>
                 <ul className="divide-y divide-border">
                   {activeManufacturingProjects.map((project: any) => (
@@ -184,9 +190,18 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                           </div>
                         </div>
                         <div className="ml-2 flex items-center">
-                          <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded dark:bg-blue-500/20 bg-blue-100 dark:text-blue-500 text-blue-800 border border-blue-300">
+                          <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded 
+                          ${project.currentPhase === 'Pre-Production' || !project.currentPhase ? 'dark:bg-amber-500/20 bg-amber-100 dark:text-amber-500 text-amber-800 border border-amber-300' : 
+                            project.currentPhase === 'Fabrication' ? 'dark:bg-blue-500/20 bg-blue-100 dark:text-blue-500 text-blue-800 border border-blue-300' :
+                            project.currentPhase === 'Paint' ? 'dark:bg-purple-500/20 bg-purple-100 dark:text-purple-500 text-purple-800 border border-purple-300' :
+                            project.currentPhase === 'Production' ? 'dark:bg-green-500/20 bg-green-100 dark:text-green-500 text-green-800 border border-green-300' :
+                            project.currentPhase === 'IT Integration' ? 'dark:bg-cyan-500/20 bg-cyan-100 dark:text-cyan-500 text-cyan-800 border border-cyan-300' :
+                            project.currentPhase === 'NTC Testing' ? 'dark:bg-orange-500/20 bg-orange-100 dark:text-orange-500 text-orange-800 border border-orange-300' :
+                            project.currentPhase === 'QC' ? 'dark:bg-rose-500/20 bg-rose-100 dark:text-rose-500 text-rose-800 border border-rose-300' :
+                            'dark:bg-blue-500/20 bg-blue-100 dark:text-blue-500 text-blue-800 border border-blue-300'
+                          }`}>
                             <Activity className="h-3 w-3 mr-1" />
-                            {project.currentPhase}
+                            {project.currentPhase || 'Upcoming'}
                           </span>
                         </div>
                       </div>
