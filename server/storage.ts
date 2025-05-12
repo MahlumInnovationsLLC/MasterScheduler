@@ -1581,9 +1581,26 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(financialGoals)
-        .orderBy(financialGoals.year, financialGoals.month);
+        .orderBy(financialGoals.year, financialGoals.month, financialGoals.week);
     } catch (error) {
       console.error("Error fetching financial goals:", error);
+      return [];
+    }
+  }
+  
+  async getWeeklyFinancialGoals(year: number, month: number): Promise<FinancialGoal[]> {
+    try {
+      return await db
+        .select()
+        .from(financialGoals)
+        .where(and(
+          eq(financialGoals.year, year),
+          eq(financialGoals.month, month),
+          isNotNull(financialGoals.week)
+        ))
+        .orderBy(financialGoals.week);
+    } catch (error) {
+      console.error(`Error fetching weekly financial goals for ${year}-${month}:`, error);
       return [];
     }
   }
@@ -1634,36 +1651,67 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateFinancialGoal(year: number, month: number, goalData: Partial<InsertFinancialGoal>): Promise<FinancialGoal | undefined> {
+  async updateFinancialGoal(
+    year: number, 
+    month: number, 
+    goalData: Partial<InsertFinancialGoal>,
+    week?: number
+  ): Promise<FinancialGoal | undefined> {
     try {
+      let conditions = [
+        eq(financialGoals.year, year),
+        eq(financialGoals.month, month)
+      ];
+      
+      // If week is provided, filter by that specific week
+      // If week is undefined, filter for entries where week IS NULL (month-level goals)
+      if (week !== undefined) {
+        conditions.push(eq(financialGoals.week, week));
+      } else {
+        conditions.push(isNull(financialGoals.week));
+      }
+      
       const [updatedGoal] = await db
         .update(financialGoals)
         .set({ ...goalData, updatedAt: new Date() })
-        .where(and(
-          eq(financialGoals.year, year),
-          eq(financialGoals.month, month)
-        ))
+        .where(and(...conditions))
         .returning();
       
       return updatedGoal;
     } catch (error) {
-      console.error(`Error updating financial goal for ${year}-${month}:`, error);
+      const periodStr = week !== undefined ? `${year}-${month}-W${week}` : `${year}-${month}`;
+      console.error(`Error updating financial goal for ${periodStr}:`, error);
       return undefined;
     }
   }
 
-  async deleteFinancialGoal(year: number, month: number): Promise<boolean> {
+  async deleteFinancialGoal(
+    year: number, 
+    month: number,
+    week?: number
+  ): Promise<boolean> {
     try {
+      let conditions = [
+        eq(financialGoals.year, year),
+        eq(financialGoals.month, month)
+      ];
+      
+      // If week is provided, filter by that specific week
+      // If week is undefined, filter for entries where week IS NULL (month-level goals)
+      if (week !== undefined) {
+        conditions.push(eq(financialGoals.week, week));
+      } else {
+        conditions.push(isNull(financialGoals.week));
+      }
+      
       await db
         .delete(financialGoals)
-        .where(and(
-          eq(financialGoals.year, year),
-          eq(financialGoals.month, month)
-        ));
+        .where(and(...conditions));
       
       return true;
     } catch (error) {
-      console.error(`Error deleting financial goal for ${year}-${month}:`, error);
+      const periodStr = week !== undefined ? `${year}-${month}-W${week}` : `${year}-${month}`;
+      console.error(`Error deleting financial goal for ${periodStr}:`, error);
       return false;
     }
   }

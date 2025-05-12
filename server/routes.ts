@@ -1801,25 +1801,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching financial goal" });
     }
   });
+  
+  // Get weekly financial goals for a specific year and month
+  app.get("/api/financial-goals/:year/:month/weeks", isAuthenticated, async (req, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      
+      if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+        return res.status(400).json({ message: "Invalid year or month format" });
+      }
+      
+      const weeklyGoals = await storage.getWeeklyFinancialGoals(year, month);
+      res.json(weeklyGoals);
+    } catch (error) {
+      console.error("Error fetching weekly financial goals:", error);
+      res.status(500).json({ message: "Error fetching weekly financial goals" });
+    }
+  });
+  
+  // Get a specific weekly financial goal by year, month, and week
+  app.get("/api/financial-goals/:year/:month/week/:week", isAuthenticated, async (req, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      const week = parseInt(req.params.week);
+      
+      if (isNaN(year) || isNaN(month) || month < 1 || month > 12 || isNaN(week) || week < 1 || week > 6) {
+        return res.status(400).json({ message: "Invalid year, month, or week format" });
+      }
+      
+      const goal = await storage.getFinancialGoalByYearMonth(year, month, week);
+      
+      if (!goal) {
+        return res.status(404).json({ message: "Weekly financial goal not found" });
+      }
+      
+      res.json(goal);
+    } catch (error) {
+      console.error("Error fetching weekly financial goal:", error);
+      res.status(500).json({ message: "Error fetching weekly financial goal" });
+    }
+  });
 
   // Create a new financial goal
   app.post("/api/financial-goals", hasEditRights, async (req, res) => {
     try {
-      const { year, month, targetAmount, description } = req.body;
+      const { year, month, week, targetAmount, description } = req.body;
       
       if (!year || !month || !targetAmount) {
         return res.status(400).json({ message: "Year, month, and target amount are required" });
       }
       
-      // Check if goal for this year/month already exists
-      const existingGoal = await storage.getFinancialGoalByYearMonth(parseInt(year), parseInt(month));
+      const parsedYear = parseInt(year);
+      const parsedMonth = parseInt(month);
+      const parsedWeek = week ? parseInt(week) : undefined;
+      
+      // Validate week if provided
+      if (parsedWeek !== undefined && (isNaN(parsedWeek) || parsedWeek < 1 || parsedWeek > 6)) {
+        return res.status(400).json({ message: "Week must be a number between 1 and 6" });
+      }
+      
+      // Check if goal for this year/month(/week) already exists
+      const existingGoal = await storage.getFinancialGoalByYearMonth(parsedYear, parsedMonth, parsedWeek);
       if (existingGoal) {
-        return res.status(409).json({ message: "A financial goal for this year and month already exists" });
+        const periodType = parsedWeek ? "week" : "month";
+        return res.status(409).json({ message: `A financial goal for this ${periodType} already exists` });
       }
       
       const newGoal = await storage.createFinancialGoal({
-        year: parseInt(year),
-        month: parseInt(month),
+        year: parsedYear,
+        month: parsedMonth,
+        week: parsedWeek,
         targetAmount: parseFloat(targetAmount),
         description
       });
@@ -1831,7 +1884,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update a financial goal
+  // Update a financial goal - monthly goal (no week specified)
   app.put("/api/financial-goals/:year/:month", hasEditRights, async (req, res) => {
     try {
       const year = parseInt(req.params.year);
@@ -1847,7 +1900,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Target amount is required" });
       }
       
-      // Check if the goal exists
+      // Check if the monthly goal exists
       const existingGoal = await storage.getFinancialGoalByYearMonth(year, month);
       if (!existingGoal) {
         return res.status(404).json({ message: "Financial goal not found" });
@@ -1864,8 +1917,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error updating financial goal" });
     }
   });
+  
+  // Update a weekly financial goal
+  app.put("/api/financial-goals/:year/:month/week/:week", hasEditRights, async (req, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      const week = parseInt(req.params.week);
+      
+      if (isNaN(year) || isNaN(month) || month < 1 || month > 12 || isNaN(week) || week < 1 || week > 6) {
+        return res.status(400).json({ message: "Invalid year, month, or week format" });
+      }
+      
+      const { targetAmount, description } = req.body;
+      
+      if (!targetAmount) {
+        return res.status(400).json({ message: "Target amount is required" });
+      }
+      
+      // Check if the weekly goal exists
+      const existingGoal = await storage.getFinancialGoalByYearMonth(year, month, week);
+      if (!existingGoal) {
+        return res.status(404).json({ message: "Weekly financial goal not found" });
+      }
+      
+      const updatedGoal = await storage.updateFinancialGoal(year, month, {
+        targetAmount: parseFloat(targetAmount),
+        description
+      }, week);
+      
+      res.json(updatedGoal);
+    } catch (error) {
+      console.error("Error updating weekly financial goal:", error);
+      res.status(500).json({ message: "Error updating weekly financial goal" });
+    }
+  });
 
-  // Delete a financial goal
+  // Delete a monthly financial goal (no week specified)
   app.delete("/api/financial-goals/:year/:month", hasEditRights, async (req, res) => {
     try {
       const year = parseInt(req.params.year);
@@ -1875,7 +1963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid year or month format" });
       }
       
-      // Check if the goal exists
+      // Check if the monthly goal exists
       const existingGoal = await storage.getFinancialGoalByYearMonth(year, month);
       if (!existingGoal) {
         return res.status(404).json({ message: "Financial goal not found" });
@@ -1891,6 +1979,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting financial goal:", error);
       res.status(500).json({ message: "Error deleting financial goal" });
+    }
+  });
+  
+  // Delete a weekly financial goal
+  app.delete("/api/financial-goals/:year/:month/week/:week", hasEditRights, async (req, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      const week = parseInt(req.params.week);
+      
+      if (isNaN(year) || isNaN(month) || month < 1 || month > 12 || isNaN(week) || week < 1 || week > 6) {
+        return res.status(400).json({ message: "Invalid year, month, or week format" });
+      }
+      
+      // Check if the weekly goal exists
+      const existingGoal = await storage.getFinancialGoalByYearMonth(year, month, week);
+      if (!existingGoal) {
+        return res.status(404).json({ message: "Weekly financial goal not found" });
+      }
+      
+      const result = await storage.deleteFinancialGoal(year, month, week);
+      
+      if (result) {
+        res.status(200).json({ message: "Weekly financial goal deleted successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to delete weekly financial goal" });
+      }
+    } catch (error) {
+      console.error("Error deleting weekly financial goal:", error);
+      res.status(500).json({ message: "Error deleting weekly financial goal" });
     }
   });
 
