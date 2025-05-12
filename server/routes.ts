@@ -1685,6 +1685,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Financial Goals API routes
+  // Get all financial goals
+  app.get("/api/financial-goals", isAuthenticated, async (req, res) => {
+    try {
+      const goals = await storage.getFinancialGoals();
+      res.json(goals);
+    } catch (error) {
+      console.error("Error fetching financial goals:", error);
+      res.status(500).json({ message: "Error fetching financial goals" });
+    }
+  });
+
+  // Get a specific financial goal by year and month
+  app.get("/api/financial-goals/:year/:month", isAuthenticated, async (req, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      
+      if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+        return res.status(400).json({ message: "Invalid year or month format" });
+      }
+      
+      const goal = await storage.getFinancialGoalByYearMonth(year, month);
+      
+      if (!goal) {
+        return res.status(404).json({ message: "Financial goal not found" });
+      }
+      
+      res.json(goal);
+    } catch (error) {
+      console.error("Error fetching financial goal:", error);
+      res.status(500).json({ message: "Error fetching financial goal" });
+    }
+  });
+
+  // Create a new financial goal
+  app.post("/api/financial-goals", hasEditRights, async (req, res) => {
+    try {
+      const { year, month, targetAmount, description } = req.body;
+      
+      if (!year || !month || !targetAmount) {
+        return res.status(400).json({ message: "Year, month, and target amount are required" });
+      }
+      
+      // Check if goal for this year/month already exists
+      const existingGoal = await storage.getFinancialGoalByYearMonth(parseInt(year), parseInt(month));
+      if (existingGoal) {
+        return res.status(409).json({ message: "A financial goal for this year and month already exists" });
+      }
+      
+      const newGoal = await storage.createFinancialGoal({
+        year: parseInt(year),
+        month: parseInt(month),
+        targetAmount: parseFloat(targetAmount),
+        description
+      });
+      
+      res.status(201).json(newGoal);
+    } catch (error) {
+      console.error("Error creating financial goal:", error);
+      res.status(500).json({ message: "Error creating financial goal" });
+    }
+  });
+
+  // Update a financial goal
+  app.put("/api/financial-goals/:year/:month", hasEditRights, async (req, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      
+      if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+        return res.status(400).json({ message: "Invalid year or month format" });
+      }
+      
+      const { targetAmount, description } = req.body;
+      
+      if (!targetAmount) {
+        return res.status(400).json({ message: "Target amount is required" });
+      }
+      
+      // Check if the goal exists
+      const existingGoal = await storage.getFinancialGoalByYearMonth(year, month);
+      if (!existingGoal) {
+        return res.status(404).json({ message: "Financial goal not found" });
+      }
+      
+      const updatedGoal = await storage.updateFinancialGoal(year, month, {
+        targetAmount: parseFloat(targetAmount),
+        description
+      });
+      
+      res.json(updatedGoal);
+    } catch (error) {
+      console.error("Error updating financial goal:", error);
+      res.status(500).json({ message: "Error updating financial goal" });
+    }
+  });
+
+  // Delete a financial goal
+  app.delete("/api/financial-goals/:year/:month", hasEditRights, async (req, res) => {
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      
+      if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+        return res.status(400).json({ message: "Invalid year or month format" });
+      }
+      
+      // Check if the goal exists
+      const existingGoal = await storage.getFinancialGoalByYearMonth(year, month);
+      if (!existingGoal) {
+        return res.status(404).json({ message: "Financial goal not found" });
+      }
+      
+      const result = await storage.deleteFinancialGoal(year, month);
+      
+      if (result) {
+        res.status(200).json({ message: "Financial goal deleted successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to delete financial goal" });
+      }
+    } catch (error) {
+      console.error("Error deleting financial goal:", error);
+      res.status(500).json({ message: "Error deleting financial goal" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

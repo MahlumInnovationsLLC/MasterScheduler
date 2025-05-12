@@ -1571,6 +1571,84 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
+
+  // Financial Goals CRUD operations
+  async getFinancialGoals(): Promise<FinancialGoal[]> {
+    try {
+      return await db
+        .select()
+        .from(financialGoals)
+        .orderBy(financialGoals.year, financialGoals.month);
+    } catch (error) {
+      console.error("Error fetching financial goals:", error);
+      return [];
+    }
+  }
+
+  async getFinancialGoalByYearMonth(year: number, month: number): Promise<FinancialGoal | undefined> {
+    try {
+      const [goal] = await db
+        .select()
+        .from(financialGoals)
+        .where(and(
+          eq(financialGoals.year, year),
+          eq(financialGoals.month, month)
+        ));
+      
+      return goal;
+    } catch (error) {
+      console.error(`Error fetching financial goal for ${year}-${month}:`, error);
+      return undefined;
+    }
+  }
+
+  async createFinancialGoal(goalData: InsertFinancialGoal): Promise<FinancialGoal | undefined> {
+    try {
+      const [goal] = await db
+        .insert(financialGoals)
+        .values(goalData)
+        .returning();
+      
+      return goal;
+    } catch (error) {
+      console.error("Error creating financial goal:", error);
+      return undefined;
+    }
+  }
+
+  async updateFinancialGoal(year: number, month: number, goalData: Partial<InsertFinancialGoal>): Promise<FinancialGoal | undefined> {
+    try {
+      const [updatedGoal] = await db
+        .update(financialGoals)
+        .set({ ...goalData, updatedAt: new Date() })
+        .where(and(
+          eq(financialGoals.year, year),
+          eq(financialGoals.month, month)
+        ))
+        .returning();
+      
+      return updatedGoal;
+    } catch (error) {
+      console.error(`Error updating financial goal for ${year}-${month}:`, error);
+      return undefined;
+    }
+  }
+
+  async deleteFinancialGoal(year: number, month: number): Promise<boolean> {
+    try {
+      await db
+        .delete(financialGoals)
+        .where(and(
+          eq(financialGoals.year, year),
+          eq(financialGoals.month, month)
+        ));
+      
+      return true;
+    } catch (error) {
+      console.error(`Error deleting financial goal for ${year}-${month}:`, error);
+      return false;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

@@ -800,3 +800,30 @@ export type InsertAllowedEmail = z.infer<typeof insertAllowedEmailSchema>;
 
 export type DeliveryTracking = typeof deliveryTracking.$inferSelect;
 export type InsertDeliveryTracking = z.infer<typeof insertDeliveryTrackingSchema>;
+
+// Financial Goals table
+export const financialGoals = pgTable("financial_goals", {
+  id: serial("id").primaryKey(),
+  year: integer("year").notNull(),
+  month: integer("month").notNull(),
+  targetAmount: decimal("target_amount", { precision: 15, scale: 2 }).notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Create unique constraint on year and month
+export const financialGoalsConstraints = unique("financial_goals_year_month_unique").on(
+  financialGoals.year,
+  financialGoals.month
+);
+
+// Create insert schema for financial goals
+export const insertFinancialGoalSchema = createInsertSchema(financialGoals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type FinancialGoal = typeof financialGoals.$inferSelect;
+export type InsertFinancialGoal = z.infer<typeof insertFinancialGoalSchema>;
