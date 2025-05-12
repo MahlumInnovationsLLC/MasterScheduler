@@ -556,17 +556,17 @@ export async function importProjects(req: Request, res: Response) {
 // Import Future Billing Milestones
 export async function importBillingMilestones(req: Request, res: Response) {
   try {
-    const milestonesData = req.body;
+    const rawMilestonesData = req.body;
     console.log("Received billing milestones data for import:", 
-      milestonesData.length > 0 ? 
-        `${milestonesData.length} milestones, first item fields: ${Object.keys(milestonesData[0]).join(', ')}` :
+      rawMilestonesData.length > 0 ? 
+        `${rawMilestonesData.length} milestones, first item fields: ${Object.keys(rawMilestonesData[0]).join(', ')}` :
         "Empty array");
     
-    if (milestonesData.length > 0) {
-      console.log("Sample milestone data:", JSON.stringify(milestonesData[0], null, 2));
+    if (rawMilestonesData.length > 0) {
+      console.log("Sample milestone data:", JSON.stringify(rawMilestonesData[0], null, 2));
     }
     
-    if (!Array.isArray(milestonesData)) {
+    if (!Array.isArray(rawMilestonesData)) {
       return res.status(400).json({ 
         success: false, 
         message: 'Invalid billing milestone data. Expected an array.' 
@@ -584,8 +584,29 @@ export async function importBillingMilestones(req: Request, res: Response) {
     };
 
     // Process each milestone
-    for (const rawMilestoneData of milestonesData) {
+    for (const rawMilestoneData of rawMilestonesData) {
       try {
+        // Create a structured milestone object that we'll build during processing
+        const milestoneData: {
+          projectId: number | null;
+          name: string;
+          amount: string | number;
+          targetDate: string | null;
+          invoiceDate: string | null;
+          paymentReceivedDate: string | null;
+          description: string;
+          status: string;
+        } = {
+          projectId: null,
+          name: '',
+          amount: 0,
+          targetDate: null,
+          invoiceDate: null,
+          paymentReceivedDate: null,
+          description: '',
+          status: 'upcoming'
+        };
+        
         // EXTRACT DATA FIELDS - with flexible column name recognition
         // 1. Project Number - try various field names that could be in the Excel file
         const projectNumber = 
@@ -618,6 +639,9 @@ export async function importBillingMilestones(req: Request, res: Response) {
           results.details.push(`Missing milestone name for project: ${projectNumber}`);
           continue;
         }
+        
+        // Store milestone name in our structured object
+        milestoneData.name = milestoneName;
         
         // 3. Amount - handle currency formats like "$69,600"
         const amount = 
