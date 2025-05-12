@@ -65,17 +65,7 @@ interface GoalDialogRef {
   openDialog: (type: 'month' | 'week') => void;
 }
 
-function GoalSettingDialog({ 
-  title, 
-  chart, 
-  goals,
-  selectedMonthIndex,
-  selectedWeekIndex,
-  onGoalCreate,
-  onGoalUpdate,
-  defaultGoalType = 'month',
-  ref
-}: {
+const GoalSettingDialog = forwardRef<GoalDialogRef, {
   title: string;
   chart?: {
     labels: string[];
@@ -96,7 +86,16 @@ function GoalSettingDialog({
   onGoalCreate?: (year: number, month: number, targetAmount: number, description: string, week?: number) => void;
   onGoalUpdate?: (year: number, month: number, targetAmount: number, description: string, week?: number) => void;
   defaultGoalType?: 'month' | 'week';
-}) {
+}>(({ 
+  title, 
+  chart, 
+  goals,
+  selectedMonthIndex,
+  selectedWeekIndex,
+  onGoalCreate,
+  onGoalUpdate,
+  defaultGoalType = 'month'
+}, ref) => {
   const [isOpen, setIsOpen] = useState(false);
   const [goalAmount, setGoalAmount] = useState("");
   const [goalDescription, setGoalDescription] = useState("");
@@ -104,11 +103,13 @@ function GoalSettingDialog({
   const [goalType, setGoalType] = useState<'month' | 'week'>(defaultGoalType);
   const [currentDate, setCurrentDate] = useState<{year: number, month: number, week?: number} | null>(null);
   
-  // Method to open the dialog with specified goal type
-  const openDialog = (type: 'month' | 'week') => {
-    setGoalType(type);
-    handleOpenCreate();
-  };
+  // Expose the openDialog method to the parent component via ref
+  useImperativeHandle(ref, () => ({
+    openDialog: (type: 'month' | 'week') => {
+      setGoalType(type);
+      handleOpenCreate();
+    }
+  }));
   
   const handleOpenCreate = () => {
     if (selectedMonthIndex !== undefined && chart) {
@@ -297,7 +298,7 @@ function GoalSettingDialog({
       </Dialog>
     </div>
   );
-}
+});
 
 export function BillingStatusCard({
   title,
