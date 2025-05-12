@@ -310,10 +310,13 @@ export function BillingStatusCard({
     }
   };
 
+  // Determine if this is a full-width forecast card (for special styling)
+  const isFullWidthForecast = type === 'forecast' && chart && chart.weekValues;
+  
   return (
-    <Card className="bg-darkCard rounded-xl p-4 border border-gray-800">
+    <Card className={`bg-darkCard rounded-xl p-4 border border-gray-800 ${isFullWidthForecast ? 'p-6' : ''}`}>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-gray-400 font-medium">{title}</h3>
+        <h3 className={`text-gray-400 font-medium ${isFullWidthForecast ? 'text-lg' : ''}`}>{title}</h3>
         <div className="p-2 rounded-lg bg-opacity-10" style={{ backgroundColor: 'rgba(var(--chart-1), 0.1)' }}>
           {getIcon()}
         </div>
@@ -394,11 +397,12 @@ export function BillingStatusCard({
                           <span className="text-gray-400">Goal: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(matchingGoal.targetAmount)}</span>
                           <span className={percentage >= 100 ? 'text-green-400' : 'text-amber-400'}>{percentage}%</span>
                         </div>
-                        <Progress 
-                          value={percentage} 
-                          className={`h-1.5 w-full ${percentage >= 100 ? 'bg-green-900/20' : 'bg-amber-900/20'}`}
-                          indicatorClassName={percentage >= 100 ? 'bg-green-400' : 'bg-amber-400'}
-                        />
+                        <div className={`h-1.5 w-full rounded-full ${percentage >= 100 ? 'bg-green-900/20' : 'bg-amber-900/20'}`}>
+                          <div 
+                            className={`h-full rounded-full ${percentage >= 100 ? 'bg-green-400' : 'bg-amber-400'}`}
+                            style={{ width: `${Math.min(percentage, 100)}%` }}
+                          />
+                        </div>
                       </div>
                     );
                   }
@@ -408,7 +412,7 @@ export function BillingStatusCard({
                       <span>No goal set for this month</span>
                       <Button 
                         variant="ghost" 
-                        size="xs" 
+                        size="sm" 
                         className="h-6 px-2 text-xs"
                         onClick={() => {
                           if (onGoalCreate) {
@@ -433,15 +437,15 @@ export function BillingStatusCard({
           </div>
           
           {/* Month Navigation and Chart */}
-          <div className="mt-3">
+          <div className={`mt-3 ${isFullWidthForecast ? 'px-2' : ''}`}>
             {/* Month Navigation Buttons */}
-            <div className="grid grid-cols-6 gap-1 mb-3">
+            <div className={`grid grid-cols-6 gap-1 mb-3 ${isFullWidthForecast ? 'flex justify-between' : ''}`}>
               {chart.labels.map((label, idx) => (
                 <Button 
                   key={idx}
                   variant={selectedMonthIndex === idx ? "default" : "outline"}
-                  size="sm"
-                  className="h-7 p-1 text-xs"
+                  size={isFullWidthForecast ? "default" : "sm"}
+                  className={`${isFullWidthForecast ? 'flex-1 mx-1' : 'h-7 p-1'} text-xs`}
                   onClick={() => onMonthSelect && onMonthSelect(
                     new Date().getFullYear() + Math.floor((new Date().getMonth() + idx) / 12),
                     ((new Date().getMonth() + idx) % 12) + 1
@@ -453,14 +457,15 @@ export function BillingStatusCard({
             </div>
             
             {/* Bar Chart */}
-            <div className="grid grid-cols-6 gap-1 h-16">
+            <div className={`grid grid-cols-6 gap-1 ${isFullWidthForecast ? 'h-32' : 'h-16'}`}>
               {chart.values.map((val, idx) => {
                 // Find goal for this month's column
                 const today = new Date();
                 const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), idx);
                 const matchingGoal = goals?.find(g => 
                   g.year === targetDate.getFullYear() && 
-                  g.month === targetDate.getMonth() + 1
+                  g.month === targetDate.getMonth() + 1 &&
+                  !g.week // Only find month-level goals here
                 );
                 
                 // Determine if this month has met or exceeded its goal
@@ -483,6 +488,18 @@ export function BillingStatusCard({
                         }}
                       ></div>
                     )}
+                    
+                    {/* Value label above the bar for full-width view */}
+                    {isFullWidthForecast && (
+                      <div className="absolute w-full text-center -top-6 text-xs">
+                        {new Intl.NumberFormat('en-US', { 
+                          style: 'currency', 
+                          currency: 'USD',
+                          notation: 'compact',
+                          maximumFractionDigits: 1
+                        }).format(val)}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -491,22 +508,22 @@ export function BillingStatusCard({
           
           {/* Fiscal Week Display - Appears below the monthly chart */}
           {showFiscalWeeks && chart?.weekLabels && chart?.weekValues && (
-            <div className="mt-8 bg-gray-900/30 rounded-lg p-4 border border-gray-800">
-              <div className="flex justify-between items-center mb-3">
-                <h4 className="text-sm font-medium text-gray-300">Fiscal Week Breakdown</h4>
-                <span className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded-full">
+            <div className={`mt-8 bg-gray-900/30 rounded-lg ${isFullWidthForecast ? 'p-6' : 'p-4'} border border-gray-800`}>
+              <div className="flex justify-between items-center mb-4">
+                <h4 className={`${isFullWidthForecast ? 'text-lg' : 'text-sm'} font-medium text-gray-300`}>Fiscal Week Breakdown</h4>
+                <span className={`text-xs text-gray-400 bg-gray-800 px-3 py-1.5 rounded-full ${isFullWidthForecast ? 'text-sm' : ''}`}>
                   {selectedWeekIndex !== undefined && chart.weekLabels[selectedWeekIndex]}
                 </span>
               </div>
               
               {/* Week Navigation Buttons */}
-              <div className="grid grid-cols-6 gap-1 mb-3">
+              <div className={`${isFullWidthForecast ? 'flex justify-between' : 'grid grid-cols-6 gap-1'} mb-4`}>
                 {chart.weekLabels.slice(0, 6).map((label, idx) => (
                   <Button 
                     key={idx}
                     variant={selectedWeekIndex === idx ? "default" : "outline"}
-                    size="sm"
-                    className="h-7 p-1 text-xs"
+                    size={isFullWidthForecast ? "default" : "sm"}
+                    className={`${isFullWidthForecast ? 'flex-1 mx-1' : 'h-7 p-1'} text-xs`}
                     onClick={() => onWeekSelect && onWeekSelect(
                       new Date().getFullYear(),
                       idx + 1
@@ -518,7 +535,7 @@ export function BillingStatusCard({
               </div>
               
               {/* Fiscal Week Chart */}
-              <div className="grid grid-cols-6 gap-1 h-20">
+              <div className={`${isFullWidthForecast ? 'flex justify-between h-40' : 'grid grid-cols-6 gap-1 h-20'}`}>
                 {chart.weekValues.slice(0, 6).map((val, idx) => {
                   // Find if there's a goal for this week
                   const today = new Date();
@@ -530,10 +547,10 @@ export function BillingStatusCard({
                   
                   // Determine if this week has met or exceeded its goal
                   const hasGoal = !!matchingGoal;
-                  const isExceedingGoal = hasGoal && val >= (matchingGoal.targetAmount || 0);
+                  const isExceedingGoal = hasGoal && val >= (matchingGoal?.targetAmount || 0);
                   
                   return (
-                    <div key={idx} className={`bg-blue-500 bg-opacity-20 relative rounded-sm ${selectedWeekIndex === idx ? 'ring-1 ring-blue-400' : ''}`}>
+                    <div key={idx} className={`${isFullWidthForecast ? 'flex-1 mx-1' : ''} bg-blue-500 bg-opacity-20 relative rounded-sm ${selectedWeekIndex === idx ? 'ring-1 ring-blue-400' : ''}`}>
                       <div 
                         className={`absolute bottom-0 w-full rounded-sm ${isExceedingGoal ? 'bg-green-400' : 'bg-blue-400'}`}
                         style={{ height: `${(val / Math.max(...chart.weekValues.slice(0, 6), 1)) * 100}%` }}
@@ -548,18 +565,53 @@ export function BillingStatusCard({
                           }}
                         ></div>
                       )}
+
+                      {/* Value label above the bar for full-width view */}
+                      {isFullWidthForecast && (
+                        <div className="absolute w-full text-center -top-6 text-xs">
+                          {new Intl.NumberFormat('en-US', { 
+                            style: 'currency', 
+                            currency: 'USD',
+                            notation: 'compact',
+                            maximumFractionDigits: 1
+                          }).format(val)}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
               
-              {/* Weekly Total vs Target */}
+              {/* Weekly Goal Status */}
               {selectedWeekIndex !== undefined && (
-                <div className="mt-3 flex justify-between items-center text-sm">
-                  <span className="text-gray-400">Week {chart.weekLabels[selectedWeekIndex]} Total:</span>
-                  <span className="font-bold">
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(chart.weekValues[selectedWeekIndex])}
-                  </span>
+                <div className={`${isFullWidthForecast ? 'mt-6 flex justify-between items-center' : 'mt-3 flex justify-between items-center text-sm'}`}>
+                  <div>
+                    <span className="text-gray-400">Week {chart.weekLabels[selectedWeekIndex]} Total:</span>
+                    <span className={`ml-2 font-bold ${isFullWidthForecast ? 'text-lg' : ''}`}>
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(chart.weekValues[selectedWeekIndex])}
+                    </span>
+                  </div>
+                  
+                  {/* Add Goal button */}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="h-8"
+                    onClick={() => {
+                      if (onGoalCreate) {
+                        // Show dialog for creating goal
+                        const dialogContainer = document.getElementById('goal-dialog-container');
+                        if (dialogContainer) {
+                          const createButton = dialogContainer.querySelector('#create-goal-button');
+                          if (createButton instanceof HTMLButtonElement) {
+                            createButton.click();
+                          }
+                        }
+                      }
+                    }}
+                  >
+                    <PlusCircle className="h-3.5 w-3.5 mr-1" /> {isFullWidthForecast ? 'Set Weekly Goal' : 'Set Goal'}
+                  </Button>
                 </div>
               )}
             </div>
