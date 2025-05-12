@@ -778,7 +778,7 @@ export async function importBillingMilestones(req: Request, res: Response) {
           status: milestoneData.status
         });
         
-        // Convert amount to a number if it's a string
+        // Convert amount to a number for database insertion
         let finalAmount: number;
         if (typeof milestoneData.amount === 'string') {
           // Remove currency symbols, commas, etc. and parse as float
@@ -792,8 +792,10 @@ export async function importBillingMilestones(req: Request, res: Response) {
           }
         } else if (typeof milestoneData.amount === 'number') {
           finalAmount = milestoneData.amount;
+          console.log(`Using numeric amount: ${finalAmount}`);
         } else {
           finalAmount = 0;
+          console.log(`Unknown amount type (${typeof milestoneData.amount}), defaulting to 0`);
         }
         
         // Make sure the data matches our schema type with proper field names
@@ -801,7 +803,8 @@ export async function importBillingMilestones(req: Request, res: Response) {
           projectId: milestoneData.projectId,
           name: milestoneData.name || '',
           description: milestoneData.description || '',
-          amount: finalAmount,
+          // amount is a decimal in the database, so we need a number
+          amount: finalAmount, 
           targetInvoiceDate: milestoneData.targetDate || new Date().toISOString().split('T')[0],
           actualInvoiceDate: milestoneData.invoiceDate || null,
           paymentReceivedDate: milestoneData.paymentReceivedDate || null,
