@@ -901,8 +901,8 @@ export async function importBillingMilestones(req: Request, res: Response) {
           projectId: Number(milestoneData.projectId), 
           name: milestoneData.name || '',
           description: milestoneData.description || '',
-            // amount should be a decimal in the database
-          amount: finalAmount,
+            // amount must be numeric for decimal type
+          amount: Number(finalAmount),
           targetInvoiceDate: milestoneData.targetDate || new Date().toISOString().split('T')[0],
           actualInvoiceDate: milestoneData.invoiceDate || null,
           paymentReceivedDate: milestoneData.paymentReceivedDate || null,
