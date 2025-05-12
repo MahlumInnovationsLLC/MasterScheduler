@@ -148,14 +148,16 @@ function GoalSettingDialog({
         currentDate.year,
         currentDate.month,
         amount,
-        goalDescription
+        goalDescription,
+        currentDate.week
       );
     } else {
       onGoalCreate && onGoalCreate(
         currentDate.year,
         currentDate.month,
         amount,
-        goalDescription
+        goalDescription,
+        currentDate.week
       );
     }
     
@@ -181,9 +183,51 @@ function GoalSettingDialog({
           {currentDate && (
             <div className="grid gap-4 py-4">
               <div className="flex items-center gap-4">
-                <Label className="w-24 text-right">Month:</Label>
-                <div className="font-medium">
-                  {format(new Date(currentDate.year, currentDate.month - 1), 'MMMM yyyy')}
+                <Label className="w-24 text-right">Period:</Label>
+                <div className="font-medium flex flex-col gap-1">
+                  <div>
+                    {format(new Date(currentDate.year, currentDate.month - 1), 'MMMM yyyy')}
+                  </div>
+                  {currentDate.week && (
+                    <div className="text-sm text-muted-foreground">
+                      Week {currentDate.week}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <Label className="w-24 text-right">Goal Type:</Label>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant={goalType === 'month' ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setGoalType('month');
+                      // Reset the current date to remove week if present
+                      setCurrentDate(prev => prev ? {
+                        ...prev,
+                        week: undefined
+                      } : null);
+                    }}
+                  >
+                    Monthly
+                  </Button>
+                  <Button
+                    variant={goalType === 'week' ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setGoalType('week');
+                      // Add week number if it's not set
+                      setCurrentDate(prev => prev ? {
+                        ...prev,
+                        week: prev.week || (selectedWeekIndex !== undefined ? selectedWeekIndex + 1 : 1)
+                      } : null);
+                    }}
+                    disabled={selectedWeekIndex === undefined}
+                  >
+                    Weekly
+                  </Button>
                 </div>
               </div>
               

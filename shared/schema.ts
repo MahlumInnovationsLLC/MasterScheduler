@@ -808,16 +808,19 @@ export const financialGoals = pgTable("financial_goals", {
   id: serial("id").primaryKey(),
   year: integer("year").notNull(),
   month: integer("month").notNull(),
+  week: integer("week"), // Optional week number (1-6) within the month
   targetAmount: decimal("target_amount", { precision: 15, scale: 2 }).notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Create unique constraint on year and month
-export const financialGoalsConstraints = unique("financial_goals_year_month_unique").on(
+// Create unique constraint on year, month, and week (if present)
+// This ensures we can have both monthly goals (with week=null) and weekly goals (with specific week values)
+export const financialGoalsConstraints = unique("financial_goals_year_month_week_unique").on(
   financialGoals.year,
-  financialGoals.month
+  financialGoals.month,
+  financialGoals.week
 );
 
 // Create insert schema for financial goals
