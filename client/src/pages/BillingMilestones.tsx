@@ -270,12 +270,69 @@ const BillingMilestones = () => {
       id: 'actions',
       cell: ({ row }) => (
         <div className="text-right space-x-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          {/* View Details button */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8"
+            onClick={() => handleViewMilestoneDetails(row.original)}
+            title="View Details"
+          >
             <FileText className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <CheckSquare className="h-4 w-4" />
-          </Button>
+          
+          {/* Invoice button */}
+          {row.original.status === 'upcoming' && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8"
+              onClick={() => {
+                const updatedMilestone = { 
+                  ...row.original,
+                  status: 'invoiced',
+                  actualInvoiceDate: format(new Date(), 'yyyy-MM-dd')
+                };
+                handleEditMilestone(updatedMilestone);
+              }}
+              title="Mark as Invoiced"
+            >
+              <FileText className="h-4 w-4 text-warning" />
+            </Button>
+          )}
+          
+          {/* Mark as Paid button */}
+          {(row.original.status === 'invoiced' || row.original.status === 'delayed') && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8"
+              onClick={() => {
+                const updatedMilestone = { 
+                  ...row.original,
+                  status: 'paid',
+                  paidDate: format(new Date(), 'yyyy-MM-dd')
+                };
+                handleEditMilestone(updatedMilestone);
+              }}
+              title="Mark as Paid"
+            >
+              <CheckSquare className="h-4 w-4" />
+            </Button>
+          )}
+          
+          {/* Show check mark for paid milestones */}
+          {row.original.status === 'paid' && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8"
+              disabled
+              title="Paid"
+            >
+              <CheckSquare className="h-4 w-4 text-success" />
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -291,14 +348,32 @@ const BillingMilestones = () => {
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Milestone
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                const updatedMilestone = { 
-                  ...row.original,
-                  status: 'paid',
-                  paymentReceivedDate: format(new Date(), 'yyyy-MM-dd')
-                };
-                handleEditMilestone(updatedMilestone);
-              }}>
+              <DropdownMenuItem 
+                onClick={() => {
+                  const updatedMilestone = { 
+                    ...row.original,
+                    status: 'invoiced',
+                    actualInvoiceDate: format(new Date(), 'yyyy-MM-dd')
+                  };
+                  handleEditMilestone(updatedMilestone);
+                }}
+                disabled={row.original.status === 'invoiced' || row.original.status === 'paid'}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Mark as Invoiced
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => {
+                  const updatedMilestone = { 
+                    ...row.original,
+                    status: 'paid',
+                    paidDate: format(new Date(), 'yyyy-MM-dd')
+                  };
+                  handleEditMilestone(updatedMilestone);
+                }}
+                disabled={row.original.status === 'paid'}
+              >
+                <CheckSquare className="h-4 w-4 mr-2" />
                 Mark as Paid
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleDeleteMilestone(row.original.id)}>
