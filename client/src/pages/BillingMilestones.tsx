@@ -78,7 +78,15 @@ const BillingMilestones = () => {
   });
   
   // Query for financial goals
-  const { data: financialGoals, isLoading: isLoadingGoals } = useQuery({
+  const { data: financialGoals, isLoading: isLoadingGoals } = useQuery<{
+    id: number;
+    year: number;
+    month: number;
+    targetAmount: number;
+    description?: string;
+    createdAt: string;
+    updatedAt: string;
+  }[]>({
     queryKey: ['/api/financial-goals'],
   });
 

@@ -13,6 +13,7 @@ import {
   deliveryTracking,
   salesDeals,
   userAuditLogs,
+  financialGoals,
   type User,
   type InsertUser,
   type Project,
@@ -41,6 +42,8 @@ import {
   type InsertSalesDeal,
   type UserAuditLog,
   type InsertUserAuditLog,
+  type FinancialGoal,
+  type InsertFinancialGoal,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, or } from "drizzle-orm";
