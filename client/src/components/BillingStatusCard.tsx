@@ -64,6 +64,7 @@ function GoalSettingDialog({
   chart, 
   goals,
   selectedMonthIndex,
+  selectedWeekIndex,
   onGoalCreate,
   onGoalUpdate
 }: {
@@ -71,23 +72,28 @@ function GoalSettingDialog({
   chart?: {
     labels: string[];
     values: number[];
+    weekLabels?: string[];
+    weekValues?: number[];
   };
   goals?: { 
     year: number; 
     month: number; 
     targetAmount: number; 
-    description?: string 
+    description?: string;
+    week?: number;
   }[];
   onMonthSelect?: (year: number, month: number) => void;
   selectedMonthIndex?: number;
-  onGoalCreate?: (year: number, month: number, targetAmount: number, description: string) => void;
-  onGoalUpdate?: (year: number, month: number, targetAmount: number, description: string) => void;
+  selectedWeekIndex?: number;
+  onGoalCreate?: (year: number, month: number, targetAmount: number, description: string, week?: number) => void;
+  onGoalUpdate?: (year: number, month: number, targetAmount: number, description: string, week?: number) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [goalAmount, setGoalAmount] = useState("");
   const [goalDescription, setGoalDescription] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const [currentDate, setCurrentDate] = useState<{year: number, month: number} | null>(null);
+  const [goalType, setGoalType] = useState<'month' | 'week'>('month');
+  const [currentDate, setCurrentDate] = useState<{year: number, month: number, week?: number} | null>(null);
   
   const handleOpenCreate = () => {
     if (selectedMonthIndex !== undefined && chart) {
@@ -227,6 +233,10 @@ export function BillingStatusCard({
   chart,
   onMonthSelect,
   selectedMonthIndex,
+  onWeekSelect,
+  selectedWeekIndex,
+  showFiscalWeeks = false,
+  fiscalWeekDisplay = 'below',
   goals,
   onGoalCreate,
   onGoalUpdate
@@ -424,6 +434,82 @@ export function BillingStatusCard({
               })}
             </div>
           </div>
+          
+          {/* Fiscal Week Display - Appears below the monthly chart */}
+          {showFiscalWeeks && chart?.weekLabels && chart?.weekValues && (
+            <div className="mt-8 bg-gray-900/30 rounded-lg p-4 border border-gray-800">
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="text-sm font-medium text-gray-300">Fiscal Week Breakdown</h4>
+                <span className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded-full">
+                  {selectedWeekIndex !== undefined && chart.weekLabels[selectedWeekIndex]}
+                </span>
+              </div>
+              
+              {/* Week Navigation Buttons */}
+              <div className="grid grid-cols-6 gap-1 mb-3">
+                {chart.weekLabels.slice(0, 6).map((label, idx) => (
+                  <Button 
+                    key={idx}
+                    variant={selectedWeekIndex === idx ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 p-1 text-xs"
+                    onClick={() => onWeekSelect && onWeekSelect(
+                      new Date().getFullYear(),
+                      parseInt(label.split('-')[1])
+                    )}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+              
+              {/* Fiscal Week Chart */}
+              <div className="grid grid-cols-6 gap-1 h-20">
+                {chart.weekValues.slice(0, 6).map((val, idx) => {
+                  // Find if there's a goal for this week
+                  const today = new Date();
+                  const weekNumber = parseInt(chart.weekLabels[idx].split('-')[1]);
+                  const matchingGoal = goals?.find(g => 
+                    g.year === today.getFullYear() && 
+                    g.week === weekNumber
+                  );
+                  
+                  // Determine if this week has met or exceeded its goal
+                  const hasGoal = !!matchingGoal;
+                  const isExceedingGoal = hasGoal && val >= (matchingGoal.targetAmount || 0);
+                  
+                  return (
+                    <div key={idx} className={`bg-blue-500 bg-opacity-20 relative rounded-sm ${selectedWeekIndex === idx ? 'ring-1 ring-blue-400' : ''}`}>
+                      <div 
+                        className={`absolute bottom-0 w-full rounded-sm ${isExceedingGoal ? 'bg-green-400' : 'bg-blue-400'}`}
+                        style={{ height: `${(val / Math.max(...chart.weekValues.slice(0, 6), 1)) * 100}%` }}
+                      ></div>
+                      
+                      {/* Goal marker line if this week has a goal */}
+                      {hasGoal && (
+                        <div 
+                          className={`absolute w-full border-t-2 ${isExceedingGoal ? 'border-green-700' : 'border-amber-400'} border-dashed`}
+                          style={{ 
+                            bottom: `${(matchingGoal.targetAmount / Math.max(...chart.weekValues.slice(0, 6), 1)) * 100}%` 
+                          }}
+                        ></div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Weekly Total vs Target */}
+              {selectedWeekIndex !== undefined && (
+                <div className="mt-3 flex justify-between items-center text-sm">
+                  <span className="text-gray-400">Week {chart.weekLabels[selectedWeekIndex]} Total:</span>
+                  <span className="font-bold">
+                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(chart.weekValues[selectedWeekIndex])}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </>
       ) : type === 'cashflow' && stats ? (
         <div className="space-y-3">

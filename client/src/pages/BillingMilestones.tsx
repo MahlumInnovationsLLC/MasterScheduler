@@ -289,6 +289,34 @@ const BillingMilestones = () => {
     
     const monthNames = nextSixMonths.map(date => date.toLocaleString('default', { month: 'short' }));
 
+    // Generate fiscal week data for the selected month
+    const generateFiscalWeekData = (monthIndex: number) => {
+      const month = nextSixMonths[monthIndex];
+      if (!month) return { labels: [], values: [] };
+      
+      const fiscalWeeks = [];
+      const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+      
+      // Create fiscal weeks (typically 4-5 weeks per month)
+      for (let i = 1; i <= daysInMonth; i += 7) {
+        const weekEnd = Math.min(i + 6, daysInMonth);
+        fiscalWeeks.push({ 
+          start: i, 
+          end: weekEnd,
+          label: `Week ${Math.ceil(i/7)}`, 
+          value: Math.random() * 100000 // In a real app, this would be based on milestones for this week
+        });
+      }
+      
+      return {
+        labels: fiscalWeeks.map(w => w.label),
+        values: fiscalWeeks.map(w => w.value)
+      };
+    };
+    
+    // Calculate fiscal week data
+    const fiscalWeekData = generateFiscalWeekData(selectedMonthIndex);
+
     // Calculate totals for the legend
     const totalConfirmed = forecastData.reduce((sum, month) => sum + month.confirmed, 0);
     const totalProjected = forecastData.reduce((sum, month) => sum + month.projected, 0);
@@ -722,10 +750,19 @@ const BillingMilestones = () => {
           type="forecast"
           chart={{
             labels: billingStats?.forecast.labels || [],
-            values: billingStats?.forecast.values || []
+            values: billingStats?.forecast.values || [],
+            weekLabels: billingStats?.forecast.weekLabels || [],
+            weekValues: billingStats?.forecast.weekValues || []
           }}
           onMonthSelect={handleMonthSelect}
           selectedMonthIndex={selectedMonthIndex}
+          onWeekSelect={(year, week) => {
+            console.log(`Selected week ${week} of ${year}`);
+            // Implement week selection logic
+          }}
+          selectedWeekIndex={0}
+          showFiscalWeeks={true}
+          fiscalWeekDisplay="below"
           goals={financialGoals}
           onGoalCreate={(year, month, targetAmount, description) => {
             createGoalMutation.mutate({ year, month, targetAmount, description });
