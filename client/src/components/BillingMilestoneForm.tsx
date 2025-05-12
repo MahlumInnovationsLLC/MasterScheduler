@@ -370,6 +370,129 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
               />
             )}
 
+            {/* Additional Billing Information Section */}
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-lg font-medium mb-4">Additional Billing Information</h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <FormField
+                  control={form.control}
+                  name="contractReference"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contract Reference</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Contract #"
+                          {...field}
+                          disabled={isPending}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="invoiceNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Invoice Number</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Invoice #"
+                          {...field}
+                          disabled={isPending}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <FormField
+                  control={form.control}
+                  name="paymentTerms"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment Terms</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Net 30, etc."
+                          {...field}
+                          disabled={isPending}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="percentageOfTotal"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Percentage of Total</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., 25%"
+                          {...field}
+                          disabled={isPending}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="billingContact"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Billing Contact</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Contact name or email"
+                        {...field}
+                        disabled={isPending}
+                        value={field.value || ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Additional Notes</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Any additional notes about this billing milestone..."
+                        {...field}
+                        disabled={isPending}
+                        value={field.value || ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
                 Cancel

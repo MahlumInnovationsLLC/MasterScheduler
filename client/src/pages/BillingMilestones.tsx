@@ -450,7 +450,14 @@ const BillingMilestones = () => {
           targetInvoiceDate: selectedMilestone.targetInvoiceDate,
           actualInvoiceDate: selectedMilestone.actualInvoiceDate || '',
           paymentReceivedDate: selectedMilestone.paymentReceivedDate || '',
-          status: selectedMilestone.status
+          status: selectedMilestone.status,
+          // Add new fields
+          contractReference: selectedMilestone.contractReference || '',
+          paymentTerms: selectedMilestone.paymentTerms || '',
+          invoiceNumber: selectedMilestone.invoiceNumber || '',
+          percentageOfTotal: selectedMilestone.percentageOfTotal || '',
+          billingContact: selectedMilestone.billingContact || '',
+          notes: selectedMilestone.notes || ''
         } : undefined}
         isEdit={isEditing}
         milestoneId={selectedMilestone?.id}
