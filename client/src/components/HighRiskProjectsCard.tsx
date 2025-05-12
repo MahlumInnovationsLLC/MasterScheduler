@@ -31,7 +31,8 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
     const schedulesArray = Array.isArray(manufacturingSchedules) ? manufacturingSchedules : [];
     const baysArray = Array.isArray(manufacturingBays) ? manufacturingBays : [];
     
-    // Find schedules where today's date falls between start and end date
+    // IMPROVED: Find ALL schedules where today's date falls between start and end date
+    // Also ensure we capture all the schedules that are actually active today
     const activeSchedules = schedulesArray.filter((schedule: any) => {
       const startDate = new Date(schedule.startDate);
       const endDate = new Date(schedule.endDate);
@@ -40,8 +41,19 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
       startDate.setHours(0, 0, 0, 0);
       endDate.setHours(0, 0, 0, 0);
       
-      return startDate <= today && today <= endDate;
+      // Check if today falls within this schedule's timeframe
+      const isActiveToday = startDate <= today && today <= endDate;
+      
+      // For debugging - log active schedules
+      if (isActiveToday) {
+        console.log(`Found active schedule: Project ID ${schedule.projectId}, Bay ID ${schedule.bayId} (${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]})`);
+      }
+      
+      return isActiveToday;
     });
+    
+    // Log the total count of active schedules for debugging
+    console.log(`Total active schedules found for Current Production Status: ${activeSchedules.length}`);
     
     // Find corresponding projects and add bay information
     const result = activeSchedules.map((schedule: any) => {
@@ -67,15 +79,19 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
       };
     }).filter(Boolean);
     
-    // Sort results by days until ship date
-    const sortedResults = result.sort((a, b) => {
-      const aDays = getDaysUntilDate(a.shipDate);
-      const bDays = getDaysUntilDate(b.shipDate);
+    // First filter out any nulls or undefined values
+    const validResults = result.filter((item): item is NonNullable<typeof item> => !!item);
+    
+    // Then sort valid results by days until ship date
+    const sortedResults = validResults.sort((a, b) => {
+      // Safely access ship dates
+      const aDays = a.shipDate ? getDaysUntilDate(a.shipDate) : Number.MAX_SAFE_INTEGER;
+      const bDays = b.shipDate ? getDaysUntilDate(b.shipDate) : Number.MAX_SAFE_INTEGER;
       return aDays - bDays;
     });
     
-    // Slice to limit to top 3
-    return sortedResults.slice(0, 3);
+    // Increase limit to show more active projects (was top 3, now showing top 6)
+    return sortedResults.slice(0, 6);
   }, [projects, manufacturingSchedules, manufacturingBays]);
   
   // Upcoming NTC or QC dates in the next 2 weeks
