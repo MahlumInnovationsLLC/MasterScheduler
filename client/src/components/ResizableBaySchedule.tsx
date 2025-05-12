@@ -3341,15 +3341,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       top: 0 !important;
       bottom: 0 !important;
       height: 100% !important;
-      width: 12px !important;
+      width: 14px !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
       cursor: ew-resize !important;
       z-index: 30 !important;
-      opacity: 0 !important;
-      transition: opacity 0.2s ease !important;
-      background-color: rgba(0, 0, 0, 0.3) !important;
+      opacity: 0.3 !important; /* Slightly visible by default for better discoverability */
+      transition: opacity 0.2s ease, background-color 0.2s ease !important;
+      background-color: rgba(0, 0, 0, 0.4) !important;
     }
     
     .resize-handle-left {
@@ -3365,11 +3365,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
     
     .big-project-bar:hover .resize-handle {
-      opacity: 1 !important;
+      opacity: 0.8 !important;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
     }
     
     .resize-handle:hover {
-      background-color: rgba(0, 0, 0, 0.5) !important;
+      background-color: rgba(0, 0, 0, 0.7) !important;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5) !important;
+      opacity: 1 !important;
     }
     
     /* Force handles to be visible in all team rows during hover */
@@ -3381,7 +3384,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     .row-5-bar:hover .resize-handle,
     .row-6-bar:hover .resize-handle,
     .row-7-bar:hover .resize-handle {
-      opacity: 1 !important;
+      opacity: 0.9 !important;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5) !important;
+    }
+    
+    /* Extra emphasis for resize handles in Team 4 rows */
+    [data-bay-id="4"] .resize-handle {
+      opacity: 0.4 !important; /* Slightly more visible by default for Team 4 */
+    }
+    
+    [data-bay-id="4"] .big-project-bar:hover .resize-handle {
+      opacity: 0.9 !important;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6) !important;
     }
     
     /* Row hover effects for better visualization */
@@ -4538,16 +4552,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         <div 
                           className="resize-handle resize-handle-left"
                           onMouseDown={(e) => handleResizeStart(e, bar.id, 'left', bar.projectId, bar.bayId)}
+                          title="Resize project start date"
                         >
-                          <ChevronLeft className="h-4 w-4 text-white" />
+                          <ChevronLeft className="h-5 w-5 text-white drop-shadow-md" />
                         </div>
                         
                         {/* Right Resize Handle */}
                         <div 
                           className="resize-handle resize-handle-right"
                           onMouseDown={(e) => handleResizeStart(e, bar.id, 'right', bar.projectId, bar.bayId)}
+                          title="Resize project end date"
                         >
-                          <ChevronRight className="h-4 w-4 text-white" />
+                          <ChevronRight className="h-5 w-5 text-white drop-shadow-md" />
                         </div>
                         {/* Department phases */}
                         {/* FAB phase */}
