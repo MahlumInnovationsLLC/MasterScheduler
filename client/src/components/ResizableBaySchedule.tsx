@@ -717,12 +717,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
       );
       
-      // Initialize row tracking for this bay
+      // Initialize row tracking for this bay - allowing more rows for better scheduling
       const rowEndDates: Date[] = [
         new Date(0), // Row 0
         new Date(0), // Row 1
         new Date(0), // Row 2
-        new Date(0)  // Row 3
+        new Date(0), // Row 3
+        new Date(0), // Row 4 (added to support more projects)
+        new Date(0), // Row 5
+        new Date(0), // Row 6
+        new Date(0)  // Row 7
       ];
       
       // First pass: Calculate when schedules overlap and adjust their end dates
@@ -762,26 +766,32 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           const weekStart = startOfWeek(currentDate);
           const weekEnd = endOfWeek(currentDate);
           
-          // Count ONLY projects that are in their PRODUCTION phase this week (AFTER FAB)
+          // FIXED: Count ONLY projects that ACTUALLY OVERLAP this specific week in PRODUCTION phase
           const projectsInWeek = otherSchedules.filter(s => {
             const scheduleStart = new Date(s.startDate);
+            const scheduleEnd = new Date(s.endDate);
+            
             // Get the project to find its FAB weeks setting
             const schedProject = projects.find(p => p.id === s.projectId);
             const schedFabWeeks = schedProject?.fabWeeks || 4;
             
             // Calculate when production phase starts (after FAB)
             const schedProductionStart = addDays(scheduleStart, schedFabWeeks * 7);
-            const scheduleEnd = new Date(s.endDate);
             
-            // Only count projects where this week falls within their PRODUCTION phase
-            // (i.e., after their FAB phase has ended and before their end date)
-            return (schedProductionStart <= weekEnd && scheduleEnd >= weekStart);
+            // Check if this schedule overlaps with the current week's PRODUCTION phase
+            return (
+              // Project must be in its PRODUCTION phase during this week
+              (schedProductionStart <= weekEnd && scheduleEnd >= weekStart) &&
+              // Week being checked must be after FAB phase ends
+              (currentDate >= schedProductionStart)
+            );
           });
           
           // Calculate available capacity for this project in this week
-          // Up to 4 projects can share the capacity evenly
-          const totalProjects = Math.min(4, projectsInWeek.length + 1); // +1 for the current project
-          const availableCapacity = baseWeeklyCapacity / totalProjects;
+          // Now we share capacity only with actual overlapping projects, not limited to 4
+          const availableCapacity = projectsInWeek.length > 0 
+            ? baseWeeklyCapacity / (projectsInWeek.length + 1) // +1 for current project 
+            : baseWeeklyCapacity; // full capacity if no overlapping projects
           
           // Allocate hours for this week
           const hoursToAllocate = Math.min(remainingHours, availableCapacity);
@@ -824,29 +834,41 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         // Only use automatic row assignment if no row is specified in the database
         if (assignedRow === -1) {
-          // Find a row that doesn't have a schedule overlapping with this one
-          for (let row = 0; row < 4; row++) {
-            if (startDate >= rowEndDates[row]) {
+          // IMPROVED: Find a row that doesn't have a schedule overlapping with this one IN TIME
+          // Check actual date overlaps, not just end dates
+          for (let row = 0; row < rowEndDates.length; row++) {
+            // Check if this row is available for this time period by checking against all processed bars
+            const hasOverlap = processedBars.some(bar => 
+              bar.row === row && 
+              bar.bayId === bayId && 
+              !(startDate >= bar.endDate || endDate <= bar.startDate)
+            );
+            
+            if (!hasOverlap) {
               assignedRow = row;
               break;
             }
           }
           
-          // If all rows are occupied, use the one that ends soonest
+          // If all rows have overlapping projects, find the row with least overlap
           if (assignedRow === -1) {
-            const endTimes = rowEndDates.map(d => d.getTime());
-            const minTime = Math.min(...endTimes);
-            assignedRow = endTimes.indexOf(minTime);
+            // Default to row 0 if we can't find a better option
+            assignedRow = 0;
           }
         }
         
-        // Ensure row is within valid range
-        assignedRow = Math.min(3, Math.max(0, assignedRow));
+        // Ensure row is within valid range - but allow up to 8 rows now
+        // This ensures we can have more projects in a bay over different time periods
+        assignedRow = Math.min(7, Math.max(0, assignedRow));
         
         // Update the end date for this row
         rowEndDates[assignedRow] = new Date(endDate);
         
-        console.log(`Schedule ${schedule.id} positioned in row ${assignedRow} ${typeof schedule.row === 'number' ? '(using database row)' : '(auto-assigned)'}`)
+        // Map the actual row to a visual row (we still only display 4 visual rows)
+        // This allows us to have more than 4 projects in a bay that don't overlap in time
+        const visualRow = assignedRow % 4; // Map rows 0-7 to rows 0-3 for display
+        
+        console.log(`Schedule ${schedule.id} positioned in row ${assignedRow} (displays in visual row ${visualRow}) ${typeof schedule.row === 'number' ? '(using database row)' : '(auto-assigned)'}`)
         
         // Find the slot indices for the original start date (where the bar begins)
         const startSlotIndex = slots.findIndex(slot => {
