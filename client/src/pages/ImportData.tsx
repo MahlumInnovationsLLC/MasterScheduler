@@ -335,18 +335,33 @@ const ImportDataPage = () => {
   // Process billing milestone data from Future Billing Milestones excel
   const processBillingData = async (data: any[]): Promise<any> => {
     try {
+      console.log("Starting processing billing milestones with fields:", 
+        data.length > 0 ? Object.keys(data[0]).join(", ") : "No data");
+      
       // Clean and validate data
       const milestones = data.map(row => {
+        console.log("Processing billing milestone row:", JSON.stringify(row));
         const projectNumber = row['Project Number'] || row['Project'] || '';
+        
+        // Extract amount - convert from string format like "$69,600" to number
+        let amountValue = row['Amount'] || row['Value'] || '0';
+        if (typeof amountValue === 'string') {
+          // Remove currency symbols and commas, then parse
+          amountValue = amountValue.replace(/[$,]/g, '').trim();
+        }
+        
+        // Get target date
+        const targetDateValue = row['Target Invoice Date'] || row['Target Date'] || row['Due Date'] || row['Invoice Date'];
         
         return {
           name: row['Milestone'] || row['Billing Item'] || row['Description'],
           projectId: null, // Will be looked up by project number in API
           status: mapBillingStatus(row['Status'] || 'upcoming'),
-          amount: String(row['Amount'] || row['Value'] || '0'),
-          targetInvoiceDate: parseExcelDate(row['Target Date'] || row['Due Date'] || row['Invoice Date']),
-          actualInvoiceDate: parseExcelDate(row['Actual Invoice Date'] || row['Invoice Date']),
-          paymentReceivedDate: parseExcelDate(row['Payment Date'] || row['Received Date']),
+          amount: String(amountValue),
+          // Make sure field names match what server expects
+          targetDate: targetDateValue, // Changed from targetInvoiceDate to targetDate to match server
+          invoiceDate: row['Actual Invoice Date'] || row['Invoice Date'], // Changed from actualInvoiceDate to invoiceDate
+          paymentReceivedDate: row['Payment Received Date'] || row['Payment Date'] || row['Received Date'],
           description: row['Description'] || row['Notes'] || '',
           _projectNumber: projectNumber // Temporary field to look up project
         };

@@ -209,8 +209,54 @@ function convertExcelDate(value: any): string | undefined {
   if (typeof value === 'string' && value.trim()) {
     const normalized = value.trim();
     
+    // Handle formats like "5/8/25" (common in Excel) - short format with 2-digit year
+    const shortYearRegex = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{1,2})$/;
+    const shortYearMatch = normalized.match(shortYearRegex);
+    
+    if (shortYearMatch) {
+      // Get the parts, assuming US format MM/DD/YY
+      const month = parseInt(shortYearMatch[1], 10);
+      const day = parseInt(shortYearMatch[2], 10);
+      let year = parseInt(shortYearMatch[3], 10);
+      
+      // Handle 2-digit years
+      if (year < 100) {
+        year += year < 50 ? 2000 : 1900;
+      }
+      
+      // Handle the common case where it's actually standard US format (MM/DD/YY)
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        try {
+          const date = new Date(year, month - 1, day);
+          if (!isNaN(date.getTime())) {
+            // Only take the date part
+            const isoDate = date.toISOString().split('T')[0];
+            console.log(`Converted short-format date '${value}' -> '${isoDate}'`);
+            return isoDate;
+          }
+        } catch (error) {
+          console.log(`Error parsing short date format: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
+      
+      // If standard US format interpretation didn't work, try DD/MM/YY
+      if (day >= 1 && day <= 12 && month >= 1 && month <= 31) {
+        try {
+          const date = new Date(year, day - 1, month);
+          if (!isNaN(date.getTime())) {
+            // Only take the date part
+            const isoDate = date.toISOString().split('T')[0];
+            console.log(`Converted short-format date (DD/MM/YY) '${value}' -> '${isoDate}'`);
+            return isoDate;
+          }
+        } catch (e) {
+          // Ignore errors for this attempt
+        }
+      }
+    }
+
     // Try to handle MM/DD/YYYY or DD/MM/YYYY format
-    const dateRegex = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/;
+    const dateRegex = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/;
     const match = normalized.match(dateRegex);
     
     if (match) {
@@ -218,11 +264,6 @@ function convertExcelDate(value: any): string | undefined {
       const part1 = parseInt(match[1], 10);
       const part2 = parseInt(match[2], 10);
       let year = parseInt(match[3], 10);
-      
-      // Adjust 2-digit years
-      if (year < 100) {
-        year += year < 50 ? 2000 : 1900;
-      }
       
       // Try both MM/DD and DD/MM interpretations
       const attemptFormats = [
@@ -548,10 +589,26 @@ export async function importBillingMilestones(req: Request, res: Response) {
                           rawMilestoneData['Due Date'] || rawMilestoneData['Invoice Date'];
         
         // Map Excel template fields to database schema
+        // Fix amount parsing - handle currency format strings like "$69,600"
+        let amountValue: number;
+        if (typeof amount === 'number') {
+          amountValue = amount;
+        } else {
+          // Remove currency symbols, commas, etc. and parse as float
+          const cleanAmount = String(amount).replace(/[$,]/g, '').trim();
+          amountValue = parseFloat(cleanAmount || '0');
+          if (isNaN(amountValue)) {
+            console.log(`Could not parse amount: "${amount}" - defaulting to 0`);
+            amountValue = 0;
+          } else {
+            console.log(`Parsed amount: "${amount}" -> ${amountValue}`);
+          }
+        }
+
         const milestoneData: any = {
           name: milestoneName,
           description: rawMilestoneData['Description'] || rawMilestoneData['Notes'] || '',
-          amount: typeof amount === 'number' ? amount : parseFloat(String(amount).replace(/[^0-9.-]/g, '') || '0'),
+          amount: amountValue, // Use the properly parsed amount
           targetDate: targetDate,
           invoiceDate: rawMilestoneData['Actual Invoice Date'] || rawMilestoneData['Invoice Date'],
           paymentReceivedDate: rawMilestoneData['Payment Received Date'] || rawMilestoneData['Received Date'],
