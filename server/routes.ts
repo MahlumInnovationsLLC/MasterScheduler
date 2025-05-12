@@ -193,6 +193,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get data from request
       const projectData = req.body;
       
+      // Check if shipDate or deliveryDate has changed
+      const shipDateChanged = currentProject.shipDate !== projectData.shipDate && projectData.shipDate;
+      const deliveryDateChanged = currentProject.deliveryDate !== projectData.deliveryDate && projectData.deliveryDate;
+      
       // Calculate QC Days only if both dates are present
       if (projectData.qcStartDate && projectData.shipDate) {
         const qcDaysCount = countWorkingDays(projectData.qcStartDate, projectData.shipDate);
@@ -207,8 +211,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found" });
       }
       
+      // If ship date or delivery date changed, check for delivery milestones to update
+      if (shipDateChanged || deliveryDateChanged) {
+        const dateToSync = projectData.deliveryDate || projectData.shipDate;
+        
+        try {
+          // Get all billing milestones for this project
+          const billingMilestones = await storage.getProjectBillingMilestones(id);
+          const deliveryMilestones = billingMilestones.filter(
+            milestone => milestone.isDeliveryMilestone
+          );
+          
+          if (deliveryMilestones.length > 0) {
+            console.log(`Found ${deliveryMilestones.length} delivery milestones for project ${id} to update with new date: ${dateToSync}`);
+            
+            for (const milestone of deliveryMilestones) {
+              await storage.updateBillingMilestone(milestone.id, {
+                ...milestone,
+                targetInvoiceDate: dateToSync
+              });
+            }
+            
+            // Add notification about delivery milestone updates
+            await storage.createNotification({
+              userId: null, // System notification
+              title: "Delivery Milestones Updated",
+              message: `${deliveryMilestones.length} delivery milestone(s) for ${project.name} (${project.projectNumber}) have been updated to match the new delivery date.`,
+              type: "system",
+              priority: "medium",
+              link: `/billing-milestones?projectId=${id}`,
+              isRead: false,
+              expiresAt: addDays(new Date(), 7),
+            });
+          }
+        } catch (milestoneError) {
+          console.error("Error updating delivery milestones after date change:", milestoneError);
+          // Don't fail the request if milestone updates fail - still return the updated project
+        }
+      }
+      
       res.json(project);
     } catch (error) {
+      console.error("Error updating project:", error);
       res.status(500).json({ message: "Error updating project" });
     }
   });
@@ -800,6 +844,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (Object.keys(projectUpdate).length > 0) {
               console.log(`Updating project ${projectId} with dates from schedule: `, projectUpdate);
               await storage.updateProject(projectId, projectUpdate);
+              
+              // Check if delivery/ship date changed, and update any associated delivery milestones
+              if (projectUpdate.deliveryDate || projectUpdate.shipDate) {
+                try {
+                  const dateToSync = projectUpdate.deliveryDate || projectUpdate.shipDate;
+                  // Get all billing milestones for this project
+                  const billingMilestones = await storage.getProjectBillingMilestones(projectId);
+                  const deliveryMilestones = billingMilestones.filter(
+                    milestone => milestone.isDeliveryMilestone
+                  );
+                  
+                  if (deliveryMilestones.length > 0) {
+                    console.log(`Found ${deliveryMilestones.length} delivery milestones for project ${projectId} to update from manufacturing schedule change to date: ${dateToSync}`);
+                    
+                    for (const milestone of deliveryMilestones) {
+                      await storage.updateBillingMilestone(milestone.id, {
+                        ...milestone,
+                        targetInvoiceDate: dateToSync
+                      });
+                    }
+                    
+                    // Add notification about delivery milestone updates
+                    await storage.createNotification({
+                      userId: null, // System notification
+                      title: "Delivery Milestones Updated",
+                      message: `${deliveryMilestones.length} delivery milestone(s) have been updated to match the new manufacturing schedule.`,
+                      type: "system",
+                      priority: "medium",
+                      link: `/billing-milestones?projectId=${projectId}`,
+                      isRead: false,
+                      expiresAt: addDays(new Date(), 7),
+                    });
+                  }
+                } catch (milestoneError) {
+                  console.error("Error updating delivery milestones after schedule change:", milestoneError);
+                  // Don't fail the request if milestone updates fail
+                }
+              }
             }
           }
         }
