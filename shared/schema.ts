@@ -424,6 +424,8 @@ export const billingMilestones = pgTable("billing_milestones", {
   percentageOfTotal: text("percentage_of_total"),
   billingContact: text("billing_contact"),
   notes: text("notes"),
+  // This flag indicates if this milestone is tied to the project delivery date
+  isDeliveryMilestone: boolean("is_delivery_milestone").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
