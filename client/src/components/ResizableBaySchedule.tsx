@@ -13,7 +13,7 @@ import {
   endOfWeek,
   getDaysInMonth
 } from 'date-fns';
-import { PlusCircle, GripVertical, Info, X, ChevronRight, ChevronLeft, PencilIcon, PlusIcon, Users, Zap, Clock as ClockIcon, AlertTriangle } from 'lucide-react';
+import { PlusCircle, GripVertical, Info, X, ChevronRight, ChevronLeft, PencilIcon, PlusIcon, Users, Zap, Clock as ClockIcon, AlertTriangle as ExclamationTriangleIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -311,9 +311,34 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Handle row deletion
   const handleDeleteRow = async (bayId: number, rowIndex: number) => {
     try {
-      // TODO: Implement actual row deletion logic
+      // Find affected schedules (projects) in this row
+      const affectedSchedules = schedules.filter(
+        schedule => schedule.bayId === bayId && schedule.rowIndex === rowIndex
+      );
       
-      // For now, just show a toast message
+      // Get current date for comparison
+      const today = new Date();
+      
+      // Process each affected schedule
+      for (const schedule of affectedSchedules) {
+        const scheduleStartDate = new Date(schedule.startDate);
+        const scheduleEndDate = new Date(schedule.endDate);
+        
+        // If schedule is in the future or current (not past), move to unassigned
+        if (scheduleEndDate >= today) {
+          // Update schedule to remove from bay (set to "unassigned")
+          await onScheduleChange(
+            schedule.id,
+            0, // bayId 0 represents "unassigned"
+            schedule.startDate,
+            schedule.endDate,
+            schedule.totalHours,
+            0 // rowIndex 0 for unassigned
+          );
+        }
+        // Past projects are not modified - they'll remain in history but won't be visible
+      }
+      
       toast({
         title: "Row Deleted",
         description: `Row removed from ${bays.find(b => b.id === bayId)?.name || 'bay'}`,
@@ -5206,7 +5231,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       ))}
                     </ul>
                     <p className="mt-4 text-amber-600 dark:text-amber-400">
-                      <ExclamationTriangleIcon className="w-4 h-4 inline mr-1" />
+                      <AlertTriangle className="w-4 h-4 inline mr-1" />
                       Current and future projects will be moved to the unassigned section.
                     </p>
                   </>
