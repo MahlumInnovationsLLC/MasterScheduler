@@ -635,7 +635,7 @@ export function BillingStatusCard({
                     // Display proper week range if available
                     if (fiscalWeeks[selectedWeekIndex]) {
                       const weekNumber = fiscalWeeks[selectedWeekIndex].weekNumber;
-                      return `Week ${selectedWeekIndex + 1}: ${getFiscalWeekLabel(targetDate.getFullYear(), weekNumber, true)}`;
+                      return `Week ${selectedWeekIndex + 1}: ${getFiscalWeekLabel(targetDate.getFullYear(), targetDate.getMonth() + 1, weekNumber, true)}`;
                     }
                     return chart.weekLabels[selectedWeekIndex];
                   })()}
@@ -657,8 +657,8 @@ export function BillingStatusCard({
                   
                   // Create buttons based on the number of weeks in the selected month
                   return fiscalWeeks.map((fiscalWeek, idx) => {
-                    // Get the week label with range - just the dates and correct month
-                    const weekRangeLabel = getFiscalWeekLabel(targetDate.getFullYear(), fiscalWeek.weekNumber, true);
+                    // Get the week label with range - just the dates for the current month
+                    const weekRangeLabel = getFiscalWeekLabel(targetDate.getFullYear(), targetDate.getMonth() + 1, fiscalWeek.weekNumber, true);
                     
                     return (
                       <Button 

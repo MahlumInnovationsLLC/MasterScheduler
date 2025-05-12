@@ -330,21 +330,40 @@ export function getFiscalWeeksForMonth(year: number, month: number): {
   endDate: Date;
   label: string;
 }[] {
+  // Get start and end of month
   const startOfMonthDate = new Date(year, month - 1, 1); // month is 1-indexed in the function, but 0-indexed in Date
   const endOfMonthDate = endOfMonth(startOfMonthDate);
   
-  // Get all weeks that intersect with this month
+  // For each week that overlaps with this month, create an entry
   const weeks = eachWeekOfInterval(
     { start: startOfMonthDate, end: endOfMonthDate },
     { weekStartsOn: 1 } // Monday as first day of week
   ).map((weekStart, index) => {
+    // Calculate the end date of this week
     const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+    
+    // Adjust start and end dates to be within the month
+    const adjustedStart = isBefore(weekStart, startOfMonthDate) ? startOfMonthDate : weekStart;
+    const adjustedEnd = isAfter(weekEnd, endOfMonthDate) ? endOfMonthDate : weekEnd;
+    
+    // Format the date range label (e.g., "May 1 - 7" or if spans months "May 29 - Jun 4")
+    const startFormat = format(adjustedStart, 'MMM d');
+    const endFormat = format(adjustedEnd, 'd');
+    
+    // Check if start and end dates are in the same month
+    const startMonth = format(adjustedStart, 'MMM');
+    const endMonth = format(adjustedEnd, 'MMM');
+    
+    // Create the label with appropriate format
+    const dateRangeLabel = startMonth === endMonth 
+      ? `${startMonth} ${format(adjustedStart, 'd')} - ${format(adjustedEnd, 'd')}` 
+      : `${startMonth} ${format(adjustedStart, 'd')} - ${endMonth} ${format(adjustedEnd, 'd')}`;
     
     return {
       weekNumber: index + 1,
-      startDate: weekStart,
-      endDate: weekEnd < endOfMonthDate ? weekEnd : endOfMonthDate, // Cap at end of month
-      label: `Week ${index + 1}: ${format(weekStart, 'MMM d')} - ${format(weekEnd < endOfMonthDate ? weekEnd : endOfMonthDate, 'MMM d')}`
+      startDate: adjustedStart,
+      endDate: adjustedEnd,
+      label: `Week ${index + 1}: ${dateRangeLabel}`
     };
   });
   
@@ -353,27 +372,37 @@ export function getFiscalWeeksForMonth(year: number, month: number): {
 
 /**
  * Get fiscal week label for display
- * Includes date range for better context
- * If withRange is true, it returns a simplified date range
+ * Returns a simple date range formatted as "May 1 - 7" or "May 29 - Jun 4"
+ * If withRange is true, it returns a simplified date range without the week number
  */
-export function getFiscalWeekLabel(year: number, weekNumber: number, withRange = false): string {
-  // Get the date for this fiscal week
-  const firstDayOfYear = new Date(year, 0, 1);
-  const targetWeekStart = addWeeks(startOfWeek(firstDayOfYear, { weekStartsOn: 1 }), weekNumber - 1);
-  const targetWeekEnd = endOfWeek(targetWeekStart, { weekStartsOn: 1 });
+export function getFiscalWeekLabel(year: number, month: number, weekNumber: number, withRange = false): string {
+  // Get all fiscal weeks for the month
+  const fiscalWeeks = getFiscalWeeksForMonth(year, month);
+  
+  // Find the requested week
+  const targetWeek = fiscalWeeks.find(week => week.weekNumber === weekNumber);
+  
+  if (!targetWeek) {
+    return `Week ${weekNumber}`;
+  }
+  
+  // Format the dates based on whether they're in the same month or not
+  const startMonth = format(targetWeek.startDate, 'MMM');
+  const endMonth = format(targetWeek.endDate, 'MMM');
   
   if (withRange) {
-    // Format as "May 5 - 11" (same month) or "May 26 - Jun 1" (different months)
-    const startMonth = format(targetWeekStart, 'MMM');
-    const endMonth = format(targetWeekEnd, 'MMM');
-    
+    // Just return the date range without the "Week X:" prefix
     if (startMonth === endMonth) {
-      return `${startMonth} ${format(targetWeekStart, 'd')} - ${format(targetWeekEnd, 'd')}`;
+      return `${startMonth} ${format(targetWeek.startDate, 'd')} - ${format(targetWeek.endDate, 'd')}`;
     } else {
-      return `${startMonth} ${format(targetWeekStart, 'd')} - ${endMonth} ${format(targetWeekEnd, 'd')}`;
+      return `${startMonth} ${format(targetWeek.startDate, 'd')} - ${endMonth} ${format(targetWeek.endDate, 'd')}`;
     }
   }
   
-  // Default format
-  return `Week ${weekNumber}: ${format(targetWeekStart, 'MMM d')} - ${format(targetWeekEnd, 'MMM d')}`;
+  // Return complete label
+  if (startMonth === endMonth) {
+    return `Week ${weekNumber}: ${startMonth} ${format(targetWeek.startDate, 'd')} - ${format(targetWeek.endDate, 'd')}`;
+  } else {
+    return `Week ${weekNumber}: ${startMonth} ${format(targetWeek.startDate, 'd')} - ${endMonth} ${format(targetWeek.endDate, 'd')}`;
+  }
 }
