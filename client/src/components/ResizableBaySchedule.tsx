@@ -390,16 +390,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Add a version counter to force recalculation of schedules
   const [recalculationVersion, setRecalculationVersion] = useState(1);
 
-  // Define a minimal schedule type for our temporary schedules (only required fields)
+  // Define a compatible type that works with our scheduleBars processing function
   type MinimalSchedule = {
     id: number;
     bayId: number;
     projectId: number;
     startDate: string;
     endDate: string;
-    totalHours?: number;
-    row?: number;
+    totalHours?: number | null;
+    row?: number | null;
     status?: string;
+    equipment?: string | null;
+    createdAt?: Date | null;
+    updatedAt?: Date | null;
+    // Fix date types to match schema
+    fabricationStart?: string | null; 
+    assemblyStart?: string | null;
+    ntcTestingStart?: string | null;
+    qcStart?: string | null;
+    notes?: string | null;
+    staffAssigned?: string | null;
   };
   
   // Add state for temporary schedules that will be displayed before API confirmation
@@ -715,7 +725,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
       acc[schedule.bayId].push(schedule);
       return acc;
-    }, {} as Record<number, typeof schedules>);
+    }, {} as Record<number, Array<ManufacturingSchedule | MinimalSchedule>>);
     
     // Process each bay's schedules to assign rows within the bay (for overlapping projects)
     const processedBars: ScheduleBar[] = [];
@@ -2668,14 +2678,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // CRITICAL FIX: Create a temporary schedule locally for immediate UI update
         // This allows the bay utilization percentages to update without waiting for the API
         const tempScheduleId = -Date.now(); // Use a negative timestamp as temp ID
-        const tempSchedule = {
+        const tempSchedule: MinimalSchedule = {
           id: tempScheduleId,
           projectId: data.projectId,
           bayId: finalBayId,
           startDate: startDateToUse,
           endDate: formattedFinalEndDate,
           totalHours: data.totalHours || 1000,
-          row: finalRowIndex
+          row: finalRowIndex,
+          status: "scheduled"
         };
         
         // Add the temporary schedule to local state immediately
@@ -2881,11 +2892,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const existingSchedule = schedules.find(s => s.id === scheduleId);
     if (existingSchedule) {
       // Create a temporary version of this schedule with the new dates
-      const tempSchedule: ManufacturingSchedule = {
-        ...existingSchedule,
+      const tempSchedule: MinimalSchedule = {
+        id: existingSchedule.id,
+        projectId: existingSchedule.projectId,
+        bayId: existingSchedule.bayId,
         startDate: newStartDate,
         endDate: finalEndDate,
-        row: fixedRow
+        totalHours: existingSchedule.totalHours,
+        row: fixedRow,
+        status: existingSchedule.status as string,
+        equipment: existingSchedule.equipment,
+        notes: existingSchedule.notes,
+        staffAssigned: existingSchedule.staffAssigned
       };
       
       // Replace any existing temporary version of this schedule
