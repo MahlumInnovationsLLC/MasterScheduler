@@ -559,21 +559,21 @@ export function BillingStatusCard({
                       size={isFullWidthForecast ? "default" : "sm"}
                       className={`${isFullWidthForecast ? 'flex-1 mx-1' : 'h-7 p-1'} text-xs`}
                       onClick={() => {
-                      if (onWeekSelect) {
-                        // Get the selected month's year and month based on selectedMonthIndex
-                        const today = new Date();
-                        const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
-                        
-                        // Use standardized fiscal week number
-                        const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
-                        const weekNumber = fiscalWeeks[idx]?.weekNumber || idx + 1;
-                        
-                        onWeekSelect(
-                          targetDate.getFullYear(),
-                          weekNumber
-                        );
-                      }
-                    }}
+                        if (onWeekSelect) {
+                          // Get the selected month's year and month based on selectedMonthIndex
+                          const today = new Date();
+                          const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
+                          
+                          // Use standardized fiscal week number
+                          const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
+                          const weekNumber = fiscalWeeks[idx]?.weekNumber || idx + 1;
+                          
+                          onWeekSelect(
+                            targetDate.getFullYear(),
+                            weekNumber
+                          );
+                        }
+                      }}
                   >
                     {simplifiedLabel}
                   </Button>
