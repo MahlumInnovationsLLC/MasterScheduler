@@ -2633,10 +2633,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Always use the exact row the user dragged to, ignoring the findOptimalRow function
         // DO NOT USE findOptimalRow - it was causing the wrong row selection
         // findOptimalRow has been completely disabled to ensure projects always place exactly where dropped
-        const finalRowIndex = preferredRowIndex;
+        const finalRowIndex = targetRowIndex;
         
         console.log(`Updating schedule with MANUAL ROW ASSIGNMENT: bay=${finalBayId} row=${finalRowIndex}`);
-        console.log(`(Original target row was: ${targetRowIndex}, user selected row: ${preferredRowIndex})`);
+        console.log(`(User selected row: ${targetRowIndex})`);
         console.log(`Auto-placement logic DISABLED - using exact row where user dropped project`);
         
         // Call the API with our forced values
@@ -2699,7 +2699,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         setIsMovingProject(true);
         
         // Add loading overlay to the bay
-        const bayElement = document.querySelector(`[data-bay-id="${targetBayId}"]`);
+        const bayElement = document.querySelector(`[data-bay-id="${bayId}"]`);
         if (bayElement) {
           // Create a temporary placeholder element to show where the project will be placed
           const placeholderDiv = document.createElement('div');
@@ -2727,8 +2727,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const storedBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || '0');
         const currentRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
         
-        // Use the stored bay ID if available
-        const finalBayId = storedBayId > 0 ? storedBayId : targetBayId;
+        // EMERGENCY BUG FIX: ALWAYS use the precise bay where the user dropped it
+        // This is key to preventing the bay jumping issue
+        const finalBayId = bayId;
         
         // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
         // User specifically requested to disable all auto-placement logic
@@ -2750,7 +2751,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         )
         .then(() => {
           // Find the target bay to show proper bay number in toast
-          const targetBayInfo = bays.find(b => b.id === targetBayId);
+          const targetBayInfo = bays.find(b => b.id === finalBayId);
           toast({
             title: "Schedule Created",
             description: `${data.projectNumber} assigned to Bay ${targetBayInfo?.bayNumber || bay.bayNumber}`,
