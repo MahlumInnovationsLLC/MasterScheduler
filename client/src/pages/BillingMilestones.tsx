@@ -119,17 +119,19 @@ const BillingMilestones = () => {
   
   // Create financial goal mutation
   const createGoalMutation = useMutation({
-    mutationFn: async ({ year, month, targetAmount, description }: { 
+    mutationFn: async ({ year, month, targetAmount, description, week }: { 
       year: number; 
       month: number; 
       targetAmount: number; 
-      description: string; 
+      description: string;
+      week?: number;
     }) => {
       const response = await apiRequest("POST", "/api/financial-goals", {
         year,
         month,
         targetAmount,
-        description
+        description,
+        week
       });
       return response.ok;
     },
