@@ -1,12 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   DollarSign,
   Flag,
   LineChart,
-  Banknote
+  Banknote,
+  CalendarIcon,
+  PlusCircle,
+  Edit,
+  Calendar
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { format, addMonths } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface BillingStatusCardProps {
   title: string;
@@ -29,6 +39,175 @@ interface BillingStatusCardProps {
     labels: string[];
     values: number[];
   };
+  onMonthSelect?: (year: number, month: number) => void;
+  selectedMonthIndex?: number;
+  goals?: { 
+    year: number; 
+    month: number; 
+    targetAmount: number; 
+    description?: string 
+  }[];
+  onGoalCreate?: (year: number, month: number, targetAmount: number, description: string) => void;
+  onGoalUpdate?: (year: number, month: number, targetAmount: number, description: string) => void;
+}
+
+// Goal Setting Dialog Component
+function GoalSettingDialog({ 
+  title, 
+  chart, 
+  goals,
+  selectedMonthIndex,
+  onGoalCreate,
+  onGoalUpdate
+}: {
+  title: string;
+  chart?: {
+    labels: string[];
+    values: number[];
+  };
+  goals?: { 
+    year: number; 
+    month: number; 
+    targetAmount: number; 
+    description?: string 
+  }[];
+  onMonthSelect?: (year: number, month: number) => void;
+  selectedMonthIndex?: number;
+  onGoalCreate?: (year: number, month: number, targetAmount: number, description: string) => void;
+  onGoalUpdate?: (year: number, month: number, targetAmount: number, description: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [goalAmount, setGoalAmount] = useState("");
+  const [goalDescription, setGoalDescription] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentDate, setCurrentDate] = useState<{year: number, month: number} | null>(null);
+  
+  const handleOpenCreate = () => {
+    if (selectedMonthIndex !== undefined && chart) {
+      const today = new Date();
+      const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex);
+      
+      setCurrentDate({
+        year: targetDate.getFullYear(),
+        month: targetDate.getMonth() + 1
+      });
+      
+      // Check if a goal already exists for this month
+      const existingGoal = goals?.find(g => 
+        g.year === targetDate.getFullYear() && 
+        g.month === targetDate.getMonth() + 1
+      );
+      
+      if (existingGoal) {
+        // We're editing
+        setIsEditing(true);
+        setGoalAmount(existingGoal.targetAmount.toString());
+        setGoalDescription(existingGoal.description || "");
+      } else {
+        // We're creating
+        setIsEditing(false);
+        setGoalAmount("");
+        setGoalDescription("");
+      }
+      
+      setIsOpen(true);
+    }
+  };
+  
+  const handleSave = () => {
+    if (!currentDate || !goalAmount) return;
+    
+    const amount = parseFloat(goalAmount);
+    if (isNaN(amount)) return;
+    
+    if (isEditing) {
+      onGoalUpdate && onGoalUpdate(
+        currentDate.year,
+        currentDate.month,
+        amount,
+        goalDescription
+      );
+    } else {
+      onGoalCreate && onGoalCreate(
+        currentDate.year,
+        currentDate.month,
+        amount,
+        goalDescription
+      );
+    }
+    
+    setIsOpen(false);
+  };
+  
+  return (
+    <div id="goal-dialog-container">
+      <button 
+        id="create-goal-button" 
+        className="hidden"
+        onClick={handleOpenCreate}
+      />
+      
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditing ? "Edit Financial Goal" : "Set New Financial Goal"}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {currentDate && (
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center gap-4">
+                <Label className="w-24 text-right">Month:</Label>
+                <div className="font-medium">
+                  {format(new Date(currentDate.year, currentDate.month - 1), 'MMMM yyyy')}
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <Label htmlFor="goalAmount" className="w-24 text-right">
+                  Target Amount:
+                </Label>
+                <div className="flex-1">
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-gray-500">$</span>
+                    <Input
+                      id="goalAmount"
+                      className="pl-7"
+                      value={goalAmount}
+                      onChange={(e) => setGoalAmount(e.target.value)}
+                      placeholder="Enter target amount"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <Label htmlFor="goalDescription" className="w-24 text-right">
+                  Description:
+                </Label>
+                <Input
+                  id="goalDescription"
+                  value={goalDescription}
+                  onChange={(e) => setGoalDescription(e.target.value)}
+                  placeholder="Optional description"
+                />
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave}>
+              {isEditing ? "Update Goal" : "Create Goal"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
 
 export function BillingStatusCard({
@@ -38,7 +217,12 @@ export function BillingStatusCard({
   change,
   progress,
   stats,
-  chart
+  chart,
+  onMonthSelect,
+  selectedMonthIndex,
+  goals,
+  onGoalCreate,
+  onGoalUpdate
 }: BillingStatusCardProps) {
   const getIcon = () => {
     switch (type) {
@@ -92,22 +276,146 @@ export function BillingStatusCard({
         </div>
       ) : type === 'forecast' && chart ? (
         <>
-          <div className="flex items-end">
-            <span className="text-2xl font-bold font-sans">{value}</span>
-            <span className="ml-2 text-sm text-gray-400">next 30 days</span>
-          </div>
-          <div className="mt-3 grid grid-cols-3 gap-1 h-12">
-            {chart.values.map((val, idx) => (
-              <div key={idx} className="bg-primary bg-opacity-20 relative rounded-sm">
-                <div 
-                  className="absolute bottom-0 w-full bg-primary rounded-sm" 
-                  style={{ height: `${(val / Math.max(...chart.values)) * 100}%` }}
-                ></div>
-                <div className="absolute -top-5 w-full text-center text-xs text-gray-400">
-                  {chart.labels[idx]}
-                </div>
+          {/* Goal Setting Dialog */}
+          <GoalSettingDialog 
+            title={title}
+            chart={chart}
+            goals={goals}
+            onMonthSelect={onMonthSelect}
+            selectedMonthIndex={selectedMonthIndex}
+            onGoalCreate={onGoalCreate}
+            onGoalUpdate={onGoalUpdate}
+          />
+
+          {/* Top Section with Value and Comparison Tabs */}
+          <div className="flex flex-col">
+            <div className="flex justify-between items-center">
+              <div className="flex items-end">
+                <span className="text-2xl font-bold font-sans">{value}</span>
+                <span className="ml-2 text-sm text-gray-400">forecast</span>
               </div>
-            ))}
+              
+              {/* Goal Comparison Toggle (YTD vs Month) */}
+              <Tabs defaultValue="month" className="h-8">
+                <TabsList className="h-6">
+                  <TabsTrigger value="month" className="text-xs px-2 h-6">Month</TabsTrigger>
+                  <TabsTrigger value="ytd" className="text-xs px-2 h-6">YTD</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            
+            {/* Goal Progress */}
+            {goals && goals.length > 0 && selectedMonthIndex !== undefined && (
+              <div className="mt-1">
+                {/* Find goal matching the currently selected month */}
+                {(() => {
+                  const today = new Date();
+                  const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex);
+                  const matchingGoal = goals.find(g => g.year === targetDate.getFullYear() && g.month === targetDate.getMonth() + 1);
+                  
+                  if (matchingGoal) {
+                    const monthValue = chart.values[selectedMonthIndex];
+                    const percentage = Math.min(100, Math.round((monthValue / matchingGoal.targetAmount) * 100));
+                    
+                    return (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-400">Goal: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(matchingGoal.targetAmount)}</span>
+                          <span className={percentage >= 100 ? 'text-green-400' : 'text-amber-400'}>{percentage}%</span>
+                        </div>
+                        <Progress 
+                          value={percentage} 
+                          className={`h-1.5 w-full ${percentage >= 100 ? 'bg-green-900/20' : 'bg-amber-900/20'}`}
+                          indicatorClassName={percentage >= 100 ? 'bg-green-400' : 'bg-amber-400'}
+                        />
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="flex justify-between items-center text-xs mt-1 text-gray-400">
+                      <span>No goal set for this month</span>
+                      <Button 
+                        variant="ghost" 
+                        size="xs" 
+                        className="h-6 px-2 text-xs"
+                        onClick={() => {
+                          if (onGoalCreate) {
+                            // Show dialog for creating goal
+                            const dialogContainer = document.getElementById('goal-dialog-container');
+                            if (dialogContainer) {
+                              const createButton = dialogContainer.querySelector('#create-goal-button');
+                              if (createButton instanceof HTMLButtonElement) {
+                                createButton.click();
+                              }
+                            }
+                          }
+                        }}
+                      >
+                        <PlusCircle className="h-3 w-3 mr-1" /> Set Goal
+                      </Button>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+          
+          {/* Month Navigation and Chart */}
+          <div className="mt-3">
+            {/* Month Navigation Buttons */}
+            <div className="grid grid-cols-6 gap-1 mb-3">
+              {chart.labels.map((label, idx) => (
+                <Button 
+                  key={idx}
+                  variant={selectedMonthIndex === idx ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 p-1 text-xs"
+                  onClick={() => onMonthSelect && onMonthSelect(
+                    new Date().getFullYear() + Math.floor((new Date().getMonth() + idx) / 12),
+                    ((new Date().getMonth() + idx) % 12) + 1
+                  )}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+            
+            {/* Bar Chart */}
+            <div className="grid grid-cols-6 gap-1 h-16">
+              {chart.values.map((val, idx) => {
+                // Find goal for this month's column
+                const today = new Date();
+                const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), idx);
+                const matchingGoal = goals?.find(g => 
+                  g.year === targetDate.getFullYear() && 
+                  g.month === targetDate.getMonth() + 1
+                );
+                
+                // Determine if this month has met or exceeded its goal
+                const hasGoal = !!matchingGoal;
+                const isExceedingGoal = hasGoal && val >= matchingGoal.targetAmount;
+                
+                return (
+                  <div key={idx} className={`bg-primary bg-opacity-20 relative rounded-sm ${selectedMonthIndex === idx ? 'ring-1 ring-primary' : ''}`}>
+                    <div 
+                      className={`absolute bottom-0 w-full rounded-sm ${isExceedingGoal ? 'bg-green-400' : 'bg-primary'}`}
+                      style={{ height: `${(val / Math.max(...chart.values, ...((goals || []).map(g => g.targetAmount) || []))) * 100}%` }}
+                    ></div>
+                    
+                    {/* Goal marker line if this month has a goal */}
+                    {hasGoal && (
+                      <div 
+                        className={`absolute w-full border-t-2 ${isExceedingGoal ? 'border-green-700' : 'border-amber-400'} border-dashed`}
+                        style={{ 
+                          bottom: `${(matchingGoal.targetAmount / Math.max(...chart.values, ...((goals || []).map(g => g.targetAmount) || []))) * 100}%` 
+                        }}
+                      ></div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </>
       ) : type === 'cashflow' && stats ? (
