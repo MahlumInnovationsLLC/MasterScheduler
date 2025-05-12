@@ -2177,9 +2177,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // CRITICAL FIX: Get both the bay and row from global attributes
-    // This allows us to keep the bay consistent while allowing row selection
-    const originalBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || '0');
+    // EMERGENCY BUG FIX: CRITICAL FIX FOR BAY JUMPING ISSUE
+    // ALWAYS use the specific bay where the drop event happened
+    // DO NOT use any stored bay information as it's causing the bay jumping bug
+    console.log(`🔴 EMERGENCY FIX: FORCING BAY ID TO ${bayId} (event bayId parameter)`);
+    
+    // For row, we will still use the global attribute if available as it works correctly
     const globalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
     
     // ENHANCED ROW SELECTION: 
@@ -2208,7 +2211,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     let targetBayId = bayId;
     
     console.log(`⚠️ FIXED DROP HANDLER using actual drop target bay: ${targetBayId} with row: ${targetRowIndex} `);
-    console.log(`(Original bay=${originalBayId}, current row=${globalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
+    console.log(`(Current row=${globalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
     
     // Read data attributes from the drop target element for more precise week targeting
     let targetElement = e.target as HTMLElement;
