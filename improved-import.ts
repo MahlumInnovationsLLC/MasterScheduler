@@ -175,12 +175,12 @@ export async function importBillingMilestones(req: Request, res: Response) {
           paymentReceivedDate: paymentReceivedDate,
           status: status,
           // Add additional fields from source data
-          contractReference: rowMilestoneData['Contract Reference'] || rowMilestoneData['Contract'] || '',
-          paymentTerms: rowMilestoneData['Payment Terms'] || '',
-          invoiceNumber: rowMilestoneData['Invoice Number'] || rowMilestoneData['Invoice #'] || '',
-          percentageOfTotal: rowMilestoneData['Percentage of Total'] || rowMilestoneData['Percentage'] || '',
-          billingContact: rowMilestoneData['Billing Contact'] || rowMilestoneData['Contact'] || '',
-          notes: rowMilestoneData['Notes'] || ''
+          contractReference: rawMilestoneData['Contract Reference'] || rawMilestoneData['Contract'] || '',
+          paymentTerms: rawMilestoneData['Payment Terms'] || '',
+          invoiceNumber: rawMilestoneData['Invoice Number'] || rawMilestoneData['Invoice #'] || '',
+          percentageOfTotal: rawMilestoneData['Percentage of Total'] || rawMilestoneData['Percentage'] || '',
+          billingContact: rawMilestoneData['Billing Contact'] || rawMilestoneData['Contact'] || '',
+          notes: rawMilestoneData['Notes'] || ''
         };
         
         // Log the data we're about to insert
