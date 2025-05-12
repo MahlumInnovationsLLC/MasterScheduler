@@ -3108,25 +3108,31 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
     
     /* Row positioning - Fixed with proper height values for single row placement */
-    .row-0-bar {
+    /* Expanded to support 8 rows (0-7) that map to 4 visual rows */
+    
+    /* Visual row 0 (top 25% of bay) */
+    .row-0-bar, .row-4-bar {
       top: 0% !important;
       height: 25% !important; /* Match row height at 25% of bay */
       transform: none !important;
     }
     
-    .row-1-bar {
+    /* Visual row 1 (25-50% of bay) */
+    .row-1-bar, .row-5-bar {
       top: 25% !important;
       height: 25% !important; /* Match row height at 25% of bay */
       transform: none !important;
     }
     
-    .row-2-bar {
+    /* Visual row 2 (50-75% of bay) */
+    .row-2-bar, .row-6-bar {
       top: 50% !important;
       height: 25% !important; /* Match row height at 25% of bay */
       transform: none !important;
     }
     
-    .row-3-bar {
+    /* Visual row 3 (bottom 25% of bay) */
+    .row-3-bar, .row-7-bar {
       top: 75% !important;
       height: 25% !important; /* Match row height at 25% of bay */
       transform: none !important;
