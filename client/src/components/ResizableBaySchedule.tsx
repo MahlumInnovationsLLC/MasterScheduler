@@ -1420,12 +1420,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         totalHours
       });
       
+      // Make sure we use a consistent row value for all bays
+      // Map to visual row (0-3) to ensure proper positioning
+      const visualRow = resizingSchedule.row % 4;
+      
+      console.log(`Applying resize with row ${visualRow} (mapped from ${resizingSchedule.row})`);
+      
       // Use applyManualResize which will check for capacity impacts
       applyManualResize(
         resizingSchedule.id,
         formattedStartDate,
         formattedEndDate,
-        resizingSchedule.row
+        visualRow
       );
       
       // No longer automatically adjusting other projects after resize
