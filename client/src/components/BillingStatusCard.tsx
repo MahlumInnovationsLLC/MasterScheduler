@@ -335,6 +335,71 @@ export function BillingStatusCard({
   // Determine if this is a full-width forecast card (for special styling)
   const isFullWidthForecast = type === 'forecast' && chart && chart.weekValues;
   
+  // Function to render the fiscal week charts
+  const renderFiscalWeekCharts = () => {
+    if (!chart || !chart.weekValues) return null;
+    
+    // Get the selected month's year and month based on selectedMonthIndex
+    const today = new Date();
+    const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
+    
+    // Get fiscal weeks for this month
+    const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
+    
+    // Calculate maximum value for proper scaling across all weeks
+    const maxWeekValue = Math.max(...chart.weekValues.filter(v => typeof v === 'number'), 1);
+    
+    // Only display charts for the weeks of the selected month
+    return fiscalWeeks.map((fiscalWeek, idx) => {
+      // Each week has a specific value in the chart data
+      // Make sure we have actual data for this week
+      const val = chart.weekValues && chart.weekValues[idx] !== undefined 
+        ? chart.weekValues[idx] 
+        : 0;
+      
+      // Find a matching goal for this specific fiscal week
+      const matchingGoal = goals?.find(g => 
+        g.year === targetDate.getFullYear() && 
+        g.month === targetDate.getMonth() + 1 && 
+        g.week === fiscalWeek.weekNumber
+      );
+      
+      // Determine if this week has met or exceeded its goal
+      const hasGoal = !!matchingGoal;
+      const isExceedingGoal = hasGoal && val >= (matchingGoal?.targetAmount || 0);
+      
+      return (
+        <div key={idx} className={`${isFullWidthForecast ? 'flex-1 mx-1' : ''} bg-blue-500 bg-opacity-20 relative rounded-sm ${selectedWeekIndex === idx ? 'ring-1 ring-blue-400' : ''}`}>
+          <div 
+            className={`absolute bottom-0 w-full rounded-sm ${isExceedingGoal ? 'bg-green-400' : 'bg-blue-400'}`}
+            style={{ height: `${(val / maxWeekValue) * 100}%` }}
+          ></div>
+          
+          {/* Goal marker line if this week has a goal */}
+          {hasGoal && (
+            <div 
+              className={`absolute w-full border-t-2 ${isExceedingGoal ? 'border-green-700' : 'border-amber-400'} border-dashed`}
+              style={{ 
+                bottom: `${(matchingGoal.targetAmount / maxWeekValue) * 100}%` 
+              }}
+            ></div>
+          )}
+
+          {/* Value label above the bar for full-width view */}
+          {isFullWidthForecast && (
+            <div className="absolute w-full text-center -top-6 text-xs">
+              {new Intl.NumberFormat('en-US', { 
+                style: 'currency', 
+                currency: 'USD',
+                notation: 'compact',
+                maximumFractionDigits: 1
+              }).format(val)}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
   return (
     <Card className={`bg-darkCard rounded-xl p-4 border border-gray-800 ${isFullWidthForecast ? 'p-6' : ''}`}>
       <div className="flex items-center justify-between mb-3">
@@ -583,15 +648,15 @@ export function BillingStatusCard({
                   
                   // Create buttons based on the number of weeks in the selected month
                   return fiscalWeeks.map((fiscalWeek, idx) => {
-                    // Use a simpler label for the button
-                    const simplifiedLabel = `Week ${fiscalWeek.weekNumber}`;
+                    // Get the week label with range
+                    const weekRangeLabel = getFiscalWeekLabel(targetDate.getFullYear(), fiscalWeek.weekNumber, true);
                     
                     return (
                       <Button 
                         key={idx}
                         variant={selectedWeekIndex === idx ? "default" : "outline"}
                         size={isFullWidthForecast ? "default" : "sm"}
-                        className={`${isFullWidthForecast ? 'flex-1 mx-1' : 'h-7 p-1'} text-xs`}
+                        className={`${isFullWidthForecast ? 'flex-1 mx-1' : 'h-9 p-1'} text-xs flex flex-col justify-center`}
                         onClick={() => {
                           if (onWeekSelect) {
                             onWeekSelect(
@@ -601,7 +666,8 @@ export function BillingStatusCard({
                           }
                         }}
                       >
-                        {simplifiedLabel}
+                        <span>{`Week ${idx + 1}`}</span>
+                        <span className="text-[0.6rem] opacity-80">{`W${fiscalWeek.weekNumber}`}</span>
                       </Button>
                     );
                   });
@@ -610,56 +676,7 @@ export function BillingStatusCard({
               
               {/* Fiscal Week Chart */}
               <div className={`${isFullWidthForecast ? 'flex justify-between h-40' : 'grid grid-cols-6 gap-1 h-20'}`}>
-                {chart.weekValues && chart.weekValues.slice(0, 6).map((val, idx) => {
-                  // Get the selected month's year and month based on selectedMonthIndex
-                  const today = new Date();
-                  const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
-                  
-                  // Get fiscal weeks for this month
-                  const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
-                  const weekNumber = fiscalWeeks[idx]?.weekNumber || idx + 1;
-                  
-                  const matchingGoal = goals?.find(g => 
-                    g.year === targetDate.getFullYear() && 
-                    g.month === targetDate.getMonth() + 1 && 
-                    g.week === weekNumber
-                  );
-                  
-                  // Determine if this week has met or exceeded its goal
-                  const hasGoal = !!matchingGoal;
-                  const isExceedingGoal = hasGoal && val >= (matchingGoal?.targetAmount || 0);
-                  
-                  return (
-                    <div key={idx} className={`${isFullWidthForecast ? 'flex-1 mx-1' : ''} bg-blue-500 bg-opacity-20 relative rounded-sm ${selectedWeekIndex === idx ? 'ring-1 ring-blue-400' : ''}`}>
-                      <div 
-                        className={`absolute bottom-0 w-full rounded-sm ${isExceedingGoal ? 'bg-green-400' : 'bg-blue-400'}`}
-                        style={{ height: `${(val / Math.max(...chart.weekValues.slice(0, 6), 1)) * 100}%` }}
-                      ></div>
-                      
-                      {/* Goal marker line if this week has a goal */}
-                      {hasGoal && (
-                        <div 
-                          className={`absolute w-full border-t-2 ${isExceedingGoal ? 'border-green-700' : 'border-amber-400'} border-dashed`}
-                          style={{ 
-                            bottom: `${(matchingGoal.targetAmount / Math.max(...chart.weekValues.slice(0, 6), 1)) * 100}%` 
-                          }}
-                        ></div>
-                      )}
-
-                      {/* Value label above the bar for full-width view */}
-                      {isFullWidthForecast && (
-                        <div className="absolute w-full text-center -top-6 text-xs">
-                          {new Intl.NumberFormat('en-US', { 
-                            style: 'currency', 
-                            currency: 'USD',
-                            notation: 'compact',
-                            maximumFractionDigits: 1
-                          }).format(val)}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {renderFiscalWeekCharts()}
               </div>
               
               {/* Weekly Goal Status */}
