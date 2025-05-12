@@ -2768,7 +2768,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           setIsMovingProject(false);
           
           // Remove any placeholder elements we created
-          const bayElement = document.querySelector(`[data-bay-id="${targetBayId}"]`);
+          const bayElement = document.querySelector(`[data-bay-id="${bayId}"]`);
           if (bayElement) {
             const placeholders = bayElement.querySelectorAll('.animate-pulse.bg-primary/30');
             placeholders.forEach(el => el.remove());
