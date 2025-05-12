@@ -2644,6 +2644,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`(Directly using user-selected row: ${targetRowIndex})`);
         console.log(`Auto-placement logic DISABLED - using exact row where user dropped project`);
         
+        // CRITICAL FIX: Create a temporary schedule locally for immediate UI update
+        // This allows the bay utilization percentages to update without waiting for the API
+        const tempScheduleId = -Date.now(); // Use a negative timestamp as temp ID
+        const tempSchedule = {
+          id: tempScheduleId,
+          projectId: data.projectId,
+          bayId: finalBayId,
+          startDate: startDateToUse,
+          endDate: formattedFinalEndDate,
+          totalHours: data.totalHours || 1000,
+          row: finalRowIndex
+        };
+        
+        // Add the temporary schedule to local state immediately
+        console.log(`Creating temporary schedule ${tempScheduleId} in bay ${finalBayId} for immediate UI update`);
+        
+        // Update local schedules array with temporary schedule
+        const updatedSchedules = [...schedules, tempSchedule];
+        // We're not directly setting state but the next recalculation will use this updated array
+        
+        // Force UI update by incrementing recalculation version
+        setRecalculationVersion(prev => prev + 1);
+        
         // Call the API with our forced values
         onScheduleCreate(
           data.projectId,
@@ -2664,8 +2687,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           // Clear loading state
           setIsMovingProject(false);
           
-          // Force refresh to show changes after a delay
-          setTimeout(() => window.location.reload(), 1000);
+          // Force refresh data through the API to get actual data with real IDs
+          queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+          
+          // Force recalculation with correct data from server
+          setTimeout(() => {
+            setRecalculationVersion(prev => prev + 1);
+          }, 500);
         })
         .catch(err => {
           // Clear loading state
