@@ -1593,13 +1593,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const currentRow = Math.max(0, Math.min(3, rowIndex));
     document.body.setAttribute('data-current-drag-row', currentRow.toString());
     
-    // Record initial bay ID only if not set yet
+    // CRITICAL BUG FIX: Always update with the latest bay ID when dragging over
+    // This ensures the project is placed in the currently hovered bay
+    document.body.setAttribute('data-current-drag-bay', bayId.toString());
+    console.log(`Updated current drag bay: ${bayId} and row: ${currentRow}`);
+    
+    // We'll still track the original bay ID on the element (but don't use it for placement)
     if (dragElement && !dragElement.hasAttribute('data-original-bay-id')) {
       dragElement.setAttribute('data-original-bay-id', bayId.toString());
-      console.log(`Setting original bay ID: ${bayId} on element`, dragElement);
-      
-      // Store bay on the document as well for global access
-      document.body.setAttribute('data-current-drag-bay', bayId.toString());
     }
     
     // Get the main scrollable container for auto-scroll
@@ -2202,11 +2203,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // We allow up to 8 rows (0-7) internally, which will map to 4 visual rows
     targetRowIndex = Math.min(7, Math.max(0, targetRowIndex));
     
-    // Keep the bay ID consistent (projects stay in the same bay)
-    let targetBayId = originalBayId > 0 ? originalBayId : bayId;
+    // CRITICAL BUG FIX: Use the actual bay ID where the user dropped, not the original bay!
+    // This ensures the project goes to the correct bay (Team 1 vs Team 2)
+    let targetBayId = bayId;
     
-    console.log(`DROP HANDLER using bay: ${targetBayId} with row: ${targetRowIndex} `);
-    console.log(`(Current stored values: bay=${originalBayId}, current row=${globalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
+    console.log(`⚠️ FIXED DROP HANDLER using actual drop target bay: ${targetBayId} with row: ${targetRowIndex} `);
+    console.log(`(Original bay=${originalBayId}, current row=${globalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
     
     // Read data attributes from the drop target element for more precise week targeting
     let targetElement = e.target as HTMLElement;
@@ -2616,15 +2618,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           projectElement.classList.add('animate-pulse', 'opacity-50');
         }
         
-        // CRITICAL: Use the forced bay ID set during drag operations
-        // But intelligently determine the best row to avoid overlaps
-        const forcedBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || '0');
+        // CRITICAL BUG FIX: Use the actual bay ID where the user dropped
+        // This is the key fix that ensures the project goes to Bay 1 vs. Bay 2
+        const actualBayId = targetBayId; // Use the bay where user actually dropped
         
         // Get the user's intended row, but we'll use this as a preference rather than forcing it
         const preferredRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
         
-        // Use the forced bay ID if available, otherwise fall back to the targetBayId
-        const finalBayId = forcedBayId > 0 ? forcedBayId : targetBayId;
+        // CRITICAL: Always use the actual bay ID where the user dropped
+        const finalBayId = actualBayId;
         
         // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
         // User specifically requested to disable all auto-placement logic
