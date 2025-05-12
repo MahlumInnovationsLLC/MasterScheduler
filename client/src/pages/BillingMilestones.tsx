@@ -143,27 +143,62 @@ const BillingMilestones = () => {
     const currentCollectionRate = Math.round((totalReceived / (total || 1)) * 100);
     const progressOfTarget = Math.round((currentCollectionRate / targetCollectionRate) * 100);
 
-    // Calculate forecast for next 3 months
+    // Calculate forecast for next 6 months
     const today = new Date();
-    const nextThreeMonths = [
+    const nextSixMonths = [
       new Date(today.getFullYear(), today.getMonth(), 1),
       new Date(today.getFullYear(), today.getMonth() + 1, 1),
-      new Date(today.getFullYear(), today.getMonth() + 2, 1)
+      new Date(today.getFullYear(), today.getMonth() + 2, 1),
+      new Date(today.getFullYear(), today.getMonth() + 3, 1),
+      new Date(today.getFullYear(), today.getMonth() + 4, 1),
+      new Date(today.getFullYear(), today.getMonth() + 5, 1)
     ];
     
-    const forecast = nextThreeMonths.map(month => {
+    // Calculate forecast by milestone status
+    const forecastData = nextSixMonths.map(month => {
       const nextMonth = new Date(month);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
       
-      return billingMilestones
+      // Confirmed revenue (invoiced or overdue but not yet paid)
+      const confirmedRevenue = billingMilestones
         .filter(m => {
           const targetDate = new Date(m.targetInvoiceDate || '');
-          return targetDate >= month && targetDate < nextMonth && m.status !== 'paid';
+          return targetDate >= month && 
+                 targetDate < nextMonth && 
+                 (m.status === 'invoiced' || m.status === 'delayed');
         })
         .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+      
+      // Projected revenue (upcoming milestones)
+      const projectedRevenue = billingMilestones
+        .filter(m => {
+          const targetDate = new Date(m.targetInvoiceDate || '');
+          return targetDate >= month && 
+                 targetDate < nextMonth && 
+                 m.status === 'upcoming';
+        })
+        .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+      
+      // At-risk revenue (calculated as 15% of upcoming milestones for demo purposes)
+      const atRiskRevenue = projectedRevenue * 0.15;
+      
+      // Total projected for this month (for the top summary card)
+      const totalMonthRevenue = confirmedRevenue + projectedRevenue;
+      
+      return {
+        confirmed: confirmedRevenue,
+        projected: projectedRevenue,
+        atRisk: atRiskRevenue,
+        total: totalMonthRevenue
+      };
     });
+    
+    const monthNames = nextSixMonths.map(date => date.toLocaleString('default', { month: 'short' }));
 
-    const monthNames = nextThreeMonths.map(date => date.toLocaleString('default', { month: 'short' }));
+    // Calculate totals for the legend
+    const totalConfirmed = forecastData.reduce((sum, month) => sum + month.confirmed, 0);
+    const totalProjected = forecastData.reduce((sum, month) => sum + month.projected, 0);
+    const totalAtRisk = forecastData.reduce((sum, month) => sum + month.atRisk, 0);
 
     // Calculate last 30 days revenue
     const last30Days = new Date();
@@ -193,7 +228,15 @@ const BillingMilestones = () => {
       },
       forecast: {
         labels: monthNames,
-        values: forecast
+        values: forecastData.map(m => m.total),
+        confirmedValues: forecastData.map(m => m.confirmed),
+        projectedValues: forecastData.map(m => m.projected),
+        atRiskValues: forecastData.map(m => m.atRisk),
+        totals: {
+          confirmed: totalConfirmed,
+          projected: totalProjected,
+          atRisk: totalAtRisk
+        }
       },
       progress: {
         ytd: ytdProgress,
@@ -635,44 +678,79 @@ const BillingMilestones = () => {
         <div className="p-4">
           <div className="h-72 flex items-end gap-2">
             <div className="w-full flex items-end justify-between">
-              {["Apr", "May", "Jun", "Jul", "Aug", "Sep"].map((month, idx) => (
-                <div key={idx} className="flex flex-col items-center">
-                  <div className="flex gap-1 h-56">
-                    <div className="w-16 bg-success bg-opacity-20 relative">
-                      <div 
-                        className="absolute bottom-0 w-full bg-success" 
-                        style={{
-                          height: `${60 - idx * 10}%`
-                        }}
-                      ></div>
+              {billingStats?.forecast.labels.map((month, idx) => {
+                // Find max value to normalize chart heights
+                const maxValue = Math.max(
+                  ...(billingStats?.forecast.confirmedValues || [0]),
+                  ...(billingStats?.forecast.projectedValues || [0])
+                );
+                
+                const confirmed = billingStats?.forecast.confirmedValues[idx] || 0;
+                const projected = billingStats?.forecast.projectedValues[idx] || 0;
+                const atRisk = billingStats?.forecast.atRiskValues[idx] || 0;
+                
+                // Calculate heights as percentages of max value
+                const confirmedHeight = maxValue > 0 ? (confirmed / maxValue) * 100 : 0;
+                const projectedHeight = maxValue > 0 ? (projected / maxValue) * 100 : 0;
+                const atRiskHeight = maxValue > 0 ? (atRisk / maxValue) * 100 : 0;
+                
+                return (
+                  <div key={idx} className="flex flex-col items-center">
+                    <div className="flex gap-1 h-56">
+                      {/* Confirmed Revenue */}
+                      <div className="w-16 bg-success bg-opacity-20 relative">
+                        <div 
+                          className="absolute bottom-0 w-full bg-success" 
+                          style={{
+                            height: `${confirmedHeight}%`
+                          }}
+                        ></div>
+                      </div>
+                      
+                      {/* Projected Revenue */}
+                      <div className="w-16 bg-warning bg-opacity-20 relative">
+                        <div 
+                          className="absolute bottom-0 w-full bg-warning" 
+                          style={{
+                            height: `${projectedHeight}%`
+                          }}
+                        ></div>
+                      </div>
+                      
+                      {/* At Risk indicator (shown as a red line at the top of projected) */}
+                      {atRisk > 0 && (
+                        <div 
+                          className="absolute w-16 h-1 bg-danger" 
+                          style={{
+                            bottom: `${projectedHeight}%`,
+                            left: '50%',
+                            transform: 'translateX(-50%)'
+                          }}
+                        ></div>
+                      )}
                     </div>
-                    <div className="w-16 bg-warning bg-opacity-20 relative">
-                      <div 
-                        className="absolute bottom-0 w-full bg-warning" 
-                        style={{
-                          height: `${20 + idx * 10}%`
-                        }}
-                      ></div>
+                    <div className="mt-2 text-sm text-gray-400">{month}</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {formatCurrency(confirmed + projected)}
                     </div>
                   </div>
-                  <div className="mt-2 text-sm text-gray-400">{month}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
           
           <div className="mt-6 flex justify-center gap-8">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-sm bg-success"></div>
-              <span className="text-sm">Confirmed ($3.2M)</span>
+              <span className="text-sm">Confirmed ({formatCurrency(billingStats?.forecast.totals.confirmed || 0)})</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-sm bg-warning"></div>
-              <span className="text-sm">Projected ($4.8M)</span>
+              <span className="text-sm">Projected ({formatCurrency(billingStats?.forecast.totals.projected || 0)})</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-sm bg-danger"></div>
-              <span className="text-sm">At Risk ($0.7M)</span>
+              <span className="text-sm">At Risk ({formatCurrency(billingStats?.forecast.totals.atRisk || 0)})</span>
             </div>
           </div>
         </div>
