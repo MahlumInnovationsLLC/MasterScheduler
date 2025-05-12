@@ -449,10 +449,24 @@ export function BillingStatusCard({
                   variant={selectedMonthIndex === idx ? "default" : "outline"}
                   size={isFullWidthForecast ? "default" : "sm"}
                   className={`${isFullWidthForecast ? 'flex-1 mx-1' : 'h-7 p-1'} text-xs`}
-                  onClick={() => onMonthSelect && onMonthSelect(
-                    new Date().getFullYear() + Math.floor((new Date().getMonth() + idx) / 12),
-                    ((new Date().getMonth() + idx) % 12) + 1
-                  )}
+                  onClick={() => {
+                    // When changing months, we should also update the fiscal week display
+                    // by resetting the selected week to the first week of the month
+                    if (onMonthSelect) {
+                      onMonthSelect(
+                        new Date().getFullYear() + Math.floor((new Date().getMonth() + idx) / 12),
+                        ((new Date().getMonth() + idx) % 12) + 1
+                      );
+                      
+                      // If onWeekSelect is provided, also select the first week of this month
+                      if (onWeekSelect) {
+                        onWeekSelect(
+                          new Date().getFullYear() + Math.floor((new Date().getMonth() + idx) / 12),
+                          1 // Always select the first week when changing months
+                        );
+                      }
+                    }
+                  }}
                 >
                   {label}
                 </Button>
@@ -516,6 +530,11 @@ export function BillingStatusCard({
                 <h4 className={`${isFullWidthForecast ? 'text-lg' : 'text-sm'} font-medium text-gray-300`}>Fiscal Week Breakdown</h4>
                 <span className={`text-xs text-gray-400 bg-gray-800 px-3 py-1.5 rounded-full ${isFullWidthForecast ? 'text-sm' : ''}`}>
                   {selectedWeekIndex !== undefined && chart.weekLabels[selectedWeekIndex]}
+                  {selectedMonthIndex !== undefined && (
+                    <span className="ml-1 opacity-75">
+                      {chart.labels[selectedMonthIndex]}
+                    </span>
+                  )}
                 </span>
               </div>
               
@@ -527,10 +546,18 @@ export function BillingStatusCard({
                     variant={selectedWeekIndex === idx ? "default" : "outline"}
                     size={isFullWidthForecast ? "default" : "sm"}
                     className={`${isFullWidthForecast ? 'flex-1 mx-1' : 'h-7 p-1'} text-xs`}
-                    onClick={() => onWeekSelect && onWeekSelect(
-                      new Date().getFullYear(),
-                      idx + 1
-                    )}
+                    onClick={() => {
+                      if (onWeekSelect) {
+                        // Get the selected month's year and month based on selectedMonthIndex
+                        const today = new Date();
+                        const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
+                        
+                        onWeekSelect(
+                          targetDate.getFullYear(),
+                          idx + 1
+                        );
+                      }
+                    }}
                   >
                     {label}
                   </Button>
@@ -541,10 +568,12 @@ export function BillingStatusCard({
               <div className={`${isFullWidthForecast ? 'flex justify-between h-40' : 'grid grid-cols-6 gap-1 h-20'}`}>
                 {chart.weekValues.slice(0, 6).map((val, idx) => {
                   // Find if there's a goal for this week
+                  // Use the selected month to properly find goals for that month's weeks
                   const today = new Date();
+                  const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
                   const matchingGoal = goals?.find(g => 
-                    g.year === today.getFullYear() && 
-                    g.month === (selectedMonthIndex || 0) + 1 && 
+                    g.year === targetDate.getFullYear() && 
+                    g.month === targetDate.getMonth() + 1 && 
                     g.week === idx + 1
                   );
                   
