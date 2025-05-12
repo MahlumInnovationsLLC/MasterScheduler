@@ -54,8 +54,8 @@ interface BillingStatusCardProps {
     description?: string;
     week?: number; 
   }[];
-  onGoalCreate?: (year: number, month: number, targetAmount: number, description: string) => void;
-  onGoalUpdate?: (year: number, month: number, targetAmount: number, description: string) => void;
+  onGoalCreate?: (year: number, month: number, targetAmount: number, description: string, week?: number) => void;
+  onGoalUpdate?: (year: number, month: number, targetAmount: number, description: string, week?: number) => void;
 }
 
 // Goal Setting Dialog Component
@@ -416,6 +416,9 @@ export function BillingStatusCard({
                         className="h-6 px-2 text-xs"
                         onClick={() => {
                           if (onGoalCreate) {
+                            // Force goalType to be 'month' since we're in the monthly section
+                            setGoalType('month');
+                            
                             // Show dialog for creating goal
                             const dialogContainer = document.getElementById('goal-dialog-container');
                             if (dialogContainer) {
@@ -599,6 +602,9 @@ export function BillingStatusCard({
                     className="h-8"
                     onClick={() => {
                       if (onGoalCreate) {
+                        // Force goalType to be 'week' since we're in the weekly section
+                        setGoalType('week');
+                        
                         // Show dialog for creating goal
                         const dialogContainer = document.getElementById('goal-dialog-container');
                         if (dialogContainer) {
