@@ -385,9 +385,16 @@ const ImportDataPage = () => {
                      row['Invoiced Date'] || row['Billed Date'] || null,
           paymentReceivedDate: row['Payment Received Date'] || row['Payment Date'] || 
                              row['Received Date'] || row['Paid Date'] || row['Payment'] || null,
-          description: row['Description'] || row['Notes'] || row['Comments'] || '',
+          description: row['Description'] || row['Details'] || row['Comments'] || '',
           // Add additional info that might be in the spreadsheet
           status: mapBillingStatus(row['Status'] || row['Milestone Status'] || row['State'] || 'upcoming'),
+          // Additional billing milestone fields
+          contractReference: row['Contract Reference'] || row['Contract'] || '',
+          paymentTerms: row['Payment Terms'] || row['Terms'] || '',
+          invoiceNumber: row['Invoice Number'] || row['Invoice #'] || '',
+          percentageOfTotal: row['Percentage of Total'] || row['Percentage'] || '',
+          billingContact: row['Billing Contact'] || row['Contact'] || '',
+          notes: row['Notes'] || row['Comments'] || '',
           // Temporary field to look up project - keep the original project number exactly as is
           _projectNumber: projectNumber
         };
@@ -398,6 +405,7 @@ const ImportDataPage = () => {
       // Log sample data
       if (milestones.length > 0) {
         console.log('Sample billing milestone data:', milestones[0]);
+        console.log('Additional fields included: contractReference, paymentTerms, invoiceNumber, percentageOfTotal, billingContact, notes');
       }
       
       // Filter out any milestone without a project number

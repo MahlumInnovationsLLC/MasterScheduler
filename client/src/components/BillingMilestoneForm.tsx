@@ -49,6 +49,13 @@ const formSchema = z.object({
   actualInvoiceDate: z.string().optional(),
   paymentReceivedDate: z.string().optional(),
   status: z.enum(["upcoming", "invoiced", "paid", "delayed"]),
+  // New fields
+  contractReference: z.string().optional(),
+  paymentTerms: z.string().optional(),
+  invoiceNumber: z.string().optional(),
+  percentageOfTotal: z.string().optional(),
+  billingContact: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 export type BillingMilestoneFormValues = z.infer<typeof formSchema>;
