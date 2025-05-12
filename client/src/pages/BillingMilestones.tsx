@@ -118,15 +118,30 @@ const BillingMilestones = () => {
     // Calculate total amounts
     const totalReceived = billingMilestones
       .filter(m => m.status === 'paid')
-      .reduce((sum, m) => sum + parseFloat(m.amount), 0);
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
       
     const totalPending = billingMilestones
       .filter(m => m.status === 'invoiced')
-      .reduce((sum, m) => sum + parseFloat(m.amount), 0);
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
       
     const totalOverdue = billingMilestones
       .filter(m => m.status === 'delayed')
-      .reduce((sum, m) => sum + parseFloat(m.amount), 0);
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+      
+    const totalUpcoming = billingMilestones
+      .filter(m => m.status === 'upcoming')
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+    
+    const total = totalReceived + totalPending + totalOverdue + totalUpcoming;
+
+    // Calculate YTD (year to date) change
+    // For demo purposes, we'll calculate this as the percentage of received vs total
+    const ytdProgress = Math.round((totalReceived / (total || 1)) * 100);
+    
+    // Calculate target progress (for demo, set a target of 80% collection rate)
+    const targetCollectionRate = 80;
+    const currentCollectionRate = Math.round((totalReceived / (total || 1)) * 100);
+    const progressOfTarget = Math.round((currentCollectionRate / targetCollectionRate) * 100);
 
     // Calculate forecast for next 3 months
     const today = new Date();
@@ -142,13 +157,24 @@ const BillingMilestones = () => {
       
       return billingMilestones
         .filter(m => {
-          const targetDate = new Date(m.targetInvoiceDate);
+          const targetDate = new Date(m.targetInvoiceDate || '');
           return targetDate >= month && targetDate < nextMonth && m.status !== 'paid';
         })
-        .reduce((sum, m) => sum + parseFloat(m.amount), 0);
+        .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
     });
 
     const monthNames = nextThreeMonths.map(date => date.toLocaleString('default', { month: 'short' }));
+
+    // Calculate last 30 days revenue
+    const last30Days = new Date();
+    last30Days.setDate(last30Days.getDate() - 30);
+    
+    const receivedLast30Days = billingMilestones
+      .filter(m => {
+        const paidDate = m.paidDate ? new Date(m.paidDate) : null;
+        return m.status === 'paid' && paidDate && paidDate >= last30Days;
+      })
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
 
     return {
       milestones: {
@@ -159,13 +185,20 @@ const BillingMilestones = () => {
       },
       amounts: {
         received: totalReceived,
+        receivedLast30Days,
         pending: totalPending,
         overdue: totalOverdue,
-        total: totalReceived + totalPending + totalOverdue
+        upcoming: totalUpcoming,
+        total
       },
       forecast: {
         labels: monthNames,
         values: forecast
+      },
+      progress: {
+        ytd: ytdProgress,
+        target: progressOfTarget,
+        isPositive: ytdProgress > 0
       }
     };
   }, [billingMilestones]);
@@ -332,12 +365,12 @@ const BillingMilestones = () => {
           value={formatCurrency(billingStats?.amounts.total || 0)}
           type="revenue"
           change={{ 
-            value: "8% YTD", 
-            isPositive: true 
+            value: `${billingStats?.progress.ytd || 0}% YTD`, 
+            isPositive: billingStats?.progress.isPositive || false 
           }}
           progress={{ 
-            value: 75, 
-            label: "75% of target" 
+            value: billingStats?.progress.target || 0, 
+            label: `${billingStats?.progress.target || 0}% of target` 
           }}
         />
         
@@ -358,8 +391,8 @@ const BillingMilestones = () => {
           value={formatCurrency(billingStats?.forecast.values[0] || 0)}
           type="forecast"
           chart={{
-            labels: billingStats?.forecast.labels || ["Apr", "May", "Jun"],
-            values: billingStats?.forecast.values || [8, 5, 10]
+            labels: billingStats?.forecast.labels || [],
+            values: billingStats?.forecast.values || []
           }}
         />
         
@@ -368,9 +401,9 @@ const BillingMilestones = () => {
           value=""
           type="cashflow"
           stats={[
-            { label: "Outstanding", value: formatCurrency(billingStats?.amounts.pending + billingStats?.amounts.overdue || 0) },
+            { label: "Outstanding", value: formatCurrency((billingStats?.amounts.pending || 0) + (billingStats?.amounts.overdue || 0)) },
             { label: "Invoiced", value: formatCurrency(billingStats?.amounts.pending || 0) },
-            { label: "Received (30d)", value: formatCurrency(billingStats?.amounts.received || 0) }
+            { label: "Received (30d)", value: formatCurrency(billingStats?.amounts.receivedLast30Days || 0) }
           ]}
         />
       </div>
@@ -391,6 +424,120 @@ const BillingMilestones = () => {
         filterOptions={statusOptions}
         searchPlaceholder="Search milestones..."
       />
+      
+      {/* Milestone Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold flex items-center">
+              <div className="mr-2 h-6 w-6 rounded bg-primary flex items-center justify-center text-white text-xs font-medium">
+                {selectedMilestone?.name?.charAt(0)}
+              </div>
+              {selectedMilestone?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Billing Milestone Details
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedMilestone && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Project</h3>
+                  <p className="text-sm mt-1">
+                    {(() => {
+                      const project = projects?.find(p => p.id === selectedMilestone.projectId);
+                      return project ? `${project.projectNumber} - ${project.name}` : 'Unknown';
+                    })()}
+                  </p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Amount</h3>
+                  <p className="text-sm mt-1">{formatCurrency(parseFloat(selectedMilestone.amount) || 0)}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Status</h3>
+                  <div className="mt-1">
+                    <ProgressBadge status={selectedMilestone.status} />
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Target Invoice Date</h3>
+                  <p className="text-sm mt-1">{selectedMilestone.targetInvoiceDate ? formatDate(new Date(selectedMilestone.targetInvoiceDate)) : 'Not set'}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Actual Invoice Date</h3>
+                  <p className="text-sm mt-1">{selectedMilestone.actualInvoiceDate ? formatDate(new Date(selectedMilestone.actualInvoiceDate)) : 'Not invoiced yet'}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Payment Date</h3>
+                  <p className="text-sm mt-1">{selectedMilestone.paidDate ? formatDate(new Date(selectedMilestone.paidDate)) : 'Not paid yet'}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Contract Reference</h3>
+                  <p className="text-sm mt-1">{selectedMilestone.contractReference || 'N/A'}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Payment Terms</h3>
+                  <p className="text-sm mt-1">{selectedMilestone.paymentTerms || 'N/A'}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Invoice Number</h3>
+                  <p className="text-sm mt-1">{selectedMilestone.invoiceNumber || 'Not invoiced yet'}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Percentage of Total</h3>
+                  <p className="text-sm mt-1">{selectedMilestone.percentageOfTotal ? `${selectedMilestone.percentageOfTotal}%` : 'N/A'}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Billing Contact</h3>
+                  <p className="text-sm mt-1">{selectedMilestone.billingContact || 'N/A'}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Notes</h3>
+                  <p className="text-sm mt-1 whitespace-pre-wrap">{selectedMilestone.notes || 'No notes available'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="flex justify-between items-center">
+            <div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  setShowDetailsDialog(false);
+                  handleEditMilestone(selectedMilestone);
+                }}
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDetailsDialog(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Monthly Revenue Forecast Chart */}
       <div className="mt-6 bg-darkCard rounded-xl border border-gray-800 overflow-hidden">
