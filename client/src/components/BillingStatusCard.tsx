@@ -318,6 +318,8 @@ export function BillingStatusCard({
   onGoalCreate,
   onGoalUpdate
 }: BillingStatusCardProps) {
+  // Create a ref for the goal dialog
+  const goalDialogRef = useRef<GoalDialogRef>(null);
   const getIcon = () => {
     switch (type) {
       case 'revenue':
@@ -508,16 +510,9 @@ export function BillingStatusCard({
                         className="h-6 px-2 text-xs"
                         onClick={() => {
                           if (onGoalCreate) {
-                            // Force goalType to be 'month' since we're in the monthly section
-                            setGoalType('month');
-                            
-                            // Show dialog for creating goal
-                            const dialogContainer = document.getElementById('goal-dialog-container');
-                            if (dialogContainer) {
-                              const createButton = dialogContainer.querySelector('#create-goal-button');
-                              if (createButton instanceof HTMLButtonElement) {
-                                createButton.click();
-                              }
+                            // Use the ref to open the dialog with 'month' type
+                            if (goalDialogRef.current) {
+                              goalDialogRef.current.openDialog('month');
                             }
                           }
                         }}
@@ -742,16 +737,9 @@ export function BillingStatusCard({
                     className="h-8"
                     onClick={() => {
                       if (onGoalCreate) {
-                        // Force goalType to be 'week' since we're in the weekly section
-                        setGoalType('week');
-                        
-                        // Show dialog for creating goal
-                        const dialogContainer = document.getElementById('goal-dialog-container');
-                        if (dialogContainer) {
-                          const createButton = dialogContainer.querySelector('#create-goal-button');
-                          if (createButton instanceof HTMLButtonElement) {
-                            createButton.click();
-                          }
+                        // Use the ref to open the dialog with 'week' type
+                        if (goalDialogRef.current) {
+                          goalDialogRef.current.openDialog('week');
                         }
                       }
                     }}
@@ -796,6 +784,17 @@ export function BillingStatusCard({
           )}
         </>
       )}
+      {/* Add the goal setting dialog */}
+      <GoalSettingDialog
+        ref={goalDialogRef}
+        title={title}
+        chart={chart}
+        goals={goals}
+        selectedMonthIndex={selectedMonthIndex}
+        selectedWeekIndex={selectedWeekIndex}
+        onGoalCreate={onGoalCreate}
+        onGoalUpdate={onGoalUpdate}
+      />
     </Card>
   );
 }
