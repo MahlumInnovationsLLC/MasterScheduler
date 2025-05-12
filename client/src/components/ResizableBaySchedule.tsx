@@ -390,6 +390,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Add a version counter to force recalculation of schedules
   const [recalculationVersion, setRecalculationVersion] = useState(1);
 
+  // Add state for temporary schedules that will be displayed before API confirmation
+  const [temporarySchedules, setTemporarySchedules] = useState<ManufacturingSchedule[]>([]);
+
   // Loading state for project moves
   const [isMovingProject, setIsMovingProject] = useState(false);
   const [isUnassigningProject, setIsUnassigningProject] = useState(false);
@@ -683,12 +686,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   
   // Map schedules to visual bars
   const scheduleBars = useMemo(() => {
-    if (!schedules.length || !slots.length) return [];
+    if (!slots.length) return [];
     
     console.log(`Recalculating schedule bars (version ${recalculationVersion}): ensuring capacity sharing only starts AFTER FAB phase ends`);
     
+    // Combine real schedules with temporary ones for display
+    // This allows us to show updated capacity info before API confirms changes
+    const combinedSchedules = [...schedules, ...temporarySchedules];
+    
+    if (!combinedSchedules.length) return [];
+    
     // First, group schedules by bay
-    const schedulesByBay = schedules.reduce((acc, schedule) => {
+    const schedulesByBay = combinedSchedules.reduce((acc, schedule) => {
       if (!acc[schedule.bayId]) {
         acc[schedule.bayId] = [];
       }
@@ -1033,7 +1042,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     });
     
     return processedBars;
-  }, [schedules, projects, bays, slots, viewMode, slotWidth, recalculationVersion]);
+  }, [schedules, temporarySchedules, projects, bays, slots, viewMode, slotWidth, recalculationVersion]);
   
   // Handle drag start
   // Handle the start of resize operation
