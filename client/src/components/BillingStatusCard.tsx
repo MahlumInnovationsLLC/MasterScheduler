@@ -101,7 +101,14 @@ function GoalSettingDialog({
       const today = new Date();
       const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex);
       
-      const weekVal = goalType === 'week' ? (selectedWeekIndex !== undefined ? selectedWeekIndex + 1 : undefined) : undefined;
+      // Use standardized fiscal week number if in week mode
+      let weekVal;
+      if (goalType === 'week' && selectedWeekIndex !== undefined) {
+        const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
+        weekVal = fiscalWeeks[selectedWeekIndex]?.weekNumber || selectedWeekIndex + 1;
+      } else {
+        weekVal = undefined;
+      }
       
       setCurrentDate({
         year: targetDate.getFullYear(),
@@ -553,9 +560,13 @@ export function BillingStatusCard({
                         const today = new Date();
                         const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
                         
+                        // Use standardized fiscal week number
+                        const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
+                        const weekNumber = fiscalWeeks[idx]?.weekNumber || idx + 1;
+                        
                         onWeekSelect(
                           targetDate.getFullYear(),
-                          idx + 1
+                          weekNumber
                         );
                       }
                     }}
@@ -568,14 +579,18 @@ export function BillingStatusCard({
               {/* Fiscal Week Chart */}
               <div className={`${isFullWidthForecast ? 'flex justify-between h-40' : 'grid grid-cols-6 gap-1 h-20'}`}>
                 {chart.weekValues.slice(0, 6).map((val, idx) => {
-                  // Find if there's a goal for this week
-                  // Use the selected month to properly find goals for that month's weeks
+                  // Find if there's a goal for this week using standardized fiscal week number
                   const today = new Date();
                   const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
+                  
+                  // Get the standardized fiscal weeks for this month
+                  const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
+                  const weekNumber = fiscalWeeks[idx]?.weekNumber || idx + 1;
+                  
                   const matchingGoal = goals?.find(g => 
                     g.year === targetDate.getFullYear() && 
                     g.month === targetDate.getMonth() + 1 && 
-                    g.week === idx + 1
+                    g.week === weekNumber
                   );
                   
                   // Determine if this week has met or exceeded its goal
