@@ -1422,9 +1422,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Make sure we use a consistent row value for all bays
       // Map to visual row (0-3) to ensure proper positioning
-      const visualRow = resizingSchedule.row % 4;
+      const rowToUse = resizingSchedule.row ?? 0;
+      const visualRow = rowToUse % 4;
       
-      console.log(`Applying resize with row ${visualRow} (mapped from ${resizingSchedule.row})`);
+      console.log(`Applying resize with row ${visualRow} (mapped from ${rowToUse})`);
       
       // Use applyManualResize which will check for capacity impacts
       applyManualResize(
@@ -2989,9 +2990,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Get the user's selected row if available, otherwise keep the current row
       // The row parameter is explicitly used when the user drags to a new row
       const userSelectedRow = parseInt(document.body.getAttribute('data-current-drag-row') || '-1');
-      const fixedRow = row !== undefined ? row : 
-                      (userSelectedRow >= 0 ? userSelectedRow : (schedule.row || 0));
-      console.log(`Manual resize using row: ${fixedRow} for schedule ${scheduleId} (user selected: ${userSelectedRow})`);
+      
+      // Ensure we map to visual rows (0-3) for consistent positioning
+      let fixedRow;
+      if (row !== undefined) {
+        // If row is explicitly provided, ensure it's in the 0-3 range
+        fixedRow = row % 4;
+      } else if (userSelectedRow >= 0) {
+        // If user selected a row via drag, map to 0-3 range
+        fixedRow = userSelectedRow % 4;
+      } else {
+        // Use the existing row from the schedule, mapped to 0-3
+        fixedRow = (schedule.row || 0) % 4;
+      }
+      
+      console.log(`Manual resize using mapped row: ${fixedRow} for schedule ${scheduleId} (original row: ${schedule.row}, user selected: ${userSelectedRow})`);
       console.log(`Auto-placement logic DISABLED - using exact row where user dropped or resized project`);
       
       onScheduleChange(
