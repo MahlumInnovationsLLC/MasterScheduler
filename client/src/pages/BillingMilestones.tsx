@@ -70,6 +70,12 @@ const BillingMilestones = () => {
     
     // Ensure the index is within the valid range (0-5)
     const newIndex = Math.max(0, Math.min(5, monthsDiff));
+    
+    // Reset selected week to first week when changing months
+    // This prevents issues with different months having different numbers of weeks
+    setSelectedWeekIndex(0);
+    
+    // Update the selected month index
     setSelectedMonthIndex(newIndex);
   };
   
