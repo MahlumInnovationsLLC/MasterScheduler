@@ -332,7 +332,7 @@ const BillingMilestones = () => {
       };
     };
     
-    // Calculate fiscal week data
+    // Calculate fiscal week data for the selected month
     const fiscalWeekData = generateFiscalWeekData(selectedMonthIndex);
 
     // Calculate totals for the legend
