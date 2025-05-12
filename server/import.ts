@@ -739,23 +739,20 @@ export async function importBillingMilestones(req: Request, res: Response) {
         
         console.log(`Found project match: ${matchedProject.projectNumber} (${matchedProject.name}) for milestone: ${milestoneName}`);
 
-        // Save the project number from temporary field and remove it
-        const milestoneProjectNumber = rawMilestoneData._projectNumber;
-        delete rawMilestoneData._projectNumber; // Remove temporary field
-        
-        // Handle projectNumber being 'undefined' as a string
-        const normalizedProjectNumber = milestoneProjectNumber === 'undefined' ? '' : milestoneProjectNumber;
+        // Project number should be extracted from various fields
+        // We've already extracted it above into the projectNumber variable
+        const normalizedProjectNumber = projectNumber;
         
         // Look up project by number or try to match by number in string
         if (normalizedProjectNumber && normalizedProjectNumber !== '') {
           console.log(`Looking for project with number: ${normalizedProjectNumber} for milestone: ${milestoneName}`);
           
           // First try exact match on project number
-          const project = await storage.getProjectByNumber(normalizedProjectNumber);
-          if (project) {
+          const exactProject = await storage.getProjectByNumber(normalizedProjectNumber);
+          if (exactProject) {
             // Store the project ID we'll use for the database insert
-            milestoneData.projectId = project.id;
-            console.log(`Found exact project match by number: ${normalizedProjectNumber} for milestone: ${milestoneName} (ID: ${project.id})`);
+            milestoneData.projectId = exactProject.id;
+            console.log(`Found exact project match by number: ${normalizedProjectNumber} for milestone: ${milestoneName} (ID: ${exactProject.id})`);
           } else {
             // Get all projects to try different matching strategies
             const projects = await storage.getProjects();
@@ -899,8 +896,16 @@ export async function importBillingMilestones(req: Request, res: Response) {
         // Make sure the data matches our schema type with proper field names
         // We need to cast the amount to the correct type expected by the InsertBillingMilestone type
         // Since we're working with financial data, ensure precision is maintained
+        
+        // Validate that we have a valid project ID before creating the milestone
+        if (!milestoneData.projectId) {
+          results.errors++;
+          results.details.push(`Missing project ID for milestone: ${milestoneData.name}`);
+          continue;
+        }
+        
         const billingMilestoneData = {
-          projectId: Number(milestoneData.projectId), 
+          projectId: milestoneData.projectId, // Already a number from database lookup
           name: milestoneData.name || '',
           description: milestoneData.description || '',
           amount: finalAmount,
