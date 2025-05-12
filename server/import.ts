@@ -640,7 +640,7 @@ export async function importBillingMilestones(req: Request, res: Response) {
           continue;
         }
         
-        // Store milestone name in our structured object
+        // Store just the name for now - we'll set other fields after they're defined
         milestoneData.name = milestoneName;
         
         // 3. Amount - handle currency formats like "$69,600"
@@ -705,6 +705,14 @@ export async function importBillingMilestones(req: Request, res: Response) {
         // Status and Description
         const status = (rawMilestoneData['Status'] || rawMilestoneData['status'] || 'upcoming').toLowerCase();
         const description = rawMilestoneData['Description'] || rawMilestoneData['description'] || rawMilestoneData['Notes'] || '';
+        
+        // Store all data fields in milestoneData
+        milestoneData.amount = amount;
+        milestoneData.targetDate = targetInvoiceDate;
+        milestoneData.invoiceDate = actualInvoiceDate;
+        milestoneData.paymentReceivedDate = paymentReceivedDate;
+        milestoneData.description = description;
+        milestoneData.status = status;
 
         // FIND MATCHING PROJECT ID
         
@@ -918,11 +926,18 @@ export async function importBillingMilestones(req: Request, res: Response) {
           projectId: milestoneData.projectId, // Already a number from database lookup
           name: milestoneData.name || '',
           description: milestoneData.description || '',
-          amount: finalAmount,
+          amount: finalAmount, 
           targetInvoiceDate: milestoneData.targetDate || new Date().toISOString().split('T')[0],
           actualInvoiceDate: milestoneData.invoiceDate || null,
           paymentReceivedDate: milestoneData.paymentReceivedDate || null,
-          status: validStatus
+          status: validStatus,
+          // Add additional fields from Column headers
+          contractReference: rawMilestoneData['Contract Reference'] || '',
+          paymentTerms: rawMilestoneData['Payment Terms'] || '',
+          invoiceNumber: rawMilestoneData['Invoice Number'] || '',
+          percentageOfTotal: rawMilestoneData['Percentage of Total'] || '',
+          billingContact: rawMilestoneData['Billing Contact'] || '', 
+          notes: rawMilestoneData['Notes'] || ''
           // createdAt and updatedAt are added automatically by the database
         };
         
