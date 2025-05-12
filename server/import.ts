@@ -557,6 +557,15 @@ export async function importProjects(req: Request, res: Response) {
 export async function importBillingMilestones(req: Request, res: Response) {
   try {
     const milestonesData = req.body;
+    console.log("Received billing milestones data for import:", 
+      milestonesData.length > 0 ? 
+        `${milestonesData.length} milestones, first item fields: ${Object.keys(milestonesData[0]).join(', ')}` :
+        "Empty array");
+    
+    if (milestonesData.length > 0) {
+      console.log("Sample milestone data:", JSON.stringify(milestonesData[0], null, 2));
+    }
+    
     if (!Array.isArray(milestonesData)) {
       return res.status(400).json({ 
         success: false, 
@@ -769,12 +778,30 @@ export async function importBillingMilestones(req: Request, res: Response) {
           status: milestoneData.status
         });
         
-        // Make sure the data matches our schema type
+        // Convert amount to a number if it's a string
+        let finalAmount: number;
+        if (typeof milestoneData.amount === 'string') {
+          // Remove currency symbols, commas, etc. and parse as float
+          const cleanAmount = milestoneData.amount.replace(/[$,]/g, '').trim();
+          finalAmount = parseFloat(cleanAmount || '0');
+          if (isNaN(finalAmount)) {
+            console.log(`Could not parse amount: "${milestoneData.amount}" - defaulting to 0`);
+            finalAmount = 0;
+          } else {
+            console.log(`Parsed amount string: "${milestoneData.amount}" -> ${finalAmount}`);
+          }
+        } else if (typeof milestoneData.amount === 'number') {
+          finalAmount = milestoneData.amount;
+        } else {
+          finalAmount = 0;
+        }
+        
+        // Make sure the data matches our schema type with proper field names
         const insertData: InsertBillingMilestone = {
           projectId: milestoneData.projectId,
           name: milestoneData.name || '',
           description: milestoneData.description || '',
-          amount: milestoneData.amount || 0,
+          amount: finalAmount,
           targetInvoiceDate: milestoneData.targetDate || new Date().toISOString().split('T')[0],
           actualInvoiceDate: milestoneData.invoiceDate || null,
           paymentReceivedDate: milestoneData.paymentReceivedDate || null,
