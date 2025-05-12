@@ -1098,7 +1098,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     if (rowClasses.length > 0) {
       const rowMatch = rowClasses[0].match(/row-(\d+)-bar/);
       if (rowMatch && rowMatch[1]) {
-        row = parseInt(rowMatch[1], 10);
+        // Get the numeric row index
+        const rowIndex = parseInt(rowMatch[1], 10);
+        
+        // Map to visual row (0-3) for consistent positioning
+        // Rows 0-3 represent the top-to-bottom positions in each bay
+        // Rows 4-7 map to the same visual positions
+        row = rowIndex % 4;
+        
+        console.log(`Resize start for bar in row class ${rowClasses[0]}, using row index ${row}`);
       }
     }
     
@@ -3312,15 +3320,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     .resize-handle {
       position: absolute !important;
       top: 0 !important;
+      bottom: 0 !important;
       height: 100% !important;
       width: 12px !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
       cursor: ew-resize !important;
+      z-index: 30 !important;
       opacity: 0 !important;
       transition: opacity 0.2s ease !important;
-      z-index: 30 !important;
       background-color: rgba(0, 0, 0, 0.3) !important;
     }
     
@@ -3342,6 +3351,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     .resize-handle:hover {
       background-color: rgba(0, 0, 0, 0.5) !important;
+    }
+    
+    /* Force handles to be visible in all team rows during hover */
+    .row-0-bar:hover .resize-handle,
+    .row-1-bar:hover .resize-handle,
+    .row-2-bar:hover .resize-handle,
+    .row-3-bar:hover .resize-handle,
+    .row-4-bar:hover .resize-handle,
+    .row-5-bar:hover .resize-handle,
+    .row-6-bar:hover .resize-handle,
+    .row-7-bar:hover .resize-handle {
+      opacity: 1 !important;
     }
     
     /* Row hover effects for better visualization */
