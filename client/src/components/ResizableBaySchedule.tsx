@@ -313,7 +313,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     try {
       // Find affected schedules (projects) in this row
       const affectedSchedules = schedules.filter(
-        schedule => schedule.bayId === bayId && schedule.rowIndex === rowIndex
+        schedule => schedule.bayId === bayId && (schedule.rowIndex === rowIndex || schedule.row === rowIndex)
       );
       
       // Get current date for comparison
@@ -332,7 +332,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             0, // bayId 0 represents "unassigned"
             schedule.startDate,
             schedule.endDate,
-            schedule.totalHours,
+            schedule.totalHours || undefined,
             0 // rowIndex 0 for unassigned
           );
         }
@@ -5231,7 +5231,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       ))}
                     </ul>
                     <p className="mt-4 text-amber-600 dark:text-amber-400">
-                      <AlertTriangle className="w-4 h-4 inline mr-1" />
+                      <ExclamationTriangleIcon className="w-4 h-4 inline mr-1" />
                       Current and future projects will be moved to the unassigned section.
                     </p>
                   </>
