@@ -342,24 +342,35 @@ const ImportDataPage = () => {
       const milestones = data.map(row => {
         console.log("Processing billing milestone row:", JSON.stringify(row));
         
-        // Get the project number
-        const projectNumber = row['Project Number'] || row['Proj #'] || row['Project'] || '';
+        // Get the project number - enhanced to handle more variations
+        const projectNumber = row['Project Number'] || row['Proj #'] || row['Project #'] || 
+                            row['Project'] || row['P/N'] || row['PN'] || row['Project ID'] || '';
+        
+        // Log available fields in this row to help debug
+        console.log("Available fields in this milestone row:", Object.keys(row).join(", "));
         
         // Extract amount - convert from string format like "$69,600" to number
-        let amountValue = row['Amount'] || row['Value'] || '0';
+        let amountValue = row['Amount'] || row['Value'] || row['Milestone Amount'] || 
+                         row['Billing Amount'] || row['Invoice Amount'] || '0';
+                         
         if (typeof amountValue === 'string') {
-          // Remove currency symbols and commas, then parse
+          // Remove currency symbols, commas, etc. and parse
           amountValue = amountValue.replace(/[$,]/g, '').trim();
+          console.log(`Converted amount from "${row['Amount'] || row['Value']}" to "${amountValue}"`);
         }
         
-        // Get the milestone name
-        const milestoneName = row['Milestone'] || row['Billing Item'] || row['Description'] || '';
+        // Get the milestone name - enhanced to handle more variations
+        const milestoneName = row['Milestone'] || row['Milestone Name'] || row['name'] || 
+                            row['Billing Item'] || row['Billing Milestone'] || 
+                            row['Description'] || '';
         if (!milestoneName) {
           console.warn("Missing milestone name for project", projectNumber);
         }
         
-        // Get target date
-        const targetDateValue = row['Target Invoice Date'] || row['Target Date'] || row['Due Date'] || row['Invoice Date'] || '';
+        // Get target date - enhanced to handle more variations
+        const targetDateValue = row['Target Invoice Date'] || row['Target Date'] || 
+                              row['Due Date'] || row['Invoice Date'] || 
+                              row['targetDate'] || row['Invoice Due Date'] || '';
         if (!targetDateValue) {
           console.warn("Missing target date for milestone", milestoneName, "project", projectNumber);
         }
@@ -367,14 +378,18 @@ const ImportDataPage = () => {
         return {
           name: milestoneName,
           projectId: null, // Will be looked up by project number in API
-          status: mapBillingStatus(row['Status'] || 'upcoming'),
           amount: String(amountValue),
           // Make sure field names match what server expects
           targetDate: targetDateValue, 
-          invoiceDate: row['Actual Invoice Date'] || row['Invoice Date'] || null,
-          paymentReceivedDate: row['Payment Received Date'] || row['Payment Date'] || row['Received Date'] || null,
-          description: row['Description'] || row['Notes'] || '',
-          _projectNumber: projectNumber // Temporary field to look up project
+          invoiceDate: row['Actual Invoice Date'] || row['Invoice Date'] || 
+                     row['Invoiced Date'] || row['Billed Date'] || null,
+          paymentReceivedDate: row['Payment Received Date'] || row['Payment Date'] || 
+                             row['Received Date'] || row['Paid Date'] || row['Payment'] || null,
+          description: row['Description'] || row['Notes'] || row['Comments'] || '',
+          // Add additional info that might be in the spreadsheet
+          status: mapBillingStatus(row['Status'] || row['Milestone Status'] || row['State'] || 'upcoming'),
+          // Temporary field to look up project - keep the original project number exactly as is
+          _projectNumber: projectNumber
         };
       });
 
