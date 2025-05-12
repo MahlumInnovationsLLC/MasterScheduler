@@ -667,8 +667,20 @@ export function BillingStatusCard({
                 <div className={`${isFullWidthForecast ? 'mt-6 flex justify-between items-center' : 'mt-3 flex justify-between items-center text-sm'}`}>
                   <div>
                     <span className="text-gray-400">
-                      {/* Format the week label to not duplicate the month name when it's already shown in the UI */}
-                      {chart.weekLabels[selectedWeekIndex]?.replace(/Week \d+: (.*?)( \d+)? - .*/, 'Week $1') || ''} Total:
+                      {/* Get the fiscal week label for the current month and week */}
+                      {(() => {
+                        // Get the selected month's year and month based on selectedMonthIndex
+                        const today = new Date();
+                        const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
+                        const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
+                        
+                        if (fiscalWeeks && fiscalWeeks[selectedWeekIndex]) {
+                          // Display the week number and date range
+                          return `Week ${fiscalWeeks[selectedWeekIndex].weekNumber}: ${format(fiscalWeeks[selectedWeekIndex].startDate, 'MMM d')} -`;
+                        }
+                        return '';
+                      })()}
+                      Total:
                     </span>
                     <span className={`ml-2 font-bold ${isFullWidthForecast ? 'text-lg' : ''}`}>
                       {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(chart.weekValues[selectedWeekIndex])}
