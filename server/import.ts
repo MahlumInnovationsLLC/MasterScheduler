@@ -716,21 +716,22 @@ export async function importBillingMilestones(req: Request, res: Response) {
         console.log(`Found project match: ${matchedProject.projectNumber} (${matchedProject.name}) for milestone: ${milestoneName}`);
 
         // Save the project number from temporary field and remove it
-        const milestoneProjectNumber = milestoneData._projectNumber;
-        delete milestoneData._projectNumber; // Remove temporary field
+        const milestoneProjectNumber = rawMilestoneData._projectNumber;
+        delete rawMilestoneData._projectNumber; // Remove temporary field
         
         // Handle projectNumber being 'undefined' as a string
         const normalizedProjectNumber = milestoneProjectNumber === 'undefined' ? '' : milestoneProjectNumber;
         
         // Look up project by number or try to match by number in string
         if (normalizedProjectNumber && normalizedProjectNumber !== '') {
-          console.log(`Looking for project with number: ${normalizedProjectNumber} for milestone: ${milestoneData.name}`);
+          console.log(`Looking for project with number: ${normalizedProjectNumber} for milestone: ${milestoneName}`);
           
           // First try exact match on project number
           const project = await storage.getProjectByNumber(normalizedProjectNumber);
           if (project) {
-            milestoneData.projectId = project.id;
-            console.log(`Found exact project match by number: ${normalizedProjectNumber} for milestone: ${milestoneData.name}`);
+            // Store the project ID we'll use for the database insert
+            const projectId = project.id;
+            console.log(`Found exact project match by number: ${normalizedProjectNumber} for milestone: ${milestoneName}`);
           } else {
             // Get all projects to try different matching strategies
             const projects = await storage.getProjects();
@@ -746,8 +747,9 @@ export async function importBillingMilestones(req: Request, res: Response) {
             );
 
             if (projectByNumberFormat) {
-              milestoneData.projectId = projectByNumberFormat.id;
-              console.log(`Found project by number formatting variation: ${normalizedProjectNumber} -> ${projectByNumberFormat.projectNumber} for milestone: ${milestoneData.name}`);
+              // Store the project ID we'll use for the database insert
+              const projectId = projectByNumberFormat.id;
+              console.log(`Found project by number formatting variation: ${normalizedProjectNumber} -> ${projectByNumberFormat.projectNumber} for milestone: ${milestoneName}`);
             } 
             // Enhanced: Try exact prefix match (partial beginning match)
             else {
