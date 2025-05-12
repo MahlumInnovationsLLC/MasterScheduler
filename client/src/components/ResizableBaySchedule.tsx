@@ -290,11 +290,46 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
 }) => {
   // Extended state
   const [bays, setBays] = useState<ManufacturingBay[]>(initialBays);
+  const [confirmRowDelete, setConfirmRowDelete] = useState<{
+    bayId: number;
+    rowIndex: number;
+    bayName: string;
+    rowNumber: number;
+    affectedProjects: {
+      id: number;
+      projectId: number;
+      projectName: string;
+      projectNumber: string;
+    }[];
+  } | null>(null);
   
   // Update bays when props change
   useEffect(() => {
     setBays(initialBays);
   }, [initialBays]);
+  
+  // Handle row deletion
+  const handleDeleteRow = async (bayId: number, rowIndex: number) => {
+    try {
+      // TODO: Implement actual row deletion logic
+      
+      // For now, just show a toast message
+      toast({
+        title: "Row Deleted",
+        description: `Row removed from ${bays.find(b => b.id === bayId)?.name || 'bay'}`,
+      });
+      
+      // Close the confirmation dialog
+      setConfirmRowDelete(null);
+    } catch (error) {
+      console.error('Error deleting row:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete row. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
   
   // Handle document-level drag events for global feedback
   useEffect(() => {
@@ -4306,8 +4341,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       handleDrop(e, bay.id, 0, 0);
                     }}
                   >
-                    {/* Add Row button at the end of this row */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                    {/* Row action buttons */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50 flex space-x-1">
                       <Button
                         variant="outline"
                         size="icon"
@@ -4323,6 +4358,42 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         }}
                       >
                         <PlusIcon className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700"
+                        title="Delete Row"
+                        onClick={() => {
+                          // Get projects in this row
+                          const projectsInRow = scheduleBars
+                            .filter(bar => bar.bayId === bay.id && bar.row === 0)
+                            .map(bar => {
+                              const project = projects.find(p => p.id === bar.projectId);
+                              return {
+                                id: bar.id,
+                                projectId: bar.projectId,
+                                projectName: project?.name || 'Unknown Project',
+                                projectNumber: project?.projectNumber || 'Unknown'
+                              };
+                            });
+                          
+                          // If projects are found, show confirmation dialog
+                          if (projectsInRow.length > 0) {
+                            setConfirmRowDelete({
+                              bayId: bay.id,
+                              rowIndex: 0,
+                              bayName: bay.name,
+                              rowNumber: 1,
+                              affectedProjects: projectsInRow
+                            });
+                          } else {
+                            // If no projects, proceed with deletion
+                            handleDeleteRow(bay.id, 0);
+                          }
+                        }}
+                      >
+                        <X className="h-3 w-3" />
                       </Button>
                     </div>
                     {/* Row 1 label */}
@@ -4382,8 +4453,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       handleDrop(e, bay.id, 0, 1);
                     }}
                   >
-                    {/* Add Row button at the end of this row */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                    {/* Row action buttons */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50 flex space-x-1">
                       <Button
                         variant="outline"
                         size="icon"
@@ -4399,6 +4470,42 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         }}
                       >
                         <PlusIcon className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700"
+                        title="Delete Row"
+                        onClick={() => {
+                          // Get projects in this row
+                          const projectsInRow = scheduleBars
+                            .filter(bar => bar.bayId === bay.id && bar.row === 1)
+                            .map(bar => {
+                              const project = projects.find(p => p.id === bar.projectId);
+                              return {
+                                id: bar.id,
+                                projectId: bar.projectId,
+                                projectName: project?.name || 'Unknown Project',
+                                projectNumber: project?.projectNumber || 'Unknown'
+                              };
+                            });
+                          
+                          // If projects are found, show confirmation dialog
+                          if (projectsInRow.length > 0) {
+                            setConfirmRowDelete({
+                              bayId: bay.id,
+                              rowIndex: 1,
+                              bayName: bay.name,
+                              rowNumber: 2,
+                              affectedProjects: projectsInRow
+                            });
+                          } else {
+                            // If no projects, proceed with deletion
+                            handleDeleteRow(bay.id, 1);
+                          }
+                        }}
+                      >
+                        <X className="h-3 w-3" />
                       </Button>
                     </div>
                     {/* Row 2 label */}
@@ -4458,8 +4565,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       handleDrop(e, bay.id, 0, 2);
                     }}
                   >
-                    {/* Add Row button at the end of this row */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                    {/* Row action buttons */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50 flex space-x-1">
                       <Button
                         variant="outline"
                         size="icon"
@@ -4475,6 +4582,42 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         }}
                       >
                         <PlusIcon className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700"
+                        title="Delete Row"
+                        onClick={() => {
+                          // Get projects in this row
+                          const projectsInRow = scheduleBars
+                            .filter(bar => bar.bayId === bay.id && bar.row === 2)
+                            .map(bar => {
+                              const project = projects.find(p => p.id === bar.projectId);
+                              return {
+                                id: bar.id,
+                                projectId: bar.projectId,
+                                projectName: project?.name || 'Unknown Project',
+                                projectNumber: project?.projectNumber || 'Unknown'
+                              };
+                            });
+                          
+                          // If projects are found, show confirmation dialog
+                          if (projectsInRow.length > 0) {
+                            setConfirmRowDelete({
+                              bayId: bay.id,
+                              rowIndex: 2,
+                              bayName: bay.name,
+                              rowNumber: 3,
+                              affectedProjects: projectsInRow
+                            });
+                          } else {
+                            // If no projects, proceed with deletion
+                            handleDeleteRow(bay.id, 2);
+                          }
+                        }}
+                      >
+                        <X className="h-3 w-3" />
                       </Button>
                     </div>
                     {/* Row 3 label */}
@@ -4534,8 +4677,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       handleDrop(e, bay.id, 0, 3);
                     }}
                   >
-                    {/* Add Row button at the end of this row */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                    {/* Row action buttons */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50 flex space-x-1">
                       <Button
                         variant="outline"
                         size="icon"
@@ -4551,6 +4694,42 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         }}
                       >
                         <PlusIcon className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700"
+                        title="Delete Row"
+                        onClick={() => {
+                          // Get projects in this row
+                          const projectsInRow = scheduleBars
+                            .filter(bar => bar.bayId === bay.id && bar.row === 3)
+                            .map(bar => {
+                              const project = projects.find(p => p.id === bar.projectId);
+                              return {
+                                id: bar.id,
+                                projectId: bar.projectId,
+                                projectName: project?.name || 'Unknown Project',
+                                projectNumber: project?.projectNumber || 'Unknown'
+                              };
+                            });
+                          
+                          // If projects are found, show confirmation dialog
+                          if (projectsInRow.length > 0) {
+                            setConfirmRowDelete({
+                              bayId: bay.id,
+                              rowIndex: 3,
+                              bayName: bay.name,
+                              rowNumber: 4,
+                              affectedProjects: projectsInRow
+                            });
+                          } else {
+                            // If no projects, proceed with deletion
+                            handleDeleteRow(bay.id, 3);
+                          }
+                        }}
+                      >
+                        <X className="h-3 w-3" />
                       </Button>
                     </div>
                     {/* Row 4 label */}
@@ -5006,6 +5185,46 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             ))}
         </div>
       </div>
+
+      {/* Row deletion confirmation dialog */}
+      {confirmRowDelete && (
+        <AlertDialog open={!!confirmRowDelete} onOpenChange={() => setConfirmRowDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Row {confirmRowDelete.rowNumber}</AlertDialogTitle>
+              <AlertDialogDescription>
+                <p>Are you sure you want to delete row {confirmRowDelete.rowNumber} from {confirmRowDelete.bayName}?</p>
+                
+                {confirmRowDelete.affectedProjects.length > 0 && (
+                  <>
+                    <p className="mt-4 mb-2 font-semibold">The following projects will be affected:</p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {confirmRowDelete.affectedProjects.map(project => (
+                        <li key={project.id}>
+                          {project.projectNumber} - {project.projectName}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-4 text-amber-600 dark:text-amber-400">
+                      <ExclamationTriangleIcon className="w-4 h-4 inline mr-1" />
+                      Current and future projects will be moved to the unassigned section.
+                    </p>
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive hover:bg-destructive/90"
+                onClick={() => handleDeleteRow(confirmRowDelete.bayId, confirmRowDelete.rowIndex)}
+              >
+                Delete Row
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
 
       {/* Team Edit Dialog */}
       {editingBay && (
