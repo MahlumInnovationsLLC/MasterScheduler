@@ -710,11 +710,20 @@ const BillingMilestones = () => {
         
         <BillingStatusCard 
           title="Monthly Forecasts"
-          value={formatCurrency(billingStats?.forecast.values[0] || 0)}
+          value={formatCurrency(billingStats?.forecast.values[selectedMonthIndex] || 0)}
           type="forecast"
           chart={{
             labels: billingStats?.forecast.labels || [],
             values: billingStats?.forecast.values || []
+          }}
+          onMonthSelect={handleMonthSelect}
+          selectedMonthIndex={selectedMonthIndex}
+          goals={financialGoals}
+          onGoalCreate={(year, month, targetAmount, description) => {
+            createGoalMutation.mutate({ year, month, targetAmount, description });
+          }}
+          onGoalUpdate={(year, month, targetAmount, description) => {
+            updateGoalMutation.mutate({ year, month, targetAmount, description });
           }}
         />
         
