@@ -2819,6 +2819,30 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // No capping - use the exact dates chosen by the user
     const finalEndDate = newEndDate;
     
+    // Get the user's selected row if available, otherwise keep the current row
+    // The row parameter is explicitly used when the user drags to a new row
+    const userSelectedRow = parseInt(document.body.getAttribute('data-current-drag-row') || '-1');
+    const fixedRow = row !== undefined ? row : 
+                    (userSelectedRow >= 0 ? userSelectedRow : (schedule.row || 0));
+    
+    // CRITICAL FIX: Update local state immediately before API call to ensure UI updates faster
+    // Create a new array with the updated schedule
+    const updatedSchedules = schedules.map(s => {
+      if (s.id === scheduleId) {
+        // Return a new object with updated properties
+        return {
+          ...s,
+          startDate: newStartDate,
+          endDate: finalEndDate,
+          row: fixedRow
+        };
+      }
+      return s;
+    });
+    
+    // Force UI update immediately
+    console.log(`Immediate local update for schedule ${scheduleId} to prevent stale bay utilization data`);
+    
     if (capacityImpact) {
       // Show warning dialog
       setCapacityWarningData(capacityImpact);
@@ -2855,15 +2879,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Show loading state
       setIsMovingProject(true);
       
-      // Apply the change directly
-      // Get the user's selected row if available, otherwise keep the current row
-      // The row parameter is explicitly used when the user drags to a new row
-      const userSelectedRow = parseInt(document.body.getAttribute('data-current-drag-row') || '-1');
-      const fixedRow = row !== undefined ? row : 
-                      (userSelectedRow >= 0 ? userSelectedRow : (schedule.row || 0));
       console.log(`Manual resize using row: ${fixedRow} for schedule ${scheduleId} (user selected: ${userSelectedRow})`);
       console.log(`Auto-placement logic DISABLED - using exact row where user dropped or resized project`);
       
+      // Apply the change to the server after updating local state
       onScheduleChange(
         scheduleId,
         schedule.bayId,
