@@ -482,9 +482,17 @@ export function BillingStatusCard({
                       
                       // If onWeekSelect is provided, also select the first week of this month
                       if (onWeekSelect) {
+                        // Calculate the target date based on selected month
+                        const today = new Date();
+                        const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), idx);
+                        
+                        // Get first fiscal week of the month
+                        const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
+                        const firstWeekNumber = fiscalWeeks.length > 0 ? fiscalWeeks[0].weekNumber : 1;
+                        
                         onWeekSelect(
-                          new Date().getFullYear() + Math.floor((new Date().getMonth() + idx) / 12),
-                          1 // Always select the first week when changing months
+                          targetDate.getFullYear(),
+                          firstWeekNumber // Use the correct first fiscal week of the month
                         );
                       }
                     }
@@ -562,47 +570,52 @@ export function BillingStatusCard({
               
               {/* Week Navigation Buttons */}
               <div className={`${isFullWidthForecast ? 'flex justify-between' : 'grid grid-cols-6 gap-1'} mb-4`}>
-                {chart.weekLabels.slice(0, 6).map((label, idx) => {
-                  // Simplify the week labels for the buttons
-                  const simplifiedLabel = label.replace(/Week (\d+): .*/, 'Week $1');
+                {(() => {
+                  // Get the selected month's year and month based on selectedMonthIndex
+                  const today = new Date();
+                  const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
                   
-                  return (
-                    <Button 
-                      key={idx}
-                      variant={selectedWeekIndex === idx ? "default" : "outline"}
-                      size={isFullWidthForecast ? "default" : "sm"}
-                      className={`${isFullWidthForecast ? 'flex-1 mx-1' : 'h-7 p-1'} text-xs`}
-                      onClick={() => {
-                        if (onWeekSelect) {
-                          // Get the selected month's year and month based on selectedMonthIndex
-                          const today = new Date();
-                          const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
-                          
-                          // Use standardized fiscal week number
-                          const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
-                          const weekNumber = fiscalWeeks[idx]?.weekNumber || idx + 1;
-                          
-                          onWeekSelect(
-                            targetDate.getFullYear(),
-                            weekNumber
-                          );
-                        }
-                      }}
-                  >
-                    {simplifiedLabel}
-                  </Button>
-                );
-              })}
+                  // Get fiscal weeks for the current selected month
+                  const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
+                  
+                  // Adjust the number of buttons based on actual fiscal weeks
+                  const weeksToShow = fiscalWeeks.length;
+                  
+                  // Create buttons based on the number of weeks in the selected month
+                  return fiscalWeeks.map((fiscalWeek, idx) => {
+                    // Use a simpler label for the button
+                    const simplifiedLabel = `Week ${fiscalWeek.weekNumber}`;
+                    
+                    return (
+                      <Button 
+                        key={idx}
+                        variant={selectedWeekIndex === idx ? "default" : "outline"}
+                        size={isFullWidthForecast ? "default" : "sm"}
+                        className={`${isFullWidthForecast ? 'flex-1 mx-1' : 'h-7 p-1'} text-xs`}
+                        onClick={() => {
+                          if (onWeekSelect) {
+                            onWeekSelect(
+                              targetDate.getFullYear(),
+                              fiscalWeek.weekNumber
+                            );
+                          }
+                        }}
+                      >
+                        {simplifiedLabel}
+                      </Button>
+                    );
+                  });
+                })()}
               </div>
               
               {/* Fiscal Week Chart */}
               <div className={`${isFullWidthForecast ? 'flex justify-between h-40' : 'grid grid-cols-6 gap-1 h-20'}`}>
-                {chart.weekValues.slice(0, 6).map((val, idx) => {
-                  // Find if there's a goal for this week using standardized fiscal week number
+                {chart.weekValues && chart.weekValues.slice(0, 6).map((val, idx) => {
+                  // Get the selected month's year and month based on selectedMonthIndex
                   const today = new Date();
                   const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
                   
-                  // Get the standardized fiscal weeks for this month
+                  // Get fiscal weeks for this month
                   const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
                   const weekNumber = fiscalWeeks[idx]?.weekNumber || idx + 1;
                   
