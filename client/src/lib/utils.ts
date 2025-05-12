@@ -1,6 +1,20 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { format, formatDistance, isBefore, isAfter, differenceInDays } from "date-fns";
+import { 
+  format, 
+  formatDistance, 
+  isBefore, 
+  isAfter, 
+  differenceInDays, 
+  addDays, 
+  startOfMonth, 
+  endOfMonth, 
+  eachWeekOfInterval, 
+  startOfWeek, 
+  endOfWeek, 
+  getWeekOfMonth,
+  addWeeks
+} from "date-fns";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -303,4 +317,51 @@ export function calculateBayUtilization(bays: any[], schedules: any[]): number {
   
   console.log(`Bay utilization calculation: ${Math.round(avgUtilization)}% (based on project count per bay)`);
   return Math.round(avgUtilization);
+}
+
+/**
+ * Get fiscal weeks for a specific month
+ * Returns an array of fiscal weeks with start and end dates
+ * Weeks are considered to start on Monday (weekStartsOn: 1)
+ */
+export function getFiscalWeeksForMonth(year: number, month: number): {
+  weekNumber: number;
+  startDate: Date;
+  endDate: Date;
+  label: string;
+}[] {
+  const startOfMonthDate = new Date(year, month - 1, 1); // month is 1-indexed in the function, but 0-indexed in Date
+  const endOfMonthDate = endOfMonth(startOfMonthDate);
+  
+  // Get all weeks that intersect with this month
+  const weeks = eachWeekOfInterval(
+    { start: startOfMonthDate, end: endOfMonthDate },
+    { weekStartsOn: 1 } // Monday as first day of week
+  ).map((weekStart, index) => {
+    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+    
+    return {
+      weekNumber: index + 1,
+      startDate: weekStart,
+      endDate: weekEnd < endOfMonthDate ? weekEnd : endOfMonthDate, // Cap at end of month
+      label: `Week ${index + 1}: ${format(weekStart, 'MMM d')} - ${format(weekEnd < endOfMonthDate ? weekEnd : endOfMonthDate, 'MMM d')}`
+    };
+  });
+  
+  return weeks;
+}
+
+/**
+ * Get fiscal week label for display
+ * Includes date range for better context
+ */
+export function getFiscalWeekLabel(year: number, month: number, weekNumber: number): string {
+  const weeks = getFiscalWeeksForMonth(year, month);
+  const targetWeek = weeks.find(w => w.weekNumber === weekNumber);
+  
+  if (!targetWeek) {
+    return `Week ${weekNumber}`;
+  }
+  
+  return targetWeek.label;
 }

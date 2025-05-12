@@ -37,7 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { formatDate, formatCurrency, getBillingStatusInfo } from '@/lib/utils';
+import { formatDate, formatCurrency, getBillingStatusInfo, getFiscalWeeksForMonth } from '@/lib/utils';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import BillingMilestoneForm from '@/components/BillingMilestoneForm';
 import { useToast } from '@/hooks/use-toast';
@@ -298,28 +298,31 @@ const BillingMilestones = () => {
     
     const monthNames = nextSixMonths.map(date => date.toLocaleString('default', { month: 'short' }));
 
-    // Generate fiscal week data for the selected month
+    // Generate fiscal week data for the selected month using our standardized function
     const generateFiscalWeekData = (monthIndex: number) => {
       const month = nextSixMonths[monthIndex];
       if (!month) return { labels: [], values: [] };
       
-      const fiscalWeeks = [];
-      const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+      // Use the standardized fiscal week calculation
+      const fiscalWeeks = getFiscalWeeksForMonth(month.getFullYear(), month.getMonth() + 1);
       
-      // Create fiscal weeks (typically 4-5 weeks per month)
-      for (let i = 1; i <= daysInMonth; i += 7) {
-        const weekEnd = Math.min(i + 6, daysInMonth);
-        fiscalWeeks.push({ 
-          start: i, 
-          end: weekEnd,
-          label: `Week ${Math.ceil(i/7)}`, 
-          value: Math.random() * 100000 // In a real app, this would be based on milestones for this week
+      // Calculate revenue values for each week
+      const weeklyValues = fiscalWeeks.map(week => {
+        // Filter milestones that fall within this week's date range
+        const weekMilestones = billingMilestones.filter(m => {
+          if (!m.targetInvoiceDate) return false;
+          
+          const milestoneDate = new Date(m.targetInvoiceDate);
+          return milestoneDate >= week.startDate && milestoneDate <= week.endDate;
         });
-      }
+        
+        // Sum up the values for this week
+        return weekMilestones.reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+      });
       
       return {
         labels: fiscalWeeks.map(w => w.label),
-        values: fiscalWeeks.map(w => w.value)
+        values: weeklyValues
       };
     };
     
