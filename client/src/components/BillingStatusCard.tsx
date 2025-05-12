@@ -624,12 +624,21 @@ export function BillingStatusCard({
               <div className="flex justify-between items-center mb-4">
                 <h4 className={`${isFullWidthForecast ? 'text-lg' : 'text-sm'} font-medium text-gray-300`}>Fiscal Week Breakdown</h4>
                 <span className={`text-xs text-gray-400 bg-gray-800 px-3 py-1.5 rounded-full ${isFullWidthForecast ? 'text-sm' : ''}`}>
-                  {selectedWeekIndex !== undefined && chart.weekLabels[selectedWeekIndex]}
-                  {selectedMonthIndex !== undefined && (
-                    <span className="ml-1 opacity-75">
-                      {chart.labels[selectedMonthIndex]}
-                    </span>
-                  )}
+                  {selectedWeekIndex !== undefined && (() => {
+                    // Get the selected month's year and month based on selectedMonthIndex
+                    const today = new Date();
+                    const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
+                    
+                    // Get fiscal weeks for the current selected month
+                    const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
+                    
+                    // Display proper week range if available
+                    if (fiscalWeeks[selectedWeekIndex]) {
+                      const weekNumber = fiscalWeeks[selectedWeekIndex].weekNumber;
+                      return `Week ${selectedWeekIndex + 1}: ${getFiscalWeekLabel(targetDate.getFullYear(), weekNumber, true)}`;
+                    }
+                    return chart.weekLabels[selectedWeekIndex];
+                  })()}
                 </span>
               </div>
               
@@ -648,7 +657,7 @@ export function BillingStatusCard({
                   
                   // Create buttons based on the number of weeks in the selected month
                   return fiscalWeeks.map((fiscalWeek, idx) => {
-                    // Get the week label with range
+                    // Get the week label with range - just the dates and correct month
                     const weekRangeLabel = getFiscalWeekLabel(targetDate.getFullYear(), fiscalWeek.weekNumber, true);
                     
                     return (
@@ -667,7 +676,7 @@ export function BillingStatusCard({
                         }}
                       >
                         <span>{`Week ${idx + 1}`}</span>
-                        <span className="text-[0.6rem] opacity-80">{`W${fiscalWeek.weekNumber}`}</span>
+                        <span className="text-[0.6rem] opacity-80">{weekRangeLabel}</span>
                       </Button>
                     );
                   });

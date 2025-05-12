@@ -354,14 +354,26 @@ export function getFiscalWeeksForMonth(year: number, month: number): {
 /**
  * Get fiscal week label for display
  * Includes date range for better context
+ * If withRange is true, it returns a simplified date range
  */
-export function getFiscalWeekLabel(year: number, month: number, weekNumber: number): string {
-  const weeks = getFiscalWeeksForMonth(year, month);
-  const targetWeek = weeks.find(w => w.weekNumber === weekNumber);
+export function getFiscalWeekLabel(year: number, weekNumber: number, withRange = false): string {
+  // Get the date for this fiscal week
+  const firstDayOfYear = new Date(year, 0, 1);
+  const targetWeekStart = addWeeks(startOfWeek(firstDayOfYear, { weekStartsOn: 1 }), weekNumber - 1);
+  const targetWeekEnd = endOfWeek(targetWeekStart, { weekStartsOn: 1 });
   
-  if (!targetWeek) {
-    return `Week ${weekNumber}`;
+  if (withRange) {
+    // Format as "May 5 - 11" (same month) or "May 26 - Jun 1" (different months)
+    const startMonth = format(targetWeekStart, 'MMM');
+    const endMonth = format(targetWeekEnd, 'MMM');
+    
+    if (startMonth === endMonth) {
+      return `${startMonth} ${format(targetWeekStart, 'd')} - ${format(targetWeekEnd, 'd')}`;
+    } else {
+      return `${startMonth} ${format(targetWeekStart, 'd')} - ${endMonth} ${format(targetWeekEnd, 'd')}`;
+    }
   }
   
-  return targetWeek.label;
+  // Default format
+  return `Week ${weekNumber}: ${format(targetWeekStart, 'MMM d')} - ${format(targetWeekEnd, 'MMM d')}`;
 }
