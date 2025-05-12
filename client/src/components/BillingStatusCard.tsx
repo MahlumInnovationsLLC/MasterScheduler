@@ -548,13 +548,17 @@ export function BillingStatusCard({
               
               {/* Week Navigation Buttons */}
               <div className={`${isFullWidthForecast ? 'flex justify-between' : 'grid grid-cols-6 gap-1'} mb-4`}>
-                {chart.weekLabels.slice(0, 6).map((label, idx) => (
-                  <Button 
-                    key={idx}
-                    variant={selectedWeekIndex === idx ? "default" : "outline"}
-                    size={isFullWidthForecast ? "default" : "sm"}
-                    className={`${isFullWidthForecast ? 'flex-1 mx-1' : 'h-7 p-1'} text-xs`}
-                    onClick={() => {
+                {chart.weekLabels.slice(0, 6).map((label, idx) => {
+                  // Simplify the week labels for the buttons
+                  const simplifiedLabel = label.replace(/Week (\d+): .*/, 'Week $1');
+                  
+                  return (
+                    <Button 
+                      key={idx}
+                      variant={selectedWeekIndex === idx ? "default" : "outline"}
+                      size={isFullWidthForecast ? "default" : "sm"}
+                      className={`${isFullWidthForecast ? 'flex-1 mx-1' : 'h-7 p-1'} text-xs`}
+                      onClick={() => {
                       if (onWeekSelect) {
                         // Get the selected month's year and month based on selectedMonthIndex
                         const today = new Date();
@@ -571,9 +575,10 @@ export function BillingStatusCard({
                       }
                     }}
                   >
-                    {label}
+                    {simplifiedLabel}
                   </Button>
-                ))}
+                );
+              })}
               </div>
               
               {/* Fiscal Week Chart */}
@@ -634,7 +639,10 @@ export function BillingStatusCard({
               {selectedWeekIndex !== undefined && (
                 <div className={`${isFullWidthForecast ? 'mt-6 flex justify-between items-center' : 'mt-3 flex justify-between items-center text-sm'}`}>
                   <div>
-                    <span className="text-gray-400">{chart.weekLabels[selectedWeekIndex]} Total:</span>
+                    <span className="text-gray-400">
+                      {/* Format the week label to not duplicate the month name when it's already shown in the UI */}
+                      {chart.weekLabels[selectedWeekIndex]?.replace(/Week \d+: (.*?)( \d+)? - .*/, 'Week $1') || ''} Total:
+                    </span>
                     <span className={`ml-2 font-bold ${isFullWidthForecast ? 'text-lg' : ''}`}>
                       {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(chart.weekValues[selectedWeekIndex])}
                     </span>
