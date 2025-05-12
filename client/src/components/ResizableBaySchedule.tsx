@@ -1612,7 +1612,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           <circle cx="12" cy="12" r="10"></circle>
           <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
-        <span>${data.totalHours || 1000} hours</span>
+        <span>${data.totalHours !== null ? Number(data.totalHours) : 1000} hours</span>
       `;
       dragImage.appendChild(hoursContainer);
       
@@ -2702,7 +2702,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           bayId: bayId, // EMERGENCY FIX: Always use the actual bay where the user dropped (function param)
           startDate: slotDate.toISOString(), 
           endDate: finalEndDate.toISOString(),
-          totalHours: data.totalHours || 1000,
+          totalHours: data.totalHours !== null ? Number(data.totalHours) : 1000,
           row: targetRowIndex
         });
         
