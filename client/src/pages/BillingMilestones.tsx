@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { 
@@ -300,11 +300,40 @@ const BillingMilestones = () => {
       accessorKey: 'timeline',
       header: 'Timeline',
       cell: ({ row }) => {
-        const [isEditing, setIsEditing] = useState(false);
-        const [dateValue, setDateValue] = useState<string | undefined>(
-          row.original.actualInvoiceDate ? new Date(row.original.actualInvoiceDate).toISOString().split('T')[0] : undefined
-        );
-        const [isUpdating, setIsUpdating] = useState(false);
+        // Each cell needs its own state since there are multiple rows
+        // Using a unique key based on the row ID ensures state isolation
+        const cellId = `timeline-${row.original.id}`;
+        
+        const [editingStates, setEditingStates] = useState<Record<string, boolean>>({});
+        const [dateValues, setDateValues] = useState<Record<string, string | undefined>>({});
+        const [updatingStates, setUpdatingStates] = useState<Record<string, boolean>>({});
+        
+        // Initialize date value if not already set
+        useEffect(() => {
+          if (!dateValues[cellId] && row.original.actualInvoiceDate) {
+            setDateValues(prev => ({
+              ...prev,
+              [cellId]: new Date(row.original.actualInvoiceDate).toISOString().split('T')[0]
+            }));
+          }
+        }, [cellId, row.original.actualInvoiceDate]);
+        
+        const isEditing = editingStates[cellId] || false;
+        const dateValue = dateValues[cellId];
+        const isUpdating = updatingStates[cellId] || false;
+        
+        // Handlers that use the cell ID for tracking state
+        const setIsEditing = (value: boolean) => {
+          setEditingStates(prev => ({...prev, [cellId]: value}));
+        };
+        
+        const setDateValue = (value: string | undefined) => {
+          setDateValues(prev => ({...prev, [cellId]: value}));
+        };
+        
+        const setIsUpdating = (value: boolean) => {
+          setUpdatingStates(prev => ({...prev, [cellId]: value}));
+        };
         
         const statusInfo = getBillingStatusInfo(
           row.original.status,
@@ -808,14 +837,15 @@ const BillingMilestones = () => {
                         ></div>
                       </div>
                       
-                      {/* At Risk indicator (shown as a red line at the top of projected) */}
+                      {/* At Risk indicator (shown as a warning line at the top of projected) */}
                       {atRisk > 0 && (
                         <div 
-                          className="absolute w-16 h-1 bg-danger" 
+                          className="absolute w-16 h-1 bg-warning" 
                           style={{
                             bottom: `${projectedHeight}%`,
                             left: '50%',
-                            transform: 'translateX(-50%)'
+                            transform: 'translateX(-50%)',
+                            opacity: 0.7
                           }}
                         ></div>
                       )}
