@@ -769,8 +769,8 @@ export async function importBillingMilestones(req: Request, res: Response) {
 
             if (projectByNumberFormat) {
               // Store the project ID we'll use for the database insert
-              const projectId = projectByNumberFormat.id;
-              console.log(`Found project by number formatting variation: ${normalizedProjectNumber} -> ${projectByNumberFormat.projectNumber} for milestone: ${milestoneName}`);
+              milestoneData.projectId = projectByNumberFormat.id;
+              console.log(`Found project by number formatting variation: ${normalizedProjectNumber} -> ${projectByNumberFormat.projectNumber} (ID: ${projectByNumberFormat.id}) for milestone: ${milestoneName}`);
             } 
             // Enhanced: Try exact prefix match (partial beginning match)
             else {
@@ -853,6 +853,16 @@ export async function importBillingMilestones(req: Request, res: Response) {
           targetDate: milestoneData.targetDate,
           status: milestoneData.status
         });
+        
+        // Extra validation logging for projectId
+        if (!milestoneData.projectId) {
+          console.log("❌ WARNING: Project ID is still null after all matching attempts for:", {
+            milestoneName: milestoneData.name,
+            projectNumber: normalizedProjectNumber
+          });
+        } else {
+          console.log("✅ Successfully found project ID:", milestoneData.projectId, "for milestone:", milestoneData.name);
+        }
         
         // Convert amount to a number for database insertion
         let finalAmount: number;
