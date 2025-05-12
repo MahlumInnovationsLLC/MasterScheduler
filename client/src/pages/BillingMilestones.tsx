@@ -14,7 +14,9 @@ import {
   Download,
   Calendar,
   Edit,
-  Trash2
+  Trash2,
+  Check,
+  X
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -298,15 +300,104 @@ const BillingMilestones = () => {
       accessorKey: 'timeline',
       header: 'Timeline',
       cell: ({ row }) => {
+        const [isEditing, setIsEditing] = useState(false);
+        const [dateValue, setDateValue] = useState<string | undefined>(
+          row.original.actualInvoiceDate ? new Date(row.original.actualInvoiceDate).toISOString().split('T')[0] : undefined
+        );
+        const [isUpdating, setIsUpdating] = useState(false);
+        
         const statusInfo = getBillingStatusInfo(
           row.original.status,
           row.original.targetInvoiceDate,
           row.original.actualInvoiceDate
         );
+        
         const textColorClass = row.original.status === 'delayed' ? 'text-danger' : 
                             row.original.status === 'invoiced' ? 'text-warning' :
                             row.original.status === 'paid' ? 'text-success' : 'text-gray-400';
-        return <div className={`text-sm ${textColorClass}`}>{statusInfo.timeline}</div>;
+        
+        // Function to handle saving the date
+        const handleSave = async () => {
+          if (!dateValue) return;
+          
+          setIsUpdating(true);
+          try {
+            const response = await apiRequest(
+              "PATCH",
+              `/api/billing-milestones/${row.original.id}`,
+              { 
+                actualInvoiceDate: dateValue,
+              }
+            );
+            
+            if (response.ok) {
+              queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+              toast({
+                title: "Date Updated",
+                description: "Invoice date has been updated successfully",
+                variant: "default"
+              });
+            } else {
+              throw new Error("Failed to update date");
+            }
+          } catch (error) {
+            toast({
+              title: "Update Failed",
+              description: `Error updating date: ${(error as Error).message}`,
+              variant: "destructive"
+            });
+          } finally {
+            setIsUpdating(false);
+            setIsEditing(false);
+          }
+        };
+        
+        // If the milestone is invoiced or delayed, make the date editable
+        const isInvoicedOrDelayed = row.original.status === 'invoiced' || row.original.status === 'delayed';
+        
+        if (isEditing && isInvoicedOrDelayed) {
+          return (
+            <div className="flex items-center space-x-2">
+              <input
+                type="date"
+                className="w-32 px-2 py-1 rounded text-xs bg-background border border-input"
+                value={dateValue || ''}
+                onChange={(e) => setDateValue(e.target.value)}
+              />
+              <div className="flex space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6" 
+                  onClick={handleSave}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> : <Check className="h-3 w-3 text-success" />}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6" 
+                  onClick={() => setIsEditing(false)}
+                  disabled={isUpdating}
+                >
+                  <X className="h-3 w-3 text-danger" />
+                </Button>
+              </div>
+            </div>
+          );
+        }
+        
+        return (
+          <div 
+            className={`text-sm ${textColorClass} ${isInvoicedOrDelayed ? "cursor-pointer hover:underline" : ""}`}
+            onClick={() => isInvoicedOrDelayed && setIsEditing(true)}
+            title={isInvoicedOrDelayed ? "Click to edit invoice date" : ""}
+          >
+            {statusInfo.timeline}
+            {isInvoicedOrDelayed && <Calendar className="inline-block ml-1 h-3 w-3" />}
+          </div>
+        );
       },
     },
     {
