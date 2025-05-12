@@ -48,6 +48,7 @@ const BillingMilestones = () => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedMilestone, setSelectedMilestone] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState(0); // Default to current month
   const { toast } = useToast();
   
   // Handler for viewing milestone details
@@ -56,15 +57,36 @@ const BillingMilestones = () => {
     setShowDetailsDialog(true);
   };
   
+  // Handler for selecting a month in the forecast
+  const handleMonthSelect = (year: number, month: number) => {
+    // Calculate the index based on current date
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    // Calculate how many months from current month
+    const monthsDiff = (year - currentYear) * 12 + (month - 1 - currentMonth);
+    
+    // Ensure the index is within the valid range (0-5)
+    const newIndex = Math.max(0, Math.min(5, monthsDiff));
+    setSelectedMonthIndex(newIndex);
+  };
+  
+  // Query for billing milestones
   const { data: billingMilestones, isLoading: isLoadingBilling } = useQuery({
     queryKey: ['/api/billing-milestones'],
+  });
+  
+  // Query for financial goals
+  const { data: financialGoals, isLoading: isLoadingGoals } = useQuery({
+    queryKey: ['/api/financial-goals'],
   });
 
   const { data: projects, isLoading: isLoadingProjects } = useQuery({
     queryKey: ['/api/projects'],
   });
   
-  // Delete mutation
+  // Delete milestone mutation
   const deleteMilestoneMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await apiRequest("DELETE", `/api/billing-milestones/${id}`, {});
@@ -82,6 +104,68 @@ const BillingMilestones = () => {
       toast({
         title: "Error",
         description: `Failed to delete billing milestone: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Create financial goal mutation
+  const createGoalMutation = useMutation({
+    mutationFn: async ({ year, month, targetAmount, description }: { 
+      year: number; 
+      month: number; 
+      targetAmount: number; 
+      description: string; 
+    }) => {
+      const response = await apiRequest("POST", "/api/financial-goals", {
+        year,
+        month,
+        targetAmount,
+        description
+      });
+      return response.ok;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Financial goal created successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/financial-goals'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to create financial goal: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Update financial goal mutation
+  const updateGoalMutation = useMutation({
+    mutationFn: async ({ year, month, targetAmount, description }: { 
+      year: number; 
+      month: number; 
+      targetAmount: number; 
+      description: string; 
+    }) => {
+      const response = await apiRequest("PUT", `/api/financial-goals/${year}/${month}`, {
+        targetAmount,
+        description
+      });
+      return response.ok;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Financial goal updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/financial-goals'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update financial goal: ${error.message}`,
         variant: "destructive",
       });
     },
