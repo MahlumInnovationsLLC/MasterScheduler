@@ -4531,6 +4531,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       <div
                         key={bar.id}
                         data-schedule-id={bar.id}
+                        data-bay-id={bar.bayId}
+                        data-row-index={rowIndex}
                         className={`absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all big-project-bar schedule-bar ${rowClass}`}
                         style={{
                           left: bar.left + 'px',
