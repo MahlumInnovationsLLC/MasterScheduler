@@ -46,7 +46,7 @@ import {
   type InsertFinancialGoal,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, or } from "drizzle-orm";
+import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or } from "drizzle-orm";
 import { PgSelectBase } from "drizzle-orm/pg-core";
 
 /**
