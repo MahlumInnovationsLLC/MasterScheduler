@@ -354,6 +354,8 @@ const BillingMilestones = () => {
         confirmedValues: forecastData.map(m => m.confirmed),
         projectedValues: forecastData.map(m => m.projected),
         atRiskValues: forecastData.map(m => m.atRisk),
+        weekLabels: fiscalWeekData.labels,
+        weekValues: fiscalWeekData.values,
         totals: {
           confirmed: totalConfirmed,
           projected: totalProjected,

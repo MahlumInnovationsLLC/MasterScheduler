@@ -100,16 +100,26 @@ function GoalSettingDialog({
       const today = new Date();
       const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex);
       
+      const weekVal = goalType === 'week' ? (selectedWeekIndex !== undefined ? selectedWeekIndex + 1 : undefined) : undefined;
+      
       setCurrentDate({
         year: targetDate.getFullYear(),
-        month: targetDate.getMonth() + 1
+        month: targetDate.getMonth() + 1,
+        week: weekVal
       });
       
-      // Check if a goal already exists for this month
-      const existingGoal = goals?.find(g => 
-        g.year === targetDate.getFullYear() && 
-        g.month === targetDate.getMonth() + 1
-      );
+      // Check if a goal already exists for this month or week
+      const existingGoal = goals?.find(g => {
+        const yearMatch = g.year === targetDate.getFullYear();
+        const monthMatch = g.month === targetDate.getMonth() + 1;
+        
+        if (goalType === 'month') {
+          return yearMatch && monthMatch && !g.week;
+        } else {
+          // Week-level goal
+          return yearMatch && monthMatch && g.week === weekVal;
+        }
+      });
       
       if (existingGoal) {
         // We're editing
@@ -455,7 +465,7 @@ export function BillingStatusCard({
                     className="h-7 p-1 text-xs"
                     onClick={() => onWeekSelect && onWeekSelect(
                       new Date().getFullYear(),
-                      parseInt(label.split('-')[1])
+                      idx + 1
                     )}
                   >
                     {label}
@@ -468,10 +478,10 @@ export function BillingStatusCard({
                 {chart.weekValues.slice(0, 6).map((val, idx) => {
                   // Find if there's a goal for this week
                   const today = new Date();
-                  const weekNumber = parseInt(chart.weekLabels[idx].split('-')[1]);
                   const matchingGoal = goals?.find(g => 
                     g.year === today.getFullYear() && 
-                    g.week === weekNumber
+                    g.month === (selectedMonthIndex || 0) + 1 && 
+                    g.week === idx + 1
                   );
                   
                   // Determine if this week has met or exceeded its goal
