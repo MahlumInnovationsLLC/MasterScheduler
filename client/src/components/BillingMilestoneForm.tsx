@@ -49,6 +49,8 @@ const formSchema = z.object({
   actualInvoiceDate: z.string().optional(),
   paymentReceivedDate: z.string().optional(),
   status: z.enum(["upcoming", "invoiced", "paid", "delayed"]),
+  // Delivery milestone flag
+  isDeliveryMilestone: z.boolean().default(false),
   // New fields
   contractReference: z.string().optional(),
   paymentTerms: z.string().optional(),
@@ -96,6 +98,7 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
       actualInvoiceDate: "",
       paymentReceivedDate: "",
       status: "upcoming",
+      isDeliveryMilestone: false,
       ...defaultValues,
     },
   });
@@ -370,6 +373,38 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
                   )}
                 />
               )}
+
+              {/* Delivery Milestone Checkbox */}
+              <FormField
+                control={form.control}
+                name="isDeliveryMilestone"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          className="form-checkbox h-5 w-5 text-primary"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          id="isDeliveryMilestone"
+                        />
+                        <label 
+                          htmlFor="isDeliveryMilestone" 
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          This is a delivery milestone
+                        </label>
+                      </div>
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormDescription>
+                        When checked, this milestone's target date will be synchronized with the project's delivery date
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
 
               {/* Additional Billing Information Section */}
               <div className="border-t pt-4 mt-4">
