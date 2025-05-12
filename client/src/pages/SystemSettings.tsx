@@ -1263,6 +1263,63 @@ const SystemSettings = () => {
                     </div>
                   </div>
                   
+                  {/* Data Management Section */}
+                  <div className="border border-red-600/20 rounded-lg p-4 bg-red-500/5">
+                    <h3 className="font-semibold text-lg mb-2 flex items-center">
+                      <Trash2 className="mr-2 h-5 w-5 text-red-500" />
+                      Data Maintenance
+                    </h3>
+                    <p className="text-sm mb-4 text-gray-300">
+                      These actions perform permanent data deletion operations. Use with caution.
+                    </p>
+                    
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">Delete All Billing Milestones</p>
+                        <p className="text-sm text-gray-400">
+                          Permanently deletes all billing milestones from the system. This action cannot be undone.
+                        </p>
+                      </div>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="destructive" 
+                            className="flex items-center"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete All Milestones
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete All Billing Milestones</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              <p>This action will permanently delete ALL billing milestones in the system and cannot be undone.</p>
+                              <div className="mt-4 bg-red-500/10 p-3 rounded border border-red-500/20">
+                                <ul className="list-disc pl-5 space-y-1 text-sm">
+                                  <li>All milestone data will be permanently lost</li>
+                                  <li>Projects will no longer have financial data associated</li>
+                                  <li>You will need to re-import or manually recreate billing milestones</li>
+                                </ul>
+                              </div>
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleDeleteAllBillingMilestones}
+                              disabled={isDeletingMilestones}
+                              className="bg-red-500 text-white hover:bg-red-600"
+                            >
+                              {isDeletingMilestones ? "Deleting..." : "Yes, Delete All Milestones"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                  
                   {/* Manufacturing Management Section */}
                   <div className="border border-yellow-600/20 rounded-lg p-4 bg-yellow-500/5">
                     <h3 className="font-semibold text-lg mb-2 flex items-center">
