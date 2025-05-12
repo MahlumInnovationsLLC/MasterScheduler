@@ -49,6 +49,7 @@ const BillingMilestones = () => {
   const [selectedMilestone, setSelectedMilestone] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(0); // Default to current month
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState(0); // Default to first week
   const { toast } = useToast();
   
   // Handler for viewing milestone details
@@ -153,13 +154,19 @@ const BillingMilestones = () => {
   
   // Update financial goal mutation
   const updateGoalMutation = useMutation({
-    mutationFn: async ({ year, month, targetAmount, description }: { 
+    mutationFn: async ({ year, month, targetAmount, description, week }: { 
       year: number; 
       month: number; 
       targetAmount: number; 
-      description: string; 
+      description: string;
+      week?: number;
     }) => {
-      const response = await apiRequest("PUT", `/api/financial-goals/${year}/${month}`, {
+      // Use different endpoint for weekly goals vs monthly goals
+      const endpoint = week !== undefined
+        ? `/api/financial-goals/${year}/${month}/${week}`
+        : `/api/financial-goals/${year}/${month}`;
+        
+      const response = await apiRequest("PUT", endpoint, {
         targetAmount,
         description
       });
@@ -720,8 +727,8 @@ const BillingMilestones = () => {
         </div>
       </div>
       
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* Top Row Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <BillingStatusCard 
           title="Total Revenue"
           value={formatCurrency(billingStats?.amounts.total || 0)}
@@ -749,6 +756,20 @@ const BillingMilestones = () => {
         />
         
         <BillingStatusCard 
+          title="Cash Flow"
+          value=""
+          type="cashflow"
+          stats={[
+            { label: "Outstanding", value: formatCurrency((billingStats?.amounts.pending || 0) + (billingStats?.amounts.overdue || 0)) },
+            { label: "Invoiced", value: formatCurrency(billingStats?.amounts.pending || 0) },
+            { label: "Received (30d)", value: formatCurrency(billingStats?.amounts.receivedLast30Days || 0) }
+          ]}
+        />
+      </div>
+      
+      {/* Monthly Forecasts Row (Full Width) */}
+      <div className="mb-6">
+        <BillingStatusCard 
           title="Monthly Forecasts"
           value={formatCurrency(billingStats?.forecast.values[selectedMonthIndex] || 0)}
           type="forecast"
@@ -761,30 +782,19 @@ const BillingMilestones = () => {
           onMonthSelect={handleMonthSelect}
           selectedMonthIndex={selectedMonthIndex}
           onWeekSelect={(year, week) => {
-            console.log(`Selected week ${week} of ${year}`);
             // Implement week selection logic
+            setSelectedWeekIndex(week - 1); // Adjust for 0-based index
           }}
-          selectedWeekIndex={0}
+          selectedWeekIndex={selectedWeekIndex}
           showFiscalWeeks={true}
           fiscalWeekDisplay="below"
           goals={financialGoals}
-          onGoalCreate={(year, month, targetAmount, description) => {
-            createGoalMutation.mutate({ year, month, targetAmount, description });
+          onGoalCreate={(year, month, targetAmount, description, week) => {
+            createGoalMutation.mutate({ year, month, targetAmount, description, week });
           }}
-          onGoalUpdate={(year, month, targetAmount, description) => {
-            updateGoalMutation.mutate({ year, month, targetAmount, description });
+          onGoalUpdate={(year, month, targetAmount, description, week) => {
+            updateGoalMutation.mutate({ year, month, targetAmount, description, week });
           }}
-        />
-        
-        <BillingStatusCard 
-          title="Cash Flow"
-          value=""
-          type="cashflow"
-          stats={[
-            { label: "Outstanding", value: formatCurrency((billingStats?.amounts.pending || 0) + (billingStats?.amounts.overdue || 0)) },
-            { label: "Invoiced", value: formatCurrency(billingStats?.amounts.pending || 0) },
-            { label: "Received (30d)", value: formatCurrency(billingStats?.amounts.receivedLast30Days || 0) }
-          ]}
         />
       </div>
       
