@@ -443,6 +443,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete all billing milestones (admin only)
+  // This must be defined BEFORE the :id route to avoid route conflicts
+  app.delete("/api/billing-milestones/delete-all", isAuthenticated, async (req, res) => {
+    try {
+      // Make sure user is admin
+      const user = req.user as any;
+      if (!user || (user.role !== 'admin' && !req.isDevMode)) {
+        return res.status(403).json({ message: "Only administrators can perform this action" });
+      }
+      
+      const count = await storage.deleteAllBillingMilestones();
+      res.json({ success: true, count });
+    } catch (error) {
+      console.error("Error deleting all billing milestones:", error);
+      res.status(500).json({ message: "Error deleting all billing milestones" });
+    }
+  });
+  
+  // Delete a single billing milestone by ID
   app.delete("/api/billing-milestones/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);

@@ -147,6 +147,7 @@ export interface IStorage {
   createBillingMilestone(milestone: InsertBillingMilestone): Promise<BillingMilestone>;
   updateBillingMilestone(id: number, milestone: Partial<InsertBillingMilestone>): Promise<BillingMilestone | undefined>;
   deleteBillingMilestone(id: number): Promise<boolean>;
+  deleteAllBillingMilestones(): Promise<number>;
   
   // Manufacturing Bay methods
   getManufacturingBays(): Promise<ManufacturingBay[]>;
@@ -697,6 +698,11 @@ export class DatabaseStorage implements IStorage {
   async deleteBillingMilestone(id: number): Promise<boolean> {
     await db.delete(billingMilestones).where(eq(billingMilestones.id, id));
     return true;
+  }
+  
+  async deleteAllBillingMilestones(): Promise<number> {
+    const result = await db.delete(billingMilestones);
+    return result.count || 0;
   }
   
   // Manufacturing Bay methods
