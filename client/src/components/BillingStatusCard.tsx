@@ -79,10 +79,10 @@ export function BillingStatusCard({
               }`}
             >
               <div className="text-2xl font-bold">{stat.value}</div>
-              <div className={`text-xs ${
-                index === 0 ? 'text-success' :
-                index === 1 ? 'text-warning' :
-                index === 2 ? 'text-danger' :
+              <div className={`text-xs font-semibold ${
+                index === 0 ? 'text-green-400' : 
+                index === 1 ? 'text-amber-400' : 
+                index === 2 ? 'text-rose-400' : 
                 'text-gray-400'
               }`}>
                 {stat.label}
@@ -115,7 +115,7 @@ export function BillingStatusCard({
           {stats.map((stat, index) => (
             <div key={index} className="flex justify-between items-center">
               <span className="text-sm">{stat.label}</span>
-              <span className={`font-bold ${index === 2 ? 'text-success' : ''}`}>{stat.value}</span>
+              <span className={`font-bold ${index === 2 ? 'text-green-400' : ''}`}>{stat.value}</span>
             </div>
           ))}
         </div>
@@ -124,7 +124,7 @@ export function BillingStatusCard({
           <div className="flex items-end">
             <span className="text-3xl font-bold font-sans">{value}</span>
             {change && (
-              <span className={`ml-2 text-xs ${change.isPositive ? 'text-success' : 'text-danger'} flex items-center`}>
+              <span className={`ml-2 text-xs ${change.isPositive ? 'text-green-400' : 'text-rose-400'} flex items-center`}>
                 {change.isPositive ? (
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-up"><path d="m5 12 7-7 7 7"></path><path d="M12 19V5"></path></svg>
                 ) : (
