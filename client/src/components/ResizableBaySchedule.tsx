@@ -2206,11 +2206,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // We allow up to 8 rows (0-7) internally, which will map to 4 visual rows
     targetRowIndex = Math.min(7, Math.max(0, targetRowIndex));
     
-    // CRITICAL BUG FIX: Use the actual bay ID where the user dropped, not the original bay!
-    // This ensures the project goes to the correct bay (Team 1 vs Team 2)
-    let targetBayId = bayId;
+    // CRITICAL: We already decided to use the exact bay ID from the drop event parameter
+    // DO NOT modify the bayId parameter - use it directly to ensure correct placement
     
-    console.log(`⚠️ FIXED DROP HANDLER using actual drop target bay: ${targetBayId} with row: ${targetRowIndex} `);
+    console.log(`⚠️ FIXED DROP HANDLER using actual drop target bay: ${bayId} with row: ${targetRowIndex} `);
     console.log(`(Current row=${globalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
     
     // Read data attributes from the drop target element for more precise week targeting
@@ -2460,7 +2459,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`Checking if preferred row ${preferredRow} is available...`);
         
         // Get all schedules for this bay
-        const baySchedules = schedules.filter(s => s.bayId === targetBayId);
+        const baySchedules = schedules.filter(s => s.bayId === bayId);
         
         // Check if there's any overlap with existing schedules in this row
         const hasOverlap = baySchedules.some(schedule => {
@@ -2594,7 +2593,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log('Moving existing schedule with data:', {
           id: data.id,
           projectId: data.projectId,
-          bayId: targetBayId, 
+          bayId: bayId, // EMERGENCY FIX: Always use the actual bay where the user dropped (function param)
           startDate: slotDate.toISOString(), 
           endDate: finalEndDate.toISOString(),
           totalHours: data.totalHours || 1000,
@@ -2621,15 +2620,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           projectElement.classList.add('animate-pulse', 'opacity-50');
         }
         
-        // CRITICAL BUG FIX: Use the actual bay ID where the user dropped
-        // This is the key fix that ensures the project goes to Bay 1 vs. Bay 2
-        const actualBayId = targetBayId; // Use the bay where user actually dropped
+        // 🚨 EMERGENCY BUG FIX: CRITICAL - DON'T USE STORED/TRACKED BAY REFERENCES
+        // Always use exactly the 'bayId' parameter directly from the drop event
+        // This is the most important fix to stop projects jumping between bays
+        console.log(`🚨 EMERGENCY FIX: Using EXACT drop target bay ID: ${bayId} with NO TRANSLATION`);
         
-        // Get the user's intended row, but we'll use this as a preference rather than forcing it
-        const preferredRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
-        
-        // CRITICAL: Always use the actual bay ID where the user dropped
-        const finalBayId = actualBayId;
+        // CRITICAL: Always use the actual bay ID where the user dropped 
+        const finalBayId = bayId;
         
         // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
         // User specifically requested to disable all auto-placement logic
@@ -2655,7 +2652,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           console.log('Schedule successfully updated:', result);
           
           // Find the target bay to show proper bay number in toast
-          const targetBayInfo = bays.find(b => b.id === targetBayId);
+          const targetBayInfo = bays.find(b => b.id === finalBayId);
           toast({
             title: "Schedule Updated",
             description: `${data.projectNumber} moved to Bay ${targetBayInfo?.bayNumber || bay.bayNumber}`,
