@@ -572,6 +572,10 @@ export async function importBillingMilestones(req: Request, res: Response) {
         message: 'Invalid billing milestone data. Expected an array.' 
       });
     }
+    
+    // Get all projects for lookup
+    const projects = await storage.getProjects();
+    console.log(`Loaded ${projects.length} projects for matching`);
 
     const results = {
       imported: 0,
@@ -582,23 +586,58 @@ export async function importBillingMilestones(req: Request, res: Response) {
     // Process each milestone
     for (const rawMilestoneData of milestonesData) {
       try {
-        // Flexible field mapping for milestone data
-        // First extract key fields with flexible column name recognition
-        const milestoneName = rawMilestoneData['Milestone'] || rawMilestoneData['Milestone Name'] || 
-                            rawMilestoneData['Billing Item'] || rawMilestoneData['Billing Milestone'] || 
-                            rawMilestoneData['Description'];
+        // EXTRACT DATA FIELDS - with flexible column name recognition
+        // 1. Project Number - try various field names that could be in the Excel file
+        const projectNumber = 
+          rawMilestoneData['Project Number'] || 
+          rawMilestoneData['Proj #'] || 
+          rawMilestoneData['Project #'] || 
+          rawMilestoneData['Project'] ||
+          rawMilestoneData._projectNumber || // From client-side processing
+          '';
         
-        const projectNumber = rawMilestoneData['Project Number'] || rawMilestoneData['Proj #'] || 
-                            rawMilestoneData['Project #'] || rawMilestoneData['Project'];
+        if (!projectNumber) {
+          console.log('Missing project number, skipping milestone:', rawMilestoneData);
+          results.errors++;
+          results.details.push(`Missing project number for milestone`);
+          continue;
+        }
         
-        const amount = rawMilestoneData['Amount'] || rawMilestoneData['Value'] || 
-                      rawMilestoneData['Milestone Amount'] || rawMilestoneData['Billing Amount'] || '0';
+        // 2. Milestone Name
+        const milestoneName = 
+          rawMilestoneData['Milestone'] || 
+          rawMilestoneData['name'] || // From client-side processing
+          rawMilestoneData['Milestone Name'] || 
+          rawMilestoneData['Billing Item'] || 
+          rawMilestoneData['Billing Milestone'] || 
+          '';
         
-        const targetDate = rawMilestoneData['Target Invoice Date'] || rawMilestoneData['Target Date'] || 
-                          rawMilestoneData['Due Date'] || rawMilestoneData['Invoice Date'];
+        if (!milestoneName) {
+          console.log('Missing milestone name, skipping milestone for project:', projectNumber);
+          results.errors++;
+          results.details.push(`Missing milestone name for project: ${projectNumber}`);
+          continue;
+        }
         
-        // Map Excel template fields to database schema
-        // Fix amount parsing - handle currency format strings like "$69,600"
+        // 3. Amount - handle currency formats like "$69,600"
+        const amount = 
+          rawMilestoneData['Amount'] || 
+          rawMilestoneData['amount'] || // From client-side processing
+          rawMilestoneData['Value'] || 
+          rawMilestoneData['Milestone Amount'] || 
+          rawMilestoneData['Billing Amount'] || 
+          '0';
+        
+        // 4. Target Invoice Date
+        const targetDate = 
+          rawMilestoneData['Target Invoice Date'] || 
+          rawMilestoneData['targetDate'] || // From client-side processing
+          rawMilestoneData['Target Date'] || 
+          rawMilestoneData['Due Date'] || 
+          rawMilestoneData['Invoice Date'] || 
+          '';
+        
+        // Parse the amount to a number
         let amountValue: number;
         if (typeof amount === 'number') {
           amountValue = amount;
@@ -613,54 +652,68 @@ export async function importBillingMilestones(req: Request, res: Response) {
             console.log(`Parsed amount: "${amount}" -> ${amountValue}`);
           }
         }
+        
+        if (!targetDate) {
+          console.log('Missing target date, skipping milestone:', milestoneName, 'for project:', projectNumber);
+          results.errors++;
+          results.details.push(`Missing target invoice date for milestone: ${milestoneName}`);
+          continue;
+        }
+        
+        // Convert dates to proper format
+        const targetInvoiceDate = convertExcelDate(targetDate);
+        
+        const invoiceDateRaw = 
+          rawMilestoneData['Actual Invoice Date'] || 
+          rawMilestoneData['invoiceDate'] || // From client-side processing
+          rawMilestoneData['Invoice Date'] || 
+          null;
+        const actualInvoiceDate = invoiceDateRaw ? convertExcelDate(invoiceDateRaw) : null;
+        
+        const paymentDateRaw = 
+          rawMilestoneData['Payment Received Date'] || 
+          rawMilestoneData['paymentReceivedDate'] || // From client-side processing
+          rawMilestoneData['Payment Date'] || 
+          rawMilestoneData['Received Date'] || 
+          null;
+        const paymentReceivedDate = paymentDateRaw ? convertExcelDate(paymentDateRaw) : null;
+        
+        // Status and Description
+        const status = (rawMilestoneData['Status'] || rawMilestoneData['status'] || 'upcoming').toLowerCase();
+        const description = rawMilestoneData['Description'] || rawMilestoneData['description'] || rawMilestoneData['Notes'] || '';
 
-        const milestoneData: any = {
-          name: milestoneName,
-          description: rawMilestoneData['Description'] || rawMilestoneData['Notes'] || '',
-          amount: amountValue, // Use the properly parsed amount
-          targetDate: targetDate,
-          invoiceDate: rawMilestoneData['Actual Invoice Date'] || rawMilestoneData['Invoice Date'],
-          paymentReceivedDate: rawMilestoneData['Payment Received Date'] || rawMilestoneData['Received Date'],
-          status: (rawMilestoneData['Status'] || 'upcoming').toLowerCase(),
-          notes: rawMilestoneData['Notes'] || '',
-          contractReference: rawMilestoneData['Contract Reference'] || '',
-          invoiceNumber: rawMilestoneData['Invoice Number'] || '',
-          percentageOfTotal: typeof rawMilestoneData['Percentage of Total'] === 'number'
-            ? rawMilestoneData['Percentage of Total']
-            : parseFloat(String(rawMilestoneData['Percentage of Total'] || '0').replace('%', '')),
-          paymentTerms: rawMilestoneData['Payment Terms'] || '',
-          billingContact: rawMilestoneData['Billing Contact'] || '',
-          // Store project number temporarily for lookup
-          _projectNumber: projectNumber
-        };
-
-        // Validate only required fields: Project Number, Milestone, Amount, Target Invoice Date
-        let validationErrors = [];
+        // FIND MATCHING PROJECT ID
         
-        if (!milestoneData._projectNumber) {
-          validationErrors.push('Project Number is required');
+        // First try direct match on project number
+        let matchedProject = projects.find(p => p.projectNumber === projectNumber);
+        
+        // If no direct match, try without formatting (numbers only)
+        if (!matchedProject) {
+          const numericProjectNumber = projectNumber.replace(/\D/g, '');
+          matchedProject = projects.find(p => 
+            p.projectNumber && p.projectNumber.replace(/\D/g, '') === numericProjectNumber
+          );
         }
         
-        if (!milestoneData.name) {
-          validationErrors.push('Milestone name is required');
+        // Try prefix matching as a last resort
+        if (!matchedProject) {
+          matchedProject = projects.find(p => 
+            p.projectNumber && (
+              p.projectNumber.startsWith(projectNumber) || 
+              projectNumber.startsWith(p.projectNumber)
+            )
+          );
         }
         
-        if (isNaN(milestoneData.amount)) {
-          validationErrors.push('Amount must be a valid number');
+        // If we still don't have a match, report error and skip
+        if (!matchedProject) {
+          console.log(`No matching project found for number: ${projectNumber}`);
+          results.errors++;
+          results.details.push(`Project not found for number: ${projectNumber}`);
+          continue;
         }
         
-        if (!milestoneData.targetDate) {
-          validationErrors.push('Target Invoice Date is required');
-        }
-        
-        if (validationErrors.length > 0) {
-          throw new Error(validationErrors.join(', '));
-        }
-
-        // Format dates using our enhanced converter
-        milestoneData.targetDate = convertExcelDate(milestoneData.targetDate);
-        milestoneData.invoiceDate = convertExcelDate(milestoneData.invoiceDate);
-        milestoneData.paymentReceivedDate = convertExcelDate(milestoneData.paymentReceivedDate);
+        console.log(`Found project match: ${matchedProject.projectNumber} (${matchedProject.name}) for milestone: ${milestoneName}`);
 
         // Save the project number from temporary field and remove it
         const milestoneProjectNumber = milestoneData._projectNumber;
