@@ -180,7 +180,7 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Billing Milestone" : "Add New Billing Milestone"}</DialogTitle>
           <DialogDescription>
@@ -191,281 +191,48 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="projectId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Project</FormLabel>
-                  <Select
-                    onValueChange={(value) => field.onChange(parseInt(value))}
-                    defaultValue={field.value?.toString()}
-                    disabled={isPending || isLoadingProjects || projectId !== undefined}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a project" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {projects?.map((project) => (
-                        <SelectItem key={project.id} value={project.id.toString()}>
-                          {project.projectNumber} - {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Milestone Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g., Initial Payment, Project Completion"
-                      {...field}
-                      disabled={isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Describe the milestone..."
-                      {...field}
-                      disabled={isPending}
-                      value={field.value || ''}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount ($)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="0.00"
-                      {...field}
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      disabled={isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 flex-1 flex flex-col">
+            <div className="overflow-y-auto pr-1 flex-1 space-y-4">
               <FormField
                 control={form.control}
-                name="targetInvoiceDate"
+                name="projectId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Target Invoice Date</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        {...field}
-                        disabled={isPending}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
+                    <FormLabel>Project</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={isPending}
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      defaultValue={field.value?.toString()}
+                      disabled={isPending || isLoadingProjects || projectId !== undefined}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
+                          <SelectValue placeholder="Select a project" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="upcoming">Upcoming</SelectItem>
-                        <SelectItem value="invoiced">Invoiced</SelectItem>
-                        <SelectItem value="paid">Paid</SelectItem>
-                        <SelectItem value="delayed">Delayed</SelectItem>
+                        {projects?.map((project) => (
+                          <SelectItem key={project.id} value={project.id.toString()}>
+                            {project.projectNumber} - {project.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-
-            {/* Show additional fields based on status */}
-            {(form.watch("status") === "invoiced" || form.watch("status") === "paid" || form.watch("status") === "delayed") && (
-              <FormField
-                control={form.control}
-                name="actualInvoiceDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Actual Invoice Date</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        {...field}
-                        disabled={isPending}
-                        value={field.value || ''}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {form.watch("status") === "paid" && (
-              <FormField
-                control={form.control}
-                name="paymentReceivedDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Received Date</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        {...field}
-                        disabled={isPending}
-                        value={field.value || ''}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {/* Additional Billing Information Section */}
-            <div className="border-t pt-4 mt-4">
-              <h3 className="text-lg font-medium mb-4">Additional Billing Information</h3>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <FormField
-                  control={form.control}
-                  name="contractReference"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contract Reference</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Contract #"
-                          {...field}
-                          disabled={isPending}
-                          value={field.value || ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="invoiceNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Invoice Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Invoice #"
-                          {...field}
-                          disabled={isPending}
-                          value={field.value || ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <FormField
-                  control={form.control}
-                  name="paymentTerms"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Payment Terms</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Net 30, etc."
-                          {...field}
-                          disabled={isPending}
-                          value={field.value || ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="percentageOfTotal"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Percentage of Total</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="e.g., 25%"
-                          {...field}
-                          disabled={isPending}
-                          value={field.value || ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
 
               <FormField
                 control={form.control}
-                name="billingContact"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Billing Contact</FormLabel>
+                    <FormLabel>Milestone Name</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Contact name or email"
+                        placeholder="e.g., Initial Payment, Project Completion"
                         {...field}
                         disabled={isPending}
-                        value={field.value || ''}
                       />
                     </FormControl>
                     <FormMessage />
@@ -475,13 +242,13 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
 
               <FormField
                 control={form.control}
-                name="notes"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Additional Notes</FormLabel>
+                    <FormLabel>Description</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Any additional notes about this billing milestone..."
+                        placeholder="Describe the milestone..."
                         {...field}
                         disabled={isPending}
                         value={field.value || ''}
@@ -491,17 +258,254 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
                   </FormItem>
                 )}
               />
-            </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEdit ? "Update Milestone" : "Add Milestone"}
-              </Button>
-            </DialogFooter>
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Amount ($)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="0.00"
+                        {...field}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        disabled={isPending}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="targetInvoiceDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Target Invoice Date</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          {...field}
+                          disabled={isPending}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={isPending}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="upcoming">Upcoming</SelectItem>
+                          <SelectItem value="invoiced">Invoiced</SelectItem>
+                          <SelectItem value="paid">Paid</SelectItem>
+                          <SelectItem value="delayed">Delayed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Show additional fields based on status */}
+              {(form.watch("status") === "invoiced" || form.watch("status") === "paid" || form.watch("status") === "delayed") && (
+                <FormField
+                  control={form.control}
+                  name="actualInvoiceDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Actual Invoice Date</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          {...field}
+                          disabled={isPending}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {form.watch("status") === "paid" && (
+                <FormField
+                  control={form.control}
+                  name="paymentReceivedDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment Received Date</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          {...field}
+                          disabled={isPending}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Additional Billing Information Section */}
+              <div className="border-t pt-4 mt-4">
+                <h3 className="text-lg font-medium mb-4">Additional Billing Information</h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <FormField
+                    control={form.control}
+                    name="contractReference"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contract Reference</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Contract #"
+                            {...field}
+                            disabled={isPending}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="invoiceNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Invoice Number</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Invoice #"
+                            {...field}
+                            disabled={isPending}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <FormField
+                    control={form.control}
+                    name="paymentTerms"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Payment Terms</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Net 30, etc."
+                            {...field}
+                            disabled={isPending}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="percentageOfTotal"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Percentage of Total</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., 25%"
+                            {...field}
+                            disabled={isPending}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="billingContact"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Billing Contact</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Contact name or email"
+                          {...field}
+                          disabled={isPending}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Additional Notes</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Any additional notes about this billing milestone..."
+                          {...field}
+                          disabled={isPending}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isPending}>
+                  {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isEdit ? "Update Milestone" : "Add Milestone"}
+                </Button>
+              </DialogFooter>
+            </div>
           </form>
         </Form>
       </DialogContent>
