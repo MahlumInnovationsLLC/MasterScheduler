@@ -346,16 +346,20 @@ export function BillingStatusCard({
     // Get fiscal weeks for this month
     const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
     
-    // Calculate maximum value for proper scaling across all weeks
-    const maxWeekValue = Math.max(...chart.weekValues.filter(v => typeof v === 'number'), 1);
+    // Extract revenue values specific to this month's weeks
+    // Each week needs its own revenue value
+    const weekRevenues = fiscalWeeks.map((week, index) => {
+      // Here we use the week index to align with the UI
+      return chart.weekValues ? chart.weekValues[index] || 0 : 0;
+    });
+    
+    // Calculate maximum value for proper scaling across all weeks in this month only
+    const maxWeekValue = Math.max(...weekRevenues, 1); // At least 1 to avoid division by zero
     
     // Only display charts for the weeks of the selected month
     return fiscalWeeks.map((fiscalWeek, idx) => {
-      // Each week has a specific value in the chart data
-      // Make sure we have actual data for this week
-      const val = chart.weekValues && chart.weekValues[idx] !== undefined 
-        ? chart.weekValues[idx] 
-        : 0;
+      // Get the value for this specific week
+      const val = weekRevenues[idx];
       
       // Find a matching goal for this specific fiscal week
       const matchingGoal = goals?.find(g => 
@@ -693,11 +697,40 @@ export function BillingStatusCard({
                 <div className={`${isFullWidthForecast ? 'mt-6 flex justify-between items-center' : 'mt-3 flex justify-between items-center text-sm'}`}>
                   <div>
                     <span className="text-gray-400">
-                      {/* Format the week label to not duplicate the month name when it's already shown in the UI */}
-                      {chart.weekLabels[selectedWeekIndex]?.replace(/Week \d+: (.*?)( \d+)? - .*/, 'Week $1') || ''} Total:
+                      {/* Get the proper fiscal week for display */}
+                      {(() => {
+                        // Get the selected month's year and month
+                        const today = new Date();
+                        const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
+                        
+                        // Get fiscal weeks for this month
+                        const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
+                        
+                        if (fiscalWeeks[selectedWeekIndex]) {
+                          return `Week ${selectedWeekIndex + 1} Total:`;
+                        }
+                        return "Week Total:";
+                      })()}
                     </span>
                     <span className={`ml-2 font-bold ${isFullWidthForecast ? 'text-lg' : ''}`}>
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(chart.weekValues[selectedWeekIndex])}
+                      {(() => {
+                        // Get the value for this week from our aligned values
+                        const today = new Date();
+                        const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), selectedMonthIndex || 0);
+                        const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
+                        
+                        // Extract revenue values specific to this month's weeks
+                        const weekRevenues = fiscalWeeks.map((week, index) => {
+                          return chart.weekValues ? chart.weekValues[index] || 0 : 0;
+                        });
+                        
+                        const weekValue = weekRevenues[selectedWeekIndex] || 0;
+                        return new Intl.NumberFormat('en-US', { 
+                          style: 'currency', 
+                          currency: 'USD', 
+                          maximumFractionDigits: 0 
+                        }).format(weekValue);
+                      })()}
                     </span>
                   </div>
                   
