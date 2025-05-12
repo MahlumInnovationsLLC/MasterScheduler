@@ -556,17 +556,17 @@ export async function importProjects(req: Request, res: Response) {
 // Import Future Billing Milestones
 export async function importBillingMilestones(req: Request, res: Response) {
   try {
-    const rawMilestonesData = req.body;
+    const milestonesData = req.body;
     console.log("Received billing milestones data for import:", 
-      rawMilestonesData.length > 0 ? 
-        `${rawMilestonesData.length} milestones, first item fields: ${Object.keys(rawMilestonesData[0]).join(', ')}` :
+      milestonesData.length > 0 ? 
+        `${milestonesData.length} milestones, first item fields: ${Object.keys(milestonesData[0]).join(', ')}` :
         "Empty array");
     
-    if (rawMilestonesData.length > 0) {
-      console.log("Sample milestone data:", JSON.stringify(rawMilestonesData[0], null, 2));
+    if (milestonesData.length > 0) {
+      console.log("Sample milestone data:", JSON.stringify(milestonesData[0], null, 2));
     }
     
-    if (!Array.isArray(rawMilestonesData)) {
+    if (!Array.isArray(milestonesData)) {
       return res.status(400).json({ 
         success: false, 
         message: 'Invalid billing milestone data. Expected an array.' 
@@ -584,7 +584,7 @@ export async function importBillingMilestones(req: Request, res: Response) {
     };
 
     // Process each milestone
-    for (const rawMilestoneData of rawMilestonesData) {
+    for (const rawMilestoneData of milestonesData) {
       try {
         // Create a structured milestone object that we'll build during processing
         const milestoneData: {
