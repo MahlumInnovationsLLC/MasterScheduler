@@ -96,8 +96,8 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
       return aDays - bDays;
     });
     
-    // Increase limit to show more active projects (was top 3, now showing top 6)
-    return sortedResults.slice(0, 6);
+    // Show ALL active and upcoming projects - removed the limit completely
+    return sortedResults;
   }, [projects, manufacturingSchedules, manufacturingBays]);
   
   // Upcoming NTC or QC dates in the next 2 weeks

@@ -2184,8 +2184,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       targetRowIndex = 0;
     }
     
-    // Safety bounds check on row (0-3 only)
-    targetRowIndex = Math.min(3, Math.max(0, targetRowIndex));
+    // Safety bounds check on row (0-7 now) - EXPANDED to allow more than 4 projects per bay
+    // We allow up to 8 rows (0-7) internally, which will map to 4 visual rows
+    targetRowIndex = Math.min(7, Math.max(0, targetRowIndex));
     
     // Keep the bay ID consistent (projects stay in the same bay)
     let targetBayId = originalBayId > 0 ? originalBayId : bayId;
@@ -2636,8 +2637,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           placeholderDiv.classList.add('absolute', 'animate-pulse', 'bg-primary/30', 'border', 'border-primary', 'rounded', 'z-30');
           
           // Position it based on the target row
-          const rowHeight = bayElement.clientHeight / 4; // 4 rows per bay
-          const rowTop = targetRowIndex * rowHeight;
+          // Use 4 visual rows, but map from the expanded internal rows (0-7)
+          const rowHeight = bayElement.clientHeight / 4; // 4 visual rows per bay
+          // Map from logical rows (0-7) to visual rows (0-3)
+          const visualRowIndex = targetRowIndex % 4;
+          const rowTop = visualRowIndex * rowHeight;
           
           // Set styles
           placeholderDiv.style.left = `${slotIndex * slotWidth}px`;
