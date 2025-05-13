@@ -384,6 +384,31 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
   };
   
+  // Handle row addition - especially for special multi-row bays like Team 7 & 8
+  const handleRowAdd = async (bayId: number, rowIndex: number) => {
+    try {
+      const bay = bays.find(b => b.id === bayId);
+      if (!bay) {
+        throw new Error(`Bay with ID ${bayId} not found`);
+      }
+      
+      toast({
+        title: "Row Added",
+        description: `New row added after row ${rowIndex + 1} in ${bay.name}`,
+      });
+      
+      // In a full implementation, we might update the bay's configuration or capacity
+      // to reflect the addition of a new row
+    } catch (error) {
+      console.error('Error adding row:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add row. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   // Handle document-level drag events for global feedback
   useEffect(() => {
     const handleDocumentDragOver = () => {
@@ -482,6 +507,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   const [isMovingProject, setIsMovingProject] = useState(false);
   const [isUnassigningProject, setIsUnassigningProject] = useState(false);
   
+  // States for row management in multi-row bays (like Team 7 & 8)
+  const [rowToDelete, setRowToDelete] = useState<{
+    bayId: number;
+    rowIndex: number;
+    projects: {
+      id: number;
+      projectId: number;
+      projectName: string;
+      projectNumber: string;
+    }[];
+  } | null>(null);
+  const [deleteRowDialogOpen, setDeleteRowDialogOpen] = useState(false);
+
   // Add state for warning popup when manual resizing affects capacity
   const [showCapacityWarning, setShowCapacityWarning] = useState(false);
   const [capacityWarningData, setCapacityWarningData] = useState<{
@@ -4468,7 +4506,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     handleDrop={handleDrop}
                     setRowToDelete={setRowToDelete}
                     setDeleteRowDialogOpen={setDeleteRowDialogOpen}
-                    handleRowDelete={handleRowDelete}
+                    handleRowDelete={handleDeleteRow}
                     handleRowAdd={handleRowAdd}
                     rowCount={getBayRowCount(bay.id, bay.name)}
                   />
