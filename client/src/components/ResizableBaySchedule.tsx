@@ -2156,6 +2156,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // This ensures we know which bay the drag started in
     const dragElement = e.currentTarget as HTMLElement;
     
+    // ENHANCED BAY 3 FIX: Add bay-specific class to the dragElement for Bay 3
+    if (bayId === 3) {
+      dragElement.classList.add('dragging-over-bay-3');
+      console.log('Dragging over Bay 3 - adding special class');
+    } else {
+      dragElement.classList.remove('dragging-over-bay-3');
+    }
+    
     // CRITICAL: Update with the current row whenever dragging over
     // This ensures we track the actual row where the cursor is hovering
     const currentRow = Math.max(0, Math.min(3, rowIndex));
@@ -2164,7 +2172,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // CRITICAL BUG FIX: Always update with the latest bay ID when dragging over
     // This ensures the project is placed in the currently hovered bay
     document.body.setAttribute('data-current-drag-bay', bayId.toString());
-    console.log(`Updated current drag bay: ${bayId} and row: ${currentRow}`);
+    
+    // Add additional robust tracking for Bay 3 specifically
+    // This ensures we have multiple ways to identify the target bay
+    if (bayId === 3) {
+      document.body.setAttribute('data-bay-three-drag', 'true');
+      document.body.setAttribute('data-last-bay-drag', '3');
+      console.log(`Enhanced tracking for Bay 3 drag, row: ${currentRow}`);
+    } else {
+      document.body.removeAttribute('data-bay-three-drag');
+      document.body.setAttribute('data-last-bay-drag', bayId.toString());
+      console.log(`Updated current drag bay: ${bayId} and row: ${currentRow}`);
+    }
     
     // We'll still track the original bay ID on the element (but don't use it for placement)
     if (dragElement && !dragElement.hasAttribute('data-original-bay-id')) {
@@ -2761,9 +2780,52 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // This prevents the bay jumping issue by ensuring we always use the bay where the drop happened
     console.log(`🔴 CRITICAL FIX: Using exact bayId=${bayId} from drop event parameters`);
     
+    // ENHANCED BAY 3 FIX: Special handling for Bay 3 drops
+    // Additional data verification and handling for Bay 3
+    let finalBayId = bayId;
+    
+    if (bayId === 3) {
+      console.log('🔶 BAY 3 DROP DETECTED - Applying special handling');
+      
+      // Add a visual indicator for Bay 3 drop target
+      const bay3Element = document.querySelector(`.bay-content[data-bay-id="3"]`);
+      if (bay3Element) {
+        bay3Element.classList.add('bay-3-drop-active');
+        setTimeout(() => bay3Element.classList.remove('bay-3-drop-active'), 1000);
+      }
+      
+      // Force Bay 3 data attribute to be set on the document body to ensure consistency
+      document.body.setAttribute('data-bay-three-drop', 'true');
+    } else {
+      document.body.removeAttribute('data-bay-three-drop');
+    }
+    
+    // Additional data consistency check for Bay 3 using multiple sources
+    const bodyBayId = document.body.getAttribute('data-current-drag-bay');
+    const lastBayDrag = document.body.getAttribute('data-last-bay-drag');
+    const bay3Flag = document.body.hasAttribute('data-bay-three-drag');
+    
+    console.log(`Drop context: Event bayId=${bayId}, Body bayId=${bodyBayId}, Last drag=${lastBayDrag}, Bay3 flag=${bay3Flag}`);
+    
+    // If ANY source indicates this is a Bay 3 drop, respect that
+    const isBay3ByMultipleChecks = 
+      bayId === 3 || 
+      bodyBayId === '3' || 
+      lastBayDrag === '3' || 
+      bay3Flag;
+      
+    if (isBay3ByMultipleChecks && bayId !== 3) {
+      console.log('⚠️ Bay 3 detected through alternate data sources - overriding with Bay 3');
+      finalBayId = 3;
+    }
+    
     // Force any data-bay-id attribute on the element to match the parameter for consistency
     if (e.currentTarget && e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.setAttribute('data-bay-id', bayId.toString());
+      e.currentTarget.setAttribute('data-bay-id', finalBayId.toString());
+      
+      // Add a visual cue for the specific bay
+      e.currentTarget.classList.remove('drop-bay-1', 'drop-bay-2', 'drop-bay-3', 'drop-bay-4', 'drop-bay-5', 'drop-bay-6');
+      e.currentTarget.classList.add(`drop-bay-${finalBayId}`);
     }
     
     // For row, we will still use the global attribute if available as it works correctly
@@ -2780,11 +2842,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const dropTargetBayId = dropTarget?.getAttribute('data-bay-id');
     
     // Make sure the bay ID used in the event handler matches the element's bay ID
-    if (dropTargetBayId && dropTargetBayId !== bayId.toString()) {
-      console.log(`Correcting bay ID mismatch: event=${bayId}, element=${dropTargetBayId}`);
-      // Update the element's data-bay-id attribute to match the event parameter
+    // Now using finalBayId which includes Bay 3 detection
+    if (dropTargetBayId && dropTargetBayId !== finalBayId.toString()) {
+      console.log(`Correcting bay ID mismatch: event=${bayId}, resolved=${finalBayId}, element=${dropTargetBayId}`);
+      // Update the element's data-bay-id attribute to match our finalBayId
       // This ensures bay 3 and other bays are handled consistently
-      dropTarget.setAttribute('data-bay-id', bayId.toString());
+      dropTarget.setAttribute('data-bay-id', finalBayId.toString());
     }
     
     if (rowIndex !== undefined && rowIndex >= 0) {
