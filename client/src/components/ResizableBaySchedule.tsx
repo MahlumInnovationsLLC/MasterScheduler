@@ -1470,6 +1470,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Add a distinctive class during resize to help with debugging
     barElement.classList.add('actively-resizing');
     
+    // Store the original data attributes for restoration if needed
+    if (!barElement.dataset.originalEndDate && resizingSchedule.direction === 'right') {
+      barElement.dataset.originalEndDate = barElement.dataset.endDate || '';
+    }
+    if (!barElement.dataset.originalStartDate && resizingSchedule.direction === 'left') {
+      barElement.dataset.originalStartDate = barElement.dataset.startDate || '';
+    }
+    
     // Calculate the drag delta
     const deltaX = e.clientX - resizingSchedule.startX;
     
@@ -1596,6 +1604,37 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Add visual feedback classes during resize
       barElement.classList.add('resizing-active');
+      
+      // Update department phase widths for left-side resizing
+      const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
+      const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
+      const prodPhase = barElement.querySelector('.dept-prod-phase') as HTMLElement;
+      const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
+      const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
+      const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
+      
+      if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
+        // Calculate adjusted widths based on the new bar width
+        const fabWidth = Math.round(newWidth * 0.27); // 27%
+        const paintWidth = Math.round(newWidth * 0.07); // 7%
+        const prodWidth = Math.round(newWidth * 0.46); // 46%
+        const itWidth = Math.round(newWidth * 0.07); // 7%
+        const ntcWidth = Math.round(newWidth * 0.07); // 7%
+        const qcWidth = Math.round(newWidth * 0.06); // 6%
+        
+        // Update phase widths
+        fabPhase.style.width = `${fabWidth}px`;
+        paintPhase.style.left = `${fabWidth}px`;
+        paintPhase.style.width = `${paintWidth}px`;
+        prodPhase.style.left = `${fabWidth + paintWidth}px`;
+        prodPhase.style.width = `${prodWidth}px`;
+        itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
+        itPhase.style.width = `${itWidth}px`;
+        ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
+        ntcPhase.style.width = `${ntcWidth}px`;
+        qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
+        qcPhase.style.width = `${qcWidth}px`;
+      }
     } else {
       // Resizing from right (changing end date)
       // Allow resizing by cell for more precise control
@@ -1621,6 +1660,37 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       barElement.classList.add('resizing-active');
       if (!barElement.classList.contains('resize-from-right')) {
         barElement.classList.add('resize-from-right');
+      }
+      
+      // Update department phase widths to properly stretch with the bar
+      const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
+      const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
+      const prodPhase = barElement.querySelector('.dept-prod-phase') as HTMLElement;
+      const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
+      const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
+      const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
+      
+      if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
+        // Calculate adjusted widths based on the new bar width
+        const fabWidth = Math.round(newWidth * 0.27); // 27%
+        const paintWidth = Math.round(newWidth * 0.07); // 7%
+        const prodWidth = Math.round(newWidth * 0.46); // 46%
+        const itWidth = Math.round(newWidth * 0.07); // 7%
+        const ntcWidth = Math.round(newWidth * 0.07); // 7%
+        const qcWidth = Math.round(newWidth * 0.06); // 6%
+        
+        // Update phase widths
+        fabPhase.style.width = `${fabWidth}px`;
+        paintPhase.style.left = `${fabWidth}px`;
+        paintPhase.style.width = `${paintWidth}px`;
+        prodPhase.style.left = `${fabWidth + paintWidth}px`;
+        prodPhase.style.width = `${prodWidth}px`;
+        itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
+        itPhase.style.width = `${itWidth}px`;
+        ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
+        ntcPhase.style.width = `${ntcWidth}px`;
+        qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
+        qcPhase.style.width = `${qcWidth}px`;
       }
       
       // Add debugging attributes
@@ -2596,28 +2666,44 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // EMERGENCY BUG FIX: CRITICAL FIX FOR BAY JUMPING ISSUE
-    // ALWAYS use the specific bay where the drop event happened
-    // DO NOT use any stored bay information as it's causing the bay jumping bug
-    console.log(`🔴 EMERGENCY FIX: FORCING BAY ID TO ${bayId} (event bayId parameter)`);
+    // CRITICAL FIX: Force using the exact bay ID from the event parameters
+    // This prevents the bay jumping issue by ensuring we always use the bay where the drop happened
+    console.log(`🔴 CRITICAL FIX: Using exact bayId=${bayId} from drop event parameters`);
+    
+    // Force any data-bay-id attribute on the element to match the parameter for consistency
+    if (e.currentTarget && e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.setAttribute('data-bay-id', bayId.toString());
+    }
     
     // For row, we will still use the global attribute if available as it works correctly
     const globalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
     
-    // ENHANCED ROW SELECTION: 
+    // ENHANCED ROW SELECTION WITH BAY 3 FIX: 
     // 1. First check if rowIndex from direct handler is valid (not undefined & >= 0)
     // 2. Then check the global attribute (set during cell hover) 
     // 3. Finally fall back to 0 as a safe default
     let targetRowIndex;
     
+    // Get the event target to check if this is a bay-specific drop area
+    const dropTarget = e.currentTarget as HTMLElement;
+    const dropTargetBayId = dropTarget?.getAttribute('data-bay-id');
+    
+    // Make sure the bay ID used in the event handler matches the element's bay ID
+    if (dropTargetBayId && dropTargetBayId !== bayId.toString()) {
+      console.log(`Correcting bay ID mismatch: event=${bayId}, element=${dropTargetBayId}`);
+      // Update the element's data-bay-id attribute to match the event parameter
+      // This ensures bay 3 and other bays are handled consistently
+      dropTarget.setAttribute('data-bay-id', bayId.toString());
+    }
+    
     if (rowIndex !== undefined && rowIndex >= 0) {
-      console.log(`Using direct row parameter: ${rowIndex}`);
+      console.log(`Using direct row parameter: ${rowIndex} for bay ${bayId}`);
       targetRowIndex = rowIndex;
     } else if (globalRowIndex >= 0) {
-      console.log(`Using global row attribute: ${globalRowIndex}`);
+      console.log(`Using global row attribute: ${globalRowIndex} for bay ${bayId}`);
       targetRowIndex = globalRowIndex;
     } else {
-      console.log(`No valid row found, using default row 0`);
+      console.log(`No valid row found, using default row 0 for bay ${bayId}`);
       targetRowIndex = 0;
     }
     
@@ -3490,9 +3576,38 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Clear loading state
         setIsMovingProject(false);
         
-        // Highlight the updated bar to make the change more visible
+        // ENHANCED BAR UPDATE: Find and update the bar element with new dimensions
         const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${scheduleId}"]`) as HTMLElement;
         if (barElement) {
+          // Update data attributes to ensure proper rendering on next redraw
+          barElement.setAttribute('data-start-date', newStartDate);
+          barElement.setAttribute('data-end-date', finalEndDate);
+          
+          // Force a recalculation of the bar width and position based on the new dates
+          // This ensures the bar will properly stretch after chevron movement
+          const startDate = new Date(newStartDate);
+          const endDate = new Date(finalEndDate);
+          
+          // Calculate the new left position and width in pixels
+          const msPerDay = 24 * 60 * 60 * 1000;
+          const daysBetweenSlots = viewMode === 'day' ? 1 : viewMode === 'week' ? 7 : viewMode === 'month' ? 30 : 90;
+          const pixelsPerDay = slotWidth / daysBetweenSlots;
+          
+          // Find the time difference between project start and timeline start
+          const timelineStartDate = slots[0]?.date || new Date();
+          const daysFromStart = Math.max(0, (startDate.getTime() - timelineStartDate.getTime()) / msPerDay);
+          const projectDuration = Math.max(1, (endDate.getTime() - startDate.getTime()) / msPerDay);
+          
+          // Calculate new position and width
+          const newLeft = Math.round(daysFromStart * pixelsPerDay);
+          const newWidth = Math.round(projectDuration * pixelsPerDay);
+          
+          console.log(`Updating bar position: Left=${newLeft}px, Width=${newWidth}px`);
+          
+          // Update the visual appearance
+          barElement.style.left = `${newLeft}px`;
+          barElement.style.width = `${newWidth}px`;
+          
           // Apply a highlight effect that fades out
           barElement.classList.add('bg-green-400/20', 'border-green-500', 'border-2');
           setTimeout(() => {
