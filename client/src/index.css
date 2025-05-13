@@ -1307,8 +1307,8 @@ body.resizing-mode .resize-handle {
   position: relative;
   border-bottom: 1px dashed rgba(100, 116, 139, 0.2);
   transition: background-color 0.2s ease;
-  min-height: 10px !important; 
-  height: 5% !important; /* 20 rows at 5% each */
+  min-height: 30px !important; 
+  height: 30px !important;
 }
 
 /* Highlight even rows for better visibility */
@@ -1349,4 +1349,11 @@ body.resizing-mode .resize-handle {
   background-color: rgba(59, 130, 246, 0.2);
   font-weight: 700;
   border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* Expanded wrapper for Team 7 and Team 8 bays */
+.multi-row-bay-wrapper {
+  height: 600px !important;
+  min-height: 600px !important;
+  overflow-y: auto !important;
 }
