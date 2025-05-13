@@ -2802,12 +2802,40 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const storedGlobalDate = (window as any).lastExactDate;
       const bodyDateAttribute = document.body.getAttribute('data-current-drag-date');
       
-      // FIRST CHECK: Check window global variable (most reliable)
-      if (storedGlobalDate) {
+      // SPECIAL BAY 3 DIRECT FIX: FORCE exact date treatment for Bay 3
+      // This ensures Bay 3 uses the same direct date handling as Bay 2
+      if (exactBayId === 3) {
+        console.log('🚨 SPECIAL BAY 3 HANDLING: Will use targeted date direct fix for Bay 3');
+        
+        // Use dataDate first (direct from target element) as it's most reliable
+        if (dataDate) {
+          slotDate = new Date(dataDate);
+          exactDateForStorage = dataDate;
+          console.log('🚨 BAY 3 DIRECT FIX: Using exact date:', dataDate);
+        }
+        // Try date from cell element as backup
+        else if (targetElement) {
+          const dateElement = targetElement.closest('[data-date]') as HTMLElement;
+          if (dateElement) {
+            const dateStr = dateElement.getAttribute('data-date');
+            if (dateStr) {
+              slotDate = new Date(dateStr);
+              exactDateForStorage = dateStr;
+              console.log('🚨 BAY 3 DIRECT FIX: Using date from closest element:', dateStr);
+            }
+          }
+        }
+        
+        if (slotDate) {
+          console.log('🚨 BAY 3 DIRECT FIX: Successfully applied direct date handling');
+        }
+      }
+      // For all other bays, use the standard fallback chain
+      else if (storedGlobalDate) {
         slotDate = new Date(storedGlobalDate);
         exactDateForStorage = storedGlobalDate;
-        console.log(`CRITICAL FIX FOR BAY 3: Using global date variable: ${storedGlobalDate}`, slotDate);
-      } 
+        console.log(`Using global date variable: ${storedGlobalDate}`, slotDate);
+      }
       // SECOND CHECK: Check body attribute if window variable is not available
       else if (bodyDateAttribute) {
         slotDate = new Date(bodyDateAttribute);
@@ -3119,7 +3147,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // IMPORTANT: Use the exact targetStartDate we captured earlier instead of the slotDate 
         // which may have been modified for FAB calculations
         // CRITICAL FIX: Use the properly formatted date string for API compatibility
-        const startDateToUse = formattedExactStartDate || data.targetStartDate || format(slotDate, 'yyyy-MM-dd');
+        
+        // SPECIAL BAY 3 DIRECT DATE FIX: For Bay 3, always use the exact original date
+        const startDateToUse = exactBayId === 3 
+          ? (exactDateForStorage || format(slotDate, 'yyyy-MM-dd'))  // Bay 3 special handling
+          : (formattedExactStartDate || data.targetStartDate || format(slotDate, 'yyyy-MM-dd'));
         console.log('Using start date for schedule change:', startDateToUse, '(formatted from', exactStartDate, ')');
         
         // Format the finalEndDate properly for the API - CRITICAL FIX
