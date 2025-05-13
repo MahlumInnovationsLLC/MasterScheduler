@@ -1698,14 +1698,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       barElement.classList.add('resizing-active');
       
       // Update department phase widths for left-side resizing
-      const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
-      const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
-      const prodPhase = barElement.querySelector('.dept-prod-phase') as HTMLElement;
-      const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
-      const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
-      const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
+      const fabPhaseEl = barElement.querySelector('.dept-fab-phase') as HTMLElement;
+      const paintPhaseEl = barElement.querySelector('.dept-paint-phase') as HTMLElement;
+      const prodPhaseEl = barElement.querySelector('.dept-prod-phase') as HTMLElement;
+      const itPhaseEl = barElement.querySelector('.dept-it-phase') as HTMLElement;
+      const ntcPhaseEl = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
+      const qcPhaseEl = barElement.querySelector('.dept-qc-phase') as HTMLElement;
       
-      if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
+      if (fabPhaseEl && paintPhaseEl && prodPhaseEl && itPhaseEl && ntcPhaseEl && qcPhaseEl) {
         // Calculate adjusted widths based on the new bar width
         const fabWidth = Math.round(newWidth * 0.27); // 27%
         const paintWidth = Math.round(newWidth * 0.07); // 7%
@@ -1715,17 +1715,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const qcWidth = Math.round(newWidth * 0.06); // 6%
         
         // Update phase widths
-        fabPhase.style.width = `${fabWidth}px`;
-        paintPhase.style.left = `${fabWidth}px`;
-        paintPhase.style.width = `${paintWidth}px`;
-        prodPhase.style.left = `${fabWidth + paintWidth}px`;
-        prodPhase.style.width = `${prodWidth}px`;
-        itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
-        itPhase.style.width = `${itWidth}px`;
-        ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
-        ntcPhase.style.width = `${ntcWidth}px`;
-        qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
-        qcPhase.style.width = `${qcWidth}px`;
+        fabPhaseEl.style.width = `${fabWidth}px`;
+        paintPhaseEl.style.left = `${fabWidth}px`;
+        paintPhaseEl.style.width = `${paintWidth}px`;
+        prodPhaseEl.style.left = `${fabWidth + paintWidth}px`;
+        prodPhaseEl.style.width = `${prodWidth}px`;
+        itPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth}px`;
+        itPhaseEl.style.width = `${itWidth}px`;
+        ntcPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
+        ntcPhaseEl.style.width = `${ntcWidth}px`;
+        qcPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
+        qcPhaseEl.style.width = `${qcWidth}px`;
       }
     } else {
       // Resizing from right (changing end date)
@@ -1789,29 +1789,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         qcPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
         qcPhaseEl.style.width = `${qcWidth}px`;
-      }
-      
-      if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
-        // Calculate adjusted widths based on the new bar width
-        const fabWidth = Math.round(newWidth * 0.27); // 27%
-        const paintWidth = Math.round(newWidth * 0.07); // 7%
-        const prodWidth = Math.round(newWidth * 0.46); // 46%
-        const itWidth = Math.round(newWidth * 0.07); // 7%
-        const ntcWidth = Math.round(newWidth * 0.07); // 7%
-        const qcWidth = Math.round(newWidth * 0.06); // 6%
-        
-        // Update phase widths
-        fabPhase.style.width = `${fabWidth}px`;
-        paintPhase.style.left = `${fabWidth}px`;
-        paintPhase.style.width = `${paintWidth}px`;
-        prodPhase.style.left = `${fabWidth + paintWidth}px`;
-        prodPhase.style.width = `${prodWidth}px`;
-        itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
-        itPhase.style.width = `${itWidth}px`;
-        ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
-        ntcPhase.style.width = `${ntcWidth}px`;
-        qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
-        qcPhase.style.width = `${qcWidth}px`;
       }
       
       // Add debugging attributes
