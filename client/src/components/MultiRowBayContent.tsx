@@ -173,14 +173,13 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
               )}
             </div>
             
-            {/* Row management buttons */}
-            {/* Only show buttons on regular rows or every 5th row for Team 7 & 8 to reduce visual clutter */}
-            {(!isTeam7Or8 || (isTeam7Or8 && rowIndex % 5 === 0)) && (
+            {/* Row management buttons - only show for regular bays, hide completely for Team 7 & 8 */}
+            {!isTeam7Or8 && (
               <div className="absolute left-1/2 transform -translate-x-1/2 bottom-[-6px] flex gap-1 z-[999] pointer-events-auto row-management-buttons">
                 {/* Delete row button */}
                 <button
                   type="button"
-                  className={`flex items-center justify-center ${isTeam7Or8 ? 'w-2.5 h-2.5 text-[6px]' : 'w-4 h-4 text-[8px]'} rounded-full row-delete-button text-white shadow-sm border border-white/80 hover:bg-destructive/90`}
+                  className="flex items-center justify-center w-4 h-4 text-[8px] rounded-full row-delete-button text-white shadow-sm border border-white/80 hover:bg-destructive/90"
                   title="Delete Row"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -211,19 +210,19 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
                     }
                   }}
                 >
-                  <Minus className={isTeam7Or8 ? "h-1.5 w-1.5" : "h-2.5 w-2.5"} />
+                  <Minus className="h-2.5 w-2.5" />
                 </button>
                 {/* Add row button */}
                 <button
                   type="button"
-                  className={`flex items-center justify-center ${isTeam7Or8 ? 'w-2.5 h-2.5 text-[6px]' : 'w-4 h-4 text-[8px]'} rounded-full row-add-button text-white shadow-sm border border-white/80 hover:bg-primary/90`}
+                  className="flex items-center justify-center w-4 h-4 text-[8px] rounded-full row-add-button text-white shadow-sm border border-white/80 hover:bg-primary/90"
                   title="Add Row"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleRowAdd(bay.id, rowIndex);
                   }}
                 >
-                  <Plus className={isTeam7Or8 ? "h-1.5 w-1.5" : "h-2.5 w-2.5"} />
+                  <Plus className="h-2.5 w-2.5" />
                 </button>
               </div>
             )}
