@@ -412,7 +412,7 @@ const BaySchedulingPage = () => {
     }
   };
   
-  // Handler for schedule creation
+  // Handler for schedule creation with optimistic updates
   const handleScheduleCreate = async (
     projectId: number,
     bayId: number,
@@ -423,6 +423,51 @@ const BaySchedulingPage = () => {
   ) => {
     try {
       setIsLoading(true);
+      
+      // Find the project for optimistic updates
+      const project = projects.find(p => p.id === projectId);
+      
+      if (project) {
+        // Get current data for optimistic updates
+        const currentSchedules = queryClient.getQueryData<ManufacturingSchedule[]>(['/api/manufacturing-schedules']) || [];
+        
+        // Create a temporary ID for the optimistic update
+        const tempId = -Date.now(); // Use negative timestamp to avoid collisions with real IDs
+        
+        // Create optimistic update with a temporary schedule
+        const optimisticSchedule: ManufacturingSchedule = {
+          id: tempId,
+          projectId,
+          bayId,
+          startDate,
+          endDate,
+          totalHours: totalHours || project.totalHours || 0,
+          row: rowIndex || 0,
+          rowIndex: rowIndex || 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          status: 'scheduled',
+          equipment: null,
+          fabricationStart: null,
+          assemblyStart: null, 
+          ntcTestingStart: null,
+          qcStart: null,
+          notes: null,
+          projectNumber: project.projectNumber || '',
+          projectName: project.name,
+          teamName: null,
+          teamCount: 0,
+          staffAssigned: null
+        };
+        
+        // Add the optimistic schedule to the cache
+        queryClient.setQueryData(
+          ['/api/manufacturing-schedules'], 
+          [...currentSchedules, optimisticSchedule]
+        );
+      }
+      
+      // Perform the actual API request
       await createScheduleMutation.mutateAsync({
         projectId,
         bayId,
@@ -431,22 +476,50 @@ const BaySchedulingPage = () => {
         totalHours,
         row: rowIndex
       });
+      
       return true;
     } catch (error) {
+      console.error('Error creating schedule:', error);
+      // Invalidate to get fresh data on error
+      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+      toast({
+        title: "Error",
+        description: "Failed to create schedule",
+        variant: "destructive"
+      });
       return false;
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Handler for schedule deletion
+  // Handler for schedule deletion with optimistic updates
   const handleScheduleDelete = async (scheduleId: number) => {
     try {
       setIsLoading(true);
+      
+      // Get current data for optimistic updates
+      const currentSchedules = queryClient.getQueryData<ManufacturingSchedule[]>(['/api/manufacturing-schedules']) || [];
+      
+      // Create optimistic update by filtering out the schedule to delete
+      const updatedSchedules = currentSchedules.filter(schedule => schedule.id !== scheduleId);
+      
+      // Update the cache with optimistic data
+      queryClient.setQueryData(['/api/manufacturing-schedules'], updatedSchedules);
+      
+      // Perform the actual API request
       await deleteScheduleMutation.mutateAsync(scheduleId);
+      
       return true;
     } catch (error) {
       console.error('Error deleting schedule:', error);
+      // Invalidate to get fresh data on error
+      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+      toast({
+        title: "Error",
+        description: "Failed to delete schedule",
+        variant: "destructive"
+      });
       return false;
     } finally {
       setIsLoading(false);
