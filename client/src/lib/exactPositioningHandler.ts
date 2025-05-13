@@ -227,6 +227,13 @@ export function calculateEndDateFromResize(
   const pixelsDelta = exactRightPx - (initialPositionLeft + initialWidth);
   const pixelsPerDay = slotWidth / daysBetweenSlots;
   const daysDelta = pixelsDelta / pixelsPerDay; // Don't round - use exact value
+  
+  // Add null check for initialEndDate
+  if (!initialEndDate) {
+    console.error(`${bayPrefix} EXACT POSITIONING (RIGHT RESIZE): initialEndDate is null or undefined`);
+    return null;
+  }
+  
   const newEndDate = addDays(initialEndDate, daysDelta);
   
   // Set to end of day for end date
@@ -286,6 +293,13 @@ export function calculateStartDateFromResize(
   const pixelsDelta = exactLeftPx - initialPositionLeft;
   const pixelsPerDay = slotWidth / daysBetweenSlots;
   const daysDelta = pixelsDelta / pixelsPerDay; // Don't round - use exact value
+  
+  // Add null check for initialStartDate
+  if (!initialStartDate) {
+    console.error(`${bayPrefix} EXACT POSITIONING (LEFT RESIZE): initialStartDate is null or undefined`);
+    return null;
+  }
+  
   const newStartDate = addDays(initialStartDate, daysDelta);
   
   const dateStr = format(newStartDate, 'yyyy-MM-dd');
