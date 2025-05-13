@@ -215,6 +215,37 @@ const BillingMilestones = () => {
       deleteMilestoneMutation.mutate(id);
     }
   };
+  
+  // Handler for accepting ship date changes
+  const handleAcceptShipDate = (id: number) => {
+    setIsAcceptingShipDate(prev => ({ ...prev, [id]: true }));
+    const acceptMutation = async () => {
+      try {
+        const response = await apiRequest("POST", `/api/billing-milestones/${id}/accept-ship-date`, {});
+        if (!response.ok) {
+          throw new Error("Failed to accept ship date change");
+        }
+        
+        toast({
+          title: "Date Accepted",
+          description: "You have accepted the new ship date",
+        });
+        
+        // Refresh data
+        queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: `Failed to accept ship date: ${error instanceof Error ? error.message : "Unknown error"}`,
+          variant: "destructive",
+        });
+      } finally {
+        setIsAcceptingShipDate(prev => ({ ...prev, [id]: false }));
+      }
+    };
+    
+    acceptMutation();
+  };
 
   // Calculate billing stats
   const billingStats = React.useMemo(() => {
@@ -596,6 +627,32 @@ const BillingMilestones = () => {
       id: 'actions',
       cell: ({ row }) => (
         <div className="text-right space-x-2">
+          {/* Button for accepting ship date changes */}
+          {(row.original.isDeliveryMilestone || 
+            (row.original.name && row.original.name.toUpperCase().includes("DELIVERY"))) && 
+            row.original.shipDateChanged && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mr-2 text-xs bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+              onClick={() => handleAcceptShipDate(row.original.id)}
+              disabled={isAcceptingShipDate[row.original.id]}
+              title="Accept the new ship date"
+            >
+              {isAcceptingShipDate[row.original.id] ? (
+                <span className="flex items-center">
+                  <div className="w-3 h-3 border-2 border-orange-600 border-t-transparent rounded-full animate-spin mr-1"></div>
+                  Accept
+                </span>
+              ) : (
+                <span className="flex items-center">
+                  <Check className="h-3 w-3 mr-1" />
+                  Accept
+                </span>
+              )}
+            </Button>
+          )}
+          
           {/* View Details button */}
           <Button 
             variant="ghost" 
