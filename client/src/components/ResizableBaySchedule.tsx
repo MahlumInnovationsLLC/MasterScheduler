@@ -109,7 +109,11 @@ interface ScheduleBar {
 const getBayRowCount = (bayId: number, bayName: string): number => {
   // Special handling for Team 7 & 8 - needs 20 rows
   // Bay 7 & 8 should still have normal 4 rows
-  if (bayName && bayName.includes('Team') && (bayName.includes('7') || bayName.includes('8'))) {
+  
+  // Check if the name STARTS with "Team" (not just includes) AND includes 7 or 8
+  if (bayName && 
+      bayName.trim().startsWith('Team') && 
+      (bayName.includes('7') || bayName.includes('8'))) {
     console.log(`Using 20 rows for TEAM ${bayId} (${bayName})`);
     return 20;
   }
@@ -5319,44 +5323,67 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               </div>
             ))}
             
-            {/* Empty bay placeholders - each bay now has 4 rows */}
-            {Array.from({ length: Math.max(0, 8 - bays.length) }).map((_, index) => (
-              <div 
-                key={`empty-bay-grid-${index}`} 
-                className="relative h-64 border-b border-gray-700"
-                style={{ width: totalViewWidth }}
-              >
-                {/* Grid columns */}
+            {/* Empty bay placeholders - 4 rows for regular bays, 20 rows for Team 7 & 8 */}
+            {Array.from({ length: Math.max(0, 8 - bays.length) }).map((_, index) => {
+              const virtualBayId = bays.length + index + 1;
+              // Check if this should be Team 7 or 8 with 20 rows
+              const isTeam7Or8 = virtualBayId === 7 || virtualBayId === 8;
+              const rowHeight = isTeam7Or8 ? 800 : 64; // Height for 20 rows vs 4 rows
+              
+              return (
                 <div 
-                  className="absolute inset-0 grid bay-container" 
-                  style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}
+                  key={`empty-bay-grid-${index}`} 
+                  className="relative border-b border-gray-700"
+                  style={{ width: totalViewWidth, height: `${rowHeight}px` }}
                 >
-                  {slots.map((slot, index) => (
-                    <div 
-                      key={index}
-                      className={`border-r border-gray-700 h-full ${
-                        slot.isWeekend ? 'bg-gray-800/20' : ''
-                      } ${isSameDay(slot.date, new Date()) ? 'bg-blue-900/20' : ''}`}
-                    />
-                  ))}
+                  {/* Grid columns */}
+                  <div 
+                    className="absolute inset-0 grid bay-container" 
+                    style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}
+                  >
+                    {slots.map((slot, slotIndex) => (
+                      <div 
+                        key={slotIndex}
+                        className={`border-r border-gray-700 h-full ${
+                          slot.isWeekend ? 'bg-gray-800/20' : ''
+                        } ${isSameDay(slot.date, new Date()) ? 'bg-blue-900/20' : ''}`}
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* Row dividers - dynamic based on bay type */}
+                  <div className="absolute inset-0 flex flex-col pointer-events-none">
+                    {(() => {
+                      const rowCount = isTeam7Or8 ? 20 : 4;
+                      const rowHeight = 100 / rowCount; // % height for each row
+                      
+                      return Array.from({ length: rowCount }).map((_, i) => (
+                        <div 
+                          key={`empty-row-${virtualBayId}-${i}`}
+                          className={`${i < rowCount - 1 ? 'border-b' : ''} border-gray-700/50 bay-row transition-colors`}
+                          style={{ height: `${rowHeight}%` }}
+                        ></div>
+                      ));
+                    })()}
+                  </div>
+                  
+                  {/* Empty indicator */}
+                  <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-xs">
+                    {isTeam7Or8 ? 
+                      <div className="flex flex-col items-center">
+                        <span className="font-semibold text-blue-400">Team {virtualBayId}</span>
+                        <span className="text-gray-500">(20 rows capacity)</span>
+                      </div> 
+                      : 
+                      <div className="flex flex-col items-center">
+                        <span className="font-semibold text-gray-400">Bay {virtualBayId}</span>
+                        <span className="text-gray-500">(4 rows capacity)</span>
+                      </div>
+                    }
+                  </div>
                 </div>
-                
-                {/* Row dividers */}
-                <div className="absolute inset-0 flex flex-col pointer-events-none">
-                  <div className="border-b border-gray-700/50 h-1/4 bay-row transition-colors"></div>
-                  <div className="border-b border-gray-700/50 h-1/4 bay-row transition-colors"></div>
-                  <div className="border-b border-gray-700/50 h-1/4 bay-row transition-colors"></div>
-                  <div className="h-1/4 bay-row transition-colors"></div>
-                </div>
-                
-                {/* Empty indicator */}
-                <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-xs">
-                  Empty Team (Add projects by creating a team first)
-                </div>
-                
-                {/* Team label removed - now only shown in sidebar */}
-              </div>
-            ))}
+              );
+            })}
             
             {/* Add Team button */}
             <div className="mt-4 flex justify-center">
