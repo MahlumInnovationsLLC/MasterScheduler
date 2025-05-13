@@ -678,82 +678,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             console.log(`Phase durations in days: FAB=${fabDays}, PAINT=${paintDays}, PROD=${assemblyDays}, IT=${itDays}, NTC=${ntcDays}, QC=${qcDays}`);
             
-            // Check if we should use existing phase structure from the project
-            const hasExistingPhases = (
-              project.fabricationStart && 
-              project.wrapDate && 
-              project.assemblyStart && 
-              project.ntcTestingDate && 
-              project.qcStartDate
-            );
+            // PRIORITY RULE: When a project is placed in bay schedule, the schedule's dates
+            // must always override the project dates
+            console.log("PRIORITY RULE ENFORCED: Schedule dates will always overwrite project dates.");
+            
+            // Calculate all phase dates from scratch based on the schedule's dates
+            // This is the desired behavior to ensure bay schedule is the source of truth
+            console.log("Calculating phase dates from scratch based on schedule's start/end dates");
+            
+            // Import date utility functions
+            const { adjustToNextBusinessDay } = await import("../shared/utils/date-utils");
             
             let fabStartDate, paintStartDate, assemblyStartDate, ntcTestingDate, qcStartDate, executiveReviewDate;
             
-            if (hasExistingPhases) {
-              // When an existing project with phases is being placed in a new schedule,
-              // we should maintain the relative proportions of its phases
-              console.log("Using existing phase structure from project");
-              
-              const originalStartDate = new Date(project.startDate || project.createdAt);
-              const originalEndDate = new Date(project.estimatedCompletionDate || project.shipDate || new Date());
-              const originalDuration = differenceInDays(originalEndDate, originalStartDate);
-              
-              if (originalDuration <= 0) {
-                // If original duration was invalid, calculate from scratch
-                fabStartDate = startDate;
-                paintStartDate = addDays(startDate, fabDays);
-                assemblyStartDate = addDays(paintStartDate, paintDays);
-                ntcTestingDate = addDays(assemblyStartDate, assemblyDays);
-                qcStartDate = addDays(ntcTestingDate, ntcDays);
-                executiveReviewDate = addDays(qcStartDate, Math.round(qcDays * 0.8));
-              } else {
-                // Calculate proportions based on original phase structure
-                const origFabStart = new Date(project.fabricationStart);
-                const origPaintStart = new Date(project.wrapDate);
-                const origAssemblyStart = new Date(project.assemblyStart);
-                const origNtcStart = new Date(project.ntcTestingDate);
-                const origQcStart = new Date(project.qcStartDate);
-                
-                // Calculate what percentage into the project each phase started
-                const fabPercent = 0; // Always starts at the beginning
-                const paintPercent = differenceInDays(origPaintStart, origFabStart) / originalDuration;
-                const assemblyPercent = differenceInDays(origAssemblyStart, origFabStart) / originalDuration;
-                const ntcPercent = differenceInDays(origNtcStart, origFabStart) / originalDuration;
-                const qcPercent = differenceInDays(origQcStart, origFabStart) / originalDuration;
-                
-                // Apply these percentages to the new duration
-                fabStartDate = startDate;
-                paintStartDate = addDays(startDate, Math.round(paintPercent * totalDays));
-                assemblyStartDate = addDays(startDate, Math.round(assemblyPercent * totalDays));
-                ntcTestingDate = addDays(startDate, Math.round(ntcPercent * totalDays));
-                qcStartDate = addDays(startDate, Math.round(qcPercent * totalDays));
-                
-                // Executive review typically near the end
-                if (project.executiveReviewDate) {
-                  const origExecReview = new Date(project.executiveReviewDate);
-                  const execPercent = differenceInDays(origExecReview, origFabStart) / originalDuration;
-                  executiveReviewDate = addDays(startDate, Math.round(execPercent * totalDays));
-                } else {
-                  executiveReviewDate = addDays(qcStartDate, Math.round((differenceInDays(endDate, qcStartDate) * 0.8)));
-                }
-                
-                console.log("Adjusted phase dates with proportions:", {
-                  originalDuration,
-                  newDuration: totalDays,
-                  paintPercent, assemblyPercent, ntcPercent, qcPercent
-                });
-              }
-            } else {
-              // If we don't have existing phases or they're incomplete, calculate from scratch
-              console.log("Calculating phase dates from scratch using percentages");
-              
-              fabStartDate = startDate;
-              paintStartDate = addDays(startDate, fabDays);
-              assemblyStartDate = addDays(paintStartDate, paintDays);
-              ntcTestingDate = addDays(assemblyStartDate, assemblyDays);
-              qcStartDate = addDays(ntcTestingDate, ntcDays);
-              executiveReviewDate = addDays(qcStartDate, Math.round(qcDays * 0.8));
-            }
+            // Calculate all phase dates directly from schedule dates using percentages
+            fabStartDate = adjustToNextBusinessDay(startDate) || startDate;
+            paintStartDate = adjustToNextBusinessDay(addDays(startDate, fabDays)) || addDays(startDate, fabDays);
+            assemblyStartDate = adjustToNextBusinessDay(addDays(paintStartDate, paintDays)) || addDays(paintStartDate, paintDays);
+            ntcTestingDate = adjustToNextBusinessDay(addDays(assemblyStartDate, assemblyDays)) || addDays(assemblyStartDate, assemblyDays);
+            qcStartDate = adjustToNextBusinessDay(addDays(ntcTestingDate, ntcDays)) || addDays(ntcTestingDate, ntcDays);
+            executiveReviewDate = adjustToNextBusinessDay(addDays(qcStartDate, Math.round(qcDays * 0.8))) || 
+                               addDays(qcStartDate, Math.round(qcDays * 0.8));
             
             console.log("Final phase dates:", {
               fabricationStart: format(fabStartDate, 'yyyy-MM-dd'),
