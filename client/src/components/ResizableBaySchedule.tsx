@@ -4918,15 +4918,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           backgroundColor: 'transparent', // Make background transparent since we're using department phases
                           opacity: draggingSchedule?.id === bar.id ? 0.5 : 1
                         }}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, 'existing', {
-                          id: bar.id,
-                          projectId: bar.projectId,
-                          projectName: bar.projectName,
-                          projectNumber: bar.projectNumber,
-                          totalHours: bar.totalHours,
-                          bayId: bar.bayId
-                        })}
+                        draggable={typeof document !== 'undefined' && document.body.classList.contains('resizing-mode') ? false : true}
+                        onDragStart={(e) => {
+                          // Skip if we're in resize mode
+                          if ((typeof document !== 'undefined' && document.body.classList.contains('resizing-mode')) || 
+                              (e.target instanceof HTMLElement && e.target.closest('.resize-handle'))) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            return false;
+                          }
+                          
+                          // Otherwise proceed with drag
+                          handleDragStart(e, 'existing', {
+                            id: bar.id,
+                            projectId: bar.projectId,
+                            projectName: bar.projectName,
+                            projectNumber: bar.projectNumber,
+                            totalHours: bar.totalHours,
+                            bayId: bar.bayId
+                          });
+                        }}
                       >
                         {/* Left Resize Handle - Enhanced */}
                         <div 
