@@ -2798,64 +2798,47 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       let slotDate: Date | null = null;
       let exactDateForStorage: string | null = null;
       
-      // ENHANCEMENT FOR BAY 3: Check global variables first for consistent behavior across bays
+      // 🔴 CRITICAL FIX: UNIVERSAL DIRECT PLACEMENT HANDLING
+      // We need to get the EXACT date from the drag event target with NO auto adjustment
+      // This ensures the project bar drops EXACTLY where the cursor drops it 
+      console.log('🔴 CRITICAL: ENFORCING DIRECT PLACEMENT WITHOUT AUTO-SNAPPING');
+      
+      // Get the stored global date reference
       const storedGlobalDate = (window as any).lastExactDate;
       const bodyDateAttribute = document.body.getAttribute('data-current-drag-date');
       
-      // SPECIAL BAY 3 DIRECT FIX: FORCE exact date treatment for Bay 3
-      // This ensures Bay 3 uses the same direct date handling as Bay 2
-      if (exactBayId === 3) {
-        console.log('🚨 SPECIAL BAY 3 HANDLING: Will use targeted date direct fix for Bay 3');
-        
-        // Use dataDate first (direct from target element) as it's most reliable
-        if (dataDate) {
-          slotDate = new Date(dataDate);
-          exactDateForStorage = dataDate;
-          console.log('🚨 BAY 3 DIRECT FIX: Using exact date:', dataDate);
-        }
-        // Try date from cell element as backup
-        else if (targetElement) {
-          const dateElement = targetElement.closest('[data-date]') as HTMLElement;
-          if (dateElement) {
-            const dateStr = dateElement.getAttribute('data-date');
-            if (dateStr) {
-              slotDate = new Date(dateStr);
-              exactDateForStorage = dateStr;
-              console.log('🚨 BAY 3 DIRECT FIX: Using date from closest element:', dateStr);
-            }
+      // DIRECT PLACEMENT: First priority - use dataDate from the target element
+      // This is the most accurate representation of where the cursor was dropped
+      if (dataDate) {
+        slotDate = new Date(dataDate);
+        exactDateForStorage = dataDate;
+        console.log('✅ DIRECT PLACEMENT: Using exact date from data-date attribute:', dataDate);
+      }
+      // DIRECT PLACEMENT: Second priority - check closest element with date attribute
+      else if (targetElement) {
+        const dateElement = targetElement.closest('[data-date]') as HTMLElement;
+        if (dateElement) {
+          const dateStr = dateElement.getAttribute('data-date');
+          if (dateStr) {
+            slotDate = new Date(dateStr);
+            exactDateForStorage = dateStr;
+            console.log('✅ DIRECT PLACEMENT: Using date from closest element:', dateStr);
           }
         }
-        
-        if (slotDate) {
-          console.log('🚨 BAY 3 DIRECT FIX: Successfully applied direct date handling');
-        }
       }
-      // For all other bays, use the standard fallback chain
+      // DIRECT PLACEMENT: Third priority - check body attribute for drag date
+      else if (bodyDateAttribute) {
+        slotDate = new Date(bodyDateAttribute);
+        exactDateForStorage = bodyDateAttribute;
+        console.log('✅ DIRECT PLACEMENT: Using date from body attribute:', bodyDateAttribute);
+      }
+      // DIRECT PLACEMENT: Last priority - global variable fallback
       else if (storedGlobalDate) {
         slotDate = new Date(storedGlobalDate);
         exactDateForStorage = storedGlobalDate;
         console.log(`Using global date variable: ${storedGlobalDate}`, slotDate);
       }
-      // SECOND CHECK: Check body attribute if window variable is not available
-      else if (bodyDateAttribute) {
-        slotDate = new Date(bodyDateAttribute);
-        exactDateForStorage = bodyDateAttribute;
-        console.log(`Using body data-current-drag-date attribute: ${bodyDateAttribute}`, slotDate);
-      }
-      // THIRD CHECK: Check target element's data-exact-date attribute
-      else if (targetElement.getAttribute('data-exact-date')) {
-        const exactDateStr = targetElement.getAttribute('data-exact-date');
-        slotDate = new Date(exactDateStr!);
-        exactDateForStorage = exactDateStr;
-        console.log('Using precise date from target element data-exact-date attribute:', exactDateStr, slotDate);
-      }
-      // FOURTH CHECK: Check data-date on direct target
-      else if (dataDate) {
-        slotDate = new Date(dataDate);
-        exactDateForStorage = dataDate;
-        console.log('Using date directly from target element data-date attribute:', dataDate, slotDate);
-      }
-      // FIFTH CHECK: Try to find and check the closest element with a data-date attribute
+      // If no date found through priority methods, continue with fallbacks
       else {
         const dateElement = targetElement.closest('[data-date]') as HTMLElement;
         if (dateElement) {
@@ -2915,14 +2898,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return;
       }
       
-      // Get the project data to determine FAB weeks
+      // 🔴 CRITICAL: DISABLE AUTO-ADJUSTMENTS FOR DIRECT PLACEMENT
+      // Store the EXACT date for direct placement - with no adjustments
+      console.log('🔴 CRITICAL: Using EXACT drop position with NO AUTO ADJUSTMENT');
+      console.log('DIRECT PLACEMENT DATE:', slotDate.toISOString().split('T')[0]);
+      document.body.setAttribute('data-direct-placement', 'true');
+      document.body.setAttribute('data-direct-placement-date', slotDate.toISOString().split('T')[0]);
+      
+      // Preserve the project data to maintain structure and prevent errors
       const project = projects.find(p => p.id === (data.projectId || data.id));
       const fabWeeks = project?.fabWeeks || 4; // Default to 4 weeks if not set
       
-      // Calculate FAB phase duration in days (first 4 weeks by default)
+      // Keep these calculations for data completeness only, but we'll override them later
+      // to ensure exact placement without auto adjustments
       const fabDays = fabWeeks * 7; // Convert weeks to days
       
-      // Calculate production start date (after FAB phase)
+      // Calculate production start date (after FAB phase) but we won't use this for positioning
       const productionStartDate = addDays(slotDate, fabDays);
       
       // Get the bay's base weekly capacity 
