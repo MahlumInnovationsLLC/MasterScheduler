@@ -4476,13 +4476,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       </div>
                     </div>
                     
-                    {/* Visible action buttons at bottom of row (on the divider) */}
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 transform translate-y-1/2 flex items-center gap-1 z-50">
+                    {/* Visible action buttons at row divider */}
+                    <div className="row-management-buttons">
                       {/* Delete row button */}
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-6 w-6 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-destructive hover:text-white shadow-md"
+                      <div
+                        className="row-delete-button"
                         title="Delete Row"
                         onClick={() => {
                           // Get projects in this row
@@ -4513,14 +4511,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           }
                         }}
                       >
-                        <MinusIcon className="h-3 w-3" />
-                      </Button>
+                        <X className="h-3 w-3" />
+                      </div>
                       
                       {/* Add row button */}
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-6 w-6 rounded-full bg-gray-800 border-primary text-primary hover:bg-primary hover:text-white shadow-md"
+                      <div
+                        className="row-add-button"
                         title="Add Row Below"
                         onClick={() => {
                           // Handle adding a new row
@@ -4532,7 +4528,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         }}
                       >
                         <PlusIcon className="h-3 w-3" />
-                      </Button>
+                      </div>
                     </div>
                     {/* Row 1 label */}
                     <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
@@ -4599,13 +4595,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       </div>
                     </div>
                     
-                    {/* Visible action buttons at bottom of row (on the divider) */}
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 transform translate-y-1/2 flex items-center gap-1 z-50">
+                    {/* Visible action buttons at row divider */}
+                    <div className="row-management-buttons">
                       {/* Delete row button */}
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-6 w-6 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-destructive hover:text-white shadow-md"
+                      <div
+                        className="row-delete-button"
                         title="Delete Row"
                         onClick={() => {
                           // Get projects in this row
@@ -4636,14 +4630,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           }
                         }}
                       >
-                        <MinusIcon className="h-3 w-3" />
-                      </Button>
+                        <X className="h-3 w-3" />
+                      </div>
                       
                       {/* Add row button */}
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-6 w-6 rounded-full bg-gray-800 border-primary text-primary hover:bg-primary hover:text-white shadow-md"
+                      <div
+                        className="row-add-button"
                         title="Add Row Below"
                         onClick={() => {
                           // Handle adding a new row
@@ -4655,7 +4647,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         }}
                       >
                         <PlusIcon className="h-3 w-3" />
-                      </Button>
+                      </div>
                     </div>
                     {/* Row 2 label */}
                     <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
