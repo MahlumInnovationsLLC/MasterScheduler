@@ -515,10 +515,50 @@ const BaySchedulingPage = () => {
   return (
     <div className="px-4 py-4 md:py-6 md:px-6">
       <div className="flex flex-col gap-1 mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Bay Scheduling</h1>
-        <p className="text-muted-foreground">
-          Schedule and manage projects across manufacturing bays
-        </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Bay Scheduling</h1>
+            <p className="text-muted-foreground">
+              Schedule and manage projects across manufacturing bays
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                createBayMutation.mutate({
+                  name: "Team 7",
+                  bayNumber: 207,
+                  staffCount: 10,
+                  assemblyStaffCount: 8,
+                  electricalStaffCount: 2,
+                  hourlyRate: 85,
+                  active: true
+                });
+              }}
+            >
+              Create Team 7
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                createBayMutation.mutate({
+                  name: "Team 8",
+                  bayNumber: 208,
+                  staffCount: 10,
+                  assemblyStaffCount: 8,
+                  electricalStaffCount: 2,
+                  hourlyRate: 85,
+                  active: true
+                });
+              }}
+            >
+              Create Team 8
+            </Button>
+          </div>
+        </div>
       </div>
       
       {/* Top row - Stats cards */}
