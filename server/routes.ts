@@ -894,6 +894,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             
             // CRITICAL: Update all phase dates based on the new schedule
+            // Import date utility functions
+            const { adjustToNextBusinessDay } = await import("../shared/utils/date-utils");
             
             // Check if we should preserve existing phase structure
             const hasExistingPhases = (
@@ -929,13 +931,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               if (originalDuration <= 0) {
                 // If original duration was invalid, calculate from scratch
-                fabStartDate = startDate;
-                paintStartDate = addDays(startDate, fabDays);
-                assemblyStartDate = addDays(paintStartDate, paintDays);
-                const temporaryItStartDate = addDays(assemblyStartDate, Math.round(assemblyDays * 0.8));
-                ntcTestingDate = addDays(temporaryItStartDate, itDays);
-                qcStartDate = addDays(ntcTestingDate, ntcDays);
-                executiveReviewDate = addDays(qcStartDate, Math.round(qcDays * 0.8));
+                fabStartDate = adjustToNextBusinessDay(startDate) || startDate;
+                paintStartDate = adjustToNextBusinessDay(addDays(startDate, fabDays)) || addDays(startDate, fabDays);
+                assemblyStartDate = adjustToNextBusinessDay(addDays(paintStartDate, paintDays)) || addDays(paintStartDate, paintDays);
+                const temporaryItStartDate = adjustToNextBusinessDay(addDays(assemblyStartDate, Math.round(assemblyDays * 0.8))) || 
+                                            addDays(assemblyStartDate, Math.round(assemblyDays * 0.8));
+                ntcTestingDate = adjustToNextBusinessDay(addDays(temporaryItStartDate, itDays)) || addDays(temporaryItStartDate, itDays);
+                qcStartDate = adjustToNextBusinessDay(addDays(ntcTestingDate, ntcDays)) || addDays(ntcTestingDate, ntcDays);
+                executiveReviewDate = adjustToNextBusinessDay(addDays(qcStartDate, Math.round(qcDays * 0.8))) || 
+                                     addDays(qcStartDate, Math.round(qcDays * 0.8));
               } else {
                 // Calculate proportions based on original phase structure
                 const origFabStart = new Date(project.fabricationStart);
@@ -951,20 +955,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const ntcPercent = differenceInDays(origNtcStart, origFabStart) / originalDuration;
                 const qcPercent = differenceInDays(origQcStart, origFabStart) / originalDuration;
                 
-                // Apply these percentages to the new duration
-                fabStartDate = startDate;
-                paintStartDate = addDays(startDate, Math.round(paintPercent * totalDays));
-                assemblyStartDate = addDays(startDate, Math.round(assemblyPercent * totalDays));
-                ntcTestingDate = addDays(startDate, Math.round(ntcPercent * totalDays));
-                qcStartDate = addDays(startDate, Math.round(qcPercent * totalDays));
+                // Apply these percentages to the new duration, ensuring all dates fall on business days
+                fabStartDate = adjustToNextBusinessDay(startDate) || startDate;
+                paintStartDate = adjustToNextBusinessDay(addDays(startDate, Math.round(paintPercent * totalDays))) || 
+                                addDays(startDate, Math.round(paintPercent * totalDays));
+                assemblyStartDate = adjustToNextBusinessDay(addDays(startDate, Math.round(assemblyPercent * totalDays))) || 
+                                   addDays(startDate, Math.round(assemblyPercent * totalDays));
+                ntcTestingDate = adjustToNextBusinessDay(addDays(startDate, Math.round(ntcPercent * totalDays))) || 
+                                addDays(startDate, Math.round(ntcPercent * totalDays));
+                qcStartDate = adjustToNextBusinessDay(addDays(startDate, Math.round(qcPercent * totalDays))) || 
+                             addDays(startDate, Math.round(qcPercent * totalDays));
                 
                 // Executive review typically near the end
                 if (project.executiveReviewDate) {
                   const origExecReview = new Date(project.executiveReviewDate);
                   const execPercent = differenceInDays(origExecReview, origFabStart) / originalDuration;
-                  executiveReviewDate = addDays(startDate, Math.round(execPercent * totalDays));
+                  executiveReviewDate = adjustToNextBusinessDay(addDays(startDate, Math.round(execPercent * totalDays))) || 
+                                       addDays(startDate, Math.round(execPercent * totalDays));
                 } else {
-                  executiveReviewDate = addDays(qcStartDate, Math.round((differenceInDays(endDate, qcStartDate) * 0.8)));
+                  executiveReviewDate = adjustToNextBusinessDay(addDays(qcStartDate, Math.round((differenceInDays(endDate, qcStartDate) * 0.8)))) || 
+                                       addDays(qcStartDate, Math.round((differenceInDays(endDate, qcStartDate) * 0.8)));
                 }
                 
                 console.log("Adjusted phase dates with proportions:", {
@@ -975,14 +985,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             } else {
               // If we don't have existing phases or they're incomplete, calculate from scratch
-              console.log("Calculating phase dates from scratch using percentages");
+              console.log("Calculating phase dates from scratch using percentages and ensuring business days only");
               
-              fabStartDate = startDate;
-              paintStartDate = addDays(startDate, fabDays);
-              assemblyStartDate = addDays(paintStartDate, paintDays);
-              ntcTestingDate = addDays(assemblyStartDate, assemblyDays);
-              qcStartDate = addDays(ntcTestingDate, ntcDays);
-              executiveReviewDate = addDays(qcStartDate, Math.round(qcDays * 0.8));
+              fabStartDate = adjustToNextBusinessDay(startDate) || startDate;
+              paintStartDate = adjustToNextBusinessDay(addDays(startDate, fabDays)) || addDays(startDate, fabDays);
+              assemblyStartDate = adjustToNextBusinessDay(addDays(paintStartDate, paintDays)) || addDays(paintStartDate, paintDays);
+              ntcTestingDate = adjustToNextBusinessDay(addDays(assemblyStartDate, assemblyDays)) || addDays(assemblyStartDate, assemblyDays);
+              qcStartDate = adjustToNextBusinessDay(addDays(ntcTestingDate, ntcDays)) || addDays(ntcTestingDate, ntcDays);
+              executiveReviewDate = adjustToNextBusinessDay(addDays(qcStartDate, Math.round(qcDays * 0.8))) || 
+                                   addDays(qcStartDate, Math.round(qcDays * 0.8));
             }
             
             // Add phase dates to update object
@@ -993,7 +1004,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             projectUpdate.qcStartDate = format(qcStartDate, 'yyyy-MM-dd');
             projectUpdate.executiveReviewDate = format(executiveReviewDate, 'yyyy-MM-dd');
             
-            console.log("Final phase dates:", {
+            console.log("Final phase dates (weekdays only):", {
               fabricationStart: projectUpdate.fabricationStart,
               wrapDate: projectUpdate.wrapDate,
               assemblyStart: projectUpdate.assemblyStart,

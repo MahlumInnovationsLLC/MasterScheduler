@@ -166,3 +166,91 @@ export function countWorkingDays(startDateStr: string | Date | null, endDateStr:
   
   return workingDays;
 }
+
+/**
+ * Determines if a date is a business day (weekday and not a holiday)
+ * 
+ * @param dateStr ISO date string (YYYY-MM-DD) or Date object
+ * @returns boolean indicating if the date is a business day
+ */
+export function isBusinessDay(dateStr: string | Date | null): boolean {
+  if (!dateStr) return false;
+  
+  // Convert to Date object
+  const date = dateStr instanceof Date 
+    ? dateStr 
+    : new Date(dateStr);
+  
+  // Validate date
+  if (isNaN(date.getTime())) return false;
+  
+  // Set time portion to zeros to avoid any time-related issues
+  date.setHours(0, 0, 0, 0);
+  
+  // Check if it's a weekend
+  const dayOfWeek = date.getDay();
+  if (dayOfWeek === 0 || dayOfWeek === 6) return false; // Sunday or Saturday
+  
+  // Check if it's a holiday
+  const dateString = date.toISOString().split('T')[0];
+  const year = date.getFullYear();
+  const holidays = getUSHolidays(year);
+  
+  return !holidays.has(dateString);
+}
+
+/**
+ * Adjusts a date to the next business day if it falls on a weekend or holiday
+ * 
+ * @param dateStr ISO date string (YYYY-MM-DD) or Date object
+ * @returns Date object adjusted to the next business day if needed
+ */
+export function adjustToNextBusinessDay(dateStr: string | Date | null): Date | null {
+  if (!dateStr) return null;
+  
+  // Convert to Date object
+  const date = dateStr instanceof Date 
+    ? new Date(dateStr.getTime()) // Create a copy
+    : new Date(dateStr);
+  
+  // Validate date
+  if (isNaN(date.getTime())) return null;
+  
+  // Set time portion to zeros
+  date.setHours(0, 0, 0, 0);
+  
+  // Keep incrementing the date until we find a business day
+  while (!isBusinessDay(date)) {
+    date.setDate(date.getDate() + 1);
+  }
+  
+  return date;
+}
+
+/**
+ * Adjusts a date to the previous business day if it falls on a weekend or holiday
+ * 
+ * @param dateStr ISO date string (YYYY-MM-DD) or Date object
+ * @returns Date object adjusted to the previous business day if needed
+ */
+export function adjustToPreviousBusinessDay(dateStr: string | Date | null): Date | null {
+  if (!dateStr) return null;
+  
+  // Convert to Date object
+  const date = dateStr instanceof Date 
+    ? new Date(dateStr.getTime()) // Create a copy
+    : new Date(dateStr);
+  
+  // Validate date
+  if (isNaN(date.getTime())) return null;
+  
+  // Set time portion to zeros
+  date.setHours(0, 0, 0, 0);
+  
+  // Keep decrementing the date until we find a business day
+  while (!isBusinessDay(date)) {
+    date.setDate(date.getDate() - 1);
+  }
+  
+  return date;
+}
