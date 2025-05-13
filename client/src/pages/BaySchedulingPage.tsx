@@ -5,6 +5,7 @@ import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown, Upload } from 'lu
 import { useToast } from '@/hooks/use-toast';
 import { cn, calculateBayUtilization } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
+import type { QueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -31,6 +32,7 @@ import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
 import BaySchedulingImport from '@/components/BaySchedulingImport';
+import LoadingOverlay from '@/components/LoadingOverlay';
 import { 
   ManufacturingBay, 
   ManufacturingSchedule, 
@@ -123,16 +125,16 @@ const BaySchedulingPage = () => {
   // Filter states
   const [filterTeam, setFilterTeam] = useState<string | null>(null);
   
-  // Fetch data
-  const { data: manufacturingBays = [], refetch: refetchBays } = useQuery({
+  // Fetch data with proper typing
+  const { data: manufacturingBays = [], refetch: refetchBays } = useQuery<ManufacturingBay[]>({
     queryKey: ['/api/manufacturing-bays'],
   });
   
-  const { data: manufacturingSchedules = [] } = useQuery({
+  const { data: manufacturingSchedules = [] } = useQuery<ManufacturingSchedule[]>({
     queryKey: ['/api/manufacturing-schedules'],
   });
   
-  const { data: projects = [] } = useQuery({
+  const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
 
@@ -339,7 +341,7 @@ const BaySchedulingPage = () => {
     },
   });
   
-  // Handler for schedule changes
+  // Handler for schedule changes with optimistic updates
   const handleScheduleChange = async (
     scheduleId: number,
     newBayId: number,
@@ -351,6 +353,34 @@ const BaySchedulingPage = () => {
     try {
       setIsLoading(true);
       console.log(`Updating schedule ${scheduleId} to bay ${newBayId}, row ${rowIndex}`);
+      
+      // Get the current data for optimistic updates
+      const previousSchedules = queryClient.getQueryData<ManufacturingSchedule[]>(['/api/manufacturing-schedules']) || [];
+      
+      // Find the schedule to update
+      const scheduleToUpdate = previousSchedules.find(s => s.id === scheduleId);
+      
+      if (scheduleToUpdate) {
+        // Create optimistic update
+        const optimisticData = previousSchedules.map(s => 
+          s.id === scheduleId 
+            ? { 
+                ...s, 
+                bayId: newBayId, 
+                startDate: newStartDate, 
+                endDate: newEndDate,
+                totalHours: totalHours || s.totalHours,
+                row: rowIndex !== undefined ? rowIndex : s.row,
+                rowIndex: rowIndex !== undefined ? rowIndex : s.rowIndex
+              } 
+            : s
+        );
+        
+        // Update the cache with optimistic data
+        queryClient.setQueryData(['/api/manufacturing-schedules'], optimisticData);
+      }
+      
+      // Perform the actual API update
       const result = await updateScheduleMutation.mutateAsync({
         scheduleId,
         bayId: newBayId,
@@ -360,12 +390,17 @@ const BaySchedulingPage = () => {
         row: rowIndex
       });
       
-      // Force a refetch to ensure state is up to date
-      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+      // No need to invalidate, just refresh the query silently
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/manufacturing-schedules'],
+        refetchType: 'none' // Don't trigger an immediate refetch
+      });
       
       return result;
     } catch (error) {
       console.error('Error updating schedule:', error);
+      // Invalidate to get fresh data on error
+      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
       toast({
         title: "Error",
         description: "Failed to update schedule",
@@ -754,16 +789,11 @@ const BaySchedulingPage = () => {
         </div>
       </div>
       
-      {/* Loading overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center">
-            <div className="h-10 w-10 border-4 border-t-transparent border-primary rounded-full animate-spin mb-4"></div>
-            <p className="font-medium">Updating Schedule...</p>
-            <p className="text-sm text-muted-foreground mt-1">This may take a moment</p>
-          </div>
-        </div>
-      )}
+      {/* Use the LoadingOverlay component */}
+      <LoadingOverlay 
+        visible={isLoading} 
+        message="Updating Schedule... This may take a moment" 
+      />
     </div>
   );
 };
