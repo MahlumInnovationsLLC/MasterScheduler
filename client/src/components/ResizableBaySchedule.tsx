@@ -94,6 +94,9 @@ interface ScheduleBar {
   ntcPercentage: number; // Default 7% 
   qcPercentage: number; // Default 7%
   
+  // Normalization factor for phase width calculations
+  normalizeFactor?: number;
+  
   // Width calculations for phases
   fabWidth?: number; // Width of FAB phase on visualization
   paintWidth?: number; // Width of PAINT phase
@@ -1305,14 +1308,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           color: getProjectColor(project.id),
           row: assignedRow,
           
-          // Department percentages and normalization factor
+          // Department percentages
           fabPercentage,
           paintPercentage,
           productionPercentage,
           itPercentage,
           ntcPercentage,
           qcPercentage,
-          normalizeFactor,
           
           // Department widths
           fabWidth,
@@ -5390,8 +5392,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           <div
                             className="dept-phase dept-fab-phase rounded-l-sm"
                             style={{
-                              width: `calc(${bar.fabPercentage * bar.normalizeFactor / 100} * 100%)`,
-                              maxWidth: bar.fabWidth + 'px'
+                              width: bar.fabWidth + 'px'
                             }}
                             title={`FAB: ${bar.fabPercentage}% (${Math.round(bar.totalHours * bar.fabPercentage / 100)}h)`}
                           >
