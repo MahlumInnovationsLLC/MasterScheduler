@@ -8,8 +8,8 @@ interface MultiRowBayContentProps {
   weekSlots: { date: Date }[];
   scheduleBars: any[];
   projects: Project[];
-  handleDragOver: (e: React.DragEvent, bayId: number, weekIndex: number, rowIndex: number) => void;
-  handleDrop: (e: React.DragEvent, bayId: number, weekIndex?: number, rowIndex?: number) => void;
+  handleDragOver: (e: React.DragEvent<Element>, bayId: number, weekIndex: number, rowIndex?: number) => void;
+  handleDrop: (e: React.DragEvent<Element>, bayId: number, weekIndex?: number, rowIndex?: number) => void;
   setRowToDelete: React.Dispatch<React.SetStateAction<{
     bayId: number;
     rowIndex: number;

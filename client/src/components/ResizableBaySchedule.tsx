@@ -1797,7 +1797,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Handle drag over
-  const handleDragOver = (e: React.DragEvent, bayId: number, slotIndex: number, rowIndex: number = 0) => {
+  const handleDragOver = (e: React.DragEvent<Element>, bayId: number, slotIndex: number, rowIndex: number = 0) => {
     // CRITICAL: We must call preventDefault to allow dropping
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -2392,7 +2392,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Handle drop on a bay timeline
-  const handleDrop = (e: React.DragEvent, bayId: number, slotIndex: number, rowIndex: number = 0) => {
+  const handleDrop = (e: React.DragEvent<Element>, bayId: number, slotIndex: number, rowIndex: number = 0) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -4502,8 +4502,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     weekSlots={slots}
                     scheduleBars={scheduleBars}
                     projects={projects}
-                    handleDragOver={handleDragOver}
-                    handleDrop={handleDrop}
+                    handleDragOver={(e, bayId, weekIndex, rowIndex) => handleDragOver(e, bayId, weekIndex, rowIndex)}
+                    handleDrop={(e, bayId, weekIndex, rowIndex) => handleDrop(e, bayId, weekIndex || 0, rowIndex)}
                     setRowToDelete={setRowToDelete}
                     setDeleteRowDialogOpen={setDeleteRowDialogOpen}
                     handleRowDelete={handleDeleteRow}
