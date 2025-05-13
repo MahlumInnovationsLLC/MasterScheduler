@@ -1996,6 +1996,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     document.body.setAttribute('data-current-drag-bay', bayId.toString());
     console.log(`Updated current drag bay: ${bayId} and row: ${currentRow}`);
     
+    // CRITICAL FIX FOR BAY 3: Ensure we capture exact date attribute consistently across all bays
+    // This prevents the issue with Bay 3 where projects auto-snap to start of grid
+    const dataDate = dragElement.getAttribute('data-date');
+    if (dataDate) {
+      // Set a consistent global variable for exact date tracking regardless of bay
+      (window as any).lastExactDate = dataDate;
+      dragElement.setAttribute('data-exact-date', dataDate);
+      console.log(`Bay ${bayId} drag: Storing exact date ${dataDate} from direct attribute`);
+    }
+    
     // We'll still track the original bay ID on the element (but don't use it for placement)
     if (dragElement && !dragElement.hasAttribute('data-original-bay-id')) {
       dragElement.setAttribute('data-original-bay-id', bayId.toString());
@@ -2142,8 +2152,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // IMPORTANT: Set a global variable with this date for use in the drop handler
         (window as any).lastExactDate = exactDateToUse;
         
+        // CRITICAL FIX FOR BAY 3: Store date more thoroughly to prevent start-of-grid snap
+        // Store on multiple elements to ensure it's accessible during the drop event
         target.setAttribute('data-exact-date', exactDateToUse);
-        console.log(`Storing exact date: ${exactDateToUse} (from date ${dataDate})`);
+        e.currentTarget.setAttribute('data-exact-date', exactDateToUse);
+        document.body.setAttribute('data-current-drag-date', exactDateToUse);
+        console.log(`Storing exact date ${exactDateToUse} for bay ${bayId} (from date ${dataDate})`);
         
         // Also store this date on the parent bay element for better target identification
         const parentBay = target.closest('.bay-container');
@@ -2151,8 +2165,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           parentBay.setAttribute('data-last-dragover-date', exactDateToUse);
         }
         
+        // Ensure all active-drop-target elements have this date set immediately
+        const dropTargets = document.querySelectorAll('.active-drop-target');
+        Array.from(dropTargets).forEach(el => {
+          el.setAttribute('data-exact-date', exactDateToUse);
+        });
+        
         // Also add this date to active drop elements that don't have a date
-        document.querySelectorAll('.active-drop-target').forEach(el => {
+        const additionalTargets = document.querySelectorAll('.active-drop-target');
+        Array.from(additionalTargets).forEach(el => {
           if (!el.hasAttribute('data-exact-date')) {
             el.setAttribute('data-exact-date', exactDateToUse);
           }
@@ -2777,21 +2798,36 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       let slotDate: Date | null = null;
       let exactDateForStorage: string | null = null;
       
-      // MOST RELIABLE: Check for data-exact-date which is specifically set during drag over
-      // This is the most accurate way to get the precise date the user intended
-      const exactDateStr = targetElement.getAttribute('data-exact-date');
-      if (exactDateStr) {
-        slotDate = new Date(exactDateStr);
-        exactDateForStorage = exactDateStr; // Store the exact string for later use
-        console.log('SUCCESS: Using precise date from data-exact-date attribute:', exactDateStr, slotDate);
+      // ENHANCEMENT FOR BAY 3: Check global variables first for consistent behavior across bays
+      const storedGlobalDate = (window as any).lastExactDate;
+      const bodyDateAttribute = document.body.getAttribute('data-current-drag-date');
+      
+      // FIRST CHECK: Check window global variable (most reliable)
+      if (storedGlobalDate) {
+        slotDate = new Date(storedGlobalDate);
+        exactDateForStorage = storedGlobalDate;
+        console.log(`CRITICAL FIX FOR BAY 3: Using global date variable: ${storedGlobalDate}`, slotDate);
+      } 
+      // SECOND CHECK: Check body attribute if window variable is not available
+      else if (bodyDateAttribute) {
+        slotDate = new Date(bodyDateAttribute);
+        exactDateForStorage = bodyDateAttribute;
+        console.log(`Using body data-current-drag-date attribute: ${bodyDateAttribute}`, slotDate);
       }
-      // Next check for data-date on direct target
+      // THIRD CHECK: Check target element's data-exact-date attribute
+      else if (targetElement.getAttribute('data-exact-date')) {
+        const exactDateStr = targetElement.getAttribute('data-exact-date');
+        slotDate = new Date(exactDateStr!);
+        exactDateForStorage = exactDateStr;
+        console.log('Using precise date from target element data-exact-date attribute:', exactDateStr, slotDate);
+      }
+      // FOURTH CHECK: Check data-date on direct target
       else if (dataDate) {
         slotDate = new Date(dataDate);
         exactDateForStorage = dataDate;
         console.log('Using date directly from target element data-date attribute:', dataDate, slotDate);
       }
-      // Next try to find and check the closest element with a data-date attribute
+      // FIFTH CHECK: Try to find and check the closest element with a data-date attribute
       else {
         const dateElement = targetElement.closest('[data-date]') as HTMLElement;
         if (dateElement) {
@@ -2802,6 +2838,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             console.log('Using date from closest element with data-date attribute:', dateStr, slotDate);
           }
         }
+      }
+      
+      // CRITICAL BAY 3 FIX: If we still don't have a date, check all bay containers
+      if (!slotDate) {
+        const bayContainers = document.querySelectorAll('.bay-container');
+        Array.from(bayContainers).forEach(container => {
+          if (!slotDate && container.getAttribute('data-last-dragover-date')) {
+            const bayDateStr = container.getAttribute('data-last-dragover-date');
+            slotDate = new Date(bayDateStr!);
+            exactDateForStorage = bayDateStr;
+            console.log('Last resort: Using date from bay container data-last-dragover-date:', bayDateStr, slotDate);
+          }
+        });
       }
       
       // If we couldn't get the date from any attribute, use the targetSlotIndex
@@ -2963,11 +3012,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // First get the exact start date that we're using
       // CRITICAL FIX: Use the global variable we set in handleDragOver if available
       // This ensures we use the exact week that was targeted during dragging
-      const globalExactDate = (window as any).lastExactDate;
-      console.log(`Global exact date from drag: ${globalExactDate}`);
+      const globalDragDate = (window as any).lastExactDate;
+      console.log(`Global exact date from drag: ${globalDragDate}`);
       
-      const exactStartDate = globalExactDate 
-        ? new Date(globalExactDate)
+      const exactStartDate = globalDragDate 
+        ? new Date(globalDragDate)
         : (data.targetStartDate ? new Date(data.targetStartDate) : slotDate);
       
       // Calculate the FAB phase duration from the exact start date
