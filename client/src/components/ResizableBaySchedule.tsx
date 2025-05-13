@@ -1721,8 +1721,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Add visual feedback classes during resize
       barElement.classList.add('resizing-active');
       
-      // Update all phase widths using our component-level helper function
-      updateDepartmentPhaseWidths(barElement, newWidth);
+      // Get the project data to use in phase width calculations
+      const schedule = schedules.find(s => s.id === resizingSchedule.id);
+      const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
+      
+      if (project) {
+        // Apply phase updates using the exact project percentages
+        // Use the component-level helper function
+        updateDepartmentPhaseWidths(barElement, newWidth);
+        
+        // Log precise resizing info for debugging
+        console.log(`Resizing project ${project.projectNumber} (ID ${project.id}): `, {
+          newWidth,
+          fabPercentage: project.fabPercentage,
+          paintPercentage: project.paintPercentage,
+          productionPercentage: project.productionPercentage,
+          itPercentage: project.itPercentage,
+          ntcPercentage: project.ntcPercentage,
+          qcPercentage: project.qcPercentage
+        });
+      } else {
+        // Fallback to default function if project not found
+        updateDepartmentPhaseWidths(barElement, newWidth);
+      }
     } else {
       // Resizing from right (changing end date)
       // Allow resizing by cell for more precise control
@@ -1750,8 +1771,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         barElement.classList.add('resize-from-right');
       }
       
-      // Use the component-level helper function to update all phase widths consistently
-      updateDepartmentPhaseWidths(barElement, newWidth);
+      // Get the project data to use in phase width calculations
+      const schedule = schedules.find(s => s.id === resizingSchedule.id);
+      const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
+      
+      if (project) {
+        // Apply phase updates using the exact project percentages
+        // Use the component-level helper function
+        updateDepartmentPhaseWidths(barElement, newWidth);
+        
+        // Log precise resizing info for debugging
+        console.log(`Resizing project ${project.projectNumber} (ID ${project.id}) from right: `, {
+          newWidth,
+          fabPercentage: project.fabPercentage,
+          paintPercentage: project.paintPercentage,
+          productionPercentage: project.productionPercentage,
+          itPercentage: project.itPercentage,
+          ntcPercentage: project.ntcPercentage,
+          qcPercentage: project.qcPercentage
+        });
+      } else {
+        // Fallback to default function if project not found
+        updateDepartmentPhaseWidths(barElement, newWidth);
+      }
       
       // Add debugging attributes
       barElement.dataset.newWidth = newWidth.toString();
