@@ -1136,14 +1136,17 @@ body.resizing-mode .resize-handle {
 .row-management-buttons {
   position: absolute;
   left: 50%;
-  bottom: -10px;
+  top: calc(100% - 12px); /* Position slightly above the divider line */
   transform: translateX(-50%);
   display: flex !important;
-  gap: 6px;
-  z-index: 999 !important; /* Extremely high z-index to ensure visibility */
+  gap: 8px;
+  z-index: 9999 !important; /* Extremely high z-index to ensure visibility */
   opacity: 1 !important; /* Force visibility */
   visibility: visible !important; /* Force visibility */
   pointer-events: auto !important; /* Ensure clickable */
+  background: rgba(0,0,0,0.2) !important; /* Subtle background for better visibility */
+  padding: 2px !important;
+  border-radius: 15px !important;
 }
 
 /* Row divider container needs position relative for absolute positioning of buttons */
@@ -1151,34 +1154,61 @@ body.resizing-mode .resize-handle {
   position: relative !important;
 }
 
-.row-add-button {
-  background-color: hsl(var(--primary));
-  color: white;
-  height: 22px;
-  width: 22px;
-  border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+/* Make buttons very obvious with larger size and bright colors */
+.row-add-button, .row-delete-button {
+  height: 24px !important;
+  width: 24px !important;
+  border-radius: 50% !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  cursor: pointer;
+  cursor: pointer !important;
   opacity: 1 !important; /* Force visibility */
   visibility: visible !important; /* Force visibility */
-  border: 2px solid white;
+  border: 2px solid white !important;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.8) !important;
+  transition: transform 0.1s ease !important;
+}
+
+.row-add-button {
+  background-color: rgb(37, 99, 235) !important; /* Bright blue */
+  color: white !important;
 }
 
 .row-delete-button {
-  background-color: hsl(var(--destructive));
-  color: white;
-  height: 22px;
-  width: 22px;
-  border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer;
-  opacity: 1 !important; /* Force visibility */
-  visibility: visible !important; /* Force visibility */
-  border: 2px solid white;
+  background-color: rgb(220, 38, 38) !important; /* Bright red */
+  color: white !important;
+}
+
+.row-add-button:hover, .row-delete-button:hover {
+  transform: scale(1.1) !important;
+}
+
+/* Show the row management buttons on hover and by default */
+.row-management-buttons {
+  display: flex !important; /* Always visible by default */
+}
+
+/* Add more emphasis on hover */
+.bay-row:hover .row-management-buttons {
+  transform: translateX(-50%) scale(1.1) !important;
+  background: rgba(0,0,0,0.4) !important;
+}
+
+/* Override any other styles that might hide these buttons */
+.row-management-buttons * {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Add a pulse animation to make buttons more noticeable */
+@keyframes button-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+.row-management-buttons .row-add-button,
+.row-management-buttons .row-delete-button {
+  animation: button-pulse 2s infinite;
 }
