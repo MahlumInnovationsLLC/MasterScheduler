@@ -272,8 +272,23 @@ const BayCapacityInfo = ({ bay, allSchedules, projects }: { bay: ManufacturingBa
     const totalDays = Math.ceil(Math.abs(endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
     
-    // Calculate weekly hours for this project
-    const projectWeeklyHours = (schedule.totalHours || 0) / totalWeeks;
+    // CRITICAL FIX: Only consider PRODUCTION hours for bay capacity calculation
+    // Get the project's production percentage or use default (60%)
+    const productionPercentage = parseFloat(project?.productionPercentage as any) || 60;
+    
+    // Calculate production hours (this is what actually consumes bay capacity)
+    const productionHours = (schedule.totalHours || 0) * (productionPercentage / 100);
+    
+    // Calculate weekly hours for this project - using ONLY production hours
+    const projectWeeklyHours = productionHours / totalWeeks;
+    
+    // Log the adjustment for transparency in BayCapacityInfo
+    console.log(`CAPACITY INFO: Using only PRODUCTION hours (${productionPercentage}% of total) for project ${project.projectNumber}`, {
+      totalHours: schedule.totalHours || 0,
+      productionPercentage,
+      productionHours,
+      weeklyHours: projectWeeklyHours,
+    });
     
     // Add to total hours
     totalHoursUsedThisWeek += projectWeeklyHours;
