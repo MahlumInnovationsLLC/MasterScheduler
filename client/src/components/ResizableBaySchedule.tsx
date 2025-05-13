@@ -503,6 +503,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   const [draggingSchedule, setDraggingSchedule] = useState<any>(null);
   
   // Function to calculate bar position based on dates
+
   const calculateBarPosition = (startDate: Date, endDate: Date): { left?: number, width?: number } => {
     try {
       // Need to find our viewport date range (what's visible)
@@ -1551,49 +1552,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     e.preventDefault();
     
-    // Helper function to update department phase widths based on new total width
-    // This function ensures all colored phases update consistently during resize
-    const updatePhaseWidths = (barEl: HTMLElement, width: number) => {
-      const fabPhaseEl = barEl.querySelector('.dept-fab-phase') as HTMLElement;
-      const paintPhaseEl = barEl.querySelector('.dept-paint-phase') as HTMLElement;
-      const prodPhaseEl = barEl.querySelector('.dept-prod-phase') as HTMLElement;
-      const itPhaseEl = barEl.querySelector('.dept-it-phase') as HTMLElement;
-      const ntcPhaseEl = barEl.querySelector('.dept-ntc-phase') as HTMLElement;
-      const qcPhaseEl = barEl.querySelector('.dept-qc-phase') as HTMLElement;
-      
-      if (!fabPhaseEl || !paintPhaseEl || !prodPhaseEl || !itPhaseEl || !ntcPhaseEl || !qcPhaseEl) {
-        console.warn('Could not find all phase elements for updating widths');
-        return;
-      }
-      
-      // Calculate phase widths based on their percentages of total width
-      const fabWidth = Math.round(width * 0.27); // 27%
-      const paintWidth = Math.round(width * 0.07); // 7%
-      const prodWidth = Math.round(width * 0.46); // 46%
-      const itWidth = Math.round(width * 0.07); // 7%
-      const ntcWidth = Math.round(width * 0.07); // 7%
-      const qcWidth = Math.round(width * 0.06); // 6%
-      
-      // Update the width and position of each phase
-      fabPhaseEl.style.width = `${fabWidth}px`;
-      
-      paintPhaseEl.style.left = `${fabWidth}px`;
-      paintPhaseEl.style.width = `${paintWidth}px`;
-      
-      prodPhaseEl.style.left = `${fabWidth + paintWidth}px`;
-      prodPhaseEl.style.width = `${prodWidth}px`;
-      
-      itPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth}px`;
-      itPhaseEl.style.width = `${itWidth}px`;
-      
-      ntcPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
-      ntcPhaseEl.style.width = `${ntcWidth}px`;
-      
-      qcPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
-      qcPhaseEl.style.width = `${qcWidth}px`;
-      
-      console.log(`Updated phase widths for width=${width}px`);
-    };
+    // Use our component-level updateDepartmentPhaseWidths function
+    // for consistent phase width updates
     
     // Find the schedule bar element using data attribute for reliability
     // Use a more specific selector that includes both class and data attribute
