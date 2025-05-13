@@ -564,14 +564,33 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
       
       if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
-        // FIXED: Calculate phase widths based on their correct percentages
-        // CRITICAL: Production phase MUST be 60% as requested by user
-        const fabWidth = Math.round(totalWidth * 0.27); // 27%
-        const paintWidth = Math.round(totalWidth * 0.07); // 7%
-        const prodWidth = Math.round(totalWidth * 0.60); // 60% - CORRECTED FROM 46%
-        const itWidth = Math.round(totalWidth * 0.02); // 2% - reduced to accommodate production
-        const ntcWidth = Math.round(totalWidth * 0.02); // 2% - reduced to accommodate production
-        const qcWidth = Math.round(totalWidth * 0.02); // 2% - reduced to accommodate production
+        // Get the schedule ID from the bar element
+        const scheduleId = parseInt(barElement.getAttribute('data-schedule-id') || '0', 10);
+        
+        // Find the schedule and project data
+        const schedule = schedules.find(s => s.id === scheduleId);
+        const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
+        
+        // Use project-specific phase percentages or fallback to defaults
+        const fabPercentage = project ? (parseFloat(project.fabPercentage as any) || 27) : 27;
+        const paintPercentage = project ? (parseFloat(project.paintPercentage as any) || 7) : 7; 
+        const productionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
+        const itPercentage = project ? (parseFloat(project.itPercentage as any) || 2) : 2;
+        const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 2) : 2;
+        const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 2) : 2;
+        
+        // Calculate the total percentage and normalization factor
+        const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
+                                itPercentage + ntcPercentage + qcPercentage;
+        const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
+        
+        // Calculate phase widths based on normalized percentages
+        const fabWidth = Math.round(totalWidth * (fabPercentage * normalizeFactor / 100));
+        const paintWidth = Math.round(totalWidth * (paintPercentage * normalizeFactor / 100));
+        const prodWidth = Math.round(totalWidth * (productionPercentage * normalizeFactor / 100));
+        const itWidth = Math.round(totalWidth * (itPercentage * normalizeFactor / 100));
+        const ntcWidth = Math.round(totalWidth * (ntcPercentage * normalizeFactor / 100));
+        const qcWidth = Math.round(totalWidth * (qcPercentage * normalizeFactor / 100));
         
         // Update the width and position of each phase
         fabPhase.style.width = `${fabWidth}px`;
@@ -3610,14 +3629,30 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
           
           if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
-            // FIXED: Calculate phase widths based on correct percentages
-            // CRITICAL: Production phase MUST be 60% as requested by user
-            const fabWidth = Math.round(width * 0.27); // 27%
-            const paintWidth = Math.round(width * 0.07); // 7%
-            const prodWidth = Math.round(width * 0.60); // 60% - CORRECTED FROM 46%
-            const itWidth = Math.round(width * 0.02); // 2% - reduced to accommodate production
-            const ntcWidth = Math.round(width * 0.02); // 2% - reduced to accommodate production
-            const qcWidth = Math.round(width * 0.02); // 2% - reduced to accommodate production
+            // Get the schedule and project data for this schedule ID
+            const schedule = schedules.find(s => s.id === scheduleId);
+            const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
+            
+            // Use project-specific phase percentages or fallback to defaults
+            const fabPercentage = project ? (parseFloat(project.fabPercentage as any) || 27) : 27;
+            const paintPercentage = project ? (parseFloat(project.paintPercentage as any) || 7) : 7; 
+            const productionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
+            const itPercentage = project ? (parseFloat(project.itPercentage as any) || 2) : 2;
+            const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 2) : 2;
+            const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 2) : 2;
+            
+            // Calculate the total percentage and normalization factor
+            const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
+                                    itPercentage + ntcPercentage + qcPercentage;
+            const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
+            
+            // Calculate phase widths based on normalized percentages
+            const fabWidth = Math.round(width * (fabPercentage * normalizeFactor / 100));
+            const paintWidth = Math.round(width * (paintPercentage * normalizeFactor / 100));
+            const prodWidth = Math.round(width * (productionPercentage * normalizeFactor / 100));
+            const itWidth = Math.round(width * (itPercentage * normalizeFactor / 100));
+            const ntcWidth = Math.round(width * (ntcPercentage * normalizeFactor / 100));
+            const qcWidth = Math.round(width * (qcPercentage * normalizeFactor / 100));
             
             // Update the width and position of each phase
             fabPhase.style.width = `${fabWidth}px`;
