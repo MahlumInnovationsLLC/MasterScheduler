@@ -454,7 +454,24 @@ const BillingMilestones = () => {
     {
       accessorKey: 'targetInvoiceDate',
       header: 'Target Date',
-      cell: ({ row }) => <div className="text-sm">{formatDate(row.original.targetInvoiceDate)}</div>,
+      cell: ({ row }) => {
+        const isDeliveryMilestone = row.original.isDeliveryMilestone || 
+          (row.original.name && row.original.name.toUpperCase().includes("DELIVERY"));
+        const hasShipDateChanged = row.original.shipDateChanged;
+        
+        return (
+          <div 
+            className={`text-sm ${isDeliveryMilestone && hasShipDateChanged 
+              ? "bg-orange-100 p-1 rounded border border-orange-300 font-medium text-orange-800" 
+              : ""}`}
+          >
+            {formatDate(row.original.targetInvoiceDate)}
+            {isDeliveryMilestone && hasShipDateChanged && (
+              <div className="text-xs text-orange-600 mt-1">Ship date changed</div>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: 'liveDate',
