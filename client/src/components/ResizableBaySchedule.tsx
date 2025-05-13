@@ -552,9 +552,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
   };
   
-  // Function to update the width of department phase elements
+  // Function to update the width of department phase elements with exact pixel precision
   const updateDepartmentPhaseWidths = (barElement: HTMLElement, totalWidth: number) => {
     try {
+      // Validate input
+      if (!barElement || !totalWidth || totalWidth <= 0) {
+        console.error("Invalid bar element or width", { barElement, totalWidth });
+        return;
+      }
+      
+      // Force the barElement to have the specified width first
+      barElement.style.width = `${totalWidth}px`;
+      
+      // Force a reflow to ensure the above width change takes effect
+      barElement.getBoundingClientRect();
+      
       // Find all phase elements within this bar
       const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
       const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
@@ -575,23 +587,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const fabPercentage = project ? (parseFloat(project.fabPercentage as any) || 27) : 27;
         const paintPercentage = project ? (parseFloat(project.paintPercentage as any) || 7) : 7; 
         const productionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
-        const itPercentage = project ? (parseFloat(project.itPercentage as any) || 7) : 7;       // Updated default from 2 to 7
-        const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 7) : 7;     // Updated default from 2 to 7
-        const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 7) : 7;       // Updated default from 2 to 7
-        
-        // Add debug logging for phase percentages
-        if (project) {
-          console.log(`Project ${project.projectNumber} phase percentages:`, {
-            fab: fabPercentage,
-            paint: paintPercentage,
-            production: productionPercentage,
-            it: itPercentage,
-            ntc: ntcPercentage,
-            qc: qcPercentage,
-            scheduleId,
-            totalWidth
-          });
-        }
+        const itPercentage = project ? (parseFloat(project.itPercentage as any) || 7) : 7;
+        const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 7) : 7;
+        const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 7) : 7;
         
         // Calculate the total percentage and normalization factor
         const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
@@ -599,48 +597,95 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
         
         // Calculate phase widths based on normalized percentages
-        const fabWidth = Math.round(totalWidth * (fabPercentage * normalizeFactor / 100));
-        const paintWidth = Math.round(totalWidth * (paintPercentage * normalizeFactor / 100));
-        const prodWidth = Math.round(totalWidth * (productionPercentage * normalizeFactor / 100));
-        const itWidth = Math.round(totalWidth * (itPercentage * normalizeFactor / 100));
-        const ntcWidth = Math.round(totalWidth * (ntcPercentage * normalizeFactor / 100));
-        const qcWidth = Math.round(totalWidth * (qcPercentage * normalizeFactor / 100));
+        // Use floor for the first 5 phases and then calculate the last one to ensure perfect fit
+        const fabWidth = Math.floor(totalWidth * (fabPercentage * normalizeFactor / 100));
+        const paintWidth = Math.floor(totalWidth * (paintPercentage * normalizeFactor / 100));
+        const prodWidth = Math.floor(totalWidth * (productionPercentage * normalizeFactor / 100));
+        const itWidth = Math.floor(totalWidth * (itPercentage * normalizeFactor / 100));
+        const ntcWidth = Math.floor(totalWidth * (ntcPercentage * normalizeFactor / 100));
         
-        // CRITICAL FIX: Add a small delay to ensure the barElement width is fully updated first
-        // This ensures phases are calculated based on the final width
-        setTimeout(() => {
-          // FORCE DIRECT UI UPDATE: Apply width and position changes immediately to the DOM
-          fabPhase.style.width = `${fabWidth}px`;
-          
-          paintPhase.style.left = `${fabWidth}px`;
-          paintPhase.style.width = `${paintWidth}px`;
-          
-          prodPhase.style.left = `${fabWidth + paintWidth}px`;
-          prodPhase.style.width = `${prodWidth}px`;
-          
-          itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
-          itPhase.style.width = `${itWidth}px`;
-          
-          ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
-          ntcPhase.style.width = `${ntcWidth}px`;
-          
-          qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
-          qcPhase.style.width = `${qcWidth}px`;
-          
-          // Force a DOM reflow to ensure changes are applied immediately
-          barElement.getBoundingClientRect();
-          
-          // Add specific data attributes to help with debugging
-          barElement.setAttribute('data-phases-updated', 'true');
-          barElement.setAttribute('data-total-width', totalWidth.toString());
-          
-          // Log phase width calculations to confirm they're being applied
-          console.log(`DIRECT UI UPDATE: Applied phase widths for schedule ${scheduleId}:`, {
-            fabWidth, paintWidth, prodWidth, itWidth, ntcWidth, qcWidth,
-            totalWidth, 
-            sumOfWidths: fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth
+        // Calculate the sum of the first 5 phases
+        const sumFirstFivePhases = fabWidth + paintWidth + prodWidth + itWidth + ntcWidth;
+        
+        // The last phase (QC) gets the remaining width to ensure exact fit
+        // This ensures the sum of all phase widths equals exactly the total width
+        const qcWidth = totalWidth - sumFirstFivePhases;
+        
+        // Log project and phase data
+        if (project) {
+          console.log(`Project ${project.projectNumber} phase calculation:`, {
+            percentages: {
+              fab: fabPercentage,
+              paint: paintPercentage,
+              production: productionPercentage,
+              it: itPercentage,
+              ntc: ntcPercentage,
+              qc: qcPercentage
+            },
+            widths: {
+              totalWidth,
+              fabWidth,
+              paintWidth,
+              prodWidth,
+              itWidth, 
+              ntcWidth,
+              qcWidth
+            },
+            exactFit: fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth === totalWidth
           });
-        }, 0);
+        }
+        
+        // IMMEDIATE PHASE UPDATE: Apply width and position changes directly to the DOM
+        // This gives instant visual feedback during resize operations
+        
+        // FAB phase (starts at left edge)
+        fabPhase.style.width = `${fabWidth}px`;
+        
+        // PAINT phase (starts after FAB)
+        paintPhase.style.left = `${fabWidth}px`;
+        paintPhase.style.width = `${paintWidth}px`;
+        
+        // PRODUCTION phase (starts after FAB + PAINT)
+        prodPhase.style.left = `${fabWidth + paintWidth}px`;
+        prodPhase.style.width = `${prodWidth}px`;
+        
+        // IT phase (starts after FAB + PAINT + PRODUCTION)
+        itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
+        itPhase.style.width = `${itWidth}px`;
+        
+        // NTC phase (starts after FAB + PAINT + PRODUCTION + IT)
+        ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
+        ntcPhase.style.width = `${ntcWidth}px`;
+        
+        // QC phase (last phase, fills remaining space to exact end)
+        qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
+        qcPhase.style.width = `${qcWidth}px`;
+        
+        // Force a DOM reflow to ensure changes are applied immediately
+        barElement.getBoundingClientRect();
+        
+        // Add data attributes for debugging
+        barElement.setAttribute('data-phases-updated', 'true');
+        barElement.setAttribute('data-total-width', totalWidth.toString());
+        barElement.setAttribute('data-phase-sum', (fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth).toString());
+        barElement.setAttribute('data-exact-fit', (fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth === totalWidth).toString());
+        
+        // Success message
+        console.log(`✅ Phase widths updated with exact fit for schedule ${scheduleId}:`, {
+          totalWidth,
+          sumOfWidths: fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth,
+          exactMatch: (fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth) === totalWidth
+        });
+      } else {
+        console.warn(`Missing phase elements for schedule bar`, {
+          barElement,
+          fabPhase,
+          paintPhase,
+          prodPhase,
+          itPhase,
+          ntcPhase,
+          qcPhase
+        });
       }
     } catch (error) {
       console.error(`Error updating phase widths:`, error);
