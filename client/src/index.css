@@ -1138,39 +1138,47 @@ body.resizing-mode .resize-handle {
   left: 50%;
   bottom: -10px;
   transform: translateX(-50%);
-  display: flex;
+  display: flex !important;
   gap: 6px;
-  z-index: 50;
+  z-index: 999 !important; /* Extremely high z-index to ensure visibility */
   opacity: 1 !important; /* Force visibility */
   visibility: visible !important; /* Force visibility */
+  pointer-events: auto !important; /* Ensure clickable */
+}
+
+/* Row divider container needs position relative for absolute positioning of buttons */
+.bay-row {
+  position: relative !important;
 }
 
 .row-add-button {
   background-color: hsl(var(--primary));
   color: white;
-  height: 20px;
-  width: 20px;
+  height: 22px;
+  width: 22px;
   border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   cursor: pointer;
   opacity: 1 !important; /* Force visibility */
   visibility: visible !important; /* Force visibility */
+  border: 2px solid white;
 }
 
 .row-delete-button {
   background-color: hsl(var(--destructive));
   color: white;
-  height: 20px;
-  width: 20px;
+  height: 22px;
+  width: 22px;
   border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   cursor: pointer;
   opacity: 1 !important; /* Force visibility */
   visibility: visible !important; /* Force visibility */
+  border: 2px solid white;
 }
