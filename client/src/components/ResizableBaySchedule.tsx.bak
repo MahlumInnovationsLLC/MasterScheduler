@@ -1827,13 +1827,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         barElement.style.left = `${resizingSchedule.initialLeft}px`;
         barElement.style.width = `${resizingSchedule.initialWidth}px`;
       }
-    } catch (error) {
-      console.error("Error during resize operation:", error);
-      toast({
-        title: "Resize Error",
-        description: "An error occurred during the resize operation. Please try again.",
-        variant: "destructive"
-      });
     } finally {
       // Clean up event listeners
       document.removeEventListener('mousemove', handleResizeMove);
@@ -1882,7 +1875,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Force schedules to be recalculated by incrementing the version counter
       // This ensures the UI updates with the new position even if data is still cached
       setRecalculationVersion(prev => prev + 1);
-    }
+    } catch (error) {
+      console.error("Error during resize:", error);
+      toast({
+        title: "Resize Error",
+        description: "Could not complete the resize operation. Please try again.",
         variant: "destructive"
       });
       
