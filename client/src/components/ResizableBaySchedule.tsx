@@ -4058,7 +4058,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center">
                   <div className="flex flex-col items-center mr-2">
-                    <span className="text-xs font-semibold text-blue-400 mb-1">TEAM</span>
+                    <span className="text-xs font-semibold text-blue-400 mb-1">BAY</span>
                     <Badge variant="outline">
                       {bay.bayNumber}
                     </Badge>
@@ -4116,7 +4116,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   className="text-red-400 hover:text-red-500"
                   onClick={() => {
                     // Show confirmation dialog before deleting
-                    if (window.confirm(`Are you sure you want to delete Team ${bay.name}? All projects in this bay will be moved to the Unassigned section.`)) {
+                    if (window.confirm(`Are you sure you want to delete bay "${bay.name}"? All projects in this bay will be moved to the Unassigned section.`)) {
                       handleDeleteBay(bay.id);
                     }
                   }}
@@ -4390,13 +4390,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           {Array.from({ length: Math.max(0, 8 - bays.length) }).map((_, index) => {
             const virtualBayId = bays.length + index + 1;
             
-            // Special handling for positions 7 and 8 - explicitly assign them as Team 7 or Team 8
-            const virtualName = virtualBayId === 7 || virtualBayId === 8 
-              ? `Team ${virtualBayId}` 
-              : `Bay ${virtualBayId}`;
+            // Create consistent bay naming for empty slots
+            const virtualName = virtualBayId === 7 
+              ? `TCV Line` 
+              : (virtualBayId === 8 
+                 ? `Line 8` 
+                 : `Bay ${virtualBayId * 2 - 1} & ${virtualBayId * 2}`);
               
-            // Check if this is specifically a Team 7 or Team 8 position, not Bay 7 or 8
-            const isTeam7Or8 = virtualName.startsWith('Team') && (virtualName.includes('7') || virtualName.includes('8'));
+            // Check if this is specifically Bay 7 or 8 position for multi-row display
+            const isTeam7Or8 = virtualBayId === 7 || virtualBayId === 8;
             
             // Create a virtual bay object to pass to components
             const virtualBay: ManufacturingBay = {
