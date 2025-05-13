@@ -22,6 +22,7 @@ import {
   ChevronLeft, 
   PencilIcon, 
   PlusIcon, 
+  MinusIcon,
   Users, 
   Zap, 
   Clock as ClockIcon, 
@@ -4448,10 +4449,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   ))}
                 </div>
                 
-                {/* Row dividers - Interactive for row selection with grid-cell visual guides  */}
+                {/* Row dividers with visible action buttons */}
                 <div className="absolute inset-0 flex flex-col">
+                  {/* Row 1 */}
                   <div 
-                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative group" 
+                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
                     onDragOver={(e) => {
                       // Add strong visual indicator for this row
                       e.currentTarget.classList.add('row-target-highlight', 'row-0-target');
@@ -4467,28 +4469,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       handleDrop(e, bay.id, 0, 0);
                     }}
                   >
-                    {/* Row action buttons - Made always visible at the divider */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-70 transition-opacity z-50 flex space-x-1">
+                    {/* Row number indicator */}
+                    <div className="absolute -left-6 top-0 h-full opacity-70 pointer-events-none flex items-center justify-center">
+                      <div className="bg-primary/20 rounded-md px-2 py-0.5 text-xs font-bold text-primary">
+                        1
+                      </div>
+                    </div>
+                    
+                    {/* Visible action buttons at bottom of row (on the divider) */}
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 transform translate-y-1/2 flex items-center gap-1 z-50">
+                      {/* Delete row button */}
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700 hover:opacity-100"
-                        title="Add Row Below"
-                        onClick={() => {
-                          // Handle adding a new row
-                          console.log(`Adding new row after row 0 in bay ${bay.id}`);
-                          toast({
-                            title: "Row Added",
-                            description: `New row added below row 1 in ${bay.name}`,
-                          });
-                        }}
-                      >
-                        <PlusIcon className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700 hover:opacity-100"
+                        className="h-6 w-6 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-destructive hover:text-white shadow-md"
                         title="Delete Row"
                         onClick={() => {
                           // Get projects in this row
@@ -4519,15 +4513,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           }
                         }}
                       >
-                        <X className="h-3 w-3" />
+                        <MinusIcon className="h-3 w-3" />
                       </Button>
-                    </div>
-                    
-                    {/* Row number indicator */}
-                    <div className="absolute -left-6 top-0 h-full opacity-60 pointer-events-none">
-                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
-                        1
-                      </div>
+                      
+                      {/* Add row button */}
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-6 w-6 rounded-full bg-gray-800 border-primary text-primary hover:bg-primary hover:text-white shadow-md"
+                        title="Add Row Below"
+                        onClick={() => {
+                          // Handle adding a new row
+                          console.log(`Adding new row after row 0 in bay ${bay.id}`);
+                          toast({
+                            title: "Row Added",
+                            description: `New row added below row 1 in ${bay.name}`,
+                          });
+                        }}
+                      >
+                        <PlusIcon className="h-3 w-3" />
+                      </Button>
                     </div>
                     {/* Row 1 label */}
                     <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
@@ -4569,8 +4574,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       ))}
                     </div>
                   </div>
+                  {/* Row 2 */}
                   <div 
-                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative group" 
+                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
                     onDragOver={(e) => {
                       // Add strong visual indicator for this row
                       e.currentTarget.classList.add('row-target-highlight', 'row-1-target');
@@ -4586,28 +4592,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       handleDrop(e, bay.id, 0, 1);
                     }}
                   >
-                    {/* Row action buttons - Made always visible at the divider */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-70 transition-opacity z-50 flex space-x-1">
+                    {/* Row number indicator */}
+                    <div className="absolute -left-6 top-0 h-full opacity-70 pointer-events-none flex items-center justify-center">
+                      <div className="bg-primary/20 rounded-md px-2 py-0.5 text-xs font-bold text-primary">
+                        2
+                      </div>
+                    </div>
+                    
+                    {/* Visible action buttons at bottom of row (on the divider) */}
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 transform translate-y-1/2 flex items-center gap-1 z-50">
+                      {/* Delete row button */}
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700 hover:opacity-100"
-                        title="Add Row Below"
-                        onClick={() => {
-                          // Handle adding a new row
-                          console.log(`Adding new row after row 1 in bay ${bay.id}`);
-                          toast({
-                            title: "Row Added",
-                            description: `New row added below row 2 in ${bay.name}`,
-                          });
-                        }}
-                      >
-                        <PlusIcon className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700 hover:opacity-100"
+                        className="h-6 w-6 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-destructive hover:text-white shadow-md"
                         title="Delete Row"
                         onClick={() => {
                           // Get projects in this row
@@ -4638,15 +4636,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           }
                         }}
                       >
-                        <X className="h-3 w-3" />
+                        <MinusIcon className="h-3 w-3" />
                       </Button>
-                    </div>
-                    
-                    {/* Row number indicator */}
-                    <div className="absolute -left-6 top-0 h-full opacity-60 pointer-events-none">
-                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
-                        2
-                      </div>
+                      
+                      {/* Add row button */}
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-6 w-6 rounded-full bg-gray-800 border-primary text-primary hover:bg-primary hover:text-white shadow-md"
+                        title="Add Row Below"
+                        onClick={() => {
+                          // Handle adding a new row
+                          console.log(`Adding new row after row 1 in bay ${bay.id}`);
+                          toast({
+                            title: "Row Added",
+                            description: `New row added below row 2 in ${bay.name}`,
+                          });
+                        }}
+                      >
+                        <PlusIcon className="h-3 w-3" />
+                      </Button>
                     </div>
                     {/* Row 2 label */}
                     <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
