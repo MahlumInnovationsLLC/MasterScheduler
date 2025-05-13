@@ -4164,7 +4164,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             const virtualBay: ManufacturingBay = {
               id: -virtualBayId, // Negative ID to indicate virtual bay
               bayNumber: virtualBayId,
-              name: virtualBayName,
+              name: virtualTeamName, // Use Team name for 7 and 8
               description: '',
               staffCount: 0,
               assemblyStaffCount: 0,
