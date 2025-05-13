@@ -2899,6 +2899,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       let slotDate: Date | null = null;
       let exactDateForStorage: string | null = null;
       
+      // The number of days between slots in the display - constant for consistency
+      const daysBetweenSlots = 1;
+      
       // Import and use the exactPositioningHandler module for all bays
       import('@/lib/exactPositioningHandler').then(positioningModule => {
         // Define position parameters for the module
@@ -2909,7 +2912,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           slots,
           dataDate,
           bayId: exactBayId,
-          bayName: bay.name
+          bayName: bay?.name || `Bay ${exactBayId}`
         };
         
         // Get the precise date position from our specialized module
@@ -2939,7 +2942,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       });
       
       // Legacy positioning method as a fallback
-      function useLegacyPositioning() {
+      const useLegacyPositioning = () => {
         console.log('FALLBACK: Using legacy positioning method');
         
         // Exact same order of checks as before, but refactored into a function
@@ -3013,7 +3016,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
       
       // Continue with the drop processing once we have determined the date
-      function continueDropProcessing() {
+      const continueDropProcessing = () => {
         // Only proceed if we have a valid date
         if (!slotDate) {
           console.error('Critical error: No slotDate available to continue drop processing');
