@@ -62,7 +62,7 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
                     (bay.name.includes('7') || bay.name.includes('8'));
 
   return (
-    <div className="multi-row-bay-wrapper" style={containerStyle}>
+    <div className="multi-row-bay-wrapper" style={{ height: '600px', minHeight: '600px' }}>
       {/* Add wrapper div with fixed height */}
       {/* Week cells grid with row subdivision for precise row targeting */}
       <div className="absolute inset-0 grid grid-cols-52 border-l border-gray-700/50">
@@ -152,7 +152,7 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
           <div 
             key={`bay-row-${bay.id}-${rowIndex}`}
             className={`${rowIndex < rowCount - 1 ? 'border-b' : ''} border-gray-700/50 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative`}
-            style={rowStyle}
+            style={{ height: '30px', minHeight: '30px' }}
             onDragOver={(e) => {
               // Add strong visual indicator for this row
               e.currentTarget.classList.add('row-target-highlight', `row-${rowIndex}-target`);
