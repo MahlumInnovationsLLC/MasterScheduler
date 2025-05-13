@@ -3534,17 +3534,27 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const schedule = schedules.find(s => s.id === scheduleId);
     if (!schedule) return;
     
-    // SPECIAL BAY 3 FIX: Add direct date handling for Bay 3
-    // This ensures exact date placement works the same way for resizing as it does for initial drop
+    // CRITICAL CONSISTENCY FIX: Make Bay 3 behave exactly like Bay 2 for ALL operations
+    // This ensures we handle Bay 3 with the same exact positioning logic as Bay 2
+    const isBay2 = schedule.bayId === 2;
     const isBay3 = schedule.bayId === 3;
-    if (isBay3) {
-      console.log('🚨 SPECIAL BAY 3 RESIZE HANDLING: Will place project exactly at target position');
-      console.log(`🚨 BAY 3 RESIZE DIRECT DATE HANDLING: Using exact dates without adjustments`);
-      console.log('🚨 BAY 3 RESIZE DIRECT FIX: Start date:', newStartDate);
-      console.log('🚨 BAY 3 RESIZE DIRECT FIX: End date:', newEndDate);
+    
+    // If this is Bay 2 or Bay 3, use exact date positioning without any adjustments
+    if (isBay2 || isBay3) {
+      if (isBay2) {
+        console.log('🔵 BAY 2 EXACT POSITIONING: Using exact dates without grid snapping');
+        console.log('🔵 BAY 2 EXACT RESIZE: Start date:', newStartDate);
+        console.log('🔵 BAY 2 EXACT RESIZE: End date:', newEndDate);
+      }
       
-      // We don't need to make any date adjustments for Bay 3 - use the dates exactly as provided
-      // This mirrors the initial drop behavior that we fixed for Bay 3
+      if (isBay3) {
+        console.log('🚨 BAY 3 EXACT POSITIONING: Using exact dates without grid snapping');
+        console.log('🚨 BAY 3 EXACT RESIZE: Start date:', newStartDate);
+        console.log('🚨 BAY 3 EXACT RESIZE: End date:', newEndDate);
+      }
+      
+      // We don't need to make any date adjustments for Bay 2 or 3
+      // Use the dates exactly as provided with no grid snapping
     }
     
     // Check if there's a capacity impact
