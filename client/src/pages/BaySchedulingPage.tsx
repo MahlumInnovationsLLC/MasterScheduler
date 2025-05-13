@@ -45,6 +45,8 @@ const BaySchedulingPage = () => {
   // State for import modal and loading
   const [showImportModal, setShowImportModal] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  // Track which schedule is being processed for more precise loading indicators
+  const [processingScheduleId, setProcessingScheduleId] = useState<number | null>(null);
   
   // Force a refresh of manufacturing schedules when page loads
   // This ensures capacity sharing calculations are correctly applied
@@ -355,6 +357,7 @@ const BaySchedulingPage = () => {
   ) => {
     try {
       setIsLoading(true);
+      setProcessingScheduleId(scheduleId);
       console.log(`Updating schedule ${scheduleId} to bay ${newBayId}, row ${rowIndex}`);
       
       // Get the current data for optimistic updates
@@ -865,10 +868,11 @@ const BaySchedulingPage = () => {
         </div>
       </div>
       
-      {/* Use the LoadingOverlay component */}
+      {/* Use the enhanced LoadingOverlay component with delay to prevent flickering */}
       <LoadingOverlay 
         visible={isLoading} 
         message="Updating Schedule... This may take a moment" 
+        delay={500} 
       />
     </div>
   );
