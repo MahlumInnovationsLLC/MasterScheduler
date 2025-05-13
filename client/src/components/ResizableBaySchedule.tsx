@@ -4081,7 +4081,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   variant="ghost" 
                   size="sm"
                   onClick={() => setEditingBay(bay)}
-                  title="Edit Team"
+                  title="Edit Bay"
                 >
                   <PencilIcon className="h-3.5 w-3.5" />
                 </Button>
@@ -4120,7 +4120,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       handleDeleteBay(bay.id);
                     }
                   }}
-                  title="Delete Team"
+                  title="Delete Bay"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 6h18"></path>
@@ -4130,7 +4130,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 </Button>
               </div>
               
-              {/* Team capacity area with work level indicator */}
+              {/* Bay capacity area with work level indicator */}
               <div className="flex-1 flex flex-col items-center justify-center gap-1">
                 {/* Work Level Indicator */}
                 {(bay.staffCount !== null && bay.staffCount !== undefined && bay.staffCount > 0) && (
@@ -4457,7 +4457,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 
                 {isTeam7Or8 ? (
                   <div className="flex-1 relative">
-                    {/* Special MultiRowBayContent for Team 7 & 8 */}
+                    {/* Special MultiRowBayContent for Bay 7 & 8 */}
                     <div className="absolute inset-0 opacity-20">
                       <MultiRowBayContent
                         bay={virtualBay}
@@ -4476,13 +4476,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     
                     {/* Placeholder text overlay */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-90">
-                      <div className="text-xs text-gray-400">Click + to create Team {virtualBayId}</div>
+                      <div className="text-xs text-gray-400">Click + to create Bay {virtualBayId}</div>
                     </div>
                   </div>
                 ) : (
-                  // Standard empty area for normal teams
+                  // Standard empty area for normal bays
                   <div className="flex-1 flex items-center justify-center opacity-50">
-                    <div className="text-xs text-gray-400">Click + to create team</div>
+                    <div className="text-xs text-gray-400">Click + to create bay</div>
                   </div>
                 )}
               </div>
