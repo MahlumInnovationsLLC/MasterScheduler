@@ -776,6 +776,13 @@
 }
 
 /* These classes enable support for Team 7 & 8 with 20 rows */
+/* Special styling for multi-row bays like Team 7 & 8 */
+.multi-row-bay {
+  background-color: rgba(var(--primary-rgb), 0.04);
+  border-top: 1px solid rgba(var(--primary-rgb), 0.2);
+  box-shadow: inset 0 0 0 1px rgba(var(--primary-rgb), 0.1);
+}
+
 /* Row highlight classes for multi-row bays */
 .multi-row-bay .row-0-bar { top: 0%; height: 5%; }
 .multi-row-bay .row-1-bar { top: 5%; height: 5%; }

@@ -41,7 +41,12 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
 }) => {
   // Calculate the height percentage for each row
   const rowHeightPercentage = 100 / rowCount;
-  const rowHeight = `h-[${rowHeightPercentage}%]`;
+  
+  // Use CSS variables for dynamic styling
+  const rowStyle = {
+    height: `${rowHeightPercentage}%`,
+    minHeight: rowCount > 10 ? '10px' : '25px', // Ensure rows have minimum height for visibility
+  };
 
   return (
     <>
@@ -113,7 +118,7 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
           <div 
             key={`bay-row-${bay.id}-${rowIndex}`}
             className={`${rowIndex < rowCount - 1 ? 'border-b' : ''} border-gray-700/50 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative`}
-            style={{ height: `${rowHeightPercentage}%` }}
+            style={rowStyle}
             onDragOver={(e) => {
               // Add strong visual indicator for this row
               e.currentTarget.classList.add('row-target-highlight', `row-${rowIndex}-target`);
@@ -131,17 +136,17 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
           >
             {/* Row number indicator */}
             <div className="absolute -left-6 top-0 h-full opacity-70 pointer-events-none flex items-center justify-center">
-              <div className="bg-primary/20 rounded-md px-2 py-0.5 text-xs font-bold text-primary">
+              <div className={`bg-primary/20 rounded-md ${rowCount > 10 ? 'px-1 py-0 text-[8px]' : 'px-2 py-0.5 text-xs'} font-bold text-primary`}>
                 {rowIndex + 1}
               </div>
             </div>
             
-            {/* Enhanced row management buttons */}
-            <div className="absolute left-1/2 transform -translate-x-1/2 bottom-[-10px] flex gap-2 z-[999] pointer-events-auto">
+            {/* Enhanced row management buttons - made more compact for multi-row display */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 bottom-[-8px] flex gap-1 z-[999] pointer-events-auto">
               {/* Delete row button */}
               <button
                 type="button"
-                className="flex items-center justify-center w-6 h-6 rounded-full bg-destructive text-white shadow-lg border-2 border-white hover:bg-destructive/90"
+                className={`flex items-center justify-center ${rowCount > 10 ? 'w-4 h-4 text-[8px]' : 'w-5 h-5'} rounded-full bg-destructive text-white shadow-lg border border-white hover:bg-destructive/90`}
                 title="Delete Row"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -172,19 +177,19 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
                   }
                 }}
               >
-                <Minus className="h-3 w-3" />
+                <Minus className={rowCount > 10 ? "h-2 w-2" : "h-3 w-3"} />
               </button>
               {/* Add row button */}
               <button
                 type="button"
-                className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white shadow-lg border-2 border-white hover:bg-primary/90"
+                className={`flex items-center justify-center ${rowCount > 10 ? 'w-4 h-4 text-[8px]' : 'w-5 h-5'} rounded-full bg-primary text-white shadow-lg border border-white hover:bg-primary/90`}
                 title="Add Row"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleRowAdd(bay.id, rowIndex);
                 }}
               >
-                <Plus className="h-3 w-3" />
+                <Plus className={rowCount > 10 ? "h-2 w-2" : "h-3 w-3"} />
               </button>
             </div>
           </div>
