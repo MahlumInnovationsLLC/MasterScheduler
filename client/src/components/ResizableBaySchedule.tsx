@@ -108,11 +108,12 @@ interface ScheduleBar {
 // Helper function to determine how many rows a bay should have
 const getBayRowCount = (bayId: number, bayName: string): number => {
   // Special handling for Team 7 & 8 - needs 20 rows
-  if (bayId === 4 || (bayName && (bayName.includes('Bay 7 & 8') || bayName.includes('Team 7') || bayName.includes('Team 8')))) {
+  // Bay 7 & 8 should still have normal 4 rows
+  if (bayName && (bayName.includes('Team 7') || bayName.includes('Team 8'))) {
     console.log(`Using 20 rows for bay ${bayId} (${bayName})`);
     return 20;
   }
-  // Standard 4 rows for all other bays
+  // Standard 4 rows for all other bays including Bay 7 & 8
   return 4;
 }
 
@@ -4151,60 +4152,102 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           ))}
           
           {/* Empty slots for additional bays */}
-          {Array.from({ length: Math.max(0, 8 - bays.length) }).map((_, index) => (
-            <div
-              key={`empty-bay-${index}`}
-              className="h-64 flex flex-col px-3 py-3 border-b border-gray-700 text-gray-500"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center">
-                  <div className="flex flex-col items-center mr-2">
-                    <span className="text-xs font-semibold text-blue-400 mb-1">TEAM</span>
-                    <Badge variant="outline">
-                      {bays.length + index + 1}
-                    </Badge>
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold">
-                      Empty
+          {Array.from({ length: Math.max(0, 8 - bays.length) }).map((_, index) => {
+            const virtualBayId = bays.length + index + 1;
+            const virtualBayName = `Bay ${virtualBayId}`;
+            // For empty slots, we need to change the naming to "Team X" for slots 7 and 8
+            const virtualTeamName = virtualBayId === 7 || virtualBayId === 8 ? `Team ${virtualBayId}` : virtualBayName;
+            // Only Team 7 & 8 should be multi-row, not Bay 7 & 8
+            const isTeam7Or8 = virtualTeamName.includes('Team 7') || virtualTeamName.includes('Team 8');
+            
+            // Create a virtual bay object to pass to components
+            const virtualBay: ManufacturingBay = {
+              id: -virtualBayId, // Negative ID to indicate virtual bay
+              bayNumber: virtualBayId,
+              name: virtualBayName,
+              description: '',
+              staffCount: 0,
+              assemblyStaffCount: 0,
+              electricalStaffCount: 0,
+              hoursPerPersonPerWeek: 32,
+              isActive: true,
+              createdAt: new Date(),
+              equipment: null,
+              team: null
+            };
+            
+            return (
+              <div
+                key={`empty-bay-${index}`}
+                className="flex flex-col px-3 py-3 border-b border-gray-700 text-gray-500"
+                style={{ height: isTeam7Or8 ? '480px' : '64px' }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <div className="flex flex-col items-center mr-2">
+                      <span className="text-xs font-semibold text-blue-400 mb-1">TEAM</span>
+                      <Badge variant="outline">
+                        {virtualBayId}
+                      </Badge>
                     </div>
-                    <div className="text-xs text-gray-500">
-                      No staff assigned
+                    <div>
+                      <div className="text-sm font-semibold">
+                        Empty
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        No staff assigned
+                      </div>
                     </div>
                   </div>
                 </div>
+                
+                {/* Action buttons for empty bay - centered below the bay details */}
+                <div className="flex items-center justify-center gap-1 mb-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      // Create a default empty bay to edit
+                      setNewBay(virtualBay);
+                    }}
+                  >
+                    <PlusIcon className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                
+                {isTeam7Or8 ? (
+                  <div className="flex-1 relative">
+                    {/* Special MultiRowBayContent for Team 7 & 8 */}
+                    <div className="absolute inset-0 opacity-20">
+                      <MultiRowBayContent
+                        bay={virtualBay}
+                        weekSlots={slots}
+                        scheduleBars={[]} // No schedules for empty bay
+                        projects={[]}    // No projects for empty bay
+                        handleDragOver={() => {}} // Empty handlers since this is a placeholder
+                        handleDrop={() => {}}
+                        setRowToDelete={() => {}}
+                        setDeleteRowDialogOpen={() => {}}
+                        handleRowDelete={() => {}}
+                        handleRowAdd={() => {}}
+                        rowCount={20}
+                      />
+                    </div>
+                    
+                    {/* Placeholder text overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-90">
+                      <div className="text-xs text-gray-400">Click + to create Team {virtualBayId}</div>
+                    </div>
+                  </div>
+                ) : (
+                  // Standard empty area for normal teams
+                  <div className="flex-1 flex items-center justify-center opacity-50">
+                    <div className="text-xs text-gray-400">Click + to create team</div>
+                  </div>
+                )}
               </div>
-              
-              {/* Action buttons for empty bay - centered below the bay details */}
-              <div className="flex items-center justify-center gap-1 mb-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => {
-                    // Create a default empty bay to edit
-                    const newBay: Partial<ManufacturingBay> = {
-                      bayNumber: bays.length + index + 1,
-                      name: `Bay ${bays.length + index + 1}`,
-                      description: '',
-                      staffCount: 0,
-                      assemblyStaffCount: 0,
-                      electricalStaffCount: 0,
-                      hoursPerPersonPerWeek: 32,
-                      isActive: true
-                    };
-                    setNewBay(newBay as ManufacturingBay);
-                  }}
-                >
-                  <PlusIcon className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-              
-              {/* Empty team area - no row labels */}
-              <div className="flex-1 flex items-center justify-center opacity-50">
-                <div className="text-xs text-gray-400">Click + to create team</div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         
         {/* Main timeline grid */}
@@ -4497,7 +4540,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 
                 {/* Row dividers with visible action buttons */}
                 {(() => {
-                  const isMultiRowBay = bay.id === 4 || (bay.name && (bay.name.includes('Bay 7 & 8') || bay.name.includes('Team 7') || bay.name.includes('Team 8')));
+                  // Only Team 7 & 8 should get multi-rows, not Bay 7 & 8
+                  const isMultiRowBay = bay.name && (bay.name.includes('Team 7') || bay.name.includes('Team 8'));
                   // Add debug logging to troubleshoot the issue
                   console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${getBayRowCount(bay.id, bay.name)}`);
                   return isMultiRowBay;
