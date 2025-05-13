@@ -554,6 +554,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Function to update the width of department phase elements with exact pixel precision
+  // This is a simplified wrapper around our more robust ExactFitPhaseWidths utility
   const updateDepartmentPhaseWidths = (barElement: HTMLElement, totalWidth: number) => {
     try {
       // Validate input
@@ -568,125 +569,80 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Force a reflow to ensure the above width change takes effect
       barElement.getBoundingClientRect();
       
-      // Find all phase elements within this bar
-      const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
-      const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
-      const prodPhase = barElement.querySelector('.dept-prod-phase') as HTMLElement;
-      const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
-      const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
-      const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
+      // Get the schedule ID from the bar element
+      const scheduleId = parseInt(barElement.getAttribute('data-schedule-id') || '0', 10);
       
-      if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
-        // Get the schedule ID from the bar element
-        const scheduleId = parseInt(barElement.getAttribute('data-schedule-id') || '0', 10);
-        
-        // Find the schedule and project data
-        const schedule = schedules.find(s => s.id === scheduleId);
-        const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
-        
-        // Use project-specific phase percentages or fallback to company standard defaults
-        const fabPercentage = project ? (parseFloat(project.fabPercentage as any) || 27) : 27;
-        const paintPercentage = project ? (parseFloat(project.paintPercentage as any) || 7) : 7; 
-        const productionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
-        const itPercentage = project ? (parseFloat(project.itPercentage as any) || 7) : 7;
-        const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 7) : 7;
-        const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 7) : 7;
-        
-        // Calculate the total percentage and normalization factor
-        const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
-                                itPercentage + ntcPercentage + qcPercentage;
-        const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
-        
-        // Calculate phase widths based on normalized percentages
-        // Use floor for the first 5 phases and then calculate the last one to ensure perfect fit
-        const fabWidth = Math.floor(totalWidth * (fabPercentage * normalizeFactor / 100));
-        const paintWidth = Math.floor(totalWidth * (paintPercentage * normalizeFactor / 100));
-        const prodWidth = Math.floor(totalWidth * (productionPercentage * normalizeFactor / 100));
-        const itWidth = Math.floor(totalWidth * (itPercentage * normalizeFactor / 100));
-        const ntcWidth = Math.floor(totalWidth * (ntcPercentage * normalizeFactor / 100));
-        
-        // Calculate the sum of the first 5 phases
-        const sumFirstFivePhases = fabWidth + paintWidth + prodWidth + itWidth + ntcWidth;
-        
-        // The last phase (QC) gets the remaining width to ensure exact fit
-        // This ensures the sum of all phase widths equals exactly the total width
-        const qcWidth = totalWidth - sumFirstFivePhases;
-        
-        // Log project and phase data
-        if (project) {
-          console.log(`Project ${project.projectNumber} phase calculation:`, {
-            percentages: {
-              fab: fabPercentage,
-              paint: paintPercentage,
-              production: productionPercentage,
-              it: itPercentage,
-              ntc: ntcPercentage,
-              qc: qcPercentage
-            },
-            widths: {
-              totalWidth,
-              fabWidth,
-              paintWidth,
-              prodWidth,
-              itWidth, 
-              ntcWidth,
-              qcWidth
-            },
-            exactFit: fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth === totalWidth
-          });
-        }
-        
-        // IMMEDIATE PHASE UPDATE: Apply width and position changes directly to the DOM
-        // This gives instant visual feedback during resize operations
-        
-        // FAB phase (starts at left edge)
-        fabPhase.style.width = `${fabWidth}px`;
-        
-        // PAINT phase (starts after FAB)
-        paintPhase.style.left = `${fabWidth}px`;
-        paintPhase.style.width = `${paintWidth}px`;
-        
-        // PRODUCTION phase (starts after FAB + PAINT)
-        prodPhase.style.left = `${fabWidth + paintWidth}px`;
-        prodPhase.style.width = `${prodWidth}px`;
-        
-        // IT phase (starts after FAB + PAINT + PRODUCTION)
-        itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
-        itPhase.style.width = `${itWidth}px`;
-        
-        // NTC phase (starts after FAB + PAINT + PRODUCTION + IT)
-        ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
-        ntcPhase.style.width = `${ntcWidth}px`;
-        
-        // QC phase (last phase, fills remaining space to exact end)
-        qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
-        qcPhase.style.width = `${qcWidth}px`;
-        
-        // Force a DOM reflow to ensure changes are applied immediately
-        barElement.getBoundingClientRect();
-        
-        // Add data attributes for debugging
-        barElement.setAttribute('data-phases-updated', 'true');
-        barElement.setAttribute('data-total-width', totalWidth.toString());
-        barElement.setAttribute('data-phase-sum', (fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth).toString());
-        barElement.setAttribute('data-exact-fit', (fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth === totalWidth).toString());
-        
-        // Success message
-        console.log(`✅ Phase widths updated with exact fit for schedule ${scheduleId}:`, {
-          totalWidth,
-          sumOfWidths: fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth,
-          exactMatch: (fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth) === totalWidth
-        });
+      // Find the schedule and project data
+      const schedule = schedules.find(s => s.id === scheduleId);
+      const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
+      
+      // Use our dedicated exact-fit utility to properly update phases
+      const updateSuccess = updatePhaseWidthsWithExactFit(barElement, totalWidth, project);
+      
+      if (updateSuccess) {
+        console.log(`✅ Phase widths successfully updated with exact fit for schedule ${scheduleId}`);
       } else {
-        console.warn(`Missing phase elements for schedule bar`, {
-          barElement,
-          fabPhase,
-          paintPhase,
-          prodPhase,
-          itPhase,
-          ntcPhase,
-          qcPhase
-        });
+        console.warn(`⚠️ Could not update phases with exact fit for schedule ${scheduleId}, trying fallback method`);
+        
+        // Find all phase elements within this bar
+        const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
+        const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
+        const prodPhase = barElement.querySelector('.dept-prod-phase') as HTMLElement;
+        const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
+        const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
+        const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
+        
+        if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
+          // Use project-specific phase percentages or fallback to company standard defaults
+          const fabPercentage = project ? (parseFloat(project.fabPercentage as any) || 27) : 27;
+          const paintPercentage = project ? (parseFloat(project.paintPercentage as any) || 7) : 7; 
+          const productionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
+          const itPercentage = project ? (parseFloat(project.itPercentage as any) || 7) : 7;
+          const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 7) : 7;
+          const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 7) : 7;
+          
+          // Calculate the total percentage and normalization factor
+          const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
+                                  itPercentage + ntcPercentage + qcPercentage;
+          const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
+          
+          // Calculate exact phase widths (floor + remainder method)
+          const fabWidth = Math.floor(totalWidth * (fabPercentage * normalizeFactor / 100));
+          const paintWidth = Math.floor(totalWidth * (paintPercentage * normalizeFactor / 100));
+          const prodWidth = Math.floor(totalWidth * (productionPercentage * normalizeFactor / 100));
+          const itWidth = Math.floor(totalWidth * (itPercentage * normalizeFactor / 100));
+          const ntcWidth = Math.floor(totalWidth * (ntcPercentage * normalizeFactor / 100));
+          
+          // The last phase gets the remainder to ensure exact fit
+          const qcWidth = totalWidth - (fabWidth + paintWidth + prodWidth + itWidth + ntcWidth);
+          
+          // Apply phases directly
+          fabPhase.style.width = `${fabWidth}px`;
+          
+          paintPhase.style.left = `${fabWidth}px`;
+          paintPhase.style.width = `${paintWidth}px`;
+          
+          prodPhase.style.left = `${fabWidth + paintWidth}px`;
+          prodPhase.style.width = `${prodWidth}px`;
+          
+          itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
+          itPhase.style.width = `${itWidth}px`;
+          
+          ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
+          ntcPhase.style.width = `${ntcWidth}px`;
+          
+          qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
+          qcPhase.style.width = `${qcWidth}px`;
+          
+          // Force a DOM reflow to ensure changes are applied immediately
+          barElement.getBoundingClientRect();
+          
+          // Add data attributes for debugging
+          barElement.setAttribute('data-phases-updated', 'fallback-exact-fit');
+          barElement.setAttribute('data-total-width', totalWidth.toString());
+        } else {
+          console.error(`Missing phase elements for schedule bar ${scheduleId}`);
+        }
       }
     } catch (error) {
       console.error(`Error updating phase widths:`, error);
@@ -2123,85 +2079,32 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       console.log(`Applying resize with row ${visualRow} (mapped from ${rowToUse})`);
       
-      // CRITICAL FIX: Force phase updates with direct DOM manipulation before applying the resize
+      // CRITICAL FIX: Force phase updates with our exact-fit algorithm before finalizing the resize
       const barWidth = parseInt(barElement.style.width, 10);
-      console.log(`FINAL RESIZE PHASE UPDATE - Forcing phases to match exact bar width: ${barWidth}px`);
+      console.log(`FINAL RESIZE PHASE UPDATE - Ensuring exact phase widths for bar width: ${barWidth}px`);
       
-      // DIRECT PHASE HANDLING: Get all departmental phase elements
-      const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
-      const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
-      const prodPhase = barElement.querySelector('.dept-prod-phase') as HTMLElement;
-      const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
-      const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
-      const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
+      // Get the schedule and project data
+      const schedule = schedules.find(s => s.id === resizingSchedule.id);
+      const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
+        
+      // Use our utility to apply exact-fit phase updates
+      const updateSuccess = updatePhaseWidthsWithExactFit(barElement, barWidth, project);
       
-      if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
-        // Get the schedule and project data for precise phase percentages
-        const schedule = schedules.find(s => s.id === resizingSchedule.id);
-        const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
-        
-        // Use project-specific phase percentages or fallback to defaults
-        const fabPercentage = project ? (parseFloat(project.fabPercentage as any) || 27) : 27;
-        const paintPercentage = project ? (parseFloat(project.paintPercentage as any) || 7) : 7; 
-        const productionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
-        const itPercentage = project ? (parseFloat(project.itPercentage as any) || 7) : 7;
-        const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 7) : 7;
-        const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 7) : 7;
-        
-        // Calculate normalization factor if percentages don't add up to 100
-        const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
-                              itPercentage + ntcPercentage + qcPercentage;
-        const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
-        
-        // Calculate exact phase widths based on normalized percentages
-        const fabWidth = Math.round(barWidth * (fabPercentage * normalizeFactor / 100));
-        const paintWidth = Math.round(barWidth * (paintPercentage * normalizeFactor / 100));
-        const prodWidth = Math.round(barWidth * (productionPercentage * normalizeFactor / 100));
-        const itWidth = Math.round(barWidth * (itPercentage * normalizeFactor / 100));
-        const ntcWidth = Math.round(barWidth * (ntcPercentage * normalizeFactor / 100));
-        
-        // Last phase (QC) gets the remaining width to ensure exact fit (accounting for rounding)
-        const sumOtherPhases = fabWidth + paintWidth + prodWidth + itWidth + ntcWidth;
-        const qcWidth = barWidth - sumOtherPhases;
-        
-        // Apply width and position changes directly to phase elements
-        fabPhase.style.width = `${fabWidth}px`;
-        
-        paintPhase.style.left = `${fabWidth}px`;
-        paintPhase.style.width = `${paintWidth}px`;
-        
-        prodPhase.style.left = `${fabWidth + paintWidth}px`;
-        prodPhase.style.width = `${prodWidth}px`;
-        
-        itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
-        itPhase.style.width = `${itWidth}px`;
-        
-        ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
-        ntcPhase.style.width = `${ntcWidth}px`;
-        
-        qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
-        qcPhase.style.width = `${qcWidth}px`;
-        
-        // Verify phase widths and positions match exactly
-        console.log(`FINAL DIRECT PHASE UPDATES for ${project?.projectNumber || 'unknown'}:`, {
-          exactBarWidth: barWidth,
-          phases: { fabWidth, paintWidth, prodWidth, itWidth, ntcWidth, qcWidth },
-          sumWidths: fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth,
-          exactMatch: (fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth) === barWidth
-        });
+      if (updateSuccess) {
+        console.log(`✓ Final resize: Successfully applied exact-fit phases for project ${project?.projectNumber || 'unknown'}`);
       } else {
-        // Fallback to using the general update function if any phase is missing
+        console.warn(`⚠️ Final resize: Using fallback method for phase updates on project ${project?.projectNumber || 'unknown'}`);
+        // Use the standard helper function as fallback
         updateDepartmentPhaseWidths(barElement, barWidth);
-        console.log("Using fallback updateDepartmentPhaseWidths method - missing phase elements");
       }
       
       // Force browser reflow to ensure all changes are applied
       barElement.getBoundingClientRect();
       
-      // Add attributes to verify update was applied for debugging
+      // Add attributes to verify update was applied
       barElement.setAttribute('data-final-resize-width', barWidth.toString());
       barElement.setAttribute('data-resize-complete', 'true');
-      barElement.setAttribute('data-phases-updated', 'direct-manipulation');
+      barElement.setAttribute('data-phases-updated', 'exact-fit-final');
       
       // Use applyManualResize which will check for capacity impacts
       applyManualResize(
