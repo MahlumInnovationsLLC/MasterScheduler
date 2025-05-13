@@ -1460,11 +1460,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     
     // Find the schedule bar element using data attribute for reliability
+    // Use a more specific selector that includes both class and data attribute
     const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
     if (!barElement) {
       console.error(`Bar element not found for schedule ${resizingSchedule.id}`);
       return;
     }
+    
+    // Add a distinctive class during resize to help with debugging
+    barElement.classList.add('actively-resizing');
     
     // Calculate the drag delta
     const deltaX = e.clientX - resizingSchedule.startX;
@@ -1633,9 +1637,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     if (!resizingSchedule) return;
     
     try {
-      // Find the schedule bar element
+      // Find the schedule bar element with more precise selector
       const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
-      if (!barElement) return;
+      if (!barElement) {
+        console.error(`Bar element not found in handleResizeEnd: ${resizingSchedule.id}`);
+        return;
+      }
+      
+      // Make sure to preserve the new size from the resize operation
+      const currentLeft = parseInt(barElement.style.left, 10);
+      const currentWidth = parseInt(barElement.style.width, 10);
+      
+      console.log(`Finalizing resize: ID=${resizingSchedule.id}, Left=${currentLeft}px, Width=${currentWidth}px`);
+      
+      // Remove the resize indicator class
+      barElement.classList.remove('actively-resizing');
       
       // Clear any resize hover highlights
       document.querySelectorAll('.week-cell-resize-hover').forEach(el => {
