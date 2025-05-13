@@ -486,6 +486,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error updating billing milestone" });
     }
   });
+  
+  // Special endpoint to accept a ship date change for a delivery milestone
+  app.post("/api/billing-milestones/:id/accept-ship-date", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const milestone = await storage.getBillingMilestone(id);
+      
+      if (!milestone) {
+        return res.status(404).json({ message: "Billing milestone not found" });
+      }
+      
+      // Update the milestone to accept the new ship date
+      const updatedMilestone = await storage.updateBillingMilestone(id, {
+        lastAcceptedShipDate: milestone.liveDate,
+        shipDateChanged: false,
+      });
+      
+      res.json(updatedMilestone);
+    } catch (error) {
+      console.error("Error accepting ship date change:", error);
+      res.status(500).json({ message: "Error accepting ship date change" });
+    }
+  });
 
   // Delete all billing milestones (admin only)
   // This must be defined BEFORE the :id route to avoid route conflicts
@@ -896,16 +919,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   const dateToSync = projectUpdate.deliveryDate || projectUpdate.shipDate;
                   // Get all billing milestones for this project
                   const billingMilestones = await storage.getProjectBillingMilestones(projectId);
+                  
+                  // Find all delivery milestones (explicit flag or name contains "DELIVERY")
                   const deliveryMilestones = billingMilestones.filter(
-                    milestone => milestone.isDeliveryMilestone
+                    milestone => milestone.isDeliveryMilestone || 
+                    (milestone.name && milestone.name.toUpperCase().includes("DELIVERY"))
                   );
                   
                   if (deliveryMilestones.length > 0) {
                     console.log(`Found ${deliveryMilestones.length} delivery milestones for project ${projectId} to update from manufacturing schedule change to date: ${dateToSync}`);
                     
                     for (const milestone of deliveryMilestones) {
+                      // Store the current ship date as liveDate and mark as changed if it differs from lastAcceptedShipDate
+                      const shipDateChanged = milestone.lastAcceptedShipDate && 
+                                            new Date(dateToSync).getTime() !== new Date(milestone.lastAcceptedShipDate).getTime();
+                                            
                       await storage.updateBillingMilestone(milestone.id, {
                         ...milestone,
+                        liveDate: dateToSync,
+                        shipDateChanged: shipDateChanged,
                         targetInvoiceDate: dateToSync
                       });
                     }

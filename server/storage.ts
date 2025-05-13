@@ -668,7 +668,12 @@ export class DatabaseStorage implements IStorage {
   
   // Billing Milestone methods
   async getBillingMilestones(): Promise<BillingMilestone[]> {
-    return await db.select().from(billingMilestones).orderBy(billingMilestones.targetInvoiceDate);
+    try {
+      return await db.select().from(billingMilestones).orderBy(billingMilestones.targetInvoiceDate);
+    } catch (error) {
+      console.error("Error in getBillingMilestones:", error);
+      return [];
+    }
   }
   
   async getProjectBillingMilestones(projectId: number): Promise<BillingMilestone[]> {

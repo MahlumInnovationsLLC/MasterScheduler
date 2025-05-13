@@ -425,6 +425,28 @@ const BillingMilestones = () => {
       cell: ({ row }) => <div className="text-sm">{formatDate(row.original.targetInvoiceDate)}</div>,
     },
     {
+      accessorKey: 'liveDate',
+      header: 'Live Date',
+      cell: ({ row }) => {
+        const deliveryMilestone = row.original.isDeliveryMilestone || 
+                                 (row.original.name && row.original.name.toUpperCase().includes("DELIVERY"));
+        
+        // Only show for delivery milestones with a liveDate
+        if (!deliveryMilestone || !row.original.liveDate) {
+          return <div className="text-sm text-gray-400">-</div>;
+        }
+        
+        // Check if there's a ship date change
+        const hasShipDateChanged = row.original.shipDateChanged;
+        
+        return (
+          <div className={`text-sm ${hasShipDateChanged ? "bg-orange-300/20 font-semibold text-orange-500" : ""} rounded px-2 py-1`}>
+            {formatDate(row.original.liveDate)}
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: 'status',
       header: 'Status',
       cell: ({ row }) => {
