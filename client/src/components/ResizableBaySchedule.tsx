@@ -579,8 +579,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return false;
       }
       
-      // Calculate current week based on the date (May 11, 2025)
-      const today = new Date(2025, 4, 11); // May 11, 2025 (months are 0-indexed)
+      // Calculate current week based on the actual current date
+      const today = new Date(); // Current date
       
       // Instead of trying to calculate the exact position, use a fixed week number that we know is correct
       // Week 19 is roughly mid-May in 2025
@@ -4498,8 +4498,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         >
           {/* Today indicator line - enhanced for all time views */}
           {(() => {
-            // Use today's date for development/testing (May 8, 2025)
-            const today = new Date(2025, 4, 8); // May 8, 2025 (months are 0-indexed)
+            // Use actual today's date instead of hardcoded value
+            const today = new Date(); // Current date
             const startDate = dateRange.start;
             
             // Calculate position based on view mode
