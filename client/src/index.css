@@ -1143,6 +1143,19 @@ body.resizing-mode .resize-handle {
   background-color: rgba(var(--primary), 0.1);
 }
 
+/* Enhanced Bay 3 styling for drag and drop operations */
+.bay-3-drop-active {
+  @apply border-2 border-green-500 bg-green-50 dark:bg-green-900/20 shadow-lg transition-all duration-300;
+}
+
+.dragging-over-bay-3 {
+  @apply outline-2 outline-offset-2 outline-green-500 opacity-90;
+}
+
+.drop-bay-3 {
+  @apply ring-2 ring-green-500 ring-offset-1;
+}
+
 .active-drop-target {
   background-color: rgba(var(--primary), 0.25) !important;
   border: 2px dashed rgb(var(--primary)) !important;

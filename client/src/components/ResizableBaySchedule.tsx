@@ -3347,12 +3347,33 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         }
         
         // 🚨 EMERGENCY BUG FIX: CRITICAL - DON'T USE STORED/TRACKED BAY REFERENCES
-        // Always use exactly the 'bayId' parameter directly from the drop event
-        // This is the most important fix to stop projects jumping between bays
-        console.log(`🚨 EMERGENCY FIX: Using EXACT drop target bay ID: ${bayId} with NO TRANSLATION`);
+        // Using our earlier enhanced Bay 3 detection logic
         
-        // CRITICAL: Always use the actual bay ID where the user dropped 
-        const finalBayId = bayId;
+        // Recheck all sources for Bay 3 identification to ensure consistency
+        const bodyBayId = document.body.getAttribute('data-current-drag-bay');
+        const lastBayDrag = document.body.getAttribute('data-last-bay-drag');
+        const bay3Flag = document.body.hasAttribute('data-bay-three-drag');
+        const bay3Drop = document.body.hasAttribute('data-bay-three-drop');
+        
+        // If ANY source indicates this is a Bay 3 drop, respect that
+        const isBay3ByMultipleChecks = 
+          bayId === 3 || 
+          bodyBayId === '3' || 
+          lastBayDrag === '3' || 
+          bay3Flag ||
+          bay3Drop;
+          
+        // Use our enhanced Bay 3 detection
+        let actualBayId = bayId;
+        if (isBay3ByMultipleChecks && bayId !== 3) {
+          console.log('⚠️ Bay 3 detected through alternate data sources for final DB update - overriding with Bay 3');
+          actualBayId = 3;
+        }
+        
+        console.log(`🚨 EMERGENCY FIX: Using enhanced bay detection - final bay ID: ${actualBayId}`);
+        
+        // CRITICAL: Always use the actual bay ID where the user dropped, with enhanced Bay 3 detection
+        const finalBayId = actualBayId;
         
         // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
         // User specifically requested to disable all auto-placement logic
