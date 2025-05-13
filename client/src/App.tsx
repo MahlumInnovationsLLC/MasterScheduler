@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { LoadingProvider } from "@/components/LoadingManager";
 import Dashboard from "@/pages/Dashboard";
 import ProjectStatus from "@/pages/ProjectStatus";
 import BillingMilestones from "@/pages/BillingMilestones";

@@ -499,6 +499,7 @@ const BaySchedulingPage = () => {
       return false;
     } finally {
       setIsLoading(false);
+      setProcessingScheduleId(null);
     }
   };
   
@@ -533,6 +534,7 @@ const BaySchedulingPage = () => {
       return false;
     } finally {
       setIsLoading(false);
+      setProcessingScheduleId(null);
     }
   };
   
