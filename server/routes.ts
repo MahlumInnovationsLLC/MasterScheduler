@@ -645,12 +645,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/manufacturing-schedules", isAuthenticated, validateRequest(insertManufacturingScheduleSchema), async (req, res) => {
     try {
       // CRITICAL FIX: Ensure row parameter is processed correctly and enforced
+      // NO AUTO-ADJUSTMENT OF ANY KIND - exactly as requested by user
       const data = {
         ...req.body,
         row: req.body.row !== undefined ? parseInt(req.body.row) : 0 // Default to row 0 if not specified
       };
+      
+      // SIMPLIFIED PLACEMENT SYSTEM: Projects stay EXACTLY where dropped
       console.log("Creating schedule with EXACT row data:", data);
       console.log("IMPORTANT: Using row value:", data.row, "as directly specified by UI");
+      console.log("NO AUTO ROW ADJUSTMENT: Project will be placed exactly where dropped");
       
       // First create the schedule
       const schedule = await storage.createManufacturingSchedule(data);
@@ -776,12 +780,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       // CRITICAL FIX: Ensure row is properly handled and respected exactly as sent from client
+      // NO AUTO-ADJUSTMENT OF ANY KIND - exactly as requested by user
       const data = {
         ...req.body,
         row: req.body.row !== undefined ? parseInt(req.body.row) : undefined
       };
+      
+      // SIMPLIFIED PLACEMENT SYSTEM: Projects stay EXACTLY where dropped
       console.log("Updating schedule with EXACT row data:", data);
       console.log("IMPORTANT: Using row value:", data.row, "EXACTLY as specified by UI");
+      console.log("NO AUTO ROW ADJUSTMENT: Project will remain exactly where it was dropped");
       
       // First get the original schedule to access the projectId
       const originalSchedule = await storage.getManufacturingSchedule(id);
