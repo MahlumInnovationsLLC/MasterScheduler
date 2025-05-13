@@ -816,6 +816,54 @@
   background-color: rgba(var(--primary-rgb), 0.3) !important;
 }
 
+/* Styling for subcells in multi-row bays */
+.subcell {
+  transition: background-color 0.15s ease;
+  position: relative;
+}
+
+.subcell:hover {
+  background-color: rgba(var(--primary-rgb), 0.1);
+  box-shadow: inset 0 0 0 1px rgba(var(--primary-rgb), 0.2);
+}
+
+/* Alternating background colors for better visibility */
+.subcell-even {
+  background-color: rgba(15, 23, 42, 0.01);
+}
+
+.subcell-odd {
+  background-color: rgba(15, 23, 42, 0.03);
+}
+
+/* Row specific highlights when dragging */
+.week-cell[data-target-row] .subcell[data-row-index="0"] {
+  background-color: rgba(var(--primary-rgb), 0.05);
+}
+
+.week-cell[data-target-row="0"] .subcell[data-row-index="0"],
+.week-cell[data-target-row="1"] .subcell[data-row-index="1"],
+.week-cell[data-target-row="2"] .subcell[data-row-index="2"],
+.week-cell[data-target-row="3"] .subcell[data-row-index="3"],
+.week-cell[data-target-row="4"] .subcell[data-row-index="4"],
+.week-cell[data-target-row="5"] .subcell[data-row-index="5"],
+.week-cell[data-target-row="6"] .subcell[data-row-index="6"],
+.week-cell[data-target-row="7"] .subcell[data-row-index="7"],
+.week-cell[data-target-row="8"] .subcell[data-row-index="8"],
+.week-cell[data-target-row="9"] .subcell[data-row-index="9"],
+.week-cell[data-target-row="10"] .subcell[data-row-index="10"],
+.week-cell[data-target-row="11"] .subcell[data-row-index="11"],
+.week-cell[data-target-row="12"] .subcell[data-row-index="12"],
+.week-cell[data-target-row="13"] .subcell[data-row-index="13"],
+.week-cell[data-target-row="14"] .subcell[data-row-index="14"],
+.week-cell[data-target-row="15"] .subcell[data-row-index="15"],
+.week-cell[data-target-row="16"] .subcell[data-row-index="16"],
+.week-cell[data-target-row="17"] .subcell[data-row-index="17"],
+.week-cell[data-target-row="18"] .subcell[data-row-index="18"],
+.week-cell[data-target-row="19"] .subcell[data-row-index="19"] {
+  background-color: rgba(var(--primary-rgb), 0.15) !important;
+}
+
 /* Week cell hover for specific rows/data slots */
 .week-cell-hover {
   background-color: rgba(var(--primary-rgb), 0.15) !important;

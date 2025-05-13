@@ -533,8 +533,8 @@ const BaySchedulingPage = () => {
                   staffCount: 10,
                   assemblyStaffCount: 8,
                   electricalStaffCount: 2,
-                  hourlyRate: 85,
-                  active: true
+                  hoursPerPersonPerWeek: 40,
+                  isActive: true
                 });
               }}
             >
@@ -550,8 +550,8 @@ const BaySchedulingPage = () => {
                   staffCount: 10,
                   assemblyStaffCount: 8,
                   electricalStaffCount: 2,
-                  hourlyRate: 85,
-                  active: true
+                  hoursPerPersonPerWeek: 40,
+                  isActive: true
                 });
               }}
             >

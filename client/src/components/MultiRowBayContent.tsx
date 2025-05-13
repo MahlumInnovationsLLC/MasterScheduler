@@ -54,65 +54,85 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
 
   return (
     <>
-      {/* Week cells grid */}
+      {/* Week cells grid with row subdivision for precise row targeting */}
       <div className="absolute inset-0 grid grid-cols-52 border-l border-gray-700/50">
         {weekSlots.map((slot, index) => (
           <div
             key={`week-cell-${bay.id}-${index}`}
-            className={`week-cell border-r border-gray-700/50 cursor-pointer ${isSameDay(slot.date, new Date()) ? 'bg-blue-900/20' : ''}`}
+            className={`week-cell relative border-r border-gray-700/50 cursor-pointer ${isSameDay(slot.date, new Date()) ? 'bg-blue-900/20' : ''}`}
             data-bay-id={bay.id}
             data-week-index={index}
             data-date={format(slot.date, 'yyyy-MM-dd')}
-            onDragOver={(e) => {
-              e.preventDefault();
-              // Visualize the specific week cell being targeted
-              e.currentTarget.classList.add('drag-hover');
-              
-              // Log week info for debugging
-              const weekNumber = format(slot.date, 'w');
-              console.log(`Entering week ${weekNumber} (index ${index}) in bay ${bay.id}`);
-            }}
-            onDragLeave={(e) => {
-              // Remove visual feedback when leaving cell
-              e.currentTarget.classList.remove('bg-primary/10', 'drag-hover');
-              
-              // Remove all row highlight classes
-              for (let i = 0; i < rowCount; i++) {
-                e.currentTarget.classList.remove(`row-${i}-highlight`);
-              }
-              
-              // Reset data attributes
-              e.currentTarget.removeAttribute('data-target-row');
-              e.currentTarget.removeAttribute('data-week-number');
-            }}
-            onDrop={(e) => {
-              // Calculate which row within the cell the cursor is over
-              const cellHeight = e.currentTarget.clientHeight;
-              const relativeY = e.nativeEvent.offsetY;
-              const rowIndex = Math.floor((relativeY / cellHeight) * rowCount);
-              
-              // CRITICAL: Update global data attribute with current row
-              // This ensures the drop handler can use the current row where the mouse is
-              document.body.setAttribute('data-current-drag-row', rowIndex.toString());
-              
-              // Remove all highlight classes
-              for (let i = 0; i < rowCount; i++) {
-                e.currentTarget.classList.remove(`row-${i}-highlight`);
-              }
-              e.currentTarget.classList.remove('drag-hover', 'active-drop-target');
-              
-              // Reset data attributes
-              e.currentTarget.removeAttribute('data-target-row');
-              e.currentTarget.removeAttribute('data-week-number');
-              
-              // Handle the drop with the specific row
-              handleDrop(e, bay.id, index, rowIndex);
-              
-              // Log the exact cell location for debugging
-              const weekStartDate = format(slot.date, 'yyyy-MM-dd');
-              console.log(`Project dropped at Bay ${bay.id}, Week ${index} (${weekStartDate}), Row ${rowIndex}`);
-            }}
-          />
+          >
+            {/* Create row sub-divisions for drag targeting in each cell */}
+            <div className="absolute inset-0 flex flex-col">
+              {Array.from({ length: rowCount }).map((_, rowIdx) => (
+                <div 
+                  key={`subcell-${bay.id}-${index}-${rowIdx}`}
+                  className={`flex-1 min-h-0 relative subcell ${rowIdx % 2 === 0 ? 'subcell-even' : 'subcell-odd'}`}
+                  data-row-index={rowIdx}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Add highlights to the specific row and cell
+                    const weekCell = e.currentTarget.closest('.week-cell');
+                    if (weekCell) {
+                      weekCell.classList.add('drag-hover');
+                      
+                      // Add row-specific highlight
+                      weekCell.classList.add(`row-${rowIdx}-highlight`);
+                      
+                      // Store the target row for reference
+                      weekCell.setAttribute('data-target-row', rowIdx.toString());
+                    }
+                    
+                    // Update current row globally
+                    document.body.setAttribute('data-current-drag-row', rowIdx.toString());
+                    
+                    // Call the handler with precise row information
+                    handleDragOver(e, bay.id, index, rowIdx);
+                    
+                    // Log for debugging
+                    if (rowIdx % 5 === 0) { // Reduce log volume
+                      console.log(`Dragging over bay ${bay.id}, week ${index}, row ${rowIdx}`);
+                    }
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Only remove the row-specific highlight
+                    const weekCell = e.currentTarget.closest('.week-cell');
+                    if (weekCell) {
+                      weekCell.classList.remove(`row-${rowIdx}-highlight`);
+                    }
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Get the week cell parent
+                    const weekCell = e.currentTarget.closest('.week-cell');
+                    if (weekCell) {
+                      // Remove all highlights
+                      weekCell.classList.remove('drag-hover');
+                      for (let i = 0; i < rowCount; i++) {
+                        weekCell.classList.remove(`row-${i}-highlight`);
+                      }
+                    }
+                    
+                    // Handle the drop with the specific row index
+                    handleDrop(e, bay.id, index, rowIdx);
+                    
+                    // Log the exact cell location for debugging
+                    const weekStartDate = format(slot.date, 'yyyy-MM-dd');
+                    console.log(`Project dropped at Bay ${bay.id}, Week ${index} (${weekStartDate}), Row ${rowIdx}`);
+                  }}
+                />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
 
