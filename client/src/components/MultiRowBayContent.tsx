@@ -138,14 +138,24 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
               handleDrop(e, bay.id, 0, rowIndex);
             }}
           >
-            {/* Row number indicator */}
+            {/* Row number indicator - smaller for Team 7 & 8 */}
             <div className="absolute -left-6 top-0 h-full row-number pointer-events-none flex items-center justify-center">
-              <div className={`row-number-badge ${rowCount > 10 ? 'px-1 py-0 text-[8px]' : 'px-2 py-0.5 text-xs'} font-bold`}>
-                {rowIndex + 1}
-              </div>
+              {isTeam7Or8 ? (
+                // Smaller, more compact badges for Team 7 & 8 with 20 rows
+                <div className={`row-number-badge px-1 py-0 text-[7px] ${rowIndex % 2 === 0 ? 'font-bold' : 'opacity-50'}`}>
+                  {rowIndex + 1}
+                </div>
+              ) : (
+                // Normal badges for other bays
+                <div className="row-number-badge px-2 py-0.5 text-xs font-bold">
+                  {rowIndex + 1}
+                </div>
+              )}
             </div>
             
-            {/* Enhanced row management buttons - made more compact for multi-row display */}
+            {/* Row management buttons */}
+            {/* Only show for certain rows in Team 7 & 8 to reduce clutter */}
+            {!isTeam7Or8 || (isTeam7Or8 && rowIndex % 5 === 0) ? (
             <div className="absolute left-1/2 transform -translate-x-1/2 bottom-[-6px] flex gap-1 z-[999] pointer-events-auto row-management-buttons">
               {/* Delete row button */}
               <button
@@ -196,6 +206,7 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
                 <Plus className={rowCount > 10 ? "h-1.5 w-1.5" : "h-2.5 w-2.5"} />
               </button>
             </div>
+            ) : null}
           </div>
         ))}
       </div>
