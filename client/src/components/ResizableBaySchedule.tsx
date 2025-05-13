@@ -951,16 +951,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           }
         }
         
-        // Ensure row is within valid range - but allow up to 8 rows now
-        // This ensures we can have more projects in a bay over different time periods
-        assignedRow = Math.min(7, Math.max(0, assignedRow));
+        // Ensure row is within valid range - use bay-specific row count
+        // For Team 7 & 8, we need to support up to 20 rows, others stay at 8 max
+        const maxRows = getBayRowCount(bay.id, bay.name);
+        assignedRow = Math.min(maxRows - 1, Math.max(0, assignedRow));
         
         // Update the end date for this row
         rowEndDates[assignedRow] = new Date(endDate);
         
-        // Map the actual row to a visual row (we still only display 4 visual rows)
-        // This allows us to have more than 4 projects in a bay that don't overlap in time
-        const visualRow = assignedRow % 4; // Map rows 0-7 to rows 0-3 for display
+        // Map the actual row to a visual row
+        // For Team 7 & 8, respect all 20 rows, for other bays map to 4 visual rows
+        const maxVisualRows = getBayRowCount(bay.id, bay.name);
+        const visualRow = maxVisualRows > 4 
+          ? assignedRow // For Team 7 & 8, use the actual row (up to 20)
+          : assignedRow % 4; // For standard bays, map rows to 0-3 for display
         
         console.log(`Schedule ${schedule.id} positioned in row ${assignedRow} (displays in visual row ${visualRow}) ${typeof schedule.row === 'number' ? '(using database row)' : '(auto-assigned)'}`)
         
@@ -4453,7 +4457,24 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 </div>
                 
                 {/* Row dividers with visible action buttons */}
-                <div className="absolute inset-0 flex flex-col">
+                {getBayRowCount(bay.id, bay.name) > 4 ? (
+                  // Use MultiRowBayContent for Team 7 & 8 which needs 20 rows
+                  <MultiRowBayContent
+                    bay={bay}
+                    weekSlots={slots}
+                    scheduleBars={scheduleBars}
+                    projects={projects}
+                    handleDragOver={handleDragOver}
+                    handleDrop={handleDrop}
+                    setRowToDelete={setRowToDelete}
+                    setDeleteRowDialogOpen={setDeleteRowDialogOpen}
+                    handleRowDelete={handleRowDelete}
+                    handleRowAdd={handleRowAdd}
+                    rowCount={getBayRowCount(bay.id, bay.name)}
+                  />
+                ) : (
+                  // Standard 4-row layout for other bays
+                  <div className="absolute inset-0 flex flex-col">
                   {/* Row 1 */}
                   <div 
                     className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
@@ -4931,6 +4952,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     </div>
                   </div>
                 </div>
+                )}
                 
                 {/* Schedule bars */}
                 {scheduleBars
@@ -4939,6 +4961,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     // Use row-specific classes for positioning instead of top style
                     const rowIndex = bar.row || 0;
                     const rowClass = `row-${rowIndex}-bar`;
+                    
+                    // For Team 7 & 8, calculate height based on rowCount (20 rows = 5% each)
+                    // Find the bay object using bayId
+                    const currentBay = bays.find(b => b.id === bar.bayId);
+                    const bayName = currentBay ? currentBay.name : '';
+                    const isMultiRowBay = getBayRowCount(bar.bayId, bayName) > 4;
+                    const rowHeight = isMultiRowBay 
+                      ? { height: `${100 / getBayRowCount(bar.bayId, bayName)}%`, top: `${rowIndex * (100 / getBayRowCount(bar.bayId, bayName))}%` } 
+                      : {}; // Default styling for standard bays
                     
                     return (
                       <div
@@ -4951,7 +4982,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           left: bar.left + 'px',
                           width: bar.width - 4 + 'px',  // -4 for border spacing
                           backgroundColor: 'transparent', // Make background transparent since we're using department phases
-                          opacity: draggingSchedule?.id === bar.id ? 0.5 : 1
+                          opacity: draggingSchedule?.id === bar.id ? 0.5 : 1,
+                          ...(isMultiRowBay ? rowHeight : {}) // Apply custom row height for multi-row bays
                         }}
                         draggable={typeof document !== 'undefined' && document.body.classList.contains('resizing-mode') ? false : true}
                         onDragStart={(e) => {

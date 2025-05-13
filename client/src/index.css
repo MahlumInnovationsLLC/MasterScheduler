@@ -775,6 +775,29 @@
   background: linear-gradient(180deg, transparent 0%, transparent 75%, rgba(var(--primary-rgb), 0.2) 75%, rgba(var(--primary-rgb), 0.1) 100%) !important;
 }
 
+/* These classes enable support for Team 7 & 8 with 20 rows */
+/* Row highlight classes for multi-row bays */
+.multi-row-bay .row-0-bar { top: 0%; height: 5%; }
+.multi-row-bay .row-1-bar { top: 5%; height: 5%; }
+.multi-row-bay .row-2-bar { top: 10%; height: 5%; }
+.multi-row-bay .row-3-bar { top: 15%; height: 5%; }
+.multi-row-bay .row-4-bar { top: 20%; height: 5%; }
+.multi-row-bay .row-5-bar { top: 25%; height: 5%; }
+.multi-row-bay .row-6-bar { top: 30%; height: 5%; }
+.multi-row-bay .row-7-bar { top: 35%; height: 5%; }
+.multi-row-bay .row-8-bar { top: 40%; height: 5%; }
+.multi-row-bay .row-9-bar { top: 45%; height: 5%; }
+.multi-row-bay .row-10-bar { top: 50%; height: 5%; }
+.multi-row-bay .row-11-bar { top: 55%; height: 5%; }
+.multi-row-bay .row-12-bar { top: 60%; height: 5%; }
+.multi-row-bay .row-13-bar { top: 65%; height: 5%; }
+.multi-row-bay .row-14-bar { top: 70%; height: 5%; }
+.multi-row-bay .row-15-bar { top: 75%; height: 5%; }
+.multi-row-bay .row-16-bar { top: 80%; height: 5%; }
+.multi-row-bay .row-17-bar { top: 85%; height: 5%; }
+.multi-row-bay .row-18-bar { top: 90%; height: 5%; }
+.multi-row-bay .row-19-bar { top: 95%; height: 5%; }
+
 /* Week cell hover - enhance visibility for dragging targets */
 .week-cell.drag-hover {
   border: 2px dashed hsl(var(--primary)) !important;
