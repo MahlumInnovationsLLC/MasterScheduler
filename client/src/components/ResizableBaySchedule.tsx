@@ -4665,7 +4665,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             {bays.map(bay => (
               <div 
                 key={bay.id} 
-                className="relative h-64 border-b border-gray-700"
+                className={`relative border-b border-gray-700 ${bay.id === 7 || bay.id === 8 || bay.bayNumber === 7 || bay.bayNumber === 8 ? 'h-[600px]' : 'h-64'}`}
                 style={{ width: totalViewWidth }}
               >
                 {/* Grid columns */}
@@ -5568,7 +5568,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               const virtualBayId = bays.length + index + 1;
               // Check if this should be Team 7 or 8 with 20 rows
               const isTeam7Or8 = virtualBayId === 7 || virtualBayId === 8;
-              const rowHeight = isTeam7Or8 ? 800 : 64; // Height for 20 rows vs 4 rows
+              const rowHeight = isTeam7Or8 ? 600 : 64; // Height for 20 rows vs 4 rows
               
               return (
                 <div 
