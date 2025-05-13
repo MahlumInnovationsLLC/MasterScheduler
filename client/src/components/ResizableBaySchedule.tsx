@@ -14,6 +14,7 @@ import {
   endOfWeek,
   getDaysInMonth
 } from 'date-fns';
+import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
 import { 
   PlusCircle, 
   GripVertical, 
@@ -1700,14 +1701,58 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         }
       }
       
+      // Adjust dates to ensure they fall on business days
+      // For start date, find the next business day if not already one
+      let adjustedStartDate = adjustToNextBusinessDay(newStartDate) || newStartDate;
+      
+      // For end date, find the previous business day if not already one
+      // We use previous for end date to ensure the project ends on a business day (not weekend/holiday)
+      let adjustedEndDate = adjustToPreviousBusinessDay(newEndDate) || newEndDate;
+      
+      // Log any date adjustments to inform the user
+      if (!isSameDay(adjustedStartDate, newStartDate)) {
+        console.log(`Start date adjusted from ${format(newStartDate, 'yyyy-MM-dd')} to ${format(adjustedStartDate, 'yyyy-MM-dd')} (next business day)`);
+        toast({
+          title: "Date Adjusted",
+          description: `Start date adjusted to ${format(adjustedStartDate, 'MMM d, yyyy')} (next business day)`,
+          variant: "default"
+        });
+      }
+      
+      if (!isSameDay(adjustedEndDate, newEndDate)) {
+        console.log(`End date adjusted from ${format(newEndDate, 'yyyy-MM-dd')} to ${format(adjustedEndDate, 'yyyy-MM-dd')} (previous business day)`);
+        toast({
+          title: "Date Adjusted",
+          description: `End date adjusted to ${format(adjustedEndDate, 'MMM d, yyyy')} (previous business day)`,
+          variant: "default"
+        });
+      }
+      
+      // Ensure adjusted end date is after adjusted start date
+      if (adjustedEndDate <= adjustedStartDate) {
+        adjustedEndDate = addDays(adjustedStartDate, 1);
+        // If the next day isn't a business day, find the next business day
+        adjustedEndDate = adjustToPreviousBusinessDay(adjustedEndDate) || adjustedEndDate;
+        if (adjustedEndDate <= adjustedStartDate) {
+          // If we still have an issue, just add 3 days which should get us to next business day
+          adjustedEndDate = adjustToNextBusinessDay(addDays(adjustedStartDate, 3)) || addDays(adjustedStartDate, 3);
+        }
+        
+        toast({
+          title: "Date Range Adjusted",
+          description: "End date adjusted to ensure a valid project duration",
+          variant: "destructive"
+        });
+      }
+      
       // Format dates for the API
-      const formattedStartDate = format(newStartDate, 'yyyy-MM-dd');
-      const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
+      const formattedStartDate = format(adjustedStartDate, 'yyyy-MM-dd');
+      const formattedEndDate = format(adjustedEndDate, 'yyyy-MM-dd');
       
       // Get original hours - don't recalculate based on duration
       const originalHours = resizingSchedule.originalHours || 1000;
       // Calculate days for logging only
-      const totalDays = differenceInDays(newEndDate, newStartDate);
+      const totalDays = differenceInDays(adjustedEndDate, adjustedStartDate);
       // Use original hours or fallback to 1000 hours (don't recalculate)
       const totalHours = originalHours;
       
