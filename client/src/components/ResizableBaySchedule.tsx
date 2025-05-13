@@ -2088,14 +2088,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     document.body.setAttribute('data-current-drag-bay', bayId.toString());
     console.log(`Updated current drag bay: ${bayId} and row: ${currentRow}`);
     
-    // CRITICAL FIX FOR BAY 3: Ensure we capture exact date attribute consistently across all bays
-    // This prevents the issue with Bay 3 where projects auto-snap to start of grid
+    // CRITICAL FIX: Use the exact positioning module for consistent date handling in all bays
+    // This prevents the issue with projects auto-snapping to grid
     const dataDate = dragElement.getAttribute('data-date');
     if (dataDate) {
-      // Set a consistent global variable for exact date tracking regardless of bay
-      (window as any).lastExactDate = dataDate;
+      // Import and use the dedicated module for exact date positioning
+      import('@/lib/exactPositioningHandler').then(positioning => {
+        positioning.storeExactDateInfo(dataDate);
+      }).catch(error => {
+        console.error('Failed to import exactPositioningHandler:', error);
+        // Fallback to direct attribute setting if module fails
+        (window as any).lastExactDate = dataDate;
+        document.body.setAttribute('data-current-drag-date', dataDate);
+      });
+      
+      // Also mark the element itself with the date for debugging
       dragElement.setAttribute('data-exact-date', dataDate);
-      console.log(`Bay ${bayId} drag: Storing exact date ${dataDate} from direct attribute`);
+      console.log(`Bay ${bayId} drag: Using exact positioning module with date ${dataDate}`);
     }
     
     // We'll still track the original bay ID on the element (but don't use it for placement)
@@ -2886,128 +2895,162 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return;
       }
       
-      // Get the date for this slot using multiple reliable sources with fallbacks
+      // Get the date for this slot using our dedicated exact positioning module
       let slotDate: Date | null = null;
       let exactDateForStorage: string | null = null;
       
-      // ENHANCEMENT FOR BAY 3: Check global variables first for consistent behavior across bays
-      const storedGlobalDate = (window as any).lastExactDate;
-      const bodyDateAttribute = document.body.getAttribute('data-current-drag-date');
-      
-      // CRITICAL CONSISTENCY FIX: FORCE exact date treatment for Bay 2 & Bay 3
-      // This ensures both bays use the same exact positioning without grid snapping
-      const exactPositioningBay = exactBayId === 2 || exactBayId === 3;
-      
-      if (exactPositioningBay) {
-        const bayPrefix = exactBayId === 2 ? '🔵 BAY 2' : '🚨 BAY 3';
-        console.log(`${bayPrefix} EXACT POSITIONING: Will use targeted date direct fix`);
+      // Import and use the exactPositioningHandler module for all bays
+      import('@/lib/exactPositioningHandler').then(positioningModule => {
+        // Define position parameters for the module
+        const positioningProps = {
+          targetElement,
+          slotWidth,
+          daysBetweenSlots,
+          slots,
+          dataDate,
+          bayId: exactBayId,
+          bayName: bay.name
+        };
         
-        // Use dataDate first (direct from target element) as it's most reliable
-        if (dataDate) {
+        // Get the precise date position from our specialized module
+        const result = positioningModule.calculateExactDatePosition(positioningProps);
+        
+        if (result) {
+          slotDate = result.date;
+          exactDateForStorage = result.exactDateStr;
+          
+          // Log the result based on the bay (with consistent prefixes)
+          const bayPrefix = `BAY ${exactBayId}`;
+          console.log(`${bayPrefix} EXACT POSITIONING: Using date from dedicated module (${result.source}):`, result.exactDateStr);
+          
+          // Now that we have our date, we can continue processing the drop
+          continueDropProcessing();
+        } else {
+          // Handle error case when the module fails to determine a date
+          console.error(`BAY ${exactBayId} POSITIONING ERROR: Failed to determine date position`);
+          
+          // Fall back to our legacy method in case of module failure
+          useLegacyPositioning();
+        }
+      }).catch(error => {
+        // If the module import fails, log the error and fallback to legacy positioning
+        console.error('Failed to import exactPositioningHandler module:', error);
+        useLegacyPositioning();
+      });
+      
+      // Legacy positioning method as a fallback
+      function useLegacyPositioning() {
+        console.log('FALLBACK: Using legacy positioning method');
+        
+        // Exact same order of checks as before, but refactored into a function
+        const storedGlobalDate = (window as any).lastExactDate;
+        const bodyDateAttribute = document.body.getAttribute('data-current-drag-date');
+        
+        if (storedGlobalDate) {
+          slotDate = new Date(storedGlobalDate);
+          exactDateForStorage = storedGlobalDate;
+          console.log(`FALLBACK: Using global date variable: ${storedGlobalDate}`, slotDate);
+        }
+        else if (bodyDateAttribute) {
+          slotDate = new Date(bodyDateAttribute);
+          exactDateForStorage = bodyDateAttribute;
+          console.log(`FALLBACK: Using body attribute: ${bodyDateAttribute}`, slotDate);
+        }
+        else if (targetElement.getAttribute('data-exact-date')) {
+          const exactDateStr = targetElement.getAttribute('data-exact-date');
+          slotDate = new Date(exactDateStr!);
+          exactDateForStorage = exactDateStr;
+          console.log('FALLBACK: Using data-exact-date attribute:', exactDateStr);
+        }
+        else if (dataDate) {
           slotDate = new Date(dataDate);
           exactDateForStorage = dataDate;
-          console.log(`${bayPrefix} DIRECT FIX: Using exact date:`, dataDate);
+          console.log('FALLBACK: Using data-date attribute:', dataDate);
         }
-        // Try date from cell element as backup
-        else if (targetElement) {
+        else {
           const dateElement = targetElement.closest('[data-date]') as HTMLElement;
           if (dateElement) {
             const dateStr = dateElement.getAttribute('data-date');
             if (dateStr) {
               slotDate = new Date(dateStr);
               exactDateForStorage = dateStr;
-              console.log(`${bayPrefix} DIRECT FIX: Using date from closest element:`, dateStr);
+              console.log('FALLBACK: Using closest element data-date:', dateStr);
             }
           }
         }
         
+        // Still check bay containers as a last resort
+        if (!slotDate) {
+          const bayContainers = document.querySelectorAll('.bay-container');
+          Array.from(bayContainers).forEach(container => {
+            if (!slotDate && container.getAttribute('data-last-dragover-date')) {
+              const bayDateStr = container.getAttribute('data-last-dragover-date');
+              slotDate = new Date(bayDateStr!);
+              exactDateForStorage = bayDateStr;
+              console.log('FALLBACK: Using bay container data-last-dragover-date:', bayDateStr);
+            }
+          });
+        }
+        
+        // Final fallback to slot index
+        if (!slotDate && targetSlotIndex >= 0 && targetSlotIndex < slots.length) {
+          slotDate = new Date(slots[targetSlotIndex]?.date);
+          exactDateForStorage = format(slotDate, 'yyyy-MM-dd');
+          console.log('FALLBACK: Using slot index date:', targetSlotIndex, exactDateForStorage);
+        }
+        
+        // Now continue with drop processing
         if (slotDate) {
-          console.log(`${bayPrefix} EXACT POSITIONING: Successfully applied direct date handling`);
-        }
-      }
-      // For all other bays, use the standard fallback chain
-      else if (storedGlobalDate) {
-        slotDate = new Date(storedGlobalDate);
-        exactDateForStorage = storedGlobalDate;
-        console.log(`Using global date variable: ${storedGlobalDate}`, slotDate);
-      }
-      // SECOND CHECK: Check body attribute if window variable is not available
-      else if (bodyDateAttribute) {
-        slotDate = new Date(bodyDateAttribute);
-        exactDateForStorage = bodyDateAttribute;
-        console.log(`Using body data-current-drag-date attribute: ${bodyDateAttribute}`, slotDate);
-      }
-      // THIRD CHECK: Check target element's data-exact-date attribute
-      else if (targetElement.getAttribute('data-exact-date')) {
-        const exactDateStr = targetElement.getAttribute('data-exact-date');
-        slotDate = new Date(exactDateStr!);
-        exactDateForStorage = exactDateStr;
-        console.log('Using precise date from target element data-exact-date attribute:', exactDateStr, slotDate);
-      }
-      // FOURTH CHECK: Check data-date on direct target
-      else if (dataDate) {
-        slotDate = new Date(dataDate);
-        exactDateForStorage = dataDate;
-        console.log('Using date directly from target element data-date attribute:', dataDate, slotDate);
-      }
-      // FIFTH CHECK: Try to find and check the closest element with a data-date attribute
-      else {
-        const dateElement = targetElement.closest('[data-date]') as HTMLElement;
-        if (dateElement) {
-          const dateStr = dateElement.getAttribute('data-date');
-          if (dateStr) {
-            slotDate = new Date(dateStr);
-            exactDateForStorage = dateStr;
-            console.log('Using date from closest element with data-date attribute:', dateStr, slotDate);
-          }
+          continueDropProcessing();
+        } else {
+          console.error('CRITICAL: Could not determine date position with any method');
+          toast({
+            title: "Error",
+            description: "Could not determine position date",
+            variant: "destructive"
+          });
         }
       }
       
-      // CRITICAL BAY 3 FIX: If we still don't have a date, check all bay containers
-      if (!slotDate) {
-        const bayContainers = document.querySelectorAll('.bay-container');
-        Array.from(bayContainers).forEach(container => {
-          if (!slotDate && container.getAttribute('data-last-dragover-date')) {
-            const bayDateStr = container.getAttribute('data-last-dragover-date');
-            slotDate = new Date(bayDateStr!);
-            exactDateForStorage = bayDateStr;
-            console.log('Last resort: Using date from bay container data-last-dragover-date:', bayDateStr, slotDate);
-          }
-        });
-      }
-      
-      // If we couldn't get the date from any attribute, use the targetSlotIndex
-      if (!slotDate && targetSlotIndex >= 0 && targetSlotIndex < slots.length) {
-        slotDate = new Date(slots[targetSlotIndex]?.date);
-        exactDateForStorage = format(slotDate, 'yyyy-MM-dd');
-        console.log('Using date from slots array with targetSlotIndex:', targetSlotIndex, slotDate);
-      }
-      
-      // CRITICAL: Store the EXACT slot date from the drop target before any modifications
-      // This ensures we remember precisely which week cell was targeted
-      if (slotDate) {
-        // IMPORTANT: Keep track of the original target slot date before any phase calculations
-        // Create a clone to avoid any reference issues
-        const exactTargetStartDate = new Date(slotDate.getTime());
-        console.log('Exact target start date (before any FAB calculations):', exactTargetStartDate);
+      // Continue with the drop processing once we have determined the date
+      function continueDropProcessing() {
+        // Only proceed if we have a valid date
+        if (!slotDate) {
+          console.error('Critical error: No slotDate available to continue drop processing');
+          toast({
+            title: "Error",
+            description: "Could not determine position date",
+            variant: "destructive"
+          });
+          return;
+        }
         
-        // Store this for later use - CRUCIAL for proper week positioning
-        // We MUST create a new property as a string to ensure it's carried forward in drag events
-        data.targetStartDate = exactDateForStorage || exactTargetStartDate.toISOString();
+        // CRITICAL: Store the EXACT slot date from the drop target before any modifications
+        // This ensures we remember precisely which week cell was targeted
+        if (slotDate) {
+          // IMPORTANT: Keep track of the original target slot date before any phase calculations
+          // Create a clone to avoid any reference issues
+          const exactTargetStartDate = new Date(slotDate.getTime());
+          console.log('Exact target start date (before any FAB calculations):', exactTargetStartDate);
+          
+          // Store this for later use - CRUCIAL for proper week positioning
+          // We MUST create a new property as a string to ensure it's carried forward in drag events
+          data.targetStartDate = exactDateForStorage || exactTargetStartDate.toISOString();
+          
+          // CRITICAL DEBUG: Add more verbose logging
+          console.log('SAVED EXACT TARGET START DATE:', data.targetStartDate);
+          console.log('Week of target start date:', format(exactTargetStartDate, 'w'));
+        }
         
-        // CRITICAL DEBUG: Add more verbose logging
-        console.log('SAVED EXACT TARGET START DATE:', data.targetStartDate);
-        console.log('Week of target start date:', format(exactTargetStartDate, 'w'));
-      }
-      
-      // Final validation
-      if (!slotDate) {
-        toast({
-          title: "Error",
-          description: "Invalid date slot",
-          variant: "destructive"
-        });
-        return;
+        // Final validation
+        if (!slotDate) {
+          toast({
+            title: "Error",
+            description: "Invalid date slot",
+            variant: "destructive"
+          });
+          return;
+        }
       }
       
       // Get the project data to determine FAB weeks
