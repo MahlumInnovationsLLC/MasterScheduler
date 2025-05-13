@@ -47,11 +47,10 @@ export function EditBayDialog({
   // Calculate total staff count
   const totalStaffCount = assemblyStaffCount + electricalStaffCount;
 
-  // Check if this is Team 7 or Team 8
-  const isTeam7Or8 = useMemo(() => {
-    return (bayNumber === 7 || bayNumber === 8) && 
-           (name && name.toLowerCase().includes('team'));
-  }, [bayNumber, name]);
+  // Check if this is bay number 7 or 8
+  const isBay7Or8 = useMemo(() => {
+    return bayNumber === 7 || bayNumber === 8;
+  }, [bayNumber]);
   
   // Set initial values when bay changes
   useEffect(() => {
@@ -63,9 +62,8 @@ export function EditBayDialog({
       setElectricalStaffCount(bay.electricalStaffCount || 0);
       setHoursPerPersonPerWeek(bay.hoursPerPersonPerWeek || 32);
       
-      // For Team 7 & 8 bays, use 20 rows by default
-      if ((bay.bayNumber === 7 || bay.bayNumber === 8) && 
-          (bay.name && bay.name.toLowerCase().includes('team'))) {
+      // For Bay 7 & 8, use 20 rows by default regardless of name
+      if (bay.bayNumber === 7 || bay.bayNumber === 8) {
         setRowCount(20);
       } else {
         setRowCount(4); // Default for other bays
@@ -82,12 +80,12 @@ export function EditBayDialog({
     }
   }, [bay]);
 
-  // Update row count if Team 7 or 8 is selected
+  // Update row count if bay 7 or 8 is selected
   useEffect(() => {
-    if (isTeam7Or8 && rowCount !== 20) {
+    if (isBay7Or8 && rowCount !== 20) {
       setRowCount(20);
     }
-  }, [isTeam7Or8, rowCount]);
+  }, [isBay7Or8, rowCount]);
 
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
@@ -98,8 +96,8 @@ export function EditBayDialog({
     try {
       setIsSaving(true);
       
-      // Enhance description to include row count info for Team 7 & 8
-      const enhancedDescription = description + (isTeam7Or8 ? 
+      // Enhance description to include row count info for Bay 7 & 8
+      const enhancedDescription = description + (isBay7Or8 ? 
         (description ? ' ' : '') + `(Special configuration with ${rowCount} rows)` : '');
       
       const bayData = {
@@ -272,7 +270,7 @@ export function EditBayDialog({
               <Select 
                 value={rowCount.toString()} 
                 onValueChange={(val) => setRowCount(parseInt(val))}
-                disabled={isTeam7Or8} // Lock to 20 rows for Team 7 & 8
+                disabled={isBay7Or8} // Lock to 20 rows for Bay 7 & 8
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select row count" />
@@ -286,11 +284,11 @@ export function EditBayDialog({
                 </SelectContent>
               </Select>
               
-              {/* Add note about Team 7 & 8 special requirement */}
-              {isTeam7Or8 && (
+              {/* Add note about Bay 7 & 8 special requirement */}
+              {isBay7Or8 && (
                 <div className="flex items-center mt-2 text-amber-400 text-xs">
                   <AlertTriangle className="h-3 w-3 mr-1" />
-                  Team 7 & 8 always use 20 rows by system requirement
+                  Bay number 7 and 8 must use 20 rows by system requirement
                 </div>
               )}
             </div>

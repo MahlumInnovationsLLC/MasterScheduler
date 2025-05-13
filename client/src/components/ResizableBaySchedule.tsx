@@ -108,26 +108,24 @@ interface ScheduleBar {
 
 // Helper function to determine how many rows a bay should have
 const getBayRowCount = (bayId: number, bayName: string): number => {
-  // Special handling for Team 7 & 8 - needs 20 rows
-  // Bay 7 & 8 should still have normal 4 rows
+  // IMPORTANT: For Team 7 & 8, the bay NUMBER is the critical requirement
+  // Bay number 7 and 8 must always have 20 rows regardless of name
   
-  // Check for Team 7 or 8 by bay number OR name
-  if (
-    // Check if it's bay number 7 or 8
-    (bayId === 7 || bayId === 8) && 
-    // AND the name contains "Team" - this ensures we don't match regular "Bay 7"
-    (bayName && bayName.toLowerCase().includes('team'))
-  ) {
-    console.log(`Using 20 rows for TEAM ${bayId} (${bayName}) by ID and name match`);
+  // Check if it's bay number 7 or 8
+  if (bayId === 7 || bayId === 8) {
+    console.log(`Using 20 rows for bay ${bayId} (${bayName}) - mandatory 20 rows for bay numbers 7 & 8`);
     return 20;
   }
-  // OR check by exact name match as a fallback
-  else if (bayName && 
+  
+  // Secondary check by name (in case bay number changes but name format stays)
+  if (bayName && 
       (bayName.trim() === 'Team 7' || 
        bayName.trim() === 'Team 8' || 
        bayName.trim() === 'Team7' || 
-       bayName.trim() === 'Team8')) {
-    console.log(`Using 20 rows for TEAM ${bayId} (${bayName}) by exact name match`);
+       bayName.trim() === 'Team8' ||
+       (bayName.toLowerCase().includes('team') && 
+        (bayName.includes('7') || bayName.includes('8'))))) {
+    console.log(`Using 20 rows for ${bayName} by name match`);
     return 20;
   }
   
