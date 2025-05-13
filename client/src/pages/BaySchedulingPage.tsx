@@ -429,6 +429,8 @@ const BaySchedulingPage = () => {
   ) => {
     try {
       setIsLoading(true);
+      // Use -1 as a special ID to represent creating a new schedule
+      setProcessingScheduleId(-1);
       
       // Find the project for optimistic updates
       const project = projects.find(p => p.id === projectId);
@@ -503,6 +505,7 @@ const BaySchedulingPage = () => {
   const handleScheduleDelete = async (scheduleId: number) => {
     try {
       setIsLoading(true);
+      setProcessingScheduleId(scheduleId);
       
       // Get current data for optimistic updates
       const currentSchedules = queryClient.getQueryData<ManufacturingSchedule[]>(['/api/manufacturing-schedules']) || [];
