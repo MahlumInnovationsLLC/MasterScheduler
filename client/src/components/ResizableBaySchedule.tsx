@@ -245,24 +245,27 @@ const BayCapacityInfo = ({ bay, allSchedules, projects }: { bay: ManufacturingBa
   });
   
   // Calculate actual utilization percentage based on hours
+  // Don't cap at 100% - show the actual utilization even if over capacity
   const actualUtilization = weeklyCapacity > 0 ? 
-    Math.min(100, Math.round((totalHoursUsedThisWeek / weeklyCapacity) * 100)) : 0;
+    Math.round((totalHoursUsedThisWeek / weeklyCapacity) * 100) : 0;
   
   // For status labels, use the project count method
   // Set status based on number of projects (0 = Available, 1 = Near Capacity, 2+ = At Capacity)
   const displayUtilization = actualUtilization;
   
-  // Determine the status label based on current active projects
+  // Determine the status label based on current active projects and utilization percentage
   let statusLabel = "";
-  if (activeCount >= 2) {
+  if (actualUtilization > 100) {
+    statusLabel = "Over Capacity";
+  } else if (activeCount >= 2 || actualUtilization >= 90) {
     statusLabel = "At Capacity";
-  } else if (activeCount === 1) {
+  } else if (activeCount === 1 || actualUtilization >= 50) {
     statusLabel = "Near Capacity";
   } else {
     statusLabel = "Available";
   }
   
-  console.log(`Bay ${bay.name} final status: ${statusLabel} with ${activeCount} active projects`);
+  console.log(`Bay ${bay.name} final status: ${statusLabel} with ${activeCount} active projects and ${actualUtilization}% utilization`);
   
   return (
     <div className="flex flex-col">
