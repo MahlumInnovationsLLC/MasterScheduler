@@ -1124,7 +1124,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           barLeft += (dayOffset / 90) * slotWidth;
         }
         
-        // Get department percentages from the project (or use defaults)
+        // Keep the percentages for display in tooltips
         const fabPercentage = parseFloat(project.fabPercentage as any) || 20;
         const paintPercentage = parseFloat(project.paintPercentage as any) || 7; 
         const productionPercentage = parseFloat(project.productionPercentage as any) || 53;
@@ -1132,33 +1132,134 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const ntcPercentage = parseFloat(project.ntcPercentage as any) || 7;
         const qcPercentage = parseFloat(project.qcPercentage as any) || 7;
         
-        // Calculate each department's width directly based on percentage of total width
-        let fabWidth = Math.floor(barWidth * (fabPercentage / 100));
-        let paintWidth = Math.floor(barWidth * (paintPercentage / 100));
-        let productionWidth = Math.floor(barWidth * (productionPercentage / 100));
-        let itWidth = Math.floor(barWidth * (itPercentage / 100));
-        let ntcWidth = Math.floor(barWidth * (ntcPercentage / 100));
+        // Use actual phase dates from project data when available
+        const fabStartDate = project.fabricationStart ? new Date(project.fabricationStart) : startDate;
+        const paintStartDate = project.wrapDate ? new Date(project.wrapDate) : null;
+        const assemblyStartDate = project.assemblyStart ? new Date(project.assemblyStart) : null;
+        const ntcStartDate = project.ntcTestingDate ? new Date(project.ntcTestingDate) : null;
+        const qcStartDate = project.qcStartDate ? new Date(project.qcStartDate) : null;
         
-        // Ensure minimum width for FAB
-        fabWidth = Math.max(4, fabWidth);
+        console.log(`Project ${project.projectNumber} phase dates:`, {
+          schedule: { start: format(startDate, 'yyyy-MM-dd'), end: format(endDate, 'yyyy-MM-dd') },
+          fabStart: fabStartDate ? format(fabStartDate, 'yyyy-MM-dd') : 'N/A',
+          paintStart: paintStartDate ? format(paintStartDate, 'yyyy-MM-dd') : 'N/A',
+          assemblyStart: assemblyStartDate ? format(assemblyStartDate, 'yyyy-MM-dd') : 'N/A',
+          ntcStart: ntcStartDate ? format(ntcStartDate, 'yyyy-MM-dd') : 'N/A',
+          qcStart: qcStartDate ? format(qcStartDate, 'yyyy-MM-dd') : 'N/A',
+          shipDate: project.shipDate || 'N/A'
+        });
         
-        // Calculate QC width based on percentage and ensure it's visible
-        let qcWidth = Math.floor(barWidth * (qcPercentage / 100));
+        // Calculate widths based on the actual phase dates when available
+        // or fall back to percentage-based calculations when dates aren't available
+        let fabWidth, paintWidth, productionWidth, itWidth, ntcWidth, qcWidth;
         
-        // Make sure QC has at least a minimum width when qcPercentage > 0
-        if (qcPercentage > 0) {
-          qcWidth = Math.max(4, qcWidth);
+        // Function to calculate width between two dates
+        const getWidthBetweenDates = (from: Date, to: Date): number => {
+          // Get the slot indices for the dates
+          const fromSlotIndex = slots.findIndex(slot => isSameDay(slot.date, from));
+          const toSlotIndex = slots.findIndex(slot => isSameDay(slot.date, to));
+          
+          if (fromSlotIndex === -1 || toSlotIndex === -1) {
+            // If we can't find exact slots, calculate based on time difference
+            const diff = differenceInDays(to, from);
+            const totalDiff = differenceInDays(endDate, startDate);
+            return Math.floor(barWidth * (diff / totalDiff));
+          }
+          
+          // Calculate width based on slot positions
+          return (toSlotIndex - fromSlotIndex) * slotWidth;
+        };
+        
+        // Calculate phase widths based on actual dates when available
+        if (fabStartDate && paintStartDate) {
+          // FAB phase: from fabStart to paintStart
+          fabWidth = getWidthBetweenDates(fabStartDate, paintStartDate);
+        } else {
+          fabWidth = Math.floor(barWidth * (fabPercentage / 100));
         }
+        
+        if (paintStartDate && assemblyStartDate) {
+          // PAINT phase: from paintStart to assemblyStart
+          paintWidth = getWidthBetweenDates(paintStartDate, assemblyStartDate);
+        } else {
+          paintWidth = Math.floor(barWidth * (paintPercentage / 100));
+        }
+        
+        if (assemblyStartDate && ntcStartDate) {
+          // PRODUCTION phase: from assemblyStart to ntcStart
+          productionWidth = getWidthBetweenDates(assemblyStartDate, ntcStartDate);
+        } else {
+          productionWidth = Math.floor(barWidth * (productionPercentage / 100));
+        }
+        
+        if (ntcStartDate && qcStartDate) {
+          // Split into IT and NTC phases
+          const midDate = new Date(ntcStartDate);
+          midDate.setDate(midDate.getDate() + Math.floor(differenceInDays(qcStartDate, ntcStartDate) * 0.5));
+          
+          // IT phase: from ntcStart to halfway point
+          itWidth = getWidthBetweenDates(ntcStartDate, midDate);
+          
+          // NTC phase: from halfway point to qcStart
+          ntcWidth = getWidthBetweenDates(midDate, qcStartDate);
+        } else {
+          // Fallback to percentages
+          itWidth = Math.floor(barWidth * (itPercentage / 100));
+          ntcWidth = Math.floor(barWidth * (ntcPercentage / 100));
+        }
+        
+        if (qcStartDate) {
+          // QC phase: from qcStart to endDate
+          qcWidth = getWidthBetweenDates(qcStartDate, endDate);
+        } else {
+          qcWidth = Math.floor(barWidth * (qcPercentage / 100));
+        }
+        
+        // Ensure minimum widths for visibility
+        fabWidth = Math.max(4, fabWidth || 0);
+        paintWidth = Math.max(4, paintWidth || 0);
+        productionWidth = Math.max(4, productionWidth || 0);
+        itWidth = Math.max(4, itWidth || 0);
+        ntcWidth = Math.max(4, ntcWidth || 0);
+        qcWidth = Math.max(4, qcWidth || 0);
         
         // Adjust total to ensure it matches barWidth exactly
         const calculatedTotal = fabWidth + paintWidth + productionWidth + itWidth + ntcWidth + qcWidth;
         if (calculatedTotal !== barWidth) {
-          // Adjust the largest section to make up the difference
-          const largestSection = Math.max(fabWidth, paintWidth, productionWidth, itWidth, ntcWidth, qcWidth);
-          if (largestSection === productionWidth) {
-            productionWidth -= (calculatedTotal - barWidth);
-          } else if (largestSection === fabWidth) {
-            fabWidth -= (calculatedTotal - barWidth);
+          // Adjust phases proportionally
+          const diff = calculatedTotal - barWidth;
+          const factor = barWidth / calculatedTotal;
+          
+          fabWidth = Math.floor(fabWidth * factor);
+          paintWidth = Math.floor(paintWidth * factor);
+          productionWidth = Math.floor(productionWidth * factor);
+          itWidth = Math.floor(itWidth * factor);
+          ntcWidth = Math.floor(ntcWidth * factor);
+          qcWidth = Math.floor(qcWidth * factor);
+          
+          // Ensure any remaining pixels are added to the largest section
+          const calculatedTotal2 = fabWidth + paintWidth + productionWidth + itWidth + ntcWidth + qcWidth;
+          const remainingPixels = barWidth - calculatedTotal2;
+          
+          if (remainingPixels > 0) {
+            const sections = [
+              {name: 'fabWidth', value: fabWidth},
+              {name: 'paintWidth', value: paintWidth},
+              {name: 'productionWidth', value: productionWidth},
+              {name: 'itWidth', value: itWidth},
+              {name: 'ntcWidth', value: ntcWidth},
+              {name: 'qcWidth', value: qcWidth}
+            ];
+            
+            sections.sort((a, b) => b.value - a.value);
+            
+            // Add remaining pixels to the largest section
+            if (sections[0].name === 'fabWidth') fabWidth += remainingPixels;
+            else if (sections[0].name === 'paintWidth') paintWidth += remainingPixels;
+            else if (sections[0].name === 'productionWidth') productionWidth += remainingPixels;
+            else if (sections[0].name === 'itWidth') itWidth += remainingPixels;
+            else if (sections[0].name === 'ntcWidth') ntcWidth += remainingPixels;
+            else if (sections[0].name === 'qcWidth') qcWidth += remainingPixels;
           }
         }
         
