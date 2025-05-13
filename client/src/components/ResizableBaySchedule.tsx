@@ -1633,16 +1633,25 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
       if (!barElement) return;
       
-      // SPECIAL BAY 3 FIX: Check if we're dealing with Bay 3
+      // CRITICAL FIX: Check if we're dealing with Bay 2 or Bay 3 
+      // Both bays need identical exact positioning behavior without snapping
       const scheduleData = schedules.find(s => s.id === resizingSchedule?.id);
+      const isBay2 = scheduleData?.bayId === 2;
       const isBay3 = scheduleData?.bayId === 3;
+      const useExactPositioning = isBay2 || isBay3;
+      
+      if (isBay2) {
+        console.log('🔵 BAY 2 EXACT POSITIONING ACTIVATED: Using direct date placement for Bay 2');
+        console.log('🔵 BAY 2: Using exact date calculation without grid snapping');
+      }
       
       if (isBay3) {
-        console.log('🚨 SPECIAL BAY 3 RESIZE HANDLING ACTIVATED: Direct date placement for Bay 3');
-        console.log('🚨 BAY 3 RESIZE: Will use direct date calculation without week snapping');
-        
-        // We'll handle Bay 3's special case with additional checks later in this function
-        // But we mark it upfront for bay-specific handling
+        console.log('🚨 BAY 3 EXACT POSITIONING ACTIVATED: Using direct date placement for Bay 3');
+        console.log('🚨 BAY 3: Using exact date calculation without grid snapping');
+      }
+      
+      if (useExactPositioning) {
+        console.log('⚠️ EXACT POSITIONING MODE: Will use precise pixel-to-date conversion without grid snapping');
       }
       
       // Clear any resize hover highlights
@@ -1660,9 +1669,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       let newEndDate = new Date(resizingSchedule.initialEndDate);
       
       if (resizingSchedule.direction === 'left') {
-        if (isBay3) {
-          // SPECIAL BAY 3 HANDLING: Use exact pixel position for precise date calculation
-          console.log('🚨 BAY 3 LEFT RESIZE: Using precise pixel positioning');
+        if (useExactPositioning) {
+          // EXACT POSITIONING for Bay 2 & Bay 3: Use exact pixel position for precise date calculation
+          const bayPrefix = isBay2 ? '🔵 BAY 2' : '🚨 BAY 3';
+          console.log(`${bayPrefix} LEFT RESIZE: Using precise pixel positioning`);
           
           // Get the exact left position in pixels
           const exactLeftPx = parseInt(barElement.style.left, 10);
@@ -1677,7 +1687,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             const firstVisibleDate = new Date(slots[0].date);
             newStartDate = new Date(firstVisibleDate.getTime() + msFromStart);
             
-            console.log('🚨 BAY 3 CALCULATED START DATE:', format(newStartDate, 'yyyy-MM-dd'));
+            console.log(`${bayPrefix} CALCULATED START DATE:`, format(newStartDate, 'yyyy-MM-dd'));
           } else {
             // Fallback to pixel-based calculation from the schedule's initial position
             const pixelsDelta = exactLeftPx - resizingSchedule.initialLeft;
@@ -1685,7 +1695,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             const daysDelta = pixelsDelta / pixelsPerDay; // Don't round - use exact value
             newStartDate = addDays(resizingSchedule.initialStartDate, daysDelta);
             
-            console.log('🚨 BAY 3 FALLBACK CALCULATION:', format(newStartDate, 'yyyy-MM-dd'));
+            console.log(`${bayPrefix} FALLBACK CALCULATION:`, format(newStartDate, 'yyyy-MM-dd'));
           }
           
           // The end date is unchanged when resizing from left
@@ -1717,9 +1727,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           newStartDate.setDate(newEndDate.getDate() - 1); // At least 1 day between start and end
         }
       } else {
-        if (isBay3) {
-          // SPECIAL BAY 3 HANDLING: Use exact pixel position for precise date calculation
-          console.log('🚨 BAY 3 RIGHT RESIZE: Using precise pixel positioning');
+        if (useExactPositioning) {
+          // EXACT POSITIONING for Bay 2 & Bay 3: Use exact pixel position for precise date calculation 
+          const bayPrefix = isBay2 ? '🔵 BAY 2' : '🚨 BAY 3';
+          console.log(`${bayPrefix} RIGHT RESIZE: Using precise pixel positioning`);
           
           // Get the exact right edge position in pixels
           const exactRightPx = parseInt(barElement.style.left, 10) + parseInt(barElement.style.width, 10);
@@ -1737,7 +1748,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             // Set to end of day for end date
             newEndDate.setHours(23, 59, 59);
             
-            console.log('🚨 BAY 3 CALCULATED END DATE:', format(newEndDate, 'yyyy-MM-dd'));
+            console.log(`${bayPrefix} CALCULATED END DATE:`, format(newEndDate, 'yyyy-MM-dd'));
           } else {
             // Fallback to pixel-based calculation from the schedule's initial position
             const pixelsDelta = exactRightPx - (resizingSchedule.initialLeft + resizingSchedule.initialWidth);
@@ -1748,7 +1759,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             // Set to end of day for end date
             newEndDate.setHours(23, 59, 59);
             
-            console.log('🚨 BAY 3 FALLBACK END DATE CALCULATION:', format(newEndDate, 'yyyy-MM-dd'));
+            console.log(`${bayPrefix} FALLBACK END DATE CALCULATION:`, format(newEndDate, 'yyyy-MM-dd'));
           }
         } else {
           // Standard behavior for other bays
@@ -2883,16 +2894,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const storedGlobalDate = (window as any).lastExactDate;
       const bodyDateAttribute = document.body.getAttribute('data-current-drag-date');
       
-      // SPECIAL BAY 3 DIRECT FIX: FORCE exact date treatment for Bay 3
-      // This ensures Bay 3 uses the same direct date handling as Bay 2
-      if (exactBayId === 3) {
-        console.log('🚨 SPECIAL BAY 3 HANDLING: Will use targeted date direct fix for Bay 3');
+      // CRITICAL CONSISTENCY FIX: FORCE exact date treatment for Bay 2 & Bay 3
+      // This ensures both bays use the same exact positioning without grid snapping
+      const exactPositioningBay = exactBayId === 2 || exactBayId === 3;
+      
+      if (exactPositioningBay) {
+        const bayPrefix = exactBayId === 2 ? '🔵 BAY 2' : '🚨 BAY 3';
+        console.log(`${bayPrefix} EXACT POSITIONING: Will use targeted date direct fix`);
         
         // Use dataDate first (direct from target element) as it's most reliable
         if (dataDate) {
           slotDate = new Date(dataDate);
           exactDateForStorage = dataDate;
-          console.log('🚨 BAY 3 DIRECT FIX: Using exact date:', dataDate);
+          console.log(`${bayPrefix} DIRECT FIX: Using exact date:`, dataDate);
         }
         // Try date from cell element as backup
         else if (targetElement) {
@@ -2902,13 +2916,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             if (dateStr) {
               slotDate = new Date(dateStr);
               exactDateForStorage = dateStr;
-              console.log('🚨 BAY 3 DIRECT FIX: Using date from closest element:', dateStr);
+              console.log(`${bayPrefix} DIRECT FIX: Using date from closest element:`, dateStr);
             }
           }
         }
         
         if (slotDate) {
-          console.log('🚨 BAY 3 DIRECT FIX: Successfully applied direct date handling');
+          console.log(`${bayPrefix} EXACT POSITIONING: Successfully applied direct date handling`);
         }
       }
       // For all other bays, use the standard fallback chain
