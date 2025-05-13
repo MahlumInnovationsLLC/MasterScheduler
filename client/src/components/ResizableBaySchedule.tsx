@@ -1153,6 +1153,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     console.log(`Starting resize operation for bar ${barId}, direction: ${direction}`);
     
+    // Add a class to the document body to indicate we're in resize mode
+    // This will help prevent conflict with drag-and-drop
+    document.body.classList.add('resizing-mode');
+    
     // Find the schedule bar element - first try via data attribute for more reliability
     const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${barId}"]`) as HTMLElement
       || e.currentTarget.closest('.big-project-bar') as HTMLElement;
@@ -1161,6 +1165,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.error(`Bar element not found for schedule ${barId}`);
       return;
     }
+    
+    // Make the bar non-draggable during resize operation
+    barElement.setAttribute('draggable', 'false');
+    
+    // Add a resize-specific class to help with styling
+    barElement.classList.add('resize-in-progress');
     
     // Check if we already have a resize in progress
     if (resizingSchedule) {
@@ -1581,10 +1591,25 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         barElement.style.width = `${resizingSchedule.initialWidth}px`;
       }
     } finally {
-      // Clean up
+      // Clean up event listeners
       document.removeEventListener('mousemove', handleResizeMove);
       document.removeEventListener('mouseup', handleResizeEnd);
       document.body.style.cursor = '';
+      
+      // Remove resize mode class from body
+      document.body.classList.remove('resizing-mode');
+      
+      // Find the bar element and restore draggable attribute
+      if (resizingSchedule) {
+        const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
+        if (barElement) {
+          // Re-enable draggable
+          barElement.setAttribute('draggable', 'true');
+          
+          // Remove the resize-specific class
+          barElement.classList.remove('resize-in-progress');
+        }
+      }
       
       // Reset resize hover state and clean up all highlight classes
       document.querySelectorAll('.week-cell-resize-hover').forEach(el => {
@@ -4909,10 +4934,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           onMouseDown={(e) => {
                             // Prevent other mouse events from interfering
                             e.stopPropagation();
+                            e.preventDefault();
                             // Call the original handler
                             handleResizeStart(e, bar.id, 'left', bar.projectId, bar.bayId);
                           }}
+                          onClick={(e) => e.stopPropagation()}
                           onDragStart={(e) => e.preventDefault()} /* Prevent unwanted drag */
+                          draggable="false" /* Explicitly prevent dragging */
                           title="Drag to change project start date"
                         >
                           <div className="h-full w-full flex items-center justify-center bg-black bg-opacity-60 rounded-l-sm">
@@ -4926,10 +4954,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           onMouseDown={(e) => {
                             // Prevent other mouse events from interfering
                             e.stopPropagation();
+                            e.preventDefault();
                             // Call the original handler
                             handleResizeStart(e, bar.id, 'right', bar.projectId, bar.bayId);
                           }}
+                          onClick={(e) => e.stopPropagation()}
                           onDragStart={(e) => e.preventDefault()} /* Prevent unwanted drag */
+                          draggable="false" /* Explicitly prevent dragging */
                           title="Drag to change project end date"
                         >
                           <div className="h-full w-full flex items-center justify-center bg-black bg-opacity-60 rounded-r-sm">

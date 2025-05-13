@@ -1015,6 +1015,15 @@ body.resizing-mode .resize-handle {
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
 }
 
+/* Style for resize-in-progress class */
+.resize-in-progress {
+  pointer-events: all !important;
+  position: relative;
+  z-index: 45 !important;
+  cursor: ew-resize !important;
+  user-select: none !important;
+}
+
 /* Make the resize icons more visible */
 .resize-handle svg {
   filter: drop-shadow(0px 0px 2px rgba(0, 0, 0, 0.8));
