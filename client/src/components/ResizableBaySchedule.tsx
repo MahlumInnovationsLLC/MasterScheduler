@@ -3669,7 +3669,31 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // Approximate weekly hours based on new duration
     const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
-    const weeklyHours = (schedule.totalHours || 1000) / totalWeeks;
+    
+    // CRITICAL FIX: Only consider PRODUCTION hours for bay capacity calculation
+    // Get the related project for this schedule
+    const project = projects.find(p => p.id === schedule.projectId);
+    
+    // Get the project's production percentage or use default (60%)
+    const productionPercentage = parseFloat(project?.productionPercentage as any) || 60;
+    
+    // Total hours for this project
+    const totalHours = schedule.totalHours || 1000;
+    
+    // Calculate production hours (this is what actually consumes bay capacity)
+    const productionHours = totalHours * (productionPercentage / 100);
+    
+    // Log the adjustment for transparency in resize capacity check
+    console.log(`CAPACITY CHECK: Using only PRODUCTION hours (${productionPercentage}% of total) for resizing project ${project?.projectNumber || 'unknown'}`, {
+      totalHours,
+      productionPercentage,
+      productionHours,
+      reduction: totalHours - productionHours,
+      weeks: totalWeeks,
+    });
+    
+    // Calculate weekly hours using ONLY production hours
+    const weeklyHours = productionHours / totalWeeks;
     
     // Calculate current capacity usage in overlapping weeks
     const overCapacityWeeks = [];
@@ -4680,8 +4704,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
                             const weeks = Math.max(1, Math.ceil(diffDays / 7));
                             
-                            // Calculate hours per week for this schedule
-                            const hoursPerWeek = schedule.totalHours / weeks;
+                            // CRITICAL FIX: Only consider PRODUCTION hours for bay capacity calculation
+                            // Get the related project for this schedule
+                            const project = projects.find(p => p.id === schedule.projectId);
+                            
+                            // Get the project's production percentage or use default (60%)
+                            const productionPercentage = parseFloat(project?.productionPercentage as any) || 60;
+                            
+                            // Calculate production hours (this is what actually consumes bay capacity)
+                            const productionHours = schedule.totalHours * (productionPercentage / 100);
+                            
+                            // Calculate hours per week - using ONLY production hours
+                            const hoursPerWeek = productionHours / weeks;
                             
                             // Add to weekly utilization
                             weeklyUtilization += hoursPerWeek;
