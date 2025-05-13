@@ -113,7 +113,7 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
       </div>
 
       {/* Row dividers with visible action buttons */}
-      <div className="absolute inset-0 flex flex-col">
+      <div className="absolute inset-0 flex flex-col multi-row-bay">
         {Array.from({ length: rowCount }).map((_, rowIndex) => (
           <div 
             key={`bay-row-${bay.id}-${rowIndex}`}
@@ -135,18 +135,18 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
             }}
           >
             {/* Row number indicator */}
-            <div className="absolute -left-6 top-0 h-full opacity-70 pointer-events-none flex items-center justify-center">
-              <div className={`bg-primary/20 rounded-md ${rowCount > 10 ? 'px-1 py-0 text-[8px]' : 'px-2 py-0.5 text-xs'} font-bold text-primary`}>
+            <div className="absolute -left-6 top-0 h-full row-number pointer-events-none flex items-center justify-center">
+              <div className={`row-number-badge ${rowCount > 10 ? 'px-1 py-0 text-[8px]' : 'px-2 py-0.5 text-xs'} font-bold`}>
                 {rowIndex + 1}
               </div>
             </div>
             
             {/* Enhanced row management buttons - made more compact for multi-row display */}
-            <div className="absolute left-1/2 transform -translate-x-1/2 bottom-[-8px] flex gap-1 z-[999] pointer-events-auto">
+            <div className="absolute left-1/2 transform -translate-x-1/2 bottom-[-6px] flex gap-1 z-[999] pointer-events-auto row-management-buttons">
               {/* Delete row button */}
               <button
                 type="button"
-                className={`flex items-center justify-center ${rowCount > 10 ? 'w-4 h-4 text-[8px]' : 'w-5 h-5'} rounded-full bg-destructive text-white shadow-lg border border-white hover:bg-destructive/90`}
+                className={`flex items-center justify-center ${rowCount > 10 ? 'w-3 h-3 text-[7px]' : 'w-4 h-4 text-[8px]'} rounded-full row-delete-button text-white shadow-sm border border-white/80 hover:bg-destructive/90`}
                 title="Delete Row"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -177,19 +177,19 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
                   }
                 }}
               >
-                <Minus className={rowCount > 10 ? "h-2 w-2" : "h-3 w-3"} />
+                <Minus className={rowCount > 10 ? "h-1.5 w-1.5" : "h-2.5 w-2.5"} />
               </button>
               {/* Add row button */}
               <button
                 type="button"
-                className={`flex items-center justify-center ${rowCount > 10 ? 'w-4 h-4 text-[8px]' : 'w-5 h-5'} rounded-full bg-primary text-white shadow-lg border border-white hover:bg-primary/90`}
+                className={`flex items-center justify-center ${rowCount > 10 ? 'w-3 h-3 text-[7px]' : 'w-4 h-4 text-[8px]'} rounded-full row-add-button text-white shadow-sm border border-white/80 hover:bg-primary/90`}
                 title="Add Row"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleRowAdd(bay.id, rowIndex);
                 }}
               >
-                <Plus className={rowCount > 10 ? "h-2 w-2" : "h-3 w-3"} />
+                <Plus className={rowCount > 10 ? "h-1.5 w-1.5" : "h-2.5 w-2.5"} />
               </button>
             </div>
           </div>
