@@ -582,9 +582,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Calculate current week based on the actual current date
       const today = new Date(); // Current date
       
-      // Instead of trying to calculate the exact position, use a fixed week number that we know is correct
-      // Week 19 is roughly mid-May in 2025
-      const currentWeek = 19; // May 2025 is around week 19 of the year
+      // Calculate the current week number dynamically
+      const startOfYear = new Date(today.getFullYear(), 0, 1);
+      const days = Math.floor((today.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+      const currentWeek = Math.ceil(days / 7);
       const pixelsPerWeek = 144; // From time slot calculation (144px per week in week view)
       const bayColumnWidth = 256; // Bay column width - adjusted for this component
       
@@ -595,7 +596,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const centerPosition = targetPosition - (scrollContainer.clientWidth / 2);
       scrollContainer.scrollLeft = Math.max(0, centerPosition);
       
-      console.log(`Auto-scrolled to May 2025 position: ${targetPosition}px (week ${currentWeek} of 2025) centered at ${centerPosition}px`);
+      console.log(`Auto-scrolled to current week position: ${targetPosition}px (week ${currentWeek} of ${today.getFullYear()}) centered at ${centerPosition}px`);
       
       // No toast notification to avoid distracting the user
       return true;

@@ -102,7 +102,7 @@ const BaySchedulingPage = () => {
       // Success message
       toast({
         title: "Scrolled to Today",
-        description: "Positioned to May 8, 2025",
+        description: "Positioned to today's date",
         duration: 2000
       });
       
@@ -777,8 +777,8 @@ const BaySchedulingPage = () => {
                     throw new Error("Schedule container not found");
                   }
                   
-                  // Calculate today's position based on the date (May 8, 2025)
-                  const today = new Date(2025, 4, 8); // May 8, 2025 (months are 0-indexed)
+                  // Calculate today's position based on the current date
+                  const today = new Date(); // Current date
                   const startOfYear = new Date(2025, 0, 1);
                   const millisecondsPerDay = 24 * 60 * 60 * 1000;
                   const daysSinceJan1 = Math.floor((today.getTime() - startOfYear.getTime()) / millisecondsPerDay);
@@ -798,7 +798,7 @@ const BaySchedulingPage = () => {
                   // Success message
                   toast({
                     title: "Scrolled to Today",
-                    description: "Positioned to May 8, 2025",
+                    description: "Positioned to today's date",
                     duration: 2000
                   });
                 } catch (error) {
