@@ -28,13 +28,13 @@ if (!process.env.DATABASE_URL) {
 
 console.log("Connecting to database...");
 
-// Configure the connection pool with more robust settings
+// Configure the connection pool with more conservative settings to prevent connection issues
 const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  maxUses: 10000, // Close connection after this many uses
+  max: 10, // Reduce max connections
+  idleTimeoutMillis: 10000, // Shorter idle timeout
+  connectionTimeoutMillis: 5000, // Shorter connection timeout
+  maxUses: 7500, // Close connection after this many uses
   allowExitOnIdle: true,
 });
 
