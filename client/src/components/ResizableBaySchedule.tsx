@@ -4548,7 +4548,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 {/* Row dividers with visible action buttons */}
                 {(() => {
                   // Only Team 7 & 8 should get multi-rows, not Bay 7 & 8
-                  const isMultiRowBay = bay.name && bay.name.startsWith('Team') && (bay.name.includes('7') || bay.name.includes('8'));
+                  const isMultiRowBay = bay.name && bay.name.trim().startsWith('Team') && (bay.name.includes('7') || bay.name.includes('8'));
                   // Add debug logging to troubleshoot the issue
                   console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${getBayRowCount(bay.id, bay.name)}`);
                   return isMultiRowBay;
@@ -5393,16 +5393,25 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 onClick={() => {
                   // Create a new team with default values
                   const newBayNumber = bays.length + 1;
+                  
+                  // Determine if this will be Team 7 or 8 (need special styling)
+                  const isTeam7Or8 = newBayNumber === 7 || newBayNumber === 8;
+                  // Special note for Team 7 & 8 to indicate 20-row capacity
+                  const description = isTeam7Or8 ? 
+                    "Team with 20-row capacity (special configuration)" : 
+                    null;
+                    
                   setEditingBay({
                     id: 0, // Will be assigned by server
                     bayNumber: newBayNumber,
                     name: `Team ${newBayNumber}`,
-                    description: null,
+                    description: description,
                     equipment: null,
                     team: null,
-                    staffCount: 3,
-                    assemblyStaffCount: 2,
-                    electricalStaffCount: 1,
+                    // Team 7 & 8 have more staff due to increased row capacity
+                    staffCount: isTeam7Or8 ? 10 : 3,
+                    assemblyStaffCount: isTeam7Or8 ? 6 : 2,
+                    electricalStaffCount: isTeam7Or8 ? 4 : 1,
                     hoursPerPersonPerWeek: 32,
                     isActive: true,
                     createdAt: null

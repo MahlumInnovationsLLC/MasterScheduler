@@ -47,6 +47,10 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
     height: `${rowHeightPercentage}%`,
     minHeight: rowCount > 10 ? '10px' : '25px', // Ensure rows have minimum height for visibility
   };
+  
+  // Check if this is Team 7 or 8 for special styling
+  const isTeam7Or8 = bay.name && bay.name.trim().startsWith('Team') && 
+                    (bay.name.includes('7') || bay.name.includes('8'));
 
   return (
     <>
