@@ -39,13 +39,22 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
   handleRowAdd,
   rowCount = 20 // Default to 20 rows for multi-row bays
 }) => {
+  
+  // Set a consistent container height for Team 7 & 8 bays
+  // This ensures all 20 rows fit within a standardized height
+  const containerStyle = {
+    height: '280px', // Fixed height provides 14px per row for 20 rows
+  };
   // Calculate the height percentage for each row
   const rowHeightPercentage = 100 / rowCount;
   
   // Use CSS variables for dynamic styling
+  // For Teams 7 & 8, use a consistent shorter height for all rows
+  // Fixed height of 14px matches the smaller row height seen in Team 8
   const rowStyle = {
     height: `${rowHeightPercentage}%`,
-    minHeight: rowCount > 10 ? '10px' : '25px', // Ensure rows have minimum height for visibility
+    minHeight: '14px', // Consistent height for Team 7 & 8 rows
+    maxHeight: '14px', // Enforce consistent max height
   };
   
   // Check if this is Team 7 or 8 for special styling
@@ -53,7 +62,8 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
                     (bay.name.includes('7') || bay.name.includes('8'));
 
   return (
-    <>
+    <div className="multi-row-bay-wrapper" style={containerStyle}>
+      {/* Add wrapper div with fixed height */}
       {/* Week cells grid with row subdivision for precise row targeting */}
       <div className="absolute inset-0 grid grid-cols-52 border-l border-gray-700/50">
         {weekSlots.map((slot, index) => (
@@ -229,7 +239,7 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 };
 
