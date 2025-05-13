@@ -111,7 +111,8 @@ const getBayRowCount = (bayId: number, bayName: string): number => {
   // IMPORTANT: For Team 7 & 8, the bay NUMBER is the critical requirement
   // Bay number 7 and 8 must always have 20 rows regardless of name
   
-  // Check if it's bay number 7 or 8
+  // PRIORITY CHECK: Check if it's bay ID 7 or 8 
+  // This ensures Team 7 and Team 8 always get 20 rows
   if (bayId === 7 || bayId === 8) {
     console.log(`Using 20 rows for bay ${bayId} (${bayName}) - mandatory 20 rows for bay numbers 7 & 8`);
     return 20;
@@ -4780,7 +4781,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   // IMPORTANT UPDATE: Use bay NUMBER (7 or 8) to determine if we should use multi-row
                   // This ensures ANY bay with ID 7 or 8 will get 20 rows, regardless of name
                   // This is necessary to handle cases like "TCV Line" which is bay number 7
-                  const isMultiRowBay = bay.bayNumber === 7 || bay.bayNumber === 8;
+                  const isMultiRowBay = bay.id === 7 || bay.id === 8 || bay.bayNumber === 7 || bay.bayNumber === 8;
                   
                   // Add debug logging to troubleshoot the issue
                   console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${getBayRowCount(bay.id, bay.name)}, bayNumber=${bay.bayNumber}`);

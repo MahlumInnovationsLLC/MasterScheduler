@@ -41,20 +41,20 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
 }) => {
   
   // Set a consistent container height for Team 7 & 8 bays
-  // This ensures all 20 rows fit within a standardized height
+  // This ensures all 20 rows fit within a standardized height that matches the screenshot
   const containerStyle = {
-    height: '280px', // Fixed height provides 14px per row for 20 rows
+    height: '600px', // Much taller height to match Team 8 in the screenshot
+    minHeight: '600px', // Enforce minimum height
   };
   // Calculate the height percentage for each row
   const rowHeightPercentage = 100 / rowCount;
   
   // Use CSS variables for dynamic styling
-  // For Teams 7 & 8, use a consistent shorter height for all rows
-  // Fixed height of 14px matches the smaller row height seen in Team 8
+  // For Teams 7 & 8, use a much taller consistent height for all rows
+  // This matches exactly what we see in the screenshot for Team 8
   const rowStyle = {
     height: `${rowHeightPercentage}%`,
-    minHeight: '14px', // Consistent height for Team 7 & 8 rows
-    maxHeight: '14px', // Enforce consistent max height
+    minHeight: '30px', // Much taller rows to match Team 8 in screenshot
   };
   
   // Check if this is Team 7 or 8 for special styling
