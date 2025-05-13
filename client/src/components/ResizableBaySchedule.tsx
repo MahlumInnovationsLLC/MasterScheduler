@@ -60,10 +60,72 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { ManufacturingBay, ManufacturingSchedule, Project } from '@shared/schema';
+
+// Extended type for backward compatibility
+interface ExtendedManufacturingBay extends ManufacturingBay {
+  rowCount?: number;
+  isMultiRowBay?: boolean;
+  hoursPerPerson?: number;
+}
 import { EditBayDialog } from './EditBayDialog';
 import MultiRowBayContent from './MultiRowBayContent';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { formatCurrency as formatHours } from '@/lib/utils';
+
+// Define stub for missing calculateProjectPhases function
+function calculateProjectPhases(project: Project, startDate: string, endDate: string) {
+  // Calculate how many days between start and end dates
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Fabrication typically takes first 27% of the schedule
+  const fabDays = Math.ceil(totalDays * 0.27);
+  const fabEndDate = new Date(start.getTime() + (fabDays * 24 * 60 * 60 * 1000));
+  
+  // Paint takes 7% of the schedule
+  const paintDays = Math.ceil(totalDays * 0.07);
+  const paintEndDate = new Date(fabEndDate.getTime() + (paintDays * 24 * 60 * 60 * 1000));
+  
+  // Production takes 60% of the schedule
+  const prodDays = Math.ceil(totalDays * 0.60);
+  const prodEndDate = new Date(paintEndDate.getTime() + (prodDays * 24 * 60 * 60 * 1000));
+  
+  // IT takes 3% of the schedule
+  const itDays = Math.ceil(totalDays * 0.03);
+  const itEndDate = new Date(prodEndDate.getTime() + (itDays * 24 * 60 * 60 * 1000));
+  
+  // NTC takes 2% of the schedule
+  const ntcDays = Math.ceil(totalDays * 0.02);
+  const ntcEndDate = new Date(itEndDate.getTime() + (ntcDays * 24 * 60 * 60 * 1000));
+  
+  // QC takes 1% of the schedule
+  const qcDays = Math.ceil(totalDays * 0.01);
+  const qcEndDate = new Date(ntcEndDate.getTime() + (qcDays * 24 * 60 * 60 * 1000));
+  
+  // Return the phase object with additional derived properties
+  // needed by the existing code
+  return {
+    fabrication: { start, end: fabEndDate },
+    paint: { start: fabEndDate, end: paintEndDate },
+    assembly: { start: paintEndDate, end: prodEndDate },
+    it: { start: prodEndDate, end: itEndDate },
+    ntc: { start: itEndDate, end: ntcEndDate },
+    qc: { start: ntcEndDate, end: qcEndDate },
+    // Additional properties for compatibility
+    fabDays,
+    prodDays,
+    fabWeeks: Math.ceil(fabDays / 7),
+    phases: {
+      fab: { start: format(start, 'yyyy-MM-dd'), end: format(fabEndDate, 'yyyy-MM-dd') },
+      paint: { start: format(fabEndDate, 'yyyy-MM-dd'), end: format(paintEndDate, 'yyyy-MM-dd') },
+      production: { start: format(paintEndDate, 'yyyy-MM-dd'), end: format(prodEndDate, 'yyyy-MM-dd') },
+      it: { start: format(prodEndDate, 'yyyy-MM-dd'), end: format(itEndDate, 'yyyy-MM-dd') },
+      ntc: { start: format(itEndDate, 'yyyy-MM-dd'), end: format(ntcEndDate, 'yyyy-MM-dd') },
+      qc: { start: format(ntcEndDate, 'yyyy-MM-dd'), end: format(qcEndDate, 'yyyy-MM-dd') }
+    }
+  };
+}
 
 // Import the speciality handlers for exact positioning
 import { storeExactDateInfo, clearExactDateInfo } from '@/lib/exactPositioningHandler';
@@ -113,12 +175,12 @@ interface DragData {
 export interface ResizableBayScheduleProps {
   schedules: ManufacturingSchedule[];
   projects: Project[];
-  bays: ManufacturingBay[];
+  bays: ExtendedManufacturingBay[];
   onScheduleChange: (schedule: ManufacturingSchedule) => void;
   onScheduleCreate: (schedule: Omit<ManufacturingSchedule, 'id'>) => void;
   onScheduleDelete: (id: number) => void;
-  onBayCreate: (bay: Omit<ManufacturingBay, 'id'>) => void;
-  onBayUpdate: (bay: ManufacturingBay) => void;
+  onBayCreate: (bay: Omit<ExtendedManufacturingBay, 'id'>) => void;
+  onBayUpdate: (bay: ExtendedManufacturingBay) => void;
   onBayDelete: (id: number) => void;
   dateRange: [Date, Date];
   viewMode?: 'month' | 'week';
@@ -1591,13 +1653,13 @@ const ResizableBaySchedule = ({
             
             <div className="flex">
               {slots.map((slot, slotIndex) => {
-                const isWeekend = slot.isWeekend;
+                const slotIsWeekend = slot.isWeekend;
                 const isToday = isSameDay(slot.date, today);
                 
                 return (
                   <div 
                     key={slotIndex}
-                    className={`${styles.timelineCell} ${isDayWeekend ? styles.weekendCell : ''} ${isToday ? styles.todayCell : ''} relative`}
+                    className={`${styles.timelineCell} ${slotIsWeekend ? styles.weekendCell : ''} ${isToday ? styles.todayCell : ''} relative`}
                     data-date={format(slot.date, 'yyyy-MM-dd')}
                     data-slot-index={slotIndex}
                     data-bay-id={bay.id}
@@ -2001,7 +2063,7 @@ const ResizableBaySchedule = ({
               return (
                 <div 
                   key={i} 
-                  className={`px-2 py-1 text-xs text-center ${isWeekend ? 'bg-muted/50' : ''} ${isToday ? 'bg-primary/10 font-medium' : ''} border-r border-border`}
+                  className={`px-2 py-1 text-xs text-center ${isDayWeekend ? 'bg-muted/50' : ''} ${isToday ? 'bg-primary/10 font-medium' : ''} border-r border-border`}
                   style={{ width: `${100 / days.length}%`, minWidth: '20px' }}
                 >
                   {format(day, 'd')}
@@ -2022,7 +2084,7 @@ const ResizableBaySchedule = ({
             return (
               <div 
                 key={i} 
-                className={`px-2 py-2 text-xs ${isWeekend ? 'bg-muted/50' : ''} ${isToday ? 'bg-primary/10 font-medium' : ''} border-r border-border text-center`}
+                className={`px-2 py-2 text-xs ${isDayWeekend ? 'bg-muted/50' : ''} ${isToday ? 'bg-primary/10 font-medium' : ''} border-r border-border text-center`}
                 style={{ width: `${100 / days.length}%`, minWidth: '20px' }}
               >
                 <div className="text-xs font-medium">{format(day, 'EEE')}</div>
