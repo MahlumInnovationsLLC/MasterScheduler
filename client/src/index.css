@@ -1254,12 +1254,23 @@ body.resizing-mode .resize-handle {
   overflow: hidden;
 }
 
+/* For Team 7 & 8 with 20 rows */
 .multi-row-bay .bay-row {
   position: relative;
   border-bottom: 1px dashed rgba(100, 116, 139, 0.2);
   transition: background-color 0.2s ease;
-  min-height: 10px !important;
+  min-height: 10px !important; 
   height: 5% !important; /* 20 rows at 5% each */
+}
+
+/* Highlight even rows for better visibility */
+.multi-row-bay .bay-row:nth-child(even) {
+  background-color: rgba(15, 23, 42, 0.02);
+}
+
+/* Highlight every 5th row with a slightly darker line */
+.multi-row-bay .bay-row:nth-child(5n) {
+  border-bottom: 1px solid rgba(100, 116, 139, 0.3);
 }
 
 .multi-row-bay .bay-row:hover {
@@ -1283,4 +1294,11 @@ body.resizing-mode .resize-handle {
   border-radius: 0.25rem;
   padding: 0 0.25rem;
   font-weight: 500;
+}
+
+/* Enhanced visibility for every 5th row number */
+.multi-row-bay .bay-row:nth-child(5n) .row-number-badge {
+  background-color: rgba(59, 130, 246, 0.2);
+  font-weight: 700;
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }

@@ -4548,7 +4548,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 {/* Row dividers with visible action buttons */}
                 {(() => {
                   // Only Team 7 & 8 should get multi-rows, not Bay 7 & 8
-                  const isMultiRowBay = bay.name && bay.name.trim().startsWith('Team') && (bay.name.includes('7') || bay.name.includes('8'));
+                  // Check for EXACT matches like "Team 7" or "Team 8" 
+                  const isMultiRowBay = bay.name && 
+                    (bay.name.trim() === 'Team 7' || 
+                     bay.name.trim() === 'Team 8' || 
+                     bay.name.trim() === 'Team7' || 
+                     bay.name.trim() === 'Team8');
                   // Add debug logging to troubleshoot the issue
                   console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${getBayRowCount(bay.id, bay.name)}`);
                   return isMultiRowBay;
@@ -5061,7 +5066,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     // Find the bay object using bayId
                     const currentBay = bays.find(b => b.id === bar.bayId);
                     const bayName = currentBay ? currentBay.name : '';
-                    const isMultiRowBay = getBayRowCount(bar.bayId, bayName) > 4;
+                    
+                    // Check for EXACT matches like "Team 7" or "Team 8" 
+                    const isMultiRowBay = bayName && 
+                      (bayName.trim() === 'Team 7' || 
+                       bayName.trim() === 'Team 8' || 
+                       bayName.trim() === 'Team7' || 
+                       bayName.trim() === 'Team8');
                     const rowHeight = isMultiRowBay 
                       ? { height: `${100 / getBayRowCount(bar.bayId, bayName)}%`, top: `${rowIndex * (100 / getBayRowCount(bar.bayId, bayName))}%` } 
                       : {}; // Default styling for standard bays
