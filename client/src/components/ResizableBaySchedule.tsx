@@ -1551,6 +1551,50 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     e.preventDefault();
     
+    // Helper function to update department phase widths based on new total width
+    // This function ensures all colored phases update consistently during resize
+    const updatePhaseWidths = (barEl: HTMLElement, width: number) => {
+      const fabPhaseEl = barEl.querySelector('.dept-fab-phase') as HTMLElement;
+      const paintPhaseEl = barEl.querySelector('.dept-paint-phase') as HTMLElement;
+      const prodPhaseEl = barEl.querySelector('.dept-prod-phase') as HTMLElement;
+      const itPhaseEl = barEl.querySelector('.dept-it-phase') as HTMLElement;
+      const ntcPhaseEl = barEl.querySelector('.dept-ntc-phase') as HTMLElement;
+      const qcPhaseEl = barEl.querySelector('.dept-qc-phase') as HTMLElement;
+      
+      if (!fabPhaseEl || !paintPhaseEl || !prodPhaseEl || !itPhaseEl || !ntcPhaseEl || !qcPhaseEl) {
+        console.warn('Could not find all phase elements for updating widths');
+        return;
+      }
+      
+      // Calculate phase widths based on their percentages of total width
+      const fabWidth = Math.round(width * 0.27); // 27%
+      const paintWidth = Math.round(width * 0.07); // 7%
+      const prodWidth = Math.round(width * 0.46); // 46%
+      const itWidth = Math.round(width * 0.07); // 7%
+      const ntcWidth = Math.round(width * 0.07); // 7%
+      const qcWidth = Math.round(width * 0.06); // 6%
+      
+      // Update the width and position of each phase
+      fabPhaseEl.style.width = `${fabWidth}px`;
+      
+      paintPhaseEl.style.left = `${fabWidth}px`;
+      paintPhaseEl.style.width = `${paintWidth}px`;
+      
+      prodPhaseEl.style.left = `${fabWidth + paintWidth}px`;
+      prodPhaseEl.style.width = `${prodWidth}px`;
+      
+      itPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth}px`;
+      itPhaseEl.style.width = `${itWidth}px`;
+      
+      ntcPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
+      ntcPhaseEl.style.width = `${ntcWidth}px`;
+      
+      qcPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
+      qcPhaseEl.style.width = `${qcWidth}px`;
+      
+      console.log(`Updated phase widths for width=${width}px`);
+    };
+    
     // Find the schedule bar element using data attribute for reliability
     // Use a more specific selector that includes both class and data attribute
     const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
@@ -1697,36 +1741,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Add visual feedback classes during resize
       barElement.classList.add('resizing-active');
       
-      // Update department phase widths for left-side resizing
-      const fabPhaseEl = barElement.querySelector('.dept-fab-phase') as HTMLElement;
-      const paintPhaseEl = barElement.querySelector('.dept-paint-phase') as HTMLElement;
-      const prodPhaseEl = barElement.querySelector('.dept-prod-phase') as HTMLElement;
-      const itPhaseEl = barElement.querySelector('.dept-it-phase') as HTMLElement;
-      const ntcPhaseEl = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
-      const qcPhaseEl = barElement.querySelector('.dept-qc-phase') as HTMLElement;
-      
-      if (fabPhaseEl && paintPhaseEl && prodPhaseEl && itPhaseEl && ntcPhaseEl && qcPhaseEl) {
-        // Calculate adjusted widths based on the new bar width
-        const fabWidth = Math.round(newWidth * 0.27); // 27%
-        const paintWidth = Math.round(newWidth * 0.07); // 7%
-        const prodWidth = Math.round(newWidth * 0.46); // 46%
-        const itWidth = Math.round(newWidth * 0.07); // 7%
-        const ntcWidth = Math.round(newWidth * 0.07); // 7%
-        const qcWidth = Math.round(newWidth * 0.06); // 6%
-        
-        // Update phase widths
-        fabPhaseEl.style.width = `${fabWidth}px`;
-        paintPhaseEl.style.left = `${fabWidth}px`;
-        paintPhaseEl.style.width = `${paintWidth}px`;
-        prodPhaseEl.style.left = `${fabWidth + paintWidth}px`;
-        prodPhaseEl.style.width = `${prodWidth}px`;
-        itPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth}px`;
-        itPhaseEl.style.width = `${itWidth}px`;
-        ntcPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
-        ntcPhaseEl.style.width = `${ntcWidth}px`;
-        qcPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
-        qcPhaseEl.style.width = `${qcWidth}px`;
-      }
+      // Update all phase widths using our helper function
+      updatePhaseWidths(barElement, newWidth);
     } else {
       // Resizing from right (changing end date)
       // Allow resizing by cell for more precise control
@@ -1754,42 +1770,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         barElement.classList.add('resize-from-right');
       }
       
-      // Update department phase widths in real-time during resizing
-      // This is critical for showing the stretched colored sections properly
-      const fabPhaseEl = barElement.querySelector('.dept-fab-phase') as HTMLElement;
-      const paintPhaseEl = barElement.querySelector('.dept-paint-phase') as HTMLElement;
-      const prodPhaseEl = barElement.querySelector('.dept-prod-phase') as HTMLElement;
-      const itPhaseEl = barElement.querySelector('.dept-it-phase') as HTMLElement;
-      const ntcPhaseEl = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
-      const qcPhaseEl = barElement.querySelector('.dept-qc-phase') as HTMLElement;
-      
-      if (fabPhaseEl && paintPhaseEl && prodPhaseEl && itPhaseEl && ntcPhaseEl && qcPhaseEl) {
-        // Calculate phase widths based on their percentages of total width
-        const fabWidth = Math.round(newWidth * 0.27); // 27%
-        const paintWidth = Math.round(newWidth * 0.07); // 7%
-        const prodWidth = Math.round(newWidth * 0.46); // 46%
-        const itWidth = Math.round(newWidth * 0.07); // 7%
-        const ntcWidth = Math.round(newWidth * 0.07); // 7%
-        const qcWidth = Math.round(newWidth * 0.06); // 6%
-        
-        // Update the width and position of each phase
-        fabPhaseEl.style.width = `${fabWidth}px`;
-        
-        paintPhaseEl.style.left = `${fabWidth}px`;
-        paintPhaseEl.style.width = `${paintWidth}px`;
-        
-        prodPhaseEl.style.left = `${fabWidth + paintWidth}px`;
-        prodPhaseEl.style.width = `${prodWidth}px`;
-        
-        itPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth}px`;
-        itPhaseEl.style.width = `${itWidth}px`;
-        
-        ntcPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
-        ntcPhaseEl.style.width = `${ntcWidth}px`;
-        
-        qcPhaseEl.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
-        qcPhaseEl.style.width = `${qcWidth}px`;
-      }
+      // Use the helper function to update all phase widths consistently
+      updatePhaseWidths(barElement, newWidth);
       
       // Add debugging attributes
       barElement.dataset.newWidth = newWidth.toString();
