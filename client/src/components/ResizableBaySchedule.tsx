@@ -1701,8 +1701,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Add visual feedback classes during resize
       barElement.classList.add('resizing-active');
       
-      // Update all phase widths using our helper function
-      updatePhaseWidths(barElement, newWidth);
+      // Update all phase widths using our component-level helper function
+      updateDepartmentPhaseWidths(barElement, newWidth);
     } else {
       // Resizing from right (changing end date)
       // Allow resizing by cell for more precise control
@@ -1730,8 +1730,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         barElement.classList.add('resize-from-right');
       }
       
-      // Use the helper function to update all phase widths consistently
-      updatePhaseWidths(barElement, newWidth);
+      // Use the component-level helper function to update all phase widths consistently
+      updateDepartmentPhaseWidths(barElement, newWidth);
       
       // Add debugging attributes
       barElement.dataset.newWidth = newWidth.toString();
