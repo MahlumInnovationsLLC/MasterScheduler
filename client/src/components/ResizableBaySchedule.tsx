@@ -4467,13 +4467,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       handleDrop(e, bay.id, 0, 0);
                     }}
                   >
-                    {/* Row action buttons */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50 flex space-x-1">
+                    {/* Row action buttons - Made always visible at the divider */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-70 transition-opacity z-50 flex space-x-1">
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700"
-                        title="Add Row"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700 hover:opacity-100"
+                        title="Add Row Below"
                         onClick={() => {
                           // Handle adding a new row
                           console.log(`Adding new row after row 0 in bay ${bay.id}`);
@@ -4488,7 +4488,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700 hover:opacity-100"
                         title="Delete Row"
                         onClick={() => {
                           // Get projects in this row
@@ -4521,6 +4521,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       >
                         <X className="h-3 w-3" />
                       </Button>
+                    </div>
+                    
+                    {/* Row number indicator */}
+                    <div className="absolute -left-6 top-0 h-full opacity-60 pointer-events-none">
+                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
+                        1
+                      </div>
                     </div>
                     {/* Row 1 label */}
                     <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
@@ -4579,13 +4586,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       handleDrop(e, bay.id, 0, 1);
                     }}
                   >
-                    {/* Row action buttons */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50 flex space-x-1">
+                    {/* Row action buttons - Made always visible at the divider */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-70 transition-opacity z-50 flex space-x-1">
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700"
-                        title="Add Row"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700 hover:opacity-100"
+                        title="Add Row Below"
                         onClick={() => {
                           // Handle adding a new row
                           console.log(`Adding new row after row 1 in bay ${bay.id}`);
@@ -4600,7 +4607,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700 hover:opacity-100"
                         title="Delete Row"
                         onClick={() => {
                           // Get projects in this row
@@ -4633,6 +4640,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       >
                         <X className="h-3 w-3" />
                       </Button>
+                    </div>
+                    
+                    {/* Row number indicator */}
+                    <div className="absolute -left-6 top-0 h-full opacity-60 pointer-events-none">
+                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
+                        2
+                      </div>
                     </div>
                     {/* Row 2 label */}
                     <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
@@ -4691,13 +4705,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       handleDrop(e, bay.id, 0, 2);
                     }}
                   >
-                    {/* Row action buttons */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50 flex space-x-1">
+                    {/* Row action buttons - Made always visible at the divider */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-70 transition-opacity z-50 flex space-x-1">
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700"
-                        title="Add Row"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700 hover:opacity-100"
+                        title="Add Row Below"
                         onClick={() => {
                           // Handle adding a new row
                           console.log(`Adding new row after row 2 in bay ${bay.id}`);
@@ -4712,7 +4726,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700 hover:opacity-100"
                         title="Delete Row"
                         onClick={() => {
                           // Get projects in this row
@@ -4745,6 +4759,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       >
                         <X className="h-3 w-3" />
                       </Button>
+                    </div>
+                    
+                    {/* Row number indicator */}
+                    <div className="absolute -left-6 top-0 h-full opacity-60 pointer-events-none">
+                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
+                        3
+                      </div>
                     </div>
                     {/* Row 3 label */}
                     <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
@@ -4803,13 +4824,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       handleDrop(e, bay.id, 0, 3);
                     }}
                   >
-                    {/* Row action buttons */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50 flex space-x-1">
+                    {/* Row action buttons - Made always visible at the divider */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-70 transition-opacity z-50 flex space-x-1">
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700"
-                        title="Add Row"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700 hover:opacity-100"
+                        title="Add Row Below"
                         onClick={() => {
                           // Handle adding a new row
                           console.log(`Adding new row after row 3 in bay ${bay.id}`);
@@ -4824,7 +4845,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700"
+                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700 hover:opacity-100"
                         title="Delete Row"
                         onClick={() => {
                           // Get projects in this row
@@ -4857,6 +4878,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       >
                         <X className="h-3 w-3" />
                       </Button>
+                    </div>
+                    
+                    {/* Row number indicator */}
+                    <div className="absolute -left-6 top-0 h-full opacity-60 pointer-events-none">
+                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
+                        4
+                      </div>
                     </div>
                     {/* Row 4 label */}
                     <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
