@@ -58,12 +58,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
+import { useHolidays } from "@/hooks/use-holidays";
 import { Label } from "@/components/ui/label";
 import { ManufacturingBay, ManufacturingSchedule, Project } from '@shared/schema';
-import { EditBayDialog } from './EditBayDialog';
+import EditBayDialog from './EditBayDialog';
 import MultiRowBayContent from './MultiRowBayContent';
-import { formatCurrency, formatDate } from '@/lib/formatters';
-import { formatCurrency as formatHours } from '@/lib/utils';
+import { formatHours } from '@/lib/utils';
+import { calculateProjectPhases } from '@/lib/project-phases';
+import { useBayScheduling } from '@/hooks/use-bay-scheduling';
 
 // Import the speciality handlers for exact positioning
 import { storeExactDateInfo, clearExactDateInfo } from '@/lib/exactPositioningHandler';
@@ -224,8 +226,10 @@ const ResizableBaySchedule = ({
   const [confirmRowDelete, setConfirmRowDelete] = useState<{bayId: number, rowIndex: number, rowNumber: number, bayName: string} | null>(null);
   const [currentView, setCurrentView] = useState(viewMode);
   
-  // Custom hooks for holiday dates
-  const holidayDates: Date[] = [];
+  // Custom hooks
+  const { 
+    holidayDates,
+  } = useHolidays();
   
   // Effect to sync bays state with props
   useEffect(() => {
@@ -1059,21 +1063,17 @@ const ResizableBaySchedule = ({
         const hoursPerDay = fullWeeklyCapacity / workdaysPerWeek;
         
         // Calculate days needed, but NEVER less than 1 day
-        const calculatedProdDays = Math.max(1, Math.ceil(prodHours / hoursPerDay));
-        console.log(`Production phase days needed: ${calculatedProdDays} days`);
+        const prodDays = Math.max(1, Math.ceil(prodHours / hoursPerDay));
+        console.log(`Production phase days needed: ${prodDays} days`);
         
         // Safety check - just log if the duration seems excessive
-        if (calculatedProdDays > 365) { // Only log a warning if over a year, but don't cap it
-          console.warn(`WARNING: Very long production phase calculated: ${calculatedProdDays} days. This is based on ${prodHours} production hours at ${fullWeeklyCapacity} hours per week capacity.`);
+        if (prodDays > 365) { // Only log a warning if over a year, but don't cap it
+          console.warn(`WARNING: Very long production phase calculated: ${prodDays} days. This is based on ${prodHours} production hours at ${fullWeeklyCapacity} hours per week capacity.`);
         }
         
         // Use the calculated duration based on hours and capacity
         // NO CAPPING - allow the proper calculation based on hours/capacity
-        const prodDaysToUse = calculatedProdDays;
-        
-        // Calculate the FAB end date based on the slot date and phases
-        // Use safe date calculations with fallbacks in case of null values
-        const exactFabEndDate = slotDate ? addDays(slotDate, fabDays || 1) : new Date();
+        const prodDaysToUse = prodDays;
         
         // Now calculate the final end date by adding the calculated production days to the FAB end date
         let finalEndDate = addDays(exactFabEndDate, prodDaysToUse);
@@ -1081,7 +1081,6 @@ const ResizableBaySchedule = ({
         // BUSINESS DAY VALIDATION: Ensure start date and end date are business days (not weekends or holidays)
         // For start date, find the next business day if not already one
         // First check for null values to avoid type errors
-        const exactStartDate = slotDate ? new Date(slotDate) : new Date();
         const safeExactStartDate = exactStartDate instanceof Date ? exactStartDate : new Date();
         let adjustedStartDate = safeExactStartDate;
         
@@ -1174,7 +1173,7 @@ const ResizableBaySchedule = ({
         finalEndDate = adjustedEndDate;
         
         // Store the formatted target date for API - CRUCIAL for preserving exact week position
-        const formattedExactStartDate = newExactStartDate ? format(newExactStartDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+        const formattedExactStartDate = format(newExactStartDate, 'yyyy-MM-dd');
         
         // Safe date formatting for logging
         console.log('Calculated dates:', {
@@ -1183,7 +1182,7 @@ const ResizableBaySchedule = ({
           fabEndDate: exactFabEndDate ? format(exactFabEndDate, 'yyyy-MM-dd') : 'Invalid Date',
           finalEndDate: finalEndDate ? format(finalEndDate, 'yyyy-MM-dd') : 'Invalid Date',
           fabDays,
-          calculatedProdDays,
+          prodDays,
           businessDayAdjusted: exactStartDate && newExactStartDate ? !isSameDay(exactStartDate, newExactStartDate) : false
         });
         
