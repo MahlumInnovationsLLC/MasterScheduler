@@ -426,6 +426,10 @@ export const billingMilestones = pgTable("billing_milestones", {
   notes: text("notes"),
   // This flag indicates if this milestone is tied to the project delivery date
   isDeliveryMilestone: boolean("is_delivery_milestone").default(false),
+  // Fields for tracking ship date changes
+  liveDate: date("live_date"),
+  lastAcceptedShipDate: date("last_accepted_ship_date"),
+  shipDateChanged: boolean("ship_date_changed").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
