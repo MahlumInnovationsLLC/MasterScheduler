@@ -4154,17 +4154,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           {/* Empty slots for additional bays */}
           {Array.from({ length: Math.max(0, 8 - bays.length) }).map((_, index) => {
             const virtualBayId = bays.length + index + 1;
-            const virtualBayName = `Bay ${virtualBayId}`;
-            // For empty slots, we need to change the naming to "Team X" for slots 7 and 8
-            const virtualTeamName = virtualBayId === 7 || virtualBayId === 8 ? `Team ${virtualBayId}` : virtualBayName;
-            // Only Team 7 & 8 should be multi-row, not Bay 7 & 8
-            const isTeam7Or8 = virtualTeamName.includes('Team 7') || virtualTeamName.includes('Team 8');
+            
+            // Special handling for positions 7 and 8 - explicitly assign them as Team 7 or Team 8
+            const virtualName = virtualBayId === 7 || virtualBayId === 8 
+              ? `Team ${virtualBayId}` 
+              : `Bay ${virtualBayId}`;
+              
+            // Check if this is specifically a Team 7 or Team 8 position, not Bay 7 or 8
+            const isTeam7Or8 = virtualName.startsWith('Team') && (virtualName.includes('7') || virtualName.includes('8'));
             
             // Create a virtual bay object to pass to components
             const virtualBay: ManufacturingBay = {
               id: -virtualBayId, // Negative ID to indicate virtual bay
               bayNumber: virtualBayId,
-              name: virtualTeamName, // Use Team name for 7 and 8
+              name: virtualName, // Use Team name for 7 and 8
               description: '',
               staffCount: 0,
               assemblyStaffCount: 0,
@@ -4180,7 +4183,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               <div
                 key={`empty-bay-${index}`}
                 className="flex flex-col px-3 py-3 border-b border-gray-700 text-gray-500"
-                style={{ height: isTeam7Or8 ? '480px' : '64px' }}
+                style={{ height: isTeam7Or8 ? '800px' : '64px' }}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center">
@@ -4541,7 +4544,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 {/* Row dividers with visible action buttons */}
                 {(() => {
                   // Only Team 7 & 8 should get multi-rows, not Bay 7 & 8
-                  const isMultiRowBay = bay.name && bay.name.includes('Team') && (bay.name.includes('7') || bay.name.includes('8'));
+                  const isMultiRowBay = bay.name && bay.name.startsWith('Team') && (bay.name.includes('7') || bay.name.includes('8'));
                   // Add debug logging to troubleshoot the issue
                   console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${getBayRowCount(bay.id, bay.name)}`);
                   return isMultiRowBay;
