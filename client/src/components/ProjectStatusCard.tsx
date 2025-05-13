@@ -11,6 +11,23 @@ import {
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ProgressBadge } from '@/components/ui/progress-badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+
+interface ProjectInfo {
+  id: number;
+  name: string;
+  projectNumber: string;
+}
 
 interface ProjectStatsCardProps {
   title: string;
@@ -35,6 +52,12 @@ interface ProjectStatsCardProps {
     inProgress: number;
     complete: number;
   };
+  projectLists?: {
+    unscheduled: ProjectInfo[];
+    scheduled: ProjectInfo[];
+    inProgress: ProjectInfo[];
+    complete: ProjectInfo[];
+  };
   className?: string;
 }
 
@@ -46,6 +69,7 @@ export function ProjectStatsCard({
   tags,
   progress,
   stateBreakdown,
+  projectLists,
   className
 }: ProjectStatsCardProps) {
   // Define state breakdown items if provided
@@ -54,25 +78,33 @@ export function ProjectStatsCard({
       status: 'Unscheduled',
       count: stateBreakdown.unscheduled,
       icon: <PauseCircle className="h-4 w-4 text-gray-500" />,
-      color: 'text-gray-500'
+      color: 'text-gray-500',
+      key: 'unscheduled',
+      projects: projectLists?.unscheduled || []
     },
     {
       status: 'Scheduled',
       count: stateBreakdown.scheduled,
       icon: <Clock className="h-4 w-4 text-indigo-500" />,
-      color: 'text-indigo-500'
+      color: 'text-indigo-500',
+      key: 'scheduled',
+      projects: projectLists?.scheduled || []
     },
     {
       status: 'In Progress',
       count: stateBreakdown.inProgress,
       icon: <ActivitySquare className="h-4 w-4 text-blue-500" />,
-      color: 'text-blue-500'
+      color: 'text-blue-500',
+      key: 'inProgress',
+      projects: projectLists?.inProgress || []
     },
     {
       status: 'Complete',
       count: stateBreakdown.complete,
       icon: <CheckCircle className="h-4 w-4 text-success" />,
-      color: 'text-success'
+      color: 'text-success',
+      key: 'complete',
+      projects: projectLists?.complete || []
     }
   ] : [];
 
@@ -122,14 +154,50 @@ export function ProjectStatsCard({
           <h4 className="text-xs text-gray-400 mb-2">Project State Breakdown</h4>
           <div className="grid grid-cols-4 gap-2">
             {stateItems.map((item) => (
-              <div 
-                key={item.status}
-                className="flex flex-col items-center justify-center p-2 rounded-lg bg-card/50 border border-border"
-              >
-                {item.icon}
-                <div className={`text-sm font-bold mt-1 ${item.color}`}>{item.count}</div>
-                <div className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">{item.status}</div>
-              </div>
+              <HoverCard key={item.status}>
+                <HoverCardTrigger asChild>
+                  <div 
+                    className="flex flex-col items-center justify-center p-2 rounded-lg bg-card/50 border border-border cursor-pointer hover:border-primary/30 hover:bg-card/80 transition-colors"
+                  >
+                    {item.icon}
+                    <div className={`text-sm font-bold mt-1 ${item.color}`}>{item.count}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">{item.status}</div>
+                  </div>
+                </HoverCardTrigger>
+                <HoverCardContent className="w-80 p-0 bg-card border-border">
+                  <div className="p-3 border-b border-border">
+                    <h3 className="font-semibold text-sm flex items-center gap-2">
+                      {item.icon}
+                      <span>{item.status} Projects ({item.count})</span>
+                    </h3>
+                  </div>
+                  
+                  {item.projects.length > 0 ? (
+                    <div className="max-h-[320px] overflow-y-auto">
+                      {item.projects.map((project) => (
+                        <div 
+                          key={project.id}
+                          className="p-3 flex items-center justify-between border-b border-border last:border-b-0 hover:bg-muted/30"
+                        >
+                          <div>
+                            <div className="font-medium text-sm">{project.name}</div>
+                            <div className="text-xs text-muted-foreground">#{project.projectNumber}</div>
+                          </div>
+                          <div className="flex gap-1">
+                            <div className={`px-2 py-1 text-xs rounded-full ${item.color.replace('text', 'bg')}/10 ${item.color}`}>
+                              {item.status}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      No projects found in this category
+                    </div>
+                  )}
+                </HoverCardContent>
+              </HoverCard>
             ))}
           </div>
         </div>
