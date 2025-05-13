@@ -928,24 +928,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             projectUpdate.executiveReviewDate = format(execReviewAdjusted, 'yyyy-MM-dd');
             projectUpdate.shipDate = format(endDate, 'yyyy-MM-dd');
             
-            console.log("Final phase dates (weekdays only):", {
-              fabricationStart: projectUpdate.fabricationStart,
-              wrapDate: projectUpdate.wrapDate,
-              assemblyStart: projectUpdate.assemblyStart,
-              ntcTestingDate: projectUpdate.ntcTestingDate,
-              qcStartDate: projectUpdate.qcStartDate,
-              executiveReviewDate: projectUpdate.executiveReviewDate,
-              shipDate: projectUpdate.shipDate
+            console.log("Final phase dates with business day adjustments:", {
+              fabricationStart: format(fabStartAdjusted, 'yyyy-MM-dd'),
+              wrapDate: format(paintStartAdjusted, 'yyyy-MM-dd'),
+              assemblyStart: format(assemblyStartAdjusted, 'yyyy-MM-dd'),
+              ntcTestingDate: format(ntcStartAdjusted, 'yyyy-MM-dd'),
+              qcStartDate: format(qcStartAdjusted, 'yyyy-MM-dd'),
+              executiveReviewDate: format(execReviewAdjusted, 'yyyy-MM-dd'),
+              shipDate: format(endDate, 'yyyy-MM-dd')
             });
             
             // Log comparison with previous dates to verify changes
             console.log("PHASE DATE CHANGES - Previous vs New:", {
-              fabricationStart: { old: project.fabricationStart, new: projectUpdate.fabricationStart },
-              wrapDate: { old: project.wrapDate, new: projectUpdate.wrapDate },
-              assemblyStart: { old: project.assemblyStart, new: projectUpdate.assemblyStart },
-              ntcTestingDate: { old: project.ntcTestingDate, new: projectUpdate.ntcTestingDate },
-              qcStartDate: { old: project.qcStartDate, new: projectUpdate.qcStartDate },
-              shipDate: { old: project.shipDate, new: projectUpdate.shipDate }
+              fabricationStart: { old: project.fabricationStart, new: format(fabStartAdjusted, 'yyyy-MM-dd') },
+              wrapDate: { old: project.wrapDate, new: format(paintStartAdjusted, 'yyyy-MM-dd') },
+              assemblyStart: { old: project.assemblyStart, new: format(assemblyStartAdjusted, 'yyyy-MM-dd') },
+              ntcTestingDate: { old: project.ntcTestingDate, new: format(ntcStartAdjusted, 'yyyy-MM-dd') },
+              qcStartDate: { old: project.qcStartDate, new: format(qcStartAdjusted, 'yyyy-MM-dd') },
+              shipDate: { old: project.shipDate, new: format(endDate, 'yyyy-MM-dd') }
             });
             
             if (Object.keys(projectUpdate).length > 0) {
