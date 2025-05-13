@@ -1147,41 +1147,81 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Handle drag start
   // Handle the start of resize operation
   const handleResizeStart = (e: React.MouseEvent, barId: number, direction: 'left' | 'right', projectId: number, bayId: number) => {
+    // Prevent default browser behavior and stop event propagation
     e.stopPropagation();
     e.preventDefault();
     
-    // Find the schedule bar element
-    const barElement = e.currentTarget.closest('.big-project-bar') as HTMLElement;
-    if (!barElement) return;
+    console.log(`Starting resize operation for bar ${barId}, direction: ${direction}`);
     
-    // Get initial dimensions
-    const initialWidth = barElement.offsetWidth;
-    const initialLeft = parseInt(barElement.style.left, 10) || 0;
+    // Find the schedule bar element - first try via data attribute for more reliability
+    const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${barId}"]`) as HTMLElement
+      || e.currentTarget.closest('.big-project-bar') as HTMLElement;
+      
+    if (!barElement) {
+      console.error(`Bar element not found for schedule ${barId}`);
+      return;
+    }
+    
+    // Check if we already have a resize in progress
+    if (resizingSchedule) {
+      console.log("Cleaning up existing resize operation before starting a new one");
+      // Make sure to clean up any existing resize operation
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+      setResizingSchedule(null);
+    }
+    
+    // Get initial dimensions with additional error checking
+    const computedStyle = window.getComputedStyle(barElement);
+    let initialWidth = barElement.offsetWidth;
+    let initialLeft = parseInt(barElement.style.left, 10);
+    
+    // Fallback to computed style if inline style isn't available
+    if (isNaN(initialLeft)) {
+      initialLeft = parseInt(computedStyle.left, 10) || 0;
+    }
     
     // Find the schedule data
     const schedule = schedules.find(s => s.id === barId);
     if (!schedule) {
       console.error('Schedule not found for resize operation', barId);
+      toast({
+        title: "Error",
+        description: "Could not find schedule data for this project. Please refresh the page.",
+        variant: "destructive"
+      });
       return;
     }
     
-    // Extract row index from class name (format: row-X-bar)
-    const rowClasses = Array.from(barElement.classList).filter(cls => cls.startsWith('row-') && cls.endsWith('-bar'));
-    let row = 0; // Default to first row
-    if (rowClasses.length > 0) {
-      const rowMatch = rowClasses[0].match(/row-(\d+)-bar/);
-      if (rowMatch && rowMatch[1]) {
-        // Get the numeric row index
-        const rowIndex = parseInt(rowMatch[1], 10);
-        
-        // Map to visual row (0-3) for consistent positioning
-        // Rows 0-3 represent the top-to-bottom positions in each bay
-        // Rows 4-7 map to the same visual positions
-        row = rowIndex % 4;
-        
-        console.log(`Resize start for bar in row class ${rowClasses[0]}, using row index ${row}`);
+    // Extract row index from the schedule data first, then from DOM if needed
+    let row = schedule.rowIndex !== undefined && schedule.rowIndex !== null 
+      ? schedule.rowIndex 
+      : schedule.row;
+      
+    // If still not found, try to extract from class name (format: row-X-bar)
+    if (row === undefined || row === null) {
+      const rowClasses = Array.from(barElement.classList).filter(cls => cls.startsWith('row-') && cls.endsWith('-bar'));
+      row = 0; // Default to first row
+      
+      if (rowClasses.length > 0) {
+        const rowMatch = rowClasses[0].match(/row-(\d+)-bar/);
+        if (rowMatch && rowMatch[1]) {
+          // Get the numeric row index
+          const rowIndex = parseInt(rowMatch[1], 10);
+          
+          // Map to visual row (0-3) for consistent positioning
+          // Rows 0-3 represent the top-to-bottom positions in each bay
+          // Rows 4-7 map to the same visual positions
+          row = rowIndex % 4;
+        }
       }
     }
+    
+    console.log(`Resize start for bar ID ${barId}: width=${initialWidth}px, left=${initialLeft}px, row=${row}`);
+    
+    // Apply a visual feedback class to indicate active resize
+    barElement.classList.add('resizing-active');
+    document.body.style.cursor = 'ew-resize';
     
     // Set resizing state
     setResizingSchedule({
@@ -1192,11 +1232,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       initialLeft,
       initialStartDate: new Date(schedule.startDate),
       initialEndDate: new Date(schedule.endDate),
-      originalHours: schedule.totalHours || 1000, // Store original hours to preserve them
+      originalHours: schedule.totalHours !== null ? Number(schedule.totalHours) : 1000, // Ensure proper type conversion
       projectId,
       bayId,
       row
     });
+    
+    // Add global event listeners for resize tracking
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
     
     // Reset the hover slot state
     setResizeHoverSlot(null);
@@ -3414,32 +3458,36 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       top: 0 !important;
       bottom: 0 !important;
       height: 100% !important;
-      width: 14px !important;
+      width: 20px !important; /* Wider handle for easier targeting */
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
       cursor: ew-resize !important;
-      z-index: 30 !important;
-      opacity: 0.3 !important; /* Slightly visible by default for better discoverability */
+      z-index: 100 !important; /* Increased z-index to ensure handles are on top */
+      opacity: 0.6 !important; /* More visible by default */
       transition: opacity 0.2s ease, background-color 0.2s ease !important;
-      background-color: rgba(0, 0, 0, 0.4) !important;
+      background-color: rgba(0, 0, 0, 0.6) !important; /* Darker background for better visibility */
+      pointer-events: all !important; /* Ensure pointer events are not blocked */
     }
     
     .resize-handle-left {
       left: 0 !important;
       border-top-left-radius: 4px !important;
       border-bottom-left-radius: 4px !important;
+      padding-right: 8px !important; /* Add padding for easier grabbing */
     }
     
     .resize-handle-right {
       right: 0 !important;
       border-top-right-radius: 4px !important;
       border-bottom-right-radius: 4px !important;
+      padding-left: 8px !important; /* Add padding for easier grabbing */
     }
     
     .big-project-bar:hover .resize-handle {
-      opacity: 0.8 !important;
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
+      opacity: 1 !important;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5) !important;
+      background-color: rgba(0, 0, 0, 0.8) !important;
     }
     
     .resize-handle:hover {
@@ -4843,22 +4891,38 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           bayId: bar.bayId
                         })}
                       >
-                        {/* Left Resize Handle */}
+                        {/* Left Resize Handle - Enhanced */}
                         <div 
                           className="resize-handle resize-handle-left"
-                          onMouseDown={(e) => handleResizeStart(e, bar.id, 'left', bar.projectId, bar.bayId)}
-                          title="Resize project start date"
+                          onMouseDown={(e) => {
+                            // Prevent other mouse events from interfering
+                            e.stopPropagation();
+                            // Call the original handler
+                            handleResizeStart(e, bar.id, 'left', bar.projectId, bar.bayId);
+                          }}
+                          onDragStart={(e) => e.preventDefault()} /* Prevent unwanted drag */
+                          title="Drag to change project start date"
                         >
-                          <ChevronLeft className="h-5 w-5 text-white drop-shadow-md" />
+                          <div className="h-full w-full flex items-center justify-center bg-black bg-opacity-60 rounded-l-sm">
+                            <ChevronLeft className="h-5 w-5 text-white drop-shadow-md" />
+                          </div>
                         </div>
                         
-                        {/* Right Resize Handle */}
+                        {/* Right Resize Handle - Enhanced */}
                         <div 
                           className="resize-handle resize-handle-right"
-                          onMouseDown={(e) => handleResizeStart(e, bar.id, 'right', bar.projectId, bar.bayId)}
-                          title="Resize project end date"
+                          onMouseDown={(e) => {
+                            // Prevent other mouse events from interfering
+                            e.stopPropagation();
+                            // Call the original handler
+                            handleResizeStart(e, bar.id, 'right', bar.projectId, bar.bayId);
+                          }}
+                          onDragStart={(e) => e.preventDefault()} /* Prevent unwanted drag */
+                          title="Drag to change project end date"
                         >
-                          <ChevronRight className="h-5 w-5 text-white drop-shadow-md" />
+                          <div className="h-full w-full flex items-center justify-center bg-black bg-opacity-60 rounded-r-sm">
+                            <ChevronRight className="h-5 w-5 text-white drop-shadow-md" />
+                          </div>
                         </div>
                         {/* Department phases */}
                         {/* FAB phase */}
