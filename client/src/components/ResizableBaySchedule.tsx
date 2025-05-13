@@ -3610,13 +3610,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
           
           if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
-            // Calculate phase widths based on their percentages of total width
+            // FIXED: Calculate phase widths based on correct percentages
+            // CRITICAL: Production phase MUST be 60% as requested by user
             const fabWidth = Math.round(width * 0.27); // 27%
             const paintWidth = Math.round(width * 0.07); // 7%
-            const prodWidth = Math.round(width * 0.46); // 46%
-            const itWidth = Math.round(width * 0.07); // 7%
-            const ntcWidth = Math.round(width * 0.07); // 7%
-            const qcWidth = Math.round(width * 0.06); // 6%
+            const prodWidth = Math.round(width * 0.60); // 60% - CORRECTED FROM 46%
+            const itWidth = Math.round(width * 0.02); // 2% - reduced to accommodate production
+            const ntcWidth = Math.round(width * 0.02); // 2% - reduced to accommodate production
+            const qcWidth = Math.round(width * 0.02); // 2% - reduced to accommodate production
             
             // Update the width and position of each phase
             fabPhase.style.width = `${fabWidth}px`;
