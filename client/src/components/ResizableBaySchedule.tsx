@@ -1727,17 +1727,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         }
       }
       
-      // 🔴 CRITICAL FIX: DISABLE BUSINESS DAY ADJUSTMENT
-      // Previously, we would adjust start/end dates to be business days (skipping weekends and holidays)
-      // Now we're using exact placement to prevent any auto-adjustment
-      console.log('🔴 CRITICAL: Business day adjustment DISABLED - using exact dates');
+      // Adjust dates to ensure they fall on business days
+      // For start date, find the next business day if not already one
+      let adjustedStartDate = adjustToNextBusinessDay(newStartDate) || newStartDate;
       
-      // Store exact dates without adjustment
-      let adjustedStartDate = newStartDate;
-      let adjustedEndDate = newEndDate;
-      
-      document.body.setAttribute('data-exact-placement-start', format(newStartDate, 'yyyy-MM-dd'));
-      document.body.setAttribute('data-exact-placement-end', format(newEndDate, 'yyyy-MM-dd'));
+      // For end date, find the previous business day if not already one
+      // We use previous for end date to ensure the project ends on a business day (not weekend/holiday)
+      let adjustedEndDate = adjustToPreviousBusinessDay(newEndDate) || newEndDate;
       
       // Log any date adjustments to inform the user
       if (!isSameDay(adjustedStartDate, newStartDate)) {
@@ -1760,17 +1756,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Ensure adjusted end date is after adjusted start date
       if (adjustedEndDate <= adjustedStartDate) {
-        // 🔴 CRITICAL FIX: ENSURE VALID END DATE WITHOUT AUTO-ADJUSTMENT
-        // Just add one day to ensure a valid schedule length, but don't auto-adjust to business days
         adjustedEndDate = addDays(adjustedStartDate, 1);
-        console.log('🔴 END DATE CORRECTION: Using day after start date without business day adjustment');
-        
-        // For reference, this is the code we're disabling:
-        // adjustedEndDate = adjustToPreviousBusinessDay(adjustedEndDate) || adjustedEndDate;
-        // if (adjustedEndDate <= adjustedStartDate) {
-        //   adjustedEndDate = adjustToNextBusinessDay(addDays(adjustedStartDate, 3)) || addDays(adjustedStartDate, 3);
-        // }
-      }
+        // If the next day isn't a business day, find the next business day
+        adjustedEndDate = adjustToPreviousBusinessDay(adjustedEndDate) || adjustedEndDate;
+        if (adjustedEndDate <= adjustedStartDate) {
+          // If we still have an issue, just add 3 days which should get us to next business day
+          adjustedEndDate = adjustToNextBusinessDay(addDays(adjustedStartDate, 3)) || addDays(adjustedStartDate, 3);
+        }
         
         toast({
           title: "Date Range Adjusted",
@@ -1827,13 +1819,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         barElement.style.left = `${resizingSchedule.initialLeft}px`;
         barElement.style.width = `${resizingSchedule.initialWidth}px`;
       }
-    } catch (error) {
-      console.error("Error during resize operation:", error);
-      toast({
-        title: "Resize Error",
-        description: "An error occurred during the resize operation. Please try again.",
-        variant: "destructive"
-      });
     } finally {
       // Clean up event listeners
       document.removeEventListener('mousemove', handleResizeMove);
@@ -1882,13 +1867,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Force schedules to be recalculated by incrementing the version counter
       // This ensures the UI updates with the new position even if data is still cached
       setRecalculationVersion(prev => prev + 1);
-    }
-        variant: "destructive"
-      });
-      
-      // Reset UI state even on error
-      setResizeHoverSlot(null);
-      setResizingSchedule(null);
     }
   };
   
@@ -2017,16 +1995,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // This ensures the project is placed in the currently hovered bay
     document.body.setAttribute('data-current-drag-bay', bayId.toString());
     console.log(`Updated current drag bay: ${bayId} and row: ${currentRow}`);
-    
-    // CRITICAL FIX FOR BAY 3: Ensure we capture exact date attribute consistently across all bays
-    // This prevents the issue with Bay 3 where projects auto-snap to start of grid
-    const dataDate = dragElement.getAttribute('data-date');
-    if (dataDate) {
-      // Set a consistent global variable for exact date tracking regardless of bay
-      (window as any).lastExactDate = dataDate;
-      dragElement.setAttribute('data-exact-date', dataDate);
-      console.log(`Bay ${bayId} drag: Storing exact date ${dataDate} from direct attribute`);
-    }
     
     // We'll still track the original bay ID on the element (but don't use it for placement)
     if (dragElement && !dragElement.hasAttribute('data-original-bay-id')) {
@@ -2174,12 +2142,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // IMPORTANT: Set a global variable with this date for use in the drop handler
         (window as any).lastExactDate = exactDateToUse;
         
-        // CRITICAL FIX FOR BAY 3: Store date more thoroughly to prevent start-of-grid snap
-        // Store on multiple elements to ensure it's accessible during the drop event
         target.setAttribute('data-exact-date', exactDateToUse);
-        e.currentTarget.setAttribute('data-exact-date', exactDateToUse);
-        document.body.setAttribute('data-current-drag-date', exactDateToUse);
-        console.log(`Storing exact date ${exactDateToUse} for bay ${bayId} (from date ${dataDate})`);
+        console.log(`Storing exact date: ${exactDateToUse} (from date ${dataDate})`);
         
         // Also store this date on the parent bay element for better target identification
         const parentBay = target.closest('.bay-container');
@@ -2187,15 +2151,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           parentBay.setAttribute('data-last-dragover-date', exactDateToUse);
         }
         
-        // Ensure all active-drop-target elements have this date set immediately
-        const dropTargets = document.querySelectorAll('.active-drop-target');
-        Array.from(dropTargets).forEach(el => {
-          el.setAttribute('data-exact-date', exactDateToUse);
-        });
-        
         // Also add this date to active drop elements that don't have a date
-        const additionalTargets = document.querySelectorAll('.active-drop-target');
-        Array.from(additionalTargets).forEach(el => {
+        document.querySelectorAll('.active-drop-target').forEach(el => {
           if (!el.hasAttribute('data-exact-date')) {
             el.setAttribute('data-exact-date', exactDateToUse);
           }
@@ -2820,47 +2777,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       let slotDate: Date | null = null;
       let exactDateForStorage: string | null = null;
       
-      // 🔴 CRITICAL FIX: UNIVERSAL DIRECT PLACEMENT HANDLING
-      // We need to get the EXACT date from the drag event target with NO auto adjustment
-      // This ensures the project bar drops EXACTLY where the cursor drops it 
-      console.log('🔴 CRITICAL: ENFORCING DIRECT PLACEMENT WITHOUT AUTO-SNAPPING');
-      
-      // Get the stored global date reference
-      const storedGlobalDate = (window as any).lastExactDate;
-      const bodyDateAttribute = document.body.getAttribute('data-current-drag-date');
-      
-      // DIRECT PLACEMENT: First priority - use dataDate from the target element
-      // This is the most accurate representation of where the cursor was dropped
-      if (dataDate) {
+      // MOST RELIABLE: Check for data-exact-date which is specifically set during drag over
+      // This is the most accurate way to get the precise date the user intended
+      const exactDateStr = targetElement.getAttribute('data-exact-date');
+      if (exactDateStr) {
+        slotDate = new Date(exactDateStr);
+        exactDateForStorage = exactDateStr; // Store the exact string for later use
+        console.log('SUCCESS: Using precise date from data-exact-date attribute:', exactDateStr, slotDate);
+      }
+      // Next check for data-date on direct target
+      else if (dataDate) {
         slotDate = new Date(dataDate);
         exactDateForStorage = dataDate;
-        console.log('✅ DIRECT PLACEMENT: Using exact date from data-date attribute:', dataDate);
+        console.log('Using date directly from target element data-date attribute:', dataDate, slotDate);
       }
-      // DIRECT PLACEMENT: Second priority - check closest element with date attribute
-      else if (targetElement) {
-        const dateElement = targetElement.closest('[data-date]') as HTMLElement;
-        if (dateElement) {
-          const dateStr = dateElement.getAttribute('data-date');
-          if (dateStr) {
-            slotDate = new Date(dateStr);
-            exactDateForStorage = dateStr;
-            console.log('✅ DIRECT PLACEMENT: Using date from closest element:', dateStr);
-          }
-        }
-      }
-      // DIRECT PLACEMENT: Third priority - check body attribute for drag date
-      else if (bodyDateAttribute) {
-        slotDate = new Date(bodyDateAttribute);
-        exactDateForStorage = bodyDateAttribute;
-        console.log('✅ DIRECT PLACEMENT: Using date from body attribute:', bodyDateAttribute);
-      }
-      // DIRECT PLACEMENT: Last priority - global variable fallback
-      else if (storedGlobalDate) {
-        slotDate = new Date(storedGlobalDate);
-        exactDateForStorage = storedGlobalDate;
-        console.log(`Using global date variable: ${storedGlobalDate}`, slotDate);
-      }
-      // If no date found through priority methods, continue with fallbacks
+      // Next try to find and check the closest element with a data-date attribute
       else {
         const dateElement = targetElement.closest('[data-date]') as HTMLElement;
         if (dateElement) {
@@ -2871,19 +2802,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             console.log('Using date from closest element with data-date attribute:', dateStr, slotDate);
           }
         }
-      }
-      
-      // CRITICAL BAY 3 FIX: If we still don't have a date, check all bay containers
-      if (!slotDate) {
-        const bayContainers = document.querySelectorAll('.bay-container');
-        Array.from(bayContainers).forEach(container => {
-          if (!slotDate && container.getAttribute('data-last-dragover-date')) {
-            const bayDateStr = container.getAttribute('data-last-dragover-date');
-            slotDate = new Date(bayDateStr!);
-            exactDateForStorage = bayDateStr;
-            console.log('Last resort: Using date from bay container data-last-dragover-date:', bayDateStr, slotDate);
-          }
-        });
       }
       
       // If we couldn't get the date from any attribute, use the targetSlotIndex
@@ -2920,22 +2838,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return;
       }
       
-      // 🔴 CRITICAL: DISABLE AUTO-ADJUSTMENTS FOR DIRECT PLACEMENT
-      // Store the EXACT date for direct placement - with no adjustments
-      console.log('🔴 CRITICAL: Using EXACT drop position with NO AUTO ADJUSTMENT');
-      console.log('DIRECT PLACEMENT DATE:', slotDate.toISOString().split('T')[0]);
-      document.body.setAttribute('data-direct-placement', 'true');
-      document.body.setAttribute('data-direct-placement-date', slotDate.toISOString().split('T')[0]);
-      
-      // Preserve the project data to maintain structure and prevent errors
+      // Get the project data to determine FAB weeks
       const project = projects.find(p => p.id === (data.projectId || data.id));
       const fabWeeks = project?.fabWeeks || 4; // Default to 4 weeks if not set
       
-      // Keep these calculations for data completeness only, but we'll override them later
-      // to ensure exact placement without auto adjustments
+      // Calculate FAB phase duration in days (first 4 weeks by default)
       const fabDays = fabWeeks * 7; // Convert weeks to days
       
-      // Calculate production start date (after FAB phase) but we won't use this for positioning
+      // Calculate production start date (after FAB phase)
       const productionStartDate = addDays(slotDate, fabDays);
       
       // Get the bay's base weekly capacity 
@@ -3053,11 +2963,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // First get the exact start date that we're using
       // CRITICAL FIX: Use the global variable we set in handleDragOver if available
       // This ensures we use the exact week that was targeted during dragging
-      const globalDragDate = (window as any).lastExactDate;
-      console.log(`Global exact date from drag: ${globalDragDate}`);
+      const globalExactDate = (window as any).lastExactDate;
+      console.log(`Global exact date from drag: ${globalExactDate}`);
       
-      const exactStartDate = globalDragDate 
-        ? new Date(globalDragDate)
+      const exactStartDate = globalExactDate 
+        ? new Date(globalExactDate)
         : (data.targetStartDate ? new Date(data.targetStartDate) : slotDate);
       
       // Calculate the FAB phase duration from the exact start date
@@ -3071,17 +2981,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Now calculate the final end date by adding the calculated production days to the FAB end date
       let finalEndDate = addDays(exactFabEndDate, prodDaysToUse);
       
-      // 🔴 CRITICAL FIX: DISABLE BUSINESS DAY ADJUSTMENT FOR CREATION 
-      // Previously, we would adjust start/end dates to be business days (skipping weekends and holidays)
-      // Now we're using exact placement to prevent any auto-adjustment
-      console.log('🔴 CRITICAL: Business day adjustment DISABLED for project creation - using exact dates');
+      // BUSINESS DAY VALIDATION: Ensure start date and end date are business days (not weekends or holidays)
+      // For start date, find the next business day if not already one
+      const adjustedStartDate = adjustToNextBusinessDay(exactStartDate) || exactStartDate;
       
-      // Store exact dates without adjustment
-      const adjustedStartDate = exactStartDate;
-      let adjustedEndDate = finalEndDate;
-      
-      document.body.setAttribute('data-exact-creation-start', format(exactStartDate, 'yyyy-MM-dd'));
-      document.body.setAttribute('data-exact-creation-end', format(finalEndDate, 'yyyy-MM-dd'));
+      // For end date, find the previous business day if not already one
+      // We use previous for end date to ensure the project ends on a business day (not weekend/holiday)
+      let adjustedEndDate = adjustToPreviousBusinessDay(finalEndDate) || finalEndDate;
       
       // Log any date adjustments to inform the user
       if (!isSameDay(adjustedStartDate, exactStartDate)) {
@@ -3104,17 +3010,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Ensure adjusted end date is after adjusted start date
       if (adjustedEndDate <= adjustedStartDate) {
-        // 🔴 CRITICAL FIX: ENSURE VALID END DATE WITHOUT AUTO-ADJUSTMENT
-        // Just add one day to ensure a valid schedule length, but don't auto-adjust to business days
         adjustedEndDate = addDays(adjustedStartDate, 1);
-        console.log('🔴 END DATE CORRECTION: Using day after start date without business day adjustment');
-        
-        // For reference, this is the code we're disabling:
-        // adjustedEndDate = adjustToNextBusinessDay(adjustedEndDate) || adjustedEndDate;
-        // if (adjustedEndDate <= adjustedStartDate) {
-        //   adjustedEndDate = adjustToNextBusinessDay(addDays(adjustedStartDate, 3)) || addDays(adjustedStartDate, 3);
-        // }
-      }
+        // If the next day isn't a business day, find the next business day
+        adjustedEndDate = adjustToNextBusinessDay(adjustedEndDate) || adjustedEndDate;
+        if (adjustedEndDate <= adjustedStartDate) {
+          // If we still have an issue, just add 3 days which should get us to next business day
+          adjustedEndDate = adjustToNextBusinessDay(addDays(adjustedStartDate, 3)) || addDays(adjustedStartDate, 3);
+        }
         
         toast({
           title: "Date Range Adjusted",
@@ -3168,11 +3070,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // IMPORTANT: Use the exact targetStartDate we captured earlier instead of the slotDate 
         // which may have been modified for FAB calculations
         // CRITICAL FIX: Use the properly formatted date string for API compatibility
-        
-        // SPECIAL BAY 3 DIRECT DATE FIX: For Bay 3, always use the exact original date
-        const startDateToUse = exactBayId === 3 
-          ? (exactDateForStorage || format(slotDate, 'yyyy-MM-dd'))  // Bay 3 special handling
-          : (formattedExactStartDate || data.targetStartDate || format(slotDate, 'yyyy-MM-dd'));
+        const startDateToUse = formattedExactStartDate || data.targetStartDate || format(slotDate, 'yyyy-MM-dd');
         console.log('Using start date for schedule change:', startDateToUse, '(formatted from', exactStartDate, ')');
         
         // Format the finalEndDate properly for the API - CRITICAL FIX
