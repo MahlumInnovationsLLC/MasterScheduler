@@ -588,7 +588,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             it: itPercentage,
             ntc: ntcPercentage,
             qc: qcPercentage,
-            scheduleId
+            scheduleId,
+            totalWidth
           });
         }
         
@@ -605,23 +606,41 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const ntcWidth = Math.round(totalWidth * (ntcPercentage * normalizeFactor / 100));
         const qcWidth = Math.round(totalWidth * (qcPercentage * normalizeFactor / 100));
         
-        // Update the width and position of each phase
-        fabPhase.style.width = `${fabWidth}px`;
-        
-        paintPhase.style.left = `${fabWidth}px`;
-        paintPhase.style.width = `${paintWidth}px`;
-        
-        prodPhase.style.left = `${fabWidth + paintWidth}px`;
-        prodPhase.style.width = `${prodWidth}px`;
-        
-        itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
-        itPhase.style.width = `${itWidth}px`;
-        
-        ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
-        ntcPhase.style.width = `${ntcWidth}px`;
-        
-        qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
-        qcPhase.style.width = `${qcWidth}px`;
+        // CRITICAL FIX: Add a small delay to ensure the barElement width is fully updated first
+        // This ensures phases are calculated based on the final width
+        setTimeout(() => {
+          // FORCE DIRECT UI UPDATE: Apply width and position changes immediately to the DOM
+          fabPhase.style.width = `${fabWidth}px`;
+          
+          paintPhase.style.left = `${fabWidth}px`;
+          paintPhase.style.width = `${paintWidth}px`;
+          
+          prodPhase.style.left = `${fabWidth + paintWidth}px`;
+          prodPhase.style.width = `${prodWidth}px`;
+          
+          itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
+          itPhase.style.width = `${itWidth}px`;
+          
+          ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
+          ntcPhase.style.width = `${ntcWidth}px`;
+          
+          qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
+          qcPhase.style.width = `${qcWidth}px`;
+          
+          // Force a DOM reflow to ensure changes are applied immediately
+          barElement.getBoundingClientRect();
+          
+          // Add specific data attributes to help with debugging
+          barElement.setAttribute('data-phases-updated', 'true');
+          barElement.setAttribute('data-total-width', totalWidth.toString());
+          
+          // Log phase width calculations to confirm they're being applied
+          console.log(`DIRECT UI UPDATE: Applied phase widths for schedule ${scheduleId}:`, {
+            fabWidth, paintWidth, prodWidth, itWidth, ntcWidth, qcWidth,
+            totalWidth, 
+            sumOfWidths: fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth
+          });
+        }, 0);
       }
     } catch (error) {
       console.error(`Error updating phase widths:`, error);
@@ -1831,9 +1850,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Make sure to preserve the new size from the resize operation
       const currentLeft = parseInt(barElement.style.left, 10);
-      const currentWidth = parseInt(barElement.style.width, 10);
+      const barCurrentWidth = parseInt(barElement.style.width, 10);
       
-      console.log(`Finalizing resize: ID=${resizingSchedule.id}, Left=${currentLeft}px, Width=${currentWidth}px`);
+      console.log(`Finalizing resize: ID=${resizingSchedule.id}, Left=${currentLeft}px, Width=${barCurrentWidth}px`);
       
       // Remove the resize indicator class
       barElement.classList.remove('actively-resizing');
@@ -1980,6 +1999,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const visualRow = rowToUse % 4;
       
       console.log(`Applying resize with row ${visualRow} (mapped from ${rowToUse})`);
+      
+      // CRITICAL FIX: Force update phases immediately before applying the resize
+      // Use the current width from the DOM for the manual resize
+      const barWidth = parseInt(barElement.style.width, 10);
+      console.log(`FINAL RESIZE PHASE UPDATE - Forcing phases to update with width: ${barWidth}px`);
+      
+      // Directly update departmental phases with the current width from the DOM
+      // This must happen BEFORE the server call to ensure immediate visual feedback
+      updateDepartmentPhaseWidths(barElement, barWidth);
+      
+      // Add attribute to verify update was applied
+      barElement.setAttribute('data-final-resize-width', barWidth.toString());
+      barElement.setAttribute('data-resize-complete', 'true');
       
       // Use applyManualResize which will check for capacity impacts
       applyManualResize(
