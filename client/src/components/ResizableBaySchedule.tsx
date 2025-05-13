@@ -3083,71 +3083,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         (data.type !== 'existing' || s.id !== data.id)
       );
       
-      // CRITICAL: DISABLED AUTO-PLACEMENT FUNCTION
-      // This function has been completely disabled per user request
-      // Instead we always use the exact row the user dragged to
-      const findOptimalRow = (newStartDate: Date, newEndDate: Date, preferredRow: number = targetRowIndex) => {
-        // First, check if the user's preferred row is available (no time overlaps)
-        // This allows projects to be placed in the same row AFTER another project has ended
-        console.log(`Checking if preferred row ${preferredRow} is available...`);
-        
-        // CRITICAL FIX: Use exactBayId to ensure consistency in bay selection
-        // This ensures we're using the same bay ID throughout the entire process
-        const baySchedules = schedules.filter(s => s.bayId === exactBayId);
-        console.log(`Finding schedules for bay ID ${exactBayId} (using exact parameter)`);
-        console.log(`DEBUG: Found ${baySchedules.length} schedules in this bay`);
-        
-        // Check if there's any overlap with existing schedules in this row
-        const hasOverlap = baySchedules.some(schedule => {
-          // Skip if not in the same row
-          if (schedule.row !== preferredRow) return false;
-          
-          const scheduleStart = new Date(schedule.startDate);
-          const scheduleEnd = new Date(schedule.endDate);
-          
-          // Check if they overlap in time
-          // No overlap if new project starts after schedule ends OR ends before schedule starts
-          const noOverlap = newStartDate >= scheduleEnd || newEndDate <= scheduleStart;
-          
-          // Return true if there IS overlap
-          return !noOverlap;
-        });
-        
-        if (!hasOverlap) {
-          console.log(`Row ${preferredRow} has no time overlaps - using it as requested`);
-          return preferredRow;
-        }
-        
-        // If the preferred row has overlaps, we should try to find another available row
-        console.log(`Row ${preferredRow} has overlaps, looking for another available row...`);
-        
-        // Try each row to find one without overlaps
-        for (let row = 0; row < 4; row++) {
-          // Skip the row we already checked
-          if (row === preferredRow) continue;
-          
-          const rowHasOverlap = baySchedules.some(schedule => {
-            if (schedule.row !== row) return false;
-            
-            const scheduleStart = new Date(schedule.startDate);
-            const scheduleEnd = new Date(schedule.endDate);
-            
-            // Check if they overlap in time
-            const noOverlap = newStartDate >= scheduleEnd || newEndDate <= scheduleStart;
-            return !noOverlap;
-          });
-          
-          if (!rowHasOverlap) {
-            console.log(`Found available row ${row} with no time overlaps`);
-            return row;
-          }
-        }
-        
-        // If we get here, all rows have overlaps
-        // Fall back to user's preferred row
-        console.log(`All rows have overlaps, using preferred row ${preferredRow} anyway`);
-        return preferredRow;
-      };
+      // AUTO-PLACEMENT FUNCTION COMPLETELY REMOVED
+      // We now use exactly the row where the user dropped the project
+      // As explicitly requested by user: SIMPLE PLACEMENT WITH NO ADJUSTMENTS
+      
+      console.log(`SIMPLIFIED PLACEMENT SYSTEM: Using exact row=${targetRowIndex} in bay=${exactBayId}`);
+      console.log(`NO AUTO ADJUSTMENTS APPLIED: Project will be placed EXACTLY where it was dropped`);
+      console.log(`OVERLAP WARNING: Projects may now overlap in time and position as requested`);
+      
+      // We no longer check for overlaps or attempt to find optimal rows
+      // The project will be placed EXACTLY where the user drops it
+      // This is a direct implementation of the user's request for simple placement
       
       // Calculate how long the project will take considering capacity sharing
       const totalHours = data.totalHours !== null ? Number(data.totalHours) : 1000; // Default to 1000 if not specified
