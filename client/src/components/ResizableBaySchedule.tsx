@@ -5042,8 +5042,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             // Prevent event from propagating to parent elements
                             e.stopPropagation();
                             
-                            // Store the row index in a body attribute for the drop handler
+                            // Store the row index and bay id in body attributes for the drop handler
                             document.body.setAttribute('data-current-drag-row', '0');
+                            document.body.setAttribute('data-current-drag-bay', bay.id.toString());
+                            
+                            // Make sure the element has the correct bay ID
+                            if (e.currentTarget instanceof HTMLElement) {
+                              e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
+                            }
                             
                             // Add highlight classes
                             e.currentTarget.classList.add('cell-highlight', 'row-0-highlight');
