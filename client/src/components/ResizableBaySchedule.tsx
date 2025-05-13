@@ -103,6 +103,14 @@ function calculateProjectPhases(project: Project, startDate: string, endDate: st
   const qcDays = Math.ceil(totalDays * 0.01);
   const qcEndDate = new Date(ntcEndDate.getTime() + (qcDays * 24 * 60 * 60 * 1000));
   
+  // Calculate widths as percentages of total schedule
+  const fabWidth = Math.round((fabDays / totalDays) * 100);
+  const paintWidth = Math.round((paintDays / totalDays) * 100);
+  const prodWidth = Math.round((prodDays / totalDays) * 100);
+  const itWidth = Math.round((itDays / totalDays) * 100);
+  const ntcWidth = Math.round((ntcDays / totalDays) * 100);
+  const qcWidth = Math.round((qcDays / totalDays) * 100);
+  
   // Return the phase object with additional derived properties
   // needed by the existing code
   return {
@@ -117,12 +125,36 @@ function calculateProjectPhases(project: Project, startDate: string, endDate: st
     prodDays,
     fabWeeks: Math.ceil(fabDays / 7),
     phases: {
-      fab: { start: format(start, 'yyyy-MM-dd'), end: format(fabEndDate, 'yyyy-MM-dd') },
-      paint: { start: format(fabEndDate, 'yyyy-MM-dd'), end: format(paintEndDate, 'yyyy-MM-dd') },
-      production: { start: format(paintEndDate, 'yyyy-MM-dd'), end: format(prodEndDate, 'yyyy-MM-dd') },
-      it: { start: format(prodEndDate, 'yyyy-MM-dd'), end: format(itEndDate, 'yyyy-MM-dd') },
-      ntc: { start: format(itEndDate, 'yyyy-MM-dd'), end: format(ntcEndDate, 'yyyy-MM-dd') },
-      qc: { start: format(ntcEndDate, 'yyyy-MM-dd'), end: format(qcEndDate, 'yyyy-MM-dd') }
+      fab: { 
+        start: format(start, 'yyyy-MM-dd'), 
+        end: format(fabEndDate, 'yyyy-MM-dd'),
+        width: fabWidth
+      },
+      paint: { 
+        start: format(fabEndDate, 'yyyy-MM-dd'), 
+        end: format(paintEndDate, 'yyyy-MM-dd'),
+        width: paintWidth 
+      },
+      production: { 
+        start: format(paintEndDate, 'yyyy-MM-dd'), 
+        end: format(prodEndDate, 'yyyy-MM-dd'),
+        width: prodWidth 
+      },
+      it: { 
+        start: format(prodEndDate, 'yyyy-MM-dd'), 
+        end: format(itEndDate, 'yyyy-MM-dd'),
+        width: itWidth 
+      },
+      ntc: { 
+        start: format(itEndDate, 'yyyy-MM-dd'), 
+        end: format(ntcEndDate, 'yyyy-MM-dd'),
+        width: ntcWidth 
+      },
+      qc: { 
+        start: format(ntcEndDate, 'yyyy-MM-dd'), 
+        end: format(qcEndDate, 'yyyy-MM-dd'),
+        width: qcWidth
+      }
     }
   };
 }
@@ -674,7 +706,7 @@ const ResizableBaySchedule = ({
   };
   
   // Function to save bay edits
-  const handleSaveBayEdit = async (bay: ManufacturingBay) => {
+  const handleSaveBayEdit = async (bay: ExtendedManufacturingBay) => {
     try {
       // Call API to update bay
       await onBayUpdate(bay);
@@ -1586,7 +1618,7 @@ const ResizableBaySchedule = ({
   const slotWidth = 100; // Default value
   
   // Render the schedule for a bay
-  const renderBaySchedule = (bay: ManufacturingBay, schedules: ManufacturingSchedule[]) => {
+  const renderBaySchedule = (bay: ExtendedManufacturingBay, schedules: ManufacturingSchedule[]) => {
     const rowIndices = bayRows[bay.id] || [0, 1, 2, 3]; // Default to 4 rows
     
     // Log in which rows the schedules are positioned for debugging
