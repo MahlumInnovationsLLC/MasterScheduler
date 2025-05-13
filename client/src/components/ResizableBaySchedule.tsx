@@ -3532,6 +3532,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         barElement.setAttribute('data-start-date', newStartDate);
         barElement.setAttribute('data-end-date', finalEndDate);
         
+        // Make sure the bar's visual dimensions match the new date range
+        // This ensures the bar properly stretches and displays at the right width
+        const { left, width } = calculateBarPosition(startDateObj, endDateObj);
+        if (left !== undefined && width !== undefined) {
+          barElement.style.left = `${left}px`;
+          barElement.style.width = `${width}px`;
+          
+          // Also update department phase widths
+          updateDepartmentPhaseWidths(barElement, width);
+        }
+        
         // Temporarily apply a highlight to show the change
         barElement.classList.add('bg-yellow-400/20', 'border-yellow-500', 'border-2');
         setTimeout(() => {
