@@ -3095,7 +3095,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           
           // Store this for later use - CRUCIAL for proper week positioning
           // We MUST create a new property as a string to ensure it's carried forward in drag events
-          data.targetStartDate = exactDateForStorage || exactTargetStartDate.toISOString();
+          // Add null check to prevent "Cannot read properties of null (reading 'toISOString')" error
+          data.targetStartDate = exactDateForStorage || (exactTargetStartDate ? exactTargetStartDate.toISOString() : new Date().toISOString());
           
           // CRITICAL DEBUG: Add more verbose logging
           console.log('SAVED EXACT TARGET START DATE:', data.targetStartDate);
@@ -3121,7 +3122,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const fabDays = fabWeeks * 7; // Convert weeks to days
       
       // Calculate production start date (after FAB phase)
-      const productionStartDate = addDays(slotDate, fabDays);
+      // Add null check to prevent error when slotDate is null
+      const productionStartDate = slotDate ? addDays(slotDate, fabDays) : new Date();
       
       // Get the bay's base weekly capacity 
       // Handle null/undefined values safely
