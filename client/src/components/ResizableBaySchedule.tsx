@@ -4053,7 +4053,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           {bays.map(bay => (
             <div 
               key={bay.id} 
-              className="h-64 flex flex-col px-3 py-3 border-b border-gray-700"
+              className={`flex flex-col px-3 py-3 border-b border-gray-700 ${bay.id === 7 || bay.id === 8 || bay.bayNumber === 7 || bay.bayNumber === 8 ? 'h-[600px]' : 'h-64'}`}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center">
@@ -4418,7 +4418,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               <div
                 key={`empty-bay-${index}`}
                 className="flex flex-col px-3 py-3 border-b border-gray-700 text-gray-500"
-                style={{ height: isTeam7Or8 ? '800px' : '64px' }}
+                style={{ height: isTeam7Or8 ? '600px' : '64px' }}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center">
