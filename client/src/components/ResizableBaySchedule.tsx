@@ -4777,15 +4777,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 
                 {/* Row dividers with visible action buttons */}
                 {(() => {
-                  // Only Team 7 & 8 should get multi-rows, not Bay 7 & 8
-                  // Check for EXACT matches like "Team 7" or "Team 8" 
-                  const isMultiRowBay = bay.name && 
-                    (bay.name.trim() === 'Team 7' || 
-                     bay.name.trim() === 'Team 8' || 
-                     bay.name.trim() === 'Team7' || 
-                     bay.name.trim() === 'Team8');
+                  // IMPORTANT UPDATE: Use bay NUMBER (7 or 8) to determine if we should use multi-row
+                  // This ensures ANY bay with ID 7 or 8 will get 20 rows, regardless of name
+                  // This is necessary to handle cases like "TCV Line" which is bay number 7
+                  const isMultiRowBay = bay.bayNumber === 7 || bay.bayNumber === 8;
+                  
                   // Add debug logging to troubleshoot the issue
-                  console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${getBayRowCount(bay.id, bay.name)}`);
+                  console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${getBayRowCount(bay.id, bay.name)}, bayNumber=${bay.bayNumber}`);
                   return isMultiRowBay;
                 })() ? (
                   // Use MultiRowBayContent for Team 7 & 8 which needs 20 rows
