@@ -2953,17 +2953,67 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.log(`ENFORCED production duration: ${prodDaysToUse} days based on ${prodHours} production hours at ${fullWeeklyCapacity} weekly capacity`);
       
       // Now calculate the final end date by adding the calculated production days to the FAB end date
-      const finalEndDate = addDays(exactFabEndDate, prodDaysToUse);
+      let finalEndDate = addDays(exactFabEndDate, prodDaysToUse);
+      
+      // BUSINESS DAY VALIDATION: Ensure start date and end date are business days (not weekends or holidays)
+      // For start date, find the next business day if not already one
+      const adjustedStartDate = adjustToNextBusinessDay(exactStartDate) || exactStartDate;
+      
+      // For end date, find the previous business day if not already one
+      // We use previous for end date to ensure the project ends on a business day (not weekend/holiday)
+      let adjustedEndDate = adjustToPreviousBusinessDay(finalEndDate) || finalEndDate;
+      
+      // Log any date adjustments to inform the user
+      if (!isSameDay(adjustedStartDate, exactStartDate)) {
+        console.log(`Start date adjusted from ${format(exactStartDate, 'yyyy-MM-dd')} to ${format(adjustedStartDate, 'yyyy-MM-dd')} (next business day)`);
+        toast({
+          title: "Date Adjusted",
+          description: `Start date adjusted to ${format(adjustedStartDate, 'MMM d, yyyy')} (next business day)`,
+          variant: "default"
+        });
+      }
+      
+      if (!isSameDay(adjustedEndDate, finalEndDate)) {
+        console.log(`End date adjusted from ${format(finalEndDate, 'yyyy-MM-dd')} to ${format(adjustedEndDate, 'yyyy-MM-dd')} (previous business day)`);
+        toast({
+          title: "Date Adjusted",
+          description: `End date adjusted to ${format(adjustedEndDate, 'MMM d, yyyy')} (previous business day)`,
+          variant: "default"
+        });
+      }
+      
+      // Ensure adjusted end date is after adjusted start date
+      if (adjustedEndDate <= adjustedStartDate) {
+        adjustedEndDate = addDays(adjustedStartDate, 1);
+        // If the next day isn't a business day, find the next business day
+        adjustedEndDate = adjustToNextBusinessDay(adjustedEndDate) || adjustedEndDate;
+        if (adjustedEndDate <= adjustedStartDate) {
+          // If we still have an issue, just add 3 days which should get us to next business day
+          adjustedEndDate = adjustToNextBusinessDay(addDays(adjustedStartDate, 3)) || addDays(adjustedStartDate, 3);
+        }
+        
+        toast({
+          title: "Date Range Adjusted",
+          description: "End date adjusted to ensure a valid project duration",
+          variant: "destructive"
+        });
+      }
+      
+      // Use the adjusted dates for all subsequent operations
+      const newExactStartDate = adjustedStartDate;
+      finalEndDate = adjustedEndDate;
       
       // Store the formatted target date for API - CRUCIAL for preserving exact week position
-      const formattedExactStartDate = format(exactStartDate, 'yyyy-MM-dd');
+      const formattedExactStartDate = format(newExactStartDate, 'yyyy-MM-dd');
       
       console.log('Calculated dates:', {
-        exactStartDate: exactStartDate.toISOString(),
+        originalStartDate: exactStartDate.toISOString(),
+        adjustedStartDate: newExactStartDate.toISOString(),
         fabEndDate: exactFabEndDate.toISOString(),
         finalEndDate: finalEndDate.toISOString(),
         fabDays,
-        prodDays
+        prodDays,
+        businessDayAdjusted: !isSameDay(exactStartDate, newExactStartDate)
       });
       
       console.log('Attempting to drop project:', {
@@ -3084,6 +3134,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Format the finalEndDate properly for the API
         const formattedFinalEndDate = format(finalEndDate, 'yyyy-MM-dd');
         console.log('Using END date for new schedule:', formattedFinalEndDate, '(formatted from', finalEndDate, ')');
+        
+        // Final log message about business day validation
+        console.log('Business day validation complete. Using validated dates:', {
+          startDate: startDateToUse,
+          endDate: formattedFinalEndDate,
+          adjustedFromWeekend: !isSameDay(exactStartDate, slotDate) || !isSameDay(finalEndDate, addDays(exactFabEndDate, prodDaysToUse))
+        });
         
         // Show loading state
         setIsMovingProject(true);
