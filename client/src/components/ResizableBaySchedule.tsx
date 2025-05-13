@@ -108,7 +108,8 @@ interface ScheduleBar {
 // Helper function to determine how many rows a bay should have
 const getBayRowCount = (bayId: number, bayName: string): number => {
   // Special handling for Team 7 & 8 - needs 20 rows
-  if (bayId === 4 || bayName.includes('Bay 7 & 8')) {
+  if (bayId === 4 || (bayName && (bayName.includes('Bay 7 & 8') || bayName.includes('Team 7') || bayName.includes('Team 8')))) {
+    console.log(`Using 20 rows for bay ${bayId} (${bayName})`);
     return 20;
   }
   // Standard 4 rows for all other bays
@@ -4495,7 +4496,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 </div>
                 
                 {/* Row dividers with visible action buttons */}
-                {getBayRowCount(bay.id, bay.name) > 4 ? (
+                {(() => {
+                  const isMultiRowBay = bay.id === 4 || (bay.name && (bay.name.includes('Bay 7 & 8') || bay.name.includes('Team 7') || bay.name.includes('Team 8')));
+                  // Add debug logging to troubleshoot the issue
+                  console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${getBayRowCount(bay.id, bay.name)}`);
+                  return isMultiRowBay;
+                })() ? (
                   // Use MultiRowBayContent for Team 7 & 8 which needs 20 rows
                   <MultiRowBayContent
                     bay={bay}

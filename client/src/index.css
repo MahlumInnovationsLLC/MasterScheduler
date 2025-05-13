@@ -1242,3 +1242,45 @@ body.resizing-mode .resize-handle {
 .row-management-buttons .row-delete-button {
   animation: button-pulse 2s infinite;
 }
+
+/* Multi-row bay styling for Team 7 & 8 */
+.multi-row-bay {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.25rem;
+  background-color: rgba(15, 23, 42, 0.03);
+  border: 1px solid rgba(51, 65, 85, 0.1);
+  overflow: hidden;
+}
+
+.multi-row-bay .bay-row {
+  position: relative;
+  border-bottom: 1px dashed rgba(100, 116, 139, 0.2);
+  transition: background-color 0.2s ease;
+  min-height: 10px !important;
+  height: 5% !important; /* 20 rows at 5% each */
+}
+
+.multi-row-bay .bay-row:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+/* Row number indicators for multi-row bays */
+.multi-row-bay .row-number {
+  position: absolute;
+  left: -1.5rem;
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  font-size: 0.65rem;
+  color: rgba(59, 130, 246, 0.8);
+}
+
+.multi-row-bay .row-number-badge {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-radius: 0.25rem;
+  padding: 0 0.25rem;
+  font-weight: 500;
+}
