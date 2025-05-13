@@ -841,8 +841,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           // Total hours for this project
           const totalHours = schedule.totalHours || 1000;
           
-          // Calculate using full capacity (without sharing)
-          const weeksNeeded = Math.ceil(totalHours / baseWeeklyCapacity);
+          // CRITICAL FIX: Only consider PRODUCTION hours for bay capacity calculation
+          // Get the related project for this schedule
+          const project = projects.find(p => p.id === schedule.projectId);
+          
+          // Get the project's production percentage or use default (60%)
+          const productionPercentage = parseFloat(project?.productionPercentage as any) || 60;
+          
+          // Calculate production hours (this is what actually consumes bay capacity)
+          const productionHours = totalHours * (productionPercentage / 100);
+          
+          // Calculate using full capacity (without sharing) but ONLY for PRODUCTION hours
+          const weeksNeeded = Math.ceil(productionHours / baseWeeklyCapacity);
           const calculatedEndDate = addDays(startDate, (weeksNeeded * 7) + 1); // +1 to make inclusive
           
           // Add to adjustment list
@@ -1037,8 +1047,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Total hours for this project
         const totalHours = schedule.totalHours || 1000;
         
-        // Initialize variables for week-by-week calculation
-        let remainingHours = totalHours;
+        // CRITICAL FIX: Only consider PRODUCTION hours for bay capacity calculation
+        // Get the project's production percentage or use default (60%)
+        const productionPercentage = parseFloat(project?.productionPercentage as any) || 60;
+        
+        // Calculate production hours (this is what actually consumes bay capacity)
+        const productionHours = totalHours * (productionPercentage / 100);
+        
+        // Log the adjustment for transparency
+        console.log(`CAPACITY FIX: Using only PRODUCTION hours (${productionPercentage}% of total) for project ${project.projectNumber}`, {
+          totalHours,
+          productionPercentage,
+          productionHours,
+          reduction: totalHours - productionHours,
+        });
+        
+        // Initialize variables for week-by-week calculation - Using ONLY production hours
+        let remainingHours = productionHours;
         
         // CRITICAL: Start allocation from the PRODUCTION start date (after FAB)
         // This ensures the FAB phase isn't affected by capacity sharing
