@@ -415,6 +415,7 @@ const BaySchedulingPage = () => {
       return false;
     } finally {
       setIsLoading(false);
+      setProcessingScheduleId(null);
     }
   };
   
@@ -871,11 +872,12 @@ const BaySchedulingPage = () => {
         </div>
       </div>
       
-      {/* Use the enhanced LoadingOverlay component with delay to prevent flickering */}
+      {/* Use the enhanced LoadingOverlay component with delay and processingId */}
       <LoadingOverlay 
         visible={isLoading} 
         message="Updating Schedule... This may take a moment" 
-        delay={500} 
+        delay={500}
+        processingId={processingScheduleId}
       />
     </div>
   );
