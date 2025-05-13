@@ -571,13 +571,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const schedule = schedules.find(s => s.id === scheduleId);
         const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
         
-        // Use project-specific phase percentages or fallback to defaults
+        // Use project-specific phase percentages or fallback to company standard defaults
         const fabPercentage = project ? (parseFloat(project.fabPercentage as any) || 27) : 27;
         const paintPercentage = project ? (parseFloat(project.paintPercentage as any) || 7) : 7; 
         const productionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
-        const itPercentage = project ? (parseFloat(project.itPercentage as any) || 2) : 2;
-        const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 2) : 2;
-        const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 2) : 2;
+        const itPercentage = project ? (parseFloat(project.itPercentage as any) || 7) : 7;       // Updated default from 2 to 7
+        const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 7) : 7;     // Updated default from 2 to 7
+        const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 7) : 7;       // Updated default from 2 to 7
+        
+        // Add debug logging for phase percentages
+        if (project) {
+          console.log(`Project ${project.projectNumber} phase percentages:`, {
+            fab: fabPercentage,
+            paint: paintPercentage,
+            production: productionPercentage,
+            it: itPercentage,
+            ntc: ntcPercentage,
+            qc: qcPercentage,
+            scheduleId
+          });
+        }
         
         // Calculate the total percentage and normalization factor
         const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
@@ -1919,32 +1932,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         }
       }
       
-      // Adjust dates to ensure they fall on business days
-      // For start date, find the next business day if not already one
-      let adjustedStartDate = adjustToNextBusinessDay(newStartDate) || newStartDate;
+      // IMPORTANT: DISABLED business day adjustments per user request for exact placement
+      // Use exact dates from the resize operation, regardless of weekends/holidays
+      let adjustedStartDate = newStartDate;  
+      let adjustedEndDate = newEndDate;
       
-      // For end date, find the previous business day if not already one
-      // We use previous for end date to ensure the project ends on a business day (not weekend/holiday)
-      let adjustedEndDate = adjustToPreviousBusinessDay(newEndDate) || newEndDate;
-      
-      // Log any date adjustments to inform the user
-      if (!isSameDay(adjustedStartDate, newStartDate)) {
-        console.log(`Start date adjusted from ${format(newStartDate, 'yyyy-MM-dd')} to ${format(adjustedStartDate, 'yyyy-MM-dd')} (next business day)`);
-        toast({
-          title: "Date Adjusted",
-          description: `Start date adjusted to ${format(adjustedStartDate, 'MMM d, yyyy')} (next business day)`,
-          variant: "default"
-        });
-      }
-      
-      if (!isSameDay(adjustedEndDate, newEndDate)) {
-        console.log(`End date adjusted from ${format(newEndDate, 'yyyy-MM-dd')} to ${format(adjustedEndDate, 'yyyy-MM-dd')} (previous business day)`);
-        toast({
-          title: "Date Adjusted",
-          description: `End date adjusted to ${format(adjustedEndDate, 'MMM d, yyyy')} (previous business day)`,
-          variant: "default"
-        });
-      }
+      console.log(`EXACT DATES: Using precise dates from resize: ${format(newStartDate, 'yyyy-MM-dd')} to ${format(newEndDate, 'yyyy-MM-dd')}`);
+      console.log(`NO ADJUSTMENT: Weekend/holiday adjustment disabled per user request for exact manual placement`);
       
       // Ensure adjusted end date is after adjusted start date
       if (adjustedEndDate <= adjustedStartDate) {
@@ -3662,58 +3656,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           barElement.style.left = `${left}px`;
           barElement.style.width = `${width}px`;
           
-          // Also update all department phase widths
-          const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
-          const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
-          const prodPhase = barElement.querySelector('.dept-prod-phase') as HTMLElement;
-          const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
-          const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
-          const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
+          // IMPORTANT FIX: Use our component-level updateDepartmentPhaseWidths function
+          // This ensures consistent phase width calculations across all parts of the application
+          console.log(`Updating phases for schedule ${scheduleId} with width ${width}px`);
           
-          if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
-            // Get the schedule and project data for this schedule ID
-            const schedule = schedules.find(s => s.id === scheduleId);
-            const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
-            
-            // Use project-specific phase percentages or fallback to defaults
-            const fabPercentage = project ? (parseFloat(project.fabPercentage as any) || 27) : 27;
-            const paintPercentage = project ? (parseFloat(project.paintPercentage as any) || 7) : 7; 
-            const productionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
-            const itPercentage = project ? (parseFloat(project.itPercentage as any) || 2) : 2;
-            const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 2) : 2;
-            const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 2) : 2;
-            
-            // Calculate the total percentage and normalization factor
-            const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
-                                    itPercentage + ntcPercentage + qcPercentage;
-            const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
-            
-            // Calculate phase widths based on normalized percentages
-            const fabWidth = Math.round(width * (fabPercentage * normalizeFactor / 100));
-            const paintWidth = Math.round(width * (paintPercentage * normalizeFactor / 100));
-            const prodWidth = Math.round(width * (productionPercentage * normalizeFactor / 100));
-            const itWidth = Math.round(width * (itPercentage * normalizeFactor / 100));
-            const ntcWidth = Math.round(width * (ntcPercentage * normalizeFactor / 100));
-            const qcWidth = Math.round(width * (qcPercentage * normalizeFactor / 100));
-            
-            // Update the width and position of each phase
-            fabPhase.style.width = `${fabWidth}px`;
-            
-            paintPhase.style.left = `${fabWidth}px`;
-            paintPhase.style.width = `${paintWidth}px`;
-            
-            prodPhase.style.left = `${fabWidth + paintWidth}px`;
-            prodPhase.style.width = `${prodWidth}px`;
-            
-            itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
-            itPhase.style.width = `${itWidth}px`;
-            
-            ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
-            ntcPhase.style.width = `${ntcWidth}px`;
-            
-            qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
-            qcPhase.style.width = `${qcWidth}px`;
-          }
+          // Call the shared function to update phase widths with project-specific percentages
+          updateDepartmentPhaseWidths(barElement, width);
+          
+          // Set a specific attribute to indicate this was a manual resize
+          barElement.setAttribute('data-manual-resize', 'true');
         }
         
         // Temporarily apply a highlight to show the change
