@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -10,9 +10,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { ManufacturingBay } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { AlertTriangle } from 'lucide-react';
 
 interface EditBayDialogProps {
   bay: ManufacturingBay | null;
@@ -38,10 +41,17 @@ export function EditBayDialog({
   const [assemblyStaffCount, setAssemblyStaffCount] = useState<number>(0);
   const [electricalStaffCount, setElectricalStaffCount] = useState<number>(0);
   const [hoursPerPersonPerWeek, setHoursPerPersonPerWeek] = useState<number>(32);
+  const [rowCount, setRowCount] = useState<number>(4); // Default to 4 rows
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
   // Calculate total staff count
   const totalStaffCount = assemblyStaffCount + electricalStaffCount;
+
+  // Check if this is Team 7 or Team 8
+  const isTeam7Or8 = useMemo(() => {
+    return (bayNumber === 7 || bayNumber === 8) && 
+           (name && name.toLowerCase().includes('team'));
+  }, [bayNumber, name]);
   
   // Set initial values when bay changes
   useEffect(() => {
@@ -52,6 +62,14 @@ export function EditBayDialog({
       setAssemblyStaffCount(bay.assemblyStaffCount || 0);
       setElectricalStaffCount(bay.electricalStaffCount || 0);
       setHoursPerPersonPerWeek(bay.hoursPerPersonPerWeek || 32);
+      
+      // For Team 7 & 8 bays, use 20 rows by default
+      if ((bay.bayNumber === 7 || bay.bayNumber === 8) && 
+          (bay.name && bay.name.toLowerCase().includes('team'))) {
+        setRowCount(20);
+      } else {
+        setRowCount(4); // Default for other bays
+      }
     } else {
       // Default values for a new bay
       setName('');
@@ -60,8 +78,16 @@ export function EditBayDialog({
       setAssemblyStaffCount(0);
       setElectricalStaffCount(0);
       setHoursPerPersonPerWeek(32);
+      setRowCount(4);
     }
   }, [bay]);
+
+  // Update row count if Team 7 or 8 is selected
+  useEffect(() => {
+    if (isTeam7Or8 && rowCount !== 20) {
+      setRowCount(20);
+    }
+  }, [isTeam7Or8, rowCount]);
 
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
@@ -72,14 +98,18 @@ export function EditBayDialog({
     try {
       setIsSaving(true);
       
+      // Enhance description to include row count info for Team 7 & 8
+      const enhancedDescription = description + (isTeam7Or8 ? 
+        (description ? ' ' : '') + `(Special configuration with ${rowCount} rows)` : '');
+      
       const bayData = {
         name,
         bayNumber,
-        description,
+        description: enhancedDescription,
         assemblyStaffCount,
         electricalStaffCount,
         staffCount: totalStaffCount, // Set total staff count
-        hoursPerPersonPerWeek,
+        hoursPerPersonPerWeek
       };
       
       const bayId = bay?.id || 0;
@@ -228,6 +258,41 @@ export function EditBayDialog({
             <Label className="text-right font-medium">Weekly Capacity</Label>
             <div className="col-span-3 py-2 px-3 bg-muted rounded border">
               {totalStaffCount * hoursPerPersonPerWeek} hours per week
+            </div>
+          </div>
+          
+          {/* Row Count Configuration */}
+          <div className="border-t border-gray-700 pt-4 pb-1">
+            <h3 className="text-sm font-medium mb-2">Layout Configuration</h3>
+          </div>
+          
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="rowCount" className="text-right">Row Count</Label>
+            <div className="col-span-3">
+              <Select 
+                value={rowCount.toString()} 
+                onValueChange={(val) => setRowCount(parseInt(val))}
+                disabled={isTeam7Or8} // Lock to 20 rows for Team 7 & 8
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select row count" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="4">4 rows (standard)</SelectItem>
+                  <SelectItem value="8">8 rows</SelectItem>
+                  <SelectItem value="12">12 rows</SelectItem>
+                  <SelectItem value="16">16 rows</SelectItem>
+                  <SelectItem value="20">20 rows</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* Add note about Team 7 & 8 special requirement */}
+              {isTeam7Or8 && (
+                <div className="flex items-center mt-2 text-amber-400 text-xs">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Team 7 & 8 always use 20 rows by system requirement
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -111,16 +111,27 @@ const getBayRowCount = (bayId: number, bayName: string): number => {
   // Special handling for Team 7 & 8 - needs 20 rows
   // Bay 7 & 8 should still have normal 4 rows
   
-  // Check for EXACT matches with Team 7 or Team 8 (with or without space)
-  if (bayName && 
+  // Check for Team 7 or 8 by bay number OR name
+  if (
+    // Check if it's bay number 7 or 8
+    (bayId === 7 || bayId === 8) && 
+    // AND the name contains "Team" - this ensures we don't match regular "Bay 7"
+    (bayName && bayName.toLowerCase().includes('team'))
+  ) {
+    console.log(`Using 20 rows for TEAM ${bayId} (${bayName}) by ID and name match`);
+    return 20;
+  }
+  // OR check by exact name match as a fallback
+  else if (bayName && 
       (bayName.trim() === 'Team 7' || 
        bayName.trim() === 'Team 8' || 
        bayName.trim() === 'Team7' || 
        bayName.trim() === 'Team8')) {
-    console.log(`Using 20 rows for TEAM ${bayId} (${bayName})`);
+    console.log(`Using 20 rows for TEAM ${bayId} (${bayName}) by exact name match`);
     return 20;
   }
-  // Standard 4 rows for all other bays including Bay 7 & 8
+  
+  // Standard 4 rows for all other bays
   return 4;
 }
 
