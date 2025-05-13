@@ -1683,16 +1683,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             const positioningModule = await import('@/lib/exactPositioningHandler');
             
             // Use the module for precise date calculation
-            const result = positioningModule.calculateStartDateFromResize({
-              leftPositionPx: exactLeftPx,
-              slotWidth,
-              daysBetweenSlots,
-              slots,
-              initialPositionLeft: resizingSchedule.initialLeft,
-              initialStartDate: resizingSchedule.initialStartDate,
-              bayId: scheduleData?.bayId || 0,
-              bayName: bays.find(b => b.id === scheduleData?.bayId)?.name
-            });
+            const result = positioningModule.calculateStartDateFromResize(
+              exactLeftPx,
+              {
+                slotWidth,
+                daysBetweenSlots,
+                slots,
+                initialPositionLeft: resizingSchedule.initialLeft,
+                initialStartDate: resizingSchedule.initialStartDate,
+                bayId: scheduleData?.bayId || 0,
+                bayName: bays.find(b => b.id === scheduleData?.bayId)?.name
+              }
+            );
             
             if (result) {
               newStartDate = result.date;
@@ -1762,17 +1764,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             const positioningModule = await import('@/lib/exactPositioningHandler');
             
             // Use the module for precise date calculation
-            const result = positioningModule.calculateEndDateFromResize({
-              rightPositionPx: exactRightPx,
-              slotWidth,
-              daysBetweenSlots,
-              slots,
-              initialPositionLeft: resizingSchedule.initialLeft,
-              initialWidth: resizingSchedule.initialWidth,
-              initialEndDate: resizingSchedule.initialEndDate,
-              bayId: scheduleData?.bayId || 0,
-              bayName: bays.find(b => b.id === scheduleData?.bayId)?.name
-            });
+            const result = positioningModule.calculateEndDateFromResize(
+              exactRightPx, 
+              {
+                slotWidth,
+                daysBetweenSlots,
+                slots,
+                initialPositionLeft: resizingSchedule.initialLeft,
+                initialWidth: resizingSchedule.initialWidth,
+                initialEndDate: resizingSchedule.initialEndDate,
+                bayId: scheduleData?.bayId || 0,
+                bayName: bays.find(b => b.id === scheduleData?.bayId)?.name
+              }
+            );
             
             if (result) {
               newEndDate = result.date;

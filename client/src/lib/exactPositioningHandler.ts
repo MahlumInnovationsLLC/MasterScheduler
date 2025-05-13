@@ -192,6 +192,7 @@ export function calculateEndDateFromResize(
     initialWidth: number;
     initialEndDate: Date;
     bayId: number;
+    bayName?: string;
   }
 ): DateResult | null {
   const { 
@@ -253,6 +254,7 @@ export function calculateStartDateFromResize(
     initialPositionLeft: number;
     initialStartDate: Date;
     bayId: number;
+    bayName?: string;
   }
 ): DateResult | null {
   const { 
