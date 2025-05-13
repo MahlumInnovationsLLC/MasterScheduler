@@ -501,6 +501,98 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   const weekHeaderRef = useRef<HTMLDivElement>(null);
   // Removed sticky header refs
   const [draggingSchedule, setDraggingSchedule] = useState<any>(null);
+  
+  // Function to calculate bar position based on dates
+  const calculateBarPosition = (startDate: Date, endDate: Date): { left?: number, width?: number } => {
+    try {
+      // Need to find our viewport date range (what's visible)
+      const viewportStart = dateRange.start;
+      const viewportEnd = dateRange.end;
+      
+      // Ensure dates are valid
+      if (!startDate || !endDate || !viewportStart || !viewportEnd) {
+        console.error("Invalid dates in calculateBarPosition", { startDate, endDate, viewportStart, viewportEnd });
+        return {};
+      }
+      
+      // Calculate day offset from viewport start
+      const daysFromStart = differenceInDays(startDate, viewportStart);
+      
+      // Calculate project duration in days
+      const durationDays = Math.max(1, differenceInDays(endDate, startDate)); // Ensure at least 1 day
+      
+      // Calculate viewport width in days
+      const viewportDays = differenceInDays(viewportEnd, viewportStart);
+      
+      // Calculate the total width of the timeline
+      const timelineContainer = timelineContainerRef.current;
+      if (!timelineContainer) {
+        console.error("Timeline container not found");
+        return {};
+      }
+      
+      const timelineWidth = timelineContainer.clientWidth;
+      
+      // Calculate pixels per day
+      const pixelsPerDay = timelineWidth / viewportDays;
+      
+      // Calculate left position
+      const left = daysFromStart * pixelsPerDay;
+      
+      // Calculate width (ensure minimum width for visibility)
+      const width = Math.max(50, durationDays * pixelsPerDay);
+      
+      console.log("Bar position calculated:", { left, width, daysFromStart, durationDays, pixelsPerDay });
+      
+      return { left, width };
+    } catch (error) {
+      console.error("Error calculating bar position:", error);
+      return {};
+    }
+  };
+  
+  // Function to update the width of department phase elements
+  const updateDepartmentPhaseWidths = (barElement: HTMLElement, totalWidth: number) => {
+    try {
+      // Find all phase elements within this bar
+      const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
+      const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
+      const prodPhase = barElement.querySelector('.dept-prod-phase') as HTMLElement;
+      const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
+      const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
+      const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
+      
+      if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
+        // Calculate phase widths based on their percentages of total width
+        const fabWidth = Math.round(totalWidth * 0.27); // 27%
+        const paintWidth = Math.round(totalWidth * 0.07); // 7%
+        const prodWidth = Math.round(totalWidth * 0.46); // 46%
+        const itWidth = Math.round(totalWidth * 0.07); // 7%
+        const ntcWidth = Math.round(totalWidth * 0.07); // 7%
+        const qcWidth = Math.round(totalWidth * 0.06); // 6%
+        
+        // Update the width and position of each phase
+        fabPhase.style.width = `${fabWidth}px`;
+        
+        paintPhase.style.left = `${fabWidth}px`;
+        paintPhase.style.width = `${paintWidth}px`;
+        
+        prodPhase.style.left = `${fabWidth + paintWidth}px`;
+        prodPhase.style.width = `${prodWidth}px`;
+        
+        itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
+        itPhase.style.width = `${itWidth}px`;
+        
+        ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
+        ntcPhase.style.width = `${ntcWidth}px`;
+        
+        qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
+        qcPhase.style.width = `${qcWidth}px`;
+      }
+    } catch (error) {
+      console.error(`Error updating phase widths:`, error);
+    }
+  };
   const [resizingSchedule, setResizingSchedule] = useState<{
     id: number;
     direction: 'left' | 'right';
@@ -3534,13 +3626,72 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         // Make sure the bar's visual dimensions match the new date range
         // This ensures the bar properly stretches and displays at the right width
-        const { left, width } = calculateBarPosition(startDateObj, endDateObj);
-        if (left !== undefined && width !== undefined) {
+        
+        // Calculate the proper visual dimensions based on the new dates
+        const timelineContainer = document.querySelector('.timeline-container') as HTMLElement;
+        if (timelineContainer) {
+          const viewportStart = dateRange.start;
+          const viewportEnd = dateRange.end;
+          
+          // Calculate day offset from viewport start
+          const daysFromStart = differenceInDays(startDateObj, viewportStart);
+          
+          // Calculate project duration in days
+          const durationDays = Math.max(1, differenceInDays(endDateObj, startDateObj)); // Ensure at least 1 day
+          
+          // Calculate viewport width in days
+          const viewportDays = differenceInDays(viewportEnd, viewportStart);
+          
+          const timelineWidth = timelineContainer.clientWidth;
+          
+          // Calculate pixels per day
+          const pixelsPerDay = timelineWidth / viewportDays;
+          
+          // Calculate left position and width
+          const left = daysFromStart * pixelsPerDay;
+          const width = Math.max(50, durationDays * pixelsPerDay); // Ensure minimum width
+          
+          console.log("Bar position updated:", { left, width, daysFromStart, durationDays });
+          
+          // Apply the visual updates
           barElement.style.left = `${left}px`;
           barElement.style.width = `${width}px`;
           
-          // Also update department phase widths
-          updateDepartmentPhaseWidths(barElement, width);
+          // Also update all department phase widths
+          const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
+          const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
+          const prodPhase = barElement.querySelector('.dept-prod-phase') as HTMLElement;
+          const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
+          const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
+          const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
+          
+          if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
+            // Calculate phase widths based on their percentages of total width
+            const fabWidth = Math.round(width * 0.27); // 27%
+            const paintWidth = Math.round(width * 0.07); // 7%
+            const prodWidth = Math.round(width * 0.46); // 46%
+            const itWidth = Math.round(width * 0.07); // 7%
+            const ntcWidth = Math.round(width * 0.07); // 7%
+            const qcWidth = Math.round(width * 0.06); // 6%
+            
+            // Update the width and position of each phase
+            fabPhase.style.width = `${fabWidth}px`;
+            
+            paintPhase.style.left = `${fabWidth}px`;
+            paintPhase.style.width = `${paintWidth}px`;
+            
+            prodPhase.style.left = `${fabWidth + paintWidth}px`;
+            prodPhase.style.width = `${prodWidth}px`;
+            
+            itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
+            itPhase.style.width = `${itWidth}px`;
+            
+            ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
+            ntcPhase.style.width = `${ntcWidth}px`;
+            
+            qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
+            qcPhase.style.width = `${qcWidth}px`;
+          }
         }
         
         // Temporarily apply a highlight to show the change
