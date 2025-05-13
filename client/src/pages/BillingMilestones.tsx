@@ -50,6 +50,7 @@ const BillingMilestones = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(0); // Default to current month
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0); // Default to first week
+  const [isAcceptingShipDate, setIsAcceptingShipDate] = useState<{[key: number]: boolean}>({}); // Track accept ship date state by milestone ID
   const { toast } = useToast();
   
   // Handler for viewing milestone details
