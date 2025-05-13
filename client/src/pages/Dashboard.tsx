@@ -97,17 +97,58 @@ const Dashboard = () => {
   const projectStats = React.useMemo(() => {
     if (!projects || projects.length === 0) return null;
 
-    const active = projects.filter(p => p.status === 'active').length;
-    const delayed = projects.filter(p => p.status === 'delayed').length;
-    const critical = projects.filter(p => p.status === 'critical').length;
+    const activeProjects = projects.filter(p => p.status === 'active');
+    const delayedProjects = projects.filter(p => p.status === 'delayed');
+    const criticalProjects = projects.filter(p => p.status === 'critical');
+    
+    // Get projects by schedule state
+    const scheduledProjects = manufacturingSchedules 
+      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'Scheduled')
+      : [];
+    const inProgressProjects = manufacturingSchedules
+      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'In Progress')
+      : [];
+    const completeProjects = projects.filter(p => p.status === 'completed');
+    const unscheduledProjects = manufacturingSchedules
+      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'Unscheduled' && p.status !== 'completed')
+      : [];
+    
+    // Simple project info for the popover display
+    const projectLists = {
+      scheduled: scheduledProjects.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      })),
+      inProgress: inProgressProjects.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      })),
+      complete: completeProjects.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      })),
+      unscheduled: unscheduledProjects.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        projectNumber: p.projectNumber 
+      }))
+    };
 
     return {
       total: projects.length,
-      active,
-      delayed,
-      critical
+      active: activeProjects.length,
+      delayed: delayedProjects.length,
+      critical: criticalProjects.length,
+      scheduled: scheduledProjects.length,
+      inProgress: inProgressProjects.length,
+      complete: completeProjects.length,
+      unscheduled: unscheduledProjects.length,
+      projectLists
     };
-  }, [projects]);
+  }, [projects, manufacturingSchedules]);
 
   // Calculate billing stats
   const billingStats = React.useMemo(() => {
@@ -345,6 +386,13 @@ const Dashboard = () => {
             { label: "Delayed", value: projectStats?.delayed || 0, status: "Delayed" },
             { label: "Critical", value: projectStats?.critical || 0, status: "Critical" }
           ]}
+          stateBreakdown={{
+            unscheduled: projectStats?.unscheduled || 0,
+            scheduled: projectStats?.scheduled || 0,
+            inProgress: projectStats?.inProgress || 0,
+            complete: projectStats?.complete || 0
+          }}
+          projectLists={projectStats?.projectLists}
         />
 
         <BillingStatusCard
