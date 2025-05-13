@@ -1633,6 +1633,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
       if (!barElement) return;
       
+      // SPECIAL BAY 3 FIX: Check if we're dealing with Bay 3
+      const scheduleData = schedules.find(s => s.id === resizingSchedule?.id);
+      const isBay3 = scheduleData?.bayId === 3;
+      
+      if (isBay3) {
+        console.log('🚨 SPECIAL BAY 3 RESIZE HANDLING ACTIVATED: Direct date placement for Bay 3');
+        console.log('🚨 BAY 3 RESIZE: Will use direct date calculation without week snapping');
+        
+        // We'll handle Bay 3's special case with additional checks later in this function
+        // But we mark it upfront for bay-specific handling
+      }
+      
       // Clear any resize hover highlights
       document.querySelectorAll('.week-cell-resize-hover').forEach(el => {
         el.classList.remove('week-cell-resize-hover');
@@ -1648,22 +1660,55 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       let newEndDate = new Date(resizingSchedule.initialEndDate);
       
       if (resizingSchedule.direction === 'left') {
-        // Calculate which slot this snapped to
-        const snapSlot = Math.floor(parseInt(barElement.style.left, 10) / slotWidth);
-        
-        if (snapSlot >= 0 && snapSlot < slots.length) {
-          // Get the date from the slot - change starting point only, KEEP the end date fixed
-          newStartDate = new Date(slots[snapSlot].date);
+        if (isBay3) {
+          // SPECIAL BAY 3 HANDLING: Use exact pixel position for precise date calculation
+          console.log('🚨 BAY 3 LEFT RESIZE: Using precise pixel positioning');
+          
+          // Get the exact left position in pixels
+          const exactLeftPx = parseInt(barElement.style.left, 10);
+          
+          // Calculate the exact date based on pixel position without snapping to slots
+          const daysFromStart = (exactLeftPx / slotWidth) * daysBetweenSlots;
+          const msFromStart = daysFromStart * msPerDay;
+          
+          // Add this offset to the first date in our view
+          if (slots.length > 0 && slots[0].date) {
+            // Start from the first visible date and add the exact offset
+            const firstVisibleDate = new Date(slots[0].date);
+            newStartDate = new Date(firstVisibleDate.getTime() + msFromStart);
+            
+            console.log('🚨 BAY 3 CALCULATED START DATE:', format(newStartDate, 'yyyy-MM-dd'));
+          } else {
+            // Fallback to pixel-based calculation from the schedule's initial position
+            const pixelsDelta = exactLeftPx - resizingSchedule.initialLeft;
+            const pixelsPerDay = slotWidth / daysBetweenSlots;
+            const daysDelta = pixelsDelta / pixelsPerDay; // Don't round - use exact value
+            newStartDate = addDays(resizingSchedule.initialStartDate, daysDelta);
+            
+            console.log('🚨 BAY 3 FALLBACK CALCULATION:', format(newStartDate, 'yyyy-MM-dd'));
+          }
+          
           // The end date is unchanged when resizing from left
           newEndDate = new Date(resizingSchedule.initialEndDate);
         } else {
-          // Fallback to pixel-based calculation
-          const pixelsDelta = parseInt(barElement.style.left, 10) - resizingSchedule.initialLeft;
-          const pixelsPerDay = slotWidth / daysBetweenSlots;
-          const daysDelta = Math.round(pixelsDelta / pixelsPerDay);
-          newStartDate = addDays(resizingSchedule.initialStartDate, daysDelta);
-          // The end date is unchanged when resizing from left
-          newEndDate = new Date(resizingSchedule.initialEndDate);
+          // Standard behavior for other bays - snap to slots
+          // Calculate which slot this snapped to
+          const snapSlot = Math.floor(parseInt(barElement.style.left, 10) / slotWidth);
+          
+          if (snapSlot >= 0 && snapSlot < slots.length) {
+            // Get the date from the slot - change starting point only, KEEP the end date fixed
+            newStartDate = new Date(slots[snapSlot].date);
+            // The end date is unchanged when resizing from left
+            newEndDate = new Date(resizingSchedule.initialEndDate);
+          } else {
+            // Fallback to pixel-based calculation
+            const pixelsDelta = parseInt(barElement.style.left, 10) - resizingSchedule.initialLeft;
+            const pixelsPerDay = slotWidth / daysBetweenSlots;
+            const daysDelta = Math.round(pixelsDelta / pixelsPerDay);
+            newStartDate = addDays(resizingSchedule.initialStartDate, daysDelta);
+            // The end date is unchanged when resizing from left
+            newEndDate = new Date(resizingSchedule.initialEndDate);
+          }
         }
         
         // Ensure start date is not after end date
@@ -1672,52 +1717,88 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           newStartDate.setDate(newEndDate.getDate() - 1); // At least 1 day between start and end
         }
       } else {
-        // Calculate precise cell positioning for the right edge (cell-by-cell resize)
-        const rightEdge = parseInt(barElement.style.left, 10) + parseInt(barElement.style.width, 10);
-        
-        // Calculate cell width (4 cells per week) for more precise snapping 
-        const cellWidth = slotWidth / 4;
-        const cellsPerDay = 4 / daysBetweenSlots; // How many cells per day
-        
-        // Snap to cell boundary instead of week boundary
-        const snapCell = Math.round(rightEdge / cellWidth);
-        
-        if (snapCell * cellWidth >= 0) {
-          // Get the date from the starting week slot
-          const weekIndex = Math.floor(snapCell / 4); // Which week are we in
-          const cellOffset = snapCell % 4; // Which cell within that week (0-3)
+        if (isBay3) {
+          // SPECIAL BAY 3 HANDLING: Use exact pixel position for precise date calculation
+          console.log('🚨 BAY 3 RIGHT RESIZE: Using precise pixel positioning');
           
-          if (weekIndex >= 0 && weekIndex < slots.length) {
-            // Start with the date from the week
-            newEndDate = new Date(slots[weekIndex].date);
+          // Get the exact right edge position in pixels
+          const exactRightPx = parseInt(barElement.style.left, 10) + parseInt(barElement.style.width, 10);
+          
+          // Calculate the exact date based on pixel position without snapping to slots
+          const daysFromStart = (exactRightPx / slotWidth) * daysBetweenSlots;
+          const msFromStart = daysFromStart * msPerDay;
+          
+          // Add this offset to the first date in our view
+          if (slots.length > 0 && slots[0].date) {
+            // Start from the first visible date and add the exact offset
+            const firstVisibleDate = new Date(slots[0].date);
+            newEndDate = new Date(firstVisibleDate.getTime() + msFromStart);
             
-            // Add days based on cell position within the week
-            // Each cell is 1/4 of a week (approximately 1-2 days depending on view)
-            const daysToAdd = Math.ceil(cellOffset / cellsPerDay);
-            newEndDate = addDays(newEndDate, daysToAdd);
-            
-            // The date should be the end of the day (not start)
+            // Set to end of day for end date
             newEndDate.setHours(23, 59, 59);
             
-            console.log(`Cell-based resize: Week ${weekIndex}, Cell ${cellOffset}, Adding ${daysToAdd} days`);
+            console.log('🚨 BAY 3 CALCULATED END DATE:', format(newEndDate, 'yyyy-MM-dd'));
           } else {
-            // We're outside the visible timeline - use fallback
-            const cellDelta = snapCell - (resizingSchedule.initialLeft / cellWidth + resizingSchedule.initialWidth / cellWidth);
-            const dayDelta = Math.round(cellDelta / cellsPerDay);
-            newEndDate = addDays(resizingSchedule.initialEndDate, dayDelta);
+            // Fallback to pixel-based calculation from the schedule's initial position
+            const pixelsDelta = exactRightPx - (resizingSchedule.initialLeft + resizingSchedule.initialWidth);
+            const pixelsPerDay = slotWidth / daysBetweenSlots;
+            const daysDelta = pixelsDelta / pixelsPerDay; // Don't round - use exact value
+            newEndDate = addDays(resizingSchedule.initialEndDate, daysDelta);
             
-            console.log(`Fallback resize: Cell delta ${cellDelta}, Day delta ${dayDelta}`);
+            // Set to end of day for end date
+            newEndDate.setHours(23, 59, 59);
+            
+            console.log('🚨 BAY 3 FALLBACK END DATE CALCULATION:', format(newEndDate, 'yyyy-MM-dd'));
           }
         } else {
-          // Fallback to a constrained pixel-based calculation
-          // Limit extension to a reasonable size
-          const pixelsDelta = rightEdge - (resizingSchedule.initialLeft + resizingSchedule.initialWidth);
-          const maxExtensionPixels = slotWidth * 4; // Limit to 4 weeks
-          const constrainedDelta = Math.min(pixelsDelta, maxExtensionPixels);
+          // Standard behavior for other bays
+          // Calculate precise cell positioning for the right edge (cell-by-cell resize)
+          const rightEdge = parseInt(barElement.style.left, 10) + parseInt(barElement.style.width, 10);
           
-          const pixelsPerDay = slotWidth / daysBetweenSlots;
-          const daysDelta = Math.round(constrainedDelta / pixelsPerDay);
-          newEndDate = addDays(resizingSchedule.initialEndDate, daysDelta);
+          // Calculate cell width (4 cells per week) for more precise snapping 
+          const cellWidth = slotWidth / 4;
+          const cellsPerDay = 4 / daysBetweenSlots; // How many cells per day
+          
+          // Snap to cell boundary instead of week boundary
+          const snapCell = Math.round(rightEdge / cellWidth);
+          
+          if (snapCell * cellWidth >= 0) {
+            // Get the date from the starting week slot
+            const weekIndex = Math.floor(snapCell / 4); // Which week are we in
+            const cellOffset = snapCell % 4; // Which cell within that week (0-3)
+            
+            if (weekIndex >= 0 && weekIndex < slots.length) {
+              // Start with the date from the week
+              newEndDate = new Date(slots[weekIndex].date);
+              
+              // Add days based on cell position within the week
+              // Each cell is 1/4 of a week (approximately 1-2 days depending on view)
+              const daysToAdd = Math.ceil(cellOffset / cellsPerDay);
+              newEndDate = addDays(newEndDate, daysToAdd);
+              
+              // The date should be the end of the day (not start)
+              newEndDate.setHours(23, 59, 59);
+              
+              console.log(`Cell-based resize: Week ${weekIndex}, Cell ${cellOffset}, Adding ${daysToAdd} days`);
+            } else {
+              // We're outside the visible timeline - use fallback
+              const cellDelta = snapCell - (resizingSchedule.initialLeft / cellWidth + resizingSchedule.initialWidth / cellWidth);
+              const dayDelta = Math.round(cellDelta / cellsPerDay);
+              newEndDate = addDays(resizingSchedule.initialEndDate, dayDelta);
+              
+              console.log(`Fallback resize: Cell delta ${cellDelta}, Day delta ${dayDelta}`);
+            }
+          } else {
+            // Fallback to a constrained pixel-based calculation
+            // Limit extension to a reasonable size
+            const pixelsDelta = rightEdge - (resizingSchedule.initialLeft + resizingSchedule.initialWidth);
+            const maxExtensionPixels = slotWidth * 4; // Limit to 4 weeks
+            const constrainedDelta = Math.min(pixelsDelta, maxExtensionPixels);
+            
+            const pixelsPerDay = slotWidth / daysBetweenSlots;
+            const daysDelta = Math.round(constrainedDelta / pixelsPerDay);
+            newEndDate = addDays(resizingSchedule.initialEndDate, daysDelta);
+          }
         }
         
         // Ensure end date is not before start date
@@ -3452,6 +3533,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   const applyManualResize = (scheduleId: number, newStartDate: string, newEndDate: string, row?: number) => {
     const schedule = schedules.find(s => s.id === scheduleId);
     if (!schedule) return;
+    
+    // SPECIAL BAY 3 FIX: Add direct date handling for Bay 3
+    // This ensures exact date placement works the same way for resizing as it does for initial drop
+    const isBay3 = schedule.bayId === 3;
+    if (isBay3) {
+      console.log('🚨 SPECIAL BAY 3 RESIZE HANDLING: Will place project exactly at target position');
+      console.log(`🚨 BAY 3 RESIZE DIRECT DATE HANDLING: Using exact dates without adjustments`);
+      console.log('🚨 BAY 3 RESIZE DIRECT FIX: Start date:', newStartDate);
+      console.log('🚨 BAY 3 RESIZE DIRECT FIX: End date:', newEndDate);
+      
+      // We don't need to make any date adjustments for Bay 3 - use the dates exactly as provided
+      // This mirrors the initial drop behavior that we fixed for Bay 3
+    }
     
     // Check if there's a capacity impact
     const capacityImpact = checkCapacityImpact(scheduleId, newEndDate);
