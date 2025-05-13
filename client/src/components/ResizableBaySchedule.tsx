@@ -2169,12 +2169,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // CRITICAL BUG FIX: ALWAYS use the current bay where user is dragging! 
     // Previous logic was trying to keep consistent bay which caused projects to jump to wrong bay
     // We want to use EXACTLY the bay where the user is currently dragging
+    // IMPROVED BAY SELECTION: For bay ID always use the explicit parameter first
+    // This ensures bay 3 works correctly
     const currentBayId = bayId; // Directly use the bayId parameter from the current event
     const currentRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
     
+    // Store the bay ID in body attribute for other functions to use
+    document.body.setAttribute('data-current-drag-bay', bayId.toString());
+    
     // CRITICAL FIX: ALWAYS use the EXACT current bay where cursor is
-    // DO NOT reference stored/original bay ID - this is what caused projects to jump
+    // DO NOT reference stored/original bay ID - this is what caused projects to jump to wrong bays
     const forcedBayId = currentBayId;
+    
+    // Extra safety measure for Bay 3: when dragging over bay 3, 
+    // make sure the element's data-bay-id attribute is set correctly
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.setAttribute('data-bay-id', bayId.toString());
+    }
     
     // Use the current row where the user is dragging
     const validRowIndex = Math.max(0, Math.min(3, rowIndex !== undefined ? rowIndex : currentRowIndex));
@@ -5167,8 +5178,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             // Prevent event from propagating to parent elements
                             e.stopPropagation();
                             
-                            // Store the row index in a body attribute for the drop handler
+                            // Store the row index and bay ID in body attributes for the drop handler
                             document.body.setAttribute('data-current-drag-row', '1');
+                            document.body.setAttribute('data-current-drag-bay', bay.id.toString());
+                            
+                            // Ensure the element has the correct bay ID attribute
+                            if (e.currentTarget instanceof HTMLElement) {
+                              e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
+                            }
                             
                             // Add highlight classes
                             e.currentTarget.classList.add('cell-highlight', 'row-1-highlight');
@@ -5286,8 +5303,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             // Prevent event from propagating to parent elements
                             e.stopPropagation();
                             
-                            // Store the row index in a body attribute for the drop handler
+                            // Store the row index and bay ID in body attributes for the drop handler
                             document.body.setAttribute('data-current-drag-row', '2');
+                            document.body.setAttribute('data-current-drag-bay', bay.id.toString());
+                            
+                            // Ensure the element has the correct bay ID attribute
+                            if (e.currentTarget instanceof HTMLElement) {
+                              e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
+                            }
                             
                             // Add highlight classes
                             e.currentTarget.classList.add('cell-highlight', 'row-2-highlight');
@@ -5405,8 +5428,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             // Prevent event from propagating to parent elements
                             e.stopPropagation();
                             
-                            // Store the row index in a body attribute for the drop handler
+                            // Store the row index and bay ID in body attributes for the drop handler
                             document.body.setAttribute('data-current-drag-row', '3');
+                            document.body.setAttribute('data-current-drag-bay', bay.id.toString());
+                            
+                            // Ensure the element has the correct bay ID attribute
+                            if (e.currentTarget instanceof HTMLElement) {
+                              e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
+                            }
                             
                             // Add highlight classes
                             e.currentTarget.classList.add('cell-highlight', 'row-3-highlight');
