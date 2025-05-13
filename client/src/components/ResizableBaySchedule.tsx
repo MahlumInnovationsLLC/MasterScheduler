@@ -1245,10 +1245,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Reset the hover slot state
     setResizeHoverSlot(null);
     
-    // Add resize event listeners
-    document.addEventListener('mousemove', handleResizeMove);
-    document.addEventListener('mouseup', handleResizeEnd);
-    
     // Add a cursor style to the body
     document.body.style.cursor = 'ew-resize';
     
@@ -1257,15 +1253,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   
   // Handle mouse movement during resize
   const handleResizeMove = (e: MouseEvent) => {
-    if (!resizingSchedule) return;
+    if (!resizingSchedule) {
+      console.log("No active resize operation");
+      return;
+    }
     
-    // Find the schedule bar element
+    e.preventDefault();
+    
+    // Find the schedule bar element using data attribute for reliability
     const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
-    if (!barElement) return;
+    if (!barElement) {
+      console.error(`Bar element not found for schedule ${resizingSchedule.id}`);
+      return;
+    }
     
+    // Calculate the drag delta
     const deltaX = e.clientX - resizingSchedule.startX;
-    const timelineContainer = barElement.closest('.timeline-container');
-    if (!timelineContainer) return;
+    
+    // Get the timeline container
+    const timelineContainer = timelineContainerRef.current || barElement.closest('.timeline-container') as HTMLElement;
+    if (!timelineContainer) {
+      console.error("Timeline container not found");
+      return;
+    }
     
     // Get the main scrollable container
     const mainScrollContainer = document.querySelector('.main-content') as HTMLElement;
@@ -1289,6 +1299,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         mainScrollContainer.scrollLeft -= SCROLL_SPEED;
       }
     }
+    
+    console.log(`Resize move: deltaX=${deltaX}px, direction=${resizingSchedule.direction}`);
     
     // Calculate which week/slot we're hovering over
     // First, get the timeline container offset
