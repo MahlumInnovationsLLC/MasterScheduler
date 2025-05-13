@@ -114,16 +114,16 @@ export function EditBayDialog({
       await onSave(bayId, bayData);
       
       toast({
-        title: `Team ${isNewBay ? 'Created' : 'Updated'}`,
-        description: `Team ${name} has been ${isNewBay ? 'created' : 'updated'} successfully.`,
+        title: `Bay ${isNewBay ? 'Created' : 'Updated'}`,
+        description: `Bay ${name} has been ${isNewBay ? 'created' : 'updated'} successfully.`,
       });
       
       onClose();
     } catch (error) {
-      console.error('Error saving team:', error);
+      console.error('Error saving bay:', error);
       toast({
         title: "Error",
-        description: `Failed to ${isNewBay ? 'create' : 'update'} team. Please try again.`,
+        description: `Failed to ${isNewBay ? 'create' : 'update'} bay. Please try again.`,
         variant: "destructive"
       });
     } finally {
@@ -140,16 +140,16 @@ export function EditBayDialog({
       await onDelete(bay.id);
       
       toast({
-        title: "Team Deleted",
-        description: `Team ${bay.name} has been deleted successfully.`,
+        title: "Bay Deleted",
+        description: `Bay ${bay.name} has been deleted successfully.`,
       });
       
       onClose();
     } catch (error) {
-      console.error('Error deleting team:', error);
+      console.error('Error deleting bay:', error);
       toast({
         title: "Error",
-        description: "Failed to delete team. Please try again.",
+        description: "Failed to delete bay. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -162,17 +162,17 @@ export function EditBayDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{isNewBay ? 'Create New Team' : `Edit Team ${bay?.name}`}</DialogTitle>
+          <DialogTitle>{isNewBay ? 'Create New Bay' : `Edit Bay ${bay?.name}`}</DialogTitle>
           <DialogDescription>
             {isNewBay 
-              ? 'Add a new manufacturing team with staff and capacity details.'
-              : `Update staff counts and capacity for Team ${bay?.name}.`}
+              ? 'Add a new manufacturing bay with staff and capacity details.'
+              : `Update staff counts and capacity for Bay ${bay?.name}.`}
           </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="bayNumber" className="text-right">Team Number</Label>
+            <Label htmlFor="bayNumber" className="text-right">Bay Number</Label>
             <Input
               id="bayNumber"
               type="number"
@@ -185,7 +185,7 @@ export function EditBayDialog({
           </div>
           
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">Team Name</Label>
+            <Label htmlFor="name" className="text-right">Bay Name</Label>
             <Input
               id="name"
               value={name}
@@ -327,7 +327,7 @@ export function EditBayDialog({
                     disabled={isSaving}
                     className="text-destructive border-destructive hover:bg-destructive/10"
                   >
-                    Delete Team
+                    Delete Bay
                   </Button>
                 )}
               </>
