@@ -1677,25 +1677,46 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           // Get the exact left position in pixels
           const exactLeftPx = parseInt(barElement.style.left, 10);
           
-          // Calculate the exact date based on pixel position without snapping to slots
-          const daysFromStart = (exactLeftPx / slotWidth) * daysBetweenSlots;
-          const msFromStart = daysFromStart * msPerDay;
-          
-          // Add this offset to the first date in our view
-          if (slots.length > 0 && slots[0].date) {
-            // Start from the first visible date and add the exact offset
-            const firstVisibleDate = new Date(slots[0].date);
-            newStartDate = new Date(firstVisibleDate.getTime() + msFromStart);
+          // Use the exactPositioningHandler for consistent date calculation
+          try {
+            // Dynamic import to avoid initial load issues
+            const positioningModule = await import('@/lib/exactPositioningHandler');
             
-            console.log(`${bayPrefix} CALCULATED START DATE:`, format(newStartDate, 'yyyy-MM-dd'));
-          } else {
-            // Fallback to pixel-based calculation from the schedule's initial position
-            const pixelsDelta = exactLeftPx - resizingSchedule.initialLeft;
-            const pixelsPerDay = slotWidth / daysBetweenSlots;
-            const daysDelta = pixelsDelta / pixelsPerDay; // Don't round - use exact value
-            newStartDate = addDays(resizingSchedule.initialStartDate, daysDelta);
+            // Use the module for precise date calculation
+            const result = positioningModule.calculateStartDateFromResize({
+              leftPositionPx: exactLeftPx,
+              slotWidth,
+              daysBetweenSlots,
+              slots,
+              initialPositionLeft: resizingSchedule.initialLeft,
+              initialStartDate: resizingSchedule.initialStartDate,
+              bayId: scheduleData?.bayId || 0,
+              bayName: bays.find(b => b.id === scheduleData?.bayId)?.name
+            });
             
-            console.log(`${bayPrefix} FALLBACK CALCULATION:`, format(newStartDate, 'yyyy-MM-dd'));
+            if (result) {
+              newStartDate = result.date;
+              console.log(`${bayPrefix} LEFT RESIZE: New start date via exactPositioningHandler: ${format(newStartDate, 'yyyy-MM-dd')}`);
+            } else {
+              throw new Error('No result from exactPositioningHandler');
+            }
+          } catch (error) {
+            console.error('Failed to use exactPositioningHandler:', error);
+            
+            // Fallback to our legacy direct calculation
+            if (slots.length > 0 && slots[0].date) {
+              const daysFromStart = (exactLeftPx / slotWidth) * daysBetweenSlots;
+              const msFromStart = daysFromStart * msPerDay;
+              const firstVisibleDate = new Date(slots[0].date);
+              newStartDate = new Date(firstVisibleDate.getTime() + msFromStart);
+              console.log(`${bayPrefix} FALLBACK CALCULATION (from visible date):`, format(newStartDate, 'yyyy-MM-dd'));
+            } else {
+              const pixelsDelta = exactLeftPx - resizingSchedule.initialLeft;
+              const pixelsPerDay = slotWidth / daysBetweenSlots;
+              const daysDelta = pixelsDelta / pixelsPerDay; // Don't round - use exact value
+              newStartDate = addDays(resizingSchedule.initialStartDate, daysDelta);
+              console.log(`${bayPrefix} FALLBACK CALCULATION (delta-based):`, format(newStartDate, 'yyyy-MM-dd'));
+            }
           }
           
           // The end date is unchanged when resizing from left
@@ -1735,31 +1756,59 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           // Get the exact right edge position in pixels
           const exactRightPx = parseInt(barElement.style.left, 10) + parseInt(barElement.style.width, 10);
           
-          // Calculate the exact date based on pixel position without snapping to slots
-          const daysFromStart = (exactRightPx / slotWidth) * daysBetweenSlots;
-          const msFromStart = daysFromStart * msPerDay;
-          
-          // Add this offset to the first date in our view
-          if (slots.length > 0 && slots[0].date) {
-            // Start from the first visible date and add the exact offset
-            const firstVisibleDate = new Date(slots[0].date);
-            newEndDate = new Date(firstVisibleDate.getTime() + msFromStart);
+          // Use the exactPositioningHandler for consistent date calculation
+          try {
+            // Dynamic import to avoid initial load issues
+            const positioningModule = await import('@/lib/exactPositioningHandler');
             
-            // Set to end of day for end date
-            newEndDate.setHours(23, 59, 59);
+            // Use the module for precise date calculation
+            const result = positioningModule.calculateEndDateFromResize({
+              rightPositionPx: exactRightPx,
+              slotWidth,
+              daysBetweenSlots,
+              slots,
+              initialPositionLeft: resizingSchedule.initialLeft,
+              initialWidth: resizingSchedule.initialWidth,
+              initialEndDate: resizingSchedule.initialEndDate,
+              bayId: scheduleData?.bayId || 0,
+              bayName: bays.find(b => b.id === scheduleData?.bayId)?.name
+            });
             
-            console.log(`${bayPrefix} CALCULATED END DATE:`, format(newEndDate, 'yyyy-MM-dd'));
-          } else {
-            // Fallback to pixel-based calculation from the schedule's initial position
-            const pixelsDelta = exactRightPx - (resizingSchedule.initialLeft + resizingSchedule.initialWidth);
-            const pixelsPerDay = slotWidth / daysBetweenSlots;
-            const daysDelta = pixelsDelta / pixelsPerDay; // Don't round - use exact value
-            newEndDate = addDays(resizingSchedule.initialEndDate, daysDelta);
+            if (result) {
+              newEndDate = result.date;
+              
+              // Set to end of day for end date
+              newEndDate.setHours(23, 59, 59);
+              
+              console.log(`${bayPrefix} RIGHT RESIZE: New end date via exactPositioningHandler: ${format(newEndDate, 'yyyy-MM-dd')}`);
+            } else {
+              throw new Error('No result from exactPositioningHandler');
+            }
+          } catch (error) {
+            console.error('Failed to use exactPositioningHandler:', error);
             
-            // Set to end of day for end date
-            newEndDate.setHours(23, 59, 59);
-            
-            console.log(`${bayPrefix} FALLBACK END DATE CALCULATION:`, format(newEndDate, 'yyyy-MM-dd'));
+            // Fallback to our legacy direct calculation
+            if (slots.length > 0 && slots[0].date) {
+              const daysFromStart = (exactRightPx / slotWidth) * daysBetweenSlots;
+              const msFromStart = daysFromStart * msPerDay;
+              const firstVisibleDate = new Date(slots[0].date);
+              newEndDate = new Date(firstVisibleDate.getTime() + msFromStart);
+              
+              // Set to end of day for end date
+              newEndDate.setHours(23, 59, 59);
+              
+              console.log(`${bayPrefix} FALLBACK CALCULATION (from visible date):`, format(newEndDate, 'yyyy-MM-dd'));
+            } else {
+              const pixelsDelta = exactRightPx - (resizingSchedule.initialLeft + resizingSchedule.initialWidth);
+              const pixelsPerDay = slotWidth / daysBetweenSlots;
+              const daysDelta = pixelsDelta / pixelsPerDay; // Don't round - use exact value
+              newEndDate = addDays(resizingSchedule.initialEndDate, daysDelta);
+              
+              // Set to end of day for end date
+              newEndDate.setHours(23, 59, 59);
+              
+              console.log(`${bayPrefix} FALLBACK CALCULATION (delta-based):`, format(newEndDate, 'yyyy-MM-dd'));
+            }
           }
         } else {
           // Standard behavior for other bays
