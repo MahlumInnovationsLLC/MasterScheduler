@@ -1305,13 +1305,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           color: getProjectColor(project.id),
           row: assignedRow,
           
-          // Department percentages
+          // Department percentages and normalization factor
           fabPercentage,
           paintPercentage,
           productionPercentage,
           itPercentage,
           ntcPercentage,
           qcPercentage,
+          normalizeFactor,
           
           // Department widths
           fabWidth,
@@ -5318,7 +5319,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         className={`absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all big-project-bar schedule-bar ${rowClass}`}
                         style={{
                           left: bar.left + 'px',
-                          width: bar.width - 4 + 'px',  // -4 for border spacing
+                          width: bar.width + 'px',  // Removed the -4px to ensure chevrons align with full bar width
                           backgroundColor: 'transparent', // Make background transparent since we're using department phases
                           opacity: draggingSchedule?.id === bar.id ? 0.5 : 1,
                           ...(isMultiRowBay ? rowHeight : {}) // Apply custom row height for multi-row bays
@@ -5389,7 +5390,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           <div
                             className="dept-phase dept-fab-phase rounded-l-sm"
                             style={{
-                              width: bar.fabWidth + 'px'
+                              width: `calc(${bar.fabPercentage * bar.normalizeFactor / 100} * 100%)`,
+                              maxWidth: bar.fabWidth + 'px'
                             }}
                             title={`FAB: ${bar.fabPercentage}% (${Math.round(bar.totalHours * bar.fabPercentage / 100)}h)`}
                           >
