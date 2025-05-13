@@ -105,6 +105,16 @@ interface ScheduleBar {
   fabWeeks: number; // Number of weeks for FAB phase
 }
 
+// Helper function to determine how many rows a bay should have
+const getBayRowCount = (bayId: number, bayName: string): number => {
+  // Special handling for Team 7 & 8 - needs 20 rows
+  if (bayId === 4 || bayName.includes('Bay 7 & 8')) {
+    return 20;
+  }
+  // Standard 4 rows for all other bays
+  return 4;
+}
+
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
   const slots = [];
   let current = new Date(dateRange.start);
@@ -795,17 +805,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
       );
       
-      // Initialize row tracking for this bay - allowing more rows for better scheduling
-      const rowEndDates: Date[] = [
-        new Date(0), // Row 0
-        new Date(0), // Row 1
-        new Date(0), // Row 2
-        new Date(0), // Row 3
-        new Date(0), // Row 4 (added to support more projects)
-        new Date(0), // Row 5
-        new Date(0), // Row 6
-        new Date(0)  // Row 7
-      ];
+      // Initialize row tracking for this bay - using dynamic row count based on bay
+      const rowCount = getBayRowCount(bay.id, bay.name);
+      const rowEndDates: Date[] = Array(rowCount).fill(new Date(0)).map(() => new Date(0));
       
       // First pass: Calculate when schedules overlap and adjust their end dates
       // This is crucial for redistributing hours when projects share capacity
