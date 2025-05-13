@@ -1141,6 +1141,8 @@ body.resizing-mode .resize-handle {
   display: flex;
   gap: 6px;
   z-index: 50;
+  opacity: 1 !important; /* Force visibility */
+  visibility: visible !important; /* Force visibility */
 }
 
 .row-add-button {
@@ -1149,11 +1151,13 @@ body.resizing-mode .resize-handle {
   height: 20px;
   width: 20px;
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  opacity: 1 !important; /* Force visibility */
+  visibility: visible !important; /* Force visibility */
 }
 
 .row-delete-button {
@@ -1162,9 +1166,11 @@ body.resizing-mode .resize-handle {
   height: 20px;
   width: 20px;
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  opacity: 1 !important; /* Force visibility */
+  visibility: visible !important; /* Force visibility */
 }
