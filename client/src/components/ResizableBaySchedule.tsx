@@ -1746,35 +1746,87 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         newLeft = rightEdge - minWidth;
       }
       
-      // Apply visual update with real-time feedback
+      // CRITICAL RESIZE FIX: Apply visual update with real-time feedback
       barElement.style.left = `${newLeft}px`;
       barElement.style.width = `${newWidth}px`;
       
+      // Set data attributes for debugging
+      barElement.dataset.leftResizePosition = newLeft.toString();
+      barElement.dataset.leftResizeWidth = newWidth.toString();
+      barElement.dataset.originalLeft = resizingSchedule.initialLeft.toString();
+      
+      // Force the browser to perform a reflow to ensure the position/width updates are applied
+      barElement.getBoundingClientRect();
+      
       // Add visual feedback classes during resize
       barElement.classList.add('resizing-active');
+      if (!barElement.classList.contains('resize-from-left')) {
+        barElement.classList.add('resize-from-left');
+      }
       
-      // Get the project data to use in phase width calculations
-      const schedule = schedules.find(s => s.id === resizingSchedule.id);
-      const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
+      // DIRECT PHASE UPDATE: Get all departmental phase elements
+      const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
+      const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
+      const prodPhase = barElement.querySelector('.dept-prod-phase') as HTMLElement;
+      const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
+      const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
+      const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
       
-      if (project) {
-        // Apply phase updates using the exact project percentages
-        // Use the component-level helper function
-        updateDepartmentPhaseWidths(barElement, newWidth);
+      if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
+        // Get the project data to use in phase width calculations
+        const schedule = schedules.find(s => s.id === resizingSchedule.id);
+        const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
         
-        // Log precise resizing info for debugging
-        console.log(`Resizing project ${project.projectNumber} (ID ${project.id}): `, {
-          newWidth,
-          fabPercentage: project.fabPercentage,
-          paintPercentage: project.paintPercentage,
-          productionPercentage: project.productionPercentage,
-          itPercentage: project.itPercentage,
-          ntcPercentage: project.ntcPercentage,
-          qcPercentage: project.qcPercentage
+        // Use project-specific phase percentages or fallback to company standard defaults
+        const fabPercentage = project ? (parseFloat(project.fabPercentage as any) || 27) : 27;
+        const paintPercentage = project ? (parseFloat(project.paintPercentage as any) || 7) : 7; 
+        const productionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
+        const itPercentage = project ? (parseFloat(project.itPercentage as any) || 7) : 7;
+        const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 7) : 7;
+        const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 7) : 7;
+        
+        // Calculate the total percentage and normalization factor
+        const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
+                                itPercentage + ntcPercentage + qcPercentage;
+        const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
+        
+        // Calculate phase widths based on normalized percentages
+        const fabWidth = Math.round(newWidth * (fabPercentage * normalizeFactor / 100));
+        const paintWidth = Math.round(newWidth * (paintPercentage * normalizeFactor / 100));
+        const prodWidth = Math.round(newWidth * (productionPercentage * normalizeFactor / 100));
+        const itWidth = Math.round(newWidth * (itPercentage * normalizeFactor / 100));
+        const ntcWidth = Math.round(newWidth * (ntcPercentage * normalizeFactor / 100));
+        const qcWidth = Math.round(newWidth * (qcPercentage * normalizeFactor / 100));
+        
+        // DIRECT DOM UPDATES: Apply width and position changes immediately
+        fabPhase.style.width = `${fabWidth}px`;
+        
+        paintPhase.style.left = `${fabWidth}px`;
+        paintPhase.style.width = `${paintWidth}px`;
+        
+        prodPhase.style.left = `${fabWidth + paintWidth}px`;
+        prodPhase.style.width = `${prodWidth}px`;
+        
+        itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
+        itPhase.style.width = `${itWidth}px`;
+        
+        ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
+        ntcPhase.style.width = `${ntcWidth}px`;
+        
+        qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
+        qcPhase.style.width = `${qcWidth}px`;
+        
+        // Debugging to verify phase widths
+        console.log(`DIRECT LEFT RESIZE for ${project?.projectNumber || 'unknown'}: `, {
+          newLeft,
+          barWidth: newWidth,
+          phases: { fabWidth, paintWidth, prodWidth, itWidth, ntcWidth, qcWidth },
+          sum: fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth
         });
       } else {
-        // Fallback to default function if project not found
+        // Fallback to helper function if any phase element is missing
         updateDepartmentPhaseWidths(barElement, newWidth);
+        console.log("Using fallback updateDepartmentPhaseWidths method - missing phase elements");
       }
     } else {
       // Resizing from right (changing end date)
@@ -1794,8 +1846,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const maxWidth = slotWidth * 24; // 24 weeks maximum (6 months)
       newWidth = Math.min(newWidth, maxWidth);
       
-      // Update visual appearance while dragging
+      // CRITICAL RESIZE FIX: Update project bar width directly
       barElement.style.width = `${newWidth}px`;
+      
+      // Set data attributes for debugging
+      barElement.dataset.rightResizeWidth = newWidth.toString();
+      barElement.dataset.originalResizeWidth = resizingSchedule.initialWidth.toString();
+      barElement.dataset.deltaResize = (newWidth - resizingSchedule.initialWidth).toString();
+      
+      // Force the browser to perform a reflow to ensure the width update is applied
+      barElement.getBoundingClientRect();
       
       // Add visual feedback classes during resize
       barElement.classList.add('resizing-active');
@@ -1803,28 +1863,68 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         barElement.classList.add('resize-from-right');
       }
       
-      // Get the project data to use in phase width calculations
-      const schedule = schedules.find(s => s.id === resizingSchedule.id);
-      const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
+      // DIRECT PHASE UPDATE: Get all departmental phase elements
+      const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
+      const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
+      const prodPhase = barElement.querySelector('.dept-prod-phase') as HTMLElement;
+      const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
+      const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
+      const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
       
-      if (project) {
-        // Apply phase updates using the exact project percentages
-        // Use the component-level helper function
-        updateDepartmentPhaseWidths(barElement, newWidth);
+      if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
+        // Get the project data to use in phase width calculations
+        const schedule = schedules.find(s => s.id === resizingSchedule.id);
+        const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
         
-        // Log precise resizing info for debugging
-        console.log(`Resizing project ${project.projectNumber} (ID ${project.id}) from right: `, {
-          newWidth,
-          fabPercentage: project.fabPercentage,
-          paintPercentage: project.paintPercentage,
-          productionPercentage: project.productionPercentage,
-          itPercentage: project.itPercentage,
-          ntcPercentage: project.ntcPercentage,
-          qcPercentage: project.qcPercentage
+        // Use project-specific phase percentages or fallback to company standard defaults
+        const fabPercentage = project ? (parseFloat(project.fabPercentage as any) || 27) : 27;
+        const paintPercentage = project ? (parseFloat(project.paintPercentage as any) || 7) : 7; 
+        const productionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
+        const itPercentage = project ? (parseFloat(project.itPercentage as any) || 7) : 7;
+        const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 7) : 7;
+        const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 7) : 7;
+        
+        // Calculate the total percentage and normalization factor
+        const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
+                                itPercentage + ntcPercentage + qcPercentage;
+        const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
+        
+        // Calculate phase widths based on normalized percentages
+        const fabWidth = Math.round(newWidth * (fabPercentage * normalizeFactor / 100));
+        const paintWidth = Math.round(newWidth * (paintPercentage * normalizeFactor / 100));
+        const prodWidth = Math.round(newWidth * (productionPercentage * normalizeFactor / 100));
+        const itWidth = Math.round(newWidth * (itPercentage * normalizeFactor / 100));
+        const ntcWidth = Math.round(newWidth * (ntcPercentage * normalizeFactor / 100));
+        const qcWidth = Math.round(newWidth * (qcPercentage * normalizeFactor / 100));
+        
+        // DIRECT DOM UPDATES: Apply width and position changes immediately
+        fabPhase.style.width = `${fabWidth}px`;
+        
+        paintPhase.style.left = `${fabWidth}px`;
+        paintPhase.style.width = `${paintWidth}px`;
+        
+        prodPhase.style.left = `${fabWidth + paintWidth}px`;
+        prodPhase.style.width = `${prodWidth}px`;
+        
+        itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
+        itPhase.style.width = `${itWidth}px`;
+        
+        ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
+        ntcPhase.style.width = `${ntcWidth}px`;
+        
+        qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
+        qcPhase.style.width = `${qcWidth}px`;
+        
+        // Debugging to verify phase widths
+        console.log(`DIRECT RIGHT RESIZE for ${project?.projectNumber || 'unknown'}: `, {
+          barWidth: newWidth,
+          phases: { fabWidth, paintWidth, prodWidth, itWidth, ntcWidth, qcWidth },
+          sum: fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth
         });
       } else {
-        // Fallback to default function if project not found
+        // Fallback to helper function if any phase element is missing
         updateDepartmentPhaseWidths(barElement, newWidth);
+        console.log("Using fallback updateDepartmentPhaseWidths method - missing phase elements");
       }
       
       // Add debugging attributes
@@ -2000,18 +2100,85 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       console.log(`Applying resize with row ${visualRow} (mapped from ${rowToUse})`);
       
-      // CRITICAL FIX: Force update phases immediately before applying the resize
-      // Use the current width from the DOM for the manual resize
+      // CRITICAL FIX: Force phase updates with direct DOM manipulation before applying the resize
       const barWidth = parseInt(barElement.style.width, 10);
-      console.log(`FINAL RESIZE PHASE UPDATE - Forcing phases to update with width: ${barWidth}px`);
+      console.log(`FINAL RESIZE PHASE UPDATE - Forcing phases to match exact bar width: ${barWidth}px`);
       
-      // Directly update departmental phases with the current width from the DOM
-      // This must happen BEFORE the server call to ensure immediate visual feedback
-      updateDepartmentPhaseWidths(barElement, barWidth);
+      // DIRECT PHASE HANDLING: Get all departmental phase elements
+      const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
+      const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
+      const prodPhase = barElement.querySelector('.dept-prod-phase') as HTMLElement;
+      const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
+      const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
+      const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
       
-      // Add attribute to verify update was applied
+      if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
+        // Get the schedule and project data for precise phase percentages
+        const schedule = schedules.find(s => s.id === resizingSchedule.id);
+        const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
+        
+        // Use project-specific phase percentages or fallback to defaults
+        const fabPercentage = project ? (parseFloat(project.fabPercentage as any) || 27) : 27;
+        const paintPercentage = project ? (parseFloat(project.paintPercentage as any) || 7) : 7; 
+        const productionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
+        const itPercentage = project ? (parseFloat(project.itPercentage as any) || 7) : 7;
+        const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 7) : 7;
+        const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 7) : 7;
+        
+        // Calculate normalization factor if percentages don't add up to 100
+        const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
+                              itPercentage + ntcPercentage + qcPercentage;
+        const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
+        
+        // Calculate exact phase widths based on normalized percentages
+        const fabWidth = Math.round(barWidth * (fabPercentage * normalizeFactor / 100));
+        const paintWidth = Math.round(barWidth * (paintPercentage * normalizeFactor / 100));
+        const prodWidth = Math.round(barWidth * (productionPercentage * normalizeFactor / 100));
+        const itWidth = Math.round(barWidth * (itPercentage * normalizeFactor / 100));
+        const ntcWidth = Math.round(barWidth * (ntcPercentage * normalizeFactor / 100));
+        
+        // Last phase (QC) gets the remaining width to ensure exact fit (accounting for rounding)
+        const sumOtherPhases = fabWidth + paintWidth + prodWidth + itWidth + ntcWidth;
+        const qcWidth = barWidth - sumOtherPhases;
+        
+        // Apply width and position changes directly to phase elements
+        fabPhase.style.width = `${fabWidth}px`;
+        
+        paintPhase.style.left = `${fabWidth}px`;
+        paintPhase.style.width = `${paintWidth}px`;
+        
+        prodPhase.style.left = `${fabWidth + paintWidth}px`;
+        prodPhase.style.width = `${prodWidth}px`;
+        
+        itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
+        itPhase.style.width = `${itWidth}px`;
+        
+        ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
+        ntcPhase.style.width = `${ntcWidth}px`;
+        
+        qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
+        qcPhase.style.width = `${qcWidth}px`;
+        
+        // Verify phase widths and positions match exactly
+        console.log(`FINAL DIRECT PHASE UPDATES for ${project?.projectNumber || 'unknown'}:`, {
+          exactBarWidth: barWidth,
+          phases: { fabWidth, paintWidth, prodWidth, itWidth, ntcWidth, qcWidth },
+          sumWidths: fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth,
+          exactMatch: (fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth) === barWidth
+        });
+      } else {
+        // Fallback to using the general update function if any phase is missing
+        updateDepartmentPhaseWidths(barElement, barWidth);
+        console.log("Using fallback updateDepartmentPhaseWidths method - missing phase elements");
+      }
+      
+      // Force browser reflow to ensure all changes are applied
+      barElement.getBoundingClientRect();
+      
+      // Add attributes to verify update was applied for debugging
       barElement.setAttribute('data-final-resize-width', barWidth.toString());
       barElement.setAttribute('data-resize-complete', 'true');
+      barElement.setAttribute('data-phases-updated', 'direct-manipulation');
       
       // Use applyManualResize which will check for capacity impacts
       applyManualResize(
