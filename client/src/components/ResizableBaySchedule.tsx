@@ -1171,50 +1171,37 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           return (toSlotIndex - fromSlotIndex) * slotWidth;
         };
         
-        // Calculate phase widths based on actual dates when available
-        if (fabStartDate && paintStartDate) {
-          // FAB phase: from fabStart to paintStart
-          fabWidth = getWidthBetweenDates(fabStartDate, paintStartDate);
-        } else {
-          fabWidth = Math.floor(barWidth * (fabPercentage / 100));
-        }
+        // PRIORITY: When a project is in bay schedule, use the schedule's percentages to calculate phases
+        // This ensures that the bar visualization matches the actual scheduling
         
-        if (paintStartDate && assemblyStartDate) {
-          // PAINT phase: from paintStart to assemblyStart
-          paintWidth = getWidthBetweenDates(paintStartDate, assemblyStartDate);
-        } else {
-          paintWidth = Math.floor(barWidth * (paintPercentage / 100));
-        }
+        // Calculate the total of all percentages to ensure they add up to 100%
+        const totalPercentages = fabPercentage + paintPercentage + productionPercentage + itPercentage + ntcPercentage + qcPercentage;
         
-        if (assemblyStartDate && ntcStartDate) {
-          // PRODUCTION phase: from assemblyStart to ntcStart
-          productionWidth = getWidthBetweenDates(assemblyStartDate, ntcStartDate);
-        } else {
-          productionWidth = Math.floor(barWidth * (productionPercentage / 100));
-        }
+        // Use a normalizing factor if the percentages don't add up to 100
+        const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
         
-        if (ntcStartDate && qcStartDate) {
-          // Split into IT and NTC phases
-          const midDate = new Date(ntcStartDate);
-          midDate.setDate(midDate.getDate() + Math.floor(differenceInDays(qcStartDate, ntcStartDate) * 0.5));
-          
-          // IT phase: from ntcStart to halfway point
-          itWidth = getWidthBetweenDates(ntcStartDate, midDate);
-          
-          // NTC phase: from halfway point to qcStart
-          ntcWidth = getWidthBetweenDates(midDate, qcStartDate);
-        } else {
-          // Fallback to percentages
-          itWidth = Math.floor(barWidth * (itPercentage / 100));
-          ntcWidth = Math.floor(barWidth * (ntcPercentage / 100));
-        }
+        // Calculate phase widths strictly based on percentages 
+        // This ensures consistency with the project's phase percentages regardless of dates
+        fabWidth = Math.floor(barWidth * ((fabPercentage * normalizeFactor) / 100));
+        paintWidth = Math.floor(barWidth * ((paintPercentage * normalizeFactor) / 100));
+        productionWidth = Math.floor(barWidth * ((productionPercentage * normalizeFactor) / 100));
+        itWidth = Math.floor(barWidth * ((itPercentage * normalizeFactor) / 100));
+        ntcWidth = Math.floor(barWidth * ((ntcPercentage * normalizeFactor) / 100));
+        qcWidth = Math.floor(barWidth * ((qcPercentage * normalizeFactor) / 100));
         
-        if (qcStartDate) {
-          // QC phase: from qcStart to endDate
-          qcWidth = getWidthBetweenDates(qcStartDate, endDate);
-        } else {
-          qcWidth = Math.floor(barWidth * (qcPercentage / 100));
-        }
+        console.log(`Project ${project.projectNumber} phase calculations:`, {
+          totalPercentages,
+          normalizeFactor,
+          barWidth,
+          phases: {
+            fab: { percent: fabPercentage, width: fabWidth },
+            paint: { percent: paintPercentage, width: paintWidth },
+            production: { percent: productionPercentage, width: productionWidth },
+            it: { percent: itPercentage, width: itWidth },
+            ntc: { percent: ntcPercentage, width: ntcWidth },
+            qc: { percent: qcPercentage, width: qcWidth }
+          }
+        });
         
         // Ensure minimum widths for visibility
         fabWidth = Math.max(4, fabWidth || 0);
@@ -1227,40 +1214,69 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Adjust total to ensure it matches barWidth exactly
         const calculatedTotal = fabWidth + paintWidth + productionWidth + itWidth + ntcWidth + qcWidth;
         if (calculatedTotal !== barWidth) {
-          // Adjust phases proportionally
-          const diff = calculatedTotal - barWidth;
-          const factor = barWidth / calculatedTotal;
+          // First, calculate what portion of the total each phase represents
+          const totalValue = calculatedTotal;
+          const fabPortion = fabWidth / totalValue;
+          const paintPortion = paintWidth / totalValue;
+          const productionPortion = productionWidth / totalValue;
+          const itPortion = itWidth / totalValue;
+          const ntcPortion = ntcWidth / totalValue;
+          const qcPortion = qcWidth / totalValue;
           
-          fabWidth = Math.floor(fabWidth * factor);
-          paintWidth = Math.floor(paintWidth * factor);
-          productionWidth = Math.floor(productionWidth * factor);
-          itWidth = Math.floor(itWidth * factor);
-          ntcWidth = Math.floor(ntcWidth * factor);
-          qcWidth = Math.floor(qcWidth * factor);
+          // Now distribute the barWidth according to these proportions
+          fabWidth = Math.floor(barWidth * fabPortion);
+          paintWidth = Math.floor(barWidth * paintPortion);
+          productionWidth = Math.floor(barWidth * productionPortion);
+          itWidth = Math.floor(barWidth * itPortion);
+          ntcWidth = Math.floor(barWidth * ntcPortion);
+          qcWidth = Math.floor(barWidth * qcPortion);
           
-          // Ensure any remaining pixels are added to the largest section
+          // Calculate how many pixels we're missing due to rounding
           const calculatedTotal2 = fabWidth + paintWidth + productionWidth + itWidth + ntcWidth + qcWidth;
           const remainingPixels = barWidth - calculatedTotal2;
           
           if (remainingPixels > 0) {
+            // Create an array of all sections with their proportions
             const sections = [
-              {name: 'fabWidth', value: fabWidth},
-              {name: 'paintWidth', value: paintWidth},
-              {name: 'productionWidth', value: productionWidth},
-              {name: 'itWidth', value: itWidth},
-              {name: 'ntcWidth', value: ntcWidth},
-              {name: 'qcWidth', value: qcWidth}
+              {name: 'fab', value: fabWidth, portion: fabPortion},
+              {name: 'paint', value: paintWidth, portion: paintPortion},
+              {name: 'production', value: productionWidth, portion: productionPortion},
+              {name: 'it', value: itWidth, portion: itPortion},
+              {name: 'ntc', value: ntcWidth, portion: ntcPortion},
+              {name: 'qc', value: qcWidth, portion: qcPortion}
             ];
             
-            sections.sort((a, b) => b.value - a.value);
+            // Sort by portion (largest proportion first) to distribute extra pixels proportionally
+            sections.sort((a, b) => b.portion - a.portion);
             
-            // Add remaining pixels to the largest section
-            if (sections[0].name === 'fabWidth') fabWidth += remainingPixels;
-            else if (sections[0].name === 'paintWidth') paintWidth += remainingPixels;
-            else if (sections[0].name === 'productionWidth') productionWidth += remainingPixels;
-            else if (sections[0].name === 'itWidth') itWidth += remainingPixels;
-            else if (sections[0].name === 'ntcWidth') ntcWidth += remainingPixels;
-            else if (sections[0].name === 'qcWidth') qcWidth += remainingPixels;
+            // Distribute remaining pixels proportionally starting with largest sections
+            let pixelsLeft = remainingPixels;
+            let index = 0;
+            
+            while (pixelsLeft > 0 && index < sections.length) {
+              const pixelsToAdd = Math.min(pixelsLeft, Math.ceil(remainingPixels * sections[index].portion));
+              
+              // Add pixels to the appropriate section
+              if (sections[index].name === 'fab') fabWidth += pixelsToAdd;
+              else if (sections[index].name === 'paint') paintWidth += pixelsToAdd;
+              else if (sections[index].name === 'production') productionWidth += pixelsToAdd;
+              else if (sections[index].name === 'it') itWidth += pixelsToAdd;
+              else if (sections[index].name === 'ntc') ntcWidth += pixelsToAdd;
+              else if (sections[index].name === 'qc') qcWidth += pixelsToAdd;
+              
+              pixelsLeft -= pixelsToAdd;
+              index++;
+            }
+            
+            // If we still have pixels left, just add them to the largest section
+            if (pixelsLeft > 0) {
+              if (sections[0].name === 'fab') fabWidth += pixelsLeft;
+              else if (sections[0].name === 'paint') paintWidth += pixelsLeft;
+              else if (sections[0].name === 'production') productionWidth += pixelsLeft;
+              else if (sections[0].name === 'it') itWidth += pixelsLeft;
+              else if (sections[0].name === 'ntc') ntcWidth += pixelsLeft;
+              else if (sections[0].name === 'qc') qcWidth += pixelsLeft;
+            }
           }
         }
         
