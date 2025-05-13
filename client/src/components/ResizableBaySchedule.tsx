@@ -1682,19 +1682,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             // Dynamic import to avoid initial load issues
             const positioningModule = await import('@/lib/exactPositioningHandler');
             
-            // Use the module for precise date calculation
-            const result = positioningModule.calculateStartDateFromResize(
-              exactLeftPx,
-              {
-                slotWidth,
-                daysBetweenSlots,
-                slots,
-                initialPositionLeft: resizingSchedule.initialLeft,
-                initialStartDate: resizingSchedule.initialStartDate,
-                bayId: scheduleData?.bayId || 0,
-                bayName: bays.find(b => b.id === scheduleData?.bayId)?.name
-              }
-            );
+            // Use the module for precise date calculation if we have all necessary data
+            const result = resizingSchedule && resizingSchedule.initialStartDate
+              ? positioningModule.calculateStartDateFromResize(
+                  exactLeftPx,
+                  {
+                    slotWidth,
+                    daysBetweenSlots,
+                    slots,
+                    initialPositionLeft: resizingSchedule.initialLeft,
+                    initialStartDate: resizingSchedule.initialStartDate,
+                    bayId: scheduleData?.bayId || 0,
+                    bayName: bays.find(b => b.id === scheduleData?.bayId)?.name
+                  }
+                )
+              : null;
             
             if (result) {
               newStartDate = result.date;
@@ -1763,20 +1765,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             // Dynamic import to avoid initial load issues
             const positioningModule = await import('@/lib/exactPositioningHandler');
             
-            // Use the module for precise date calculation
-            const result = positioningModule.calculateEndDateFromResize(
-              exactRightPx, 
-              {
-                slotWidth,
-                daysBetweenSlots,
-                slots,
-                initialPositionLeft: resizingSchedule.initialLeft,
-                initialWidth: resizingSchedule.initialWidth,
-                initialEndDate: resizingSchedule.initialEndDate,
-                bayId: scheduleData?.bayId || 0,
-                bayName: bays.find(b => b.id === scheduleData?.bayId)?.name
-              }
-            );
+            // Use the module for precise date calculation if we have all necessary data
+            const result = resizingSchedule && resizingSchedule.initialEndDate 
+              ? positioningModule.calculateEndDateFromResize(
+                  exactRightPx, 
+                  {
+                    slotWidth,
+                    daysBetweenSlots,
+                    slots,
+                    initialPositionLeft: resizingSchedule.initialLeft,
+                    initialWidth: resizingSchedule.initialWidth,
+                    initialEndDate: resizingSchedule.initialEndDate,
+                    bayId: scheduleData?.bayId || 0,
+                    bayName: bays.find(b => b.id === scheduleData?.bayId)?.name
+                  }
+                )
+              : null;
             
             if (result) {
               newEndDate = result.date;
