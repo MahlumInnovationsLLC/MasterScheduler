@@ -649,8 +649,8 @@ const ProjectStatus = () => {
         </div>
       ),
       { sortingFn: 'alphanumeric', size: 260 }),
-    createColumn('pmOwner', 'pmOwnerId', 'PM Owner', 
-      (value) => <div className="text-sm">{value || 'Unassigned'}</div>,
+    createColumn('pmOwner', 'pmOwner', 'PM Owner', 
+      (value, project) => <EditableTextField projectId={project.id} field="pmOwner" value={value || ''} placeholder="Unassigned" />,
       { size: 150 }),
     {
       id: 'timeline',
