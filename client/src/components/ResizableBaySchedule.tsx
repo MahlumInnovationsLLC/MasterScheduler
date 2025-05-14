@@ -2937,8 +2937,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // Get the exact bay row count (4 for normal bays, 20 for TCV Line)
     const bay = bays.find(b => b.id === bayId);
+    // Store as targetBay for future reference
+    const targetBay = bay;
     const TOTAL_ROWS = getBayRowCount(bayId, bay?.name || '');
     const rowHeight = containerRect.height / TOTAL_ROWS;
+    
+    // Set maxRowForBay based on bay type
+    const maxRowForBay = targetBay?.bayNumber === 7 ? 19 : 3; // (20 rows = indexes 0-19, 4 rows = indexes 0-3)
     
     // Calculate exact row index based on finalY position - NO BOUNDS CHECKING
     const targetRowIndex = Math.max(
@@ -3005,6 +3010,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // Read data attributes from the drop target element for more precise week targeting
     let targetElement = e.target as HTMLElement;
+    
+    // Initialize targetSlotIndex - will be set from data attributes
+    let targetSlotIndex = -1;
     
     // First try the direct target element for data attributes
     const dataBayId = targetElement.getAttribute('data-bay-id');
@@ -3535,22 +3543,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`  - Schedule ID: ${data.id}`);
         console.log(`  - Project ID: ${data.projectId}`);
         console.log(`  - Project Number: ${data.projectNumber}`);
-        console.log(`  - Bay ID: ${finalBayId} (${bay.name})`);
-        console.log(`  - Row Index: ${finalRowIndex} (max row for this bay: ${maxRowForBay})`);
+        console.log(`  - Bay ID: ${bayId} (${bay?.name || 'unknown'})`);
+        console.log(`  - Row Index: ${targetRowIndex} (calculated from drop position)`);
         console.log(`  - Start Date: ${startDateToUse}`); 
         console.log(`  - End Date: ${formattedFinalEndDate}`);
-        console.log(`  - Target bay has ${targetBay?.bayNumber === 7 ? 20 : 4} rows (indexes 0-${maxRowForBay})`);
+        console.log(`  - Target bay has ${bay?.bayNumber === 7 ? 20 : 4} rows`);
         console.log(`  - Drop coordinates: x=${e.clientX}, y=${e.clientY}`);
         
         // Add visual indicator to the DOM to show exact bay/row placement for debugging
-        document.body.setAttribute('data-last-drop-bay', finalBayId.toString());
-        document.body.setAttribute('data-last-drop-row', finalRowIndex.toString());
+        document.body.setAttribute('data-last-drop-bay', bayId.toString());
+        document.body.setAttribute('data-last-drop-row', targetRowIndex.toString());
         
         // CRITICAL: Force the backend to use this exact row position
-        document.body.setAttribute('data-force-exact-row', finalRowIndex.toString());
+        document.body.setAttribute('data-force-exact-row', targetRowIndex.toString());
         
         // Log the exact row placement for verification
-        console.log(`💯 FORCING EXACT ROW PLACEMENT: ${finalRowIndex}`);
+        console.log(`💯 FORCING EXACT ROW PLACEMENT: ${targetRowIndex}`);
         
         // Go back to using the provided handler function
         // to avoid breaking changes in the component interface
