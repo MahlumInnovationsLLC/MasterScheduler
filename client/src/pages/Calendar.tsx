@@ -107,6 +107,12 @@ const CalendarPage = () => {
     queryKey: ['/api/phases'],
     enabled: isAuthenticated,
   });
+  
+  // Fetch billing milestones for display
+  const { data: billingMilestones = [] } = useQuery({
+    queryKey: ['/api/billing-milestones'],
+    enabled: isAuthenticated,
+  });
 
   // Set up form with validation
   const form = useForm<ScheduleForm>({
@@ -208,6 +214,43 @@ const CalendarPage = () => {
 
   // Generate phase items for all projects
   const phaseItems = projects.flatMap(project => getProjectPhaseDates(project.id));
+  
+  // Generate billing milestone items
+  const billingMilestoneItems: ScheduleItem[] = billingMilestones
+    .filter(milestone => milestone.targetInvoiceDate && projects.some(p => p.id === milestone.projectId))
+    .map(milestone => {
+      const project = projects.find(p => p.id === milestone.projectId);
+      
+      // Determine color based on milestone status
+      let statusColor = '';
+      switch (milestone.status) {
+        case 'delayed':
+          statusColor = 'bg-red-600/80 text-white';
+          break;
+        case 'upcoming':
+          statusColor = 'bg-amber-600/80 text-white';
+          break;
+        case 'invoiced':
+          statusColor = 'bg-blue-600/80 text-white';
+          break;
+        case 'paid':
+          statusColor = 'bg-green-600/80 text-white';
+          break;
+        default:
+          statusColor = 'bg-gray-600/80 text-white';
+      }
+      
+      return {
+        id: `billing-${milestone.id}`,
+        title: `${milestone.name} - ${project?.name || 'Unknown Project'}`,
+        date: milestone.targetInvoiceDate,
+        project: project?.projectNumber || '',
+        status: 'billing',
+        color: statusColor,
+        projectId: project?.id,
+        notes: milestone.description || milestone.notes || ''
+      };
+    });
 
   // Convert manufacturing schedules to calendar schedule items
   const scheduleItems: ScheduleItem[] = schedules

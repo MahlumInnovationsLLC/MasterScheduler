@@ -189,23 +189,51 @@ export function CalendarSchedule({ items, onDateClick, onItemClick }: CalendarSc
                   const statusColor = item.color || getStatusColor(item.status);
                   const displayText = getEventDisplayText(item, date);
                   
-                  return (
-                    <div 
-                      key={`${item.id}-${idx}`}
-                      className={cn(
-                        "text-xs mb-1 p-1 rounded truncate cursor-pointer",
-                        statusColor,
-                        "hover:opacity-90 transition-opacity"
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onItemClick?.(item);
-                      }}
-                      title={`${item.title} - ${item.bay || ''} - ${item.project}`}
-                    >
-                      {displayText}
-                    </div>
-                  );
+                  // Different display for milestones vs schedules
+                  const isMilestone = item.status === 'milestone' || item.status === 'billing';
+                  
+                  if (isMilestone) {
+                    // Display as text with colored dot for milestones
+                    return (
+                      <div 
+                        key={`${item.id}-${idx}`}
+                        className="text-xs mb-1 p-1 flex items-center gap-1 cursor-pointer hover:bg-gray-800 rounded transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onItemClick?.(item);
+                        }}
+                        title={`${item.title} - ${item.project}`}
+                      >
+                        <div 
+                          className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            item.color.includes('bg-') 
+                              ? item.color.replace('text-white', '') 
+                              : `bg-${item.color.replace('text-white', '')}`
+                          }`}
+                        ></div>
+                        <span className="truncate">{displayText}</span>
+                      </div>
+                    );
+                  } else {
+                    // Display as colored bar for schedules
+                    return (
+                      <div 
+                        key={`${item.id}-${idx}`}
+                        className={cn(
+                          "text-xs mb-1 p-1 rounded truncate cursor-pointer",
+                          statusColor,
+                          "hover:opacity-90 transition-opacity"
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onItemClick?.(item);
+                        }}
+                        title={`${item.title} - ${item.bay || ''} - ${item.project}`}
+                      >
+                        {displayText}
+                      </div>
+                    );
+                  }
                 })}
               </div>
               
