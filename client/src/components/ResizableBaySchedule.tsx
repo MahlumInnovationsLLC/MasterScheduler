@@ -2834,24 +2834,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     console.log(`🔴 CRITICAL FIX: Using exact bayId=${bayId} from drop event parameters - NO EXCEPTIONS`);
     
     // Define finalBayId but set it directly to the parameter value with ZERO special handling
-    let finalBayId = bayId;
-    
-    // COMPLETELY REMOVED ALL BAY 3 SPECIAL HANDLING
-    // Projects now stay in the exact bay where they're dropped regardless of which bay it is
+    const finalBayId = bayId;
     
     // Remove any bay-specific attributes from the document body
     document.body.removeAttribute('data-bay-three-drop');
     document.body.removeAttribute('data-bay-three-drag');
     
-    // CRITICAL FIX: DISABLE ALL BAY DETECTION & OVERRIDE LOGIC
-    // ALWAYS use the exact bay ID from the parameter
-    
     console.log(`🔒 EXACT PLACEMENT: Using exact bay ID ${bayId} from drop event`);
     console.log(`📍 Project will be placed EXACTLY in Bay ${bayId}, Row ${rowIndex}`);
-    
-    // Force the finalBayId to be exactly what came from the event parameter
-    // No overrides, no detection, no adjustments - pure exact placement
-    finalBayId = bayId; // Using the already declared variable
     
     console.log('❌ All bay detection and override logic disabled for precise placement');
     console.log('✅ Project will stay EXACTLY where dropped');
@@ -2865,46 +2855,40 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       e.currentTarget.classList.add(`drop-bay-${finalBayId}`);
     }
     
-    // For row, we will still use the global attribute if available as it works correctly
-    const globalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
+    // SIMPLIFY ROW HANDLING: Always use the exact row from event parameter with no adjustments whatsoever
+    // This is the critical change to ensure projects stay exactly where they're dropped
+    let targetRowIndex = rowIndex;
     
-    // ENHANCED ROW SELECTION WITH BAY 3 FIX: 
-    // 1. First check if rowIndex from direct handler is valid (not undefined & >= 0)
-    // 2. Then check the global attribute (set during cell hover) 
-    // 3. Finally fall back to 0 as a safe default
-    let targetRowIndex;
-    
-    // Get the event target to check if this is a bay-specific drop area
-    const dropTarget = e.currentTarget as HTMLElement;
-    const dropTargetBayId = dropTarget?.getAttribute('data-bay-id');
-    
-    // REMOVED ALL AUTO-CORRECTION CODE
-    // Project stays exactly where it's dropped, no correction or adjustment
-    // No bay ID override, no detection, no fixing of any kind
-    console.log(`🔒 EXACT PLACEMENT: Using precisely the bay ID and element from drop event`);
-    // We DO NOT change any element attributes here - projects stay EXACTLY where they are dropped
-    
-    if (rowIndex !== undefined && rowIndex >= 0) {
-      console.log(`Using direct row parameter: ${rowIndex} for bay ${bayId}`);
-      targetRowIndex = rowIndex;
-    } else if (globalRowIndex >= 0) {
-      console.log(`Using global row attribute: ${globalRowIndex} for bay ${bayId}`);
-      targetRowIndex = globalRowIndex;
-    } else {
-      console.log(`No valid row found, using default row 0 for bay ${bayId}`);
-      targetRowIndex = 0;
+    // If for some reason rowIndex is invalid (undefined, null, negative), only then check alternate sources
+    if (rowIndex === undefined || rowIndex < 0) {
+      // Check for direct data-row attribute on drop target
+      const dropTarget = e.currentTarget as HTMLElement;
+      const dataRow = dropTarget?.getAttribute('data-row');
+      if (dataRow !== null && !isNaN(parseInt(dataRow))) {
+        targetRowIndex = parseInt(dataRow);
+        console.log(`Using data-row attribute from drop target: ${targetRowIndex}`);
+      } 
+      // Last resort fallback to global attribute
+      else {
+        const globalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
+        if (globalRowIndex >= 0) {
+          targetRowIndex = globalRowIndex;
+          console.log(`Using global row attribute: ${targetRowIndex}`);
+        } else {
+          targetRowIndex = 0;
+          console.log(`No valid row found, using default row 0`);
+        }
+      }
     }
     
-    // NO SAFETY BOUNDS CHECK - keep row EXACTLY as provided
-    // This ensures the project stays in exactly the row where it was dropped
-    // We DO NOT limit or adjust the row index in any way
-    console.log(`🔵 EXACT ROW PLACEMENT: Using row ${targetRowIndex} without any adjustment or bounds checking`);
+    console.log(`FINAL ROW DECISION: Using row ${targetRowIndex} in bay ${finalBayId}`);
+    console.log(`⚠️ NO SAFETY CHECKS - Project will be placed EXACTLY in row ${targetRowIndex}, bay ${finalBayId}`);
     
     // CRITICAL: We already decided to use the exact bay ID from the drop event parameter
     // DO NOT modify the bayId parameter - use it directly to ensure correct placement
     
     console.log(`⚠️ FIXED DROP HANDLER using actual drop target bay: ${bayId} with row: ${targetRowIndex} `);
-    console.log(`(Current row=${globalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
+    console.log(`(Direct parameter row=${rowIndex})`);
     
     // Read data attributes from the drop target element for more precise week targeting
     let targetElement = e.target as HTMLElement;
@@ -3241,21 +3225,27 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Define the placement function 
       const handlePlacement = () => {
-        console.log(`SIMPLIFIED PLACEMENT SYSTEM: Using exact row=${targetRowIndex} in bay=${exactBayId}`);
-        console.log(`NO AUTO ADJUSTMENTS APPLIED: Project will be placed EXACTLY where it was dropped`);
+        console.log(`✅ EXACT PLACEMENT: Project will be placed in bay=${exactBayId}, row=${targetRowIndex}`);
+        console.log(`📌 GUARANTEED ACCURACY: Sending EXACT row and bay to backend with NO MODIFICATIONS`);
         
         // Format dates for API call
         const formattedStartDate = format(slotDate || new Date(), 'yyyy-MM-dd');
         const formattedEndDate = format(estimatedEndDate || new Date(), 'yyyy-MM-dd');
               
         try {
+          // Log exactly what's being sent to the API for debugging
+          console.log(`🚀 API PLACEMENT: bay=${exactBayId}, row=${targetRowIndex}, start=${formattedStartDate}, end=${formattedEndDate}`);
+          
           // Determine if this is a new schedule or an existing one being moved
           if (data.type === 'existing') {
             // CRITICAL: Pass the exact row number to maintain position
+            console.log(`♻️ UPDATING EXISTING SCHEDULE: id=${data.id}, row=${targetRowIndex}`);
             onScheduleChange(data.id, exactBayId, formattedStartDate, formattedEndDate, data.totalHours || null, targetRowIndex)
               .then(() => {
                 // Successful update
                 toast({ description: "Schedule updated" });
+                // Final verification log to confirm data was sent correctly
+                console.log(`✓ PLACEMENT CONFIRMED: Schedule ${data.id} placed in exact bay ${exactBayId}, row ${targetRowIndex}`);
               })
               .catch(error => {
                 console.error('Failed to update schedule:', error);
@@ -3268,10 +3258,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           } else {
             // Creating a new schedule
             // CRITICAL: Pass the exact row number to maintain position
+            console.log(`🆕 CREATING NEW SCHEDULE: project=${data.projectId}, row=${targetRowIndex}`);
             onScheduleCreate(data.projectId, exactBayId, formattedStartDate, formattedEndDate, data.totalHours || null, targetRowIndex)
               .then(() => {
                 // Successful creation
                 toast({ description: "Schedule created" });
+                // Final verification log to confirm data was sent correctly
+                console.log(`✓ PLACEMENT CONFIRMED: New schedule for project ${data.projectId} placed in exact bay ${exactBayId}, row ${targetRowIndex}`);
               })
               .catch(error => {
                 console.error('Failed to create schedule:', error);
