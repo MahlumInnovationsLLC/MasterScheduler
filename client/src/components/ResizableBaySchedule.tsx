@@ -3424,6 +3424,31 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       });
       
       if (data.type === 'existing') {
+        // Move variable declaration to fix "used before declaration" error
+        // First calculate the final row index from all the available sources
+        const exactRowFromPixelCalc = document.body.getAttribute('data-forced-row-index');
+        const exactRowFromDragCoords = document.body.getAttribute('data-current-drag-row');
+        const exactRowFromDrop = document.body.getAttribute('data-exact-row-drop');
+        const exactRowFromLastSelect = document.body.getAttribute('data-last-row-select');
+
+        // FORCE using pixel-perfect calculation directly - DO NOT APPLY ANY LOGIC OR VALIDATION
+        // Do not check for min/max - user specifically wants absolute control
+        const forcedExactRowIndex = exactRowFromPixelCalc 
+          ? parseInt(exactRowFromPixelCalc) 
+          : (exactRowFromDragCoords 
+              ? parseInt(exactRowFromDragCoords) 
+              : (exactRowFromDrop 
+                  ? parseInt(exactRowFromDrop) 
+                  : (exactRowFromLastSelect 
+                      ? parseInt(exactRowFromLastSelect) 
+                      : targetRowIndex)));
+
+        // CRITICAL: HARDCODE DEFAULT TO ROW 0 FOR SAFETY - prevent any null/undefined values
+        // This ensures we always have a valid row even if all drag tracking fails
+        const finalRowIndex = (typeof forcedExactRowIndex === 'number' && !isNaN(forcedExactRowIndex)) 
+          ? forcedExactRowIndex 
+          : 0;
+        
         console.log('Moving existing schedule with data:', {
           id: data.id,
           projectId: data.projectId,
@@ -3485,35 +3510,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const finalBayId = actualBayId;
         
         // ABSOLUTELY CRITICAL FIX - FORCE EXACT ROW PLACEMENT WITH ZERO EXCEPTIONS
-        // Directly use the row from pixel-perfect calculation with no adjustments whatsoever
-  
-        // Get the MOST ACCURATE row reference - from our pixel-perfect calculation
-        // This is set in handleDrop after calculating the exact row based on Y position
-        const exactRowFromPixelCalc = document.body.getAttribute('data-forced-row-index');
-  
-        // Try all available data attributes to ensure we get the most accurate row
-        const exactRowFromDragCoords = document.body.getAttribute('data-current-drag-row');
-        const exactRowFromDrop = document.body.getAttribute('data-exact-row-drop');
-        const exactRowFromLastSelect = document.body.getAttribute('data-last-row-select');
-  
-        // FORCE using pixel-perfect calculation directly - DO NOT APPLY ANY LOGIC OR VALIDATION
-        // Do not check for min/max - user specifically wants absolute control
-        const forcedExactRowIndex = exactRowFromPixelCalc 
-          ? parseInt(exactRowFromPixelCalc) 
-          : (exactRowFromDragCoords 
-              ? parseInt(exactRowFromDragCoords) 
-              : (exactRowFromDrop 
-                  ? parseInt(exactRowFromDrop) 
-                  : (exactRowFromLastSelect 
-                      ? parseInt(exactRowFromLastSelect) 
-                      : targetRowIndex)));
-  
-        // CRITICAL: HARDCODE DEFAULT TO ROW 0 FOR SAFETY - prevent any null/undefined values
-        // This ensures we always have a valid row even if all drag tracking fails
-        const finalRowIndex = (typeof forcedExactRowIndex === 'number' && !isNaN(forcedExactRowIndex)) 
-          ? forcedExactRowIndex 
-          : 0;
-          
+        
         console.log(`🎯 USING PIXEL-PERFECT ROW CALCULATION: ${finalRowIndex} 
           (from pixel calc: ${exactRowFromPixelCalc}, 
            drag coords: ${exactRowFromDragCoords}, 

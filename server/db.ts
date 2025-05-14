@@ -31,28 +31,42 @@ console.log("Connecting to database...");
 // Configure the connection pool with more conservative settings to prevent connection issues
 const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 8, // Reduce max connections even further to prevent connection issues
-  idleTimeoutMillis: 10000, // Shorter idle timeout
+  max: 5, // Reduce max connections even further to prevent connection issues
+  idleTimeoutMillis: 30000, // Longer idle timeout to prevent premature closing
   connectionTimeoutMillis: 5000, // Shorter connection timeout
-  maxUses: 5000, // Close connection after this many uses
+  maxUses: 1000, // Close connection after fewer uses to prevent fatigue
   allowExitOnIdle: true,
-  // strategy is not available in this version of pg
 });
 
-// Set up error handling for the pool
+// Set up enhanced error handling for the pool
 pool.on('error', (err) => {
   console.error('Unexpected database error on idle client:', err);
   
   // Log additional information about pool status to help with debugging
   console.error(`Database connection error occurred at ${new Date().toISOString()}`);
   
+  // Create a new connection to replace the failed one
+  const newClient = new Pool({ 
+    connectionString: process.env.DATABASE_URL,
+    max: 1,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+  });
+  
   // Attempt recovery through reconnection after a brief delay
   setTimeout(() => {
     console.log("Attempting to verify database connection...");
-    pool.query('SELECT 1')
-      .then(() => console.log("Database connection reestablished"))
-      .catch(error => console.error("Failed to reestablish database connection:", error.message));
-  }, 5000);
+    newClient.query('SELECT 1')
+      .then(() => {
+        console.log("Database connection reestablished with new client");
+        // Don't replace the pool as it might affect existing references
+        // but keep the new client active
+      })
+      .catch(error => {
+        console.error("Failed to reestablish database connection:", error.message);
+        newClient.end().catch(() => {}); // Clean up failed connection attempt
+      });
+  }, 2000);
 });
 
 // Test the connection immediately
