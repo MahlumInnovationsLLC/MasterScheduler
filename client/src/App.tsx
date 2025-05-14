@@ -54,9 +54,7 @@ function Router() {
   
   // Function to toggle sidebar visibility
   const toggleSidebar = () => {
-    const newState = !isCollapsed;
-    console.log('Sidebar toggle clicked, changing state to:', newState);
-    setIsCollapsed(newState);
+    setIsCollapsed(!isCollapsed);
   };
   
   // In development mode, redirect from auth page to dashboard
@@ -79,9 +77,9 @@ function Router() {
     <SidebarContext.Provider value={{ isCollapsed, toggleSidebar }}>
       <div className="min-h-screen flex flex-col bg-darkBg text-white">
         <Header />
-        <div className="flex flex-1 relative">
+        <div className={`flex-1 grid transition-all duration-300 ${isCollapsed ? 'grid-cols-[50px_1fr]' : 'grid-cols-[260px_1fr]'}`}>
           <Sidebar />
-          <main className={`overflow-y-auto h-screen pt-16 transition-all duration-300 ml-0 w-full ${isCollapsed ? 'pl-[50px]' : 'pl-[260px]'}`}>
+          <main className="overflow-y-auto h-screen pt-16">
             <Switch>
               <ProtectedRoute path="/" component={Dashboard} />
               <ProtectedRoute path="/projects" component={ProjectStatus} />
