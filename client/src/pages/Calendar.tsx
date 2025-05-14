@@ -83,6 +83,7 @@ const CalendarPage = () => {
   const [filterProject, setFilterProject] = useState<string>('all');
   const [isViewScheduleOpen, setIsViewScheduleOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<ScheduleItem | null>(null);
+  const [previewMilestone, setPreviewMilestone] = useState<ScheduleItem | null>(null);
 
   // Fetch all projects
   const { data: projects = [] } = useQuery<Project[]>({
@@ -430,8 +431,14 @@ const CalendarPage = () => {
   const handleItemClick = (item: ScheduleItem) => {
     setSelectedSchedule(item);
     
-    // If it's a phase or milestone, navigate to project details
-    if (item.status === 'phase' || item.status === 'milestone') {
+    // For billing milestones and ship date milestones, show a preview popup
+    if (item.status === 'milestone' || item.status === 'billing') {
+      setPreviewMilestone(item);
+      return;
+    }
+    
+    // For regular phase items, navigate to project details
+    if (item.status === 'phase') {
       navigate(`/project/${item.projectId}`);
       return;
     }
