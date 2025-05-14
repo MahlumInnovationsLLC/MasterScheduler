@@ -60,57 +60,69 @@ const ReportsPage = () => {
   // These are predefined date strings in ISO format (YYYY-MM-DD)
   const getDateRangeStrings = () => {
     try {
-      // Get current date as ISO string and extract just the date part
-      const today = new Date().toISOString().split('T')[0];
+      // Use a reliable way to get today's date as YYYY-MM-DD
+      const now = new Date();
+      // Format date as YYYY-MM-DD manually
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       console.log('Current date:', today);
       
+      // Create date for start point calculations
+      const currentDate = new Date(now);
       let startDate;
+      
       switch (timeRange) {
         case '3months': {
-          // Calculate 3 months ago manually
-          const date = new Date();
-          date.setMonth(date.getMonth() - 3);
-          startDate = date.toISOString().split('T')[0];
+          // Calculate 3 months ago safely
+          currentDate.setDate(15); // Set to middle of month to avoid end-of-month issues
+          currentDate.setMonth(currentDate.getMonth() - 3);
+          startDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
           console.log('3 months ago date:', startDate);
           break;
         }
         case '6months': {
-          // Calculate 6 months ago manually
-          const date = new Date();
-          date.setMonth(date.getMonth() - 6);
-          startDate = date.toISOString().split('T')[0];
+          // Calculate 6 months ago safely
+          currentDate.setDate(15); // Set to middle of month to avoid end-of-month issues
+          currentDate.setMonth(currentDate.getMonth() - 6);
+          startDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
           console.log('6 months ago date:', startDate);
           break;
         }
         case '12months': {
-          // Calculate 12 months ago manually
-          const date = new Date();
-          date.setMonth(date.getMonth() - 12);
-          startDate = date.toISOString().split('T')[0];
+          // Calculate 12 months ago safely
+          currentDate.setDate(15); // Set to middle of month to avoid end-of-month issues
+          currentDate.setMonth(currentDate.getMonth() - 12);
+          startDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
           console.log('12 months ago date:', startDate);
           break;
         }
         case 'ytd': {
           // Get January 1st of current year
-          const date = new Date();
-          startDate = `${date.getFullYear()}-01-01`;
+          startDate = `${now.getFullYear()}-01-01`;
           console.log('YTD start date:', startDate);
           break;
         }
         default: {
           // Default to 6 months ago
-          const date = new Date();
-          date.setMonth(date.getMonth() - 6);
-          startDate = date.toISOString().split('T')[0];
+          currentDate.setDate(15); // Set to middle of month to avoid end-of-month issues
+          currentDate.setMonth(currentDate.getMonth() - 6);
+          startDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
           console.log('Default (6 months ago) date:', startDate);
         }
+      }
+      
+      // Validate the dates by parsing them
+      const startObj = new Date(startDate);
+      const endObj = new Date(today);
+      
+      if (isNaN(startObj.getTime()) || isNaN(endObj.getTime())) {
+        throw new Error('Invalid date calculation');
       }
       
       console.log('Using date range:', { startDate, endDate: today });
       return { startDate, endDate: today };
     } catch (error) {
       console.error('Error calculating date strings:', error);
-      // Hardcoded fallback dates as strings
+      // Hardcoded fallback dates as strings that are definitely valid
       return {
         startDate: '2024-11-01',
         endDate: '2025-05-01'
@@ -211,6 +223,46 @@ const ReportsPage = () => {
     enabled: isAuthenticated && reportType === 'delivery',
   });
 
+  // Define empty fallback data for all reports to ensure we always have valid data structures
+  const emptyFinancialReport = {
+    metrics: {
+      totalInvoiced: 0,
+      totalPaid: 0,
+      totalOutstanding: 0,
+      averagePaymentTime: 0
+    },
+    milestones: []
+  };
+  
+  const emptyProjectStatusReport = {
+    metrics: {
+      totalProjects: 0,
+      onTrack: 0,
+      atRisk: 0,
+      delayed: 0
+    },
+    projects: []
+  };
+  
+  const emptyManufacturingReport = {
+    metrics: {
+      bayUtilization: 0,
+      averageProjectDuration: 0,
+      onTimeDelivery: 0,
+      averageTeamSize: 0
+    },
+    schedules: []
+  };
+  
+  const emptyDeliveryReport = {
+    metrics: {
+      totalDeliveries: 0,
+      onTimeDeliveries: 0,
+      averageDelay: 0
+    },
+    deliveries: []
+  };
+  
   // Fallback to fetch all data directly if reports API fails
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
@@ -227,19 +279,66 @@ const ReportsPage = () => {
     enabled: isAuthenticated && !manufacturingReport,
   });
 
-  // Use filtered data from the API response or fallback to client-side filtering
-  const filteredMilestones = financialReport?.milestones || billingMilestones.filter(milestone => {
-    const milestoneDate = new Date(milestone.targetInvoiceDate);
-    const passesDateFilter = milestoneDate >= new Date(dateParams.startDate) && milestoneDate <= new Date(dateParams.endDate);
-    const passesProjectFilter = projectFilter === 'all' || milestone.projectId.toString() === projectFilter;
-    return passesDateFilter && passesProjectFilter;
+  // Use filtered data from the API response or fallback to client-side filtering with safe date handling
+  // Always have a report data (either from API or fallback empty objects)
+  const safeFinancialReport = financialReport || emptyFinancialReport;
+  const safeProjectStatusReport = projectStatusReport || emptyProjectStatusReport;
+  const safeManufacturingReport = manufacturingReport || emptyManufacturingReport;
+  const safeDeliveryReport = deliveryReport || emptyDeliveryReport;
+  
+  // Use filtered data from the API response or fallback to client-side filtering with safe date handling
+  const filteredMilestones = safeFinancialReport.milestones || billingMilestones.filter(milestone => {
+    try {
+      // First check for project filter which doesn't involve dates
+      const passesProjectFilter = projectFilter === 'all' || milestone.projectId.toString() === projectFilter;
+      if (!passesProjectFilter) return false;
+      
+      // Safely handle date filtering
+      if (!milestone.targetInvoiceDate || !dateParams.startDate || !dateParams.endDate) {
+        return false;
+      }
+      
+      const milestoneDate = new Date(milestone.targetInvoiceDate);
+      const startDate = new Date(dateParams.startDate);
+      const endDate = new Date(dateParams.endDate);
+      
+      // Validate all dates are valid before comparison
+      if (isNaN(milestoneDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return false;
+      }
+      
+      return milestoneDate >= startDate && milestoneDate <= endDate;
+    } catch (error) {
+      console.error('Error filtering milestone:', error);
+      return false;
+    }
   });
 
-  const filteredSchedules = manufacturingReport?.schedules || manufacturingSchedules.filter(schedule => {
-    const scheduleDate = new Date(schedule.startDate);
-    const passesDateFilter = scheduleDate >= new Date(dateParams.startDate) && scheduleDate <= new Date(dateParams.endDate);
-    const passesProjectFilter = projectFilter === 'all' || schedule.projectId.toString() === projectFilter;
-    return passesDateFilter && passesProjectFilter;
+  const filteredSchedules = safeManufacturingReport.schedules || manufacturingSchedules.filter(schedule => {
+    try {
+      // First check for project filter which doesn't involve dates
+      const passesProjectFilter = projectFilter === 'all' || schedule.projectId.toString() === projectFilter;
+      if (!passesProjectFilter) return false;
+      
+      // Safely handle date filtering
+      if (!schedule.startDate || !dateParams.startDate || !dateParams.endDate) {
+        return false;
+      }
+      
+      const scheduleDate = new Date(schedule.startDate);
+      const startDate = new Date(dateParams.startDate);
+      const endDate = new Date(dateParams.endDate);
+      
+      // Validate all dates are valid before comparison
+      if (isNaN(scheduleDate.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return false;
+      }
+      
+      return scheduleDate >= startDate && scheduleDate <= endDate;
+    } catch (error) {
+      console.error('Error filtering schedule:', error);
+      return false;
+    }
   });
 
   // Prepare financial data for charts
