@@ -42,6 +42,8 @@ import { ProjectStatusBreakdownCard } from '@/components/ProjectStatusBreakdownC
 import { AIInsightsWidget } from '@/components/AIInsightsWidget';
 import { DataTable } from '@/components/ui/data-table';
 import { ProgressBadge } from '@/components/ui/progress-badge';
+import EditableDateField from '@/components/EditableDateField';
+import EditableNotesField from '@/components/EditableNotesField';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,168 +69,9 @@ interface ProjectWithRawData extends Project {
   rawData: Record<string, any>;
 }
 
-// EditableDateField component for in-line date editing
-const EditableDateField = ({ projectId, field, value }: { projectId: number, field: string, value: string | null }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [date, setDate] = useState<Date | undefined>(value ? new Date(value) : undefined);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+// EditableDateField is now imported from components folder
 
-  const handleSave = async (newDate?: Date) => {
-    const dateToSave = newDate || date;
-    
-    setIsUpdating(true);
-    try {
-      await apiRequest(
-        "PATCH",
-        `/api/projects/${projectId}`,
-        { [field]: dateToSave?.toISOString() || null }
-      );
-      
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-      toast({
-        title: "Date Updated",
-        description: "The date has been updated successfully",
-        variant: "default"
-      });
-      setIsEditing(false);
-    } catch (error) {
-      toast({
-        title: "Update Failed",
-        description: `Error updating date: ${(error as Error).message}`,
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  return (
-    <div className="relative">
-      {isUpdating ? (
-        <div className="flex items-center text-sm">
-          <div className="h-3 w-3 mr-2 animate-spin rounded-full border-2 border-t-transparent border-primary"></div>
-          <span>Updating...</span>
-        </div>
-      ) : (
-        <div 
-          className="flex items-center cursor-pointer hover:bg-gray-100/10 px-2 py-1 rounded group"
-          onClick={() => setIsEditing(true)}
-        >
-          <span>{formatDate(value)}</span>
-          <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500 opacity-0 group-hover:opacity-100" />
-        </div>
-      )}
-      
-      {isEditing && (
-        <Popover open={true} onOpenChange={(open) => !open && setIsEditing(false)}>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={(newDate) => {
-                if (newDate) {
-                  setDate(newDate);
-                  handleSave(newDate);
-                } else {
-                  setIsEditing(false);
-                }
-              }}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
-      )}
-    </div>
-  );
-};
-
-// EditableNotesField component for in-line notes editing
-const EditableNotesField = ({ projectId, value }: { projectId: number, value: string | null }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [noteValue, setNoteValue] = useState(value || '');
-  const [isUpdating, setIsUpdating] = useState(false);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  const handleSave = async () => {
-    setIsUpdating(true);
-    try {
-      await apiRequest(
-        "PATCH",
-        `/api/projects/${projectId}`,
-        { notes: noteValue }
-      );
-      
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-      toast({
-        title: "Notes Updated",
-        description: "The notes have been updated successfully",
-        variant: "default"
-      });
-      setIsEditing(false);
-    } catch (error) {
-      toast({
-        title: "Update Failed",
-        description: `Error updating notes: ${(error as Error).message}`,
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  if (isEditing) {
-    return (
-      <div className="flex flex-col space-y-2 py-1">
-        <textarea
-          className="w-full h-24 px-2 py-1 rounded text-xs bg-background border border-input"
-          value={noteValue}
-          onChange={(e) => setNoteValue(e.target.value)}
-          placeholder="Add notes here..."
-        />
-        <div className="flex justify-end space-x-1">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-6" 
-            onClick={handleSave}
-            disabled={isUpdating}
-          >
-            {isUpdating ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> : <Check className="h-3 w-3 text-success mr-1" />}
-            Save
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-6" 
-            onClick={() => setIsEditing(false)}
-            disabled={isUpdating}
-          >
-            <X className="h-3 w-3 text-danger mr-1" />
-            Cancel
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="flex items-start cursor-pointer hover:bg-gray-100/10 px-2 py-1 rounded group"
-      onClick={() => setIsEditing(true)}
-    >
-      <div className="flex-1 text-sm">
-        {value ? 
-          <div className="line-clamp-2" title={value}>{value}</div>
-          : <span className="text-gray-400 italic">Add notes...</span>
-        }
-      </div>
-      <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500 mt-1 flex-shrink-0 opacity-0 group-hover:opacity-100" />
-    </div>
-  );
-};
+// EditableNotesField is now imported from components folder
 
 // Define a type for the row in the data table
 interface ProjectRow {
