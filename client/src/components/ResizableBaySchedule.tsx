@@ -2184,8 +2184,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Set both formats for better browser compatibility
       const payload = JSON.stringify({
         type,
-        dragOffsetX, // Include the drag offsets in the payload data
-        dragOffsetY,
+        dragOffsetX: x, // Include the drag offsets in the payload data
+        dragOffsetY: y,
         barHeight: barRect.height,
         ...data
       });
@@ -2196,7 +2196,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Set drop effect
       e.dataTransfer.effectAllowed = 'move';
       
-      console.log(`Drag started for ${type} project at x-offset ${dragOffsetX}px:`, data.projectNumber || 'Project');
+      console.log(`Drag started for ${type} project at x-offset ${x}px:`, data.projectNumber || 'Project');
       
       // Create a better custom drag image
       const dragImage = document.createElement('div');
@@ -2917,91 +2917,67 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // CRITICAL FIX: Retrieve mouse position and drag offsets for exact positioning
+    // ── NEW: PIXEL-PERFECT DROP PLACEMENT ────────────────────────────────────
+    // Get the timeline container element
     const timelineContainer = timelineContainerRef.current;
     if (!timelineContainer) {
       console.error("Timeline container ref not available!");
       return;
     }
     
-    // Get the container bounds for positioning calculations
+    // 1) Get container bounds
     const containerRect = timelineContainer.getBoundingClientRect();
     
-    // Get the X and Y drag offsets captured during drag start
-    const dragOffsetX = parseInt(document.body.getAttribute('data-drag-offset-x') || '0');
-    const dragOffsetY = parseInt(document.body.getAttribute('data-drag-offset-y') || '0');
-    const barHeight = parseInt(document.body.getAttribute('data-bar-height') || '30');
+    // 2) Raw mouse position inside container
+    const rawX = e.clientX - containerRect.left;
+    const rawY = e.clientY - containerRect.top;
     
-    // Calculate exact drop position relative to timeline (for both X and Y)
-    const rawDropX = e.clientX - containerRect.left;
-    const rawDropY = e.clientY - containerRect.top;
+    // 3) Subtract where the user grabbed the bar
+    const finalX = rawX - dragOffset.x;
+    const finalY = rawY - dragOffset.y;
     
-    // Adjust for where on the bar the user grabbed it (subtract the offsets)
-    const exactDropPositionPx = Math.max(0, rawDropX - dragOffsetX);
-    const exactDropPositionPxY = Math.max(0, rawDropY - dragOffsetY);
+    // 4) Convert X position to date
+    const weeksOffset = finalX / slotWidth; // slotWidth is pixels per week
+    const daysOffset = viewMode === 'week' ? weeksOffset * 7 : weeksOffset;
+    const exactStartDate = addDays(dateRange.start, Math.floor(daysOffset));
+    const formattedStartDate = format(exactStartDate, 'yyyy-MM-dd');
     
-    // CRITICAL: Calculate exact row based on Y position
-    // ROW_COUNT is the number of rows in the bay (4 for most bays)
-    const ROW_COUNT = 4; 
-    const rowHeight = containerRect.height / ROW_COUNT;
+    // 5) Convert Y position to row index
+    // Use exact bay row count (4 for normal bays, 20 for TCV Line)
+    const bay = bays.find(b => b.id === bayId);
+    const totalRows = getBayRowCount(bayId, bay?.name || '');
+    const rowHeight = containerRect.height / totalRows;
+    const exactRow = Math.floor(finalY / rowHeight);
     
-    // CRITICAL FIX: PIXEL-PERFECT ROW CALCULATION
-    // Calculate the exact row based on pixel position with NO auto-adjustment
-    const calculatedRowIndex = Math.floor(exactDropPositionPxY / rowHeight);
+    // Clamp to valid range but log if outside bounds
+    const rowMax = totalRows - 1;
+    if (exactRow < 0 || exactRow > rowMax) {
+      console.warn(`Row ${exactRow} is outside valid range 0-${rowMax}. Clamping.`);
+    }
+    const clampedRow = Math.max(0, Math.min(rowMax, exactRow));
     
-    // CRITICAL CHANGE: DO NOT APPLY ANY BOUNDS CHECKING
-    // Use the precise row where the user dropped, regardless of whether it's within "normal" bounds
-    // This ensures projects stay EXACTLY where the user places them
-    const finalRowIndex = calculatedRowIndex;
+    // LOG EVERYTHING for debugging
+    console.log(`🎯 PIXEL-PERFECT PLACEMENT:
+      Container: ${containerRect.width}x${containerRect.height}px
+      Mouse: ${e.clientX},${e.clientY}
+      Raw container position: ${rawX},${rawY}
+      Drag offset: ${dragOffset.x},${dragOffset.y}
+      Final position: ${finalX},${finalY}
+      Bay ${bayId} has ${totalRows} rows (height per row: ${rowHeight}px)
+      Calculated row: ${exactRow} (clamped to ${clampedRow})
+      Date calculation: ${weeksOffset.toFixed(2)} weeks → ${daysOffset.toFixed(2)} days
+      Exact date: ${formattedStartDate}
+    `);
     
-    // Show confirmation log that we're using exact row position
-    console.log(`🎯 PIXEL-PERFECT DROP: Using exact calculated row ${finalRowIndex} at Y position ${exactDropPositionPxY}px`);
-    console.log(`🔒 NO AUTO-ADJUSTMENT: Project will stay in EXACT row ${finalRowIndex}`);
+    // Store precise values in DOM for debugging/verification
+    document.body.setAttribute('data-precision-drop-row', clampedRow.toString());
+    document.body.setAttribute('data-precision-drop-date', formattedStartDate);
+    document.body.setAttribute('data-exact-drop-date', formattedStartDate);
+    document.body.setAttribute('data-current-drag-row', clampedRow.toString());
     
-    // Set a data attribute for debugging that shows this was a precision drop
-    document.body.setAttribute('data-precision-drop-row', finalRowIndex.toString());
-    
-    // OLD CODE WITH AUTO-ADJUSTMENT (REMOVED):
-    // const finalRowIndex = Math.max(0, Math.min(calculatedRowIndex, ROW_COUNT - 1));
-    
-    // Force the exact row placement - overriding any other calculations
-    document.body.setAttribute('data-forced-row-index', finalRowIndex.toString());
-    
-    console.log(`🎯 EXACT DROP CALCULATION: 
-      - Timeline left edge: ${containerRect.left}px, top edge: ${containerRect.top}px
-      - Mouse position: X=${e.clientX}px, Y=${e.clientY}px 
-      - Drag offsets: X=${dragOffsetX}px, Y=${dragOffsetY}px
-      - Exact position: X=${exactDropPositionPx}px, Y=${exactDropPositionPxY}px from timeline top-left
-      - Row height: ${rowHeight}px (container height ${containerRect.height}px ÷ ${ROW_COUNT} rows)
-      - CALCULATED ROW: ${calculatedRowIndex} → FINAL ROW: ${finalRowIndex}`);
-      
-    // CRITICAL FIX: EXACT DATE CALCULATION
-    // This is the most important part that ensures horizontal (date) precision
-    // Scaling factor based on currently visible timeline (pixels per day)
-    const pixelsPerDay = slotWidth / 7; // Each slot is 7 days in week view
-    
-    // Calculate exact days from start based on pixel position - DO NOT ROUND
-    // This ensures we get the precise date without snapping
-    const daysFromStart = exactDropPositionPx / pixelsPerDay;
-    
-    // Convert to an actual date - EXACT pixel placement
-    const exactDate = addDays(dateRange.start, Math.floor(daysFromStart));
-    
-    console.log(`📏 PIXEL-PERFECT DATE CALCULATION: 
-      - X position: ${exactDropPositionPx}px 
-      - Pixels per day: ${pixelsPerDay}
-      - Days from start: ${daysFromStart} (using Math.floor: ${Math.floor(daysFromStart)})
-      - Exact date: ${format(exactDate, 'yyyy-MM-dd')}`);
-      
-    // Additional day offset to get precise day within the week
-    const daysPrecise = daysFromStart - Math.floor(daysFromStart);
-    console.log(`📅 SUB-DAY PRECISION: ${daysPrecise * 24} hours into the day (${daysPrecise.toFixed(3)} of a day)`);
-    
-    // Store the calculated date for use in later placement logic
-    document.body.setAttribute('data-exact-drop-date', format(exactDate, 'yyyy-MM-dd'));
-    document.body.setAttribute('data-current-drag-row', finalRowIndex.toString());
-    console.log(`📅 EXACT DROP DATE: ${format(exactDate, 'yyyy-MM-dd')} (${daysFromStart} days from start)`);
-    console.log(`🔹 FORCED ROW PLACEMENT: Row ${finalRowIndex}`);
+    // Indicate we're using pixel-perfect placement
+    console.log(`📅 EXACT DROP DATE: ${formattedStartDate}`);
+    console.log(`🔹 FORCED ROW PLACEMENT: Row ${clampedRow}`);
     
     // CRITICAL FIX: Force using the exact bay ID from the event parameters
     // This prevents the bay jumping issue by ensuring we always use the bay where the drop happened
