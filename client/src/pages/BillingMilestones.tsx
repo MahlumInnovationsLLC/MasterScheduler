@@ -302,35 +302,95 @@ const BillingMilestones = () => {
     ];
     
     // Calculate forecast by milestone status
-    const forecastData = nextTwelveMonths.map(month => {
+    const forecastData = nextTwelveMonths.map((month, monthIdx) => {
       const nextMonth = new Date(month);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
+      
+      // Add debugging for months past May
+      if (monthIdx > 4) {
+        console.log(`Processing forecast for month ${monthIdx + 1} (${month.toLocaleString('default', { month: 'short' })})`);
+        console.log(`  Month start: ${month.toISOString()}`);
+        console.log(`  Month end: ${nextMonth.toISOString()}`);
+      }
       
       // Confirmed revenue (invoiced or overdue but not yet paid)
       const confirmedRevenue = billingMilestones
         .filter(m => {
-          const targetDate = new Date(m.targetInvoiceDate || '');
-          return targetDate >= month && 
-                 targetDate < nextMonth && 
-                 (m.status === 'invoiced' || m.status === 'delayed');
+          if (!m.targetInvoiceDate) return false;
+          
+          try {
+            const targetDate = new Date(m.targetInvoiceDate);
+            
+            // Check if date is valid
+            if (isNaN(targetDate.getTime())) return false;
+            
+            const isInMonth = targetDate >= month && targetDate < nextMonth;
+            const isConfirmedStatus = m.status === 'invoiced' || m.status === 'delayed';
+            
+            // Debug for months past May
+            if (monthIdx > 4 && isInMonth && isConfirmedStatus) {
+              console.log(`  Found confirmed milestone in month ${monthIdx + 1}: ${m.name}, amount: ${m.amount}, date: ${m.targetInvoiceDate}`);
+            }
+            
+            return isInMonth && isConfirmedStatus;
+          } catch (error) {
+            console.error(`Error processing date for milestone ${m.name}: ${error}`);
+            return false;
+          }
         })
-        .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+        .reduce((sum, m) => {
+          try {
+            return sum + parseFloat(m.amount || '0');
+          } catch (error) {
+            console.error(`Error parsing amount for milestone ${m.name}: ${error}`);
+            return sum;
+          }
+        }, 0);
       
       // Projected revenue (upcoming milestones)
       const projectedRevenue = billingMilestones
         .filter(m => {
-          const targetDate = new Date(m.targetInvoiceDate || '');
-          return targetDate >= month && 
-                 targetDate < nextMonth && 
-                 m.status === 'upcoming';
+          if (!m.targetInvoiceDate) return false;
+          
+          try {
+            const targetDate = new Date(m.targetInvoiceDate);
+            
+            // Check if date is valid
+            if (isNaN(targetDate.getTime())) return false;
+            
+            const isInMonth = targetDate >= month && targetDate < nextMonth;
+            const isUpcoming = m.status === 'upcoming';
+            
+            // Debug for months past May
+            if (monthIdx > 4 && isInMonth && isUpcoming) {
+              console.log(`  Found upcoming milestone in month ${monthIdx + 1}: ${m.name}, amount: ${m.amount}, date: ${m.targetInvoiceDate}`);
+            }
+            
+            return isInMonth && isUpcoming;
+          } catch (error) {
+            console.error(`Error processing date for milestone ${m.name}: ${error}`);
+            return false;
+          }
         })
-        .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+        .reduce((sum, m) => {
+          try {
+            return sum + parseFloat(m.amount || '0');
+          } catch (error) {
+            console.error(`Error parsing amount for milestone ${m.name}: ${error}`);
+            return sum;
+          }
+        }, 0);
       
       // At-risk revenue (calculated as 15% of upcoming milestones for demo purposes)
       const atRiskRevenue = projectedRevenue * 0.15;
       
       // Total projected for this month (for the top summary card)
       const totalMonthRevenue = confirmedRevenue + projectedRevenue;
+      
+      // Debug for months past May
+      if (monthIdx > 4) {
+        console.log(`  Month ${monthIdx + 1} (${month.toLocaleString('default', { month: 'short' })}) totals - Confirmed: ${confirmedRevenue}, Projected: ${projectedRevenue}, Total: ${totalMonthRevenue}`);
+      }
       
       return {
         confirmed: confirmedRevenue,
@@ -351,17 +411,51 @@ const BillingMilestones = () => {
       const fiscalWeeks = getFiscalWeeksForMonth(month.getFullYear(), month.getMonth() + 1);
       
       // Calculate revenue values for each week
-      const weeklyValues = fiscalWeeks.map(week => {
+      const weeklyValues = fiscalWeeks.map((week, weekIdx) => {
         // Filter milestones that fall within this week's date range
         const weekMilestones = billingMilestones.filter(m => {
           if (!m.targetInvoiceDate) return false;
           
-          const milestoneDate = new Date(m.targetInvoiceDate);
-          return milestoneDate >= week.startDate && milestoneDate <= week.endDate;
+          // Ensure proper date parsing with improved error handling
+          try {
+            const milestoneDate = new Date(m.targetInvoiceDate);
+            
+            // Check if the date is valid
+            if (isNaN(milestoneDate.getTime())) {
+              console.log(`Invalid milestone date: ${m.targetInvoiceDate} for milestone ${m.name}`);
+              return false;
+            }
+            
+            // For debugging 
+            if (monthIndex > 4) { // Only log for months after May
+              if (milestoneDate >= week.startDate && milestoneDate <= week.endDate) {
+                console.log(`Month ${monthIndex + 1} (${month.toLocaleString('default', { month: 'short' })}), Week ${weekIdx + 1}: Found milestone ${m.name} with amount ${m.amount} on date ${m.targetInvoiceDate}`);
+              }
+            }
+            
+            return milestoneDate >= week.startDate && milestoneDate <= week.endDate;
+          } catch (error) {
+            console.error(`Error processing milestone date: ${error}`);
+            return false;
+          }
         });
         
-        // Sum up the values for this week
-        return weekMilestones.reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+        // Sum up the values for this week with improved error handling
+        const weekTotal = weekMilestones.reduce((sum, m) => {
+          try {
+            return sum + parseFloat(m.amount || '0');
+          } catch (error) {
+            console.error(`Error parsing amount for milestone ${m.name}: ${error}`);
+            return sum;
+          }
+        }, 0);
+        
+        // Log the result for debugging
+        if (monthIndex > 4) { // Only log for months after May
+          console.log(`Month ${monthIndex + 1} (${month.toLocaleString('default', { month: 'short' })}), Week ${weekIdx + 1}: Total = ${weekTotal}`);
+        }
+        
+        return weekTotal;
       });
       
       return {
