@@ -178,7 +178,7 @@ const ProjectStatus = () => {
     team: false,
     location: true,  // Make the location column visible
     actualCompletionDate: false,
-    notes: false,
+    notes: true,  // Make the notes column visible
     // All raw data columns are initially hidden
     rawData_DPAS_Rating: false,
     rawData_ME_Assigned: false,
