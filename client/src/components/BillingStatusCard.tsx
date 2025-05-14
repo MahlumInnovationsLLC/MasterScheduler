@@ -529,47 +529,58 @@ export function BillingStatusCard({
           {/* Month Navigation and Chart */}
           <div className={`mt-3 ${isFullWidthForecast ? 'px-2' : ''}`}>
             {/* Month Navigation Buttons */}
-            <div className={`grid grid-cols-6 gap-1 mb-3 ${isFullWidthForecast ? 'flex justify-between' : ''}`}>
-              {chart.labels.map((label, idx) => (
-                <Button 
-                  key={idx}
-                  variant={selectedMonthIndex === idx ? "default" : "outline"}
-                  size={isFullWidthForecast ? "default" : "sm"}
-                  className={`${isFullWidthForecast ? 'flex-1 mx-1' : 'h-7 p-1'} text-xs`}
-                  onClick={() => {
-                    // When changing months, we should also update the fiscal week display
-                    // by resetting the selected week to the first week of the month
-                    if (onMonthSelect) {
-                      onMonthSelect(
-                        new Date().getFullYear() + Math.floor((new Date().getMonth() + idx) / 12),
-                        ((new Date().getMonth() + idx) % 12) + 1
-                      );
+            <div className={`grid grid-cols-12 gap-1 mb-3 ${isFullWidthForecast ? 'flex flex-wrap justify-between' : ''}`}>
+              {chart.labels.map((label, idx) => {
+                // Create a distinct visual style for the selected month
+                const isSelected = selectedMonthIndex === idx;
+                
+                return (
+                  <Button 
+                    key={idx}
+                    variant={isSelected ? "default" : "outline"}
+                    size={isFullWidthForecast ? "default" : "sm"}
+                    className={`
+                      ${isFullWidthForecast ? 'flex-1 mx-1 min-w-[70px] mb-1' : 'h-7 p-1'} 
+                      text-xs
+                      ${isSelected ? 'bg-green-500 hover:bg-green-600 text-white' : ''}
+                    `}
+                    onClick={() => {
+                      console.log(`Month selection: Changing to month index ${idx} (${label})`);
                       
-                      // If onWeekSelect is provided, also select the first week of this month
-                      if (onWeekSelect) {
-                        // Calculate the target date based on selected month
-                        const today = new Date();
-                        const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), idx);
-                        
-                        // Get first fiscal week of the month
-                        const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
-                        const firstWeekNumber = fiscalWeeks.length > 0 ? fiscalWeeks[0].weekNumber : 1;
-                        
-                        onWeekSelect(
-                          targetDate.getFullYear(),
-                          firstWeekNumber // Use the correct first fiscal week of the month
+                      // When changing months, we should also update the fiscal week display
+                      // by resetting the selected week to the first week of the month
+                      if (onMonthSelect) {
+                        onMonthSelect(
+                          new Date().getFullYear() + Math.floor((new Date().getMonth() + idx) / 12),
+                          ((new Date().getMonth() + idx) % 12) + 1
                         );
+                        
+                        // If onWeekSelect is provided, also select the first week of this month
+                        if (onWeekSelect) {
+                          // Calculate the target date based on selected month
+                          const today = new Date();
+                          const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), idx);
+                          
+                          // Get first fiscal week of the month
+                          const fiscalWeeks = getFiscalWeeksForMonth(targetDate.getFullYear(), targetDate.getMonth() + 1);
+                          const firstWeekNumber = fiscalWeeks.length > 0 ? fiscalWeeks[0].weekNumber : 1;
+                          
+                          onWeekSelect(
+                            targetDate.getFullYear(),
+                            firstWeekNumber // Use the correct first fiscal week of the month
+                          );
+                        }
                       }
-                    }
-                  }}
-                >
-                  {label}
-                </Button>
-              ))}
+                    }}
+                  >
+                    {label}
+                  </Button>
+                );
+              })}
             </div>
             
             {/* Bar Chart */}
-            <div className={`grid grid-cols-6 gap-1 ${isFullWidthForecast ? 'h-32' : 'h-16'}`}>
+            <div className={`grid grid-cols-12 gap-1 ${isFullWidthForecast ? 'h-32' : 'h-16'}`}>
               {chart.values.map((val, idx) => {
                 // Find goal for this month's column
                 const today = new Date();
@@ -584,10 +595,19 @@ export function BillingStatusCard({
                 const hasGoal = !!matchingGoal;
                 const isExceedingGoal = hasGoal && val >= matchingGoal.targetAmount;
                 
+                // Highlight the selected month
+                const isSelected = selectedMonthIndex === idx;
+                
                 return (
-                  <div key={idx} className={`bg-primary bg-opacity-20 relative rounded-sm ${selectedMonthIndex === idx ? 'ring-1 ring-primary' : ''}`}>
+                  <div key={idx} className={`bg-primary bg-opacity-20 relative rounded-sm ${isSelected ? 'ring-2 ring-green-500' : ''}`}>
                     <div 
-                      className={`absolute bottom-0 w-full rounded-sm ${isExceedingGoal ? 'bg-green-400' : 'bg-primary'}`}
+                      className={`absolute bottom-0 w-full rounded-sm ${
+                        isSelected 
+                          ? 'bg-green-500' 
+                          : isExceedingGoal 
+                            ? 'bg-green-400' 
+                            : 'bg-primary'
+                      }`}
                       style={{ height: `${(val / Math.max(...chart.values, ...((goals || []).map(g => g.targetAmount) || []))) * 100}%` }}
                     ></div>
                     
