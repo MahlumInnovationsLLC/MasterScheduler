@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { db } from '../db';
 import { projects, manufacturingSchedules, billingMilestones, manufacturingBays } from '@shared/schema';
 import { eq, lt, gt, and, or, sql } from 'drizzle-orm';
-import { addDays, format, differenceInWeekdays, compareAsc } from 'date-fns';
+import { addDays, format, differenceInBusinessDays, compareAsc } from 'date-fns';
 
 /**
  * Generate real-time AI insights based on project and manufacturing data
@@ -31,7 +31,7 @@ export async function getAIInsights(req: Request, res: Response) {
       const baySchedules = allSchedules.filter(s => s.bayId === bay.id);
       return {
         bayId: bay.id,
-        bayName: bay.name,
+        bayName: bay.name || `Bay ${bay.bayNumber}`,
         utilization: baySchedules.length > 0 ? 
           Math.min(100, Math.round((baySchedules.length / 3) * 100)) : 0
       };
@@ -51,7 +51,7 @@ export async function getAIInsights(req: Request, res: Response) {
       if (!project.shipDate) return false;
       const shipDate = new Date(project.shipDate);
       const daysTillShipping = Math.max(0, 
-        differenceInWeekdays(shipDate, today));
+        differenceInBusinessDays(shipDate, today));
       return daysTillShipping <= 7 && daysTillShipping > 0;
     });
     
@@ -60,7 +60,7 @@ export async function getAIInsights(req: Request, res: Response) {
       if (!project.qcStartDate || !project.shipDate) return false;
       const qcStart = new Date(project.qcStartDate);
       const shipDate = new Date(project.shipDate);
-      const qcDays = differenceInWeekdays(shipDate, qcStart);
+      const qcDays = differenceInBusinessDays(shipDate, qcStart);
       return qcDays < 5 && compareAsc(qcStart, today) >= 0;
     });
     

@@ -61,6 +61,7 @@ import {
   generateBillingNotifications,
   generateManufacturingNotifications
 } from "./notifications";
+import { getAIInsights } from "./routes/aiInsights";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Special route to update project hours from 40 to 1000
@@ -2149,6 +2150,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/reports/manufacturing', isAuthenticated, getManufacturingReports);
   app.get('/api/reports/delivery', isAuthenticated, getDeliveryReports);
   app.post('/api/reports/export', isAuthenticated, exportReportData);
+  
+  // AI Insights API
+  app.post('/api/ai/insights', isAuthenticated, getAIInsights);
 
   const httpServer = createServer(app);
   return httpServer;
