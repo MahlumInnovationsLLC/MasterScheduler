@@ -22,6 +22,12 @@ import { SidebarContext } from '../App';
 const Sidebar = () => {
   const [location] = useLocation();
   const { isCollapsed: collapsed, toggleSidebar } = useContext(SidebarContext);
+  
+  // Log when toggle button is clicked
+  const handleToggleClick = () => {
+    console.log('Toggle button clicked in Sidebar component');
+    toggleSidebar();
+  };
 
   const isActive = (path: string) => {
     return location === path;
@@ -33,11 +39,11 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className={`bg-darkCard border-r border-gray-800 h-screen overflow-y-auto pt-16 transition-all duration-300 ${collapsed ? 'w-[50px]' : 'w-[260px]'}`}>
+    <aside className={`bg-darkCard border-r border-gray-800 h-screen overflow-y-auto pt-16 transition-all duration-300 fixed left-0 top-0 z-10 ${collapsed ? 'w-[50px]' : 'w-[260px]'}`}>
       {/* Toggle Button - positioned outside of scrolling area */}
       <button 
-        className="absolute top-12 right-2 bg-primary hover:bg-primary-dark text-white rounded-full p-2 shadow-lg z-10 border border-gray-700"
-        onClick={toggleSidebar}
+        className="absolute top-20 -right-4 bg-primary hover:bg-primary-dark text-white rounded-full p-2 shadow-lg z-20 border border-gray-700"
+        onClick={handleToggleClick}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
