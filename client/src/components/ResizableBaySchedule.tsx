@@ -2923,14 +2923,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const dropTarget = e.currentTarget as HTMLElement;
     const dropTargetBayId = dropTarget?.getAttribute('data-bay-id');
     
-    // Make sure the bay ID used in the event handler matches the element's bay ID
-    // Now using finalBayId which includes Bay 3 detection
-    if (dropTargetBayId && dropTargetBayId !== finalBayId.toString()) {
-      console.log(`Correcting bay ID mismatch: event=${bayId}, resolved=${finalBayId}, element=${dropTargetBayId}`);
-      // Update the element's data-bay-id attribute to match our finalBayId
-      // This ensures bay 3 and other bays are handled consistently
-      dropTarget.setAttribute('data-bay-id', finalBayId.toString());
-    }
+    // REMOVED ALL AUTO-CORRECTION CODE
+    // Project stays exactly where it's dropped, no correction or adjustment
+    // No bay ID override, no detection, no fixing of any kind
+    console.log(`🔒 EXACT PLACEMENT: Using precisely the bay ID and element from drop event`);
+    // We DO NOT change any element attributes here - projects stay EXACTLY where they are dropped
     
     if (rowIndex !== undefined && rowIndex >= 0) {
       console.log(`Using direct row parameter: ${rowIndex} for bay ${bayId}`);
@@ -2943,9 +2940,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       targetRowIndex = 0;
     }
     
-    // Safety bounds check on row (0-7 now) - EXPANDED to allow more than 4 projects per bay
-    // We allow up to 8 rows (0-7) internally, which will map to 4 visual rows
-    targetRowIndex = Math.min(7, Math.max(0, targetRowIndex));
+    // NO SAFETY BOUNDS CHECK - keep row EXACTLY as provided
+    // This ensures the project stays in exactly the row where it was dropped
+    // We DO NOT limit or adjust the row index in any way
+    console.log(`🔵 EXACT ROW PLACEMENT: Using row ${targetRowIndex} without any adjustment or bounds checking`);
     
     // CRITICAL: We already decided to use the exact bay ID from the drop event parameter
     // DO NOT modify the bayId parameter - use it directly to ensure correct placement
@@ -3788,20 +3786,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // No capping - use the exact dates chosen by the user
     const finalEndDate = newEndDate;
     
+    // WARNING ONLY: We'll show capacity warnings but ALWAYS apply changes exactly as requested
     if (capacityImpact) {
-      // Show warning dialog
+      // Show warning dialog - purely informational
       setCapacityWarningData(capacityImpact);
       setShowCapacityWarning(true);
       
-      // Show warning toast with details
+      // Show warning toast with details - purely informational
       toast({
-        title: "Over Capacity Warning",
-        description: `Bay will be at ${capacityImpact.percentage}% utilization in affected weeks`,
-        variant: "destructive",
+        title: "Over Capacity Warning (Visual Indicator Only)",
+        description: `Bay will be at ${capacityImpact.percentage}% capacity - Applied exactly as requested`,
+        variant: "warning",
       });
       
-      // Even with the warning, we'll update the UI immediately to show the new dates
-      // This ensures the UI is responsive, but the server update will happen after confirmation
+      console.log(`🚨 CAPACITY WARNING ONLY: Bay ${capacityImpact.bayId} at ${capacityImpact.percentage}% capacity`);
+      console.log(`✅ Changes are applied EXACTLY as requested despite capacity warnings`);
+      
+      // Update UI immediately with the exact dates requested - no adjustments whatsoever
       
       // Force UI update by incrementing recalculation version
       setRecalculationVersion(prev => prev + 1);
@@ -4389,17 +4390,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             <AlertDialogHeader>
               <AlertDialogTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-amber-500" />
-                Capacity Warning
+                Capacity Information (Visual Only)
               </AlertDialogTitle>
               <AlertDialogDescription>
                 <div className="my-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md text-sm">
-                  <p>This manual change would result in <span className="font-bold text-amber-600">{capacityWarningData.percentage}%</span> capacity utilization during portions of the schedule.</p>
-                  <p className="mt-2">Bay capacity may be exceeded, which could lead to:</p>
-                  <ul className="list-disc pl-5 mt-1 space-y-1">
-                    <li>Resource constraints during production</li>
-                    <li>Delays in completing projects</li>
-                    <li>Conflicts with other schedules</li>
-                  </ul>
+                  <p><span className="font-bold">This is a visual warning only.</span> Your placement will be applied <span className="underline">exactly</span> as requested.</p>
+                  <p className="mt-2">Your manual change will result in <span className="font-bold text-amber-600">{capacityWarningData.percentage}%</span> capacity utilization during portions of the schedule.</p>
+                  <p className="mt-2 text-sm italic">Note: This is purely informational and does not block project placement.</p>
+                  <div className="mt-2 border-l-4 border-blue-500 pl-2 text-sm">
+                    <p className="font-medium">Per your request, all projects stay EXACTLY where placed with no automatic adjustments.</p>
+                  </div>
                 </div>
                 
                 <p className="my-2">Other affected projects in this bay:</p>
@@ -4411,7 +4411,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   ))}
                 </div>
                 
-                <p className="text-sm mt-4">Are you sure you want to proceed with this manual adjustment?</p>
+                <p className="text-sm mt-4">Project will be placed exactly where you requested with no adjustments.</p>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -4424,6 +4424,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
+                className="bg-green-600 hover:bg-green-700"
                 onClick={() => {
                   if (capacityWarningData) {
                     // Show loading state
@@ -4471,7 +4472,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   setCapacityWarningData(null);
                 }}
               >
-                Apply Manual Change
+                Apply Exactly As Requested
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
