@@ -2135,6 +2135,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reports API routes
+  app.get('/api/reports/financial', isAuthenticated, getFinancialReports);
+  app.get('/api/reports/project-status', isAuthenticated, getProjectStatusReports);
+  app.get('/api/reports/manufacturing', isAuthenticated, getManufacturingReports);
+  app.get('/api/reports/delivery', isAuthenticated, getDeliveryReports);
+  app.post('/api/reports/export', isAuthenticated, exportReportData);
+
   const httpServer = createServer(app);
   return httpServer;
 }

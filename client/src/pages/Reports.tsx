@@ -72,33 +72,66 @@ const ReportsPage = () => {
 
   const dateRange = getDateRange();
 
-  // Fetch all projects
+  // Base date parameters for report queries
+  const dateParams = {
+    startDate: format(dateRange.start, 'yyyy-MM-dd'),
+    endDate: format(dateRange.end, 'yyyy-MM-dd'),
+    projectId: projectFilter !== 'all' ? projectFilter : undefined
+  };
+
+  // Fetch financial report data
+  const { data: financialReport, isLoading: isLoadingFinancial } = useQuery({
+    queryKey: ['/api/reports/financial', dateParams],
+    queryFn: () => fetch(`/api/reports/financial?startDate=${dateParams.startDate}&endDate=${dateParams.endDate}${dateParams.projectId ? `&projectId=${dateParams.projectId}` : ''}`).then(res => res.json()),
+    enabled: isAuthenticated && reportType === 'financial',
+  });
+
+  // Fetch project status report data
+  const { data: projectStatusReport, isLoading: isLoadingProjectStatus } = useQuery({
+    queryKey: ['/api/reports/project-status', dateParams],
+    queryFn: () => fetch(`/api/reports/project-status?startDate=${dateParams.startDate}&endDate=${dateParams.endDate}${dateParams.projectId ? `&projectId=${dateParams.projectId}` : ''}`).then(res => res.json()),
+    enabled: isAuthenticated && reportType === 'project',
+  });
+
+  // Fetch manufacturing report data
+  const { data: manufacturingReport, isLoading: isLoadingManufacturing } = useQuery({
+    queryKey: ['/api/reports/manufacturing', dateParams],
+    queryFn: () => fetch(`/api/reports/manufacturing?startDate=${dateParams.startDate}&endDate=${dateParams.endDate}${dateParams.projectId ? `&projectId=${dateParams.projectId}` : ''}`).then(res => res.json()),
+    enabled: isAuthenticated && reportType === 'manufacturing',
+  });
+
+  // Fetch delivery report data
+  const { data: deliveryReport, isLoading: isLoadingDelivery } = useQuery({
+    queryKey: ['/api/reports/delivery', dateParams],
+    queryFn: () => fetch(`/api/reports/delivery?startDate=${dateParams.startDate}&endDate=${dateParams.endDate}${dateParams.projectId ? `&projectId=${dateParams.projectId}` : ''}`).then(res => res.json()),
+    enabled: isAuthenticated && reportType === 'delivery',
+  });
+
+  // Fallback to fetch all data directly if reports API fails
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && (!financialReport || !projectStatusReport),
   });
 
-  // Fetch all billing milestones
   const { data: billingMilestones = [] } = useQuery<BillingMilestone[]>({
     queryKey: ['/api/billing-milestones'],
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !financialReport,
   });
 
-  // Fetch all manufacturing schedules
   const { data: manufacturingSchedules = [] } = useQuery<ManufacturingSchedule[]>({
     queryKey: ['/api/manufacturing-schedules'],
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !manufacturingReport,
   });
 
-  // Filter data based on selected date range and project
-  const filteredMilestones = billingMilestones.filter(milestone => {
-    const milestoneDate = new Date(milestone.dueDate);
+  // Use filtered data from the API response or fallback to client-side filtering
+  const filteredMilestones = financialReport?.milestones || billingMilestones.filter(milestone => {
+    const milestoneDate = new Date(milestone.targetInvoiceDate);
     const passesDateFilter = milestoneDate >= dateRange.start && milestoneDate <= dateRange.end;
     const passesProjectFilter = projectFilter === 'all' || milestone.projectId.toString() === projectFilter;
     return passesDateFilter && passesProjectFilter;
   });
 
-  const filteredSchedules = manufacturingSchedules.filter(schedule => {
+  const filteredSchedules = manufacturingReport?.schedules || manufacturingSchedules.filter(schedule => {
     const scheduleDate = new Date(schedule.startDate);
     const passesDateFilter = scheduleDate >= dateRange.start && scheduleDate <= dateRange.end;
     const passesProjectFilter = projectFilter === 'all' || schedule.projectId.toString() === projectFilter;
@@ -107,6 +140,12 @@ const ReportsPage = () => {
 
   // Prepare financial data for charts
   const getFinancialData = () => {
+    // If we have data from the API, use it
+    if (financialReport?.chartData && financialReport.chartData.length > 0) {
+      return financialReport.chartData;
+    }
+    
+    // Fallback to client-side processing
     // Create monthly buckets
     const months: Record<string, { month: string, invoiced: number, received: number, outstanding: number }> = {};
     
@@ -125,14 +164,15 @@ const ReportsPage = () => {
     
     // Fill in milestone data
     filteredMilestones.forEach(milestone => {
-      const monthKey = format(new Date(milestone.dueDate), 'yyyy-MM');
+      const monthKey = format(new Date(milestone.targetInvoiceDate), 'yyyy-MM');
       if (months[monthKey]) {
-        months[monthKey].invoiced += milestone.amount;
+        const amount = typeof milestone.amount === 'string' ? parseFloat(milestone.amount) : milestone.amount;
+        months[monthKey].invoiced += amount;
         
-        if (milestone.status === 'Paid') {
-          months[monthKey].received += milestone.amount;
+        if (milestone.status === 'paid') {
+          months[monthKey].received += amount;
         } else {
-          months[monthKey].outstanding += milestone.amount;
+          months[monthKey].outstanding += amount;
         }
       }
     });
@@ -142,11 +182,18 @@ const ReportsPage = () => {
 
   // Prepare project status data for charts
   const getProjectStatusData = () => {
+    // If we have data from the API, use it
+    if (projectStatusReport?.statusDistribution && projectStatusReport.statusDistribution.length > 0) {
+      return projectStatusReport.statusDistribution;
+    }
+    
+    // Fallback to client-side processing
     const statusCounts = {
-      'On Track': 0,
-      'At Risk': 0,
-      'Delayed': 0,
-      'Completed': 0
+      'active': 0,
+      'delayed': 0,
+      'completed': 0,
+      'archived': 0,
+      'critical': 0
     };
 
     const filteredProjects = projects.filter(project => 
@@ -164,6 +211,12 @@ const ReportsPage = () => {
 
   // Prepare manufacturing data for charts
   const getManufacturingData = () => {
+    // If we have data from the API, use it
+    if (manufacturingReport?.bayUtilization && manufacturingReport.bayUtilization.length > 0) {
+      return manufacturingReport.bayUtilization;
+    }
+    
+    // Fallback to client-side processing
     const bayUtilization: Record<string, { bay: string, scheduled: number, completed: number, utilization: number }> = {};
     
     // Get all unique bay IDs
@@ -181,7 +234,7 @@ const ReportsPage = () => {
       }, 0);
       
       const completedDays = baySchedules
-        .filter(schedule => schedule.status === 'Completed')
+        .filter(schedule => schedule.status === 'complete')
         .reduce((total, schedule) => {
           const start = new Date(schedule.startDate);
           const end = new Date(schedule.endDate);
@@ -203,6 +256,17 @@ const ReportsPage = () => {
     
     return Object.values(bayUtilization);
   };
+  
+  // Prepare delivery data for charts
+  const getDeliveryData = () => {
+    // If we have data from the API, use it
+    if (deliveryReport?.deliveriesByMonth && deliveryReport.deliveriesByMonth.length > 0) {
+      return deliveryReport.deliveriesByMonth;
+    }
+    
+    // Fallback to empty data, will not be used unless delivery report is selected
+    return [];
+  };
 
   const financialData = getFinancialData();
   const projectStatusData = getProjectStatusData();
@@ -217,16 +281,27 @@ const ReportsPage = () => {
     'Completed': '#0088FE'
   };
 
-  // Calculate summary metrics
-  const totalInvoiced = filteredMilestones.reduce((sum, milestone) => sum + milestone.amount, 0);
-  const totalReceived = filteredMilestones
-    .filter(milestone => milestone.status === 'Paid')
-    .reduce((sum, milestone) => sum + milestone.amount, 0);
-  const totalOutstanding = totalInvoiced - totalReceived;
+  // Calculate summary metrics - use API data if available
+  const totalInvoiced = financialReport?.metrics?.totalInvoiced || 
+    filteredMilestones.reduce((sum, milestone) => {
+      const amount = typeof milestone.amount === 'string' ? parseFloat(milestone.amount) : milestone.amount;
+      return sum + amount;
+    }, 0);
+
+  const totalReceived = financialReport?.metrics?.totalPaid || 
+    filteredMilestones
+      .filter(milestone => milestone.status === 'paid')
+      .reduce((sum, milestone) => {
+        const amount = typeof milestone.amount === 'string' ? parseFloat(milestone.amount) : milestone.amount;
+        return sum + amount;
+      }, 0);
+
+  const totalOutstanding = financialReport?.metrics?.totalOutstanding || (totalInvoiced - totalReceived);
   
-  const upcomingMilestones = filteredMilestones
-    .filter(milestone => milestone.status === 'Pending' || milestone.status === 'Invoiced')
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+  const upcomingMilestones = financialReport?.upcomingMilestones || 
+    filteredMilestones
+      .filter(milestone => milestone.status === 'upcoming' || milestone.status === 'invoiced')
+      .sort((a, b) => new Date(a.targetInvoiceDate).getTime() - new Date(b.targetInvoiceDate).getTime());
 
   return (
     <div className="container mx-auto py-6 max-w-7xl px-4 sm:px-6">
