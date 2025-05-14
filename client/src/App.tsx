@@ -12,6 +12,7 @@ import ManufacturingBay from "@/pages/ManufacturingBay";
 import BaySchedulingPage from "@/pages/BaySchedulingPage";
 import ProjectDetails from "@/pages/ProjectDetails";
 import ProjectEdit from "@/pages/ProjectEdit";
+import ProjectCreate from "@/pages/ProjectCreate";
 import ArchivedProjects from "@/pages/ArchivedProjects";
 import DeliveredProjects from "@/pages/DeliveredProjects";
 import OnTimeDelivery from "@/pages/OnTimeDelivery";
@@ -62,6 +63,7 @@ function Router() {
           <Switch>
             <ProtectedRoute path="/" component={Dashboard} />
             <ProtectedRoute path="/projects" component={ProjectStatus} />
+            <ProtectedRoute path="/projects/new" component={ProjectCreate} />
             <ProtectedRoute path="/project/:id" component={ProjectDetails} />
             <ProtectedRoute path="/project/:id/edit" component={ProjectEdit} />
             <ProtectedRoute path="/archived-projects" component={ArchivedProjects} />
