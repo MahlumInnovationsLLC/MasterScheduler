@@ -2416,8 +2416,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       e.currentTarget.setAttribute('data-bay-id', bayId.toString());
     }
     
-    // Use the current row where the user is dragging
-    const validRowIndex = Math.max(0, Math.min(3, rowIndex !== undefined ? rowIndex : currentRowIndex));
+    // CRITICAL FIX: DO NOT CONSTRAIN ROW INDEX
+    // This was causing projects to jump to different rows than intended
+    // Use EXACTLY the row provided without any bounds checking
+    const validRowIndex = rowIndex !== undefined ? rowIndex : currentRowIndex;
+    
+    // REMOVED BOUNDS CHECKING CODE:
+    // const validRowIndex = Math.max(0, Math.min(3, rowIndex !== undefined ? rowIndex : currentRowIndex));
     
     console.log(`Using bay ${forcedBayId} with current row: ${validRowIndex}`);
     
@@ -2934,16 +2939,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const ROW_COUNT = 4; 
     const rowHeight = containerRect.height / ROW_COUNT;
     
-    // Calculate which row the bar should be placed in based on exact pixel position
-    // This is the critical fix that ensures projects go exactly where dropped
+    // CRITICAL FIX: PIXEL-PERFECT ROW CALCULATION
+    // Calculate the exact row based on pixel position with NO auto-adjustment
     const calculatedRowIndex = Math.floor(exactDropPositionPxY / rowHeight);
     
-    // CRITICAL CHANGE: Do not cap finalRowIndex - this was the cause of projects
-    // not staying in the exact row where they were dropped. We want to 
-    // keep the exact row calculated by the pixel position, even if it's out of bounds.
-    
-    // NO BOUNDS CHECKING - allow any row the user drops into
+    // CRITICAL CHANGE: DO NOT APPLY ANY BOUNDS CHECKING
+    // Use the precise row where the user dropped, regardless of whether it's within "normal" bounds
+    // This ensures projects stay EXACTLY where the user places them
     const finalRowIndex = calculatedRowIndex;
+    
+    // Show confirmation log that we're using exact row position
+    console.log(`🎯 PIXEL-PERFECT DROP: Using exact calculated row ${finalRowIndex} at Y position ${exactDropPositionPxY}px`);
+    console.log(`🔒 NO AUTO-ADJUSTMENT: Project will stay in EXACT row ${finalRowIndex}`);
+    
+    // Set a data attribute for debugging that shows this was a precision drop
+    document.body.setAttribute('data-precision-drop-row', finalRowIndex.toString());
     
     // OLD CODE WITH AUTO-ADJUSTMENT (REMOVED):
     // const finalRowIndex = Math.max(0, Math.min(calculatedRowIndex, ROW_COUNT - 1));
