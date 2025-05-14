@@ -45,6 +45,13 @@ import {
   generateTimelineInsights
 } from "./ai";
 import {
+  getFinancialReports,
+  getProjectStatusReports,
+  getManufacturingReports,
+  getDeliveryReports,
+  exportReportData
+} from "./routes/reports";
+import {
   getNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
