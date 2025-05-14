@@ -59,47 +59,63 @@ const ReportsPage = () => {
   // Hard-code date ranges to avoid any potential date handling errors
   // These are predefined date strings in ISO format (YYYY-MM-DD)
   const getDateRangeStrings = () => {
-    // Get current date as ISO string and extract just the date part
-    const today = new Date().toISOString().split('T')[0];
-    
-    let startDate;
-    switch (timeRange) {
-      case '3months': {
-        // Calculate 3 months ago manually
-        const date = new Date();
-        date.setMonth(date.getMonth() - 3);
-        startDate = date.toISOString().split('T')[0];
-        break;
+    try {
+      // Get current date as ISO string and extract just the date part
+      const today = new Date().toISOString().split('T')[0];
+      console.log('Current date:', today);
+      
+      let startDate;
+      switch (timeRange) {
+        case '3months': {
+          // Calculate 3 months ago manually
+          const date = new Date();
+          date.setMonth(date.getMonth() - 3);
+          startDate = date.toISOString().split('T')[0];
+          console.log('3 months ago date:', startDate);
+          break;
+        }
+        case '6months': {
+          // Calculate 6 months ago manually
+          const date = new Date();
+          date.setMonth(date.getMonth() - 6);
+          startDate = date.toISOString().split('T')[0];
+          console.log('6 months ago date:', startDate);
+          break;
+        }
+        case '12months': {
+          // Calculate 12 months ago manually
+          const date = new Date();
+          date.setMonth(date.getMonth() - 12);
+          startDate = date.toISOString().split('T')[0];
+          console.log('12 months ago date:', startDate);
+          break;
+        }
+        case 'ytd': {
+          // Get January 1st of current year
+          const date = new Date();
+          startDate = `${date.getFullYear()}-01-01`;
+          console.log('YTD start date:', startDate);
+          break;
+        }
+        default: {
+          // Default to 6 months ago
+          const date = new Date();
+          date.setMonth(date.getMonth() - 6);
+          startDate = date.toISOString().split('T')[0];
+          console.log('Default (6 months ago) date:', startDate);
+        }
       }
-      case '6months': {
-        // Calculate 6 months ago manually
-        const date = new Date();
-        date.setMonth(date.getMonth() - 6);
-        startDate = date.toISOString().split('T')[0];
-        break;
-      }
-      case '12months': {
-        // Calculate 12 months ago manually
-        const date = new Date();
-        date.setMonth(date.getMonth() - 12);
-        startDate = date.toISOString().split('T')[0];
-        break;
-      }
-      case 'ytd': {
-        // Get January 1st of current year
-        const date = new Date();
-        startDate = `${date.getFullYear()}-01-01`;
-        break;
-      }
-      default: {
-        // Default to 6 months ago
-        const date = new Date();
-        date.setMonth(date.getMonth() - 6);
-        startDate = date.toISOString().split('T')[0];
-      }
+      
+      console.log('Using date range:', { startDate, endDate: today });
+      return { startDate, endDate: today };
+    } catch (error) {
+      console.error('Error calculating date strings:', error);
+      // Hardcoded fallback dates as strings
+      return {
+        startDate: '2024-11-01',
+        endDate: '2025-05-01'
+      };
     }
-    
-    return { startDate, endDate: today };
   };
   
   // Handle exporting data to CSV
@@ -214,14 +230,14 @@ const ReportsPage = () => {
   // Use filtered data from the API response or fallback to client-side filtering
   const filteredMilestones = financialReport?.milestones || billingMilestones.filter(milestone => {
     const milestoneDate = new Date(milestone.targetInvoiceDate);
-    const passesDateFilter = milestoneDate >= dateRange.start && milestoneDate <= dateRange.end;
+    const passesDateFilter = milestoneDate >= new Date(dateParams.startDate) && milestoneDate <= new Date(dateParams.endDate);
     const passesProjectFilter = projectFilter === 'all' || milestone.projectId.toString() === projectFilter;
     return passesDateFilter && passesProjectFilter;
   });
 
   const filteredSchedules = manufacturingReport?.schedules || manufacturingSchedules.filter(schedule => {
     const scheduleDate = new Date(schedule.startDate);
-    const passesDateFilter = scheduleDate >= dateRange.start && scheduleDate <= dateRange.end;
+    const passesDateFilter = scheduleDate >= new Date(dateParams.startDate) && scheduleDate <= new Date(dateParams.endDate);
     const passesProjectFilter = projectFilter === 'all' || schedule.projectId.toString() === projectFilter;
     return passesDateFilter && passesProjectFilter;
   });
@@ -238,8 +254,10 @@ const ReportsPage = () => {
     const months: Record<string, { month: string, invoiced: number, received: number, outstanding: number }> = {};
     
     // Initialize months in range
-    let currentMonth = startOfMonth(dateRange.start);
-    while (currentMonth <= dateRange.end) {
+    let currentMonth = new Date(dateParams.startDate);
+    currentMonth.setDate(1); // Set to start of month
+    const endDate = new Date(dateParams.endDate);
+    while (currentMonth <= endDate) {
       const monthKey = format(currentMonth, 'yyyy-MM');
       months[monthKey] = {
         month: format(currentMonth, 'MMM yyyy'),
@@ -331,7 +349,9 @@ const ReportsPage = () => {
         }, 0);
       
       // Calculate utilization as a percentage of the date range
-      const dateRangeDays = Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
+      const startDate = new Date(dateParams.startDate);
+      const endDate = new Date(dateParams.endDate);
+      const dateRangeDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
       const utilization = dateRangeDays > 0 ? (totalDays / dateRangeDays) * 100 : 0;
       
       bayUtilization[bayName] = {
