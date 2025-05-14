@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
 import { format } from 'date-fns';
+import { calculateWeekdaysBetween } from '@/lib/utils';
 import { 
   Folders, 
   Flag, 
@@ -787,7 +788,33 @@ const ProjectStatus = () => {
       (value, project) => <EditableDateField projectId={project.id} field="qcStartDate" value={value} />,
       { size: 170 }),
     createColumn('qcDays', 'qcDays', 'QC Days', 
-      (value) => value !== null ? value : 'N/A',
+      (value, project) => {
+        // Calculate weekdays between QC Start and Exec Review (or Ship Date if Exec Review isn't set)
+        const qcStartDate = project.qcStartDate;
+        const execReviewDate = project.executiveReviewDate;
+        const shipDate = project.shipDate;
+        
+        // Use Exec Review Date if available, otherwise fall back to Ship Date
+        const endDate = execReviewDate || shipDate;
+        
+        // Calculate weekdays
+        const weekdays = calculateWeekdaysBetween(qcStartDate, endDate);
+        
+        // If no calculation could be made
+        if (weekdays === null) return 'N/A';
+        
+        // Style based on weekday count
+        let style = '';
+        if (weekdays < 3) {
+          style = 'bg-red-200 text-red-800 px-2 py-1 rounded';
+        } else if (weekdays < 5) {
+          style = 'bg-yellow-200 text-yellow-800 px-2 py-1 rounded';
+        } else {
+          style = 'bg-green-200 text-green-800 px-2 py-1 rounded';
+        }
+        
+        return <div className={style}>{weekdays}</div>;
+      },
       { size: 100 }),
     createColumn('executiveReviewDate', 'executiveReviewDate', 'Exec Review', 
       (value, project) => <EditableDateField projectId={project.id} field="executiveReviewDate" value={value} />,

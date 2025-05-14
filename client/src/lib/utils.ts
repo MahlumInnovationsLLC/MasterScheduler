@@ -456,3 +456,41 @@ export function getFiscalWeekLabel(year: number, month: number, weekNumber: numb
     return `Week ${weekNumber}: ${startMonth} ${format(targetWeek.startDate, 'd')} - ${endMonth} ${format(targetWeek.endDate, 'd')}`;
   }
 }
+
+/**
+ * Calculate the number of weekdays (Monday-Friday) between two dates
+ * @param startDateStr Start date as string (ISO format) or null
+ * @param endDateStr End date as string (ISO format) or null
+ * @returns Number of weekdays or null if dates are invalid
+ */
+export function calculateWeekdaysBetween(startDateStr: string | null, endDateStr: string | null): number | null {
+  if (!startDateStr || !endDateStr) return null;
+  
+  const startDate = new Date(startDateStr);
+  const endDate = new Date(endDateStr);
+  
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return null;
+  
+  // If end date is before start date, return 0
+  if (endDate < startDate) return 0;
+  
+  let weekdays = 0;
+  let currentDate = new Date(startDate);
+  
+  // Set to start of day to avoid time issues
+  currentDate.setHours(0, 0, 0, 0);
+  endDate.setHours(23, 59, 59, 999);
+  
+  while (currentDate <= endDate) {
+    const dayOfWeek = currentDate.getDay();
+    // Check if it's a weekday (Monday-Friday, 1-5)
+    if (dayOfWeek > 0 && dayOfWeek < 6) {
+      weekdays++;
+    }
+    
+    // Move to next day
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return weekdays;
+}
