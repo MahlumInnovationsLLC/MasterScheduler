@@ -2969,10 +2969,27 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       - Row height: ${rowHeight}px (container height ${containerRect.height}px ÷ ${ROW_COUNT} rows)
       - CALCULATED ROW: ${calculatedRowIndex} → FINAL ROW: ${finalRowIndex}`);
       
-    // Convert pixels to date (this is critical for exact placement)
-    const pixelsPerDay = 100 / 7; // Adjust based on your timeline scale
-    const daysFromStart = Math.round(exactDropPositionPx / pixelsPerDay);
-    const exactDate = addDays(dateRange.start, daysFromStart);
+    // CRITICAL FIX: EXACT DATE CALCULATION
+    // This is the most important part that ensures horizontal (date) precision
+    // Scaling factor based on currently visible timeline (pixels per day)
+    const pixelsPerDay = slotWidth / 7; // Each slot is 7 days in week view
+    
+    // Calculate exact days from start based on pixel position - DO NOT ROUND
+    // This ensures we get the precise date without snapping
+    const daysFromStart = exactDropPositionPx / pixelsPerDay;
+    
+    // Convert to an actual date - EXACT pixel placement
+    const exactDate = addDays(dateRange.start, Math.floor(daysFromStart));
+    
+    console.log(`📏 PIXEL-PERFECT DATE CALCULATION: 
+      - X position: ${exactDropPositionPx}px 
+      - Pixels per day: ${pixelsPerDay}
+      - Days from start: ${daysFromStart} (using Math.floor: ${Math.floor(daysFromStart)})
+      - Exact date: ${format(exactDate, 'yyyy-MM-dd')}`);
+      
+    // Additional day offset to get precise day within the week
+    const daysPrecise = daysFromStart - Math.floor(daysFromStart);
+    console.log(`📅 SUB-DAY PRECISION: ${daysPrecise * 24} hours into the day (${daysPrecise.toFixed(3)} of a day)`);
     
     // Store the calculated date for use in later placement logic
     document.body.setAttribute('data-exact-drop-date', format(exactDate, 'yyyy-MM-dd'));
@@ -3409,15 +3426,42 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // NO CAPPING - allow the proper calculation based on hours/capacity
       const prodDaysToUse = prodDays;
       
-      // First get the exact start date that we're using
-      // CRITICAL FIX: Use the global variable we set in handleDragOver if available
-      // This ensures we use the exact week that was targeted during dragging
-      const globalExactDate = (window as any).lastExactDate;
-      console.log(`Global exact date from drag: ${globalExactDate}`);
+      // CRITICAL FIX: Use EXACTLY the date from our pixel-perfect calculation
+      // This ensures the start date is PRECISELY where the user dropped the project
+      // We have multiple sources for this date in order of preference:
       
-      const exactStartDate = globalExactDate 
-        ? new Date(globalExactDate)
-        : (data.targetStartDate ? new Date(data.targetStartDate) : slotDate);
+      // 1. HIGHEST PRIORITY: The pixel-perfect date we calculated from mouse X position
+      const pixelPerfectDateAttr = document.body.getAttribute('data-exact-drop-date');
+      
+      // 2. The global date variable we set during drag over
+      const globalExactDate = (window as any).lastExactDate;
+      
+      // 3. Any date that might be stored in drag data
+      const dataTargetDate = data.targetStartDate;
+      
+      // 4. The date from the slot we're hovering over
+      const slotDateValue = slotDate ? format(slotDate, 'yyyy-MM-dd') : null;
+      
+      // Log all potential date sources for debugging
+      console.log(`ALL DATE SOURCES:
+        - Pixel-perfect calculated date: ${pixelPerfectDateAttr}
+        - Global exact date from drag: ${globalExactDate}
+        - Data target date: ${dataTargetDate}
+        - Slot date: ${slotDateValue}
+      `);
+      
+      // Choose the best available date source, prioritizing the most precise one
+      const exactStartDate = new Date(
+        pixelPerfectDateAttr || 
+        globalExactDate || 
+        dataTargetDate || 
+        (slotDate ? slotDateValue : new Date())
+      );
+      
+      console.log(`🎯 USING PIXEL-PERFECT DATE: ${format(exactStartDate, 'yyyy-MM-dd')} (from best available source)`);
+      
+      // Store this date for any final verification
+      document.body.setAttribute('data-final-exact-date', format(exactStartDate, 'yyyy-MM-dd'));
       
       // Calculate the FAB phase duration from the exact start date
       const exactFabEndDate = addDays(exactStartDate, fabDays);
@@ -3477,17 +3521,38 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const exactRowFromDrop = document.body.getAttribute('data-exact-row-drop');
         const exactRowFromLastSelect = document.body.getAttribute('data-last-row-select');
 
-        // FORCE using pixel-perfect calculation directly - DO NOT APPLY ANY LOGIC OR VALIDATION
-        // Do not check for min/max - user specifically wants absolute control
-        const forcedExactRowIndex = exactRowFromPixelCalc 
-          ? parseInt(exactRowFromPixelCalc) 
-          : (exactRowFromDragCoords 
-              ? parseInt(exactRowFromDragCoords) 
-              : (exactRowFromDrop 
-                  ? parseInt(exactRowFromDrop) 
-                  : (exactRowFromLastSelect 
-                      ? parseInt(exactRowFromLastSelect) 
-                      : targetRowIndex)));
+        // CRITICAL FIX: Always use the precise calculated row from pixel position
+        // Prioritize data-precision-drop-row which is set from our pixel-perfect calculation
+        const precisionDropRow = document.body.getAttribute('data-precision-drop-row');
+        
+        // Log all potential sources for debugging
+        console.log(`ALL ROW SOURCES:
+          - NEW Precision drop row: ${precisionDropRow}
+          - Forced row index: ${exactRowFromPixelCalc}
+          - Drag coordinates row: ${exactRowFromDragCoords}
+          - Exact row drop: ${exactRowFromDrop}
+          - Last selected row: ${exactRowFromLastSelect}
+          - Target row index: ${targetRowIndex}
+        `);
+        
+        // Get the PRECISE row with NO bounds adjustments
+        // Use our pixel-perfect calculation as the top priority
+        const forcedExactRowIndex = precisionDropRow !== null
+          ? parseInt(precisionDropRow)
+          : (exactRowFromPixelCalc !== null
+              ? parseInt(exactRowFromPixelCalc)
+              : (exactRowFromDragCoords !== null
+                  ? parseInt(exactRowFromDragCoords)
+                  : (exactRowFromDrop !== null
+                      ? parseInt(exactRowFromDrop)
+                      : (exactRowFromLastSelect !== null
+                          ? parseInt(exactRowFromLastSelect)
+                          : targetRowIndex))));
+                          
+        console.log(`🎯 USING EXACT ROW ${forcedExactRowIndex} FROM PRECISE PIXEL POSITION`);
+                  
+        // CRITICAL: Add extra attribute to verify we're using the right row
+        document.body.setAttribute('data-final-exact-row', forcedExactRowIndex.toString());
 
         // CRITICAL: HARDCODE DEFAULT TO ROW 0 FOR SAFETY - prevent any null/undefined values
         // This ensures we always have a valid row even if all drag tracking fails
