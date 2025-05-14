@@ -56,24 +56,51 @@ const ReportsPage = () => {
   const [projectFilter, setProjectFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
 
-  // Calculate date ranges based on selected time range
-  const now = new Date();
-  const getDateRange = () => {
+  // Hard-code date ranges to avoid any potential date handling errors
+  // These are predefined date strings in ISO format (YYYY-MM-DD)
+  const getDateRangeStrings = () => {
+    // Get current date as ISO string and extract just the date part
+    const today = new Date().toISOString().split('T')[0];
+    
+    let startDate;
     switch (timeRange) {
-      case '3months':
-        return { start: subMonths(now, 3), end: now };
-      case '6months':
-        return { start: subMonths(now, 6), end: now };
-      case '12months':
-        return { start: subMonths(now, 12), end: now };
-      case 'ytd':
-        return { start: new Date(now.getFullYear(), 0, 1), end: now };
-      default:
-        return { start: subMonths(now, 6), end: now };
+      case '3months': {
+        // Calculate 3 months ago manually
+        const date = new Date();
+        date.setMonth(date.getMonth() - 3);
+        startDate = date.toISOString().split('T')[0];
+        break;
+      }
+      case '6months': {
+        // Calculate 6 months ago manually
+        const date = new Date();
+        date.setMonth(date.getMonth() - 6);
+        startDate = date.toISOString().split('T')[0];
+        break;
+      }
+      case '12months': {
+        // Calculate 12 months ago manually
+        const date = new Date();
+        date.setMonth(date.getMonth() - 12);
+        startDate = date.toISOString().split('T')[0];
+        break;
+      }
+      case 'ytd': {
+        // Get January 1st of current year
+        const date = new Date();
+        startDate = `${date.getFullYear()}-01-01`;
+        break;
+      }
+      default: {
+        // Default to 6 months ago
+        const date = new Date();
+        date.setMonth(date.getMonth() - 6);
+        startDate = date.toISOString().split('T')[0];
+      }
     }
+    
+    return { startDate, endDate: today };
   };
-
-  const dateRange = getDateRange();
   
   // Handle exporting data to CSV
   const handleExport = async () => {
@@ -137,8 +164,7 @@ const ReportsPage = () => {
 
   // Base date parameters for report queries
   const dateParams = {
-    startDate: format(dateRange.start, 'yyyy-MM-dd'),
-    endDate: format(dateRange.end, 'yyyy-MM-dd'),
+    ...getDateRangeStrings(),
     projectId: projectFilter !== 'all' ? projectFilter : undefined
   };
 
