@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
+import { format } from 'date-fns';
 import { 
   Folders, 
   Flag, 
@@ -69,22 +70,20 @@ interface ProjectWithRawData extends Project {
 // EditableDateField component for in-line date editing
 const EditableDateField = ({ projectId, field, value }: { projectId: number, field: string, value: string | null }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [dateValue, setDateValue] = useState<string | undefined>(
-    value ? new Date(value).toISOString().split('T')[0] : undefined
-  );
+  const [date, setDate] = useState<Date | undefined>(value ? new Date(value) : undefined);
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const handleSave = async () => {
-    if (!dateValue) return;
+  const handleSave = async (newDate?: Date) => {
+    const dateToSave = newDate || date;
     
     setIsUpdating(true);
     try {
       await apiRequest(
         "PATCH",
         `/api/projects/${projectId}`,
-        { [field]: dateValue ? new Date(dateValue).toISOString() : null }
+        { [field]: dateToSave?.toISOString() || null }
       );
       
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
@@ -107,34 +106,40 @@ const EditableDateField = ({ projectId, field, value }: { projectId: number, fie
 
   if (isEditing) {
     return (
-      <div className="flex items-center space-x-2">
-        <input
-          type="date"
-          className="w-32 px-2 py-1 rounded text-xs bg-background border border-input"
-          value={dateValue || ''}
-          onChange={(e) => setDateValue(e.target.value)}
-        />
-        <div className="flex space-x-1">
+      <Popover open={true} onOpenChange={(open) => !open && setIsEditing(false)}>
+        <PopoverTrigger asChild>
           <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-6 w-6" 
-            onClick={handleSave}
+            variant="outline" 
+            className="w-[180px] justify-start text-left text-xs"
             disabled={isUpdating}
           >
-            {isUpdating ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> : <Check className="h-3 w-3 text-success" />}
+            {isUpdating ? (
+              <div className="flex items-center">
+                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent border-primary"></div>
+                <span>Updating...</span>
+              </div>
+            ) : (
+              <>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? format(date, "PPP") : "Select date"}
+              </>
+            )}
           </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-6 w-6" 
-            onClick={() => setIsEditing(false)}
-            disabled={isUpdating}
-          >
-            <X className="h-3 w-3 text-danger" />
-          </Button>
-        </div>
-      </div>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={(newDate) => {
+              if (newDate) {
+                setDate(newDate);
+                handleSave(newDate);
+              }
+            }}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
     );
   }
 
