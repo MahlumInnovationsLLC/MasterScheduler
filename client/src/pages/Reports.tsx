@@ -382,17 +382,46 @@ const ReportsPage = () => {
       const completedDays = baySchedules
         .filter(schedule => schedule.status === 'complete')
         .reduce((total, schedule) => {
-          const start = new Date(schedule.startDate);
-          const end = new Date(schedule.endDate);
-          const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-          return total + days;
+          try {
+            if (!schedule.startDate || !schedule.endDate) return total;
+            
+            const start = new Date(schedule.startDate);
+            const end = new Date(schedule.endDate);
+            
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+              console.warn('Invalid date in completed schedule:', schedule.id);
+              return total;
+            }
+            
+            const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+            return total + Math.max(0, days); // Ensure we don't add negative days
+          } catch (error) {
+            console.error('Error calculating days for completed schedule:', error, schedule);
+            return total;
+          }
         }, 0);
       
       // Calculate utilization as a percentage of the date range
-      const startDate = new Date(dateParams.startDate);
-      const endDate = new Date(dateParams.endDate);
-      const dateRangeDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      const utilization = dateRangeDays > 0 ? (totalDays / dateRangeDays) * 100 : 0;
+      let utilization = 0;
+      
+      try {
+        // Validate date parameters
+        if (!dateParams.startDate || !dateParams.endDate) {
+          console.warn('Missing date parameters for utilization calculation');
+        } else {
+          const startDate = new Date(dateParams.startDate);
+          const endDate = new Date(dateParams.endDate);
+          
+          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            console.warn('Invalid date parameters for utilization calculation:', dateParams);
+          } else {
+            const dateRangeDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+            utilization = dateRangeDays > 0 ? (totalDays / dateRangeDays) * 100 : 0;
+          }
+        }
+      } catch (error) {
+        console.error('Error calculating bay utilization:', error);
+      }
       
       bayUtilization[bayName] = {
         bay: bayName,
