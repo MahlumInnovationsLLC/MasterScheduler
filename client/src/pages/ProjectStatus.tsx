@@ -104,52 +104,42 @@ const EditableDateField = ({ projectId, field, value }: { projectId: number, fie
     }
   };
 
-  if (isEditing) {
-    return (
-      <Popover open={true} onOpenChange={(open) => !open && setIsEditing(false)}>
-        <PopoverTrigger asChild>
-          <Button 
-            variant="outline" 
-            className="w-[180px] justify-start text-left text-xs"
-            disabled={isUpdating}
-          >
-            {isUpdating ? (
-              <div className="flex items-center">
-                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent border-primary"></div>
-                <span>Updating...</span>
-              </div>
-            ) : (
-              <>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, "PPP") : "Select date"}
-              </>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={(newDate) => {
-              if (newDate) {
-                setDate(newDate);
-                handleSave(newDate);
-              }
-            }}
-            initialFocus
-          />
-        </PopoverContent>
-      </Popover>
-    );
-  }
-
   return (
-    <div
-      className="flex items-center cursor-pointer hover:bg-gray-100/10 px-2 py-1 rounded group"
-      onClick={() => setIsEditing(true)}
-    >
-      <span>{formatDate(value)}</span>
-      <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500 opacity-0 group-hover:opacity-100" />
+    <div className="relative">
+      {isUpdating ? (
+        <div className="flex items-center text-sm">
+          <div className="h-3 w-3 mr-2 animate-spin rounded-full border-2 border-t-transparent border-primary"></div>
+          <span>Updating...</span>
+        </div>
+      ) : (
+        <div 
+          className="flex items-center cursor-pointer hover:bg-gray-100/10 px-2 py-1 rounded group"
+          onClick={() => setIsEditing(true)}
+        >
+          <span>{formatDate(value)}</span>
+          <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500 opacity-0 group-hover:opacity-100" />
+        </div>
+      )}
+      
+      {isEditing && (
+        <Popover open={true} onOpenChange={(open) => !open && setIsEditing(false)}>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={(newDate) => {
+                if (newDate) {
+                  setDate(newDate);
+                  handleSave(newDate);
+                } else {
+                  setIsEditing(false);
+                }
+              }}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      )}
     </div>
   );
 };
