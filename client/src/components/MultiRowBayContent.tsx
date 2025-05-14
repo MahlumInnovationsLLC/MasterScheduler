@@ -132,22 +132,54 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
                       }
                     }
                     
-                    // FORCE EXACT ROW PLACEMENT - Store exact row in multiple places
-                    // This is the most critical fix - store the exact row value where cursor is
+                    // CRITICAL FIX: PIXEL-PERFECT ROW PLACEMENT
+                    // Calculate the exact row position based on pixel-perfect Y position
+                    const cell = e.currentTarget;
+                    const cellRect = cell.getBoundingClientRect();
+                    
+                    // Get the Y offset where user initially grabbed the bar
+                    const dragOffsetY = parseInt(document.body.getAttribute('data-drag-offset-y') || '0');
+                    
+                    // Calculate relative Y position within the cell, adjusted for drag offset
+                    const relativeY = e.clientY - cellRect.top;
+                    
+                    // Get the cell height and calculate exact row based on percentage
+                    const cellHeight = cellRect.height;
+                    const rowHeight = cellHeight / rowCount; // Height of a single row
+                    
+                    // Calculate the exact row where cursor is, adjusted for the drag offset
+                    // This ensures the bar's original grab point aligns with where it's dropped
+                    const adjustedY = Math.max(0, relativeY - dragOffsetY);
+                    const exactRow = Math.floor(adjustedY / rowHeight);
+                    
+                    // Clamp the row index to valid range
+                    const clampedExactRow = Math.max(0, Math.min(rowCount - 1, exactRow));
+                    
+                    // STORE EXACT ROW IN MULTIPLE ATTRIBUTES FOR REDUNDANCY
+                    // This guarantees we always have the row position available during processing
                     document.body.setAttribute('data-current-drag-row', rowIdx.toString());
                     document.body.setAttribute('data-exact-row-drop', rowIdx.toString());
                     document.body.setAttribute('data-last-row-select', rowIdx.toString());
+                    document.body.setAttribute('data-precision-drop-row', clampedExactRow.toString());
                     
-                    // Store data with pixel precision
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const relativeY = e.clientY - rect.top;
-                    const rowPct = (relativeY / rect.height);
-                    
+                    // Store pixel-perfect calculation details for debugging
+                    const rowPct = (relativeY / cellHeight);
                     document.body.setAttribute('data-exact-drop-y-percent', rowPct.toString());
-                    console.log(`🎯 EXACT ROW POSITION: ${rowIdx} (${rowPct.toFixed(2)}% within cell height)`);
+                    document.body.setAttribute('data-exact-drop-y-pixels', relativeY.toString());
+                    document.body.setAttribute('data-exact-drop-adjusted-y', adjustedY.toString());
                     
-                    // Handle the drop with the specific row index
-                    handleDrop(e, bay.id, index, rowIdx);
+                    console.log(`🎯 PIXEL-PERFECT ROW CALCULATION:`);
+                    console.log(`  - Cell height: ${cellHeight}px with ${rowCount} rows (${rowHeight}px per row)`);
+                    console.log(`  - Mouse Y position: ${relativeY}px (${rowPct.toFixed(2)}% of cell height)`);
+                    console.log(`  - Drag offset Y: ${dragOffsetY}px (where user grabbed the bar)`);
+                    console.log(`  - Adjusted Y: ${adjustedY}px (after compensating for grab offset)`);
+                    console.log(`  - Calculated exact row: ${exactRow} (clamped to ${clampedExactRow})`);
+                    console.log(`  - Cell index row: ${rowIdx} (original cell-based calculation)`);
+                    console.log(`  - USING PRECISION ROW: ${clampedExactRow} for final placement`);
+                    
+                    // CRITICAL FIX: Use the pixel-perfect calculated row instead of the cell-based rowIdx
+                    // This ensures the project lands exactly where the user expects based on pixel position
+                    handleDrop(e, bay.id, index, clampedExactRow);
                     
                     // Log the exact cell location for debugging
                     const weekStartDate = format(slot.date, 'yyyy-MM-dd');
