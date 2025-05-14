@@ -633,8 +633,8 @@ export default function ProjectCreate() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {Math.abs(totalPercentage - 100) > 0.01 && (
-                    <Alert variant="warning" className="mb-4">
-                      <AlertCircle className="h-4 w-4" />
+                    <Alert className="mb-4 bg-amber-50 border-amber-300">
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
                       <AlertTitle>Phase allocations don't add up to 100%</AlertTitle>
                       <AlertDescription>
                         The current total is {totalPercentage}%. Please adjust the phase percentages to total 100%.

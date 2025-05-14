@@ -3744,7 +3744,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       toast({
         title: "Over Capacity Warning (Visual Indicator Only)",
         description: `Bay will be at ${capacityImpact.percentage}% capacity - Applied exactly as requested`,
-        variant: "warning",
+        // Removed "warning" variant since it's not supported in the toast component
       });
       
       console.log(`🚨 CAPACITY WARNING ONLY: Bay ${capacityImpact.bayId} at ${capacityImpact.percentage}% capacity`);
