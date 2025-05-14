@@ -270,15 +270,18 @@ export function checkScheduleConflict(
     // Skip if not in the same bay
     if (schedule.bayId !== bay) return false;
     
-    // If we have a specific row target and the schedule has a row,
-    // only check for conflicts if they're in the same row
+    // CRITICAL FEATURE: Allow multiple projects in the same bay when they're in different rows
+    // This is a key user requirement - multiple projects can be in the same bay at the same time
+    // as long as they're in different rows, no matter if they overlap in time or not
     if (targetRow !== undefined && schedule.row !== undefined && schedule.row !== targetRow) {
-      return false; // Different rows, so no conflict
+      return false; // Different rows, so no conflict - users can place projects freely in different rows
     }
     
     const scheduleStart = new Date(schedule.startDate);
     const scheduleEnd = new Date(schedule.endDate);
     
+    // CRITICAL FEATURE: Allow multiple non-overlapping projects in same row
+    // This lets users place projects back-to-back in the same row
     // Modified overlap check to allow projects to be placed immediately after another
     // No overlap if new project ends before or exactly when existing project starts,
     // OR new project starts after or exactly when existing project ends
@@ -286,7 +289,9 @@ export function checkScheduleConflict(
       isEqual(newEnd, scheduleStart) || isBefore(newEnd, scheduleStart) ||
       isEqual(newStart, scheduleEnd) || isAfter(newStart, scheduleEnd);
     
-    // Return true if there IS an overlap
+    // Return true if there IS an overlap, false if there's no overlap
+    // This means multiple projects can exist in the same row as long as
+    // they don't overlap in time
     return !noOverlap;
   });
 }
