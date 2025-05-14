@@ -720,7 +720,8 @@ const BillingMilestones = () => {
         const statusInfo = getBillingStatusInfo(
           row.original.status,
           row.original.targetInvoiceDate,
-          row.original.actualInvoiceDate
+          row.original.actualInvoiceDate,
+          row.original.liveDate
         );
         return <ProgressBadge status={statusInfo.display} />;
       },
@@ -764,12 +765,15 @@ const BillingMilestones = () => {
           setUpdatingStates(prev => ({...prev, [cellId]: value}));
         };
         
+        // Get status info using Live Date as a reference when available
         const statusInfo = getBillingStatusInfo(
           row.original.status,
           row.original.targetInvoiceDate,
-          row.original.actualInvoiceDate
+          row.original.actualInvoiceDate,
+          row.original.liveDate
         );
         
+        // Color coding for text based on status
         const textColorClass = row.original.status === 'delayed' ? 'text-danger' : 
                             row.original.status === 'invoiced' ? 'text-warning' :
                             row.original.status === 'paid' ? 'text-success' : 'text-gray-400';
