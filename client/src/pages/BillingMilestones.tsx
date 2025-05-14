@@ -582,20 +582,133 @@ const BillingMilestones = () => {
       accessorKey: 'liveDate',
       header: 'Live Date',
       cell: ({ row }) => {
-        const deliveryMilestone = row.original.isDeliveryMilestone || 
-                                 (row.original.name && row.original.name.toUpperCase().includes("DELIVERY"));
+        // Each cell needs its own state
+        const cellId = `livedate-${row.original.id}`;
         
-        // Only show for delivery milestones with a liveDate
-        if (!deliveryMilestone || !row.original.liveDate) {
-          return <div className="text-sm text-gray-400">-</div>;
+        const [editingStates, setEditingStates] = useState<Record<string, boolean>>({});
+        const [dateValues, setDateValues] = useState<Record<string, string | undefined>>({});
+        const [updatingStates, setUpdatingStates] = useState<Record<string, boolean>>({});
+        
+        // Initialize date value if not already set
+        useEffect(() => {
+          if (!dateValues[cellId] && row.original.liveDate) {
+            setDateValues(prev => ({
+              ...prev,
+              [cellId]: new Date(row.original.liveDate).toISOString().split('T')[0]
+            }));
+          }
+        }, [cellId, row.original.liveDate]);
+        
+        const isEditing = editingStates[cellId] || false;
+        const dateValue = dateValues[cellId];
+        const isUpdating = updatingStates[cellId] || false;
+        
+        // Handlers that use the cell ID for tracking state
+        const setIsEditing = (value: boolean) => {
+          setEditingStates(prev => ({...prev, [cellId]: value}));
+        };
+        
+        const setDateValue = (value: string | undefined) => {
+          setDateValues(prev => ({...prev, [cellId]: value}));
+        };
+        
+        const setIsUpdating = (value: boolean) => {
+          setUpdatingStates(prev => ({...prev, [cellId]: value}));
+        };
+        
+        // Function to handle saving the date
+        const handleSave = async () => {
+          if (!dateValue) return;
+          
+          setIsUpdating(true);
+          try {
+            const response = await apiRequest(
+              "PATCH",
+              `/api/billing-milestones/${row.original.id}`,
+              { 
+                liveDate: dateValue,
+              }
+            );
+            
+            if (response.ok) {
+              queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+              toast({
+                title: "Live Date Updated",
+                description: "Live date has been updated successfully",
+                variant: "default"
+              });
+            } else {
+              throw new Error("Failed to update live date");
+            }
+          } catch (error) {
+            toast({
+              title: "Update Failed",
+              description: `Error updating live date: ${(error as Error).message}`,
+              variant: "destructive"
+            });
+          } finally {
+            setIsUpdating(false);
+            setIsEditing(false);
+          }
+        };
+        
+        // Display editor if in edit mode
+        if (isEditing) {
+          return (
+            <div className="flex items-center space-x-2">
+              <input
+                type="date"
+                className="w-32 px-2 py-1 rounded text-xs bg-background border border-input"
+                value={dateValue || ''}
+                onChange={(e) => setDateValue(e.target.value)}
+              />
+              <div className="flex space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6" 
+                  onClick={handleSave}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> : <Check className="h-3 w-3 text-success" />}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6" 
+                  onClick={() => setIsEditing(false)}
+                  disabled={isUpdating}
+                >
+                  <X className="h-3 w-3 text-danger" />
+                </Button>
+              </div>
+            </div>
+          );
         }
         
         // Check if there's a ship date change
         const hasShipDateChanged = row.original.shipDateChanged;
+
+        // Regular display mode
+        if (!row.original.liveDate) {
+          return (
+            <div 
+              className="text-sm text-gray-400 cursor-pointer hover:underline flex items-center"
+              onClick={() => setIsEditing(true)}
+            >
+              <span>-</span>
+              <Calendar className="inline-block ml-1 h-3 w-3" />
+            </div>
+          );
+        }
         
         return (
-          <div className={`text-sm ${hasShipDateChanged ? "bg-orange-300/20 font-semibold text-orange-500" : ""} rounded px-2 py-1`}>
-            {formatDate(row.original.liveDate)}
+          <div 
+            className={`text-sm ${hasShipDateChanged ? "bg-orange-300/20 font-semibold text-orange-500" : ""} rounded px-2 py-1 cursor-pointer hover:underline flex items-center`}
+            onClick={() => setIsEditing(true)}
+          >
+            <span>{formatDate(row.original.liveDate)}</span>
+            <Calendar className="inline-block ml-1 h-3 w-3" />
           </div>
         );
       },

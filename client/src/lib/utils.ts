@@ -173,15 +173,24 @@ export function getProjectScheduleState(
 export function getBillingStatusInfo(
   status: string, 
   targetDate: Date | string | undefined | null, 
-  actualDate: Date | string | undefined | null
+  actualDate: Date | string | undefined | null,
+  liveDate: Date | string | undefined | null = null
 ): { color: string, display: string, timeline: string } {
   const now = new Date();
   
-  if (!targetDate) {
+  if (!targetDate && !liveDate) {
     return { color: 'bg-gray-500', display: 'Unknown', timeline: 'No date set' };
   }
   
-  const target = new Date(targetDate);
+  // Use live date if available, otherwise fall back to target date
+  const referenceDate = liveDate ? new Date(liveDate) : (targetDate ? new Date(targetDate) : null);
+  
+  if (!referenceDate) {
+    return { color: 'bg-gray-500', display: 'Unknown', timeline: 'No date set' };
+  }
+  
+  // Use formatted string to indicate which date we're comparing against
+  const dateTypeLabel = liveDate ? 'Live date' : 'Target date';
   
   switch (status) {
     case 'paid':
@@ -191,26 +200,47 @@ export function getBillingStatusInfo(
         timeline: actualDate ? `Paid on ${formatDate(actualDate)}` : 'Payment received' 
       };
     case 'invoiced':
-      return { 
-        color: 'bg-warning', 
-        display: 'Invoiced', 
-        timeline: differenceInDays(now, target) > 0 
-          ? `Due in ${formatDistance(now, target)}` 
-          : `${Math.abs(differenceInDays(now, target))} days overdue` 
-      };
+      // For invoiced, determine if it's overdue based on reference date
+      if (differenceInDays(referenceDate, now) > 0) {
+        // Date is in the future, show "Due in X days"
+        return { 
+          color: 'bg-warning', 
+          display: 'Invoiced', 
+          timeline: `Due in ${formatDistance(referenceDate, now)}`
+        };
+      } else {
+        // Date is in the past, show "Late by X days"
+        return { 
+          color: 'bg-warning', 
+          display: 'Invoiced', 
+          timeline: `Late by ${Math.abs(differenceInDays(referenceDate, now))} days` 
+        };
+      }
     case 'delayed':
+      // Always show overdue for delayed status
       return { 
         color: 'bg-danger', 
         display: 'Delayed', 
-        timeline: `${Math.abs(differenceInDays(now, target))} days overdue` 
+        timeline: `Late by ${Math.abs(differenceInDays(referenceDate, now))} days` 
       };
     case 'upcoming':
     default:
-      return { 
-        color: 'bg-gray-700', 
-        display: 'Upcoming', 
-        timeline: `Due in ${formatDistance(now, target)}` 
-      };
+      // For upcoming, check if it's already late based on reference date
+      if (differenceInDays(referenceDate, now) > 0) {
+        // Date is in the future
+        return { 
+          color: 'bg-gray-700', 
+          display: 'Upcoming', 
+          timeline: `Due in ${formatDistance(referenceDate, now)}` 
+        };
+      } else {
+        // Date is in the past, mark as late
+        return { 
+          color: 'bg-amber-600', 
+          display: 'Upcoming', 
+          timeline: `Late by ${Math.abs(differenceInDays(referenceDate, now))} days` 
+        };
+      }
   }
 }
 
