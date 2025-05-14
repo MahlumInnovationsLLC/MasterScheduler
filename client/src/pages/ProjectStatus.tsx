@@ -17,7 +17,7 @@ import {
   Edit,
   MoreHorizontal,
   ArrowUpRight,
-  Calendar as CalendarIcon,
+  Calendar,
   SearchIcon,
   ListFilter,
   AlertTriangle,
@@ -31,7 +31,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
 import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
-import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Popover,
