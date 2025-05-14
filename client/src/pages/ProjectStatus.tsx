@@ -52,6 +52,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { formatDate, getProjectStatusColor, getProjectScheduleState } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
 import { Project } from '@shared/schema';
 
 // Extend Project type to ensure rawData is included
@@ -843,23 +844,23 @@ const ProjectStatus = () => {
       (value, project) => <EditableDateField projectId={project.id} field="wrapDate" value={value} />,
       { size: 170 }),
     createColumn('ntcTestingDate', 'ntcTestingDate', 'NTC Testing', 
-      (value) => formatDate(value),
-      { size: 140 }),
+      (value, project) => <EditableDateField projectId={project.id} field="ntcTestingDate" value={value} />,
+      { size: 170 }),
     createColumn('qcStartDate', 'qcStartDate', 'QC Start', 
-      (value) => formatDate(value),
-      { size: 140 }),
+      (value, project) => <EditableDateField projectId={project.id} field="qcStartDate" value={value} />,
+      { size: 170 }),
     createColumn('qcDays', 'qcDays', 'QC Days', 
       (value) => value !== null ? value : 'N/A',
       { size: 100 }),
     createColumn('executiveReviewDate', 'executiveReviewDate', 'Exec Review', 
-      (value) => formatDate(value),
-      { size: 140 }),
+      (value, project) => <EditableDateField projectId={project.id} field="executiveReviewDate" value={value} />,
+      { size: 170 }),
     createColumn('shipDate', 'shipDate', 'Ship Date', 
-      (value) => formatDate(value),
-      { size: 140 }),
+      (value, project) => <EditableDateField projectId={project.id} field="shipDate" value={value} />,
+      { size: 170 }),
     createColumn('deliveryDate', 'deliveryDate', 'Delivery Date', 
-      (value) => formatDate(value),
-      { size: 140 }),
+      (value, project) => <EditableDateField projectId={project.id} field="deliveryDate" value={value} />,
+      { size: 170 }),
     createColumn('description', 'description', 'Description',
       (value, project) => (
         <div className="text-sm max-w-xs truncate" title={value as string}>
