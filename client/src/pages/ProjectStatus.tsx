@@ -69,61 +69,82 @@ interface ProjectWithRawData extends Project {
 // EditableDateField component for in-line date editing
 const EditableDateField = ({ projectId, field, value }: { projectId: number, field: string, value: string | null }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [date, setDate] = useState<Date | undefined>(value ? new Date(value) : undefined);
+  const [dateValue, setDateValue] = useState<string | undefined>(
+    value ? new Date(value).toISOString().split('T')[0] : undefined
+  );
+  const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const handleSave = async () => {
+    if (!dateValue) return;
+    
+    setIsUpdating(true);
     try {
-      await apiRequest(`/api/projects/${projectId}`, 'PATCH', { [field]: date?.toISOString() || null });
-      toast({
-        title: "Date updated",
-        description: "The date has been updated successfully.",
-      });
+      await apiRequest(
+        "PATCH",
+        `/api/projects/${projectId}`,
+        { [field]: dateValue ? new Date(dateValue).toISOString() : null }
+      );
+      
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      toast({
+        title: "Date Updated",
+        description: "The date has been updated successfully",
+        variant: "default"
+      });
       setIsEditing(false);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to update the date. Please try again.",
-        variant: "destructive",
+        title: "Update Failed",
+        description: `Error updating date: ${(error as Error).message}`,
+        variant: "destructive"
       });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  return (
-    <div className="relative">
-      {isEditing ? (
-        <Popover open={true} onOpenChange={(open) => !open && setIsEditing(false)}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="w-full justify-start text-left font-normal h-9">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? formatDate(date.toISOString()) : "Pick a date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={(date) => {
-                setDate(date);
-                if (date) {
-                  setTimeout(() => handleSave(), 100);
-                }
-              }}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
-      ) : (
-        <div
-          className="cursor-pointer flex items-center hover:bg-gray-100 px-2 py-1 rounded"
-          onClick={() => setIsEditing(true)}
-        >
-          <span>{formatDate(value)}</span>
-          <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500" />
+  if (isEditing) {
+    return (
+      <div className="flex items-center space-x-2">
+        <input
+          type="date"
+          className="w-32 px-2 py-1 rounded text-xs bg-background border border-input"
+          value={dateValue || ''}
+          onChange={(e) => setDateValue(e.target.value)}
+        />
+        <div className="flex space-x-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-6 w-6" 
+            onClick={handleSave}
+            disabled={isUpdating}
+          >
+            {isUpdating ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> : <Check className="h-3 w-3 text-success" />}
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-6 w-6" 
+            onClick={() => setIsEditing(false)}
+            disabled={isUpdating}
+          >
+            <X className="h-3 w-3 text-danger" />
+          </Button>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="flex items-center cursor-pointer hover:bg-gray-100/10 px-2 py-1 rounded group"
+      onClick={() => setIsEditing(true)}
+    >
+      <span>{formatDate(value)}</span>
+      <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500 opacity-0 group-hover:opacity-100" />
     </div>
   );
 };
@@ -131,60 +152,85 @@ const EditableDateField = ({ projectId, field, value }: { projectId: number, fie
 // EditableNotesField component for in-line notes editing
 const EditableNotesField = ({ projectId, value }: { projectId: number, value: string | null }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [notes, setNotes] = useState(value || '');
+  const [noteValue, setNoteValue] = useState(value || '');
+  const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const handleSave = async () => {
+    setIsUpdating(true);
     try {
-      await apiRequest(`/api/projects/${projectId}`, 'PATCH', { notes });
-      toast({
-        title: "Notes updated",
-        description: "The notes have been updated successfully.",
-      });
+      await apiRequest(
+        "PATCH",
+        `/api/projects/${projectId}`,
+        { notes: noteValue }
+      );
+      
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      toast({
+        title: "Notes Updated",
+        description: "The notes have been updated successfully",
+        variant: "default"
+      });
       setIsEditing(false);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to update the notes. Please try again.",
-        variant: "destructive",
+        title: "Update Failed",
+        description: `Error updating notes: ${(error as Error).message}`,
+        variant: "destructive"
       });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
+  if (isEditing) {
+    return (
+      <div className="flex flex-col space-y-2 py-1">
+        <textarea
+          className="w-full h-24 px-2 py-1 rounded text-xs bg-background border border-input"
+          value={noteValue}
+          onChange={(e) => setNoteValue(e.target.value)}
+          placeholder="Add notes here..."
+        />
+        <div className="flex justify-end space-x-1">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-6" 
+            onClick={handleSave}
+            disabled={isUpdating}
+          >
+            {isUpdating ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> : <Check className="h-3 w-3 text-success mr-1" />}
+            Save
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-6" 
+            onClick={() => setIsEditing(false)}
+            disabled={isUpdating}
+          >
+            <X className="h-3 w-3 text-danger mr-1" />
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="relative">
-      {isEditing ? (
-        <div className="flex flex-col gap-2">
-          <Textarea 
-            value={notes} 
-            onChange={(e) => setNotes(e.target.value)}
-            className="min-h-[80px] resize-none"
-          />
-          <div className="flex justify-end gap-2">
-            <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
-              Cancel
-            </Button>
-            <Button size="sm" onClick={handleSave}>
-              Save
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div
-          className="cursor-pointer flex items-start hover:bg-gray-100 px-2 py-1 rounded"
-          onClick={() => setIsEditing(true)}
-        >
-          <div className="flex-1 text-sm">
-            {value ? 
-              <div className="line-clamp-2" title={value}>{value}</div>
-              : <span className="text-gray-400 italic">Add notes...</span>
-            }
-          </div>
-          <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500 mt-1 flex-shrink-0" />
-        </div>
-      )}
+    <div
+      className="flex items-start cursor-pointer hover:bg-gray-100/10 px-2 py-1 rounded group"
+      onClick={() => setIsEditing(true)}
+    >
+      <div className="flex-1 text-sm">
+        {value ? 
+          <div className="line-clamp-2" title={value}>{value}</div>
+          : <span className="text-gray-400 italic">Add notes...</span>
+        }
+      </div>
+      <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500 mt-1 flex-shrink-0 opacity-0 group-hover:opacity-100" />
     </div>
   );
 };
