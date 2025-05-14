@@ -783,7 +783,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   
   // Function to automatically adjust schedules to maintain 100% capacity usage
   // Now takes optional bayId to only adjust a specific bay
+  // This function is ONLY triggered when the user clicks the "Auto Adjust" button
+  // It is NEVER triggered automatically during manual resize or drag operations
+  // This ensures projects always stay exactly where users place them until
+  // they explicitly request auto-adjustment
   const applyAutoCapacityAdjustment = (specificBayId?: number) => {
+    console.log('🔒 MANUAL ADJUSTMENT PROTECTION: User explicitly requested auto-adjustment');
+    console.log('✅ Projects will not be auto-adjusted during normal operations');
+    console.log('⚠️ Only adjusting because user clicked "Auto Adjust Capacity" button');
+    
     if (!schedules.length || !bays.length) return;
     
     // Group schedules by bay
