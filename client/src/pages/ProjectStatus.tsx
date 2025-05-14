@@ -16,7 +16,7 @@ import {
   Edit,
   MoreHorizontal,
   ArrowUpRight,
-  Calendar,
+  Calendar as CalendarIcon,
   SearchIcon,
   ListFilter,
   AlertTriangle,
@@ -59,6 +59,129 @@ import { Project } from '@shared/schema';
 interface ProjectWithRawData extends Project {
   rawData: Record<string, any>;
 }
+
+// EditableDateField component for in-line date editing
+const EditableDateField = ({ projectId, field, value }: { projectId: number, field: string, value: string | null }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [date, setDate] = useState<Date | undefined>(value ? new Date(value) : undefined);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const handleSave = async () => {
+    try {
+      await apiRequest(`/api/projects/${projectId}`, 'PATCH', { [field]: date?.toISOString() || null });
+      toast({
+        title: "Date updated",
+        description: "The date has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      setIsEditing(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update the date. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="relative">
+      {isEditing ? (
+        <Popover open={true} onOpenChange={(open) => !open && setIsEditing(false)}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-full justify-start text-left font-normal h-9">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {date ? formatDate(date.toISOString()) : "Pick a date"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={(date) => {
+                setDate(date);
+                if (date) {
+                  setTimeout(() => handleSave(), 100);
+                }
+              }}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      ) : (
+        <div
+          className="cursor-pointer flex items-center hover:bg-gray-100 px-2 py-1 rounded"
+          onClick={() => setIsEditing(true)}
+        >
+          <span>{formatDate(value)}</span>
+          <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500" />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// EditableNotesField component for in-line notes editing
+const EditableNotesField = ({ projectId, value }: { projectId: number, value: string | null }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [notes, setNotes] = useState(value || '');
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const handleSave = async () => {
+    try {
+      await apiRequest(`/api/projects/${projectId}`, 'PATCH', { notes });
+      toast({
+        title: "Notes updated",
+        description: "The notes have been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      setIsEditing(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update the notes. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="relative">
+      {isEditing ? (
+        <div className="flex flex-col gap-2">
+          <Textarea 
+            value={notes} 
+            onChange={(e) => setNotes(e.target.value)}
+            className="min-h-[80px] resize-none"
+          />
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleSave}>
+              Save
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div
+          className="cursor-pointer flex items-start hover:bg-gray-100 px-2 py-1 rounded"
+          onClick={() => setIsEditing(true)}
+        >
+          <div className="flex-1 text-sm">
+            {value ? 
+              <div className="line-clamp-2" title={value}>{value}</div>
+              : <span className="text-gray-400 italic">Add notes...</span>
+            }
+          </div>
+          <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500 mt-1 flex-shrink-0" />
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Define a type for the row in the data table
 interface ProjectRow {
@@ -861,6 +984,9 @@ const ProjectStatus = () => {
     createColumn('deliveryDate', 'deliveryDate', 'Delivery Date', 
       (value, project) => <EditableDateField projectId={project.id} field="deliveryDate" value={value} />,
       { size: 170 }),
+    createColumn('notes', 'notes', 'Notes',
+      (value, project) => <EditableNotesField projectId={project.id} value={value} />,
+      { size: 250 }),
     createColumn('description', 'description', 'Description',
       (value, project) => (
         <div className="text-sm max-w-xs truncate" title={value as string}>
@@ -871,13 +997,6 @@ const ProjectStatus = () => {
     createColumn('team', 'team', 'Team',
       (value) => value || 'N/A',
       { size: 120 }),
-    createColumn('notes', 'notes', 'Notes',
-      (value) => (
-        <div className="text-sm max-w-xs truncate" title={value as string}>
-          {value || 'N/A'}
-        </div>
-      ),
-      { size: 200 }),
     {
       id: 'actions',
       header: 'Actions',
