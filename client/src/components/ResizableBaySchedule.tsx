@@ -3694,17 +3694,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`🚨 EXACT PLACEMENT DETAILS FOR NEW SCHEDULE:`);
         console.log(`  - Project ID: ${data.projectId}`);
         console.log(`  - Project Number: ${data.projectNumber}`);
-        console.log(`  - Bay ID: ${finalBayId} (${bay.name})`);
-        console.log(`  - Row Index: ${finalRowIndex} (max row for this bay: ${maxRowForBay})`);
+        console.log(`  - Bay ID: ${bayId} (${bay?.name || 'unknown'})`);
+        console.log(`  - Row Index: ${targetRowIndex} (max row for this bay: ${maxRowForBay})`);
         console.log(`  - Start Date: ${startDateToUse}`); 
         console.log(`  - End Date: ${formattedFinalEndDate}`);
         console.log(`  - Target bay has ${targetBay?.bayNumber === 7 ? 20 : 4} rows (indexes 0-${maxRowForBay})`);
-        console.log(`  - Row visualization: row ${finalRowIndex} maps to ${finalRowIndex % 4} visual position (0-3)`);
+        console.log(`  - Row visualization: row ${targetRowIndex} maps to ${targetRowIndex % 4} visual position (0-3)`);
         console.log(`  - Drop coordinates: x=${e.clientX}, y=${e.clientY}`);
         
         // Add visual indicator to the DOM to show exact bay/row placement for debugging
-        document.body.setAttribute('data-last-drop-bay', finalBayId.toString());
-        document.body.setAttribute('data-last-drop-row', finalRowIndex.toString());
+        document.body.setAttribute('data-last-drop-bay', bayId.toString());
+        document.body.setAttribute('data-last-drop-row', targetRowIndex.toString());
         
         // Call the API with our forced values
         onScheduleCreate(
