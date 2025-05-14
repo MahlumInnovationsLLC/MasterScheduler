@@ -69,8 +69,8 @@ const BillingMilestones = () => {
     // Calculate how many months from current month
     const monthsDiff = (year - currentYear) * 12 + (month - 1 - currentMonth);
     
-    // Ensure the index is within the valid range (0-5)
-    const newIndex = Math.max(0, Math.min(5, monthsDiff));
+    // Ensure the index is within the valid range (0-11) for 12 months
+    const newIndex = Math.max(0, Math.min(11, monthsDiff));
     
     // Reset selected week to first week when changing months
     // This prevents issues with different months having different numbers of weeks
@@ -284,19 +284,25 @@ const BillingMilestones = () => {
     const currentCollectionRate = Math.round((totalReceived / (total || 1)) * 100);
     const progressOfTarget = Math.round((currentCollectionRate / targetCollectionRate) * 100);
 
-    // Calculate forecast for next 6 months
+    // Calculate forecast for next 12 months
     const today = new Date();
-    const nextSixMonths = [
+    const nextTwelveMonths = [
       new Date(today.getFullYear(), today.getMonth(), 1),
       new Date(today.getFullYear(), today.getMonth() + 1, 1),
       new Date(today.getFullYear(), today.getMonth() + 2, 1),
       new Date(today.getFullYear(), today.getMonth() + 3, 1),
       new Date(today.getFullYear(), today.getMonth() + 4, 1),
-      new Date(today.getFullYear(), today.getMonth() + 5, 1)
+      new Date(today.getFullYear(), today.getMonth() + 5, 1),
+      new Date(today.getFullYear(), today.getMonth() + 6, 1),
+      new Date(today.getFullYear(), today.getMonth() + 7, 1),
+      new Date(today.getFullYear(), today.getMonth() + 8, 1),
+      new Date(today.getFullYear(), today.getMonth() + 9, 1),
+      new Date(today.getFullYear(), today.getMonth() + 10, 1),
+      new Date(today.getFullYear(), today.getMonth() + 11, 1)
     ];
     
     // Calculate forecast by milestone status
-    const forecastData = nextSixMonths.map(month => {
+    const forecastData = nextTwelveMonths.map(month => {
       const nextMonth = new Date(month);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
       
@@ -334,11 +340,11 @@ const BillingMilestones = () => {
       };
     });
     
-    const monthNames = nextSixMonths.map(date => date.toLocaleString('default', { month: 'short' }));
+    const monthNames = nextTwelveMonths.map(date => date.toLocaleString('default', { month: 'short' }));
 
     // Generate fiscal week data for the selected month using our standardized function
     const generateFiscalWeekData = (monthIndex: number) => {
-      const month = nextSixMonths[monthIndex];
+      const month = nextTwelveMonths[monthIndex];
       if (!month) return { labels: [], values: [] };
       
       // Use the standardized fiscal week calculation
