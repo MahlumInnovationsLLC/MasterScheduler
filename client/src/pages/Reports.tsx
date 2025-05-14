@@ -343,205 +343,372 @@ const ReportsPage = () => {
 
   // Prepare financial data for charts
   const getFinancialData = () => {
-    // If we have data from the API, use it
-    if (financialReport?.chartData && financialReport.chartData.length > 0) {
-      return financialReport.chartData;
-    }
-    
-    // Fallback to client-side processing
-    // Create monthly buckets
-    const months: Record<string, { month: string, invoiced: number, received: number, outstanding: number }> = {};
-    
-    // Initialize months in range
-    let currentMonth = new Date(dateParams.startDate);
-    currentMonth.setDate(1); // Set to start of month
-    const endDate = new Date(dateParams.endDate);
-    while (currentMonth <= endDate) {
-      const monthKey = format(currentMonth, 'yyyy-MM');
-      months[monthKey] = {
-        month: format(currentMonth, 'MMM yyyy'),
-        invoiced: 0,
-        received: 0,
-        outstanding: 0
-      };
-      // Advance to next month safely
-      const nextMonth = new Date(currentMonth);
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-      nextMonth.setDate(1); // Always set to 1st of the month to avoid invalid dates
-      currentMonth = nextMonth;
-    }
-    
-    // Fill in milestone data
-    filteredMilestones.forEach(milestone => {
+    try {
+      // If we have data from the API, use it (but with our safe object)
+      if (safeFinancialReport?.chartData && safeFinancialReport.chartData.length > 0) {
+        return safeFinancialReport.chartData;
+      }
+      
+      // Fallback to client-side processing
+      // Create monthly buckets
+      const months: Record<string, { month: string, invoiced: number, received: number, outstanding: number }> = {};
+      
       try {
-        // Make sure the date is valid before processing
-        if (!milestone.targetInvoiceDate) {
-          console.warn('Skipping milestone with missing invoice date:', milestone.id);
-          return;
+        // Validate dates first
+        let validStartDate = new Date(dateParams.startDate);
+        let validEndDate = new Date(dateParams.endDate);
+        
+        if (isNaN(validStartDate.getTime()) || isNaN(validEndDate.getTime())) {
+          // Use fallback dates if either is invalid
+          validStartDate = new Date('2024-11-01');
+          validEndDate = new Date('2025-05-01');
         }
         
-        const invoiceDate = new Date(milestone.targetInvoiceDate);
-        if (isNaN(invoiceDate.getTime())) {
-          console.warn('Skipping milestone with invalid invoice date:', milestone.id, milestone.targetInvoiceDate);
-          return;
+        // Initialize months in range with extra safety
+        let currentMonth = new Date(validStartDate);
+        currentMonth.setDate(1); // Set to start of month
+        
+        // Limited loop to avoid any potential infinite loops
+        let loopLimit = 0;
+        const maxLoops = 100; // Safety valve
+        
+        while (currentMonth <= validEndDate && loopLimit < maxLoops) {
+          try {
+            const monthKey = format(currentMonth, 'yyyy-MM');
+            months[monthKey] = {
+              month: format(currentMonth, 'MMM yyyy'),
+              invoiced: 0,
+              received: 0,
+              outstanding: 0
+            };
+            
+            // Advance to next month safely by creating a new date object
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            currentMonth = new Date(year, month + 1, 1);
+            
+            loopLimit++;
+          } catch (e) {
+            console.error('Error in month initialization:', e);
+            break;
+          }
         }
         
-        const monthKey = format(invoiceDate, 'yyyy-MM');
-        if (months[monthKey]) {
-          // Parse amount safely
-          let amount = 0;
-          if (typeof milestone.amount === 'string') {
-            amount = parseFloat(milestone.amount) || 0;
-          } else if (typeof milestone.amount === 'number') {
-            amount = milestone.amount;
-          }
-          
-          months[monthKey].invoiced += amount;
-          
-          if (milestone.status === 'paid') {
-            months[monthKey].received += amount;
-          } else {
-            months[monthKey].outstanding += amount;
-          }
+        // If something went wrong and no months were added, add at least one month
+        if (Object.keys(months).length === 0) {
+          const today = new Date();
+          const monthKey = format(today, 'yyyy-MM');
+          months[monthKey] = {
+            month: format(today, 'MMM yyyy'),
+            invoiced: 0,
+            received: 0,
+            outstanding: 0
+          };
         }
       } catch (error) {
-        console.error('Error processing milestone for financial chart:', error, milestone);
+        console.error('Error initializing months:', error);
+        // Add a default month as fallback
+        const today = new Date();
+        const monthKey = format(today, 'yyyy-MM');
+        months[monthKey] = {
+          month: format(today, 'MMM yyyy'),
+          invoiced: 0,
+          received: 0,
+          outstanding: 0
+        };
       }
-    });
-    
-    return Object.values(months);
+      
+      // Fill in milestone data with additional safety
+      if (Array.isArray(filteredMilestones)) {
+        filteredMilestones.forEach(milestone => {
+          try {
+            // Make sure milestone is valid before processing
+            if (!milestone || !milestone.targetInvoiceDate) {
+              return;
+            }
+            
+            // Try to parse the date
+            let invoiceDate: Date;
+            try {
+              invoiceDate = new Date(milestone.targetInvoiceDate);
+              if (isNaN(invoiceDate.getTime())) {
+                return;
+              }
+            } catch (e) {
+              return;
+            }
+            
+            // Format month key safely
+            let monthKey: string;
+            try {
+              monthKey = format(invoiceDate, 'yyyy-MM');
+            } catch (e) {
+              return;
+            }
+            
+            // Check if month exists in our map
+            if (!months[monthKey]) {
+              return;
+            }
+            
+            // Parse amount safely
+            let amount = 0;
+            if (typeof milestone.amount === 'string') {
+              const parsed = parseFloat(milestone.amount);
+              amount = isNaN(parsed) ? 0 : parsed;
+            } else if (typeof milestone.amount === 'number') {
+              amount = isNaN(milestone.amount) ? 0 : milestone.amount;
+            }
+            
+            // Increment counters
+            months[monthKey].invoiced += amount;
+            
+            if (milestone.status === 'paid') {
+              months[monthKey].received += amount;
+            } else {
+              months[monthKey].outstanding += amount;
+            }
+          } catch (error) {
+            console.error('Error processing milestone for financial chart:', error);
+          }
+        });
+      }
+      
+      return Object.values(months);
+    } catch (error) {
+      console.error('Fatal error in getFinancialData:', error);
+      // Return minimal valid data as ultimate fallback
+      return [
+        { month: 'Current', invoiced: 0, received: 0, outstanding: 0 }
+      ];
+    }
   };
 
   // Prepare project status data for charts
   const getProjectStatusData = () => {
-    // If we have data from the API, use it
-    if (projectStatusReport?.statusDistribution && projectStatusReport.statusDistribution.length > 0) {
-      return projectStatusReport.statusDistribution;
-    }
-    
-    // Fallback to client-side processing
-    const statusCounts = {
-      'active': 0,
-      'delayed': 0,
-      'completed': 0,
-      'archived': 0,
-      'critical': 0
-    };
-
-    const filteredProjects = projects.filter(project => 
-      projectFilter === 'all' || project.id.toString() === projectFilter
-    );
-    
-    filteredProjects.forEach(project => {
-      if (statusCounts.hasOwnProperty(project.status)) {
-        statusCounts[project.status as keyof typeof statusCounts]++;
+    try {
+      // If we have data from the API, use it (with our safe object)
+      if (safeProjectStatusReport?.statusDistribution && safeProjectStatusReport.statusDistribution.length > 0) {
+        return safeProjectStatusReport.statusDistribution;
       }
-    });
-    
-    return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+      
+      // Fallback to client-side processing with safety
+      const statusCounts = {
+        'active': 0,
+        'delayed': 0,
+        'completed': 0,
+        'archived': 0,
+        'critical': 0
+      };
+
+      try {
+        // Filter projects with error handling
+        const filteredProjects = Array.isArray(projects) ? projects.filter(project => {
+          try {
+            if (!project || !project.id) return false;
+            return projectFilter === 'all' || project.id.toString() === projectFilter;
+          } catch (error) {
+            console.error('Error filtering project:', error);
+            return false;
+          }
+        }) : [];
+        
+        // Count projects by status with error handling
+        filteredProjects.forEach(project => {
+          try {
+            if (!project || !project.status) return;
+            
+            if (statusCounts.hasOwnProperty(project.status)) {
+              statusCounts[project.status as keyof typeof statusCounts]++;
+            }
+          } catch (error) {
+            console.error('Error processing project status:', error);
+          }
+        });
+      } catch (error) {
+        console.error('Error processing projects for status chart:', error);
+      }
+      
+      // Convert to chart format
+      return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+    } catch (error) {
+      console.error('Fatal error in getProjectStatusData:', error);
+      // Return minimal valid data as ultimate fallback
+      return [
+        { name: 'active', value: 0 },
+        { name: 'delayed', value: 0 },
+        { name: 'completed', value: 0 }
+      ];
+    }
   };
 
   // Prepare manufacturing data for charts
   const getManufacturingData = () => {
-    // If we have data from the API, use it
-    if (manufacturingReport?.bayUtilization && manufacturingReport.bayUtilization.length > 0) {
-      return manufacturingReport.bayUtilization;
-    }
-    
-    // Fallback to client-side processing
-    const bayUtilization: Record<string, { bay: string, scheduled: number, completed: number, utilization: number }> = {};
-    
-    // Get all unique bay IDs
-    const uniqueBayIds = [...new Set(filteredSchedules.map(schedule => schedule.bayId))];
-    
-    uniqueBayIds.forEach(bayId => {
-      const baySchedules = filteredSchedules.filter(schedule => schedule.bayId === bayId);
-      const bayName = `Bay ${bayId}`;
-      
-      const totalDays = baySchedules.reduce((total, schedule) => {
-        try {
-          if (!schedule.startDate || !schedule.endDate) return total;
-          
-          const start = new Date(schedule.startDate);
-          const end = new Date(schedule.endDate);
-          
-          if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-            console.warn('Invalid date in schedule:', schedule.id);
-            return total;
-          }
-          
-          const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-          return total + Math.max(0, days); // Ensure we don't add negative days
-        } catch (error) {
-          console.error('Error calculating days for schedule:', error, schedule);
-          return total;
-        }
-      }, 0);
-      
-      const completedDays = baySchedules
-        .filter(schedule => schedule.status === 'complete')
-        .reduce((total, schedule) => {
-          try {
-            if (!schedule.startDate || !schedule.endDate) return total;
-            
-            const start = new Date(schedule.startDate);
-            const end = new Date(schedule.endDate);
-            
-            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-              console.warn('Invalid date in completed schedule:', schedule.id);
-              return total;
-            }
-            
-            const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-            return total + Math.max(0, days); // Ensure we don't add negative days
-          } catch (error) {
-            console.error('Error calculating days for completed schedule:', error, schedule);
-            return total;
-          }
-        }, 0);
-      
-      // Calculate utilization as a percentage of the date range
-      let utilization = 0;
-      
-      try {
-        // Validate date parameters
-        if (!dateParams.startDate || !dateParams.endDate) {
-          console.warn('Missing date parameters for utilization calculation');
-        } else {
-          const startDate = new Date(dateParams.startDate);
-          const endDate = new Date(dateParams.endDate);
-          
-          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-            console.warn('Invalid date parameters for utilization calculation:', dateParams);
-          } else {
-            const dateRangeDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-            utilization = dateRangeDays > 0 ? (totalDays / dateRangeDays) * 100 : 0;
-          }
-        }
-      } catch (error) {
-        console.error('Error calculating bay utilization:', error);
+    try {
+      // If we have data from the API, use it (with our safe object)
+      if (safeManufacturingReport?.bayUtilization && safeManufacturingReport.bayUtilization.length > 0) {
+        return safeManufacturingReport.bayUtilization;
       }
       
-      bayUtilization[bayName] = {
-        bay: bayName,
-        scheduled: totalDays,
-        completed: completedDays,
-        utilization: Math.min(100, Math.round(utilization))
-      };
-    });
-    
-    return Object.values(bayUtilization);
+      // Fallback to client-side processing
+      const bayUtilization: Record<string, { bay: string, scheduled: number, completed: number, utilization: number }> = {};
+      
+      try {
+        // Get all unique bay IDs with safety
+        let uniqueBayIds: any[] = [];
+        
+        if (Array.isArray(filteredSchedules)) {
+          try {
+            // Safely extract bay IDs
+            uniqueBayIds = [...new Set(
+              filteredSchedules
+                .filter(schedule => schedule && schedule.bayId)
+                .map(schedule => schedule.bayId)
+            )];
+          } catch (error) {
+            console.error('Error extracting bay IDs:', error);
+            uniqueBayIds = [1, 2, 3]; // Fallback to common bay IDs
+          }
+        } else {
+          console.warn('filteredSchedules is not an array');
+          uniqueBayIds = [1, 2, 3]; // Fallback to common bay IDs
+        }
+        
+        uniqueBayIds.forEach(bayId => {
+          if (!bayId) return; // Skip invalid bay IDs
+          
+          try {
+            const baySchedules = Array.isArray(filteredSchedules) 
+              ? filteredSchedules.filter(schedule => schedule && schedule.bayId === bayId) 
+              : [];
+            const bayName = `Bay ${bayId}`;
+            
+            // Calculate total days with safety
+            const totalDays = baySchedules.reduce((total, schedule) => {
+              try {
+                if (!schedule || !schedule.startDate || !schedule.endDate) return total;
+                
+                const start = new Date(schedule.startDate);
+                const end = new Date(schedule.endDate);
+                
+                if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                  console.warn('Invalid date in schedule:', schedule.id);
+                  return total;
+                }
+                
+                const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                return total + Math.max(0, days); // Ensure we don't add negative days
+              } catch (error) {
+                console.error('Error calculating days for schedule:', error);
+                return total;
+              }
+            }, 0);
+            
+            // Calculate completed days with safety
+            const completedDays = baySchedules
+              .filter(schedule => schedule && schedule.status === 'complete')
+              .reduce((total, schedule) => {
+                try {
+                  if (!schedule || !schedule.startDate || !schedule.endDate) return total;
+                  
+                  const start = new Date(schedule.startDate);
+                  const end = new Date(schedule.endDate);
+                  
+                  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                    console.warn('Invalid date in completed schedule:', schedule.id);
+                    return total;
+                  }
+                  
+                  const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                  return total + Math.max(0, days); // Ensure we don't add negative days
+                } catch (error) {
+                  console.error('Error calculating days for completed schedule:', error);
+                  return total;
+                }
+              }, 0);
+            
+            // Calculate utilization as a percentage of the date range
+            let utilization = 0;
+            
+            try {
+              // Validate date parameters
+              if (!dateParams || !dateParams.startDate || !dateParams.endDate) {
+                console.warn('Missing date parameters for utilization calculation');
+              } else {
+                const startDate = new Date(dateParams.startDate);
+                const endDate = new Date(dateParams.endDate);
+                
+                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                  console.warn('Invalid date parameters for utilization calculation');
+                } else {
+                  const dateRangeDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+                  utilization = dateRangeDays > 0 ? (totalDays / dateRangeDays) * 100 : 0;
+                }
+              }
+            } catch (error) {
+              console.error('Error calculating bay utilization:', error);
+            }
+            
+            // Store the bay data
+            bayUtilization[bayName] = {
+              bay: bayName,
+              scheduled: totalDays,
+              completed: completedDays,
+              utilization: Math.min(100, Math.round(utilization))
+            };
+          } catch (error) {
+            console.error(`Error processing bay ${bayId}:`, error);
+            // Add fallback for this bay
+            bayUtilization[`Bay ${bayId}`] = {
+              bay: `Bay ${bayId}`,
+              scheduled: 0,
+              completed: 0,
+              utilization: 0
+            };
+          }
+        });
+      } catch (error) {
+        console.error('Error processing bays:', error);
+      }
+      
+      // Return chart data
+      const result = Object.values(bayUtilization);
+      
+      // If no bays were processed, return default data
+      if (result.length === 0) {
+        return [
+          { bay: 'Bay 1', scheduled: 0, completed: 0, utilization: 0 },
+          { bay: 'Bay 2', scheduled: 0, completed: 0, utilization: 0 },
+          { bay: 'Bay 3', scheduled: 0, completed: 0, utilization: 0 }
+        ];
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Fatal error in getManufacturingData:', error);
+      // Return minimal valid data as ultimate fallback
+      return [
+        { bay: 'Bay 1', scheduled: 0, completed: 0, utilization: 0 },
+        { bay: 'Bay 2', scheduled: 0, completed: 0, utilization: 0 },
+        { bay: 'Bay 3', scheduled: 0, completed: 0, utilization: 0 }
+      ];
+    }
   };
   
   // Prepare delivery data for charts
   const getDeliveryData = () => {
-    // If we have data from the API, use it
-    if (deliveryReport?.deliveriesByMonth && deliveryReport.deliveriesByMonth.length > 0) {
-      return deliveryReport.deliveriesByMonth;
+    try {
+      // If we have data from the API, use it (with our safe object)
+      if (safeDeliveryReport?.deliveriesByMonth && safeDeliveryReport.deliveriesByMonth.length > 0) {
+        return safeDeliveryReport.deliveriesByMonth;
+      }
+      
+      // Fallback to empty data, will not be used unless delivery report is selected
+      return [];
+    } catch (error) {
+      console.error('Error in getDeliveryData:', error);
+      return [];
     }
-    
-    // Fallback to empty data, will not be used unless delivery report is selected
-    return [];
   };
 
   const financialData = getFinancialData();
