@@ -46,7 +46,7 @@ const Sidebar = () => {
     <aside className={`bg-darkCard border-r border-gray-800 fixed h-screen overflow-y-auto transition-all duration-300 z-10 ${isCollapsed ? 'w-[50px]' : 'w-[260px]'}`} style={{ top: '64px' }}>
       {/* Toggle Button - positioned outside of scrolling area */}
       <button 
-        className="absolute top-4 right-2 bg-primary hover:bg-primary-dark text-white rounded-full p-2 shadow-lg z-20 border border-gray-700"
+        className="absolute top-2 right-2 bg-primary hover:bg-primary-dark text-white rounded-full p-2 shadow-lg z-20 border border-gray-700"
         onClick={handleToggle}
         aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
