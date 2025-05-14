@@ -197,7 +197,18 @@ const ReportsPage = () => {
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
-      a.download = `${reportType}-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      // Add robust date formatting for the filename
+      try {
+        const today = new Date();
+        if (isNaN(today.getTime())) {
+          a.download = `${reportType}-report-export.csv`;
+        } else {
+          a.download = `${reportType}-report-${format(today, 'yyyy-MM-dd')}.csv`;
+        }
+      } catch (error) {
+        console.error('Error formatting date for export filename:', error);
+        a.download = `${reportType}-report-export.csv`;
+      }
       document.body.appendChild(a);
       a.click();
       
