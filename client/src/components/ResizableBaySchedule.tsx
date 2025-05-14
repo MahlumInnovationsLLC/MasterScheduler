@@ -2135,20 +2135,28 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Add a class to the body to indicate dragging is in progress
     document.body.classList.add('dragging-active');
     
-    // CRITICAL FIX: Calculate and store drag offset X (where the mouse grabbed the bar)
+    // CRITICAL FIX: Calculate and store both X and Y drag offsets (where mouse grabbed the bar)
     const barRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const dragOffsetX = e.clientX - barRect.left;
-    console.log(`🎯 EXACT DRAG POSITION: Mouse grabbed bar at x-offset ${dragOffsetX}px from left edge`);
+    const dragOffsetY = e.clientY - barRect.top;
     
-    // Store this critical value in document body for use during drop
+    console.log(`🎯 EXACT DRAG POSITION: Mouse grabbed bar at offset X:${dragOffsetX}px Y:${dragOffsetY}px from top-left corner`);
+    
+    // Store these critical values in document body for use during drop
     document.body.setAttribute('data-drag-offset-x', dragOffsetX.toString());
+    document.body.setAttribute('data-drag-offset-y', dragOffsetY.toString());
+    
+    // Store the bar height for row calculations
+    document.body.setAttribute('data-bar-height', barRect.height.toString());
     
     // CRITICAL: We must ensure the correct data is set for the drag operation
     try {
       // Set both formats for better browser compatibility
       const payload = JSON.stringify({
         type,
-        dragOffsetX, // Include the drag offset in the payload data
+        dragOffsetX, // Include the drag offsets in the payload data
+        dragOffsetY,
+        barHeight: barRect.height,
         ...data
       });
       
@@ -2874,7 +2882,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // CRITICAL FIX: Retrieve mouse position and drag offset for exact positioning
+    // CRITICAL FIX: Retrieve mouse position and drag offsets for exact positioning
     const timelineContainer = timelineContainerRef.current;
     if (!timelineContainer) {
       console.error("Timeline container ref not available!");
@@ -2884,20 +2892,41 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Get the container bounds for positioning calculations
     const containerRect = timelineContainer.getBoundingClientRect();
     
-    // Get the drag offset that was captured during drag start
+    // Get the X and Y drag offsets captured during drag start
     const dragOffsetX = parseInt(document.body.getAttribute('data-drag-offset-x') || '0');
+    const dragOffsetY = parseInt(document.body.getAttribute('data-drag-offset-y') || '0');
+    const barHeight = parseInt(document.body.getAttribute('data-bar-height') || '30');
     
-    // Calculate exact drop position relative to timeline
+    // Calculate exact drop position relative to timeline (for both X and Y)
     const rawDropX = e.clientX - containerRect.left;
+    const rawDropY = e.clientY - containerRect.top;
     
-    // Adjust for where on the bar the user grabbed it (subtract the offset)
+    // Adjust for where on the bar the user grabbed it (subtract the offsets)
     const exactDropPositionPx = Math.max(0, rawDropX - dragOffsetX);
+    const exactDropPositionPxY = Math.max(0, rawDropY - dragOffsetY);
+    
+    // CRITICAL: Calculate exact row based on Y position
+    // ROW_COUNT is the number of rows in the bay (4 for most bays)
+    const ROW_COUNT = 4; 
+    const rowHeight = containerRect.height / ROW_COUNT;
+    
+    // Calculate which row the bar should be placed in based on exact pixel position
+    // This is the critical fix that ensures projects go exactly where dropped
+    const calculatedRowIndex = Math.floor(exactDropPositionPxY / rowHeight);
+    
+    // Ensure row index is within valid range (0-3 for most bays)
+    const finalRowIndex = Math.max(0, Math.min(calculatedRowIndex, ROW_COUNT - 1));
+    
+    // Force the exact row placement - overriding any other calculations
+    document.body.setAttribute('data-forced-row-index', finalRowIndex.toString());
     
     console.log(`🎯 EXACT DROP CALCULATION: 
-      - Timeline left edge: ${containerRect.left}px
-      - Mouse position: ${e.clientX}px 
-      - Drag offset: ${dragOffsetX}px
-      - Exact position: ${exactDropPositionPx}px from timeline start`);
+      - Timeline left edge: ${containerRect.left}px, top edge: ${containerRect.top}px
+      - Mouse position: X=${e.clientX}px, Y=${e.clientY}px 
+      - Drag offsets: X=${dragOffsetX}px, Y=${dragOffsetY}px
+      - Exact position: X=${exactDropPositionPx}px, Y=${exactDropPositionPxY}px from timeline top-left
+      - Row height: ${rowHeight}px (container height ${containerRect.height}px ÷ ${ROW_COUNT} rows)
+      - CALCULATED ROW: ${calculatedRowIndex} → FINAL ROW: ${finalRowIndex}`);
       
     // Convert pixels to date (this is critical for exact placement)
     const pixelsPerDay = 100 / 7; // Adjust based on your timeline scale
@@ -2906,7 +2935,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // Store the calculated date for use in later placement logic
     document.body.setAttribute('data-exact-drop-date', format(exactDate, 'yyyy-MM-dd'));
+    document.body.setAttribute('data-current-drag-row', finalRowIndex.toString());
     console.log(`📅 EXACT DROP DATE: ${format(exactDate, 'yyyy-MM-dd')} (${daysFromStart} days from start)`);
+    console.log(`🔹 FORCED ROW PLACEMENT: Row ${finalRowIndex}`);
     
     // CRITICAL FIX: Force using the exact bay ID from the event parameters
     // This prevents the bay jumping issue by ensuring we always use the bay where the drop happened
@@ -3453,20 +3484,45 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const finalBayId = actualBayId;
         
         // ABSOLUTELY CRITICAL FIX - FORCE EXACT ROW PLACEMENT WITH ZERO EXCEPTIONS
-        // Directly use the row from the drag event with no calculations or adjustments whatsoever
+        // Directly use the row from pixel-perfect calculation with no adjustments whatsoever
   
-        // Get the MOST ACCURATE row reference - directly from drag events or data attributes
+        // Get the MOST ACCURATE row reference - from our pixel-perfect calculation
+        // This is set in handleDrop after calculating the exact row based on Y position
+        const exactRowFromPixelCalc = document.body.getAttribute('data-forced-row-index');
+  
+        // Try all available data attributes to ensure we get the most accurate row
         const exactRowFromDragCoords = document.body.getAttribute('data-current-drag-row');
+        const exactRowFromDrop = document.body.getAttribute('data-exact-row-drop');
+        const exactRowFromLastSelect = document.body.getAttribute('data-last-row-select');
   
-        // FORCE using this value directly - DO NOT APPLY ANY LOGIC OR VALIDATION
+        // FORCE using pixel-perfect calculation directly - DO NOT APPLY ANY LOGIC OR VALIDATION
         // Do not check for min/max - user specifically wants absolute control
-        const forcedExactRowIndex = exactRowFromDragCoords ? parseInt(exactRowFromDragCoords) : targetRowIndex;
+        const forcedExactRowIndex = exactRowFromPixelCalc 
+          ? parseInt(exactRowFromPixelCalc) 
+          : (exactRowFromDragCoords 
+              ? parseInt(exactRowFromDragCoords) 
+              : (exactRowFromDrop 
+                  ? parseInt(exactRowFromDrop) 
+                  : (exactRowFromLastSelect 
+                      ? parseInt(exactRowFromLastSelect) 
+                      : targetRowIndex)));
   
         // CRITICAL: HARDCODE DEFAULT TO ROW 0 FOR SAFETY - prevent any null/undefined values
         // This ensures we always have a valid row even if all drag tracking fails
         const finalRowIndex = (typeof forcedExactRowIndex === 'number' && !isNaN(forcedExactRowIndex)) 
           ? forcedExactRowIndex 
           : 0;
+          
+        console.log(`🎯 USING PIXEL-PERFECT ROW CALCULATION: ${finalRowIndex} 
+          (from pixel calc: ${exactRowFromPixelCalc}, 
+           drag coords: ${exactRowFromDragCoords}, 
+           exact drop: ${exactRowFromDrop}, 
+           last select: ${exactRowFromLastSelect})`);
+          
+        // EXTREME LOGGING OF ALL COORDINATES TO VERIFY PIXEL-PERFECT ROW PLACEMENT
+        if (exactRowFromPixelCalc !== exactRowFromDragCoords) {
+          console.warn(`⚠️ ROW MISMATCH - Using pixel-perfect calculation ${exactRowFromPixelCalc} instead of drag coords ${exactRowFromDragCoords}`);
+        }
     
         console.log(`🎯 EXACT ROW FORCED TO USER SELECTION: ${finalRowIndex} (from drag coordinates: ${exactRowFromDragCoords})`);
         console.log(`⚠️ ROW PLACEMENT OVERRIDE - NO AUTO ADJUSTMENT - USING EXACT COORDINATES`);
