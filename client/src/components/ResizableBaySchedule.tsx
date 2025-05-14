@@ -3182,13 +3182,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Get the project data to determine FAB weeks
       const project = projects.find(p => p.id === (data.projectId || data.id));
-      const fabWeeks = project?.fabWeeks || 4; // Default to 4 weeks if not set
-      
-      // Calculate FAB phase duration in days (first 4 weeks by default)
-      const fabDays = fabWeeks * 7; // Convert weeks to days
-      
-      // Calculate production start date (after FAB phase)
-      const productionStartDate = addDays(slotDate, fabDays);
+      // Ensure we use a project's fab weeks if available, default to 4 weeks
+      // Note: We don't declare fabWeeks here since we declare it later
       
       // Get the bay's base weekly capacity 
       // Handle null/undefined values safely
@@ -3198,50 +3193,170 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           ? bay.staffCount : 1;
       const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
       
-      // Find overlapping schedules in the same bay
+      // Find overlapping schedules in the same bay AND row
       const overlappingSchedules = schedules.filter(s => 
         s.bayId === bayId && 
+        s.row === targetRowIndex &&
         // Exclude the current schedule if we're updating an existing one
         (data.type !== 'existing' || s.id !== data.id)
       );
       
-      // AUTO-PLACEMENT FUNCTION COMPLETELY REMOVED
-      // We now use exactly the row where the user dropped the project
-      // As explicitly requested by user: SIMPLE PLACEMENT WITH NO ADJUSTMENTS
+      // Calculate estimated production days based on the project's total hours
+      const totalHours = data.totalHours !== null ? Number(data.totalHours) : 1000; // Default to 1000 if not specified
+      const prodHours = totalHours * 0.6; // Production phase gets 60% of total hours
+      const prodWeeksNeeded = Math.max(1, Math.ceil(prodHours / baseWeeklyCapacity));
+      const prodDays = prodWeeksNeeded * 7;
       
-      console.log(`SIMPLIFIED PLACEMENT SYSTEM: Using exact row=${targetRowIndex} in bay=${exactBayId}`);
-      console.log(`NO AUTO ADJUSTMENTS APPLIED: Project will be placed EXACTLY where it was dropped`);
-      console.log(`OVERLAP WARNING: Projects may now overlap in time and position as requested`);
+      // Use the fab weeks from the project data (default to 4 weeks if not specified)
+      const fabWeeks = project?.fabWeeks || 4;
+      const fabDuration = fabWeeks * 7; // Calculate FAB phase duration in days
+      
+      // Calculate an estimated end date
+      const estimatedEndDate = slotDate ? addDays(slotDate, fabDuration + prodDays) : null;
+      
+      // Simple conflict check - two schedules overlap if one starts before the other ends
+      // and ends after the other starts
+      let hasConflict = false;
+      if (slotDate && estimatedEndDate) {
+        const slotDateTime = slotDate.getTime();
+        const endDateTime = estimatedEndDate.getTime();
+        
+        hasConflict = overlappingSchedules.some(s => {
+          const sStartDate = new Date(s.startDate).getTime();
+          const sEndDate = new Date(s.endDate).getTime();
+          
+          // Check if schedules overlap
+          // No overlap if new ends before existing starts OR new starts after existing ends
+          const noOverlap = endDateTime <= sStartDate || slotDateTime >= sEndDate;
+          return !noOverlap; // Return true if there IS an overlap
+        });
+      }
+      
+      // Calculate bay utilization (percentage of capacity used)
+      // Default to 4 rows if not specified
+      const bayRowCount = 4; // Fixed value since rowCount might not be available
+      const utilizationPercentage = Math.min(100, Math.floor(
+        (overlappingSchedules.length / bayRowCount) * 100
+      ));
+      const isOverutilized = utilizationPercentage >= 100;
+      
+      // We'll show a warning dialog if there are conflicts, but the user can proceed anyway
+      // This implements the requested behavior: warn when placement might not be ideal
+      if (hasConflict || isOverutilized) {
+        // Use the dialog component from the UI library for this popup
+        // Create a warning dialog that lets the user decide whether to proceed
+        console.log("⚠️ CONFLICT DETECTED: Showing warning popup to user");
+        
+        // Create and show a custom dialog
+        const confirmDialog = document.createElement('div');
+        confirmDialog.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+        confirmDialog.innerHTML = `
+          <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h3 class="text-lg font-bold mb-4 text-red-500">Warning: Placement Issue</h3>
+            <p class="mb-4">${hasConflict ? 'This project would overlap with another project in the same row.' : ''}</p>
+            <p class="mb-4">${isOverutilized ? 'This bay is already at or over capacity.' : ''}</p>
+            <p class="mb-6">Do you want to place the project here anyway?</p>
+            <div class="flex justify-end gap-4">
+              <button id="cancel-placement" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded">Cancel</button>
+              <button id="confirm-placement" class="px-4 py-2 bg-primary text-white rounded">Place Anyway</button>
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(confirmDialog);
+        
+        // Add event listeners to buttons
+        const cancelButton = document.getElementById('cancel-placement');
+        if (cancelButton) {
+          cancelButton.addEventListener('click', () => {
+            document.body.removeChild(confirmDialog);
+          });
+        }
+        
+        const confirmButton = document.getElementById('confirm-placement');
+        if (confirmButton) {
+          confirmButton.addEventListener('click', () => {
+            document.body.removeChild(confirmDialog);
+            // Continue with placement with the exact parameters
+            console.log("User confirmed placement despite conflicts - proceeding with EXACT placement");
+            handlePlacement();
+          });
+        }
+        
+        return; // Don't continue until user decides
+      }
+      
+      // Define the placement function 
+      const handlePlacement = () => {
+        console.log(`SIMPLIFIED PLACEMENT SYSTEM: Using exact row=${targetRowIndex} in bay=${exactBayId}`);
+        console.log(`NO AUTO ADJUSTMENTS APPLIED: Project will be placed EXACTLY where it was dropped`);
+        
+        // Format dates for API call
+        const formattedStartDate = format(slotDate || new Date(), 'yyyy-MM-dd');
+        const formattedEndDate = format(estimatedEndDate || new Date(), 'yyyy-MM-dd');
+              
+        try {
+          // Determine if this is a new schedule or an existing one being moved
+          if (data.type === 'existing') {
+            // CRITICAL: Pass the exact row number to maintain position
+            onScheduleChange(data.id, exactBayId, formattedStartDate, formattedEndDate, data.totalHours || null, targetRowIndex)
+              .then(() => {
+                // Successful update
+                toast({ description: "Schedule updated" });
+              })
+              .catch(error => {
+                console.error('Failed to update schedule:', error);
+                toast({ 
+                  title: "Error updating schedule", 
+                  description: error.toString(),
+                  variant: "destructive" 
+                });
+              });
+          } else {
+            // Creating a new schedule
+            // CRITICAL: Pass the exact row number to maintain position
+            onScheduleCreate(data.projectId, exactBayId, formattedStartDate, formattedEndDate, data.totalHours || null, targetRowIndex)
+              .then(() => {
+                // Successful creation
+                toast({ description: "Schedule created" });
+              })
+              .catch(error => {
+                console.error('Failed to create schedule:', error);
+                toast({ 
+                  title: "Error creating schedule", 
+                  description: error.toString(),
+                  variant: "destructive" 
+                });
+              });
+          }
+        } catch (error) {
+          console.error('Error during schedule operation:', error);
+          toast({
+            title: "Operation failed",
+            description: "See console for details",
+            variant: "destructive"
+          });
+        }
+      };
+      
+      // If no conflicts, proceed immediately with placement
+      if (!hasConflict && !isOverutilized) {
+        handlePlacement();
+      }
       
       // We no longer check for overlaps or attempt to find optimal rows
       // The project will be placed EXACTLY where the user drops it
       // This is a direct implementation of the user's request for simple placement
       
-      // Calculate how long the project will take considering capacity sharing
-      const totalHours = data.totalHours !== null ? Number(data.totalHours) : 1000; // Default to 1000 if not specified
-      
-      // CRITICAL FIX: Calculate project duration properly
-      // Project's PROD phase gets 60% of the total hours
-      const prodHours = totalHours * 0.6;
+      // Log capacity and timing information from our earlier calculations
       console.log(`Production phase hours (60% of total): ${prodHours} hours`);
-      
-      // Use 100% of the bay's weekly capacity
-      const fullWeeklyCapacity = baseWeeklyCapacity;
-      console.log(`Bay weekly capacity (100%): ${fullWeeklyCapacity} hours`);
-      
-      // Calculate how many weeks the PROD phase will take using 100% bay capacity per week
-      // This is the critical calculation that prevents auto-stretching to the entire timeline
-      // We're using PROD hours (60% of total) and full weekly capacity (100% of bay)
-      const prodWeeksNeeded = Math.max(1, Math.ceil(prodHours / fullWeeklyCapacity));
+      console.log(`Bay weekly capacity (100%): ${baseWeeklyCapacity} hours`);
       console.log(`Production phase weeks needed (at 100% capacity per week): ${prodWeeksNeeded} weeks`);
-      
-      // Explicitly calculate days needed for production phase based on weeks
-      const prodDays = prodWeeksNeeded * 7;
       console.log(`Production phase days needed: ${prodDays} days`);
       
       // Safety check - just log if the duration seems excessive
       if (prodDays > 365) { // Only log a warning if over a year, but don't cap it
-        console.warn(`WARNING: Very long production phase calculated: ${prodDays} days. This is based on ${prodHours} production hours at ${fullWeeklyCapacity} hours per week capacity.`);
+        console.warn(`WARNING: Very long production phase calculated: ${prodDays} days. This is based on ${prodHours} production hours at ${baseWeeklyCapacity} hours per week capacity.`);
       }
       
       // Use the calculated duration based on hours and capacity
@@ -3259,12 +3374,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         : (data.targetStartDate ? new Date(data.targetStartDate) : slotDate);
       
       // Calculate the FAB phase duration from the exact start date
-      const exactFabEndDate = addDays(exactStartDate, fabDays);
+      // Use fabDuration (defined above) instead of fabDays
+      const exactFabEndDate = addDays(exactStartDate, fabDuration);
       
       // CRITICAL FIX: Calculate proper end date based on capacity per week
       // Use the production days calculated from hours/capacity
       // This directly prevents projects from auto-stretching across the entire timeline
-      console.log(`ENFORCED production duration: ${prodDaysToUse} days based on ${prodHours} production hours at ${fullWeeklyCapacity} weekly capacity`);
+      console.log(`ENFORCED production duration: ${prodDaysToUse} days based on ${prodHours} production hours at ${baseWeeklyCapacity} weekly capacity`);
       
       // Now calculate the final end date by adding the calculated production days to the FAB end date
       let finalEndDate = addDays(exactFabEndDate, prodDaysToUse);
@@ -3290,7 +3406,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         adjustedStartDate: newExactStartDate.toISOString(),
         fabEndDate: exactFabEndDate.toISOString(),
         finalEndDate: finalEndDate.toISOString(),
-        fabDays,
+        fabDuration,
         prodDays,
         businessDayAdjusted: !isSameDay(exactStartDate, newExactStartDate)
       });
