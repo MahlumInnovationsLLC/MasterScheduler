@@ -2950,9 +2950,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       targetRowIndex = 0;
     }
     
-    // Safety bounds check on row (0-7 now) - EXPANDED to allow more than 4 projects per bay
-    // We allow up to 8 rows (0-7) internally, which will map to 4 visual rows
-    targetRowIndex = Math.min(7, Math.max(0, targetRowIndex));
+    // CRITICAL FIX: Safety bounds check on row based on the actual row count for the bay
+    // Bays 1-6 have 4 rows (0-3), while Bay 7 (TCV Line) has 20 rows
+    
+    // Find the bay to get its row count
+    const targetBay = bays.find(b => b.id === finalBayId);
+    const maxRowForBay = targetBay?.rowCount ? (targetBay.rowCount - 1) : 3; // Default to 3 (4 rows) if not found
+    
+    // Ensure the row index is within the bounds for this specific bay
+    targetRowIndex = Math.min(maxRowForBay, Math.max(0, targetRowIndex));
+    
+    // Add detailed logging for debugging
+    console.log(`🔍 ROW BOUNDS CHECK: Bay ${finalBayId} has ${targetBay?.rowCount || 4} rows (max index: ${maxRowForBay})`);
+    console.log(`🔍 ADJUSTED ROW: ${targetRowIndex} (from original ${rowIndex}, global ${globalRowIndex})`);
+    
     
     // CRITICAL: We already decided to use the exact bay ID from the drop event parameter
     // DO NOT modify the bayId parameter - use it directly to ensure correct placement
