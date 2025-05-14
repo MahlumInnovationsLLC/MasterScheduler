@@ -204,6 +204,7 @@ const CalendarPage = () => {
         title: `Ship Date - ${project.name}`,
         date: project.shipDate,
         project: project.projectNumber,
+        projectName: project.name,
         status: 'milestone',
         color: 'bg-red-600/90 text-white',
         projectId: project.id
@@ -246,9 +247,11 @@ const CalendarPage = () => {
         title: `${milestone.name} - ${project?.name || 'Unknown Project'}`,
         date: milestone.targetInvoiceDate,
         project: project?.projectNumber || '',
+        projectName: project?.name,
         status: 'billing',
         color: statusColor,
         projectId: project?.id,
+        variant: milestone.status,
         notes: milestone.description || milestone.notes || ''
       };
     });
@@ -465,6 +468,85 @@ const CalendarPage = () => {
 
   return (
     <div className="container mx-auto py-6 max-w-7xl px-4 sm:px-6">
+      {/* Milestone Preview Popup */}
+      {previewMilestone && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={closeMilestonePreview}>
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-md w-full mx-4" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-2 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <div 
+                  className={`h-3 w-3 rounded-full ${
+                    previewMilestone.status === 'billing' 
+                      ? (previewMilestone.variant === 'paid' 
+                          ? 'bg-green-500' 
+                          : previewMilestone.variant === 'delayed' 
+                            ? 'bg-red-500' 
+                            : 'bg-amber-500')
+                      : 'bg-blue-500'
+                  }`}
+                />
+                <h3 className="text-lg font-semibold">
+                  {previewMilestone.status === 'billing' ? 'Billing Milestone' : 'Project Milestone'}
+                </h3>
+              </div>
+              <button 
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                onClick={closeMilestonePreview}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-3 mb-4">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Title</p>
+                <p className="font-medium">{previewMilestone.title}</p>
+              </div>
+              
+              {previewMilestone.projectName && (
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Project</p>
+                  <p className="font-medium">{previewMilestone.projectName}</p>
+                </div>
+              )}
+              
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Date</p>
+                <p className="font-medium">{format(new Date(previewMilestone.date), 'MMMM d, yyyy')}</p>
+              </div>
+              
+              {previewMilestone.status === 'billing' && (
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
+                  <p className="font-medium capitalize">{previewMilestone.variant || 'upcoming'}</p>
+                </div>
+              )}
+              
+              {previewMilestone.notes && (
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Description</p>
+                  <p className="text-sm">{previewMilestone.notes}</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={closeMilestonePreview}>
+                Close
+              </Button>
+              {previewMilestone.projectId && (
+                <Button onClick={goToProjectFromPreview}>
+                  View Project
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Production Calendar</h1>
         

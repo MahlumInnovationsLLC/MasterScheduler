@@ -28,6 +28,8 @@ export type ScheduleItem = {
   endDate?: Date | string;
   notes?: string;
   projectId?: number;
+  projectName?: string;
+  variant?: string; // For billing milestone status: 'paid', 'delayed', 'upcoming', etc.
 };
 
 interface CalendarScheduleProps {
