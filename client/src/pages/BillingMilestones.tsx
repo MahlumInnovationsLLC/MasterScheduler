@@ -537,10 +537,7 @@ const BillingMilestones = () => {
         
         return (
           <div className="flex items-center">
-            <div className="flex-shrink-0 h-8 w-8 rounded bg-primary flex items-center justify-center text-white font-medium">
-              {project.projectNumber.slice(-2)}
-            </div>
-            <div className="ml-3">
+            <div className="ml-1">
               <div className="text-sm font-medium text-white">{project.projectNumber}</div>
               <div className="text-xs text-gray-400">{project.name}</div>
             </div>
