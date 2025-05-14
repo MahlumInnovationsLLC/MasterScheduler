@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/queryClient';
 import { 
   Folders, 
   Flag, 
@@ -18,7 +20,11 @@ import {
   SearchIcon,
   ListFilter,
   AlertTriangle,
-  PieChart
+  PieChart,
+  Check,
+  X,
+  Pencil as PencilIcon,
+  PlusCircle
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -379,6 +385,215 @@ const ProjectStatus = () => {
       shipDateMax: '',
     });
   };
+  
+  // Function to update a project date field
+  const updateProjectDate = async (projectId: number, field: string, value: string | null) => {
+    try {
+      const response = await apiRequest(
+        "PATCH",
+        `/api/projects/${projectId}`,
+        { [field]: value }
+      );
+      
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+        toast({
+          title: "Date Updated",
+          description: `${field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1')} has been updated successfully`,
+          variant: "default"
+        });
+        return true;
+      } else {
+        throw new Error(`Failed to update ${field}`);
+      }
+    } catch (error) {
+      toast({
+        title: "Update Failed",
+        description: `Error updating date: ${(error as Error).message}`,
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+  
+  // Component for editable notes field
+  const EditableNotesField = ({
+    projectId,
+    value
+  }: {
+    projectId: number;
+    value: string | null;
+  }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [noteValue, setNoteValue] = useState<string>(value || '');
+    const [isUpdating, setIsUpdating] = useState(false);
+    
+    // Function to handle saving the notes
+    const handleSave = async () => {
+      setIsUpdating(true);
+      try {
+        const response = await apiRequest(
+          "PATCH",
+          `/api/projects/${projectId}`,
+          { notes: noteValue }
+        );
+        
+        if (response.ok) {
+          queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+          toast({
+            title: "Notes Updated",
+            description: "Notes have been updated successfully",
+            variant: "default"
+          });
+          setIsEditing(false);
+        } else {
+          throw new Error("Failed to update notes");
+        }
+      } catch (error) {
+        toast({
+          title: "Update Failed",
+          description: `Error updating notes: ${(error as Error).message}`,
+          variant: "destructive"
+        });
+      } finally {
+        setIsUpdating(false);
+      }
+    };
+    
+    // Display editor if in edit mode
+    if (isEditing) {
+      return (
+        <div className="flex flex-col space-y-2 py-1">
+          <textarea
+            className="w-full h-24 px-2 py-1 rounded text-xs bg-background border border-input"
+            value={noteValue}
+            onChange={(e) => setNoteValue(e.target.value)}
+            placeholder="Add notes here..."
+          />
+          <div className="flex justify-end space-x-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6" 
+              onClick={handleSave}
+              disabled={isUpdating}
+            >
+              {isUpdating ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> : <Check className="h-3 w-3 text-success mr-1" />}
+              Save
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6" 
+              onClick={() => setIsEditing(false)}
+              disabled={isUpdating}
+            >
+              <X className="h-3 w-3 text-danger mr-1" />
+              Cancel
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    
+    // Regular display mode
+    return (
+      <div 
+        className="text-sm cursor-pointer hover:underline flex items-center min-h-[32px] relative group"
+        onClick={() => setIsEditing(true)}
+      >
+        {noteValue ? (
+          <>
+            <div className="line-clamp-2">{noteValue}</div>
+            <PencilIcon className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 absolute right-0 top-0" />
+          </>
+        ) : (
+          <div className="text-gray-400 flex items-center">
+            <span>Add notes</span>
+            <PlusCircle className="h-3 w-3 ml-1" />
+          </div>
+        )}
+      </div>
+    );
+  };
+  
+  // Component for editable date fields
+  const EditableDateField = ({ 
+    projectId, 
+    field, 
+    value, 
+    size = 'default' 
+  }: { 
+    projectId: number; 
+    field: string; 
+    value: string | null; 
+    size?: 'default' | 'sm'
+  }) => {
+    const cellId = `${field}-${projectId}`;
+    const [isEditing, setIsEditing] = useState(false);
+    const [dateValue, setDateValue] = useState<string | undefined>(
+      value ? new Date(value).toISOString().split('T')[0] : undefined
+    );
+    const [isUpdating, setIsUpdating] = useState(false);
+    
+    // Function to handle saving the date
+    const handleSave = async () => {
+      setIsUpdating(true);
+      const success = await updateProjectDate(projectId, field, dateValue || null);
+      setIsUpdating(false);
+      if (success) {
+        setIsEditing(false);
+      }
+    };
+    
+    // Display editor if in edit mode
+    if (isEditing) {
+      return (
+        <div className="flex items-center space-x-2">
+          <input
+            type="date"
+            className="w-32 px-2 py-1 rounded text-xs bg-background border border-input"
+            value={dateValue || ''}
+            onChange={(e) => setDateValue(e.target.value)}
+          />
+          <div className="flex space-x-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-6 w-6" 
+              onClick={handleSave}
+              disabled={isUpdating}
+            >
+              {isUpdating ? 
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> 
+                : <Check className="h-3 w-3 text-success" />
+              }
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-6 w-6" 
+              onClick={() => setIsEditing(false)}
+              disabled={isUpdating}
+            >
+              <X className="h-3 w-3 text-danger" />
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    
+    // Regular display mode
+    return (
+      <div 
+        className="text-sm flex items-center cursor-pointer hover:underline"
+        onClick={() => setIsEditing(true)}
+      >
+        <span className={size === 'sm' ? 'text-xs' : ''}>{value ? formatDate(value) : '-'}</span>
+        <Calendar className={`inline-block ml-1 ${size === 'sm' ? 'h-3 w-3' : 'h-4 w-4'}`} />
+      </div>
+    );
+  };
 
   // Toggle column visibility
   const toggleColumnVisibility = (column: string) => {
@@ -571,7 +786,7 @@ const ProjectStatus = () => {
       },
       { size: 180 }),
     createColumn('contractDate', 'contractDate', 'Contract Date', 
-      (value) => formatDate(value),
+      (value, project) => <EditableDateField projectId={project.id} field="contractDate" value={value} />,
       { size: 140 }),
     createColumn('startDate', 'startDate', 'Start Date', 
       (value) => formatDate(value),
@@ -619,14 +834,14 @@ const ProjectStatus = () => {
       (value) => value ? `${value}%` : 'N/A',
       { size: 120 }),
     createColumn('fabricationStart', 'fabricationStart', 'Fabrication Start', 
-      (value) => formatDate(value),
-      { size: 150 }),
+      (value, project) => <EditableDateField projectId={project.id} field="fabricationStart" value={value} />,
+      { size: 170 }),
     createColumn('assemblyStart', 'assemblyStart', 'Assembly Start', 
-      (value) => formatDate(value),
-      { size: 150 }),
+      (value, project) => <EditableDateField projectId={project.id} field="assemblyStart" value={value} />,
+      { size: 170 }),
     createColumn('wrapDate', 'wrapDate', 'Wrap Date', 
-      (value) => formatDate(value),
-      { size: 140 }),
+      (value, project) => <EditableDateField projectId={project.id} field="wrapDate" value={value} />,
+      { size: 170 }),
     createColumn('ntcTestingDate', 'ntcTestingDate', 'NTC Testing', 
       (value) => formatDate(value),
       { size: 140 }),
