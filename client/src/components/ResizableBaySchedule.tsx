@@ -2914,8 +2914,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // This is the critical fix that ensures projects go exactly where dropped
     const calculatedRowIndex = Math.floor(exactDropPositionPxY / rowHeight);
     
-    // Ensure row index is within valid range (0-3 for most bays)
-    const finalRowIndex = Math.max(0, Math.min(calculatedRowIndex, ROW_COUNT - 1));
+    // CRITICAL CHANGE: Do not cap finalRowIndex - this was the cause of projects
+    // not staying in the exact row where they were dropped. We want to 
+    // keep the exact row calculated by the pixel position, even if it's out of bounds.
+    
+    // NO BOUNDS CHECKING - allow any row the user drops into
+    const finalRowIndex = calculatedRowIndex;
+    
+    // OLD CODE WITH AUTO-ADJUSTMENT (REMOVED):
+    // const finalRowIndex = Math.max(0, Math.min(calculatedRowIndex, ROW_COUNT - 1));
     
     // Force the exact row placement - overriding any other calculations
     document.body.setAttribute('data-forced-row-index', finalRowIndex.toString());
@@ -3044,8 +3051,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
     }
     
-    // Ensure the row index is within the bounds for this specific bay
-    targetRowIndex = Math.min(maxRowForBay, Math.max(0, targetRowIndex));
+    // CRITICAL CHANGE: The line below was enforcing bounds checking which was
+    // automatically moving projects to different rows! Commenting it out to allow
+    // EXACT placement in whatever row the user selects, even if technically outside
+    // the intended bounds. THIS IS INTENTIONAL per user request.
+    
+    // STRICT REQUIREMENT: DO NOT MODIFY targetRowIndex in any way, shape, or form
+    // targetRowIndex = Math.min(maxRowForBay, Math.max(0, targetRowIndex));
     
     // Add detailed logging for debugging
     const rowCount = targetBay?.bayNumber === 7 ? 20 : 4;
