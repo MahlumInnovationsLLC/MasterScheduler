@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -31,17 +30,8 @@ import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
-// Import SidebarContext for managing sidebar state
-import { createContext } from "react";
-
-// Create a sidebar context to manage the sidebar state across components
-export const SidebarContext = createContext<{
-  isCollapsed: boolean;
-  toggleSidebar: () => void;
-}>({
-  isCollapsed: false,
-  toggleSidebar: () => {},
-});
+// Import SidebarContext and SidebarProvider for managing sidebar state
+import { SidebarProvider } from "@/context/SidebarContext";
 
 // Check if we're in development mode
 const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
@@ -49,13 +39,6 @@ const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.
 function Router() {
   const [location] = useLocation();
   const isAuthPage = location === "/auth";
-  // Add state for sidebar collapse
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  
-  // Function to toggle sidebar visibility
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
   
   // In development mode, redirect from auth page to dashboard
   if (isDevelopment && isAuthPage) {
@@ -74,12 +57,13 @@ function Router() {
   }
 
   return (
-    <SidebarContext.Provider value={{ isCollapsed, toggleSidebar }}>
+    <SidebarProvider>
       <div className="min-h-screen flex flex-col bg-darkBg text-white">
         <Header />
         <div className="flex flex-1 h-[calc(100vh-64px)]">
           <Sidebar />
-          <main className={`overflow-y-auto flex-1 transition-all duration-300 pt-16 ${isCollapsed ? 'ml-[50px]' : 'ml-[260px]'}`}>
+          <main className={`overflow-y-auto flex-1 transition-all duration-300 pt-16`}>
+            {/* Main content is positioned with flex so no margin adjustments needed */}
             <Switch>
               <ProtectedRoute path="/" component={Dashboard} />
               <ProtectedRoute path="/projects" component={ProjectStatus} />
@@ -107,7 +91,7 @@ function Router() {
           </main>
         </div>
       </div>
-    </SidebarContext.Provider>
+    </SidebarProvider>
   );
 }
 

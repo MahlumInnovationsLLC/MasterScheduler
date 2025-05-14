@@ -17,12 +17,23 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { SidebarContext } from '../App';
+import { SidebarContext } from '@/context/SidebarContext';
 
 const Sidebar = () => {
   const [location] = useLocation();
   // Use the sidebar context instead of local state
   const { isCollapsed, toggleSidebar } = useContext(SidebarContext);
+
+  // Add a wrapper function with console logging
+  const handleToggle = () => {
+    console.log("Sidebar toggle button clicked");
+    console.log("Before toggle - isCollapsed:", isCollapsed);
+    toggleSidebar();
+    // Log after state change attempt
+    setTimeout(() => {
+      console.log("After toggle - isCollapsed should be:", !isCollapsed);
+    }, 10);
+  };
 
   const isActive = (path: string) => {
     return location === path;
@@ -34,11 +45,11 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className={`bg-darkCard border-r border-gray-800 fixed h-screen overflow-y-auto pt-16 transition-all duration-300 z-10 ${isCollapsed ? 'w-[50px]' : 'w-[260px]'}`}>
+    <aside className={`bg-darkCard border-r border-gray-800 fixed h-screen overflow-y-auto transition-all duration-300 z-10 ${isCollapsed ? 'w-[50px]' : 'w-[260px]'}`} style={{ top: '64px' }}>
       {/* Toggle Button - positioned outside of scrolling area */}
       <button 
-        className="absolute top-12 right-2 bg-primary hover:bg-primary-dark text-white rounded-full p-2 shadow-lg z-10 border border-gray-700"
-        onClick={toggleSidebar}
+        className="absolute top-4 right-2 bg-primary hover:bg-primary-dark text-white rounded-full p-2 shadow-lg z-20 border border-gray-700"
+        onClick={handleToggle}
         aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
