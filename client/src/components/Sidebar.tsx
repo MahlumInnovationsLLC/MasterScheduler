@@ -171,6 +171,33 @@ const Sidebar = () => {
             </li>
           </ul>
         </div>
+        
+        {/* Settings */}
+        <div>
+          {!collapsed && (
+            <h6 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+              Settings
+            </h6>
+          )}
+          <ul>
+            <li>
+              <Link href="/settings/user" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/settings/user') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
+              }`} title="User Preferences">
+                <Users className={`text-xl ${isActive('/settings/user') ? 'text-primary' : ''}`} />
+                {!collapsed && <span>User Preferences</span>}
+              </Link>
+            </li>
+            <li>
+              <Link href="/system-settings" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
+              }`} title="System Settings">
+                <Settings className={`text-xl ${isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'text-primary' : ''}`} />
+                {!collapsed && <span>System Settings</span>}
+              </Link>
+            </li>
+          </ul>
+        </div>
       </nav>
     </aside>
   );
