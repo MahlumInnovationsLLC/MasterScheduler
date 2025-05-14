@@ -103,6 +103,14 @@ const Sidebar = () => {
           )}
           <ul>
             <li>
+              <Link href="/sales-forecast" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/sales-forecast') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
+              }`} title="Sales Forecast">
+                <TrendingUp className={`text-xl ${isActive('/sales-forecast') ? 'text-primary' : ''}`} />
+                {!collapsed && <span>Sales Forecast</span>}
+              </Link>
+            </li>
+            <li>
               <Link href="/bay-scheduling" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/bay-scheduling') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`} title="Bay Scheduling">
@@ -124,6 +132,14 @@ const Sidebar = () => {
               }`} title="On Time Delivery">
                 <Clock className={`text-xl ${isActive('/delivery-tracking') ? 'text-primary' : ''}`} />
                 {!collapsed && <span>On Time Delivery</span>}
+              </Link>
+            </li>
+            <li>
+              <Link href="/delivered-projects" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/delivered-projects') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
+              }`} title="Delivered Projects">
+                <Truck className={`text-xl ${isActive('/delivered-projects') ? 'text-primary' : ''}`} />
+                {!collapsed && <span>Delivered Projects</span>}
               </Link>
             </li>
           </ul>
