@@ -77,9 +77,9 @@ function Router() {
     <SidebarContext.Provider value={{ isCollapsed, toggleSidebar }}>
       <div className="min-h-screen flex flex-col bg-darkBg text-white">
         <Header />
-        <div className={`flex-1 grid transition-all duration-300 ${isCollapsed ? 'grid-cols-[50px_1fr]' : 'grid-cols-[260px_1fr]'}`}>
+        <div className="flex flex-1 h-[calc(100vh-64px)]">
           <Sidebar />
-          <main className="overflow-y-auto h-screen pt-16">
+          <main className={`overflow-y-auto flex-1 transition-all duration-300 pt-16 ${isCollapsed ? 'ml-[50px]' : 'ml-[260px]'}`}>
             <Switch>
               <ProtectedRoute path="/" component={Dashboard} />
               <ProtectedRoute path="/projects" component={ProjectStatus} />

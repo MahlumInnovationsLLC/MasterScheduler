@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext } from 'react';
 import { useLocation, Link } from 'wouter';
 import {
   LayoutDashboard,
@@ -17,15 +17,12 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import { SidebarContext } from '../App';
 
 const Sidebar = () => {
   const [location] = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
-
-  const toggleSidebar = () => {
-    setCollapsed(prevState => !prevState);
-    console.log('Toggle sidebar clicked');
-  };
+  // Use the sidebar context instead of local state
+  const { isCollapsed, toggleSidebar } = useContext(SidebarContext);
 
   const isActive = (path: string) => {
     return location === path;
@@ -37,50 +34,50 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className={`bg-darkCard border-r border-gray-800 h-screen overflow-y-auto pt-16 transition-all duration-300 relative ${collapsed ? 'w-[50px]' : 'w-[260px]'}`}>
+    <aside className={`bg-darkCard border-r border-gray-800 fixed h-screen overflow-y-auto pt-16 transition-all duration-300 z-10 ${isCollapsed ? 'w-[50px]' : 'w-[260px]'}`}>
       {/* Toggle Button - positioned outside of scrolling area */}
       <button 
         className="absolute top-12 right-2 bg-primary hover:bg-primary-dark text-white rounded-full p-2 shadow-lg z-10 border border-gray-700"
         onClick={toggleSidebar}
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
-        {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+        {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
       </button>
       
-      <nav className={`py-4 ${collapsed ? 'px-2' : 'px-4'}`}>
+      <nav className={`py-4 ${isCollapsed ? 'px-2' : 'px-4'}`}>
         {/* Main Navigation */}
         <div className="mb-6">
-          {!collapsed && (
+          {!isCollapsed && (
             <h6 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
               Main Navigation
             </h6>
           )}
           <ul>
             <li>
-              <Link href="/" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`} title="Dashboard">
                 <LayoutDashboard className={`text-xl ${isActive('/') ? 'text-primary' : ''}`} />
-                {!collapsed && <span>Dashboard</span>}
+                {!isCollapsed && <span>Dashboard</span>}
               </Link>
             </li>
             <li>
-              <Link href="/projects" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/projects" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/projects') || locationStartsWith('/project/') 
                   ? 'bg-primary bg-opacity-20 text-white' 
                   : 'text-gray-700 dark:text-gray-300'
               }`} title="Projects">
                 <ListChecks className={`text-xl ${isActive('/projects') || locationStartsWith('/project/') ? 'text-primary' : ''}`} />
-                {!collapsed && <span>Projects</span>}
+                {!isCollapsed && <span>Projects</span>}
               </Link>
             </li>
             <li>
-              <Link href="/calendar" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/calendar" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/calendar') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`} title="Calendar">
                 <Calendar className={`text-xl ${isActive('/calendar') ? 'text-primary' : ''}`} />
-                {!collapsed && <span>Calendar</span>}
+                {!isCollapsed && <span>Calendar</span>}
               </Link>
             </li>
             <li>
