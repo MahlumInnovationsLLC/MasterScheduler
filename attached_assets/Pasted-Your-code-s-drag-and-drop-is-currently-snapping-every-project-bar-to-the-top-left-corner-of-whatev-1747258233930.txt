@@ -1,0 +1,75 @@
+Your code’s drag‐and‐drop is currently “snapping” every project bar to the top-left corner of whatever slot you drop it into, because your onDrop handlers only ever pass slotIndex and rowIndex (e.g. handleDrop(e, bay.id, index, rowIndex)) and then recompute the bar’s left position as slotIndex * slotWidth 
+. There is no notion of “where inside the cell” you actually dropped, so every drop looks like it belongs at the very start of that slot.
+
+What’s missing
+Capturing the pointer’s exact X offset at drag start.
+In your handleDragStart, you need to compute:
+
+ts
+Copy
+Edit
+const barRect = e.currentTarget.getBoundingClientRect()
+const dragOffsetX = e.clientX - barRect.left
+and store it (e.g. in state: setDragOffset(dragOffsetX)).
+
+Passing raw clientX (or offsetX) through to your drop handler.
+Instead of calling only handleDrop(e, bayId, slotIndex, rowIndex), your onDrop should also hand off e.clientX (and the saved dragOffsetX) so that the handler can reconstruct the exact pixel position.
+
+Recomputing bar.left from pixels, not slots.
+Inside handleDrop, do something like:
+
+ts
+Copy
+Edit
+// Get our timeline bounds
+const containerRect = timelineContainerRef.current!.getBoundingClientRect()
+// Compute drop‐point relative to left edge of the timeline
+const rawDropX = e.clientX - containerRect.left
+// Adjust for where on the bar you grabbed it
+const finalLeftPx = rawDropX - dragOffsetX
+// Clamp between [0, containerWidth - barWidth]
+const left = Math.max(0, Math.min(finalLeftPx, containerRect.width - barWidth))
+Then translate that pixel offset back into a start date or just store it directly if you’re positioning absolutely by pixels.
+
+Putting it all together
+Here’s a sketch of what to add or change:
+
+diff
+Copy
+Edit
+// State to hold the grab‐offset
+const [dragOffsetX, setDragOffsetX] = useState(0)
+
+function handleDragStart(e, type, data) {
+  // …existing code…
+  const barRect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  setDragOffsetX(e.clientX - barRect.left)
+  // …existing code…
+}
+
+// In your slot’s onDrop
+<div
+  onDrop={e => {
+-   handleDrop(e, bay.id, index, rowIndex)
++   handleDrop(e, bay.id, e.clientX, index, rowIndex)
+  }}
+>
+
+// And in handleDrop:
+function handleDrop(e, bayId, clientX, slotIndex, rowIndex) {
+  e.preventDefault()
+  // Get timeline container
+  const containerRect = timelineContainerRef.current!.getBoundingClientRect()
+  // Exact pixel where the drop happened relative to timeline
+  const rawX = clientX - containerRect.left
+  // Account for where on the bar it was grabbed
+  const finalLeft = rawX - dragOffsetX
+  // Now position the bar exactly there:
+  barElement.style.left = `${Math.max(0, finalLeft)}px`
+  // And convert this into a new startDate if you need to sync with your backend
+  const pixelsPerDay = containerRect.width / differenceInDays(dateRange.end, dateRange.start)
+  const daysFromStart = finalLeft / pixelsPerDay
+  const newStartDate = addDays(dateRange.start, Math.round(daysFromStart))
+  onScheduleChange(..., bayId, format(newStartDate, 'yyyy-MM-dd'), ...)
+}
+By capturing and reapplying the exact mouse offset, you’ll eliminate all snapping and have the bars drop exactly under your cursor.
