@@ -783,15 +783,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   
   // Function to automatically adjust schedules to maintain 100% capacity usage
   // Now takes optional bayId to only adjust a specific bay
-  // This function is ONLY triggered when the user clicks the "Auto Adjust" button
-  // It is NEVER triggered automatically during manual resize or drag operations
-  // This ensures projects always stay exactly where users place them until
-  // they explicitly request auto-adjustment
   const applyAutoCapacityAdjustment = (specificBayId?: number) => {
-    console.log('🔒 MANUAL ADJUSTMENT PROTECTION: User explicitly requested auto-adjustment');
-    console.log('✅ Projects will not be auto-adjusted during normal operations');
-    console.log('⚠️ Only adjusting because user clicked "Auto Adjust Capacity" button');
-    
     if (!schedules.length || !bays.length) return;
     
     // Group schedules by bay
@@ -2873,33 +2865,48 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // CRITICAL FIX: ABSOLUTELY NO SPECIAL HANDLING FOR ANY BAY
-    // User requires that projects stay EXACTLY where they were dropped
-    // No special rules, no detection, no auto-adjustment
-    console.log(`🔴 CRITICAL FIX: Using exact bayId=${bayId} from drop event parameters - NO EXCEPTIONS`);
+    // CRITICAL FIX: Force using the exact bay ID from the event parameters
+    // This prevents the bay jumping issue by ensuring we always use the bay where the drop happened
+    console.log(`🔴 CRITICAL FIX: Using exact bayId=${bayId} from drop event parameters`);
     
-    // Define finalBayId but set it directly to the parameter value with ZERO special handling
+    // ENHANCED BAY 3 FIX: Special handling for Bay 3 drops
+    // Additional data verification and handling for Bay 3
     let finalBayId = bayId;
     
-    // COMPLETELY REMOVED ALL BAY 3 SPECIAL HANDLING
-    // Projects now stay in the exact bay where they're dropped regardless of which bay it is
+    if (bayId === 3) {
+      console.log('🔶 BAY 3 DROP DETECTED - Applying special handling');
+      
+      // Add a visual indicator for Bay 3 drop target
+      const bay3Element = document.querySelector(`.bay-content[data-bay-id="3"]`);
+      if (bay3Element) {
+        bay3Element.classList.add('bay-3-drop-active');
+        setTimeout(() => bay3Element.classList.remove('bay-3-drop-active'), 1000);
+      }
+      
+      // Force Bay 3 data attribute to be set on the document body to ensure consistency
+      document.body.setAttribute('data-bay-three-drop', 'true');
+    } else {
+      document.body.removeAttribute('data-bay-three-drop');
+    }
     
-    // Remove any bay-specific attributes from the document body
-    document.body.removeAttribute('data-bay-three-drop');
-    document.body.removeAttribute('data-bay-three-drag');
+    // Additional data consistency check for Bay 3 using multiple sources
+    const bodyBayId = document.body.getAttribute('data-current-drag-bay');
+    const lastBayDrag = document.body.getAttribute('data-last-bay-drag');
+    const bay3Flag = document.body.hasAttribute('data-bay-three-drag');
     
-    // CRITICAL FIX: DISABLE ALL BAY DETECTION & OVERRIDE LOGIC
-    // ALWAYS use the exact bay ID from the parameter
+    console.log(`Drop context: Event bayId=${bayId}, Body bayId=${bodyBayId}, Last drag=${lastBayDrag}, Bay3 flag=${bay3Flag}`);
     
-    console.log(`🔒 EXACT PLACEMENT: Using exact bay ID ${bayId} from drop event`);
-    console.log(`📍 Project will be placed EXACTLY in Bay ${bayId}, Row ${rowIndex}`);
-    
-    // Force the finalBayId to be exactly what came from the event parameter
-    // No overrides, no detection, no adjustments - pure exact placement
-    finalBayId = bayId; // Using the already declared variable
-    
-    console.log('❌ All bay detection and override logic disabled for precise placement');
-    console.log('✅ Project will stay EXACTLY where dropped');
+    // If ANY source indicates this is a Bay 3 drop, respect that
+    const isBay3ByMultipleChecks = 
+      bayId === 3 || 
+      bodyBayId === '3' || 
+      lastBayDrag === '3' || 
+      bay3Flag;
+      
+    if (isBay3ByMultipleChecks && bayId !== 3) {
+      console.log('⚠️ Bay 3 detected through alternate data sources - overriding with Bay 3');
+      finalBayId = 3;
+    }
     
     // Force any data-bay-id attribute on the element to match the parameter for consistency
     if (e.currentTarget && e.currentTarget instanceof HTMLElement) {
@@ -3182,8 +3189,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Get the project data to determine FAB weeks
       const project = projects.find(p => p.id === (data.projectId || data.id));
-      // Ensure we use a project's fab weeks if available, default to 4 weeks
-      // Note: We don't declare fabWeeks here since we declare it later
+      const fabWeeks = project?.fabWeeks || 4; // Default to 4 weeks if not set
+      
+      // Calculate FAB phase duration in days (first 4 weeks by default)
+      const fabDays = fabWeeks * 7; // Convert weeks to days
+      
+      // Calculate production start date (after FAB phase)
+      const productionStartDate = addDays(slotDate, fabDays);
       
       // Get the bay's base weekly capacity 
       // Handle null/undefined values safely
@@ -3193,170 +3205,50 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           ? bay.staffCount : 1;
       const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
       
-      // Find overlapping schedules in the same bay AND row
+      // Find overlapping schedules in the same bay
       const overlappingSchedules = schedules.filter(s => 
         s.bayId === bayId && 
-        s.row === targetRowIndex &&
         // Exclude the current schedule if we're updating an existing one
         (data.type !== 'existing' || s.id !== data.id)
       );
       
-      // Calculate estimated production days based on the project's total hours
-      const totalHours = data.totalHours !== null ? Number(data.totalHours) : 1000; // Default to 1000 if not specified
-      const prodHours = totalHours * 0.6; // Production phase gets 60% of total hours
-      const prodWeeksNeeded = Math.max(1, Math.ceil(prodHours / baseWeeklyCapacity));
-      const prodDays = prodWeeksNeeded * 7;
+      // AUTO-PLACEMENT FUNCTION COMPLETELY REMOVED
+      // We now use exactly the row where the user dropped the project
+      // As explicitly requested by user: SIMPLE PLACEMENT WITH NO ADJUSTMENTS
       
-      // Use the fab weeks from the project data (default to 4 weeks if not specified)
-      const fabWeeks = project?.fabWeeks || 4;
-      const fabDuration = fabWeeks * 7; // Calculate FAB phase duration in days
-      
-      // Calculate an estimated end date
-      const estimatedEndDate = slotDate ? addDays(slotDate, fabDuration + prodDays) : null;
-      
-      // Simple conflict check - two schedules overlap if one starts before the other ends
-      // and ends after the other starts
-      let hasConflict = false;
-      if (slotDate && estimatedEndDate) {
-        const slotDateTime = slotDate.getTime();
-        const endDateTime = estimatedEndDate.getTime();
-        
-        hasConflict = overlappingSchedules.some(s => {
-          const sStartDate = new Date(s.startDate).getTime();
-          const sEndDate = new Date(s.endDate).getTime();
-          
-          // Check if schedules overlap
-          // No overlap if new ends before existing starts OR new starts after existing ends
-          const noOverlap = endDateTime <= sStartDate || slotDateTime >= sEndDate;
-          return !noOverlap; // Return true if there IS an overlap
-        });
-      }
-      
-      // Calculate bay utilization (percentage of capacity used)
-      // Default to 4 rows if not specified
-      const bayRowCount = 4; // Fixed value since rowCount might not be available
-      const utilizationPercentage = Math.min(100, Math.floor(
-        (overlappingSchedules.length / bayRowCount) * 100
-      ));
-      const isOverutilized = utilizationPercentage >= 100;
-      
-      // We'll show a warning dialog if there are conflicts, but the user can proceed anyway
-      // This implements the requested behavior: warn when placement might not be ideal
-      if (hasConflict || isOverutilized) {
-        // Use the dialog component from the UI library for this popup
-        // Create a warning dialog that lets the user decide whether to proceed
-        console.log("⚠️ CONFLICT DETECTED: Showing warning popup to user");
-        
-        // Create and show a custom dialog
-        const confirmDialog = document.createElement('div');
-        confirmDialog.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
-        confirmDialog.innerHTML = `
-          <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h3 class="text-lg font-bold mb-4 text-red-500">Warning: Placement Issue</h3>
-            <p class="mb-4">${hasConflict ? 'This project would overlap with another project in the same row.' : ''}</p>
-            <p class="mb-4">${isOverutilized ? 'This bay is already at or over capacity.' : ''}</p>
-            <p class="mb-6">Do you want to place the project here anyway?</p>
-            <div class="flex justify-end gap-4">
-              <button id="cancel-placement" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded">Cancel</button>
-              <button id="confirm-placement" class="px-4 py-2 bg-primary text-white rounded">Place Anyway</button>
-            </div>
-          </div>
-        `;
-        
-        document.body.appendChild(confirmDialog);
-        
-        // Add event listeners to buttons
-        const cancelButton = document.getElementById('cancel-placement');
-        if (cancelButton) {
-          cancelButton.addEventListener('click', () => {
-            document.body.removeChild(confirmDialog);
-          });
-        }
-        
-        const confirmButton = document.getElementById('confirm-placement');
-        if (confirmButton) {
-          confirmButton.addEventListener('click', () => {
-            document.body.removeChild(confirmDialog);
-            // Continue with placement with the exact parameters
-            console.log("User confirmed placement despite conflicts - proceeding with EXACT placement");
-            handlePlacement();
-          });
-        }
-        
-        return; // Don't continue until user decides
-      }
-      
-      // Define the placement function 
-      const handlePlacement = () => {
-        console.log(`SIMPLIFIED PLACEMENT SYSTEM: Using exact row=${targetRowIndex} in bay=${exactBayId}`);
-        console.log(`NO AUTO ADJUSTMENTS APPLIED: Project will be placed EXACTLY where it was dropped`);
-        
-        // Format dates for API call
-        const formattedStartDate = format(slotDate || new Date(), 'yyyy-MM-dd');
-        const formattedEndDate = format(estimatedEndDate || new Date(), 'yyyy-MM-dd');
-              
-        try {
-          // Determine if this is a new schedule or an existing one being moved
-          if (data.type === 'existing') {
-            // CRITICAL: Pass the exact row number to maintain position
-            onScheduleChange(data.id, exactBayId, formattedStartDate, formattedEndDate, data.totalHours || null, targetRowIndex)
-              .then(() => {
-                // Successful update
-                toast({ description: "Schedule updated" });
-              })
-              .catch(error => {
-                console.error('Failed to update schedule:', error);
-                toast({ 
-                  title: "Error updating schedule", 
-                  description: error.toString(),
-                  variant: "destructive" 
-                });
-              });
-          } else {
-            // Creating a new schedule
-            // CRITICAL: Pass the exact row number to maintain position
-            onScheduleCreate(data.projectId, exactBayId, formattedStartDate, formattedEndDate, data.totalHours || null, targetRowIndex)
-              .then(() => {
-                // Successful creation
-                toast({ description: "Schedule created" });
-              })
-              .catch(error => {
-                console.error('Failed to create schedule:', error);
-                toast({ 
-                  title: "Error creating schedule", 
-                  description: error.toString(),
-                  variant: "destructive" 
-                });
-              });
-          }
-        } catch (error) {
-          console.error('Error during schedule operation:', error);
-          toast({
-            title: "Operation failed",
-            description: "See console for details",
-            variant: "destructive"
-          });
-        }
-      };
-      
-      // If no conflicts, proceed immediately with placement
-      if (!hasConflict && !isOverutilized) {
-        handlePlacement();
-      }
+      console.log(`SIMPLIFIED PLACEMENT SYSTEM: Using exact row=${targetRowIndex} in bay=${exactBayId}`);
+      console.log(`NO AUTO ADJUSTMENTS APPLIED: Project will be placed EXACTLY where it was dropped`);
+      console.log(`OVERLAP WARNING: Projects may now overlap in time and position as requested`);
       
       // We no longer check for overlaps or attempt to find optimal rows
       // The project will be placed EXACTLY where the user drops it
       // This is a direct implementation of the user's request for simple placement
       
-      // Log capacity and timing information from our earlier calculations
+      // Calculate how long the project will take considering capacity sharing
+      const totalHours = data.totalHours !== null ? Number(data.totalHours) : 1000; // Default to 1000 if not specified
+      
+      // CRITICAL FIX: Calculate project duration properly
+      // Project's PROD phase gets 60% of the total hours
+      const prodHours = totalHours * 0.6;
       console.log(`Production phase hours (60% of total): ${prodHours} hours`);
-      console.log(`Bay weekly capacity (100%): ${baseWeeklyCapacity} hours`);
+      
+      // Use 100% of the bay's weekly capacity
+      const fullWeeklyCapacity = baseWeeklyCapacity;
+      console.log(`Bay weekly capacity (100%): ${fullWeeklyCapacity} hours`);
+      
+      // Calculate how many weeks the PROD phase will take using 100% bay capacity per week
+      // This is the critical calculation that prevents auto-stretching to the entire timeline
+      // We're using PROD hours (60% of total) and full weekly capacity (100% of bay)
+      const prodWeeksNeeded = Math.max(1, Math.ceil(prodHours / fullWeeklyCapacity));
       console.log(`Production phase weeks needed (at 100% capacity per week): ${prodWeeksNeeded} weeks`);
+      
+      // Explicitly calculate days needed for production phase based on weeks
+      const prodDays = prodWeeksNeeded * 7;
       console.log(`Production phase days needed: ${prodDays} days`);
       
       // Safety check - just log if the duration seems excessive
       if (prodDays > 365) { // Only log a warning if over a year, but don't cap it
-        console.warn(`WARNING: Very long production phase calculated: ${prodDays} days. This is based on ${prodHours} production hours at ${baseWeeklyCapacity} hours per week capacity.`);
+        console.warn(`WARNING: Very long production phase calculated: ${prodDays} days. This is based on ${prodHours} production hours at ${fullWeeklyCapacity} hours per week capacity.`);
       }
       
       // Use the calculated duration based on hours and capacity
@@ -3374,13 +3266,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         : (data.targetStartDate ? new Date(data.targetStartDate) : slotDate);
       
       // Calculate the FAB phase duration from the exact start date
-      // Use fabDuration (defined above) instead of fabDays
-      const exactFabEndDate = addDays(exactStartDate, fabDuration);
+      const exactFabEndDate = addDays(exactStartDate, fabDays);
       
       // CRITICAL FIX: Calculate proper end date based on capacity per week
       // Use the production days calculated from hours/capacity
       // This directly prevents projects from auto-stretching across the entire timeline
-      console.log(`ENFORCED production duration: ${prodDaysToUse} days based on ${prodHours} production hours at ${baseWeeklyCapacity} weekly capacity`);
+      console.log(`ENFORCED production duration: ${prodDaysToUse} days based on ${prodHours} production hours at ${fullWeeklyCapacity} weekly capacity`);
       
       // Now calculate the final end date by adding the calculated production days to the FAB end date
       let finalEndDate = addDays(exactFabEndDate, prodDaysToUse);
@@ -3406,7 +3297,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         adjustedStartDate: newExactStartDate.toISOString(),
         fabEndDate: exactFabEndDate.toISOString(),
         finalEndDate: finalEndDate.toISOString(),
-        fabDuration,
+        fabDays,
         prodDays,
         businessDayAdjusted: !isSameDay(exactStartDate, newExactStartDate)
       });
@@ -3458,16 +3349,31 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // 🚨 EMERGENCY BUG FIX: CRITICAL - DON'T USE STORED/TRACKED BAY REFERENCES
         // Using our earlier enhanced Bay 3 detection logic
         
-        // CRITICAL FIX: ABSOLUTELY NO SPECIAL HANDLING OR OVERRIDES
-        // Projects must stay EXACTLY in the bay where they are dropped
+        // Recheck all sources for Bay 3 identification to ensure consistency
+        const bodyBayId = document.body.getAttribute('data-current-drag-bay');
+        const lastBayDrag = document.body.getAttribute('data-last-bay-drag');
+        const bay3Flag = document.body.hasAttribute('data-bay-three-drag');
+        const bay3Drop = document.body.hasAttribute('data-bay-three-drop');
         
-        // RESPECT USER DROP LOCATION EXACTLY with no detection, no overrides
-        console.log('🔒 EXACT PLACEMENT: Using exact bay and row from drop event');
-        console.log(`📍 Project will be placed in Bay ${bayId}, Row ${targetRowIndex} - NO ADJUSTMENTS`);
-        console.log('❌ All bay detection and override logic disabled');
+        // If ANY source indicates this is a Bay 3 drop, respect that
+        const isBay3ByMultipleChecks = 
+          bayId === 3 || 
+          bodyBayId === '3' || 
+          lastBayDrag === '3' || 
+          bay3Flag ||
+          bay3Drop;
+          
+        // Use our enhanced Bay 3 detection
+        let actualBayId = bayId;
+        if (isBay3ByMultipleChecks && bayId !== 3) {
+          console.log('⚠️ Bay 3 detected through alternate data sources for final DB update - overriding with Bay 3');
+          actualBayId = 3;
+        }
         
-        // Use the exact bay ID from the drop event parameter - ZERO exceptions
-        const finalBayId = bayId;
+        console.log(`🚨 EMERGENCY FIX: Using enhanced bay detection - final bay ID: ${actualBayId}`);
+        
+        // CRITICAL: Always use the actual bay ID where the user dropped, with enhanced Bay 3 detection
+        const finalBayId = actualBayId;
         
         // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
         // User specifically requested to disable all auto-placement logic
@@ -3572,12 +3478,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           bayElement.appendChild(placeholderDiv);
         }
         
-        // CRITICAL FIX: ABSOLUTELY NO SPECIAL HANDLING OR OVERRIDES
-        // Projects must stay EXACTLY in the bay where they are dropped
-        // NEVER use any stored bay ID or other source - only use the actual drop target bay
+        // Get the bay ID from the global data attribute (keeps projects in same bay)
+        // But use the target row index where the user actually dropped (allows placing on any row)
+        const storedBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || '0');
+        const currentRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
         
-        // Use the exact bay ID from the drop event parameter - ZERO exceptions
-        // This is the only way to ensure projects never jump bays
+        // EMERGENCY BUG FIX: ALWAYS use the precise bay where the user dropped it
+        // This is key to preventing the bay jumping issue
         const finalBayId = bayId;
         
         // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
