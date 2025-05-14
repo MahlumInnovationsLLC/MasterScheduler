@@ -784,10 +784,10 @@ const ProjectStatus = () => {
     createColumn('ntcTestingDate', 'ntcTestingDate', 'NTC Testing', 
       (value, project) => <EditableDateField projectId={project.id} field="ntcTestingDate" value={value} />,
       { size: 170 }),
-    // Create a derived column for NTC to QC Days that doesn't use the column name as accessor
+    // Create a derived column for NTC Testing Days that doesn't use the column name as accessor
     {
-      id: 'ntcToQcDays',
-      header: 'NTC to QC Days',
+      id: 'ntcTestingDays',
+      header: 'NTC Testing Days',
       cell: ({ row }) => {
         const project = row.original;
         // Calculate weekdays between NTC Testing Date and QC Start Date
