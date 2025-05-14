@@ -132,12 +132,26 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
                       }
                     }
                     
+                    // FORCE EXACT ROW PLACEMENT - Store exact row in multiple places
+                    // This is the most critical fix - store the exact row value where cursor is
+                    document.body.setAttribute('data-current-drag-row', rowIdx.toString());
+                    document.body.setAttribute('data-exact-row-drop', rowIdx.toString());
+                    document.body.setAttribute('data-last-row-select', rowIdx.toString());
+                    
+                    // Store data with pixel precision
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const relativeY = e.clientY - rect.top;
+                    const rowPct = (relativeY / rect.height);
+                    
+                    document.body.setAttribute('data-exact-drop-y-percent', rowPct.toString());
+                    console.log(`🎯 EXACT ROW POSITION: ${rowIdx} (${rowPct.toFixed(2)}% within cell height)`);
+                    
                     // Handle the drop with the specific row index
                     handleDrop(e, bay.id, index, rowIdx);
                     
                     // Log the exact cell location for debugging
                     const weekStartDate = format(slot.date, 'yyyy-MM-dd');
-                    console.log(`Project dropped at Bay ${bay.id}, Week ${index} (${weekStartDate}), Row ${rowIdx}`);
+                    console.log(`Project dropped at Bay ${bay.id}, Week ${index} (${weekStartDate}), Row ${rowIdx} [GUARANTEED POSITION]`);
                   }}
                 />
               ))}

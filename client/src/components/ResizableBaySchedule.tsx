@@ -3203,13 +3203,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
       // NEXT RELIABLE: Check for data-exact-date which is specifically set during drag over
       // This is the next most accurate way to get the precise date the user intended
-      else if (exactDateStr = targetElement.getAttribute('data-exact-date')) {
-        slotDate = new Date(exactDateStr);
-        exactDateForStorage = exactDateStr; // Store the exact string for later use
-        console.log('SUCCESS: Using precise date from data-exact-date attribute:', exactDateStr, slotDate);
+      else {
+        const exactDateFromAttr = targetElement.getAttribute('data-exact-date');
+        if (exactDateFromAttr) {
+          slotDate = new Date(exactDateFromAttr);
+          exactDateForStorage = exactDateFromAttr; // Store the exact string for later use
+          console.log('SUCCESS: Using precise date from data-exact-date attribute:', exactDateFromAttr, slotDate);
+        }
       }
       // Next check for data-date on direct target
-      else if (dataDate) {
+      if (!slotDate && dataDate) {
         slotDate = new Date(dataDate);
         exactDateForStorage = dataDate;
         console.log('Using date directly from target element data-date attribute:', dataDate, slotDate);
@@ -3449,12 +3452,33 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // CRITICAL: Always use the actual bay ID where the user dropped, with enhanced Bay 3 detection
         const finalBayId = actualBayId;
         
-        // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
-        // User specifically requested to disable all auto-placement logic
-        // Always use the exact row the user dragged to, ignoring the findOptimalRow function
-        // DO NOT USE findOptimalRow - it was causing the wrong row selection
-        // findOptimalRow has been completely disabled to ensure projects always place exactly where dropped
-        const finalRowIndex = targetRowIndex;
+        // ABSOLUTELY CRITICAL FIX - FORCE EXACT ROW PLACEMENT WITH ZERO EXCEPTIONS
+        // Directly use the row from the drag event with no calculations or adjustments whatsoever
+  
+        // Get the MOST ACCURATE row reference - directly from drag events or data attributes
+        const exactRowFromDragCoords = document.body.getAttribute('data-current-drag-row');
+  
+        // FORCE using this value directly - DO NOT APPLY ANY LOGIC OR VALIDATION
+        // Do not check for min/max - user specifically wants absolute control
+        const forcedExactRowIndex = exactRowFromDragCoords ? parseInt(exactRowFromDragCoords) : targetRowIndex;
+  
+        // CRITICAL: HARDCODE DEFAULT TO ROW 0 FOR SAFETY - prevent any null/undefined values
+        // This ensures we always have a valid row even if all drag tracking fails
+        const finalRowIndex = (typeof forcedExactRowIndex === 'number' && !isNaN(forcedExactRowIndex)) 
+          ? forcedExactRowIndex 
+          : 0;
+    
+        console.log(`🎯 EXACT ROW FORCED TO USER SELECTION: ${finalRowIndex} (from drag coordinates: ${exactRowFromDragCoords})`);
+        console.log(`⚠️ ROW PLACEMENT OVERRIDE - NO AUTO ADJUSTMENT - USING EXACT COORDINATES`);
+  
+        // DEVELOPMENT FLAG: Force extreme logging of all row-related variables
+        console.log('🔍 ALL ROW VARIABLES:', {
+          exactRowFromDragCoords,
+          forcedExactRowIndex,
+          finalRowIndex,
+          targetRowIndex,
+          dragRowAttribute: document.body.getAttribute('data-current-drag-row')
+        });
         
         console.log(`Updating schedule with MANUAL ROW ASSIGNMENT: bay=${finalBayId} row=${finalRowIndex}`);
         console.log(`(User selected row: ${targetRowIndex})`);

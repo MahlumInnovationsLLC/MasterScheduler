@@ -1,0 +1,93 @@
+The reason you’re still landing in Row 1 every time is that, so far, we only “fixed” the X-axis snapping. You have to do the exact same thing on the Y-axis:
+
+Capture the vertical grab-offset.
+In your handleDragStart (or whatever fires on onMouseDown / onDragStart), compute and save not just the X offset but also Y:
+
+ts
+Copy
+Edit
+const barRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+setDragOffset({
+  x: e.clientX - barRect.left,
+  y: e.clientY - barRect.top,
+});
+Pass raw clientY into your drop handler.
+Wherever you do:
+
+jsx
+Copy
+Edit
+<div onDrop={e => handleDrop(e, bay.id, e.clientX /*…*/)}>
+also pass e.clientY:
+
+jsx
+Copy
+Edit
+<div onDrop={e => handleDrop(e, bay.id, e.clientX, e.clientY)}>
+Compute both finalLeft and finalTop in pixels, then translate into row.
+In handleDrop:
+
+ts
+Copy
+Edit
+function handleDrop(
+  e: DragEvent,
+  bayId: string,
+  clientX: number,
+  clientY: number
+) {
+  e.preventDefault();
+
+  // 1) Get timeline/container bounds
+  const container = timelineRef.current!;
+  const { left: cLeft, top: cTop, width: cWidth, height: cHeight } =
+    container.getBoundingClientRect();
+
+  // 2) “Raw” drop point inside container
+  const dropX = clientX - cLeft;
+  const dropY = clientY - cTop;
+
+  // 3) Adjust for where on the bar you grabbed it
+  const finalLeftPx = dropX - dragOffset.x;
+  const finalTopPx  = dropY - dragOffset.y;
+
+  // 4) Figure out which row
+  const rowHeight = cHeight / ROW_COUNT;        // e.g. 4 rows per bay
+  const newRowIndex = Math.floor(finalTopPx / rowHeight);
+
+  // 5) Clamp values so you never go outside
+  const left = Math.max(0, Math.min(finalLeftPx, cWidth));
+  const rowIndex = Math.max(0, Math.min(newRowIndex, ROW_COUNT - 1));
+  const top = rowIndex * rowHeight;
+
+  // 6) Use these to position absolutely
+  updateProject(bayId, projectId, {
+    leftPx: left,
+    row: rowIndex,
+    // if you need to recalc date from leftPx:
+    // date: pixelToDate(left, cWidth, dateRange)
+  });
+}
+Render absolutely against the bay container.
+
+jsx
+Copy
+Edit
+<div
+  className="project-bar"
+  style={{
+    position: "absolute",
+    left: `${project.leftPx}px`,
+    top:  `${project.row * rowHeight}px`,
+  }}
+>
+  …bar…
+</div>
+Why this fixes it
+dragOffset.y ensures you’re not always pinning the top of the bar to the cursor.
+
+dropY / rowHeight calculates exactly which of the 4 internal rows you meant.
+
+Clamping keeps you inside row 0–3 instead of falling back to row 0 by default.
+
+Give that a shot, and you should be able to drop into any of the 4 sub-rows of Bay 1 (or any bay) without it snapping back to Row 0. Let me know how it behaves!
