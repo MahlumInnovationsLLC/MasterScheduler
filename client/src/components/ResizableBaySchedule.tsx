@@ -1110,20 +1110,38 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           }
         }
         
-        // Ensure row is within valid range - use bay-specific row count
-        // For Team 7 & 8, we need to support up to 20 rows, others stay at 8 max
+        // CRITICAL FIX: DO NOT ADJUST ROW VALUE - keep exactly as specified in database
+        // Remove all boundary checking that would force projects into different rows
+        // For Team 7 & 8, we still need to be aware of 20 rows, but don't force repositioning
         const maxRows = getBayRowCount(bay.id, bay.name);
-        assignedRow = Math.min(maxRows - 1, Math.max(0, assignedRow));
+        
+        // Don't cap or change the assignedRow - use exactly what's in the database
+        // REMOVED: assignedRow = Math.min(maxRows - 1, Math.max(0, assignedRow));
+        
+        console.log(`Row for schedule ${schedule.id} PRESERVED at exact row ${assignedRow} WITHOUT bounds checking`);
+        
+        // Only log a warning if the row is outside expected bounds
+        if (assignedRow < 0 || assignedRow >= maxRows) {
+          console.warn(`⚠️ Schedule ${schedule.id} row value ${assignedRow} is outside expected range 0-${maxRows-1}, but keeping as-is per user request`);
+        }
         
         // Update the end date for this row
         rowEndDates[assignedRow] = new Date(endDate);
         
-        // Map the actual row to a visual row
-        // For Team 7 & 8, respect all 20 rows, for other bays map to 4 visual rows
+        // CRITICAL FIX: DO NOT MAP OR CHANGE ROWS
+        // Keep exact row from database with no adjustment
+        // For Team 7 & 8, respect all 20 rows, for other bays use EXACT row value
         const maxVisualRows = getBayRowCount(bay.id, bay.name);
-        const visualRow = maxVisualRows > 4 
-          ? assignedRow // For Team 7 & 8, use the actual row (up to 20)
-          : assignedRow % 4; // For standard bays, map rows to 0-3 for display
+        
+        // Use EXACT row without any modulo math that would cause repositioning
+        const visualRow = assignedRow;
+        
+        // REMOVED CODE: This was forcing rows into a pattern:
+        // const visualRow = maxVisualRows > 4 
+        //   ? assignedRow // For Team 7 & 8, use the actual row (up to 20)
+        //   : assignedRow % 4; // For standard bays, map rows to 0-3 for display
+        
+        console.log(`Schedule ${schedule.id} visual row is EXACTLY ${visualRow} - preserving exact position`)
         
         console.log(`Schedule ${schedule.id} positioned in row ${assignedRow} (displays in visual row ${visualRow}) ${typeof schedule.row === 'number' ? '(using database row)' : '(auto-assigned)'}`)
         
