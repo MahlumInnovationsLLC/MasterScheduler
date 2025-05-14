@@ -2162,15 +2162,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     document.body.classList.add('dragging-active');
     
     // CRITICAL FIX: Calculate and store both X and Y drag offsets (where mouse grabbed the bar)
-    const barRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const dragOffsetX = e.clientX - barRect.left;
-    const dragOffsetY = e.clientY - barRect.top;
+    const barEl = e.currentTarget as HTMLElement;
+    const barRect = barEl.getBoundingClientRect();
     
-    console.log(`🎯 EXACT DRAG POSITION: Mouse grabbed bar at offset X:${dragOffsetX}px Y:${dragOffsetY}px from top-left corner`);
+    // Set the drag offset state for use in handleDrop
+    const x = e.clientX - barRect.left;
+    const y = e.clientY - barRect.top;
+    setDragOffset({ x, y });
     
-    // Store these critical values in document body for use during drop
-    document.body.setAttribute('data-drag-offset-x', dragOffsetX.toString());
-    document.body.setAttribute('data-drag-offset-y', dragOffsetY.toString());
+    console.log(`🎯 EXACT DRAG POSITION: Mouse grabbed bar at offset X:${x}px Y:${y}px from top-left corner`);
+    
+    // Store these critical values in document body for compatibility with existing code
+    document.body.setAttribute('data-drag-offset-x', x.toString());
+    document.body.setAttribute('data-drag-offset-y', y.toString());
     
     // Store the bar height for row calculations
     document.body.setAttribute('data-bar-height', barRect.height.toString());

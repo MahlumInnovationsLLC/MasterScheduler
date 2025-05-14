@@ -655,12 +655,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // CRITICAL FIX: Ensure row parameter is processed correctly and enforced
       // NO AUTO-ADJUSTMENT OF ANY KIND - exactly as requested by user
       // MANDATORY: Use rowIndex or row parameter with HIGHEST PRIORITY - never override
-      // Get forced row data from request
+      
+      // Get forced row data from request - highest priority
       const forcedRowIndex = req.body.forcedRowIndex !== undefined ? parseInt(req.body.forcedRowIndex) : undefined;
       const rowParam = forcedRowIndex !== undefined ? forcedRowIndex : (req.body.rowIndex || req.body.row);
       
-      // CRITICAL: Make exact row placement our absolute highest priority
+      // ABSOLUTE PRIORITY: Use whatever row was passed from client with NO adjustments
+      // This is a CRITICAL BUGFIX - use the exact row with no auto-repositioning
       const finalRowIndex = rowParam !== undefined ? parseInt(rowParam.toString()) : 0;
+      
+      console.log("🚨 CRITICAL - SERVER ROW PLACEMENT: Using exact client-provided row:", finalRowIndex);
+      console.log("🚨 NO AUTO-ADJUSTMENT: Row index coming directly from client drag/drop operation");
       
       const data = {
         ...req.body,
@@ -816,17 +821,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/manufacturing-schedules/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      // CRITICAL FIX: Ensure row is properly handled and respected exactly as sent from client
-      // NO AUTO-ADJUSTMENT OF ANY KIND - exactly as requested by user
+      
+      // CRITICAL FIX: Ensure row parameter is processed correctly and enforced
+      // Get the row value with highest priority from either:
+      // 1. forcedRowIndex (highest priority)
+      // 2. rowIndex parameter 
+      // 3. row parameter
+      // 4. Fallback to undefined (do not change row)
+      const forcedRowIndex = req.body.forcedRowIndex !== undefined ? parseInt(req.body.forcedRowIndex) : undefined;
+      const rowIndex = req.body.rowIndex !== undefined ? parseInt(req.body.rowIndex) : undefined;
+      const rowValue = req.body.row !== undefined ? parseInt(req.body.row) : undefined;
+      
+      // Choose the first defined value with priority order
+      const finalRow = forcedRowIndex !== undefined ? forcedRowIndex : 
+                       (rowIndex !== undefined ? rowIndex : rowValue);
+      
+      // Create final data object with exact row placement
       const data = {
         ...req.body,
-        row: req.body.row !== undefined ? parseInt(req.body.row) : undefined
+        row: finalRow,
+        rowIndex: finalRow // Set both for maximum compatibility
       };
       
-      // SIMPLIFIED PLACEMENT SYSTEM: Projects stay EXACTLY where dropped
-      console.log("Updating schedule with EXACT row data:", data);
-      console.log("IMPORTANT: Using row value:", data.row, "EXACTLY as specified by UI");
-      console.log("NO AUTO ROW ADJUSTMENT: Project will remain exactly where it was dropped");
+      // PIXEL-PERFECT PLACEMENT: Absolutely critical logging
+      console.log("🚨 SERVER UPDATE - EXACT ROW PLACEMENT: Using row =", finalRow);
+      console.log("Row sources: forcedRowIndex =", forcedRowIndex, "rowIndex =", rowIndex, "row =", rowValue);
+      console.log("NO AUTO ROW ADJUSTMENT: Project will remain EXACTLY where it was dropped");
       
       // First get the original schedule to access the projectId
       const originalSchedule = await storage.getManufacturingSchedule(id);
