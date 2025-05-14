@@ -477,13 +477,16 @@ const BaySchedulingPage = () => {
       }
       
       // Perform the actual API request
+      // CRITICAL FIX: Ensure row is explicitly set to the rowIndex and passed with highest priority
+      console.log(`🚨 EXACT ROW PLACEMENT: Forcing row=${rowIndex} for projectId=${projectId} in bayId=${bayId}`);
       await createScheduleMutation.mutateAsync({
         projectId,
         bayId,
         startDate,
         endDate,
         totalHours,
-        row: rowIndex
+        row: rowIndex,
+        rowIndex: rowIndex // Include both for absolute certainty
       });
       
       return true;
