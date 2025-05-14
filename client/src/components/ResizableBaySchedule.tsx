@@ -2985,61 +2985,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       dropTarget.setAttribute('data-bay-id', bayId.toString());
     }
     
-    // NEW IMPLEMENTATION: We're using newRow from our direct pixel calculation
-    // No longer using passed rowIndex since we now accept clientX/clientY instead of slotIndex/rowIndex
-    // Using the globalRowIndex that was already declared
+    // We've already computed the targetRowIndex directly from mouse coordinates
+    // Log the result for debugging
+    console.log(`Using calculated row: ${targetRowIndex} for bay ${bayId}`);
     
-    if (globalRowIndex >= 0) {
-      console.log(`Using global row attribute: ${globalRowIndex} for bay ${bayId}`);
-      targetRowIndex = globalRowIndex;
-    } else {
-      console.log(`No valid row found, using default row 0 for bay ${bayId}`);
-      targetRowIndex = 0;
-    }
+    // No more reassignments here - we're respecting the exact pixel position
     
-    // CRITICAL FIX: Safety bounds check on row based on the actual row count for the bay
-    // Bays 1-6 have 4 rows (0-3), while Bay 7 (TCV Line) has 20 rows
-    
-    // Find the bay to get its row count - default to 4 rows (indexes 0-3) for bays 1-6
-    const targetBay = bays.find(b => b.id === finalBayId);
-    
-    // Calculate max row index based on bay number
-    // Bay 7 (TCV Line) has 20 rows, all others have 4 rows
-    let maxRowForBay = 3; // Default to 3 (4 rows, indexes 0-3) for all regular bays
-    
-    if (targetBay) {
-      if (targetBay.bayNumber === 7) {
-        // TCV Line has 20 rows
-        maxRowForBay = 19; // 20 rows, indexes 0-19
-      } else {
-        // All other bays (1-6) have 4 rows
-        maxRowForBay = 3;  // 4 rows, indexes 0-3
-      }
-    }
-    
-    // CRITICAL CHANGE: The line below was enforcing bounds checking which was
-    // automatically moving projects to different rows! Commenting it out to allow
-    // EXACT placement in whatever row the user selects, even if technically outside
-    // the intended bounds. THIS IS INTENTIONAL per user request.
-    
-    // STRICT REQUIREMENT: DO NOT MODIFY targetRowIndex in any way, shape, or form
-    // targetRowIndex = Math.min(maxRowForBay, Math.max(0, targetRowIndex));
-    
+    // CRITICAL: We've already done the bounds checking when we calculated targetRowIndex
     // Add detailed logging for debugging
-    const rowCount = targetBay?.bayNumber === 7 ? 20 : 4;
-    console.log(`🔍 ROW BOUNDS CHECK: Bay ${finalBayId} (Bay ${targetBay?.bayNumber || 'unknown'}) has ${rowCount} rows (max index: ${maxRowForBay})`);
-    console.log(`🔍 ADJUSTED ROW: ${targetRowIndex} (from global ${globalRowIndex} and calculated newRow ${newRow})`);
+    console.log(`🔍 CALCULATED ROW: ${targetRowIndex} is being used EXACTLY as calculated`);
+    console.log(`🔍 NO BOUNDS ADJUSTMENT will be performed - using raw pixel position`);
     
     
     // CRITICAL: We already decided to use the exact bay ID from the drop event parameter
     // DO NOT modify the bayId parameter - use it directly to ensure correct placement
     
-    console.log(`⚠️ FIXED DROP HANDLER using actual drop target bay: ${bayId} with row: ${targetRowIndex} `);
-    console.log(`(Current row=${globalRowIndex}, passed values: bay=${bayId})`);
+    console.log(`⚠️ FIXED DROP HANDLER using actual drop target bay: ${bayId} with row: ${targetRowIndex}`);
+    console.log(`Using exact coordinates: (${clientX}, ${clientY})`);
     
     // Read data attributes from the drop target element for more precise week targeting
     let targetElement = e.target as HTMLElement;
-    let targetSlotIndex = -1; // Initialize with invalid value, will be set from data attributes
     
     // First try the direct target element for data attributes
     const dataBayId = targetElement.getAttribute('data-bay-id');
