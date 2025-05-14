@@ -1,0 +1,127 @@
+Below is a unified–diff you can drop straight into your ResizableBaySchedule.tsx (in client/src/components/) to:
+
+Capture the exact X/Y cursor offset inside each bar on drag start
+
+Compute drop X/Y in pixels (instead of “snapping” to the week‐cell)
+
+Convert those pixels to a start date + row index and send them to your API
+
+diff
+Copy
+Edit
+*** Begin Patch: ResizableBaySchedule.tsx
+@@ –51,6 +51,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+ import LoadingOverlay from './LoadingOverlay';
+ import { apiRequest, queryClient } from '@/lib/queryClient';
+
++// 🆕 For capturing drag‐offset
+ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
+   schedules,
+   projects,
+@@ –2130,6 +2131,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
+   const handleDragStart = (e: React.DragEvent, type: 'existing' | 'new', data: any) => {
+     e.stopPropagation();
+
++    // 🆕 Measure where on the bar the user grabbed it
++    const barEl = e.currentTarget as HTMLElement;
++    const barRect = barEl.getBoundingClientRect();
++    setDragOffset({
++      x: e.clientX - barRect.left,
++      y: e.clientY - barRect.top,
++    });
++
+     // Add a class to the body to indicate dragging is in progress
+     document.body.classList.add('dragging-active');
+
+@@ -2860,29 +2870,52 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
+   // Handle drop on a bay timeline
+   const handleDrop = (
+     e: React.DragEvent<Element>,
+     bayId: number,
+     _slotIndex: number,
+     _rowIndex: number = 0
+   ) => {
+     e.preventDefault();
+     e.stopPropagation();
+
+-    // 📌 Old: we used the slotIndex to snap to the week cell
+-    // const slotDate = slots[slotIndex]?.date;
+-    // const exactStartDate = new Date(window.lastExactDate || slotDate);
+-    // const formattedExactStartDate = format(exactStartDate, 'yyyy-MM-dd');
++    // 🔄 NEW: calculate raw drop coords inside the timeline
++    const container = timelineContainerRef.current!;
++    const { left: cLeft, top: cTop, width: cWidth, height: cHeight } =
++      container.getBoundingClientRect();
++
++    // 1) raw mouse pos inside container
++    const rawX = e.clientX - cLeft;
++    const rawY = e.clientY - cTop;
++
++    // 2) adjust by where the user grabbed the bar
++    const px = rawX - dragOffset.x;
++    const py = rawY - dragOffset.y;
++
++    // 3) convert X ➔ date (for week‐view: slotWidth px = 7 days)
++    const weeksOffset = px / slotWidth;
++    const daysOffset = weeksOffset * (viewMode === 'week' ? 7 : 1);
++    const exactStartDate = addDays(dateRange.start, Math.round(daysOffset));
++    const formattedExactStartDate = format(exactStartDate, 'yyyy-MM-dd');
++
++    // 4) convert Y ➔ row index
++    const totalRows = getBayRowCount(bayId, '');
++    const rowHeight = cHeight / totalRows;
++    const newRowIndex = Math.max(
++      0,
++      Math.min(totalRows - 1, Math.floor(py / rowHeight))
++    );
++
+     // …all your existing end‐date / capacity math stays the same…
+     // compute finalEndDate & formattedFinalEndDate as before
+
+-    onScheduleChange(
+-      data.id,
+-      bayId,
+-      formattedExactStartDate,
+-      formattedFinalEndDate,
+-      data.totalHours !== null ? Number(data.totalHours) : 1000,
+-      _rowIndex // was snapping to the passed rowIndex
+-    )
++    // 🆕 PASS our pixel‐based row index instead of the old slotIndex snap
++    onScheduleChange(
++      data.id,
++      bayId,
++      formattedExactStartDate,
++      formattedFinalEndDate,
++      data.totalHours !== null ? Number(data.totalHours) : 1000,
++      newRowIndex
++    )
+       .then((result) => {
+         console.log('Schedule successfully updated:', result);
+       })
+*** End Patch
+What’s changed
+Added dragOffset state
+
+ts
+Copy
+Edit
+const [dragOffset, setDragOffset] = useState<{x:number,y:number}>({x:0,y:0});
+In handleDragStart, we measure where inside the bar the cursor was when you began dragging.
+
+In handleDrop, we:
+
+Calculate the mouse’s raw X/Y relative to the timeline container
+
+Subtract those bar‐grab offsets to get exact pixel location
+
+Convert the X pixel to a date (in week view, each slotWidth px = 7 days)
+
+Convert the Y pixel to a row index by dividing by (containerHeight / rowCount)
+
+Call onScheduleChange with that newRowIndex instead of the old snapped one.
+
+Copy the above diff into your Replit AI Agent prompt (or manually apply in the editor).
+
+Install dragOffset state + update your imports.
+
+Re-deploy and test: bars should now drop exactly under your cursor in the intended sub‐row.

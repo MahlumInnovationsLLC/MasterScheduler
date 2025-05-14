@@ -1033,10 +1033,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           ? bay.staffCount : 1;
       const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
       
-      // Sort schedules by start date
-      const sortedSchedules = [...baySchedules].sort((a, b) => 
-        new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-      );
+      // CRITICAL FIX: DO NOT SORT SCHEDULES
+      // Using schedules exactly as they come from the database
+      // This preserves the exact order and prevents any reordering
+      // NO sorting - use exactly as provided
+      const sortedSchedules = [...baySchedules];
+      
+      // REMOVED SORTING CODE:
+      // const sortedSchedules = [...baySchedules].sort((a, b) => 
+      //   new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+      // );
       
       // Initialize row tracking for this bay - using dynamic row count based on bay
       const rowCount = getBayRowCount(bay.id, bay.name);
