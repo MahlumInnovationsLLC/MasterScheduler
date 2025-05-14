@@ -3431,7 +3431,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           startDate: slotDate.toISOString(), 
           endDate: finalEndDate.toISOString(),
           totalHours: data.totalHours !== null ? Number(data.totalHours) : 1000,
-          row: targetRowIndex
+          row: finalRowIndex, // CRITICAL FIX: Use the calculated Y-axis row position
+          exactY: finalRowIndex // Add extra field for verification
         });
         
         // Use promise-based approach instead of async/await
