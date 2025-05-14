@@ -2953,15 +2953,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // CRITICAL FIX: Safety bounds check on row based on the actual row count for the bay
     // Bays 1-6 have 4 rows (0-3), while Bay 7 (TCV Line) has 20 rows
     
-    // Find the bay to get its row count
+    // Find the bay to get its row count - default to 4 rows (indexes 0-3) for bays 1-6
     const targetBay = bays.find(b => b.id === finalBayId);
-    const maxRowForBay = targetBay?.rowCount ? (targetBay.rowCount - 1) : 3; // Default to 3 (4 rows) if not found
+    
+    // Calculate max row index based on bay number
+    // Bay 7 (TCV Line) has 20 rows, all others have 4 rows
+    let maxRowForBay = 3; // Default to 3 (4 rows, indexes 0-3) for all regular bays
+    
+    if (targetBay) {
+      if (targetBay.bayNumber === 7) {
+        // TCV Line has 20 rows
+        maxRowForBay = 19; // 20 rows, indexes 0-19
+      } else {
+        // All other bays (1-6) have 4 rows
+        maxRowForBay = 3;  // 4 rows, indexes 0-3
+      }
+    }
     
     // Ensure the row index is within the bounds for this specific bay
     targetRowIndex = Math.min(maxRowForBay, Math.max(0, targetRowIndex));
     
     // Add detailed logging for debugging
-    console.log(`🔍 ROW BOUNDS CHECK: Bay ${finalBayId} has ${targetBay?.rowCount || 4} rows (max index: ${maxRowForBay})`);
+    const rowCount = targetBay?.bayNumber === 7 ? 20 : 4;
+    console.log(`🔍 ROW BOUNDS CHECK: Bay ${finalBayId} (Bay ${targetBay?.bayNumber || 'unknown'}) has ${rowCount} rows (max index: ${maxRowForBay})`);
     console.log(`🔍 ADJUSTED ROW: ${targetRowIndex} (from original ${rowIndex}, global ${globalRowIndex})`);
     
     
@@ -3397,6 +3411,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`(User selected row: ${targetRowIndex})`);
         console.log(`Auto-placement logic DISABLED - using exact row where user dropped project`);
         
+        // CRITICAL LOGGING: Log the exact placement details for easier debugging
+        console.log(`🚨 EXACT PLACEMENT DETAILS FOR SCHEDULE UPDATE:`);
+        console.log(`  - Schedule ID: ${data.id}`);
+        console.log(`  - Project ID: ${data.projectId}`);
+        console.log(`  - Project Number: ${data.projectNumber}`);
+        console.log(`  - Bay ID: ${finalBayId} (${bay.name})`);
+        console.log(`  - Row Index: ${finalRowIndex} (max row for this bay: ${maxRowForBay})`);
+        console.log(`  - Start Date: ${startDateToUse}`); 
+        console.log(`  - End Date: ${formattedFinalEndDate}`);
+        console.log(`  - Target bay has ${targetBay?.bayNumber === 7 ? 20 : 4} rows (indexes 0-${maxRowForBay})`);
+        console.log(`  - Drop coordinates: x=${e.clientX}, y=${e.clientY}`);
+        
+        // Add visual indicator to the DOM to show exact bay/row placement for debugging
+        document.body.setAttribute('data-last-drop-bay', finalBayId.toString());
+        document.body.setAttribute('data-last-drop-row', finalRowIndex.toString());
+        
         // Call the API with our forced values
         onScheduleChange(
           data.id,
@@ -3496,7 +3526,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         // EMERGENCY BUG FIX: ALWAYS use the precise bay where the user dropped it
         // This is key to preventing the bay jumping issue
-        const finalBayId = bayId;
+        const finalBayId = exactBayId;  // Use exactBayId which we validated earlier for consistency
         
         // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
         // User specifically requested to disable all auto-placement logic
@@ -3506,6 +3536,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`Creating schedule with bay=${finalBayId} row=${finalRowIndex} (MANUAL ROW ASSIGNMENT)`);
         console.log(`(Directly using user-selected row: ${targetRowIndex})`);
         console.log(`Auto-placement logic DISABLED - using exact row where user dropped project`);
+        
+        // CRITICAL LOGGING: Log the exact placement details for easier debugging
+        console.log(`🚨 EXACT PLACEMENT DETAILS FOR NEW SCHEDULE:`);
+        console.log(`  - Project ID: ${data.projectId}`);
+        console.log(`  - Project Number: ${data.projectNumber}`);
+        console.log(`  - Bay ID: ${finalBayId} (${bay.name})`);
+        console.log(`  - Row Index: ${finalRowIndex} (max row for this bay: ${maxRowForBay})`);
+        console.log(`  - Start Date: ${startDateToUse}`); 
+        console.log(`  - End Date: ${formattedFinalEndDate}`);
+        console.log(`  - Target bay has ${targetBay?.bayNumber === 7 ? 20 : 4} rows (indexes 0-${maxRowForBay})`);
+        console.log(`  - Row visualization: row ${finalRowIndex} maps to ${finalRowIndex % 4} visual position (0-3)`);
+        console.log(`  - Drop coordinates: x=${e.clientX}, y=${e.clientY}`);
+        
+        // Add visual indicator to the DOM to show exact bay/row placement for debugging
+        document.body.setAttribute('data-last-drop-bay', finalBayId.toString());
+        document.body.setAttribute('data-last-drop-row', finalRowIndex.toString());
         
         // Call the API with our forced values
         onScheduleCreate(
