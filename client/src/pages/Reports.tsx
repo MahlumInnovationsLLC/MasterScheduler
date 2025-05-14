@@ -45,13 +45,16 @@ import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { Download, FileText, Filter, Calendar as CalendarIcon } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 import { Project, BillingMilestone, ManufacturingSchedule } from '@shared/schema';
 
 const ReportsPage = () => {
   const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [reportType, setReportType] = useState('financial');
   const [timeRange, setTimeRange] = useState('6months');
   const [projectFilter, setProjectFilter] = useState('all');
+  const [isExporting, setIsExporting] = useState(false);
 
   // Calculate date ranges based on selected time range
   const now = new Date();
@@ -71,6 +74,66 @@ const ReportsPage = () => {
   };
 
   const dateRange = getDateRange();
+  
+  // Handle exporting data to CSV
+  const handleExport = async () => {
+    if (isExporting) return;
+    
+    try {
+      setIsExporting(true);
+      
+      // Prepare the export request data
+      const exportData = {
+        reportType,
+        startDate: format(dateRange.start, 'yyyy-MM-dd'),
+        endDate: format(dateRange.end, 'yyyy-MM-dd'),
+        projectId: projectFilter !== 'all' ? parseInt(projectFilter) : undefined
+      };
+      
+      // Fetch the CSV data from the API
+      const response = await fetch('/api/reports/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(exportData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to export report data');
+      }
+      
+      // Get the blob from the response
+      const blob = await response.blob();
+      
+      // Create a download link and trigger the download
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `${reportType}-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Export successful",
+        description: "Report data has been exported to CSV",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export failed",
+        description: "Could not export report data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Base date parameters for report queries
   const dateParams = {
@@ -321,8 +384,17 @@ const ReportsPage = () => {
             </SelectContent>
           </Select>
           
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" /> Export Report
+          <Button variant="outline" onClick={handleExport} disabled={isExporting}>
+            {isExporting ? (
+              <>
+                <span className="mr-2 h-4 w-4 animate-spin inline-block border-2 border-current border-t-transparent text-primary rounded-full" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="mr-2 h-4 w-4" /> Export Report
+              </>
+            )}
           </Button>
         </div>
       </div>
