@@ -24,7 +24,7 @@ import {
 import { CalendarSchedule, ScheduleItem } from '@/components/ui/calendar-schedule';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, Plus, Filter, Check, Info, ArrowRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Filter, Check, Info, ArrowRight, X } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { 
   Dialog,
@@ -83,6 +83,7 @@ const CalendarPage = () => {
   const [filterProject, setFilterProject] = useState<string>('all');
   const [isViewScheduleOpen, setIsViewScheduleOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<ScheduleItem | null>(null);
+  const [previewMilestone, setPreviewMilestone] = useState<ScheduleItem | null>(null);
 
   // Fetch all projects
   const { data: projects = [] } = useQuery<Project[]>({
@@ -426,18 +427,31 @@ const CalendarPage = () => {
     setSelectedDate(date);
   };
 
+  // Function to close the milestone preview
+  const closeMilestonePreview = () => {
+    setPreviewMilestone(null);
+  };
+
+  // Function to navigate to project from preview
+  const goToProjectFromPreview = () => {
+    if (previewMilestone?.projectId) {
+      navigate(`/project/${previewMilestone.projectId}`);
+      closeMilestonePreview();
+    }
+  };
+
   // Handle schedule item click
   const handleItemClick = (item: ScheduleItem) => {
     // Set the selected schedule for the details view
     setSelectedSchedule(item);
 
-    // For milestones or billing milestones, navigate directly to project details if a project ID exists
-    if ((item.status === 'milestone' || item.status === 'billing') && item.projectId) {
-      navigate(`/project/${item.projectId}`);
+    // For milestones or billing milestones, show the preview popup
+    if ((item.status === 'milestone' || item.status === 'billing')) {
+      setPreviewMilestone(item);
       return;
     }
     
-    // For phase items, also navigate to project details
+    // For phase items, navigate directly to project details
     if (item.status === 'phase' && item.projectId) {
       navigate(`/project/${item.projectId}`);
       return;
