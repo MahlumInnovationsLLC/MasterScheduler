@@ -24,15 +24,13 @@ const Sidebar = () => {
   // Use the sidebar context instead of local state
   const { isCollapsed, toggleSidebar } = useContext(SidebarContext);
 
-  // Add a wrapper function with console logging
+  // Directly call toggleSidebar from context
   const handleToggle = () => {
     console.log("Sidebar toggle button clicked");
     console.log("Before toggle - isCollapsed:", isCollapsed);
     toggleSidebar();
     // Log after state change attempt
-    setTimeout(() => {
-      console.log("After toggle - isCollapsed should be:", !isCollapsed);
-    }, 10);
+    console.log("Toggle function called");
   };
 
   const isActive = (path: string) => {

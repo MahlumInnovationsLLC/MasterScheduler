@@ -31,7 +31,8 @@ import Sidebar from "@/components/Sidebar";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 // Import SidebarContext and SidebarProvider for managing sidebar state
-import { SidebarProvider } from "@/context/SidebarContext";
+import { SidebarProvider, SidebarContext } from "@/context/SidebarContext";
+import { useContext } from "react";
 
 // Check if we're in development mode
 const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
@@ -55,43 +56,53 @@ function Router() {
       </Switch>
     );
   }
-
+  
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex flex-col bg-darkBg text-white">
-        <Header />
-        <div className="flex flex-1 h-[calc(100vh-64px)]">
-          <Sidebar />
-          <main className={`overflow-y-auto flex-1 transition-all duration-300 pt-16`}>
-            {/* Main content is positioned with flex so no margin adjustments needed */}
-            <Switch>
-              <ProtectedRoute path="/" component={Dashboard} />
-              <ProtectedRoute path="/projects" component={ProjectStatus} />
-              <ProtectedRoute path="/projects/new" component={ProjectCreate} />
-              <ProtectedRoute path="/project/:id" component={ProjectDetails} />
-              <ProtectedRoute path="/project/:id/edit" component={ProjectEdit} />
-              <ProtectedRoute path="/archived-projects" component={ArchivedProjects} />
-              <ProtectedRoute path="/delivered-projects" component={DeliveredProjects} />
-              <ProtectedRoute path="/billing" component={BillingMilestones} />
-              <ProtectedRoute path="/manufacturing" component={ManufacturingBay} />
-              <ProtectedRoute path="/bay-scheduling" component={BaySchedulingPage} />
-              <ProtectedRoute path="/delivery-tracking" component={OnTimeDelivery} />
-              <ProtectedRoute path="/calendar" component={CalendarPage} />
-              <ProtectedRoute path="/sales-forecast" component={SalesForecast} />
-              <ProtectedRoute path="/sales-deal/:id/edit" component={SalesDealEdit} />
-              <ProtectedRoute path="/reports" component={Reports} />
-              <ProtectedRoute path="/import" component={ImportData} />
-              <ProtectedRoute path="/settings/system" component={SystemSettings} />
-              <ProtectedRoute path="/system-settings" component={SystemSettings} />
-              <ProtectedRoute path="/settings" component={SystemSettings} />
-              <ProtectedRoute path="/settings/user" component={UserPreferences} />
-              <Route path="/auth" component={AuthPage} />
-              <Route component={NotFound} />
-            </Switch>
-          </main>
-        </div>
-      </div>
+      <MainContent />
     </SidebarProvider>
+  );
+}
+
+// Separate component to use the sidebar context
+function MainContent() {
+  // Now we can safely use the sidebar context
+  const { isCollapsed } = useContext(SidebarContext);
+  
+  return (
+    <div className="min-h-screen flex flex-col bg-darkBg text-white">
+      <Header />
+      <div className="flex flex-1 h-[calc(100vh-64px)]">
+        <Sidebar />
+        <main className={`overflow-y-auto flex-1 transition-all duration-300 pt-16 ${isCollapsed ? 'ml-[50px]' : 'ml-[260px]'}`}>
+          {/* Main content margin adjusts based on sidebar width */}
+          <Switch>
+            <ProtectedRoute path="/" component={Dashboard} />
+            <ProtectedRoute path="/projects" component={ProjectStatus} />
+            <ProtectedRoute path="/projects/new" component={ProjectCreate} />
+            <ProtectedRoute path="/project/:id" component={ProjectDetails} />
+            <ProtectedRoute path="/project/:id/edit" component={ProjectEdit} />
+            <ProtectedRoute path="/archived-projects" component={ArchivedProjects} />
+            <ProtectedRoute path="/delivered-projects" component={DeliveredProjects} />
+            <ProtectedRoute path="/billing" component={BillingMilestones} />
+            <ProtectedRoute path="/manufacturing" component={ManufacturingBay} />
+            <ProtectedRoute path="/bay-scheduling" component={BaySchedulingPage} />
+            <ProtectedRoute path="/delivery-tracking" component={OnTimeDelivery} />
+            <ProtectedRoute path="/calendar" component={CalendarPage} />
+            <ProtectedRoute path="/sales-forecast" component={SalesForecast} />
+            <ProtectedRoute path="/sales-deal/:id/edit" component={SalesDealEdit} />
+            <ProtectedRoute path="/reports" component={Reports} />
+            <ProtectedRoute path="/import" component={ImportData} />
+            <ProtectedRoute path="/settings/system" component={SystemSettings} />
+            <ProtectedRoute path="/system-settings" component={SystemSettings} />
+            <ProtectedRoute path="/settings" component={SystemSettings} />
+            <ProtectedRoute path="/settings/user" component={UserPreferences} />
+            <Route path="/auth" component={AuthPage} />
+            <Route component={NotFound} />
+          </Switch>
+        </main>
+      </div>
+    </div>
   );
 }
 
