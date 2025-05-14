@@ -1073,11 +1073,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Check if the schedule has a row value in the database, and use it directly
         let assignedRow = typeof schedule.row === 'number' ? schedule.row : -1;
         
+        // Get the maximum allowed rows for this bay
+        const maxAllowedRows = getBayRowCount(bayId, bay?.name || '');
+        
+        // IMPORTANT: Ensure the row is within the valid range for this bay
+        // For Bays 1-6, restrict to rows 0-3 only (4 total rows)
+        if (assignedRow >= 0 && bayId >= 1 && bayId <= 6 && assignedRow >= maxAllowedRows) {
+          console.warn(`⚠️ Row ${assignedRow} is out of range for Bay ${bayId} (max: ${maxAllowedRows-1}). Clamping to row ${maxAllowedRows-1}`);
+          assignedRow = maxAllowedRows - 1;
+        }
+        
         // Only use automatic row assignment if no row is specified in the database
         if (assignedRow === -1) {
           // FIXED: Check for time-based overlaps in each row
           // This allows adding a project in the same row AFTER another project has ended
-          for (let row = 0; row < 4; row++) { // Check first 4 rows first (visual rows)
+          // Never check past the maximum number of rows for this bay
+          for (let row = 0; row < maxAllowedRows; row++) { // Only check rows that actually exist for this bay
             // CRITICAL FIX: Check if this row is available for this time period by checking against all processed bars
             // We specifically check if projects DON'T overlap in time (one ends before the other starts)
             const barsInSameRow = processedBars.filter(bar => 
@@ -1112,10 +1123,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           }
         }
         
-        // Ensure row is within valid range - use bay-specific row count
-        // For Team 7 & 8, we need to support up to 20 rows, others stay at 8 max
+        // CRITICAL UPDATE: Ensure row is within valid range for this specific bay
+        // Bays 1-6 must strictly have only 4 rows (0-3), while Bays 7-8 have 20 rows (0-19)
         const maxRows = getBayRowCount(bay.id, bay.name);
-        assignedRow = Math.min(maxRows - 1, Math.max(0, assignedRow));
+        
+        // Enforce the exact bay-specific row limits
+        if (bay.id >= 1 && bay.id <= 6) {
+          // For Bays 1-6, strictly limit to rows 0-3 only
+          assignedRow = Math.min(3, Math.max(0, assignedRow));
+          console.log(`Bay ${bay.id} (${bay.name}): Enforcing strict 4-row limit, row=${assignedRow}`);
+        } else {
+          // For other bays like 7-8, use their specific row count (usually 20)
+          assignedRow = Math.min(maxRows - 1, Math.max(0, assignedRow));
+          console.log(`Bay ${bay.id} (${bay.name}): Using extended row count, row=${assignedRow}`);
+        }
         
         // Update the end date for this row
         rowEndDates[assignedRow] = new Date(endDate);
@@ -1508,10 +1529,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           // Get the numeric row index
           const rowIndex = parseInt(rowMatch[1], 10);
           
-          // Map to visual row (0-3) for consistent positioning
-          // Rows 0-3 represent the top-to-bottom positions in each bay
-          // Rows 4-7 map to the same visual positions
-          row = rowIndex % 4;
+          // CRITICAL FIX: DO NOT MAP OR ADJUST ROW
+          // Per user request, projects must stay in EXACTLY the row where they were placed
+          // We disable all automatic row mapping/adjustment
+          row = rowIndex; // Use the exact row from the DOM without any modulo/mapping
         }
       }
     }
