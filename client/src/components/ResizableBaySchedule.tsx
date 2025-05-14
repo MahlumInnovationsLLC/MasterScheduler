@@ -2135,11 +2135,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Add a class to the body to indicate dragging is in progress
     document.body.classList.add('dragging-active');
     
+    // CRITICAL FIX: Calculate and store drag offset X (where the mouse grabbed the bar)
+    const barRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const dragOffsetX = e.clientX - barRect.left;
+    console.log(`🎯 EXACT DRAG POSITION: Mouse grabbed bar at x-offset ${dragOffsetX}px from left edge`);
+    
+    // Store this critical value in document body for use during drop
+    document.body.setAttribute('data-drag-offset-x', dragOffsetX.toString());
+    
     // CRITICAL: We must ensure the correct data is set for the drag operation
     try {
       // Set both formats for better browser compatibility
       const payload = JSON.stringify({
         type,
+        dragOffsetX, // Include the drag offset in the payload data
         ...data
       });
       
@@ -2149,7 +2158,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Set drop effect
       e.dataTransfer.effectAllowed = 'move';
       
-      console.log(`Drag started for ${type} project:`, data.projectNumber || 'Project');
+      console.log(`Drag started for ${type} project at x-offset ${dragOffsetX}px:`, data.projectNumber || 'Project');
       
       // Create a better custom drag image
       const dragImage = document.createElement('div');
@@ -2865,6 +2874,40 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
+    // CRITICAL FIX: Retrieve mouse position and drag offset for exact positioning
+    const timelineContainer = timelineContainerRef.current;
+    if (!timelineContainer) {
+      console.error("Timeline container ref not available!");
+      return;
+    }
+    
+    // Get the container bounds for positioning calculations
+    const containerRect = timelineContainer.getBoundingClientRect();
+    
+    // Get the drag offset that was captured during drag start
+    const dragOffsetX = parseInt(document.body.getAttribute('data-drag-offset-x') || '0');
+    
+    // Calculate exact drop position relative to timeline
+    const rawDropX = e.clientX - containerRect.left;
+    
+    // Adjust for where on the bar the user grabbed it (subtract the offset)
+    const exactDropPositionPx = Math.max(0, rawDropX - dragOffsetX);
+    
+    console.log(`🎯 EXACT DROP CALCULATION: 
+      - Timeline left edge: ${containerRect.left}px
+      - Mouse position: ${e.clientX}px 
+      - Drag offset: ${dragOffsetX}px
+      - Exact position: ${exactDropPositionPx}px from timeline start`);
+      
+    // Convert pixels to date (this is critical for exact placement)
+    const pixelsPerDay = 100 / 7; // Adjust based on your timeline scale
+    const daysFromStart = Math.round(exactDropPositionPx / pixelsPerDay);
+    const exactDate = addDays(dateRange.start, daysFromStart);
+    
+    // Store the calculated date for use in later placement logic
+    document.body.setAttribute('data-exact-drop-date', format(exactDate, 'yyyy-MM-dd'));
+    console.log(`📅 EXACT DROP DATE: ${format(exactDate, 'yyyy-MM-dd')} (${daysFromStart} days from start)`);
+    
     // CRITICAL FIX: Force using the exact bay ID from the event parameters
     // This prevents the bay jumping issue by ensuring we always use the bay where the drop happened
     console.log(`🔴 CRITICAL FIX: Using exact bayId=${bayId} from drop event parameters`);
@@ -3151,10 +3194,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       let slotDate: Date | null = null;
       let exactDateForStorage: string | null = null;
       
-      // MOST RELIABLE: Check for data-exact-date which is specifically set during drag over
-      // This is the most accurate way to get the precise date the user intended
-      const exactDateStr = targetElement.getAttribute('data-exact-date');
-      if (exactDateStr) {
+      // HIGHEST PRIORITY: Use the pixel-perfect date calculated from mouse position
+      const pixelPerfectDate = document.body.getAttribute('data-exact-drop-date');
+      if (pixelPerfectDate) {
+        slotDate = new Date(pixelPerfectDate);
+        exactDateForStorage = pixelPerfectDate;
+        console.log('🎯 USING PIXEL-PERFECT DATE from mouse position:', pixelPerfectDate, slotDate);
+      }
+      // NEXT RELIABLE: Check for data-exact-date which is specifically set during drag over
+      // This is the next most accurate way to get the precise date the user intended
+      else if (exactDateStr = targetElement.getAttribute('data-exact-date')) {
         slotDate = new Date(exactDateStr);
         exactDateForStorage = exactDateStr; // Store the exact string for later use
         console.log('SUCCESS: Using precise date from data-exact-date attribute:', exactDateStr, slotDate);
