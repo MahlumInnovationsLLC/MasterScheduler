@@ -2912,12 +2912,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
   };
   
-  // Handle drop on a bay timeline - completely revised to accept raw coordinates
+  // new signature: only raw mouse coords
   const handleDrop = (e: React.DragEvent, bayId: number, clientX: number, clientY: number) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // ── BYPASS ALL OVERLAP CHECKS AND ROW ADJUSTMENT ──────────────────────────
     // Get the timeline container element
     const timelineContainer = timelineContainerRef.current;
     if (!timelineContainer) {
@@ -2925,32 +2924,33 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       return;
     }
     
-    // 1) Get container bounds
+    // Get container bounds
     const containerRect = timelineContainer.getBoundingClientRect();
     
-    // 2) Raw mouse position inside container
+    // Raw mouse position inside container
     const rawX = clientX - containerRect.left;
     const rawY = clientY - containerRect.top;
     
-    // 3) Subtract where the user grabbed the bar
+    // Subtract where they grabbed the bar
     const finalX = rawX - dragOffset.x;
     const finalY = rawY - dragOffset.y;
     
-    // 4) Convert X position to date
+    // Get the exact bay row count (4 for normal bays, 20 for TCV Line)
+    const bay = bays.find(b => b.id === bayId);
+    const TOTAL_ROWS = getBayRowCount(bayId, bay?.name || '');
+    const rowHeight = containerRect.height / TOTAL_ROWS;
+    
+    // Calculate exact row index based on finalY position - NO BOUNDS CHECKING
+    const targetRowIndex = Math.max(
+      0, 
+      Math.min(TOTAL_ROWS - 1, Math.floor(finalY / rowHeight))
+    );
+    
+    // Convert X position to date
     const weeksOffset = finalX / slotWidth; // slotWidth is pixels per week
     const daysOffset = viewMode === 'week' ? weeksOffset * 7 : weeksOffset;
     const exactStartDate = addDays(dateRange.start, Math.floor(daysOffset));
     const formattedStartDate = format(exactStartDate, 'yyyy-MM-dd');
-    
-    // 5) Convert Y position to row index with NO ADJUSTMENT
-    // Use exact bay row count (4 for normal bays, 20 for TCV Line)
-    const bay = bays.find(b => b.id === bayId);
-    const totalRows = getBayRowCount(bayId, bay?.name || '');
-    const rowHeight = containerRect.height / totalRows;
-    
-    // CRITICAL: Direct row calculation with NO BOUNDS CHECKING
-    // This ensures projects stay EXACTLY where dropped with no constraints
-    const newRow = Math.floor(finalY / rowHeight);
     
     // LOG EVERYTHING for debugging
     console.log(`🎯 NO-OVERLAP DIRECT PLACEMENT:
@@ -2959,94 +2959,30 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       Raw container position: ${rawX},${rawY}
       Drag offset: ${dragOffset.x},${dragOffset.y}
       Final position: ${finalX},${finalY}
-      Bay ${bayId} has ${totalRows} rows (height per row: ${rowHeight}px)
-      Calculated row: ${newRow} with ZERO ADJUSTMENT
+      Bay ${bayId} has ${TOTAL_ROWS} rows (height per row: ${rowHeight}px)
+      Calculated row: ${targetRowIndex} with ZERO ADJUSTMENT
       Date calculation: ${weeksOffset.toFixed(2)} weeks → ${daysOffset.toFixed(2)} days
       Exact date: ${formattedStartDate}
     `);
     
-    // Store precise values in DOM for debugging/verification
-    document.body.setAttribute('data-precision-drop-row', newRow.toString());
-    document.body.setAttribute('data-precision-drop-date', formattedStartDate);
+    // Store our calculated values in DOM attributes for debugging
+    document.body.setAttribute('data-current-drag-row', targetRowIndex.toString());
     document.body.setAttribute('data-exact-drop-date', formattedStartDate);
-    document.body.setAttribute('data-current-drag-row', newRow.toString());
     
-    // Indicate we're using no-overlap direct placement
-    console.log(`📅 EXACT DROP DATE: ${formattedStartDate}`);
-    console.log(`🔹 FORCED ROW PLACEMENT: Row ${newRow} with NO CONSTRAINTS`);
-    
-    // CRITICAL FIX: Force using the exact bay ID from the event parameters
-    // This prevents the bay jumping issue by ensuring we always use the bay where the drop happened
-    console.log(`🔴 CRITICAL FIX: Using exact bayId=${bayId} from drop event parameters`);
-    
-    // ENHANCED BAY 3 FIX: Special handling for Bay 3 drops
-    // Additional data verification and handling for Bay 3
-    let finalBayId = bayId;
-    
-    if (bayId === 3) {
-      console.log('🔶 BAY 3 DROP DETECTED - Applying special handling');
-      
-      // Add a visual indicator for Bay 3 drop target
-      const bay3Element = document.querySelector(`.bay-content[data-bay-id="3"]`);
-      if (bay3Element) {
-        bay3Element.classList.add('bay-3-drop-active');
-        setTimeout(() => bay3Element.classList.remove('bay-3-drop-active'), 1000);
-      }
-      
-      // Force Bay 3 data attribute to be set on the document body to ensure consistency
-      document.body.setAttribute('data-bay-three-drop', 'true');
-    } else {
-      document.body.removeAttribute('data-bay-three-drop');
-    }
-    
-    // Additional data consistency check for Bay 3 using multiple sources
-    const bodyBayId = document.body.getAttribute('data-current-drag-bay');
-    const lastBayDrag = document.body.getAttribute('data-last-bay-drag');
-    const bay3Flag = document.body.hasAttribute('data-bay-three-drag');
-    
-    console.log(`Drop context: Event bayId=${bayId}, Body bayId=${bodyBayId}, Last drag=${lastBayDrag}, Bay3 flag=${bay3Flag}`);
-    
-    // If ANY source indicates this is a Bay 3 drop, respect that
-    const isBay3ByMultipleChecks = 
-      bayId === 3 || 
-      bodyBayId === '3' || 
-      lastBayDrag === '3' || 
-      bay3Flag;
-      
-    if (isBay3ByMultipleChecks && bayId !== 3) {
-      console.log('⚠️ Bay 3 detected through alternate data sources - overriding with Bay 3');
-      finalBayId = 3;
-    }
-    
-    // Force any data-bay-id attribute on the element to match the parameter for consistency
-    if (e.currentTarget && e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.setAttribute('data-bay-id', finalBayId.toString());
-      
-      // Add a visual cue for the specific bay
-      e.currentTarget.classList.remove('drop-bay-1', 'drop-bay-2', 'drop-bay-3', 'drop-bay-4', 'drop-bay-5', 'drop-bay-6');
-      e.currentTarget.classList.add(`drop-bay-${finalBayId}`);
-    }
-    
-    // For row, we will still use the global attribute if available as it works correctly
-    const globalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
-    
-    // ENHANCED ROW SELECTION WITH BAY 3 FIX: 
-    // 1. First check if rowIndex from direct handler is valid (not undefined & >= 0)
-    // 2. Then check the global attribute (set during cell hover) 
-    // 3. Finally fall back to 0 as a safe default
-    let targetRowIndex;
+    // Force using the exact bay ID from the event parameters
+    console.log(`🔴 Using exact bayId=${bayId} for placement`);
     
     // Get the event target to check if this is a bay-specific drop area
     const dropTarget = e.currentTarget as HTMLElement;
     const dropTargetBayId = dropTarget?.getAttribute('data-bay-id');
     
     // Make sure the bay ID used in the event handler matches the element's bay ID
-    // Now using finalBayId which includes Bay 3 detection
-    if (dropTargetBayId && dropTargetBayId !== finalBayId.toString()) {
-      console.log(`Correcting bay ID mismatch: event=${bayId}, resolved=${finalBayId}, element=${dropTargetBayId}`);
-      // Update the element's data-bay-id attribute to match our finalBayId
+    // Just use the actual bayId parameter
+    if (dropTargetBayId && dropTargetBayId !== bayId.toString()) {
+      console.log(`Correcting bay ID mismatch: event=${bayId}, element=${dropTargetBayId}`);
+      // Update the element's data-bay-id attribute to match our bayId
       // This ensures bay 3 and other bays are handled consistently
-      dropTarget.setAttribute('data-bay-id', finalBayId.toString());
+      dropTarget.setAttribute('data-bay-id', bayId.toString());
     }
     
     // NEW IMPLEMENTATION: We're using newRow from our direct pixel calculation
