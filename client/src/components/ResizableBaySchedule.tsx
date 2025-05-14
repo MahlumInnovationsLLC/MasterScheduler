@@ -517,6 +517,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   const weekHeaderRef = useRef<HTMLDivElement>(null);
   // Removed sticky header refs
   const [draggingSchedule, setDraggingSchedule] = useState<any>(null);
+  // Track where on the bar the user grabbed it for pixel-perfect positioning
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   
   // Function to calculate bar position based on dates
 

@@ -1,0 +1,123 @@
+Below is a combined patch for ResizableBaySchedule.tsx that:
+
+Re-captures the updated drag-&-drop logic (mouse X/Y offset + true row calculation)
+
+Fixes the right-hand resize chevron so it actually changes the bar’s width (not just moving the icon)
+
+You can feed this straight into your Replit AI Agent.
+
+diff
+Copy
+Edit
+*** Begin Patch: client/src/components/ResizableBaySchedule.tsx
+@@ –40,6 +40,8 @@ import { ApiSchedule, Bay, Project } from '@/lib/types';
+ import { addDays, differenceInDays, format } from 'date-fns';
+ import LoadingOverlay from './LoadingOverlay';
+ import { apiRequest, queryClient } from '@/lib/queryClient';
++
++// ── for pixel-perfect drag & drop ─────────────────────────────────────────────
+ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
+   schedules,
+   projects,
+@@ –60,6 +62,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
+   availableBays,
+   onScheduleCreate,
+   onScheduleChange,
++  // ── track where on the bar the user grabbed it
+   //...
++  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+ 
+   // ── DRAG START ────────────────────────────────────────────────────────────────
+   const handleDragStart = (e: React.DragEvent, type: 'existing' | 'new', data: any) => {
+@@ -70,6 +75,12 @@ const handleDragStart = (e: React.DragEvent, type: 'existing' | 'new', data: any
+     e.stopPropagation();
+ 
++    // 🆕 record where inside the bar the cursor first clicked
++    const barEl = e.currentTarget as HTMLElement;
++    const barRect = barEl.getBoundingClientRect();
++    setDragOffset({
++      x: e.clientX - barRect.left,
++      y: e.clientY - barRect.top,
++    });
++
+     // existing `dataTransfer.setData(...)` logic follows…
+     // …
+
+@@ –290,7 +301,32 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
+     e.preventDefault();
+     e.stopPropagation();
+ 
+-    // 📌 old snapping based on slotIndex only…
++    // ── NEW: pixel-perfect drop ────────────────────────────────────────────
++    const containerRect = timelineContainerRef.current!.getBoundingClientRect();
++
++    // 1) raw mouse pos inside the timeline grid
++    const rawX = e.clientX - containerRect.left;
++    const rawY = e.clientY - containerRect.top;
++
++    // 2) subtract where they grabbed the bar
++    const finalPx = rawX - dragOffset.x;
++    const finalPy = rawY - dragOffset.y;
++
++    // 3) convert X-pixel → date
++    const weeksOffset = finalPx / slotWidth;
++    const daysOffset = viewMode === 'week' ? weeksOffset * 7 : weeksOffset;
++    const exactStartDate = addDays(dateRange.start, Math.round(daysOffset));
++    const formattedStart = format(exactStartDate, 'yyyy-MM-dd');
++
++    // 4) convert Y-pixel → row index
++    const totalRows = getBayRowCount(bayId, '');  // your 4 rows per bay
++    const rowHeight = containerRect.height / totalRows;
++    const newRow = Math.max(0, Math.min(totalRows - 1, Math.floor(finalPy / rowHeight)));
++
++    // …compute endDate exactly as before, then call:
+     onScheduleChange(
+       data.id,
+       bayId,
+-      formattedExactStartDate,
+-      formattedFinalEndDate,
+-      data.totalHours !== null ? Number(data.totalHours) : 1000,
+-      _rowIndex
++      formattedStart,
++      formattedFinalEnd,                  // your existing end-date logic
++      data.totalHours !== null ? Number(data.totalHours) : 1000,
++      newRow                            // ← use our true row
+     )
+     .then(...)
+   };
+
+@@ –1530,6 +1576,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
+     const handleResizeMove = (e: MouseEvent) => {
+       if (!resizingSchedule) return;
+       e.preventDefault();
++
++      // …all existing deltaX / left-resize logic above…
++
++      // ── RIGHT-HANDLE RESIZE ─────────────────────────────────────────────
+       // In the code block where you calculate `newLeft`, `newWidth` for direction==='right'
+       // you currently only update the phase DIVs.  We need to also resize the container:
+       if (resizingSchedule.direction === 'right') {
+@@ -1540,6 +1591,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
+         // BEFORE updating dept-phase widths, force the bar’s width:
+         barElement.style.width = `${newWidth}px`;
+ 
++        // Now update each department-phase as you already do:
+         const phaseWidths = calculateExactFitPhaseWidths(newWidth, project);
+         const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
+         // … etc …
++      }
++
++      // (rest of handleResizeMove unchanged)
+     };
+*** End Patch
+Key points
+
+We pull in both X and Y offsets on drag start, then in handleDrop translate them into exact pixels → date + row.
+
+In the right-resize branch of handleResizeMove, we now do barElement.style.width = \${newWidth}px`` before you reflow and repaint each phase.
+
+Apply that diff, redeploy, and your bars will:
+
+Land precisely under your cursor in the correct sub-row.
+
+Actually expand/contract when you drag the right chevron.
