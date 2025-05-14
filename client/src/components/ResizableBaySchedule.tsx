@@ -3177,53 +3177,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       ));
       const isOverutilized = utilizationPercentage >= 100;
       
-      // We'll show a warning dialog if there are conflicts, but the user can proceed anyway
-      // This implements the requested behavior: warn when placement might not be ideal
-      if (hasConflict || isOverutilized) {
-        // Use the dialog component from the UI library for this popup
-        // Create a warning dialog that lets the user decide whether to proceed
-        console.log("⚠️ CONFLICT DETECTED: Showing warning popup to user");
-        
-        // Create and show a custom dialog
-        const confirmDialog = document.createElement('div');
-        confirmDialog.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
-        confirmDialog.innerHTML = `
-          <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h3 class="text-lg font-bold mb-4 text-red-500">Warning: Placement Issue</h3>
-            <p class="mb-4">${hasConflict ? 'This project would overlap with another project in the same row.' : ''}</p>
-            <p class="mb-4">${isOverutilized ? 'This bay is already at or over capacity.' : ''}</p>
-            <p class="mb-6">Do you want to place the project here anyway?</p>
-            <div class="flex justify-end gap-4">
-              <button id="cancel-placement" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded">Cancel</button>
-              <button id="confirm-placement" class="px-4 py-2 bg-primary text-white rounded">Place Anyway</button>
-            </div>
-          </div>
-        `;
-        
-        document.body.appendChild(confirmDialog);
-        
-        // Add event listeners to buttons
-        const cancelButton = document.getElementById('cancel-placement');
-        if (cancelButton) {
-          cancelButton.addEventListener('click', () => {
-            document.body.removeChild(confirmDialog);
-          });
-        }
-        
-        const confirmButton = document.getElementById('confirm-placement');
-        if (confirmButton) {
-          confirmButton.addEventListener('click', () => {
-            document.body.removeChild(confirmDialog);
-            // Continue with placement with the exact parameters
-            console.log("User confirmed placement despite conflicts - proceeding with EXACT placement");
-            handlePlacement();
-          });
-        }
-        
-        return; // Don't continue until user decides
-      }
-      
-      // Define the placement function 
+      // Define the placement function first to avoid initialization errors
       const handlePlacement = () => {
         console.log(`✅ EXACT PLACEMENT: Project will be placed in bay=${exactBayId}, row=${targetRowIndex}`);
         console.log(`📌 GUARANTEED ACCURACY: Sending EXACT row and bay to backend with NO MODIFICATIONS`);
