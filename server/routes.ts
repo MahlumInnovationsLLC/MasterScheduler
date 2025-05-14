@@ -705,12 +705,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Calculate days for each phase
             const fabDays = Math.round((fabPercent / 100) * totalDays);
             const paintDays = Math.round((paintPercent / 100) * totalDays);
-            const assemblyDays = Math.round((assemblyPercent / 100) * totalDays);
+            
+            // Add 3-week (21 day) buffer to Production/Assembly phase
+            const assemblyDaysBase = Math.round((assemblyPercent / 100) * totalDays);
+            const assemblyDays = assemblyDaysBase + 21; // Adding 3 weeks (21 days) buffer
+            
             const itDays = Math.round((itPercent / 100) * totalDays);
             const ntcDays = Math.round((ntcPercent / 100) * totalDays);
             const qcDays = Math.round((qcPercent / 100) * totalDays);
             
-            console.log(`Phase durations in days: FAB=${fabDays}, PAINT=${paintDays}, PROD=${assemblyDays}, IT=${itDays}, NTC=${ntcDays}, QC=${qcDays}`);
+            console.log(`Phase durations in days: FAB=${fabDays}, PAINT=${paintDays}, PROD=${assemblyDays} (includes 21-day buffer), IT=${itDays}, NTC=${ntcDays}, QC=${qcDays}`);
             
             // PRIORITY RULE: When a project is placed in bay schedule, the schedule's dates
             // must always override the project dates - STRICT ENFORCEMENT
@@ -860,12 +864,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Calculate days for each phase
             const fabDays = Math.round((fabPercent / 100) * totalDays);
             const paintDays = Math.round((paintPercent / 100) * totalDays);
-            const assemblyDays = Math.round((assemblyPercent / 100) * totalDays);
+            
+            // Add 3-week (21 day) buffer to Production/Assembly phase
+            const assemblyDaysBase = Math.round((assemblyPercent / 100) * totalDays);
+            const assemblyDays = assemblyDaysBase + 21; // Adding 3 weeks (21 days) buffer
+            
             const itDays = Math.round((itPercent / 100) * totalDays);
             const ntcDays = Math.round((ntcPercent / 100) * totalDays);
             const qcDays = Math.round((qcPercent / 100) * totalDays);
             
-            console.log(`Phase durations in days: FAB=${fabDays}, PAINT=${paintDays}, PROD=${assemblyDays}, IT=${itDays}, NTC=${ntcDays}, QC=${qcDays}`);
+            console.log(`Phase durations in days: FAB=${fabDays}, PAINT=${paintDays}, PROD=${assemblyDays} (includes 21-day buffer), IT=${itDays}, NTC=${ntcDays}, QC=${qcDays}`);
             
             // Create project update with new dates from the schedule
             const projectUpdate: any = {};
