@@ -654,15 +654,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // CRITICAL FIX: Ensure row parameter is processed correctly and enforced
       // NO AUTO-ADJUSTMENT OF ANY KIND - exactly as requested by user
+      // MANDATORY: Use rowIndex or row parameter with HIGHEST PRIORITY - never override
+      const rowParam = req.body.rowIndex || req.body.row;
       const data = {
         ...req.body,
-        row: req.body.row !== undefined ? parseInt(req.body.row) : 0 // Default to row 0 if not specified
+        // DIRECT USER REQUEST: Projects MUST stay EXACTLY where dropped with NO AUTO ADJUSTMENT
+        // All row and bay values must be preserved AS IS from user interface
+        row: rowParam !== undefined ? parseInt(rowParam.toString()) : 0, // Default to row 0 only if no value
+        rowIndex: rowParam !== undefined ? parseInt(rowParam.toString()) : 0 // Store in both fields for compatibility
       };
       
-      // SIMPLIFIED PLACEMENT SYSTEM: Projects stay EXACTLY where dropped
-      console.log("Creating schedule with EXACT row data:", data);
-      console.log("IMPORTANT: Using row value:", data.row, "as directly specified by UI");
-      console.log("NO AUTO ROW ADJUSTMENT: Project will be placed exactly where dropped");
+      // HIGHEST PRIORITY LOGGING: Critical placement details
+      console.log("🚨 CRITICAL - Creating schedule with EXACT row placement:", data);
+      console.log("🚨 MANDATORY: Using row value:", data.row, "as DIRECTLY specified by UI");
+      console.log("🚨 NO AUTO ROW ADJUSTMENT: Project will be placed EXACTLY where dropped");
       
       // First create the schedule
       const schedule = await storage.createManufacturingSchedule(data);

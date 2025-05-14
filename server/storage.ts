@@ -797,17 +797,70 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createManufacturingSchedule(schedule: InsertManufacturingSchedule): Promise<ManufacturingSchedule> {
-    const [newSchedule] = await db.insert(manufacturingSchedules).values(schedule).returning();
-    return newSchedule;
+    try {
+      // CRITICAL FIX: Maintain row integrity - ensure both row and rowIndex are set
+      // with HIGHEST PRIORITY and no auto-adjustment
+      const scheduleWithRows = {
+        ...schedule,
+        // Force row parameter to be maintained exactly as specified
+        row: schedule.row !== undefined ? schedule.row : 0,
+        // Also maintain the rowIndex parameter for compatibility
+        rowIndex: schedule.rowIndex || schedule.row || 0
+      };
+      
+      console.log(`🚨 FINAL MANDATORY ROW: Will use ROW=${scheduleWithRows.row}, ROWINDEX=${scheduleWithRows.rowIndex}`);
+      console.log(`🚨 EXACT BAY PLACEMENT: Will use BAY=${scheduleWithRows.bayId}`);
+      
+      // Insert with our guaranteed row values
+      const [newSchedule] = await db.insert(manufacturingSchedules).values(scheduleWithRows).returning();
+      
+      console.log(`✅ SCHEDULE CREATED with GUARANTEED placement: Bay=${newSchedule.bayId}, Row=${newSchedule.row}`);
+      return newSchedule;
+    } catch (error) {
+      console.error("Error creating manufacturing schedule:", error);
+      throw error;
+    }
   }
   
   async updateManufacturingSchedule(id: number, schedule: Partial<InsertManufacturingSchedule>): Promise<ManufacturingSchedule | undefined> {
-    const [updatedSchedule] = await db
-      .update(manufacturingSchedules)
-      .set({ ...schedule, updatedAt: new Date() })
-      .where(eq(manufacturingSchedules.id, id))
-      .returning();
-    return updatedSchedule;
+    try {
+      // CRITICAL FIX: Maintain row integrity on update too - ensure both row and rowIndex are preserved
+      // NO AUTO-ADJUSTMENT OF ANY KIND - use exactly what comes from UI
+      const scheduleWithRows = {
+        ...schedule,
+        updatedAt: new Date(),
+        // Only set these if actually present in the update, otherwise leave them unchanged
+        ...(schedule.row !== undefined ? { 
+          row: schedule.row,
+          rowIndex: schedule.row // Match rowIndex to row for consistency
+        } : {}),
+        // If rowIndex is provided but row isn't, use it for both
+        ...(schedule.row === undefined && schedule.rowIndex !== undefined ? {
+          row: schedule.rowIndex,
+          rowIndex: schedule.rowIndex
+        } : {})
+      };
+      
+      console.log(`🚨 MANUFACTURING SCHEDULE UPDATE ${id}: PRESERVING EXACT ROW PLACEMENT`);
+      if (schedule.row !== undefined) {
+        console.log(`  - Forcing specific row: ${schedule.row}`);
+      }
+      if (schedule.bayId !== undefined) {
+        console.log(`  - Using exact bay: ${schedule.bayId}`);
+      }
+      
+      const [updatedSchedule] = await db
+        .update(manufacturingSchedules)
+        .set(scheduleWithRows)
+        .where(eq(manufacturingSchedules.id, id))
+        .returning();
+        
+      console.log(`✅ SCHEDULE UPDATED with GUARANTEED placement: Bay=${updatedSchedule.bayId}, Row=${updatedSchedule.row}`);
+      return updatedSchedule;
+    } catch (error) {
+      console.error(`Error updating manufacturing schedule ${id}:`, error);
+      throw error;
+    }
   }
   
   async deleteManufacturingSchedule(id: number): Promise<boolean> {
