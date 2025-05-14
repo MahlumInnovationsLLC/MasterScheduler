@@ -33,7 +33,7 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="bg-darkCard border-r border-gray-800 h-screen overflow-y-auto pt-16 transition-all duration-300 fixed w-full">
+    <aside className={`bg-darkCard border-r border-gray-800 h-screen overflow-y-auto pt-16 transition-all duration-300 ${collapsed ? 'w-[50px]' : 'w-[260px]'}`}>
       {/* Toggle Button - positioned outside of scrolling area */}
       <button 
         className="absolute top-12 right-2 bg-primary hover:bg-primary-dark text-white rounded-full p-2 shadow-lg z-10 border border-gray-700"
