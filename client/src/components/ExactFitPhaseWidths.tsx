@@ -20,12 +20,18 @@ export const calculateExactFitPhaseWidths = (
   // Use project-specific phase percentages or fallback to company standard defaults
   const fabPercentage = project ? (parseFloat(project.fabPercentage as any) || 27) : 27;
   const paintPercentage = project ? (parseFloat(project.paintPercentage as any) || 7) : 7; 
-  const productionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
+  
+  // Add 20% buffer to production phase as requested
+  // Get base production percentage
+  let baseProductionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
+  // Add 20% buffer (multiply by 1.2)
+  const productionPercentage = baseProductionPercentage * 1.2;
+  
   const itPercentage = project ? (parseFloat(project.itPercentage as any) || 7) : 7;
   const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 7) : 7;
   const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 7) : 7;
   
-  // Calculate the total percentage and normalization factor
+  // Calculate the total percentage with buffered production phase and normalization factor
   const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
                          itPercentage + ntcPercentage + qcPercentage;
   const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;

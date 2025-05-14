@@ -252,28 +252,42 @@ export function checkScheduleConflict(
     bayId: number,
     startDate: Date | string,
     endDate: Date | string,
-    id?: number
+    id?: number,
+    row?: number
   }>,
-  currentId?: number
+  currentId?: number,
+  targetRow?: number
 ): boolean {
   const newStart = new Date(startDate);
   const newEnd = new Date(endDate);
   
-  // Check for overlaps with existing schedules
+  // If we have a specific target row, only check for conflicts in that row
+  // This allows placing projects in different rows regardless of time overlap
   return schedules.some(schedule => {
     // Skip checking against itself when updating
     if (currentId && schedule.id === currentId) return false;
     
+    // Skip if not in the same bay
     if (schedule.bayId !== bay) return false;
+    
+    // If we have a specific row target and the schedule has a row,
+    // only check for conflicts if they're in the same row
+    if (targetRow !== undefined && schedule.row !== undefined && schedule.row !== targetRow) {
+      return false; // Different rows, so no conflict
+    }
     
     const scheduleStart = new Date(schedule.startDate);
     const scheduleEnd = new Date(schedule.endDate);
     
-    // Check for any overlap between date ranges
-    return (
-      (isBefore(newStart, scheduleEnd) || newStart.getTime() === scheduleEnd.getTime()) &&
-      (isAfter(newEnd, scheduleStart) || newEnd.getTime() === scheduleStart.getTime())
-    );
+    // Modified overlap check to allow projects to be placed immediately after another
+    // No overlap if new project ends before or exactly when existing project starts,
+    // OR new project starts after or exactly when existing project ends
+    const noOverlap = 
+      isEqual(newEnd, scheduleStart) || isBefore(newEnd, scheduleStart) ||
+      isEqual(newStart, scheduleEnd) || isAfter(newStart, scheduleEnd);
+    
+    // Return true if there IS an overlap
+    return !noOverlap;
   });
 }
 
