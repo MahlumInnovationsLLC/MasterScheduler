@@ -265,21 +265,48 @@ const ReportsPage = () => {
         received: 0,
         outstanding: 0
       };
-      currentMonth = startOfMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)));
+      // Advance to next month safely
+      const nextMonth = new Date(currentMonth);
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      nextMonth.setDate(1); // Always set to 1st of the month to avoid invalid dates
+      currentMonth = nextMonth;
     }
     
     // Fill in milestone data
     filteredMilestones.forEach(milestone => {
-      const monthKey = format(new Date(milestone.targetInvoiceDate), 'yyyy-MM');
-      if (months[monthKey]) {
-        const amount = typeof milestone.amount === 'string' ? parseFloat(milestone.amount) : milestone.amount;
-        months[monthKey].invoiced += amount;
-        
-        if (milestone.status === 'paid') {
-          months[monthKey].received += amount;
-        } else {
-          months[monthKey].outstanding += amount;
+      try {
+        // Make sure the date is valid before processing
+        if (!milestone.targetInvoiceDate) {
+          console.warn('Skipping milestone with missing invoice date:', milestone.id);
+          return;
         }
+        
+        const invoiceDate = new Date(milestone.targetInvoiceDate);
+        if (isNaN(invoiceDate.getTime())) {
+          console.warn('Skipping milestone with invalid invoice date:', milestone.id, milestone.targetInvoiceDate);
+          return;
+        }
+        
+        const monthKey = format(invoiceDate, 'yyyy-MM');
+        if (months[monthKey]) {
+          // Parse amount safely
+          let amount = 0;
+          if (typeof milestone.amount === 'string') {
+            amount = parseFloat(milestone.amount) || 0;
+          } else if (typeof milestone.amount === 'number') {
+            amount = milestone.amount;
+          }
+          
+          months[monthKey].invoiced += amount;
+          
+          if (milestone.status === 'paid') {
+            months[monthKey].received += amount;
+          } else {
+            months[monthKey].outstanding += amount;
+          }
+        }
+      } catch (error) {
+        console.error('Error processing milestone for financial chart:', error, milestone);
       }
     });
     
@@ -333,10 +360,23 @@ const ReportsPage = () => {
       const bayName = `Bay ${bayId}`;
       
       const totalDays = baySchedules.reduce((total, schedule) => {
-        const start = new Date(schedule.startDate);
-        const end = new Date(schedule.endDate);
-        const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-        return total + days;
+        try {
+          if (!schedule.startDate || !schedule.endDate) return total;
+          
+          const start = new Date(schedule.startDate);
+          const end = new Date(schedule.endDate);
+          
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            console.warn('Invalid date in schedule:', schedule.id);
+            return total;
+          }
+          
+          const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+          return total + Math.max(0, days); // Ensure we don't add negative days
+        } catch (error) {
+          console.error('Error calculating days for schedule:', error, schedule);
+          return total;
+        }
       }, 0);
       
       const completedDays = baySchedules
