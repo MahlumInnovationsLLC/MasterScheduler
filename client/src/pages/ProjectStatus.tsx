@@ -43,7 +43,7 @@ import { AIInsightsWidget } from '@/components/AIInsightsWidget';
 import { DataTable } from '@/components/ui/data-table';
 import { ProgressBadge } from '@/components/ui/progress-badge';
 import EditableDateField from '@/components/EditableDateField';
-import EditableNotesField from '@/components/EditableNotesField';
+import EditableNotesField from '../components/EditableNotesField';
 import EditableTextField from '@/components/EditableTextField';
 import {
   DropdownMenu,
@@ -784,11 +784,45 @@ const ProjectStatus = () => {
     createColumn('ntcTestingDate', 'ntcTestingDate', 'NTC Testing', 
       (value, project) => <EditableDateField projectId={project.id} field="ntcTestingDate" value={value} />,
       { size: 170 }),
+    // Create a derived column for NTC to QC Days that doesn't use the column name as accessor
+    {
+      id: 'ntcToQcDays',
+      header: 'NTC to QC Days',
+      cell: ({ row }) => {
+        const project = row.original;
+        // Calculate weekdays between NTC Testing Date and QC Start Date
+        const ntcTestingDate = project.ntcTestingDate;
+        const qcStartDate = project.qcStartDate;
+        
+        // Calculate weekdays
+        const weekdays = calculateWeekdaysBetween(ntcTestingDate, qcStartDate);
+        
+        // If no calculation could be made
+        if (weekdays === null) return 'N/A';
+        
+        // Style based on weekday count
+        let style = '';
+        if (weekdays < 3) {
+          style = 'bg-red-200 text-red-800 px-2 py-1 rounded';
+        } else if (weekdays < 5) {
+          style = 'bg-yellow-200 text-yellow-800 px-2 py-1 rounded';
+        } else {
+          style = 'bg-green-200 text-green-800 px-2 py-1 rounded';
+        }
+        
+        return <div className={style}>{weekdays}</div>;
+      },
+      size: 100
+    },
     createColumn('qcStartDate', 'qcStartDate', 'QC Start', 
       (value, project) => <EditableDateField projectId={project.id} field="qcStartDate" value={value} />,
       { size: 170 }),
-    createColumn('qcDays', 'qcDays', 'QC Days', 
-      (value, project) => {
+    // Create a derived column for QC Days
+    {
+      id: 'qcDays',
+      header: 'QC Days',
+      cell: ({ row }) => {
+        const project = row.original;
         // Calculate weekdays between QC Start and Exec Review (or Ship Date if Exec Review isn't set)
         const qcStartDate = project.qcStartDate;
         const execReviewDate = project.executiveReviewDate;
@@ -815,7 +849,8 @@ const ProjectStatus = () => {
         
         return <div className={style}>{weekdays}</div>;
       },
-      { size: 100 }),
+      size: 100
+    },
     createColumn('executiveReviewDate', 'executiveReviewDate', 'Exec Review', 
       (value, project) => <EditableDateField projectId={project.id} field="executiveReviewDate" value={value} />,
       { size: 170 }),
