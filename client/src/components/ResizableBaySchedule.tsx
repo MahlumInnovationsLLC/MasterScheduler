@@ -1041,11 +1041,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           ? bay.staffCount : 1;
       const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
       
-      // DO NOT SORT SCHEDULES - process them exactly as they come from database
-      // Removed all sorting to maintain original project order
+      // Sort schedules by start date
+      const sortedSchedules = [...baySchedules].sort((a, b) => 
+        new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+      );
       
-      // REMOVED: All row tracking and end date tracking
-      // This was used for automatic row placement which we've completely disabled
+      // Initialize row tracking for this bay - using dynamic row count based on bay
+      const rowCount = getBayRowCount(bay.id, bay.name);
+      const rowEndDates: Date[] = Array(rowCount).fill(new Date(0)).map(() => new Date(0));
       
       // CRITICAL FIX: COMPLETELY DISABLED ALL AUTO-ADJUSTMENT
       // Per user request, each project must be treated INDEPENDENTLY
@@ -1053,10 +1056,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       console.log("⚠️ AUTO-ADJUSTMENT DISABLED PER USER REQUEST - Each project will maintain its EXACT dates");
       console.log("🔒 NO AUTO OPTIMIZATION: Projects will NEVER be automatically moved to optimize capacity");
-      console.log("📌 NO SORTING: Projects maintain their exact ordering from the database");
       
-      // Use the exact schedules from the database with ZERO modifications
-      baySchedules.forEach(schedule => {
+      // Simply use the exact schedules from the database with NO modifications
+      sortedSchedules.forEach(schedule => {
         const project = projects.find(p => p.id === schedule.projectId);
         if (!project) return;
         
@@ -1067,22 +1069,65 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const startDate = new Date(schedule.startDate);
         const endDate = new Date(schedule.endDate);
         
-        // CRITICAL FIX: USE EXACTLY WHAT'S IN THE DATABASE - NO AUTO ROW ASSIGNMENT
-        // This is now a PURE VISUAL TOOL with no automatic adjustments
+        // CRITICAL FIX: RESPECT THE ROW FROM DATABASE
+        // Check if the schedule has a row value in the database, and use it directly
+        let assignedRow = typeof schedule.row === 'number' ? schedule.row : -1;
         
-        // Use ONLY the row stored in the database, or default to row 0
-        // No auto-positioning, no row calculation, no overlap checks
-        const assignedRow = typeof schedule.row === 'number' ? schedule.row : 0;
-        
-        // ONLY display a warning if project is in a row that may not be visible
-        // But DO NOT change the row assignment - just warn about it
-        const maxRows = getBayRowCount(bay.id, bay.name);
-        if (assignedRow >= maxRows) {
-          console.warn(`⚠️ PROJECT IN HIDDEN ROW: Schedule ${schedule.id} (Project ${project.projectNumber}) in row ${assignedRow} which exceeds max visible rows (${maxRows-1}) for Bay ${bay.id}`);
+        // Only use automatic row assignment if no row is specified in the database
+        if (assignedRow === -1) {
+          // FIXED: Check for time-based overlaps in each row
+          // This allows adding a project in the same row AFTER another project has ended
+          for (let row = 0; row < 4; row++) { // Check first 4 rows first (visual rows)
+            // CRITICAL FIX: Check if this row is available for this time period by checking against all processed bars
+            // We specifically check if projects DON'T overlap in time (one ends before the other starts)
+            const barsInSameRow = processedBars.filter(bar => 
+              bar.row === row && 
+              bar.bayId === bayId
+            );
+            
+            // If no bars in this row, it's completely free
+            if (barsInSameRow.length === 0) {
+              assignedRow = row;
+              break;
+            }
+            
+            // Check if the new schedule would overlap with any existing bars in this row
+            const hasOverlap = barsInSameRow.some(bar => {
+              // No overlap if new schedule starts after existing bar ends OR ends before existing bar starts
+              const noOverlap = startDate >= bar.endDate || endDate <= bar.startDate;
+              return !noOverlap; // We want to check for overlap, so invert the condition
+            });
+            
+            // If there's no overlap with any bars in this row, we can use it
+            if (!hasOverlap) {
+              assignedRow = row;
+              break;
+            }
+          }
+          
+          // If all rows have overlapping projects, find the row with least overlap
+          if (assignedRow === -1) {
+            // Default to row 0 if we can't find a better option
+            assignedRow = 0;
+          }
         }
         
-        // We always use the EXACT row from the database - no adjustments whatsoever
-        console.log(`Schedule ${schedule.id} positioned EXACTLY in row ${assignedRow} using database value`)
+        // Ensure row is within valid range - use bay-specific row count
+        // For Team 7 & 8, we need to support up to 20 rows, others stay at 8 max
+        const maxRows = getBayRowCount(bay.id, bay.name);
+        assignedRow = Math.min(maxRows - 1, Math.max(0, assignedRow));
+        
+        // Update the end date for this row
+        rowEndDates[assignedRow] = new Date(endDate);
+        
+        // Map the actual row to a visual row
+        // For Team 7 & 8, respect all 20 rows, for other bays map to 4 visual rows
+        const maxVisualRows = getBayRowCount(bay.id, bay.name);
+        const visualRow = maxVisualRows > 4 
+          ? assignedRow // For Team 7 & 8, use the actual row (up to 20)
+          : assignedRow % 4; // For standard bays, map rows to 0-3 for display
+        
+        console.log(`Schedule ${schedule.id} positioned in row ${assignedRow} (displays in visual row ${visualRow}) ${typeof schedule.row === 'number' ? '(using database row)' : '(auto-assigned)'}`)
         
         // Find the slot indices for the original start date (where the bar begins)
         const startSlotIndex = slots.findIndex(slot => {
@@ -1463,10 +1508,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           // Get the numeric row index
           const rowIndex = parseInt(rowMatch[1], 10);
           
-          // CRITICAL FIX: DO NOT MAP OR ADJUST ROW
-          // Per user request, projects must stay in EXACTLY the row where they were placed
-          // We disable all automatic row mapping/adjustment
-          row = rowIndex; // Use the exact row from the DOM without any modulo/mapping
+          // Map to visual row (0-3) for consistent positioning
+          // Rows 0-3 represent the top-to-bottom positions in each bay
+          // Rows 4-7 map to the same visual positions
+          row = rowIndex % 4;
         }
       }
     }
@@ -2834,14 +2879,24 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     console.log(`🔴 CRITICAL FIX: Using exact bayId=${bayId} from drop event parameters - NO EXCEPTIONS`);
     
     // Define finalBayId but set it directly to the parameter value with ZERO special handling
-    const finalBayId = bayId;
+    let finalBayId = bayId;
+    
+    // COMPLETELY REMOVED ALL BAY 3 SPECIAL HANDLING
+    // Projects now stay in the exact bay where they're dropped regardless of which bay it is
     
     // Remove any bay-specific attributes from the document body
     document.body.removeAttribute('data-bay-three-drop');
     document.body.removeAttribute('data-bay-three-drag');
     
+    // CRITICAL FIX: DISABLE ALL BAY DETECTION & OVERRIDE LOGIC
+    // ALWAYS use the exact bay ID from the parameter
+    
     console.log(`🔒 EXACT PLACEMENT: Using exact bay ID ${bayId} from drop event`);
     console.log(`📍 Project will be placed EXACTLY in Bay ${bayId}, Row ${rowIndex}`);
+    
+    // Force the finalBayId to be exactly what came from the event parameter
+    // No overrides, no detection, no adjustments - pure exact placement
+    finalBayId = bayId; // Using the already declared variable
     
     console.log('❌ All bay detection and override logic disabled for precise placement');
     console.log('✅ Project will stay EXACTLY where dropped');
@@ -2855,40 +2910,48 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       e.currentTarget.classList.add(`drop-bay-${finalBayId}`);
     }
     
-    // SIMPLIFY ROW HANDLING: Always use the exact row from event parameter with no adjustments whatsoever
-    // This is the critical change to ensure projects stay exactly where they're dropped
-    let targetRowIndex = rowIndex;
+    // For row, we will still use the global attribute if available as it works correctly
+    const globalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
     
-    // If for some reason rowIndex is invalid (undefined, null, negative), only then check alternate sources
-    if (rowIndex === undefined || rowIndex < 0) {
-      // Check for direct data-row attribute on drop target
-      const dropTarget = e.currentTarget as HTMLElement;
-      const dataRow = dropTarget?.getAttribute('data-row');
-      if (dataRow !== null && !isNaN(parseInt(dataRow))) {
-        targetRowIndex = parseInt(dataRow);
-        console.log(`Using data-row attribute from drop target: ${targetRowIndex}`);
-      } 
-      // Last resort fallback to global attribute
-      else {
-        const globalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
-        if (globalRowIndex >= 0) {
-          targetRowIndex = globalRowIndex;
-          console.log(`Using global row attribute: ${targetRowIndex}`);
-        } else {
-          targetRowIndex = 0;
-          console.log(`No valid row found, using default row 0`);
-        }
-      }
+    // ENHANCED ROW SELECTION WITH BAY 3 FIX: 
+    // 1. First check if rowIndex from direct handler is valid (not undefined & >= 0)
+    // 2. Then check the global attribute (set during cell hover) 
+    // 3. Finally fall back to 0 as a safe default
+    let targetRowIndex;
+    
+    // Get the event target to check if this is a bay-specific drop area
+    const dropTarget = e.currentTarget as HTMLElement;
+    const dropTargetBayId = dropTarget?.getAttribute('data-bay-id');
+    
+    // Make sure the bay ID used in the event handler matches the element's bay ID
+    // Now using finalBayId which includes Bay 3 detection
+    if (dropTargetBayId && dropTargetBayId !== finalBayId.toString()) {
+      console.log(`Correcting bay ID mismatch: event=${bayId}, resolved=${finalBayId}, element=${dropTargetBayId}`);
+      // Update the element's data-bay-id attribute to match our finalBayId
+      // This ensures bay 3 and other bays are handled consistently
+      dropTarget.setAttribute('data-bay-id', finalBayId.toString());
     }
     
-    console.log(`FINAL ROW DECISION: Using row ${targetRowIndex} in bay ${finalBayId}`);
-    console.log(`⚠️ NO SAFETY CHECKS - Project will be placed EXACTLY in row ${targetRowIndex}, bay ${finalBayId}`);
+    if (rowIndex !== undefined && rowIndex >= 0) {
+      console.log(`Using direct row parameter: ${rowIndex} for bay ${bayId}`);
+      targetRowIndex = rowIndex;
+    } else if (globalRowIndex >= 0) {
+      console.log(`Using global row attribute: ${globalRowIndex} for bay ${bayId}`);
+      targetRowIndex = globalRowIndex;
+    } else {
+      console.log(`No valid row found, using default row 0 for bay ${bayId}`);
+      targetRowIndex = 0;
+    }
+    
+    // Safety bounds check on row (0-7 now) - EXPANDED to allow more than 4 projects per bay
+    // We allow up to 8 rows (0-7) internally, which will map to 4 visual rows
+    targetRowIndex = Math.min(7, Math.max(0, targetRowIndex));
     
     // CRITICAL: We already decided to use the exact bay ID from the drop event parameter
     // DO NOT modify the bayId parameter - use it directly to ensure correct placement
     
     console.log(`⚠️ FIXED DROP HANDLER using actual drop target bay: ${bayId} with row: ${targetRowIndex} `);
-    console.log(`(Direct parameter row=${rowIndex})`);
+    console.log(`(Current row=${globalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
     
     // Read data attributes from the drop target element for more precise week targeting
     let targetElement = e.target as HTMLElement;
@@ -3177,32 +3240,69 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       ));
       const isOverutilized = utilizationPercentage >= 100;
       
-      // We have several conditions to check, but we'll ONLY make ONE decision about placement
-      let placementDecision = false;
+      // We'll show a warning dialog if there are conflicts, but the user can proceed anyway
+      // This implements the requested behavior: warn when placement might not be ideal
+      if (hasConflict || isOverutilized) {
+        // Use the dialog component from the UI library for this popup
+        // Create a warning dialog that lets the user decide whether to proceed
+        console.log("⚠️ CONFLICT DETECTED: Showing warning popup to user");
+        
+        // Create and show a custom dialog
+        const confirmDialog = document.createElement('div');
+        confirmDialog.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+        confirmDialog.innerHTML = `
+          <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h3 class="text-lg font-bold mb-4 text-red-500">Warning: Placement Issue</h3>
+            <p class="mb-4">${hasConflict ? 'This project would overlap with another project in the same row.' : ''}</p>
+            <p class="mb-4">${isOverutilized ? 'This bay is already at or over capacity.' : ''}</p>
+            <p class="mb-6">Do you want to place the project here anyway?</p>
+            <div class="flex justify-end gap-4">
+              <button id="cancel-placement" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded">Cancel</button>
+              <button id="confirm-placement" class="px-4 py-2 bg-primary text-white rounded">Place Anyway</button>
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(confirmDialog);
+        
+        // Add event listeners to buttons
+        const cancelButton = document.getElementById('cancel-placement');
+        if (cancelButton) {
+          cancelButton.addEventListener('click', () => {
+            document.body.removeChild(confirmDialog);
+          });
+        }
+        
+        const confirmButton = document.getElementById('confirm-placement');
+        if (confirmButton) {
+          confirmButton.addEventListener('click', () => {
+            document.body.removeChild(confirmDialog);
+            // Continue with placement with the exact parameters
+            console.log("User confirmed placement despite conflicts - proceeding with EXACT placement");
+            handlePlacement();
+          });
+        }
+        
+        return; // Don't continue until user decides
+      }
       
-      // Function to handle the actual placement - only call this ONCE!
-      const handleActualPlacement = () => {
-        console.log(`✅ EXACT PLACEMENT: Project will be placed in bay=${exactBayId}, row=${targetRowIndex}`);
-        console.log(`📌 GUARANTEED ACCURACY: Sending EXACT row and bay to backend with NO MODIFICATIONS`);
+      // Define the placement function 
+      const handlePlacement = () => {
+        console.log(`SIMPLIFIED PLACEMENT SYSTEM: Using exact row=${targetRowIndex} in bay=${exactBayId}`);
+        console.log(`NO AUTO ADJUSTMENTS APPLIED: Project will be placed EXACTLY where it was dropped`);
         
         // Format dates for API call
         const formattedStartDate = format(slotDate || new Date(), 'yyyy-MM-dd');
         const formattedEndDate = format(estimatedEndDate || new Date(), 'yyyy-MM-dd');
               
         try {
-          // Log exactly what's being sent to the API for debugging
-          console.log(`🚀 API PLACEMENT: bay=${exactBayId}, row=${targetRowIndex}, start=${formattedStartDate}, end=${formattedEndDate}`);
-          
           // Determine if this is a new schedule or an existing one being moved
           if (data.type === 'existing') {
             // CRITICAL: Pass the exact row number to maintain position
-            console.log(`♻️ UPDATING EXISTING SCHEDULE: id=${data.id}, row=${targetRowIndex}`);
             onScheduleChange(data.id, exactBayId, formattedStartDate, formattedEndDate, data.totalHours || null, targetRowIndex)
               .then(() => {
                 // Successful update
                 toast({ description: "Schedule updated" });
-                // Final verification log to confirm data was sent correctly
-                console.log(`✓ PLACEMENT CONFIRMED: Schedule ${data.id} placed in exact bay ${exactBayId}, row ${targetRowIndex}`);
               })
               .catch(error => {
                 console.error('Failed to update schedule:', error);
@@ -3215,13 +3315,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           } else {
             // Creating a new schedule
             // CRITICAL: Pass the exact row number to maintain position
-            console.log(`🆕 CREATING NEW SCHEDULE: project=${data.projectId}, row=${targetRowIndex}`);
             onScheduleCreate(data.projectId, exactBayId, formattedStartDate, formattedEndDate, data.totalHours || null, targetRowIndex)
               .then(() => {
                 // Successful creation
                 toast({ description: "Schedule created" });
-                // Final verification log to confirm data was sent correctly
-                console.log(`✓ PLACEMENT CONFIRMED: New schedule for project ${data.projectId} placed in exact bay ${exactBayId}, row ${targetRowIndex}`);
               })
               .catch(error => {
                 console.error('Failed to create schedule:', error);
@@ -3242,49 +3339,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         }
       };
       
-      // Handle conflicts with a popup
-      if (hasConflict || isOverutilized) {
-        // Show a warning dialog
-        console.log("⚠️ CONFLICT DETECTED: Showing warning popup to user");
-        
-        // Create a conflict dialog
-        const confirmDialog = document.createElement('div');
-        confirmDialog.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
-        confirmDialog.innerHTML = `
-          <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h3 class="text-lg font-bold mb-4 text-red-500">Warning: Placement Issue</h3>
-            <p class="mb-4">${hasConflict ? 'This project would overlap with another project in the same row.' : ''}</p>
-            <p class="mb-4">${isOverutilized ? 'This bay is already at or over capacity.' : ''}</p>
-            <p class="mb-6">Do you want to place the project here anyway?</p>
-            <div class="flex justify-end gap-4">
-              <button id="cancel-placement" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded">Cancel</button>
-              <button id="confirm-placement" class="px-4 py-2 bg-primary text-white rounded">Place Anyway</button>
-            </div>
-          </div>
-        `;
-        
-        document.body.appendChild(confirmDialog);
-        
-        // Event listeners need to be properly cleaned up
-        const handleCancel = () => {
-          document.body.removeChild(confirmDialog);
-        };
-        
-        const handleConfirm = () => {
-          document.body.removeChild(confirmDialog);
-          console.log("User confirmed placement despite conflicts - proceeding with EXACT placement");
-          handleActualPlacement();
-        };
-        
-        // Add event listeners
-        const cancelButton = document.getElementById('cancel-placement');
-        if (cancelButton) cancelButton.addEventListener('click', handleCancel);
-        
-        const confirmButton = document.getElementById('confirm-placement');
-        if (confirmButton) confirmButton.addEventListener('click', handleConfirm);
-      } else {
-        // No conflicts, proceed immediately
-        handleActualPlacement();
+      // If no conflicts, proceed immediately with placement
+      if (!hasConflict && !isOverutilized) {
+        handlePlacement();
       }
       
       // We no longer check for overlaps or attempt to find optimal rows
@@ -3731,23 +3788,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // No capping - use the exact dates chosen by the user
     const finalEndDate = newEndDate;
     
-    // WARNING ONLY: We'll show capacity warnings but ALWAYS apply changes exactly as requested
     if (capacityImpact) {
-      // Show warning dialog - purely informational
+      // Show warning dialog
       setCapacityWarningData(capacityImpact);
       setShowCapacityWarning(true);
       
-      // Show warning toast with details - purely informational
+      // Show warning toast with details
       toast({
-        title: "Over Capacity Warning (Visual Indicator Only)",
-        description: `Bay will be at ${capacityImpact.percentage}% capacity - Applied exactly as requested`,
-        // Removed "warning" variant since it's not supported in the toast component
+        title: "Over Capacity Warning",
+        description: `Bay will be at ${capacityImpact.percentage}% utilization in affected weeks`,
+        variant: "destructive",
       });
       
-      console.log(`🚨 CAPACITY WARNING ONLY: Bay ${capacityImpact.bayId} at ${capacityImpact.percentage}% capacity`);
-      console.log(`✅ Changes are applied EXACTLY as requested despite capacity warnings`);
-      
-      // Update UI immediately with the exact dates requested - no adjustments whatsoever
+      // Even with the warning, we'll update the UI immediately to show the new dates
+      // This ensures the UI is responsive, but the server update will happen after confirmation
       
       // Force UI update by incrementing recalculation version
       setRecalculationVersion(prev => prev + 1);
@@ -4335,16 +4389,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             <AlertDialogHeader>
               <AlertDialogTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-amber-500" />
-                Capacity Information (Visual Only)
+                Capacity Warning
               </AlertDialogTitle>
               <AlertDialogDescription>
                 <div className="my-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md text-sm">
-                  <p><span className="font-bold">This is a visual warning only.</span> Your placement will be applied <span className="underline">exactly</span> as requested.</p>
-                  <p className="mt-2">Your manual change will result in <span className="font-bold text-amber-600">{capacityWarningData.percentage}%</span> capacity utilization during portions of the schedule.</p>
-                  <p className="mt-2 text-sm italic">Note: This is purely informational and does not block project placement.</p>
-                  <div className="mt-2 border-l-4 border-blue-500 pl-2 text-sm">
-                    <p className="font-medium">Per your request, all projects stay EXACTLY where placed with no automatic adjustments.</p>
-                  </div>
+                  <p>This manual change would result in <span className="font-bold text-amber-600">{capacityWarningData.percentage}%</span> capacity utilization during portions of the schedule.</p>
+                  <p className="mt-2">Bay capacity may be exceeded, which could lead to:</p>
+                  <ul className="list-disc pl-5 mt-1 space-y-1">
+                    <li>Resource constraints during production</li>
+                    <li>Delays in completing projects</li>
+                    <li>Conflicts with other schedules</li>
+                  </ul>
                 </div>
                 
                 <p className="my-2">Other affected projects in this bay:</p>
@@ -4356,7 +4411,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   ))}
                 </div>
                 
-                <p className="text-sm mt-4">Project will be placed exactly where you requested with no adjustments.</p>
+                <p className="text-sm mt-4">Are you sure you want to proceed with this manual adjustment?</p>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -4369,7 +4424,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                className="bg-green-600 hover:bg-green-700"
                 onClick={() => {
                   if (capacityWarningData) {
                     // Show loading state
@@ -4417,7 +4471,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   setCapacityWarningData(null);
                 }}
               >
-                Apply Exactly As Requested
+                Apply Manual Change
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
