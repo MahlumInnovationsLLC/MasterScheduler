@@ -81,7 +81,7 @@ function Router() {
         <Header />
         <div className="flex flex-1 relative">
           <Sidebar />
-          <main className={`flex-1 overflow-y-auto h-screen pt-16 transition-all duration-300 ${isCollapsed ? 'ml-[50px]' : 'ml-[260px]'}`}>
+          <main className={`overflow-y-auto h-screen pt-16 transition-all duration-300 ml-0 w-full ${isCollapsed ? 'pl-[50px]' : 'pl-[260px]'}`}>
             <Switch>
               <ProtectedRoute path="/" component={Dashboard} />
               <ProtectedRoute path="/projects" component={ProjectStatus} />

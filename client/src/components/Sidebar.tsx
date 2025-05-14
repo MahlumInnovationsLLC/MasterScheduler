@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useLocation, Link } from 'wouter';
 import {
   LayoutDashboard,
@@ -21,11 +21,19 @@ import { SidebarContext } from '../App';
 
 const Sidebar = () => {
   const [location] = useLocation();
-  const { isCollapsed: collapsed, toggleSidebar } = useContext(SidebarContext);
+  const { isCollapsed, toggleSidebar } = useContext(SidebarContext);
+  // Local state to ensure we can properly handle the rendering of collapsed state
+  const [collapsed, setCollapsed] = useState(isCollapsed);
+  
+  // Keep our local state in sync with the global context state
+  useEffect(() => {
+    setCollapsed(isCollapsed);
+  }, [isCollapsed]);
   
   // Log when toggle button is clicked
   const handleToggleClick = () => {
     console.log('Toggle button clicked in Sidebar component');
+    // Update both the local state and context state
     toggleSidebar();
   };
 
@@ -39,7 +47,7 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className={`bg-darkCard border-r border-gray-800 h-screen overflow-y-auto pt-16 transition-all duration-300 fixed left-0 top-0 z-10 ${collapsed ? 'w-[50px]' : 'w-[260px]'}`}>
+    <aside className={`bg-darkCard border-r border-gray-800 h-screen overflow-y-auto pt-16 transition-all duration-300 fixed left-0 top-0 z-[5] ${collapsed ? 'w-[50px]' : 'w-[260px]'}`}>
       {/* Toggle Button - positioned outside of scrolling area */}
       <button 
         className="absolute top-20 -right-4 bg-primary hover:bg-primary-dark text-white rounded-full p-2 shadow-lg z-20 border border-gray-700"
