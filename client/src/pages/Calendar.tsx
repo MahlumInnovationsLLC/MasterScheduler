@@ -83,7 +83,6 @@ const CalendarPage = () => {
   const [filterProject, setFilterProject] = useState<string>('all');
   const [isViewScheduleOpen, setIsViewScheduleOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<ScheduleItem | null>(null);
-  const [previewMilestone, setPreviewMilestone] = useState<ScheduleItem | null>(null);
 
   // Fetch all projects
   const { data: projects = [] } = useQuery<Project[]>({
@@ -429,22 +428,25 @@ const CalendarPage = () => {
 
   // Handle schedule item click
   const handleItemClick = (item: ScheduleItem) => {
+    // Set the selected schedule for the details view
     setSelectedSchedule(item);
-    
-    // For billing milestones and ship date milestones, show a preview popup
-    if (item.status === 'milestone' || item.status === 'billing') {
-      setPreviewMilestone(item);
-      return;
-    }
-    
-    // For regular phase items, navigate to project details
-    if (item.status === 'phase') {
+
+    // For milestones or billing milestones, navigate directly to project details if a project ID exists
+    if ((item.status === 'milestone' || item.status === 'billing') && item.projectId) {
       navigate(`/project/${item.projectId}`);
       return;
     }
     
-    // Otherwise open the schedule details dialog
-    setIsViewScheduleOpen(true);
+    // For phase items, also navigate to project details
+    if (item.status === 'phase' && item.projectId) {
+      navigate(`/project/${item.projectId}`);
+      return;
+    }
+    
+    // For regular schedule items (bay schedules), show the details dialog
+    if (item.status !== 'milestone' && item.status !== 'billing' && item.status !== 'phase') {
+      setIsViewScheduleOpen(true);
+    }
   };
 
   return (
