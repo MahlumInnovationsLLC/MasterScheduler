@@ -112,8 +112,7 @@ const ReportsPage = () => {
       // Prepare the export request data
       const exportData = {
         reportType,
-        startDate: format(dateRange.start, 'yyyy-MM-dd'),
-        endDate: format(dateRange.end, 'yyyy-MM-dd'),
+        ...getDateRangeStrings(),
         projectId: projectFilter !== 'all' ? parseInt(projectFilter) : undefined
       };
       
@@ -873,7 +872,7 @@ const ReportsPage = () => {
             <CardHeader>
               <CardTitle className="text-lg">Report Date Range</CardTitle>
               <CardDescription>
-                {format(dateRange.start, 'MMM d, yyyy')} - {format(dateRange.end, 'MMM d, yyyy')}
+                {new Date(dateParams.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - {new Date(dateParams.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -902,11 +901,11 @@ const ReportsPage = () => {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <div className="text-gray-400">Start Date</div>
-                    <div>{format(dateRange.start, 'MMM d, yyyy')}</div>
+                    <div>{new Date(dateParams.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
                   </div>
                   <div>
                     <div className="text-gray-400">End Date</div>
-                    <div>{format(dateRange.end, 'MMM d, yyyy')}</div>
+                    <div>{new Date(dateParams.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
                   </div>
                 </div>
               </div>
