@@ -16,7 +16,9 @@ import {
   Edit,
   Trash2,
   Check,
-  X
+  X,
+  Pencil as PencilIcon,
+  PlusCircle
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -858,6 +860,135 @@ const BillingMilestones = () => {
           >
             {statusInfo.timeline}
             {isInvoicedOrDelayed && <Calendar className="inline-block ml-1 h-3 w-3" />}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'notes',
+      header: 'Notes',
+      cell: ({ row }) => {
+        // Each cell needs its own state since there are multiple rows
+        const cellId = `notes-${row.original.id}`;
+        
+        const [editingStates, setEditingStates] = useState<Record<string, boolean>>({});
+        const [noteValues, setNoteValues] = useState<Record<string, string | undefined>>({});
+        const [updatingStates, setUpdatingStates] = useState<Record<string, boolean>>({});
+        
+        // Initialize note value if not already set
+        useEffect(() => {
+          if (!noteValues[cellId] && row.original.notes !== undefined) {
+            setNoteValues(prev => ({
+              ...prev,
+              [cellId]: row.original.notes || ''
+            }));
+          }
+        }, [cellId, row.original.notes]);
+        
+        const isEditing = editingStates[cellId] || false;
+        const noteValue = noteValues[cellId];
+        const isUpdating = updatingStates[cellId] || false;
+        
+        // Handlers that use the cell ID for tracking state
+        const setIsEditing = (value: boolean) => {
+          setEditingStates(prev => ({...prev, [cellId]: value}));
+        };
+        
+        const setNoteValue = (value: string | undefined) => {
+          setNoteValues(prev => ({...prev, [cellId]: value}));
+        };
+        
+        const setIsUpdating = (value: boolean) => {
+          setUpdatingStates(prev => ({...prev, [cellId]: value}));
+        };
+        
+        // Function to handle saving the note
+        const handleSave = async () => {
+          setIsUpdating(true);
+          try {
+            const response = await apiRequest(
+              "PATCH",
+              `/api/billing-milestones/${row.original.id}`,
+              { 
+                notes: noteValue,
+              }
+            );
+            
+            if (response.ok) {
+              queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+              toast({
+                title: "Notes Updated",
+                description: "Notes have been updated successfully",
+                variant: "default"
+              });
+            } else {
+              throw new Error("Failed to update notes");
+            }
+          } catch (error) {
+            toast({
+              title: "Update Failed",
+              description: `Error updating notes: ${(error as Error).message}`,
+              variant: "destructive"
+            });
+          } finally {
+            setIsUpdating(false);
+            setIsEditing(false);
+          }
+        };
+        
+        // Display editor if in edit mode
+        if (isEditing) {
+          return (
+            <div className="flex flex-col space-y-2 py-1">
+              <textarea
+                className="w-full h-24 px-2 py-1 rounded text-xs bg-background border border-input"
+                value={noteValue || ''}
+                onChange={(e) => setNoteValue(e.target.value)}
+                placeholder="Add notes here..."
+              />
+              <div className="flex justify-end space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6" 
+                  onClick={handleSave}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> : <Check className="h-3 w-3 text-success mr-1" />}
+                  Save
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6" 
+                  onClick={() => setIsEditing(false)}
+                  disabled={isUpdating}
+                >
+                  <X className="h-3 w-3 text-danger mr-1" />
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          );
+        }
+        
+        // Regular display mode
+        return (
+          <div 
+            className="text-sm cursor-pointer hover:underline flex items-center min-h-[32px] relative group"
+            onClick={() => setIsEditing(true)}
+          >
+            {noteValue ? (
+              <>
+                <div className="line-clamp-2">{noteValue}</div>
+                <PencilIcon className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 absolute right-0 top-0" />
+              </>
+            ) : (
+              <div className="text-gray-400 flex items-center">
+                <span>Add notes</span>
+                <PlusCircle className="h-3 w-3 ml-1" />
+              </div>
+            )}
           </div>
         );
       },
