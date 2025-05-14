@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { db } from "../db";
-import { eq, and, gte, lte, sql, desc, count, sum, isNull } from "drizzle-orm";
+import { eq, and, or, gte, lte, sql, desc, count, sum, isNull } from "drizzle-orm";
 import { format, subMonths, startOfMonth, endOfMonth, parseISO, isAfter, isBefore, addDays } from 'date-fns';
 import { 
   projects, 
@@ -42,10 +42,17 @@ export async function getFinancialReports(req: Request, res: Response) {
     
     // Get all projects referenced in these milestones
     const projectIds = [...new Set(milestones.map(m => m.projectId))];
-    const relatedProjects = await db
-      .select()
-      .from(projects)
-      .where(projectIds.length > 0 ? sql`${projects.id} IN (${projectIds.join(',')})` : sql`FALSE`);
+    let relatedProjects = [];
+    
+    if (projectIds.length > 0) {
+      // Using a safer approach with individual equals conditions
+      const conditions = projectIds.map(id => eq(projects.id, id));
+      
+      relatedProjects = await db
+        .select()
+        .from(projects)
+        .where(conditions.length === 1 ? conditions[0] : or(...conditions));
+    }
     
     // Calculate financial metrics
     const totalInvoiced = milestones.reduce((sum, m) => sum + Number(m.amount), 0);
@@ -153,11 +160,18 @@ export async function getProjectStatusReports(req: Request, res: Response) {
     const projectIds = projectList.map(p => p.id);
     
     // Get manufacturing schedules for these projects
-    const schedules = await db
-      .select()
-      .from(manufacturingSchedules)
-      .where(sql`${manufacturingSchedules.projectId} IN (${projectIds.join(',')})`)
-      .orderBy(manufacturingSchedules.startDate);
+    let schedules = [];
+    
+    if (projectIds.length > 0) {
+      // Using a safer approach with individual equals conditions for the IN clause
+      const conditions = projectIds.map(id => eq(manufacturingSchedules.projectId, id));
+      
+      schedules = await db
+        .select()
+        .from(manufacturingSchedules)
+        .where(conditions.length === 1 ? conditions[0] : or(...conditions))
+        .orderBy(manufacturingSchedules.startDate);
+    }
     
     // Calculate status distribution
     const statusCounts: Record<string, number> = {
