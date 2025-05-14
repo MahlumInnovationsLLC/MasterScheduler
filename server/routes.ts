@@ -655,13 +655,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // CRITICAL FIX: Ensure row parameter is processed correctly and enforced
       // NO AUTO-ADJUSTMENT OF ANY KIND - exactly as requested by user
       // MANDATORY: Use rowIndex or row parameter with HIGHEST PRIORITY - never override
-      const rowParam = req.body.rowIndex || req.body.row;
+      // Get forced row data from request
+      const forcedRowIndex = req.body.forcedRowIndex !== undefined ? parseInt(req.body.forcedRowIndex) : undefined;
+      const rowParam = forcedRowIndex !== undefined ? forcedRowIndex : (req.body.rowIndex || req.body.row);
+      
+      // CRITICAL: Make exact row placement our absolute highest priority
+      const finalRowIndex = rowParam !== undefined ? parseInt(rowParam.toString()) : 0;
+      
       const data = {
         ...req.body,
         // DIRECT USER REQUEST: Projects MUST stay EXACTLY where dropped with NO AUTO ADJUSTMENT
         // All row and bay values must be preserved AS IS from user interface
-        row: rowParam !== undefined ? parseInt(rowParam.toString()) : 0, // Default to row 0 only if no value
-        rowIndex: rowParam !== undefined ? parseInt(rowParam.toString()) : 0 // Store in both fields for compatibility
+        row: finalRowIndex, // Enforce exact row placement
+        rowIndex: finalRowIndex // Store in both fields for compatibility
       };
       
       // HIGHEST PRIORITY LOGGING: Critical placement details

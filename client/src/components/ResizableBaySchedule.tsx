@@ -3556,7 +3556,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         document.body.setAttribute('data-last-drop-bay', finalBayId.toString());
         document.body.setAttribute('data-last-drop-row', finalRowIndex.toString());
         
-        // Call the API with our forced values
+        // CRITICAL: Force the backend to use this exact row position
+        document.body.setAttribute('data-force-exact-row', finalRowIndex.toString());
+        
+        // Log the exact row placement for verification
+        console.log(`💯 FORCING EXACT ROW PLACEMENT: ${finalRowIndex}`);
+        
+        // Go back to using the provided handler function
+        // to avoid breaking changes in the component interface
         onScheduleChange(
           data.id,
           finalBayId,
