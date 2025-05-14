@@ -42,17 +42,37 @@ export function formatDate(date: Date | string | undefined | null): string {
 }
 
 export function formatCurrency(amount: number | string | undefined | null): string {
-  if (amount === undefined || amount === null) return '$0';
-  
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  
-  // Format as USD with appropriate abbreviations for thousands/millions
-  if (num >= 1000000) {
-    return `$${(num / 1000000).toFixed(1)}M`;
-  } else if (num >= 1000) {
-    return `$${(num / 1000).toFixed(1)}K`;
-  } else {
-    return `$${num.toFixed(2)}`;
+  try {
+    // Handle undefined, null, empty string cases
+    if (amount === undefined || amount === null || amount === '') return '$0';
+    
+    // Parse the string to a number if needed
+    let num: number;
+    if (typeof amount === 'string') {
+      // Remove non-numeric characters (except decimal point)
+      const cleanedString = amount.replace(/[^0-9.]/g, '');
+      num = parseFloat(cleanedString);
+    } else {
+      num = amount;
+    }
+    
+    // Check if parsing resulted in a valid number
+    if (isNaN(num)) {
+      console.warn(`Invalid currency value: ${amount}`);
+      return '$0';
+    }
+    
+    // Format as USD with appropriate abbreviations for thousands/millions
+    if (num >= 1000000) {
+      return `$${(num / 1000000).toFixed(1)}M`;
+    } else if (num >= 1000) {
+      return `$${(num / 1000).toFixed(1)}K`;
+    } else {
+      return `$${num.toFixed(2)}`;
+    }
+  } catch (error) {
+    console.error(`Error formatting currency: ${amount}`, error);
+    return '$0';
   }
 }
 

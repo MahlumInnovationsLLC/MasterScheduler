@@ -899,7 +899,22 @@ const ReportsPage = () => {
                               <Badge variant="outline">{project?.projectNumber}</Badge>
                             </div>
                             <div className="text-sm text-gray-400 mt-1">
-                              Due: {format(new Date(milestone.dueDate), 'MMM d, yyyy')}
+                              Due: {
+                                (() => {
+                                  try {
+                                    // Only attempt to format if we have a valid date
+                                    if (!milestone.dueDate) return 'No date set';
+                                    
+                                    const dateObj = new Date(milestone.dueDate);
+                                    if (isNaN(dateObj.getTime())) return 'Invalid date';
+                                    
+                                    return format(dateObj, 'MMM d, yyyy');
+                                  } catch (error) {
+                                    console.error('Error formatting due date:', error);
+                                    return 'Date error';
+                                  }
+                                })()
+                              }
                             </div>
                           </div>
                           <div className="font-semibold">
