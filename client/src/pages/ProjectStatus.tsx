@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
@@ -30,6 +30,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
 import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
+import { Calendar } from '@/components/ui/calendar';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { ProjectStatusBreakdownCard } from '@/components/ProjectStatusBreakdownCard';
 import { AIInsightsWidget } from '@/components/AIInsightsWidget';
 import { DataTable } from '@/components/ui/data-table';
@@ -52,7 +59,6 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { formatDate, getProjectStatusColor, getProjectScheduleState } from '@/lib/utils';
-import { Textarea } from '@/components/ui/textarea';
 import { Project } from '@shared/schema';
 
 // Extend Project type to ensure rawData is included
@@ -214,7 +220,7 @@ const ProjectStatus = () => {
     if (!projects || hasAppliedInitialFilter) return;
     
     // Helper to get valid dates and handle null/invalid dates
-    const getValidDate = (dateStr) => {
+    const getValidDate = (dateStr: string | null | undefined) => {
       if (!dateStr) return null;
       const date = new Date(dateStr);
       return isNaN(date.getTime()) ? null : date;
