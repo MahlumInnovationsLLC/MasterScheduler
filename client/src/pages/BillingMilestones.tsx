@@ -466,6 +466,11 @@ const BillingMilestones = () => {
     
     // Calculate fiscal week data for the selected month
     const fiscalWeekData = generateFiscalWeekData(selectedMonthIndex);
+    
+    // Debug log to track weekly values for different months
+    console.log(`Fiscal week data for month ${selectedMonthIndex + 1} (${monthNames[selectedMonthIndex]}):`);
+    console.log(`  Labels: ${fiscalWeekData.labels.join(', ')}`);
+    console.log(`  Values: ${fiscalWeekData.values.join(', ')}`);
 
     // Calculate totals for the legend
     const totalConfirmed = forecastData.reduce((sum, month) => sum + month.confirmed, 0);
@@ -518,7 +523,7 @@ const BillingMilestones = () => {
         isPositive: ytdProgress > 0
       }
     };
-  }, [billingMilestones]);
+  }, [billingMilestones, selectedMonthIndex, financialGoals]);
 
   const columns = [
     {
