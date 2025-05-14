@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { useLocation, Link } from 'wouter';
 import {
   LayoutDashboard,
@@ -13,11 +13,15 @@ import {
   Clock,
   Truck,
   TrendingUp,
-  GanttChart
+  GanttChart,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
+import { SidebarContext } from '../App';
 
 const Sidebar = () => {
   const [location] = useLocation();
+  const { isCollapsed, toggleSidebar } = useContext(SidebarContext);
 
   const isActive = (path: string) => {
     return location === path;
@@ -31,102 +35,115 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="bg-darkCard border-r border-gray-800 h-screen overflow-y-auto pt-16">
-      <nav className="py-4 px-4">
+    <aside className={`bg-darkCard border-r border-gray-800 h-screen overflow-y-auto pt-16 transition-all duration-300 relative ${isCollapsed ? 'w-[50px]' : 'w-[260px]'}`}>
+      {/* Toggle Button */}
+      <button 
+        className="absolute top-20 -right-3 bg-primary text-white rounded-full p-1 shadow-lg z-10"
+        onClick={toggleSidebar}
+        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+      </button>
+      
+      <nav className={`py-4 ${isCollapsed ? 'px-2' : 'px-4'}`}>
         <div className="mb-6">
-          <h6 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
-            Main Navigation
-          </h6>
+          {!isCollapsed && (
+            <h6 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+              Main Navigation
+            </h6>
+          )}
           <ul>
             <li>
-              <Link href="/" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              }`} title="Dashboard">
                 <LayoutDashboard className={`text-xl ${isActive('/') ? 'text-primary' : ''}`} />
-                <span>Dashboard</span>
+                {!isCollapsed && <span>Dashboard</span>}
               </Link>
             </li>
             <li>
-              <Link href="/projects" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/projects" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/projects') || location.startsWith('/project/') 
                   ? 'bg-primary bg-opacity-20 text-white' 
                   : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              }`} title="Projects">
                 <ListChecks className={`text-xl ${isActive('/projects') || location.startsWith('/project/') ? 'text-primary' : ''}`} />
-                <span>Projects</span>
+                {!isCollapsed && <span>Projects</span>}
               </Link>
             </li>
             <li>
-              <Link href="/calendar" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/calendar" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/calendar') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              }`} title="Calendar">
                 <Calendar className={`text-xl ${isActive('/calendar') ? 'text-primary' : ''}`} />
-                <span>Calendar</span>
+                {!isCollapsed && <span>Calendar</span>}
               </Link>
             </li>
             <li>
-              <Link href="/reports" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/reports" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/reports') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              }`} title="Reports">
                 <BarChart3 className={`text-xl ${isActive('/reports') ? 'text-primary' : ''}`} />
-                <span>Reports</span>
+                {!isCollapsed && <span>Reports</span>}
               </Link>
             </li>
           </ul>
         </div>
         
         <div className="mb-6">
-          <h6 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
-            Modules
-          </h6>
+          {!isCollapsed && (
+            <h6 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+              Modules
+            </h6>
+          )}
           <ul>
             <li>
-              <Link href="/sales-forecast" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/sales-forecast" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/sales-forecast') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              }`} title="Sales Forecast">
                 <TrendingUp className={`text-xl ${isActive('/sales-forecast') ? 'text-primary' : ''}`} />
-                <span>Sales Forecast</span>
+                {!isCollapsed && <span>Sales Forecast</span>}
               </Link>
             </li>
             <li>
-              <Link href="/projects" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/projects" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/projects') || location.startsWith('/project/') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              }`} title="Project Status">
                 <ListChecks className={`text-xl ${isActive('/projects') || location.startsWith('/project/') ? 'text-primary' : ''}`} />
-                <span>Project Status</span>
+                {!isCollapsed && <span>Project Status</span>}
               </Link>
             </li>
             <li>
-              <Link href="/billing" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/billing" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/billing') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              }`} title="Billing Milestones">
                 <DollarSign className={`text-xl ${isActive('/billing') ? 'text-primary' : ''}`} />
-                <span>Billing Milestones</span>
+                {!isCollapsed && <span>Billing Milestones</span>}
               </Link>
             </li>
 
             <li>
-              <Link href="/bay-scheduling" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/bay-scheduling" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/bay-scheduling') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              }`} title="Bay Scheduling">
                 <GanttChart className={`text-xl ${isActive('/bay-scheduling') ? 'text-primary' : ''}`} />
-                <span>Bay Scheduling</span>
+                {!isCollapsed && <span>Bay Scheduling</span>}
               </Link>
             </li>
             <li>
-              <Link href="/delivery-tracking" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/delivery-tracking" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/delivery-tracking') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              }`} title="On Time Delivery">
                 <Clock className={`text-xl ${isActive('/delivery-tracking') ? 'text-primary' : ''}`} />
-                <span>On Time Delivery</span>
+                {!isCollapsed && <span>On Time Delivery</span>}
               </Link>
             </li>
             <li>
-              <Link href="/delivered-projects" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/delivered-projects" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/delivered-projects') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              }`} title="Delivered Projects">
                 <Truck className={`text-xl ${isActive('/delivered-projects') ? 'text-primary' : ''}`} />
-                <span>Delivered Projects</span>
+                {!isCollapsed && <span>Delivered Projects</span>}
               </Link>
             </li>
 
@@ -134,48 +151,52 @@ const Sidebar = () => {
         </div>
         
         <div className="mb-6">
-          <h6 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
-            Data Management
-          </h6>
+          {!isCollapsed && (
+            <h6 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+              Data Management
+            </h6>
+          )}
           <ul>
             <li>
-              <Link href="/import" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/import" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/import') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              }`} title="Import Data">
                 <Upload className={`text-xl ${isActive('/import') ? 'text-primary' : ''}`} />
-                <span>Import Data</span>
+                {!isCollapsed && <span>Import Data</span>}
               </Link>
             </li>
             <li>
-              <Link href="/export" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/export" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/export') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              }`} title="Export Reports">
                 <Download className={`text-xl ${isActive('/export') ? 'text-primary' : ''}`} />
-                <span>Export Reports</span>
+                {!isCollapsed && <span>Export Reports</span>}
               </Link>
             </li>
           </ul>
         </div>
         
         <div>
-          <h6 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
-            Settings
-          </h6>
+          {!isCollapsed && (
+            <h6 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+              Settings
+            </h6>
+          )}
           <ul>
             <li>
-              <Link href="/settings/user" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/settings/user" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/settings/user') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              }`} title="User Preferences">
                 <Users className={`text-xl ${isActive('/settings/user') ? 'text-primary' : ''}`} />
-                <span>User Preferences</span>
+                {!isCollapsed && <span>User Preferences</span>}
               </Link>
             </li>
             <li>
-              <Link href="/system-settings" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <Link href="/system-settings" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`}>
+              }`} title="System Settings">
                 <Settings className={`text-xl ${isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'text-primary' : ''}`} />
-                <span>System Settings</span>
+                {!isCollapsed && <span>System Settings</span>}
               </Link>
             </li>
           </ul>
