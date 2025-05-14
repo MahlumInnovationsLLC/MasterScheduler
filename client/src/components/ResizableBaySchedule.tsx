@@ -2913,7 +2913,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Handle drop on a bay timeline - completely revised to accept raw coordinates
-  const handleDrop = (e: React.DragEvent<Element>, bayId: number, clientX: number, clientY: number) => {
+  const handleDrop = (e: React.DragEvent, bayId: number, clientX: number, clientY: number) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -3303,11 +3303,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         }
       }
       
-      // If we couldn't get the date from any attribute, use the targetSlotIndex
-      if (!slotDate && targetSlotIndex >= 0 && targetSlotIndex < slots.length) {
-        slotDate = new Date(slots[targetSlotIndex]?.date);
-        exactDateForStorage = format(slotDate, 'yyyy-MM-dd');
-        console.log('Using date from slots array with targetSlotIndex:', targetSlotIndex, slotDate);
+      // If we couldn't get the date from any attribute, use the direct calculated date
+      if (!slotDate) {
+        // Use the formattedStartDate we calculated earlier from mouse position
+        slotDate = new Date(formattedStartDate);
+        exactDateForStorage = formattedStartDate;
+        console.log('Using directly calculated date from mouse position:', formattedStartDate, slotDate);
       }
       
       // CRITICAL: Store the EXACT slot date from the drop target before any modifications
@@ -3742,7 +3743,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           console.log(`🎯 VISUAL POSITIONING: Using exact row ${exactRowIndex} at ${rowTop}px (with ${rowCount} total rows)`)
           
           // Set styles
-          placeholderDiv.style.left = `${slotIndex * slotWidth}px`;
+          placeholderDiv.style.left = `${targetSlotIndex * slotWidth}px`;
           placeholderDiv.style.top = `${rowTop}px`;
           placeholderDiv.style.width = `${slotWidth * 5}px`; // Default to 5 weeks width
           placeholderDiv.style.height = `${rowHeight}px`;
