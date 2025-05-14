@@ -3289,11 +3289,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       let exactDateForStorage: string | null = null;
       
       // HIGHEST PRIORITY: Use the pixel-perfect date calculated from mouse position
-      const pixelPerfectDate = document.body.getAttribute('data-exact-drop-date');
-      if (pixelPerfectDate) {
-        slotDate = new Date(pixelPerfectDate);
-        exactDateForStorage = pixelPerfectDate;
-        console.log('🎯 USING PIXEL-PERFECT DATE from mouse position:', pixelPerfectDate, slotDate);
+      const dropDateAttr = document.body.getAttribute('data-exact-drop-date');
+      if (dropDateAttr) {
+        slotDate = new Date(dropDateAttr);
+        exactDateForStorage = dropDateAttr;
+        console.log('🎯 USING PIXEL-PERFECT DATE from mouse position:', dropDateAttr, slotDate);
       }
       // NEXT RELIABLE: Check for data-exact-date which is specifically set during drag over
       // This is the next most accurate way to get the precise date the user intended
@@ -3747,12 +3747,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           const placeholderDiv = document.createElement('div');
           placeholderDiv.classList.add('absolute', 'animate-pulse', 'bg-primary/30', 'border', 'border-primary', 'rounded', 'z-30');
           
-          // Position it based on the target row
-          // Use 4 visual rows, but map from the expanded internal rows (0-7)
-          const rowHeight = bayElement.clientHeight / 4; // 4 visual rows per bay
-          // Map from logical rows (0-7) to visual rows (0-3)
-          const visualRowIndex = targetRowIndex % 4;
-          const rowTop = visualRowIndex * rowHeight;
+          // CRITICAL FIX: DO NOT MAP ROW INDEXES
+          // Use the EXACT row where the user dropped - no modulo math
+          // This ensures projects stay exactly where they were dropped
+          
+          // Calculate row height based on the bay's row count
+          const rowCount = targetBay?.bayNumber === 7 ? 20 : 4;
+          const rowHeight = bayElement.clientHeight / rowCount;
+          
+          // Use EXACT row index with no mapping or modulo math
+          // This was causing projects to snap to different rows
+          const exactRowIndex = targetRowIndex;
+          const rowTop = exactRowIndex * rowHeight;
+          
+          console.log(`🎯 VISUAL POSITIONING: Using exact row ${exactRowIndex} at ${rowTop}px (with ${rowCount} total rows)`)
           
           // Set styles
           placeholderDiv.style.left = `${slotIndex * slotWidth}px`;
@@ -3774,9 +3782,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const finalBayId = exactBayId;  // Use exactBayId which we validated earlier for consistency
         
         // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
-        // User specifically requested to disable all auto-placement logic
-        // Always use the exact row the user dragged to
-        const finalRowIndex = targetRowIndex;
+        // CRITICAL FIX: Use the most accurate row source - pixel-perfect calculation
+        // This is the critical fix identified in the drag/drop analysis
+        const precisionDropRow = document.body.getAttribute('data-precision-drop-row');
+        
+        // Use the precision row from our pixel-perfect calculation as top priority
+        // If that's not available, use the targetRowIndex that was passed to handleDrop
+        const finalRowIndex = precisionDropRow !== null 
+          ? parseInt(precisionDropRow)
+          : targetRowIndex;
+        
+        console.log(`🎯 PIXEL-PERFECT ROW PLACEMENT: Using ${finalRowIndex} from precision calculation (or ${targetRowIndex} from drop event)`);
+        
+        // Force this row to be used throughout the application
+        document.body.setAttribute('data-final-row-placement', finalRowIndex.toString());
         
         console.log(`Creating schedule with bay=${finalBayId} row=${finalRowIndex} (MANUAL ROW ASSIGNMENT)`);
         console.log(`(Directly using user-selected row: ${targetRowIndex})`);
