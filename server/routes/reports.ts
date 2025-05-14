@@ -504,34 +504,75 @@ export async function getDeliveryReports(req: Request, res: Response) {
  */
 export async function exportReportData(req: Request, res: Response) {
   try {
-    const { reportType, startDate, endDate, format = 'csv' } = req.body;
+    const { reportType, startDate, endDate, projectId } = req.body;
     
     let data;
+    let filename = `${reportType}-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     
     // Get the data based on report type
     switch (reportType) {
       case 'financial':
-        const financialData = await getFinancialReportExport(startDate, endDate);
-        data = financialData;
+        data = await getFinancialReportExport(startDate, endDate, projectId);
         break;
       case 'project':
-        const projectData = await getProjectStatusReportExport(startDate, endDate);
-        data = projectData;
+        data = await getProjectStatusReportExport(startDate, endDate, projectId);
         break;
       case 'manufacturing':
-        const manufacturingData = await getManufacturingReportExport(startDate, endDate);
-        data = manufacturingData;
+        data = await getManufacturingReportExport(startDate, endDate, projectId);
         break;
       case 'delivery':
-        const deliveryData = await getDeliveryReportExport(startDate, endDate);
-        data = deliveryData;
+        data = await getDeliveryReportExport(startDate, endDate, projectId);
         break;
       default:
         return res.status(400).json({ error: 'Invalid report type' });
     }
     
-    // Formatting is handled client-side
-    res.json({ data });
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: 'No data found for the given criteria' });
+    }
+    
+    // Convert data to CSV
+    const csvRows = [];
+    
+    // Extract headers from the first data item
+    const headers = Object.keys(data[0]);
+    csvRows.push(headers.join(','));
+    
+    // Add data rows
+    for (const row of data) {
+      const values = headers.map(header => {
+        const value = row[header];
+        // Handle null values, escape commas, quotes, etc.
+        if (value === null || value === undefined) {
+          return '';
+        }
+        
+        // Convert dates to ISO format
+        if (value instanceof Date) {
+          return format(value, 'yyyy-MM-dd');
+        }
+        
+        // Escape values with quotes if they contain commas, quotes, or newlines
+        const stringValue = String(value);
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        
+        return stringValue;
+      });
+      
+      csvRows.push(values.join(','));
+    }
+    
+    // Join all rows with newlines
+    const csvContent = csvRows.join('\n');
+    
+    // Set appropriate headers for CSV download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    // Send the CSV data
+    res.send(csvContent);
     
   } catch (error) {
     console.error('Error exporting report data:', error);
@@ -540,14 +581,20 @@ export async function exportReportData(req: Request, res: Response) {
 }
 
 // Helper functions for report exports
-async function getFinancialReportExport(startDate?: string, endDate?: string) {
+async function getFinancialReportExport(startDate?: string, endDate?: string, projectId?: number) {
   const start = startDate ? parseISO(startDate) : subMonths(new Date(), 6);
   const end = endDate ? parseISO(endDate) : new Date();
   
+  // Base filter on date range
   const dateFilter = and(
     gte(billingMilestones.targetInvoiceDate, start.toISOString().split('T')[0]),
     lte(billingMilestones.targetInvoiceDate, end.toISOString().split('T')[0])
   );
+  
+  // Add project filter if provided
+  const filter = projectId ? 
+    and(eq(billingMilestones.projectId, projectId), dateFilter) : 
+    dateFilter;
   
   // Get all billing milestones with project info
   const data = await db
@@ -566,20 +613,26 @@ async function getFinancialReportExport(startDate?: string, endDate?: string) {
     })
     .from(billingMilestones)
     .leftJoin(projects, eq(billingMilestones.projectId, projects.id))
-    .where(dateFilter)
+    .where(filter)
     .orderBy(billingMilestones.targetInvoiceDate);
   
   return data;
 }
 
-async function getProjectStatusReportExport(startDate?: string, endDate?: string) {
+async function getProjectStatusReportExport(startDate?: string, endDate?: string, projectId?: number) {
   const start = startDate ? parseISO(startDate) : subMonths(new Date(), 6);
   const end = endDate ? parseISO(endDate) : new Date();
   
+  // Base filter on date range
   const dateFilter = and(
     gte(projects.startDate, start.toISOString().split('T')[0]),
     lte(projects.startDate, end.toISOString().split('T')[0])
   );
+  
+  // Add project filter if provided
+  const filter = projectId ? 
+    eq(projects.id, projectId) : 
+    dateFilter;
   
   // Get all projects with status info
   const data = await db
@@ -598,20 +651,26 @@ async function getProjectStatusReportExport(startDate?: string, endDate?: string
       location: projects.location
     })
     .from(projects)
-    .where(dateFilter)
+    .where(filter)
     .orderBy(projects.startDate);
   
   return data;
 }
 
-async function getManufacturingReportExport(startDate?: string, endDate?: string) {
+async function getManufacturingReportExport(startDate?: string, endDate?: string, projectId?: number) {
   const start = startDate ? parseISO(startDate) : subMonths(new Date(), 6);
   const end = endDate ? parseISO(endDate) : new Date();
   
+  // Base filter on date range
   const dateFilter = and(
     gte(manufacturingSchedules.startDate, start.toISOString().split('T')[0]),
     lte(manufacturingSchedules.endDate, end.toISOString().split('T')[0])
   );
+  
+  // Add project filter if provided
+  const filter = projectId ? 
+    and(eq(manufacturingSchedules.projectId, projectId), dateFilter) : 
+    dateFilter;
   
   // Get all manufacturing schedules with project and bay info
   const data = await db
@@ -631,20 +690,26 @@ async function getManufacturingReportExport(startDate?: string, endDate?: string
     .from(manufacturingSchedules)
     .leftJoin(projects, eq(manufacturingSchedules.projectId, projects.id))
     .leftJoin(manufacturingBays, eq(manufacturingSchedules.bayId, manufacturingBays.id))
-    .where(dateFilter)
+    .where(filter)
     .orderBy(manufacturingSchedules.startDate);
   
   return data;
 }
 
-async function getDeliveryReportExport(startDate?: string, endDate?: string) {
+async function getDeliveryReportExport(startDate?: string, endDate?: string, projectId?: number) {
   const start = startDate ? parseISO(startDate) : subMonths(new Date(), 6);
   const end = endDate ? parseISO(endDate) : new Date();
   
+  // Base filter on date range
   const dateFilter = and(
     gte(deliveryTracking.actualDeliveryDate, start.toISOString().split('T')[0]),
     lte(deliveryTracking.actualDeliveryDate, end.toISOString().split('T')[0])
   );
+  
+  // Add project filter if provided
+  const filter = projectId ? 
+    and(eq(deliveryTracking.projectId, projectId), dateFilter) : 
+    dateFilter;
   
   // Get all delivery tracking records with project info
   const data = await db
@@ -663,7 +728,7 @@ async function getDeliveryReportExport(startDate?: string, endDate?: string) {
     })
     .from(deliveryTracking)
     .leftJoin(projects, eq(deliveryTracking.projectId, projects.id))
-    .where(dateFilter)
+    .where(filter)
     .orderBy(deliveryTracking.actualDeliveryDate);
   
   return data;
