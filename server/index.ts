@@ -15,8 +15,8 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const app = express();
 
-// Add health check route for Autoscale first, before any middleware
-app.get('/', (_req, res) => {
+// Add health check route at /health instead of root
+app.get('/health', (_req, res) => {
   res.status(200).send('OK');
 });
 
