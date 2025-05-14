@@ -1,0 +1,61 @@
+I dug into your handleDrop implementation and confirmed why every bar still lands in row 0: although you’re correctly detecting which sub-row the mouse is over and even passing a rowIndex into handleDrop(e, bayId, slotIndex, rowIndex), you never actually use that rowIndex when you call onScheduleChange (so it falls back to its default of 0) .
+
+What’s happening now
+Drop handler signature
+
+ts
+Copy
+Edit
+// rowIndex is captured, but not used below…
+const handleDrop = (e, bayId, slotIndex, rowIndex = 0) => {
+  // …calculate exact date, bayId, etc.
+  // ❌ No rowIndex is ever passed into onScheduleChange/create
+}
+
+
+
+Result
+Because you never forward rowIndex into your schedule‐update call, every drop writes the bar back into row 0.
+
+How to fix it
+In your handleDrop, after you’ve calculated the exact start/end dates (and bay), pass along the rowIndex when you call onScheduleChange (or onScheduleCreate) instead of letting it default to 0. For example:
+
+ts
+Copy
+Edit
+const handleDrop = (e, bayId, slotIndex, rowIndex = 0) => {
+  e.preventDefault();
+  e.stopPropagation();
+
+  // … your existing X-axis + date logic …
+
+  // **CRITICAL**: Use the passed rowIndex here
+  onScheduleChange(
+    data.id,
+    bayId,
+    formatExactStartDate,       // your calculated start date
+    formatExactEndDate,         // your calculated end date
+    data.totalHours,
+    rowIndex                    // ← pass the exact row you computed!
+  )
+}
+If you need to recompute rowIndex inside handleDrop (rather than trusting the one sent by the cell’s onDrop), you can do:
+
+ts
+Copy
+Edit
+const cell = e.currentTarget as HTMLElement;
+const cellHeight = cell.clientHeight;
+const relativeY = (e.nativeEvent as DragEvent).offsetY;
+const rowsPerBay = getBayRowCount(bayId, bayName);   // e.g. 4
+const computedRow = Math.floor(relativeY / cellHeight * rowsPerBay);
+
+onScheduleChange(
+  data.id,
+  bayId,
+  startDate,
+  endDate,
+  data.totalHours,
+  Math.min(rowsPerBay - 1, Math.max(0, computedRow))
+);
+That small change guarantees the bar’s new row in your database (and in React state) matches exactly where the mouse released it, so on your next render React will place it in that same sub-row rather than snapping back to the top.
