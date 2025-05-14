@@ -1041,14 +1041,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           ? bay.staffCount : 1;
       const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
       
-      // Sort schedules by start date
-      const sortedSchedules = [...baySchedules].sort((a, b) => 
-        new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-      );
+      // DO NOT SORT SCHEDULES - process them exactly as they come from database
+      // Removed all sorting to maintain original project order
       
-      // Initialize row tracking for this bay - using dynamic row count based on bay
-      const rowCount = getBayRowCount(bay.id, bay.name);
-      const rowEndDates: Date[] = Array(rowCount).fill(new Date(0)).map(() => new Date(0));
+      // REMOVED: All row tracking and end date tracking
+      // This was used for automatic row placement which we've completely disabled
       
       // CRITICAL FIX: COMPLETELY DISABLED ALL AUTO-ADJUSTMENT
       // Per user request, each project must be treated INDEPENDENTLY
@@ -1056,9 +1053,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       console.log("⚠️ AUTO-ADJUSTMENT DISABLED PER USER REQUEST - Each project will maintain its EXACT dates");
       console.log("🔒 NO AUTO OPTIMIZATION: Projects will NEVER be automatically moved to optimize capacity");
+      console.log("📌 NO SORTING: Projects maintain their exact ordering from the database");
       
-      // Simply use the exact schedules from the database with NO modifications
-      sortedSchedules.forEach(schedule => {
+      // Use the exact schedules from the database with ZERO modifications
+      baySchedules.forEach(schedule => {
         const project = projects.find(p => p.id === schedule.projectId);
         if (!project) return;
         
@@ -1069,86 +1067,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const startDate = new Date(schedule.startDate);
         const endDate = new Date(schedule.endDate);
         
-        // CRITICAL FIX: RESPECT THE ROW FROM DATABASE
-        // Check if the schedule has a row value in the database, and use it directly
-        let assignedRow = typeof schedule.row === 'number' ? schedule.row : -1;
+        // CRITICAL FIX: USE EXACTLY WHAT'S IN THE DATABASE - NO AUTO ROW ASSIGNMENT
+        // This is now a PURE VISUAL TOOL with no automatic adjustments
         
-        // Get the maximum allowed rows for this bay
-        const maxAllowedRows = getBayRowCount(bayId, bay?.name || '');
+        // Use ONLY the row stored in the database, or default to row 0
+        // No auto-positioning, no row calculation, no overlap checks
+        const assignedRow = typeof schedule.row === 'number' ? schedule.row : 0;
         
-        // IMPORTANT: Ensure the row is within the valid range for this bay
-        // For Bays 1-6, restrict to rows 0-3 only (4 total rows)
-        if (assignedRow >= 0 && bayId >= 1 && bayId <= 6 && assignedRow >= maxAllowedRows) {
-          console.warn(`⚠️ Row ${assignedRow} is out of range for Bay ${bayId} (max: ${maxAllowedRows-1}). Clamping to row ${maxAllowedRows-1}`);
-          assignedRow = maxAllowedRows - 1;
-        }
-        
-        // Only use automatic row assignment if no row is specified in the database
-        if (assignedRow === -1) {
-          // FIXED: Check for time-based overlaps in each row
-          // This allows adding a project in the same row AFTER another project has ended
-          // Never check past the maximum number of rows for this bay
-          for (let row = 0; row < maxAllowedRows; row++) { // Only check rows that actually exist for this bay
-            // CRITICAL FIX: Check if this row is available for this time period by checking against all processed bars
-            // We specifically check if projects DON'T overlap in time (one ends before the other starts)
-            const barsInSameRow = processedBars.filter(bar => 
-              bar.row === row && 
-              bar.bayId === bayId
-            );
-            
-            // If no bars in this row, it's completely free
-            if (barsInSameRow.length === 0) {
-              assignedRow = row;
-              break;
-            }
-            
-            // Check if the new schedule would overlap with any existing bars in this row
-            const hasOverlap = barsInSameRow.some(bar => {
-              // No overlap if new schedule starts after existing bar ends OR ends before existing bar starts
-              const noOverlap = startDate >= bar.endDate || endDate <= bar.startDate;
-              return !noOverlap; // We want to check for overlap, so invert the condition
-            });
-            
-            // If there's no overlap with any bars in this row, we can use it
-            if (!hasOverlap) {
-              assignedRow = row;
-              break;
-            }
-          }
-          
-          // If all rows have overlapping projects, find the row with least overlap
-          if (assignedRow === -1) {
-            // Default to row 0 if we can't find a better option
-            assignedRow = 0;
-          }
-        }
-        
-        // CRITICAL UPDATE: Ensure row is within valid range for this specific bay
-        // Bays 1-6 must strictly have only 4 rows (0-3), while Bays 7-8 have 20 rows (0-19)
+        // ONLY display a warning if project is in a row that may not be visible
+        // But DO NOT change the row assignment - just warn about it
         const maxRows = getBayRowCount(bay.id, bay.name);
-        
-        // Enforce the exact bay-specific row limits
-        if (bay.id >= 1 && bay.id <= 6) {
-          // For Bays 1-6, strictly limit to rows 0-3 only
-          assignedRow = Math.min(3, Math.max(0, assignedRow));
-          console.log(`Bay ${bay.id} (${bay.name}): Enforcing strict 4-row limit, row=${assignedRow}`);
-        } else {
-          // For other bays like 7-8, use their specific row count (usually 20)
-          assignedRow = Math.min(maxRows - 1, Math.max(0, assignedRow));
-          console.log(`Bay ${bay.id} (${bay.name}): Using extended row count, row=${assignedRow}`);
+        if (assignedRow >= maxRows) {
+          console.warn(`⚠️ PROJECT IN HIDDEN ROW: Schedule ${schedule.id} (Project ${project.projectNumber}) in row ${assignedRow} which exceeds max visible rows (${maxRows-1}) for Bay ${bay.id}`);
         }
         
-        // Update the end date for this row
-        rowEndDates[assignedRow] = new Date(endDate);
-        
-        // Map the actual row to a visual row
-        // For Team 7 & 8, respect all 20 rows, for other bays map to 4 visual rows
-        const maxVisualRows = getBayRowCount(bay.id, bay.name);
-        const visualRow = maxVisualRows > 4 
-          ? assignedRow // For Team 7 & 8, use the actual row (up to 20)
-          : assignedRow % 4; // For standard bays, map rows to 0-3 for display
-        
-        console.log(`Schedule ${schedule.id} positioned in row ${assignedRow} (displays in visual row ${visualRow}) ${typeof schedule.row === 'number' ? '(using database row)' : '(auto-assigned)'}`)
+        // We always use the EXACT row from the database - no adjustments whatsoever
+        console.log(`Schedule ${schedule.id} positioned EXACTLY in row ${assignedRow} using database value`)
         
         // Find the slot indices for the original start date (where the bar begins)
         const startSlotIndex = slots.findIndex(slot => {
