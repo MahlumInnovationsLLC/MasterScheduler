@@ -60,62 +60,95 @@ const ReportsPage = () => {
   // These are predefined date strings in ISO format (YYYY-MM-DD)
   const getDateRangeStrings = () => {
     try {
-      // Use a reliable way to get today's date as YYYY-MM-DD
+      // Use date-fns for more reliable date handling
       const now = new Date();
-      // Format date as YYYY-MM-DD manually
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      console.log('Current date:', today);
       
-      // Create date for start point calculations
-      const currentDate = new Date(now);
-      let startDate;
-      
-      switch (timeRange) {
-        case '3months': {
-          // Calculate 3 months ago safely
-          currentDate.setDate(15); // Set to middle of month to avoid end-of-month issues
-          currentDate.setMonth(currentDate.getMonth() - 3);
-          startDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
-          console.log('3 months ago date:', startDate);
-          break;
-        }
-        case '6months': {
-          // Calculate 6 months ago safely
-          currentDate.setDate(15); // Set to middle of month to avoid end-of-month issues
-          currentDate.setMonth(currentDate.getMonth() - 6);
-          startDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
-          console.log('6 months ago date:', startDate);
-          break;
-        }
-        case '12months': {
-          // Calculate 12 months ago safely
-          currentDate.setDate(15); // Set to middle of month to avoid end-of-month issues
-          currentDate.setMonth(currentDate.getMonth() - 12);
-          startDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
-          console.log('12 months ago date:', startDate);
-          break;
-        }
-        case 'ytd': {
-          // Get January 1st of current year
-          startDate = `${now.getFullYear()}-01-01`;
-          console.log('YTD start date:', startDate);
-          break;
-        }
-        default: {
-          // Default to 6 months ago
-          currentDate.setDate(15); // Set to middle of month to avoid end-of-month issues
-          currentDate.setMonth(currentDate.getMonth() - 6);
-          startDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
-          console.log('Default (6 months ago) date:', startDate);
-        }
+      // Make sure we have a valid date object
+      if (isNaN(now.getTime())) {
+        throw new Error('Invalid current date');
       }
       
-      // Validate the dates by parsing them
-      const startObj = new Date(startDate);
-      const endObj = new Date(today);
+      // Format date as YYYY-MM-DD using helper function with type safety
+      const formatDateString = (date: Date): string => {
+        try {
+          // Ensure we have a valid date before formatting
+          if (!(date instanceof Date) || isNaN(date.getTime())) {
+            throw new Error('Invalid date object');
+          }
+          return format(date, 'yyyy-MM-dd');
+        } catch (error) {
+          console.error('Error formatting date:', error);
+          // Return a fallback string that will be caught by validation later
+          return 'invalid-date';
+        }
+      };
+      
+      const today = formatDateString(now);
+      console.log('Current date:', today);
+      
+      // Calculate start date based on time range
+      let startDate;
+      
+      try {
+        switch (timeRange) {
+          case '3months': {
+            // Use date-fns subMonths for safer date math
+            const threeMonthsAgo = startOfMonth(subMonths(now, 3));
+            startDate = formatDateString(threeMonthsAgo);
+            console.log('3 months ago date:', startDate);
+            break;
+          }
+          case '6months': {
+            const sixMonthsAgo = startOfMonth(subMonths(now, 6));
+            startDate = formatDateString(sixMonthsAgo);
+            console.log('6 months ago date:', startDate);
+            break;
+          }
+          case '12months': {
+            const twelveMonthsAgo = startOfMonth(subMonths(now, 12));
+            startDate = formatDateString(twelveMonthsAgo);
+            console.log('12 months ago date:', startDate);
+            break;
+          }
+          case 'ytd': {
+            // Start of current year
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            startDate = formatDateString(startOfYear);
+            console.log('YTD start date:', startDate);
+            break;
+          }
+          default: {
+            // Default to 6 months ago
+            const sixMonthsAgo = startOfMonth(subMonths(now, 6));
+            startDate = formatDateString(sixMonthsAgo);
+            console.log('Default (6 months ago) date:', startDate);
+          }
+        }
+      } catch (error) {
+        console.error('Error in date range calculation:', error);
+        // If there's an error in calculating specific range, default to 6 months
+        const sixMonthsAgo = startOfMonth(subMonths(now, 6));
+        startDate = formatDateString(sixMonthsAgo);
+      }
+      
+      // Ensure we have valid date strings
+      if (!startDate || !today || startDate.length !== 10 || today.length !== 10) {
+        throw new Error('Invalid date string format');
+      }
+      
+      // Validate the dates by parsing them back to Date objects
+      const startObj = new Date(startDate + 'T00:00:00'); // Add time for more consistent parsing
+      const endObj = new Date(today + 'T00:00:00');
       
       if (isNaN(startObj.getTime()) || isNaN(endObj.getTime())) {
-        throw new Error('Invalid date calculation');
+        throw new Error('Invalid date calculation: non-parseable dates');
+      }
+      
+      // Make sure start is before end
+      if (startObj > endObj) {
+        // If dates are reversed, swap them
+        console.warn('Start date was after end date, swapping dates');
+        return { startDate: today, endDate: startDate };
       }
       
       console.log('Using date range:', { startDate, endDate: today });
@@ -251,7 +284,10 @@ const ReportsPage = () => {
       onTimeDelivery: 0,
       averageTeamSize: 0
     },
-    schedules: []
+    schedules: [],
+    bayUtilization: [], // Make sure this exists for the chart data
+    bayData: [],       // Alternative property name that might be used
+    utilizationByBay: []  // Another possible property name
   };
   
   const emptyDeliveryReport = {
@@ -260,7 +296,8 @@ const ReportsPage = () => {
       onTimeDeliveries: 0,
       averageDelay: 0
     },
-    deliveries: []
+    deliveries: [],
+    deliveriesByMonth: []  // Make sure this exists for the chart data
   };
   
   // Fallback to fetch all data directly if reports API fails
