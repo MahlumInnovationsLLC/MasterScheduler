@@ -2873,29 +2873,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // CRITICAL FIX: Force using the exact bay ID from the event parameters
-    // This prevents the bay jumping issue by ensuring we always use the bay where the drop happened
-    console.log(`🔴 CRITICAL FIX: Using exact bayId=${bayId} from drop event parameters`);
+    // CRITICAL FIX: ABSOLUTELY NO SPECIAL HANDLING FOR ANY BAY
+    // User requires that projects stay EXACTLY where they were dropped
+    // No special rules, no detection, no auto-adjustment
+    console.log(`🔴 CRITICAL FIX: Using exact bayId=${bayId} from drop event parameters - NO EXCEPTIONS`);
     
-    // ENHANCED BAY 3 FIX: Special handling for Bay 3 drops
-    // Additional data verification and handling for Bay 3
+    // Define finalBayId but set it directly to the parameter value with ZERO special handling
     let finalBayId = bayId;
     
-    if (bayId === 3) {
-      console.log('🔶 BAY 3 DROP DETECTED - Applying special handling');
-      
-      // Add a visual indicator for Bay 3 drop target
-      const bay3Element = document.querySelector(`.bay-content[data-bay-id="3"]`);
-      if (bay3Element) {
-        bay3Element.classList.add('bay-3-drop-active');
-        setTimeout(() => bay3Element.classList.remove('bay-3-drop-active'), 1000);
-      }
-      
-      // Force Bay 3 data attribute to be set on the document body to ensure consistency
-      document.body.setAttribute('data-bay-three-drop', 'true');
-    } else {
-      document.body.removeAttribute('data-bay-three-drop');
-    }
+    // COMPLETELY REMOVED ALL BAY 3 SPECIAL HANDLING
+    // Projects now stay in the exact bay where they're dropped regardless of which bay it is
+    
+    // Remove any bay-specific attributes from the document body
+    document.body.removeAttribute('data-bay-three-drop');
+    document.body.removeAttribute('data-bay-three-drag');
     
     // CRITICAL FIX: DISABLE ALL BAY DETECTION & OVERRIDE LOGIC
     // ALWAYS use the exact bay ID from the parameter
@@ -3351,28 +3342,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // 🚨 EMERGENCY BUG FIX: CRITICAL - DON'T USE STORED/TRACKED BAY REFERENCES
         // Using our earlier enhanced Bay 3 detection logic
         
-        // Recheck all sources for Bay 3 identification to ensure consistency
-        const bodyBayId = document.body.getAttribute('data-current-drag-bay');
-        const lastBayDrag = document.body.getAttribute('data-last-bay-drag');
-        const bay3Flag = document.body.hasAttribute('data-bay-three-drag');
-        const bay3Drop = document.body.hasAttribute('data-bay-three-drop');
+        // CRITICAL FIX: ABSOLUTELY NO SPECIAL HANDLING OR OVERRIDES
+        // Projects must stay EXACTLY in the bay where they are dropped
         
-        // CRITICAL FIX: NO BAY DETECTION OR OVERRIDES
-        // ALWAYS use the exact bay ID where the user dropped the project
-        // This ensures projects never jump bays unexpectedly
-        
-        // RESPECT USER DROP LOCATION EXACTLY
-        // Disable all bay detection and overrides
-        const actualBayId = bayId;
-        
+        // RESPECT USER DROP LOCATION EXACTLY with no detection, no overrides
         console.log('🔒 EXACT PLACEMENT: Using exact bay and row from drop event');
         console.log(`📍 Project will be placed in Bay ${bayId}, Row ${targetRowIndex} - NO ADJUSTMENTS`);
         console.log('❌ All bay detection and override logic disabled');
         
-        console.log(`🚨 EMERGENCY FIX: Using enhanced bay detection - final bay ID: ${actualBayId}`);
-        
-        // CRITICAL: Always use the actual bay ID where the user dropped, with enhanced Bay 3 detection
-        const finalBayId = actualBayId;
+        // Use the exact bay ID from the drop event parameter - ZERO exceptions
+        const finalBayId = bayId;
         
         // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
         // User specifically requested to disable all auto-placement logic
@@ -3477,13 +3456,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           bayElement.appendChild(placeholderDiv);
         }
         
-        // Get the bay ID from the global data attribute (keeps projects in same bay)
-        // But use the target row index where the user actually dropped (allows placing on any row)
-        const storedBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || '0');
-        const currentRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
+        // CRITICAL FIX: ABSOLUTELY NO SPECIAL HANDLING OR OVERRIDES
+        // Projects must stay EXACTLY in the bay where they are dropped
+        // NEVER use any stored bay ID or other source - only use the actual drop target bay
         
-        // EMERGENCY BUG FIX: ALWAYS use the precise bay where the user dropped it
-        // This is key to preventing the bay jumping issue
+        // Use the exact bay ID from the drop event parameter - ZERO exceptions
+        // This is the only way to ensure projects never jump bays
         const finalBayId = bayId;
         
         // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
