@@ -2889,24 +2889,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       document.body.removeAttribute('data-bay-three-drop');
     }
     
-    // Additional data consistency check for Bay 3 using multiple sources
-    const bodyBayId = document.body.getAttribute('data-current-drag-bay');
-    const lastBayDrag = document.body.getAttribute('data-last-bay-drag');
-    const bay3Flag = document.body.hasAttribute('data-bay-three-drag');
+    // CRITICAL FIX: DISABLE ALL BAY DETECTION & OVERRIDE LOGIC
+    // ALWAYS use the exact bay ID from the parameter
     
-    console.log(`Drop context: Event bayId=${bayId}, Body bayId=${bodyBayId}, Last drag=${lastBayDrag}, Bay3 flag=${bay3Flag}`);
+    console.log(`🔒 EXACT PLACEMENT: Using exact bay ID ${bayId} from drop event`);
+    console.log(`📍 Project will be placed EXACTLY in Bay ${bayId}, Row ${rowIndex}`);
     
-    // If ANY source indicates this is a Bay 3 drop, respect that
-    const isBay3ByMultipleChecks = 
-      bayId === 3 || 
-      bodyBayId === '3' || 
-      lastBayDrag === '3' || 
-      bay3Flag;
-      
-    if (isBay3ByMultipleChecks && bayId !== 3) {
-      console.log('⚠️ Bay 3 detected through alternate data sources - overriding with Bay 3');
-      finalBayId = 3;
-    }
+    // Force the finalBayId to be exactly what came from the event parameter
+    // No overrides, no detection, no adjustments - pure exact placement
+    finalBayId = bayId; // Using the already declared variable
+    
+    console.log('❌ All bay detection and override logic disabled for precise placement');
+    console.log('✅ Project will stay EXACTLY where dropped');
     
     // Force any data-bay-id attribute on the element to match the parameter for consistency
     if (e.currentTarget && e.currentTarget instanceof HTMLElement) {
@@ -3355,20 +3349,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const bay3Flag = document.body.hasAttribute('data-bay-three-drag');
         const bay3Drop = document.body.hasAttribute('data-bay-three-drop');
         
-        // If ANY source indicates this is a Bay 3 drop, respect that
-        const isBay3ByMultipleChecks = 
-          bayId === 3 || 
-          bodyBayId === '3' || 
-          lastBayDrag === '3' || 
-          bay3Flag ||
-          bay3Drop;
-          
-        // Use our enhanced Bay 3 detection
-        let actualBayId = bayId;
-        if (isBay3ByMultipleChecks && bayId !== 3) {
-          console.log('⚠️ Bay 3 detected through alternate data sources for final DB update - overriding with Bay 3');
-          actualBayId = 3;
-        }
+        // CRITICAL FIX: NO BAY DETECTION OR OVERRIDES
+        // ALWAYS use the exact bay ID where the user dropped the project
+        // This ensures projects never jump bays unexpectedly
+        
+        // RESPECT USER DROP LOCATION EXACTLY
+        // Disable all bay detection and overrides
+        const actualBayId = bayId;
+        
+        console.log('🔒 EXACT PLACEMENT: Using exact bay and row from drop event');
+        console.log(`📍 Project will be placed in Bay ${bayId}, Row ${targetRowIndex} - NO ADJUSTMENTS`);
+        console.log('❌ All bay detection and override logic disabled');
         
         console.log(`🚨 EMERGENCY FIX: Using enhanced bay detection - final bay ID: ${actualBayId}`);
         
