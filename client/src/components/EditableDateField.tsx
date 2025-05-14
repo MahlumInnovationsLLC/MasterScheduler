@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
-import { Calendar } from "@/components/ui/calendar";
+import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from '@/lib/queryClient';
 import { formatDate } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { PencilIcon } from 'lucide-react';
+import { Calendar, Check, PencilIcon, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface EditableDateFieldProps {
   projectId: number;
@@ -17,19 +15,31 @@ interface EditableDateFieldProps {
 const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field, value }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [date, setDate] = useState<Date | undefined>(value ? new Date(value) : undefined);
+  const [dateValue, setDateValue] = useState<string | undefined>(
+    value ? new Date(value).toISOString().split('T')[0] : undefined
+  );
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const handleUpdate = async (newDate?: Date) => {
-    const dateToSave = newDate || date;
+  // Reset date value when value changes
+  useEffect(() => {
+    if (value) {
+      setDateValue(new Date(value).toISOString().split('T')[0]);
+    } else {
+      setDateValue(undefined);
+    }
+  }, [value]);
+
+  const handleSave = async () => {
+    if (!dateValue) return;
     
     setIsUpdating(true);
     try {
       await apiRequest(
         "PATCH",
         `/api/projects/${projectId}`,
-        { [field]: dateToSave?.toISOString() || null }
+        { [field]: new Date(dateValue).toISOString() }
       );
       
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
@@ -50,6 +60,44 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
     }
   };
 
+  // Display editor if in edit mode
+  if (isEditing) {
+    return (
+      <div className="flex items-center space-x-2">
+        <input
+          type="date"
+          className="w-32 px-2 py-1 rounded text-xs bg-background border border-input"
+          value={dateValue || ''}
+          onChange={(e) => setDateValue(e.target.value)}
+        />
+        <div className="flex space-x-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-6 w-6" 
+            onClick={handleSave}
+            disabled={isUpdating}
+          >
+            {isUpdating ? 
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> : 
+              <Check className="h-3 w-3 text-success" />
+            }
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-6 w-6" 
+            onClick={() => setIsEditing(false)}
+            disabled={isUpdating}
+          >
+            <X className="h-3 w-3 text-danger" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Regular display mode
   return (
     <div className="relative">
       {isUpdating ? (
@@ -58,52 +106,13 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
           <span>Updating...</span>
         </div>
       ) : (
-        <>
-          <div 
-            className="flex items-center cursor-pointer hover:bg-gray-100/10 px-2 py-1 rounded group text-sm"
-            onClick={() => setIsEditing(true)}
-          >
-            <span>{formatDate(value)}</span>
-            <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500 opacity-0 group-hover:opacity-100" />
-          </div>
-          
-          <Dialog open={isEditing} onOpenChange={setIsEditing}>
-            <DialogContent className="w-auto p-4 sm:max-w-[425px]">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={(newDate) => {
-                  if (newDate) {
-                    setDate(newDate);
-                    handleUpdate(newDate);
-                  } else {
-                    setIsEditing(false);
-                  }
-                }}
-                className="mx-auto"
-              />
-              <div className="flex justify-between mt-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsEditing(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={() => {
-                    if (date) {
-                      handleUpdate(date);
-                    } else {
-                      setIsEditing(false);
-                    }
-                  }}
-                >
-                  Update
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </>
+        <div 
+          className="text-sm cursor-pointer flex items-center hover:bg-gray-100/10 px-2 py-1 rounded group"
+          onClick={() => setIsEditing(true)}
+        >
+          <span>{formatDate(value)}</span>
+          <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500 opacity-0 group-hover:opacity-100" />
+        </div>
       )}
     </div>
   );
