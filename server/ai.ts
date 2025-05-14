@@ -1,10 +1,15 @@
 import OpenAI from 'openai';
 import { Project, Task, BillingMilestone, ManufacturingSchedule } from '@shared/schema';
 
-// Initialize the OpenAI client
-const openai = new OpenAI({
+// Initialize the OpenAI client if API key is available
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-});
+}) : null;
+
+// Function to check if OpenAI is available
+function isOpenAIAvailable() {
+  return !!openai;
+}
 
 // This interface defines the structure for project health analysis results
 export interface ProjectHealthAnalysis {
