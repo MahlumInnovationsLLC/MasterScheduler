@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from '@/lib/queryClient';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, PencilIcon, X } from 'lucide-react';
+import { Check, Pencil as PencilIcon, PlusCircle, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface EditableNotesFieldProps {
   projectId: number;
@@ -13,8 +12,9 @@ interface EditableNotesFieldProps {
 
 const EditableNotesField: React.FC<EditableNotesFieldProps> = ({ projectId, value }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [noteValue, setNoteValue] = useState(value || '');
+  const [noteValue, setNoteValue] = useState<string>(value || '');
   const [isUpdating, setIsUpdating] = useState(false);
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -30,7 +30,7 @@ const EditableNotesField: React.FC<EditableNotesFieldProps> = ({ projectId, valu
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       toast({
         title: "Notes Updated",
-        description: "The notes have been updated successfully",
+        description: "Notes have been updated successfully",
         variant: "default"
       });
       setIsEditing(false);
@@ -45,11 +45,12 @@ const EditableNotesField: React.FC<EditableNotesFieldProps> = ({ projectId, valu
     }
   };
 
+  // Display editor if in edit mode
   if (isEditing) {
     return (
       <div className="flex flex-col space-y-2 py-1">
-        <Textarea
-          className="w-full text-xs"
+        <textarea
+          className="w-full h-24 px-2 py-1 rounded text-xs bg-background border border-input"
           value={noteValue}
           onChange={(e) => setNoteValue(e.target.value)}
           placeholder="Add notes here..."
@@ -80,18 +81,23 @@ const EditableNotesField: React.FC<EditableNotesFieldProps> = ({ projectId, valu
     );
   }
 
+  // Regular display mode
   return (
-    <div
-      className="flex items-start cursor-pointer hover:bg-gray-100/10 px-2 py-1 rounded group"
+    <div 
+      className="text-sm cursor-pointer hover:underline flex items-center min-h-[32px] relative group"
       onClick={() => setIsEditing(true)}
     >
-      <div className="flex-1 text-sm">
-        {value ? 
-          <div className="line-clamp-2" title={value}>{value}</div>
-          : <span className="text-gray-400 italic">Add notes...</span>
-        }
-      </div>
-      <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500 mt-1 flex-shrink-0 opacity-0 group-hover:opacity-100" />
+      {noteValue ? (
+        <>
+          <div className="line-clamp-2">{noteValue}</div>
+          <PencilIcon className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 absolute right-0 top-0" />
+        </>
+      ) : (
+        <div className="text-gray-400 flex items-center">
+          <span>Add notes</span>
+          <PlusCircle className="h-3 w-3 ml-1" />
+        </div>
+      )}
     </div>
   );
 };

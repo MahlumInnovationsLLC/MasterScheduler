@@ -3,7 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from '@/lib/queryClient';
 import { formatDate } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { Calendar, Check, PencilIcon, X } from 'lucide-react';
+import { Check, PencilIcon, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface EditableDateFieldProps {
