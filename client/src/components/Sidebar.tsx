@@ -38,11 +38,12 @@ const Sidebar = () => {
     <aside className={`bg-darkCard border-r border-gray-800 h-screen overflow-y-auto pt-16 transition-all duration-300 relative ${isCollapsed ? 'w-[50px]' : 'w-[260px]'}`}>
       {/* Toggle Button */}
       <button 
-        className="absolute top-20 -right-3 bg-primary text-white rounded-full p-1 shadow-lg z-10"
+        className="absolute top-20 right-2 bg-primary hover:bg-primary-dark text-white rounded-full p-2 shadow-lg z-10 border border-gray-700"
         onClick={toggleSidebar}
         aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
-        {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
       </button>
       
       <nav className={`py-4 ${isCollapsed ? 'px-2' : 'px-4'}`}>
