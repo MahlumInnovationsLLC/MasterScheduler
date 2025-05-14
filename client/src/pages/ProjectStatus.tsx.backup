@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/queryClient';
+import { format } from 'date-fns';
 import { 
   Folders, 
   Flag, 
@@ -18,16 +21,28 @@ import {
   SearchIcon,
   ListFilter,
   AlertTriangle,
-  PieChart
+  PieChart,
+  Check,
+  X,
+  Pencil as PencilIcon,
+  PlusCircle
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
 import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { ProjectStatusBreakdownCard } from '@/components/ProjectStatusBreakdownCard';
 import { AIInsightsWidget } from '@/components/AIInsightsWidget';
 import { DataTable } from '@/components/ui/data-table';
 import { ProgressBadge } from '@/components/ui/progress-badge';
+import EditableDateField from '@/components/EditableDateField';
+import EditableNotesField from '@/components/EditableNotesField';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,6 +67,10 @@ import { Project } from '@shared/schema';
 interface ProjectWithRawData extends Project {
   rawData: Record<string, any>;
 }
+
+// EditableDateField is now imported from components folder
+
+// EditableNotesField is now imported from components folder
 
 // Define a type for the row in the data table
 interface ProjectRow {
@@ -84,7 +103,7 @@ const ProjectStatus = () => {
     if (!projects || hasAppliedInitialFilter) return;
     
     // Helper to get valid dates and handle null/invalid dates
-    const getValidDate = (dateStr) => {
+    const getValidDate = (dateStr: string | null | undefined) => {
       if (!dateStr) return null;
       const date = new Date(dateStr);
       return isNaN(date.getTime()) ? null : date;
@@ -219,6 +238,46 @@ const ProjectStatus = () => {
       avgCompletion
     };
   }, [projects]);
+  
+  // Calculate project state breakdown
+  const projectStateBreakdown = React.useMemo(() => {
+    if (!projects || projects.length === 0) return null;
+    
+    // Initialize counters
+    let unscheduled = 0;
+    let scheduled = 0;
+    let inProgress = 0;
+    let complete = 0;
+    
+    // Count projects by schedule state
+    projects.forEach(project => {
+      // If project is completed, add to complete count
+      if (project.status === 'completed') {
+        complete++;
+        return;
+      }
+      
+      // For all other projects, categorize by their schedule state
+      const scheduleState = getProjectScheduleState(manufacturingSchedules, project.id);
+      
+      if (scheduleState === 'Unscheduled') {
+        unscheduled++;
+      } else if (scheduleState === 'Scheduled') {
+        scheduled++;
+      } else if (scheduleState === 'In Progress') {
+        inProgress++;
+      } else if (scheduleState === 'Complete') {
+        complete++;
+      }
+    });
+    
+    return {
+      unscheduled,
+      scheduled,
+      inProgress,
+      complete
+    };
+  }, [projects, manufacturingSchedules]);
 
   // Apply date filters to projects
   const filteredProjects = React.useMemo(() => {
@@ -338,6 +397,215 @@ const ProjectStatus = () => {
       shipDateMin: '',
       shipDateMax: '',
     });
+  };
+  
+  // Function to update a project date field
+  const updateProjectDate = async (projectId: number, field: string, value: string | null) => {
+    try {
+      const response = await apiRequest(
+        "PATCH",
+        `/api/projects/${projectId}`,
+        { [field]: value }
+      );
+      
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+        toast({
+          title: "Date Updated",
+          description: `${field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1')} has been updated successfully`,
+          variant: "default"
+        });
+        return true;
+      } else {
+        throw new Error(`Failed to update ${field}`);
+      }
+    } catch (error) {
+      toast({
+        title: "Update Failed",
+        description: `Error updating date: ${(error as Error).message}`,
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+  
+  // Component for editable notes field
+  const EditableNotesField = ({
+    projectId,
+    value
+  }: {
+    projectId: number;
+    value: string | null;
+  }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [noteValue, setNoteValue] = useState<string>(value || '');
+    const [isUpdating, setIsUpdating] = useState(false);
+    
+    // Function to handle saving the notes
+    const handleSave = async () => {
+      setIsUpdating(true);
+      try {
+        const response = await apiRequest(
+          "PATCH",
+          `/api/projects/${projectId}`,
+          { notes: noteValue }
+        );
+        
+        if (response.ok) {
+          queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+          toast({
+            title: "Notes Updated",
+            description: "Notes have been updated successfully",
+            variant: "default"
+          });
+          setIsEditing(false);
+        } else {
+          throw new Error("Failed to update notes");
+        }
+      } catch (error) {
+        toast({
+          title: "Update Failed",
+          description: `Error updating notes: ${(error as Error).message}`,
+          variant: "destructive"
+        });
+      } finally {
+        setIsUpdating(false);
+      }
+    };
+    
+    // Display editor if in edit mode
+    if (isEditing) {
+      return (
+        <div className="flex flex-col space-y-2 py-1">
+          <textarea
+            className="w-full h-24 px-2 py-1 rounded text-xs bg-background border border-input"
+            value={noteValue}
+            onChange={(e) => setNoteValue(e.target.value)}
+            placeholder="Add notes here..."
+          />
+          <div className="flex justify-end space-x-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6" 
+              onClick={handleSave}
+              disabled={isUpdating}
+            >
+              {isUpdating ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> : <Check className="h-3 w-3 text-success mr-1" />}
+              Save
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6" 
+              onClick={() => setIsEditing(false)}
+              disabled={isUpdating}
+            >
+              <X className="h-3 w-3 text-danger mr-1" />
+              Cancel
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    
+    // Regular display mode
+    return (
+      <div 
+        className="text-sm cursor-pointer hover:underline flex items-center min-h-[32px] relative group"
+        onClick={() => setIsEditing(true)}
+      >
+        {noteValue ? (
+          <>
+            <div className="line-clamp-2">{noteValue}</div>
+            <PencilIcon className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 absolute right-0 top-0" />
+          </>
+        ) : (
+          <div className="text-gray-400 flex items-center">
+            <span>Add notes</span>
+            <PlusCircle className="h-3 w-3 ml-1" />
+          </div>
+        )}
+      </div>
+    );
+  };
+  
+  // Component for editable date fields
+  const EditableDateField = ({ 
+    projectId, 
+    field, 
+    value, 
+    size = 'default' 
+  }: { 
+    projectId: number; 
+    field: string; 
+    value: string | null; 
+    size?: 'default' | 'sm'
+  }) => {
+    const cellId = `${field}-${projectId}`;
+    const [isEditing, setIsEditing] = useState(false);
+    const [dateValue, setDateValue] = useState<string | undefined>(
+      value ? new Date(value).toISOString().split('T')[0] : undefined
+    );
+    const [isUpdating, setIsUpdating] = useState(false);
+    
+    // Function to handle saving the date
+    const handleSave = async () => {
+      setIsUpdating(true);
+      const success = await updateProjectDate(projectId, field, dateValue || null);
+      setIsUpdating(false);
+      if (success) {
+        setIsEditing(false);
+      }
+    };
+    
+    // Display editor if in edit mode
+    if (isEditing) {
+      return (
+        <div className="flex items-center space-x-2">
+          <input
+            type="date"
+            className="w-32 px-2 py-1 rounded text-xs bg-background border border-input"
+            value={dateValue || ''}
+            onChange={(e) => setDateValue(e.target.value)}
+          />
+          <div className="flex space-x-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-6 w-6" 
+              onClick={handleSave}
+              disabled={isUpdating}
+            >
+              {isUpdating ? 
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> 
+                : <Check className="h-3 w-3 text-success" />
+              }
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-6 w-6" 
+              onClick={() => setIsEditing(false)}
+              disabled={isUpdating}
+            >
+              <X className="h-3 w-3 text-danger" />
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    
+    // Regular display mode
+    return (
+      <div 
+        className="text-sm flex items-center cursor-pointer hover:underline"
+        onClick={() => setIsEditing(true)}
+      >
+        <span className={size === 'sm' ? 'text-xs' : ''}>{value ? formatDate(value) : '-'}</span>
+        <Calendar className={`inline-block ml-1 ${size === 'sm' ? 'h-3 w-3' : 'h-4 w-4'}`} />
+      </div>
+    );
   };
 
   // Toggle column visibility
@@ -531,7 +799,7 @@ const ProjectStatus = () => {
       },
       { size: 180 }),
     createColumn('contractDate', 'contractDate', 'Contract Date', 
-      (value) => formatDate(value),
+      (value, project) => <EditableDateField projectId={project.id} field="contractDate" value={value} />,
       { size: 140 }),
     createColumn('startDate', 'startDate', 'Start Date', 
       (value) => formatDate(value),
@@ -579,32 +847,35 @@ const ProjectStatus = () => {
       (value) => value ? `${value}%` : 'N/A',
       { size: 120 }),
     createColumn('fabricationStart', 'fabricationStart', 'Fabrication Start', 
-      (value) => formatDate(value),
-      { size: 150 }),
+      (value, project) => <EditableDateField projectId={project.id} field="fabricationStart" value={value} />,
+      { size: 170 }),
     createColumn('assemblyStart', 'assemblyStart', 'Assembly Start', 
-      (value) => formatDate(value),
-      { size: 150 }),
+      (value, project) => <EditableDateField projectId={project.id} field="assemblyStart" value={value} />,
+      { size: 170 }),
     createColumn('wrapDate', 'wrapDate', 'Wrap Date', 
-      (value) => formatDate(value),
-      { size: 140 }),
+      (value, project) => <EditableDateField projectId={project.id} field="wrapDate" value={value} />,
+      { size: 170 }),
     createColumn('ntcTestingDate', 'ntcTestingDate', 'NTC Testing', 
-      (value) => formatDate(value),
-      { size: 140 }),
+      (value, project) => <EditableDateField projectId={project.id} field="ntcTestingDate" value={value} />,
+      { size: 170 }),
     createColumn('qcStartDate', 'qcStartDate', 'QC Start', 
-      (value) => formatDate(value),
-      { size: 140 }),
+      (value, project) => <EditableDateField projectId={project.id} field="qcStartDate" value={value} />,
+      { size: 170 }),
     createColumn('qcDays', 'qcDays', 'QC Days', 
       (value) => value !== null ? value : 'N/A',
       { size: 100 }),
     createColumn('executiveReviewDate', 'executiveReviewDate', 'Exec Review', 
-      (value) => formatDate(value),
-      { size: 140 }),
+      (value, project) => <EditableDateField projectId={project.id} field="executiveReviewDate" value={value} />,
+      { size: 170 }),
     createColumn('shipDate', 'shipDate', 'Ship Date', 
-      (value) => formatDate(value),
-      { size: 140 }),
+      (value, project) => <EditableDateField projectId={project.id} field="shipDate" value={value} />,
+      { size: 170 }),
     createColumn('deliveryDate', 'deliveryDate', 'Delivery Date', 
-      (value) => formatDate(value),
-      { size: 140 }),
+      (value, project) => <EditableDateField projectId={project.id} field="deliveryDate" value={value} />,
+      { size: 170 }),
+    createColumn('notes', 'notes', 'Notes',
+      (value, project) => <EditableNotesField projectId={project.id} value={value} />,
+      { size: 250 }),
     createColumn('description', 'description', 'Description',
       (value, project) => (
         <div className="text-sm max-w-xs truncate" title={value as string}>
@@ -615,13 +886,6 @@ const ProjectStatus = () => {
     createColumn('team', 'team', 'Team',
       (value) => value || 'N/A',
       { size: 120 }),
-    createColumn('notes', 'notes', 'Notes',
-      (value) => (
-        <div className="text-sm max-w-xs truncate" title={value as string}>
-          {value || 'N/A'}
-        </div>
-      ),
-      { size: 200 }),
     {
       id: 'actions',
       header: 'Actions',
@@ -973,54 +1237,60 @@ const ProjectStatus = () => {
       </div>
       
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <ProjectStatsCard 
-          title="Total Projects"
-          value={projectStats?.total || 0}
-          icon={<Folders className="text-primary h-5 w-5" />}
-          tags={[
-            { label: "Active", value: projectStats?.active || 0, status: "On Track" },
-            { label: "Delayed", value: projectStats?.delayed || 0, status: "Delayed" },
-            { label: "Critical", value: projectStats?.critical || 0, status: "Critical" }
-          ]}
-          className="h-64"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
+        {/* Total Projects - Wider (5 columns) */}
+        <div className="md:col-span-5">
+          <ProjectStatsCard 
+            title="Total Projects"
+            value={projectStats?.total || 0}
+            icon={<Folders className="text-primary h-5 w-5" />}
+            tags={[
+              { label: "Active", value: projectStats?.active || 0, status: "On Track" },
+              { label: "Delayed", value: projectStats?.delayed || 0, status: "Delayed" },
+              { label: "Critical", value: projectStats?.critical || 0, status: "Critical" }
+            ]}
+            stateBreakdown={projectStateBreakdown || undefined}
+            className="h-72"
+          />
+        </div>
         
-        <ProjectStatsCard 
-          title="Upcoming Milestones"
-          value={upcomingMilestones}
-          icon={<Flag className="text-accent h-5 w-5" />}
-          progress={{ 
-            value: upcomingMilestones > 0 && Array.isArray(billingMilestones) && billingMilestones.length > 0 
-              ? Math.round((upcomingMilestones / billingMilestones.length) * 100)
-              : 0, 
-            label: `${upcomingMilestones} due in 30 days` 
-          }}
-          className="h-64"
-        />
+        {/* Upcoming Milestones (2 columns) */}
+        <div className="md:col-span-2">
+          <ProjectStatsCard 
+            title="Upcoming Milestones"
+            value={upcomingMilestones}
+            icon={<Flag className="text-accent h-5 w-5" />}
+            progress={{ 
+              value: upcomingMilestones > 0 && Array.isArray(billingMilestones) && billingMilestones.length > 0 
+                ? Math.round((upcomingMilestones / billingMilestones.length) * 100)
+                : 0, 
+              label: `${upcomingMilestones} due in 30 days` 
+            }}
+            className="h-72"
+          />
+        </div>
         
-        <div className="h-72 overflow-hidden">
+        {/* AI Insights (3 columns) */}
+        <div className="md:col-span-3 h-72 overflow-hidden">
           <AIInsightsWidget projects={projects || []} />
         </div>
         
-        <ProjectStatsCard 
-          title="Manufacturing"
-          value={`${manufacturingStats.active}/${manufacturingStats.total}`}
-          icon={<Building2 className="text-success h-5 w-5" />}
-          tags={[
-            { label: "Active", value: manufacturingStats.active, status: "On Track" },
-            { label: "Available", value: manufacturingStats.available, status: "Inactive" }
-          ]}
-          className="h-64"
-        />
-      </div>
-      
-      {/* Project Status Breakdown Row */}
-      <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-6">
-        <div>
-          <ProjectStatusBreakdownCard projects={projects || []} />
+        {/* Manufacturing - Narrower (2 columns) */}
+        <div className="md:col-span-2">
+          <ProjectStatsCard 
+            title="Manufacturing"
+            value={`${manufacturingStats.active}/${manufacturingStats.total}`}
+            icon={<Building2 className="text-success h-5 w-5" />}
+            tags={[
+              { label: "Active", value: manufacturingStats.active, status: "On Track" },
+              { label: "Available", value: manufacturingStats.available, status: "Inactive" }
+            ]}
+            className="h-72"
+          />
         </div>
       </div>
+      
+      {/* Project Status Breakdown now part of Total Projects card */}
       
       {/* Current Production Status - Horizontal Card */}
       <div className="mb-6">
