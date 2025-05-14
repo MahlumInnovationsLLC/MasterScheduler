@@ -3049,10 +3049,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       dropTarget.setAttribute('data-bay-id', finalBayId.toString());
     }
     
-    if (rowIndex !== undefined && rowIndex >= 0) {
-      console.log(`Using direct row parameter: ${rowIndex} for bay ${bayId}`);
-      targetRowIndex = rowIndex;
-    } else if (globalRowIndex >= 0) {
+    // NEW IMPLEMENTATION: We're using newRow from our direct pixel calculation
+    // No longer using passed rowIndex since we now accept clientX/clientY instead of slotIndex/rowIndex
+    // Using the globalRowIndex that was already declared
+    
+    if (globalRowIndex >= 0) {
       console.log(`Using global row attribute: ${globalRowIndex} for bay ${bayId}`);
       targetRowIndex = globalRowIndex;
     } else {
@@ -3091,18 +3092,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Add detailed logging for debugging
     const rowCount = targetBay?.bayNumber === 7 ? 20 : 4;
     console.log(`🔍 ROW BOUNDS CHECK: Bay ${finalBayId} (Bay ${targetBay?.bayNumber || 'unknown'}) has ${rowCount} rows (max index: ${maxRowForBay})`);
-    console.log(`🔍 ADJUSTED ROW: ${targetRowIndex} (from original ${rowIndex}, global ${globalRowIndex})`);
+    console.log(`🔍 ADJUSTED ROW: ${targetRowIndex} (from global ${globalRowIndex} and calculated newRow ${newRow})`);
     
     
     // CRITICAL: We already decided to use the exact bay ID from the drop event parameter
     // DO NOT modify the bayId parameter - use it directly to ensure correct placement
     
     console.log(`⚠️ FIXED DROP HANDLER using actual drop target bay: ${bayId} with row: ${targetRowIndex} `);
-    console.log(`(Current row=${globalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
+    console.log(`(Current row=${globalRowIndex}, passed values: bay=${bayId})`);
     
     // Read data attributes from the drop target element for more precise week targeting
     let targetElement = e.target as HTMLElement;
-    let targetSlotIndex = slotIndex;
+    let targetSlotIndex = -1; // Initialize with invalid value, will be set from data attributes
     
     // First try the direct target element for data attributes
     const dataBayId = targetElement.getAttribute('data-bay-id');
@@ -3151,8 +3152,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Ensure we have valid indexes, especially for the slot
     if (targetSlotIndex < 0 || targetSlotIndex >= slots.length) {
       console.error('Invalid slot index detected:', targetSlotIndex);
-      // Use fallback to original slotIndex if target is out of bounds
-      targetSlotIndex = slotIndex;
+      // Use fallback to closest valid slot index
+      targetSlotIndex = 0; // Default to first slot if no valid index found
     }
     
     // Remove highlighted state from all cells - safely with separate selectors
@@ -3220,7 +3221,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
       
       console.log('Data received in drop:', dataStr);
-      console.log(`Dropping at bay ${bayId}, slot ${slotIndex}, row ${rowIndex}`);
+      console.log(`Dropping at bay ${bayId}, position: ${clientX},${clientY}`);
       console.log(`DROP HANDLER: FORCING BAY ID TO USE EXACT PARAMETER: ${bayId}`);
       
       const data = JSON.parse(dataStr);

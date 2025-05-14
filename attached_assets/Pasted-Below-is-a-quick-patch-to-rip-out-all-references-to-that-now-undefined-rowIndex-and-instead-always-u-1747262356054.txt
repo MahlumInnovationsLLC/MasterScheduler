@@ -1,0 +1,85 @@
+Below is a quick patch to rip out all references to that now-undefined rowIndex and instead always use your computed targetRowIndex. Apply this to client/src/components/ResizableBaySchedule.tsx:
+
+diff
+Copy
+Edit
+*** Begin Patch
+*** Update File: client/src/components/ResizableBaySchedule.tsx
+@@ -2980,13 +2980,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
+-  // old signature that expected rowIndex
+-  const handleDrop = (
+-    e: React.DragEvent,
+-    bayId: number,
+-    clientX: number,
+-    clientY: number,
+-    /* rowIndex?: number */
+-  ) => {
++  // new signature: only raw mouse coords
++  const handleDrop = (e: React.DragEvent, bayId: number, clientX: number, clientY: number) => {
+
+     e.preventDefault()
+     e.stopPropagation()
+
+@@ -2998,17 +2992,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
+     // 2) subtract where they grabbed the bar
+     const finalX = rawX - dragOffset.x
+     const finalY = rawY - dragOffset.y
+
+-    // you had code here trying to use `rowIndex`, which no longer exists…
+-    // let targetRowIndex = 0
+-    // if (rowIndex !== undefined && rowIndex >= 0) {
+-    //   targetRowIndex = rowIndex
+-    // } else {
+-    //   targetRowIndex = Math.floor(finalY / (bounds.height / TOTAL_ROWS))
+-    // }
++    // compute exactly which sub-row you dropped into
++    const TOTAL_ROWS = 4          // however many rows per bay
++    const rowHeight = bounds.height / TOTAL_ROWS
++    const targetRowIndex = Math.max(
++      0,
++      Math.min(TOTAL_ROWS - 1, Math.floor(finalY / rowHeight))
++    )
+
+     // …date math for formattedStart/formattedEnd…
+
+-    onScheduleChange(
+-      schedule.id,
+-      bayId,
+-      formattedStart,
+-      formattedEnd,
+-      schedule.totalHours ?? 0,
+-      rowIndex    // <-- remove this
+-    )
++    onScheduleChange(
++      schedule.id,
++      bayId,
++      formattedStart,
++      formattedEnd,
++      schedule.totalHours ?? 0,
++      targetRowIndex    // ← drop into exactly this row
++    )
+   }
+
+*** Update File: client/src/components/ResizableBaySchedule.tsx
+@@ -5600,7 +5600,7 @@ const renderBayGrid = (bay: Bay) => {
+         onDragOver={e => e.preventDefault()}
+         onDrop={e =>
+-          handleDrop(e, bay.id, idx, rowIdx)
++          handleDrop(e, bay.id, e.clientX, e.clientY)
+         }
+         key={`cell-${bay.id}-${idx}-${rowIdx}`}
+         className="bay-cell"
+*** End Patch
+What changed:
+
+Removed the unused /* rowIndex?: number */ parameter from handleDrop.
+
+Deleted the old if (rowIndex …) block that was causing rowIndex is not defined.
+
+Added a simple calculation of targetRowIndex from your raw Y–pixel (finalY).
+
+Passed that targetRowIndex into onScheduleChange(...).
+
+Updated the <div onDrop> so it only sends (e, bay.id, e.clientX, e.clientY).
+
+After applying this, your dragged bars will land in exactly the row under your cursor—no overlap checks, no fallbacks into row 0. Let me know how it behaves!
