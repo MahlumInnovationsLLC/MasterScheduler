@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext } from 'react';
 import { useLocation, Link } from 'wouter';
 import {
   LayoutDashboard,
@@ -17,15 +17,11 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import { SidebarContext } from '../App';
 
 const Sidebar = () => {
   const [location] = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
-
-  const toggleSidebar = () => {
-    setCollapsed(prevState => !prevState);
-    console.log('Toggle sidebar clicked');
-  };
+  const { isCollapsed: collapsed, toggleSidebar } = useContext(SidebarContext);
 
   const isActive = (path: string) => {
     return location === path;
@@ -37,7 +33,7 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className={`bg-darkCard border-r border-gray-800 h-screen overflow-y-auto pt-16 transition-all duration-300 relative ${collapsed ? 'w-[50px]' : 'w-[260px]'}`}>
+    <aside className="bg-darkCard border-r border-gray-800 h-screen overflow-y-auto pt-16 transition-all duration-300 fixed w-full">
       {/* Toggle Button - positioned outside of scrolling area */}
       <button 
         className="absolute top-12 right-2 bg-primary hover:bg-primary-dark text-white rounded-full p-2 shadow-lg z-10 border border-gray-700"

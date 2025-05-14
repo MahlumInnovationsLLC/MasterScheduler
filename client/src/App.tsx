@@ -77,9 +77,13 @@ function Router() {
     <SidebarContext.Provider value={{ isCollapsed, toggleSidebar }}>
       <div className="min-h-screen flex flex-col bg-darkBg text-white">
         <Header />
-        <div className={`flex-1 grid transition-all duration-300 ${isCollapsed ? 'grid-cols-[50px_1fr]' : 'grid-cols-[260px_1fr]'}`}>
-          <Sidebar />
-          <main className="overflow-y-auto h-screen pt-16">
+        <div className="flex flex-1 transition-all duration-300">
+          {/* Sidebar with fixed width */}
+          <div className={`transition-all duration-300 ${isCollapsed ? 'w-[50px]' : 'w-[260px]'}`}>
+            <Sidebar />
+          </div>
+          {/* Main content that expands to fill available space */}
+          <main className="flex-1 overflow-y-auto h-screen pt-16">
             <Switch>
               <ProtectedRoute path="/" component={Dashboard} />
               <ProtectedRoute path="/projects" component={ProjectStatus} />
