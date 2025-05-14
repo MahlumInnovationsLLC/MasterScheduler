@@ -3177,8 +3177,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       ));
       const isOverutilized = utilizationPercentage >= 100;
       
-      // Define the placement function first to avoid initialization errors
-      const handlePlacement = () => {
+      // We have several conditions to check, but we'll ONLY make ONE decision about placement
+      let placementDecision = false;
+      
+      // Function to handle the actual placement - only call this ONCE!
+      const handleActualPlacement = () => {
         console.log(`✅ EXACT PLACEMENT: Project will be placed in bay=${exactBayId}, row=${targetRowIndex}`);
         console.log(`📌 GUARANTEED ACCURACY: Sending EXACT row and bay to backend with NO MODIFICATIONS`);
         
@@ -3239,9 +3242,49 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         }
       };
       
-      // If no conflicts, proceed immediately with placement
-      if (!hasConflict && !isOverutilized) {
-        handlePlacement();
+      // Handle conflicts with a popup
+      if (hasConflict || isOverutilized) {
+        // Show a warning dialog
+        console.log("⚠️ CONFLICT DETECTED: Showing warning popup to user");
+        
+        // Create a conflict dialog
+        const confirmDialog = document.createElement('div');
+        confirmDialog.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+        confirmDialog.innerHTML = `
+          <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h3 class="text-lg font-bold mb-4 text-red-500">Warning: Placement Issue</h3>
+            <p class="mb-4">${hasConflict ? 'This project would overlap with another project in the same row.' : ''}</p>
+            <p class="mb-4">${isOverutilized ? 'This bay is already at or over capacity.' : ''}</p>
+            <p class="mb-6">Do you want to place the project here anyway?</p>
+            <div class="flex justify-end gap-4">
+              <button id="cancel-placement" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded">Cancel</button>
+              <button id="confirm-placement" class="px-4 py-2 bg-primary text-white rounded">Place Anyway</button>
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(confirmDialog);
+        
+        // Event listeners need to be properly cleaned up
+        const handleCancel = () => {
+          document.body.removeChild(confirmDialog);
+        };
+        
+        const handleConfirm = () => {
+          document.body.removeChild(confirmDialog);
+          console.log("User confirmed placement despite conflicts - proceeding with EXACT placement");
+          handleActualPlacement();
+        };
+        
+        // Add event listeners
+        const cancelButton = document.getElementById('cancel-placement');
+        if (cancelButton) cancelButton.addEventListener('click', handleCancel);
+        
+        const confirmButton = document.getElementById('confirm-placement');
+        if (confirmButton) confirmButton.addEventListener('click', handleConfirm);
+      } else {
+        // No conflicts, proceed immediately
+        handleActualPlacement();
       }
       
       // We no longer check for overlaps or attempt to find optimal rows
