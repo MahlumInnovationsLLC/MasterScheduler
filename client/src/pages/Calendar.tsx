@@ -260,10 +260,15 @@ const CalendarPage = () => {
         return item.projectId === projectId;
       });
 
-  // Combine schedule items and phase items
+  // Set up display options for calendar items
+  const [showPhases, setShowPhases] = useState<boolean>(false);
+  const [showShipDates, setShowShipDates] = useState<boolean>(false);
+  
+  // Combine schedule items and phase items based on display settings
   const calendarItems: ScheduleItem[] = [
     ...scheduleItems,
-    ...filteredPhaseItems
+    ...(showPhases ? filteredPhaseItems.filter(item => item.status !== 'milestone') : []),
+    ...(showShipDates ? filteredPhaseItems.filter(item => item.status === 'milestone') : [])
   ];
 
   // Handle form submission
@@ -677,14 +682,45 @@ const CalendarPage = () => {
                     : 'Detailed list of all scheduled manufacturing activities'}
                 </CardDescription>
               </div>
-              <div className="flex flex-col items-start gap-1">
-                <div className="flex items-center gap-2">
-                  <div className="bg-blue-600/80 w-3 h-3 rounded-full"></div> <span className="text-xs">Bay Schedules</span>
-                  <div className="bg-orange-600/70 w-3 h-3 rounded-full ml-2"></div> <span className="text-xs">Project Phases</span>
+              <div className="flex flex-col items-end gap-3">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-blue-600/80 w-3 h-3 rounded-full"></div> 
+                    <span className="text-xs">Bay Schedules</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      id="show-phases" 
+                      className="h-3.5 w-3.5 rounded border-gray-300" 
+                      checked={showPhases}
+                      onChange={(e) => setShowPhases(e.target.checked)}
+                    />
+                    <label htmlFor="show-phases" className="text-xs cursor-pointer flex items-center">
+                      <div className="bg-orange-600/70 w-3 h-3 rounded-full mr-1"></div> 
+                      <span>Project Phases</span>
+                    </label>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="bg-red-600/90 w-3 h-3 rounded-full"></div> <span className="text-xs">Ship Dates</span>
-                  <div className="bg-purple-600/80 w-3 h-3 rounded-full ml-2"></div> <span className="text-xs">Maintenance</span>
+                
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      id="show-ship-dates" 
+                      className="h-3.5 w-3.5 rounded border-gray-300" 
+                      checked={showShipDates}
+                      onChange={(e) => setShowShipDates(e.target.checked)}
+                    />
+                    <label htmlFor="show-ship-dates" className="text-xs cursor-pointer flex items-center">
+                      <div className="bg-red-600/90 w-3 h-3 rounded-full mr-1"></div> 
+                      <span>Ship Dates</span>
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="bg-purple-600/80 w-3 h-3 rounded-full"></div> 
+                    <span className="text-xs">Maintenance</span>
+                  </div>
                 </div>
               </div>
             </CardHeader>
