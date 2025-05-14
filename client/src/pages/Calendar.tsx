@@ -109,7 +109,7 @@ const CalendarPage = () => {
   });
   
   // Fetch billing milestones for display
-  const { data: billingMilestones = [] } = useQuery({
+  const { data: billingMilestones = [] } = useQuery<any[]>({
     queryKey: ['/api/billing-milestones'],
     enabled: isAuthenticated,
   });
@@ -307,11 +307,21 @@ const CalendarPage = () => {
   const [showPhases, setShowPhases] = useState<boolean>(false);
   const [showShipDates, setShowShipDates] = useState<boolean>(false);
   
-  // Combine schedule items and phase items based on display settings
+  // Filter billing milestones based on project filter
+  const filteredBillingMilestones = filterProject === 'all'
+    ? billingMilestoneItems
+    : billingMilestoneItems.filter(item => {
+        const projectId = parseInt(filterProject);
+        return item.projectId === projectId;
+      });
+
+  // Set up display options for calendar items
+  const [showBillingMilestones, setShowBillingMilestones] = useState<boolean>(true);
+  
+  // Combine milestone items only (no schedule bars)
   const calendarItems: ScheduleItem[] = [
-    ...scheduleItems,
-    ...(showPhases ? filteredPhaseItems.filter(item => item.status !== 'milestone') : []),
-    ...(showShipDates ? filteredPhaseItems.filter(item => item.status === 'milestone') : [])
+    ...(showShipDates ? filteredPhaseItems.filter(item => item.status === 'milestone') : []),
+    ...(showBillingMilestones ? filteredBillingMilestones : [])
   ];
 
   // Handle form submission
@@ -728,25 +738,19 @@ const CalendarPage = () => {
               <div className="flex flex-col items-end gap-3">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <div className="bg-blue-600/80 w-3 h-3 rounded-full"></div> 
-                    <span className="text-xs">Bay Schedules</span>
-                  </div>
-                  <div className="flex items-center gap-2">
                     <input 
                       type="checkbox" 
-                      id="show-phases" 
+                      id="show-billing" 
                       className="h-3.5 w-3.5 rounded border-gray-300" 
-                      checked={showPhases}
-                      onChange={(e) => setShowPhases(e.target.checked)}
+                      checked={showBillingMilestones}
+                      onChange={(e) => setShowBillingMilestones(e.target.checked)}
                     />
-                    <label htmlFor="show-phases" className="text-xs cursor-pointer flex items-center">
-                      <div className="bg-orange-600/70 w-3 h-3 rounded-full mr-1"></div> 
-                      <span>Project Phases</span>
+                    <label htmlFor="show-billing" className="text-xs cursor-pointer flex items-center">
+                      <div className="bg-blue-600/80 w-3 h-3 rounded-full mr-1"></div> 
+                      <span>Billing Milestones</span>
                     </label>
                   </div>
-                </div>
-                
-                <div className="flex items-center gap-4">
+                  
                   <div className="flex items-center gap-2">
                     <input 
                       type="checkbox" 
@@ -760,9 +764,21 @@ const CalendarPage = () => {
                       <span>Ship Dates</span>
                     </label>
                   </div>
+                </div>
+                
+                <div className="flex items-center gap-4 mt-1">
+                  <div className="text-xs text-gray-400 mr-2">Legend:</div>
                   <div className="flex items-center gap-2">
-                    <div className="bg-purple-600/80 w-3 h-3 rounded-full"></div> 
-                    <span className="text-xs">Maintenance</span>
+                    <div className="bg-green-600/80 w-3 h-3 rounded-full"></div> 
+                    <span className="text-xs">Paid</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="bg-amber-600/80 w-3 h-3 rounded-full"></div> 
+                    <span className="text-xs">Upcoming</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="bg-red-600/90 w-3 h-3 rounded-full"></div> 
+                    <span className="text-xs">Delayed</span>
                   </div>
                 </div>
               </div>
