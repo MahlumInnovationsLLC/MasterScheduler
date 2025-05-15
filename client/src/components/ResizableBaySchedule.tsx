@@ -558,12 +558,26 @@ export default function ResizableBaySchedule({
   };
   
   const handleDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, slotIndex: number) => {
-    // Critical: This prevents the "no-drop" icon from appearing
-    e.preventDefault();
+    // SUPER CRITICAL: This prevents the "no-drop" icon from appearing
+    e.preventDefault(); 
     e.stopPropagation();
     
     // Set dropEffect to 'move' to show the move cursor
     e.dataTransfer.dropEffect = 'move';
+    
+    // Add important attributes to identify elements as valid drop targets 
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.setAttribute('data-droppable', 'true');
+      e.currentTarget.style.cursor = 'move';
+      e.currentTarget.classList.add('valid-drop-target');
+    }
+    
+    // Store target position in global document for easier access
+    document.body.setAttribute('data-current-drop-target-bay', bayId.toString());
+    document.body.setAttribute('data-current-drop-target-row', rowIndex.toString());
+    
+    // Log to confirm drag over is working (debugging)
+    console.log(`✅ VALID DROP TARGET: Bay ${bayId}, Row ${rowIndex}`);
     
     // Update drop target information for tracking
     setDropTarget({ bayId, rowIndex });
@@ -1392,24 +1406,27 @@ export default function ResizableBaySchedule({
           {/* Timeline Header */}
           <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32">
             {slots.map((slot, index) => {
-              // Calculate the date range for the current week
-              const weekStart = slot.isStartOfWeek ? slot.date : startOfWeek(slot.date);
-              const weekEnd = endOfWeek(weekStart);
-              const formattedStartDate = format(weekStart, 'MMM d');
-              const formattedEndDate = format(weekEnd, 'MMM d');
-              const weekYear = format(slot.date, 'yyyy');
-              
-              // Only render cells for start of week to match design in screenshot
+              // For week headers, we only want one cell per week with width = 7 * slotWidth
+              // This ensures no gaps and creates a continuous header
               if (slot.isStartOfWeek) {
+                const weekStart = slot.date;
+                const weekEnd = endOfWeek(weekStart);
+                const formattedStartDate = format(weekStart, 'MMM d');
+                const formattedEndDate = format(weekEnd, 'MMM d');
+                
+                // Create a full-width week cell (7 days * slotWidth)
                 return (
                   <div
                     key={`header-${index}`}
-                    className="timeline-slot flex-shrink-0 bg-gray-800/90"
-                    style={{ width: `${slotWidth}px` }}
+                    className="timeline-slot flex-shrink-0 bg-gray-800/90 border-r border-gray-600"
+                    style={{ 
+                      width: `${slotWidth * 7}px`,
+                      minWidth: `${slotWidth * 7}px`
+                    }}
                     data-date={format(slot.date, 'yyyy-MM-dd')}
-                    data-week-number={slot.weekNumber}
+                    data-week-number={slot.weekNumber || Math.floor(index / 7)}
                   >
-                    {/* Enhanced week header to match the screenshot design */}
+                    {/* Week header with no gaps */}
                     <div className="week-number">
                       Week {slot.weekNumber || Math.floor(index / 7)}
                     </div>
@@ -1423,18 +1440,10 @@ export default function ResizableBaySchedule({
                     )}
                   </div>
                 );
-              } else {
-                // For non-week-start days, render an empty slot to maintain spacing
-                return (
-                  <div
-                    key={`header-${index}`}
-                    className="timeline-slot flex-shrink-0 bg-gray-800/40"
-                    style={{ width: `${slotWidth}px` }}
-                    data-date={format(slot.date, 'yyyy-MM-dd')}
-                  />
-                );
               }
-            })}
+              // Skip rendering for non-week-start days
+              return null;
+            }).filter(Boolean)}
           </div>
           
           {/* Today indicator */}
@@ -1619,10 +1628,11 @@ export default function ResizableBaySchedule({
                           />
                         ) : (
                           // SIMPLIFIED SINGLE-ROW LAYOUT - EACH BAY IS ONE ROW
-                          <div className="absolute inset-0 flex flex-col w-full">
-                            {/* Single row per bay - simplified drop zone */}
+                          <div className="absolute inset-0 flex flex-col w-full" style={{ minWidth: '100%', width: `${slots.length * slotWidth}px` }}>
+                            {/* Single row per bay - simplified drop zone - EXTENDED TO END OF TIMELINE */}
                             <div 
-                              className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative w-[100000px]" 
+                              className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
+                              style={{ width: `${slots.length * slotWidth}px`, minWidth: '100%' }}
                               onDragOver={(e) => {
                                 // Add strong visual indicator for this bay's single row
                                 e.currentTarget.classList.add('row-target-highlight', 'bay-highlight');
@@ -1699,7 +1709,7 @@ export default function ResizableBaySchedule({
                                   const isStartOfWeek = slot.isStartOfWeek;
                                   const isWeekend = !slot.isBusinessDay;
                                   
-                                  // Apply different styling based on week boundaries to match screenshot
+                                  // Consistent styling for all week cells - no alternating colors
                                   const cellClasses = [
                                     "relative h-full week-cell", // Base class for all cells
                                     
@@ -1709,8 +1719,8 @@ export default function ResizableBaySchedule({
                                     // Apply darker shade for weekends
                                     isWeekend ? "weekend-cell bg-gray-800/20" : "",
                                     
-                                    // Add clear alternating week colors to match the design
-                                    Math.floor(index / 7) % 2 === 0 ? "bg-gray-900/90" : "bg-gray-800/95"
+                                    // Single consistent background color
+                                    "bg-gray-900/95" 
                                   ].filter(Boolean).join(" ");
                                   
                                   return (
