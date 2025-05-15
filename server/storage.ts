@@ -162,8 +162,8 @@ export interface IStorage {
   // Manufacturing Schedule methods
   getManufacturingSchedules(filters?: { bayId?: number, projectId?: number, startDate?: Date, endDate?: Date }): Promise<ManufacturingSchedule[]>;
   getManufacturingSchedule(id: number): Promise<ManufacturingSchedule | undefined>;
-  createManufacturingSchedule(schedule: InsertManufacturingSchedule): Promise<ManufacturingSchedule>;
-  updateManufacturingSchedule(id: number, schedule: Partial<InsertManufacturingSchedule>): Promise<ManufacturingSchedule | undefined>;
+  createManufacturingSchedule(schedule: InsertManufacturingSchedule & { forcedRowIndex?: number }): Promise<ManufacturingSchedule>;
+  updateManufacturingSchedule(id: number, schedule: Partial<InsertManufacturingSchedule> & { forcedRowIndex?: number }): Promise<ManufacturingSchedule | undefined>;
   deleteManufacturingSchedule(id: number): Promise<boolean>;
   getBayManufacturingSchedules(bayId: number): Promise<ManufacturingSchedule[]>;
   getProjectManufacturingSchedules(projectId: number): Promise<ManufacturingSchedule[]>;
@@ -843,28 +843,38 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async updateManufacturingSchedule(id: number, schedule: Partial<InsertManufacturingSchedule>): Promise<ManufacturingSchedule | undefined> {
+  async updateManufacturingSchedule(id: number, schedule: Partial<InsertManufacturingSchedule> & { forcedRowIndex?: number }): Promise<ManufacturingSchedule | undefined> {
     try {
-      // CRITICAL FIX: Maintain row integrity on update too - ensure both row and rowIndex are preserved
-      // NO AUTO-ADJUSTMENT OF ANY KIND - use exactly what comes from UI
+      // 🚨 MAY 17 2025 - CRITICAL ROW PLACEMENT FIX FOR UPDATES 🚨
+      console.log(`🔴 STORAGE UPDATE: Raw row parameters received for schedule ${id}:
+        - Original schedule.forcedRowIndex: ${(schedule as any).forcedRowIndex}
+        - Original schedule.rowIndex: ${schedule.rowIndex}
+        - Original schedule.row: ${schedule.row}
+      `);
+      
+      // CRITICAL PRIORITY ORDER: forcedRowIndex > rowIndex > row
+      const finalRowValue = 
+        schedule.forcedRowIndex !== undefined ? Number(schedule.forcedRowIndex) :
+        schedule.rowIndex !== undefined ? Number(schedule.rowIndex) :
+        schedule.row !== undefined ? Number(schedule.row) : undefined;
+      
+      // If we have a final row value, use it for both row fields
+      // If not, preserve the existing values
       const scheduleWithRows = {
         ...schedule,
         updatedAt: new Date(),
-        // Only set these if actually present in the update, otherwise leave them unchanged
-        ...(schedule.row !== undefined ? { 
-          row: schedule.row,
-          rowIndex: schedule.row // Match rowIndex to row for consistency
-        } : {}),
-        // If rowIndex is provided but row isn't, use it for both
-        ...(schedule.row === undefined && schedule.rowIndex !== undefined ? {
-          row: schedule.rowIndex,
-          rowIndex: schedule.rowIndex
+        // Only set these if we calculated a final row value
+        ...(finalRowValue !== undefined ? { 
+          row: finalRowValue,
+          rowIndex: finalRowValue // Match rowIndex to row for consistency
         } : {})
       };
       
       console.log(`🚨 MANUFACTURING SCHEDULE UPDATE ${id}: PRESERVING EXACT ROW PLACEMENT`);
-      if (schedule.row !== undefined) {
-        console.log(`  - Forcing specific row: ${schedule.row}`);
+      if (finalRowValue !== undefined) {
+        console.log(`  - 🔴 CRITICAL: Forcing exact row placement: ${finalRowValue}`);
+        console.log(`  - This ensures projects stay EXACTLY where dropped by users`);
+        console.log(`  - Priority order: forcedRowIndex > rowIndex > row`);
       }
       if (schedule.bayId !== undefined) {
         console.log(`  - Using exact bay: ${schedule.bayId}`);
