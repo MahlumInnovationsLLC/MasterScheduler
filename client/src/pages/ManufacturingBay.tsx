@@ -324,12 +324,33 @@ const ManufacturingBay = () => {
             try {
               console.log(`Creating new schedule with EXACT row placement: Bay=${bayId}, Row=${row}, Project=${projectId}`);
               
-              // Get the current drag row from the document body if available
-              const preferredRow = document.body.getAttribute('data-current-drag-row');
-              const rowValue = row !== undefined ? row : (preferredRow ? parseInt(preferredRow) : 0);
+              // 🚨 MAY 17 2025 - CRITICAL EMERGENCY FIX 🚨
+              // ALWAYS prioritize the explicit row parameter passed from the drop handler
+              // This ensures pixel-perfect placement with projects appearing at exact drop position
               
-              console.log(`Row determined from params or data attribute: ${rowValue}`);
+              // Check multiple sources for the row value (in order of priority)
+              const forcedRowAttr = document.body.getAttribute('data-forced-row-index');
+              const absoluteRowAttr = document.body.getAttribute('data-absolute-row-index');
+              const exactRowAttr = document.body.getAttribute('data-exact-row');
+              const computedRowAttr = document.body.getAttribute('data-computed-row-index');
               
+              // Always use the row parameter if defined (highest priority)
+              // Fall back to various DOM attributes in priority order
+              const rowValue = row !== undefined ? row : 
+                  forcedRowAttr !== null ? parseInt(forcedRowAttr) :
+                  absoluteRowAttr !== null ? parseInt(absoluteRowAttr) :
+                  exactRowAttr !== null ? parseInt(exactRowAttr) :
+                  computedRowAttr !== null ? parseInt(computedRowAttr) :
+                  0; // Last resort default
+              
+              console.log(`🚨 CRITICAL ROW OVERRIDE: Using EXACT row position ${rowValue}`);
+              console.log(`Row sources: parameter=${row}, forced=${forcedRowAttr}, absolute=${absoluteRowAttr}, exact=${exactRowAttr}, computed=${computedRowAttr}`);
+              
+              // 🚨 MAY 17 2025 - CRITICAL ADDITIONAL FIX 🚨
+              // Add debug logging to show the EXACT data being sent to the API
+              console.log(`🚨 SENDING TO API: projectId=${projectId}, bayId=${bayId}, row=${rowValue}`);
+              
+              // Enhanced API call with redundant row parameters for maximum reliability
               const response = await fetch('/api/manufacturing-schedules', {
                 method: 'POST',
                 headers: {
@@ -341,7 +362,10 @@ const ManufacturingBay = () => {
                   startDate,
                   endDate,
                   status: 'scheduled',
-                  row: rowValue // CRITICAL: Include the row in the creation request
+                  row: rowValue, // Primary row parameter
+                  rowIndex: rowValue, // Redundant for maximum compatibility
+                  forcedRowIndex: rowValue, // Highest priority signal
+                  forceExactRowPlacement: true // Signal no auto-adjustment
                 }),
               });
               

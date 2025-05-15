@@ -1277,9 +1277,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           // CRITICAL FIX: Calculate position by date difference rather than slot index when far in future
           // This prevents the issue where future dates render at far left because no matching slot is found
           
-          if (startSlotIndex === -1 && startDate.getFullYear() >= 2025) {
+          if (startSlotIndex === -1) {
             // The date is outside our visible range - calculate position by date difference from first slot
-            console.warn(`Project ${project.projectNumber} date (${format(startDate, 'yyyy-MM-dd')}) is outside visible slot range`);
+            // MAY 17 2025 FIX: Change from warning to debug log to avoid console warnings
+            // This is normal when dealing with projects far in the future
+            console.log(`⚠️ Project ${project.projectNumber} date (${format(startDate, 'yyyy-MM-dd')}) is outside visible slot range - calculating position...`);
             
             // Use the first slot date as reference
             const firstSlotDate = slots.length > 0 ? slots[0].date : dateRange.start;
