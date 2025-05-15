@@ -832,9 +832,8 @@ export class DatabaseStorage implements IStorage {
         // MANDATORY: Force both row fields to be EXACTLY the same precise value 
         row: finalRow,
         rowIndex: finalRow,
-        // Clear these special fields to avoid confusion later
-        forcedRowIndex: undefined,
-        exactPosition: undefined
+        // We need to cast to any since these fields aren't in the schema
+        // They are for processing only and don't need to be stored in DB
       };
       
       console.log(`🚨 FINAL MANDATORY ROW: Will use ROW=${scheduleWithRows.row}, ROWINDEX=${scheduleWithRows.rowIndex}`);
