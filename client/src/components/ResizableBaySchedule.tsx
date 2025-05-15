@@ -1443,20 +1443,18 @@ export default function ResizableBaySchedule({
         <div className="bay-schedule-viewport flex-grow overflow-auto" ref={viewportRef}>
           <div className="bay-schedule-container relative" ref={timelineRef}>
           {/* Timeline Header */}
-          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm grid ml-32"
-               style={{ 
-                 gridTemplateColumns: `repeat(${slots.filter(s => s.isStartOfWeek).length}, ${slotWidth * 7}px)`,
-               }}>
-            {slots.filter(slot => slot.isStartOfWeek).map((slot, slotIndex) => {
-              // For week headers, we use a CSS grid layout with explicit week cells
-              // This ensures perfect vertical alignment with bay cells below
-              const weekStart = slot.date;
-              const weekEnd = endOfWeek(weekStart);
-              const formattedStartDate = format(weekStart, 'MMM d');
-              const formattedEndDate = format(weekEnd, 'MMM d');
-              const weekYear = format(weekStart, 'yyyy');
+          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32">
+            {slots.map((slot, slotIndex) => {
+              // For week headers, we only want one cell per week with width = 7 * slotWidth
+              // This ensures no gaps and creates a continuous header
+              if (slot.isStartOfWeek) {
+                const weekStart = slot.date;
+                const weekEnd = endOfWeek(weekStart);
+                const formattedStartDate = format(weekStart, 'MMM d');
+                const formattedEndDate = format(weekEnd, 'MMM d');
+                const weekYear = format(weekStart, 'yyyy');
                 
-                // Create a HALF-width week cell to match screenshot (3.5 days worth of width)
+                // Create a full-width week cell (7 days worth of width)
                 return (
                   <div
                     key={`header-${slotIndex}`}
@@ -1468,7 +1466,7 @@ export default function ResizableBaySchedule({
                     data-date={format(slot.date, 'yyyy-MM-dd')}
                     data-week-number={slot.weekNumber || Math.floor(slotIndex / 7)}
                   >
-                    {/* Week header with no gaps but HALF width */}
+                    {/* Week header with no gaps but full width */}
                     <div className="week-number">
                       Week {slot.weekNumber || Math.floor(slotIndex / 7)}
                     </div>
@@ -1485,7 +1483,7 @@ export default function ResizableBaySchedule({
               }
               // Skip rendering for non-week-start days
               return null;
-            }).filter(Boolean)}
+            })}
           </div>
           
           {/* Today indicator */}
@@ -1743,10 +1741,9 @@ export default function ResizableBaySchedule({
                                 </div>
                               </div>
                               
-                              {/* Cell grid for this bay - Grid system with EXACT ALIGNMENT to headers */}
-                              <div className="absolute inset-0 grid" 
+                              {/* Cell grid for this bay - Flex layout to match header */}
+                              <div className="absolute inset-0 flex" 
                                 style={{ 
-                                  gridTemplateColumns: `repeat(${slots.filter(s => s.isStartOfWeek).length}, ${slotWidth * 7}px)`,
                                   width: `${slots.length * slotWidth}px` 
                                 }}>
                                 {/* We only render cells for the start of weeks to match timeline headers */}
