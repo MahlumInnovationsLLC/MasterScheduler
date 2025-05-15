@@ -5685,10 +5685,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center">
                   <div className="flex flex-col items-center mr-2">
-                    <span className="text-xs font-semibold text-blue-400 mb-1">BAY</span>
-                    <Badge variant="outline">
-                      {bay.bayNumber}
-                    </Badge>
+                    {/* Display the team number based on bay number */}
+                    {bay.bayNumber % 2 === 1 ? (
+                      <>
+                        <span className="text-xs font-semibold text-green-400 mb-1">TEAM {Math.ceil(bay.bayNumber / 2)}</span>
+                        <Badge variant="outline" className="bg-green-100/10">
+                          Bay {bay.bayNumber}
+                        </Badge>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-xs font-semibold text-blue-400 mb-1">TEAM {Math.floor(bay.bayNumber / 2)}</span>
+                        <Badge variant="outline" className="bg-blue-100/10">
+                          Bay {bay.bayNumber}
+                        </Badge>
+                      </>
+                    )}
                   </div>
                   <div>
                     <div className="text-sm font-semibold">
@@ -7447,7 +7459,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   {/* Row dividers - dynamic based on bay type */}
                   <div className="absolute inset-0 flex flex-col pointer-events-none">
                     {(() => {
-                      const rowCount = isTeam7Or8 ? 20 : 4;
+                      // CRITICAL CHANGE: May 2025 - All bays now show just 1 row (team-based approach)
+                      const rowCount = 1; // All bays have exactly 1 row now
                       const rowHeight = 100 / rowCount; // % height for each row
                       
                       return Array.from({ length: rowCount }).map((_, i) => (
@@ -7465,12 +7478,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     {isTeam7Or8 ? 
                       <div className="flex flex-col items-center">
                         <span className="font-semibold text-blue-400">Team {virtualBayId}</span>
-                        <span className="text-gray-500">(20 rows capacity)</span>
+                        <span className="text-gray-500">(TCV Line - team layout)</span>
                       </div> 
                       : 
                       <div className="flex flex-col items-center">
                         <span className="font-semibold text-gray-400">Bay {virtualBayId}</span>
-                        <span className="text-gray-500">(4 rows capacity)</span>
+                        <span className="text-gray-500">(Single bay - team layout)</span>
                       </div>
                     }
                   </div>
