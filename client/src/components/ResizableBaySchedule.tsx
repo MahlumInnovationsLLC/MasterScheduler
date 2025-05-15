@@ -1699,14 +1699,18 @@ export default function ResizableBaySchedule({
                                   const isStartOfWeek = slot.isStartOfWeek;
                                   const isWeekend = !slot.isBusinessDay;
                                   
-                                  // Apply different styling based on week boundaries
+                                  // Apply different styling based on week boundaries to match screenshot
                                   const cellClasses = [
                                     "relative h-full week-cell", // Base class for all cells
-                                    isStartOfMonth ? "month-boundary border-l-2 border-r border-gray-700/50" : "border-r border-gray-700/30",
-                                    isStartOfWeek ? "week-boundary border-l border-gray-700/40" : "",
-                                    isWeekend ? "weekend-cell bg-gray-100/5" : "",
-                                    // Add alternate week coloring for better visibility
-                                    Math.floor(index / 7) % 2 === 0 ? "even-week" : "odd-week bg-gray-800/5"
+                                    
+                                    // Mark week boundaries with clear border
+                                    isStartOfWeek ? "border-l border-r border-gray-700/80" : "border-r border-gray-700/30",
+                                    
+                                    // Apply darker shade for weekends
+                                    isWeekend ? "weekend-cell bg-gray-800/20" : "",
+                                    
+                                    // Add clear alternating week colors to match the design
+                                    Math.floor(index / 7) % 2 === 0 ? "bg-gray-900/90" : "bg-gray-800/95"
                                   ].filter(Boolean).join(" ");
                                   
                                   return (
