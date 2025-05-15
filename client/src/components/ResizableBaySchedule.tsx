@@ -1748,14 +1748,14 @@ export default function ResizableBaySchedule({
                                         // Store precise location data in the document for the drop handler
                                         document.body.setAttribute('data-current-drag-row', '0');
                                         document.body.setAttribute('data-current-drag-bay', bay.id.toString());
-                                        document.body.setAttribute('data-current-week', (slot.weekNumber || Math.floor(index / 7)).toString());
+                                        document.body.setAttribute('data-current-week', (slot.weekNumber || Math.floor(slotIndex / 7)).toString());
                                         document.body.setAttribute('data-current-date', format(slot.date, 'yyyy-MM-dd'));
                                         
                                         // Make sure the element has all the necessary data attributes
                                         if (e.currentTarget instanceof HTMLElement) {
                                           e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
                                           e.currentTarget.setAttribute('data-row-index', '0');
-                                          e.currentTarget.setAttribute('data-week', (slot.weekNumber || Math.floor(index / 7)).toString());
+                                          e.currentTarget.setAttribute('data-week', (slot.weekNumber || Math.floor(slotIndex / 7)).toString());
                                           
                                           // Add enhanced visual feedback with animation
                                           e.currentTarget.classList.add('cell-highlight', 'exact-week-highlight', 'drop-target-active');
@@ -1771,7 +1771,7 @@ export default function ResizableBaySchedule({
                                         }
                                         
                                         // Log for debugging
-                                        console.log(`✅ VALID DROP TARGET: Bay ${bay.id}, Week ${slot.weekNumber || Math.floor(index / 7)}, Date ${format(slot.date, 'yyyy-MM-dd')}`);
+                                        console.log(`✅ VALID DROP TARGET: Bay ${bay.id}, Week ${slot.weekNumber || Math.floor(slotIndex / 7)}, Date ${format(slot.date, 'yyyy-MM-dd')}`);
                                         
                                         // Call the slot drag over handler
                                         handleSlotDragOver(e, bay.id, 0, slot.date);
@@ -1793,10 +1793,10 @@ export default function ResizableBaySchedule({
                                       }}
                                       onDrop={(e) => {
                                         // Enhanced drop handling with week precision
-                                        console.log(`Dropping in exact week: Bay ${bay.id}, Week ${slot.weekNumber || Math.floor(index / 7)}, Date ${format(slot.date, 'yyyy-MM-dd')}`);
+                                        console.log(`Dropping in exact week: Bay ${bay.id}, Week ${slot.weekNumber || Math.floor(slotIndex / 7)}, Date ${format(slot.date, 'yyyy-MM-dd')}`);
                                         
                                         // Store drop location for debugging and validation
-                                        document.body.setAttribute('data-drop-week', (slot.weekNumber || Math.floor(index / 7)).toString());
+                                        document.body.setAttribute('data-drop-week', (slot.weekNumber || Math.floor(slotIndex / 7)).toString());
                                         document.body.setAttribute('data-drop-date', format(slot.date, 'yyyy-MM-dd'));
                                         
                                         // Use the data stored on the element for drop handling
@@ -1817,7 +1817,7 @@ export default function ResizableBaySchedule({
                                       {/* Week number indicator for better visual reference */}
                                       {isStartOfWeek && (
                                         <div className="absolute top-0 left-0 text-[8px] bg-gray-700/30 text-gray-300 px-1 rounded-br">
-                                          W{slot.weekNumber || Math.floor(index / 7)}
+                                          W{slot.weekNumber || Math.floor(slotIndex / 7)}
                                         </div>
                                       )}
                                     </div>
