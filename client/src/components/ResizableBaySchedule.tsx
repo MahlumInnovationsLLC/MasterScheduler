@@ -3791,12 +3791,25 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       document.body.setAttribute('data-final-row-placement', absoluteRowIndex.toString())
       document.body.setAttribute('data-exact-absolute-row', absoluteRowIndex.toString())
       
+      // CRITICAL: This is the key attribute used by handleScheduleChange
+      document.body.setAttribute('data-forced-row-index', absoluteRowIndex.toString())
+      
       // Store the EXACT Y pixel position - this will be used for verification
       document.body.setAttribute('data-exact-y-position', exactPositionY.toString())
       
       // Add special flags to enforce this value through multiple function calls
       document.body.setAttribute('data-use-absolute-positioning', 'true')
       document.body.setAttribute('data-override-all-row-calculations', 'true')
+      
+      // ADD DROP DEBUG LOGS
+      console.log(`🚨 DROP DEBUG - POSITION VALUES:
+        - Exact Y position: ${exactPositionY}px
+        - Row height: ${rowHeight}px
+        - Row calculation: ${exactPositionY}px / ${rowHeight}px = ${absoluteRowIndex}
+        - data-forced-row-index: ${absoluteRowIndex}
+        - Container height: ${containerRect.height}px
+        - Total rows: ${TOTAL_ROWS}
+      `)
       
       // Make sure we store an additional attribute specifically for Y-axis positioning
       document.body.setAttribute('data-y-axis-row', computedRowIndex.toString())
@@ -4363,9 +4376,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             console.log(`⚠️⚠️⚠️ ABSOLUTE POSITION CHANGE: Row ${oldRowIndex} → ${rowIndexToUse} (from pixel Y position)`);
             
             // Store this value with highest priority for the server request
+            // CRITICAL FIX: Set data-forced-row-index FIRST before any other attributes
             document.body.setAttribute('data-forced-row-index', rowIndexToUse.toString());
             document.body.setAttribute('data-final-exact-row', rowIndexToUse.toString());
             document.body.setAttribute('data-absolute-position-used', 'true');
+            
+            // ADD MORE DEBUG LOGGING
+            console.log(`🚨 DATA ATTRIBUTE CHECK - FORCED ROW INDEX:
+              - Value set on data-forced-row-index: ${rowIndexToUse}
+              - Current value in DOM: ${document.body.getAttribute('data-forced-row-index')}
+              - This is what BaySchedulingPage.handleScheduleChange() will use
+            `);
         }
         // SECOND PRIORITY: Fall back to the strict Y position calculation if available
         else if (strictYPositionRow !== undefined) {
