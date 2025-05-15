@@ -1171,10 +1171,11 @@ export default function ResizableBaySchedule({
   
   return (
     <div className="resizable-bay-schedule relative flex flex-col h-full dark">
-      <div className="schedule-header sticky top-0 z-10 bg-background border-b shadow-sm">
+      {/* Header Bar */}
+      <div className="schedule-header sticky top-0 z-10 bg-gray-900 border-b border-gray-700 shadow-sm">
         <div className="flex justify-between items-center p-2">
           <div className="flex items-center space-x-2">
-            <h2 className="text-lg font-semibold">Manufacturing Schedule</h2>
+            <h2 className="text-lg font-semibold text-white">Manufacturing Schedule</h2>
             <Badge variant="secondary" className="ml-2">
               {viewMode.charAt(0).toUpperCase() + viewMode.slice(1)} View
             </Badge>
@@ -1958,6 +1959,7 @@ export default function ResizableBaySchedule({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
