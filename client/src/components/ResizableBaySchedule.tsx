@@ -1405,7 +1405,7 @@ export default function ResizableBaySchedule({
           <div className="bay-schedule-container relative" ref={timelineRef}>
           {/* Timeline Header */}
           <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32">
-            {slots.map((slot, index) => {
+            {slots.map((slot, slotIndex) => {
               // For week headers, we only want one cell per week with width = 7 * slotWidth
               // This ensures no gaps and creates a continuous header
               if (slot.isStartOfWeek) {
@@ -1418,18 +1418,18 @@ export default function ResizableBaySchedule({
                 // Create a HALF-width week cell to match screenshot (3.5 days worth of width)
                 return (
                   <div
-                    key={`header-${index}`}
+                    key={`header-${slotIndex}`}
                     className="timeline-slot flex-shrink-0 bg-gray-800/90 border-r border-gray-600"
                     style={{ 
                       width: `${slotWidth * 3.5}px`,
                       minWidth: `${slotWidth * 3.5}px`
                     }}
                     data-date={format(slot.date, 'yyyy-MM-dd')}
-                    data-week-number={slot.weekNumber || Math.floor(index / 7)}
+                    data-week-number={slot.weekNumber || Math.floor(slotIndex / 7)}
                   >
                     {/* Week header with no gaps but HALF width */}
                     <div className="week-number">
-                      Week {slot.weekNumber || Math.floor(index / 7)}
+                      Week {slot.weekNumber || Math.floor(slotIndex / 7)}
                     </div>
                     <div className="week-date-range">
                       {formattedStartDate} - {formattedEndDate} {weekYear}
@@ -1805,7 +1805,7 @@ export default function ResizableBaySchedule({
                                         // Add visual indicator for drop location (remove after 2 seconds)
                                         const indicator = document.createElement('div');
                                         indicator.className = 'absolute bg-green-500/30 border border-green-500 w-full h-full flex items-center justify-center';
-                                        indicator.innerHTML = `<span class="text-xs font-bold text-white">Week ${slot.weekNumber || Math.floor(index / 7)}</span>`;
+                                        indicator.innerHTML = `<span class="text-xs font-bold text-white">Week ${slot.weekNumber || Math.floor(slotIndex / 7)}</span>`;
                                         e.currentTarget.appendChild(indicator);
                                         setTimeout(() => {
                                           if (indicator.parentNode) {
