@@ -799,14 +799,12 @@ export class DatabaseStorage implements IStorage {
   async createManufacturingSchedule(schedule: InsertManufacturingSchedule): Promise<ManufacturingSchedule> {
     try {
       // CRITICAL FIX: Force exact row placement at all times
-      // Get highest priority row value (forcedRowIndex > rowIndex > row > default)
-      const forcedRowIndex = schedule.forcedRowIndex !== undefined ? parseInt(String(schedule.forcedRowIndex)) : undefined;
+      // Get highest priority row value (rowIndex > row > default)
       const rowIndex = schedule.rowIndex !== undefined ? parseInt(String(schedule.rowIndex)) : undefined;
       const row = schedule.row !== undefined ? parseInt(String(schedule.row)) : undefined;
       
       // Determine row value with strict priority and NO AUTO ADJUSTMENT
-      const finalRow = forcedRowIndex !== undefined ? forcedRowIndex :
-                       rowIndex !== undefined ? rowIndex :
+      const finalRow = rowIndex !== undefined ? rowIndex :
                        row !== undefined ? row : 
                        0; // Last resort default is row 0
       
@@ -834,17 +832,15 @@ export class DatabaseStorage implements IStorage {
   async updateManufacturingSchedule(id: number, schedule: Partial<InsertManufacturingSchedule>): Promise<ManufacturingSchedule | undefined> {
     try {
       // CRITICAL FIX: Force exact row placement at all times when updating
-      // Get highest priority row value (forcedRowIndex > rowIndex > row)
-      const forcedRowIndex = schedule.forcedRowIndex !== undefined ? parseInt(String(schedule.forcedRowIndex)) : undefined;
+      // Get highest priority row value (rowIndex > row)
       const rowIndex = schedule.rowIndex !== undefined ? parseInt(String(schedule.rowIndex)) : undefined;
       const row = schedule.row !== undefined ? parseInt(String(schedule.row)) : undefined;
       
       // Only process row changes if at least one of the row fields is provided
-      const hasRowUpdate = forcedRowIndex !== undefined || rowIndex !== undefined || row !== undefined;
+      const hasRowUpdate = rowIndex !== undefined || row !== undefined;
       
       // Determine row value with strict priority and NO AUTO ADJUSTMENT
       const finalRow = hasRowUpdate ? (
-        forcedRowIndex !== undefined ? forcedRowIndex :
         rowIndex !== undefined ? rowIndex :
         row // row is definitely defined here if hasRowUpdate is true
       ) : undefined;

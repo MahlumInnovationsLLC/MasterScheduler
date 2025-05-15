@@ -472,7 +472,7 @@ export const manufacturingSchedules = pgTable("manufacturing_schedules", {
   totalHours: integer("total_hours").default(1000), // Total hours needed for this project
   row: integer("row").default(0), // Row position within bay (0-3)
   rowIndex: integer("row_index").default(0), // New field for row index (1-4) - friendly name used in code
-  forcedRowIndex: integer("forced_row_index"), // Special field for forced row placement with highest priority
+  // forcedRowIndex field removed to avoid DB errors
   status: manufacturingStatusEnum("status").default("scheduled").notNull(),
   fabricationStart: date("fabrication_start"),
   assemblyStart: date("assembly_start"),
