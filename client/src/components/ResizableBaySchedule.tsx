@@ -4533,11 +4533,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             parseInt(document.body.getAttribute('data-strict-y-position-row') || '0') : 
             undefined;
             
-        // ⚠️⚠️⚠️ MAY 2025 CRITICAL FIX: ABSOLUTE PIXEL POSITIONING OVERRIDE ⚠️⚠️⚠️
-        // Start with the calculated final row index
-        let rowIndexToUse = finalRowIndex;
+        // 🚨🚨🚨 MAY 16 2025 - CRITICAL EMERGENCY FIX 🚨🚨🚨
         
-        // FIRST PRIORITY: Use the absolute row index from the pixel position calculation
+        // DIRECT ROW INDEX OVERRIDE - No auto-positioning whatsoever
+        // Get the EXACT row from the drop parameters
+        const forcedRowAttr = document.body.getAttribute('data-forced-row-index');
+        const rowIndexFromAttribute = forcedRowAttr !== null ? parseInt(forcedRowAttr) : null;
+        
+        // This is the EXACT row where the user dropped the project
+        let rowIndexToUse = rowIndexFromAttribute !== null ? rowIndexFromAttribute : rowIndex;
+        
+        // This is our guaranteed source of truth - the direct row parameter from drop event
+        console.log(`💥 EMERGENCY FIX: Using EXACT row position ${rowIndexToUse} from user drop position`);
+        console.log(`💥 NO AUTO-ADJUSTMENT OF ANY KIND - Using direct parameter from drop event`);
+        console.log(`💥 All positioning logic bypassed - project will stay EXACTLY where user placed it`);
         // This is the NEW May 2025 approach for pixel-perfect placement
         const absoluteRowIndex = document.body.getAttribute('data-absolute-row-index');
         if (absoluteRowIndex !== null) {
