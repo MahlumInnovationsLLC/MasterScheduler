@@ -757,58 +757,91 @@ export default function ResizableBaySchedule({
   const getDateFromDropPosition = (e: React.DragEvent, bayId: number, rowIndex: number): Date | null => {
     console.log(`DROP DEBUG: Bay ID ${bayId}, Row Index ${rowIndex}`);
     
-    // Try to get date from data attributes first (more precise if available)
+    // If the drop target has a data-date attribute, use that for super precise positioning
+    let targetElement: HTMLElement | null = null;
+    
+    // Try to get the week cell directly
+    if (e.target instanceof HTMLElement) {
+      targetElement = e.target;
+      if (targetElement.classList.contains('week-cell')) {
+        const dateAttr = targetElement.getAttribute('data-date');
+        if (dateAttr) {
+          console.log(`DROP DEBUG: Using EXACT week-cell date attribute: ${dateAttr}`);
+          // Visual marker for debugging
+          targetElement.style.backgroundColor = 'rgba(0, 255, 0, 0.2)';
+          setTimeout(() => {
+            targetElement!.style.backgroundColor = '';
+          }, 1000);
+          return new Date(dateAttr);
+        }
+      }
+    }
+    
+    // Check the current target element
     if (e.currentTarget instanceof HTMLElement) {
       const dateAttr = e.currentTarget.getAttribute('data-date');
       if (dateAttr) {
-        console.log(`DROP DEBUG: Using date attribute: ${dateAttr}`);
+        console.log(`DROP DEBUG: Using current target date attribute: ${dateAttr}`);
         return new Date(dateAttr);
       }
     }
     
-    // Get the element where the drop happened
-    const dropTarget = e.target as HTMLElement;
-    if (dropTarget?.classList.contains('week-cell')) {
-      const dateAttr = dropTarget.getAttribute('data-date');
-      if (dateAttr) {
-        console.log(`DROP DEBUG: Using week-cell date attribute: ${dateAttr}`);
-        return new Date(dateAttr);
-      }
-    }
-    
+    // EXACT PIXEL POSITIONING: Calculate the date from the mouse position
     try {
-      // Find the timeline element that contains the week cells
+      // Find the timeline element
       const timelineEl = timelineRef.current;
       if (!timelineEl) {
         console.error('DROP DEBUG: Timeline element not found');
-        return addDays(dateRange.start, 0); // Default to start date
+        return addDays(dateRange.start, 0); 
       }
       
-      // Get the timeline bounding rect
+      // Get the timeline bounds
       const timelineRect = timelineEl.getBoundingClientRect();
       
-      // Get the offset from the start of the timeline (left edge) 
-      const timelineX = e.clientX - timelineRect.left - 32; // Adjust for bay label width
+      // Get the bay element bounds
+      const bayContainer = document.querySelector(`[data-bay-id="${bayId}"]`) as HTMLElement;
+      if (!bayContainer) {
+        console.error(`DROP DEBUG: Bay container not found for bay ID ${bayId}`);
+        return addDays(dateRange.start, 0);
+      }
       
-      // Make sure we have a positive value
-      const adjustedX = Math.max(0, timelineX);
+      // Calculate using the bay container's bounds instead of timeline
+      // This is more accurate for positioning within a specific bay
+      const bayRect = bayContainer.getBoundingClientRect();
       
-      // Calculate date based on slot width with precise positioning
+      // Calculate X offset in pixels from the left edge of the bay content area
+      const bayX = e.clientX - bayRect.left - 32; // Adjust for bay label width
+      const adjustedX = Math.max(0, bayX);
+      
+      // Calculate date based on slot width with PRECISE positioning
       const dayWidth = viewMode === 'day' ? slotWidth : slotWidth / 7;
       
-      // Calculate the day offset based on pixels
+      // Calculate the day offset in fractional days for extreme precision
       const dayOffset = adjustedX / dayWidth;
-      console.log(`DROP DEBUG: Improved calculation - timelineX: ${timelineX}px, adjustedX: ${adjustedX}px, dayWidth: ${dayWidth}px, dayOffset: ${dayOffset} days`);
+      console.log(`🎯 PRECISE POSITION - bayX: ${bayX}px, dayWidth: ${dayWidth}px, dayOffset: ${dayOffset} days`);
       
-      // Get the exact date
+      // Use exact date with no rounding - this is crucial for pixel-perfect placement
+      // Math.floor ensures the date is at the start of the day where the drop occurred
       const exactDate = addDays(dateRange.start, Math.floor(dayOffset));
-      console.log(`DROP DEBUG: Target date: ${format(exactDate, 'yyyy-MM-dd')}`);
+      console.log(`🎯 TARGET DATE: ${format(exactDate, 'yyyy-MM-dd')}`);
+      
+      // Create visual marker to show where calculation happened
+      const marker = document.createElement('div');
+      marker.className = 'absolute w-1 h-16 bg-green-500/50 z-50 pointer-events-none';
+      marker.style.left = `${adjustedX + 32}px`; // Adjust for label
+      marker.style.top = '0px';
+      bayContainer.appendChild(marker);
+      
+      // Remove marker after 1 second
+      setTimeout(() => {
+        if (marker.parentNode) marker.parentNode.removeChild(marker);
+      }, 1000);
       
       return exactDate;
     } catch (error) {
       console.error('Error calculating drop position:', error);
       
-      // Fallback - use the center of the first visible week on screen
+      // Fallback - first day in schedule range
       return addDays(dateRange.start, 0);
     }
   };
