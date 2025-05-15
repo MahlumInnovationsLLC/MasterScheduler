@@ -2956,11 +2956,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Set maxRowForBay based on bay type
     const maxRowForBay = targetBay?.bayNumber === 7 ? 19 : 3; // (20 rows = indexes 0-19, 4 rows = indexes 0-3)
     
-    // Calculate exact row index based on finalY position - NO BOUNDS CHECKING
-    const targetRowIndex = Math.max(
-      0, 
-      Math.min(TOTAL_ROWS - 1, Math.floor(finalY / rowHeight))
-    );
+    // Calculate exact row index based on finalY position - TRULY NO BOUNDS CHECKING
+    // CRITICAL FIX: Remove ALL min/max constraints to allow absolute positioning
+    const targetRowIndex = Math.floor(finalY / rowHeight);
+    console.log(`🚨 ABSOLUTE POSITION: Calculated row ${targetRowIndex} with NO bounds checking`);
+    
+    // Force this row into the DOM for later verification
+    document.body.setAttribute('data-precision-drop-row', targetRowIndex.toString());
     
     // Convert X position to date
     const weeksOffset = finalX / slotWidth; // slotWidth is pixels per week
@@ -3784,9 +3786,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             startDate: formattedStartDate, // DIRECT from coordinate calculation 
             endDate: formattedEndDate, // Calculated directly from our exact start date
             totalHours,
-            // CRITICAL FIX: Use multiple row parameters to ensure server respects placement
+            // CRITICAL FIX: Use EXACT coordinates with NO BOUNDS CHECKING WHATSOEVER
+            // FORCE exact row placement with absolute precision
             row: targetRowIndex,
             rowIndex: targetRowIndex,
+            // Add these extra parameters to absolutely guarantee no bounds checking is applied
+            forcedRowIndex: targetRowIndex,
+            exactPosition: true,
           })
         })
         .then(response => {
