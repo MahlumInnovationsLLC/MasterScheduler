@@ -3195,20 +3195,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }, 1500);
     }
     
-    // ── NEW: PIXEL-PERFECT DROP PLACEMENT ────────────────────────────────────
-    if (!timelineContainerRef.current) {
-      console.error("Timeline container ref not available!");
-      return;
-    }
+    // ----- PIXEL-PERFECT DATE CALCULATION -----
     
-    // CRITICAL 2023-05-15 FIX: Get drop target cell's date directly
-    // This is the most important fix - get the date directly from the target cell
+    // Get direct cell date from drop target
     const targetCell = e.currentTarget as HTMLElement;
     const targetCellDate = targetCell.getAttribute('data-start-date');
     
     if (targetCellDate) {
-      console.log(`🎯 DIRECT CELL DATE: Found exact date ${targetCellDate} directly from drop target`);
-      // Immediately store this as our authoritative source 
+      console.log(`🎯 DIRECT CELL DATE: Found exact date ${targetCellDate} directly from target`);
+      // Store this as our authoritative date source
       document.body.setAttribute('data-exact-drop-date', targetCellDate);
       document.body.setAttribute('data-week-start-date', targetCellDate);
       document.body.setAttribute('data-current-cell-date', targetCellDate);
@@ -3216,31 +3211,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       (window as any).lastExactDate = targetCellDate;
     }
     
-    // 1) Get container bounds
-    const containerRect = timelineContainerRef.current.getBoundingClientRect();
-    
-    // 2) Raw mouse position inside container
-    const rawX = e.clientX - containerRect.left;
-    const rawY = e.clientY - containerRect.top;
-    
-    // 3) Subtract where the user grabbed the bar
-    const finalX = rawX - dragOffset.x;
-    const finalY = rawY - dragOffset.y;
-    
-    // 4) CRITICAL DATE SELECTION FIX
-    // Try to use the exact week date from attributes set during cell dragover
+    // Determine start date from all possible sources in priority order
     let formattedStartDate = '';
     
-    // Get the exact date from ALL possible sources in order of preference
-    // MOST IMPORTANT: Direct cell date from the drop target is highest priority
-    const directCellDate = targetCellDate;
+    // Collect all possible date sources
     const exactDropDate = document.body.getAttribute('data-exact-drop-date');
     const weekStartDate = document.body.getAttribute('data-week-start-date');
     const currentCellDate = document.body.getAttribute('data-current-cell-date');
     const globalExactDate = (window as any).lastExactDate;
     
-    if (directCellDate) {
-        formattedStartDate = directCellDate;
+    // Use the first available date source (in priority order)
+    if (targetCellDate) {
+        formattedStartDate = targetCellDate;
         console.log(`⭐ USING DIRECT CELL DATE (HIGHEST PRIORITY): ${formattedStartDate}`);
     } else if (exactDropDate) {
         formattedStartDate = exactDropDate;
@@ -3255,9 +3237,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         formattedStartDate = globalExactDate;
         console.log(`✅ USING GLOBALLY STORED DATE: ${formattedStartDate}`);
     } else {
-        // Fallback to calculated date if no precise date was found
-        // This calculation is less precise as it's based on pixels
-        const weeksOffset = finalX / slotWidth; // slotWidth is pixels per week
+        // Last resort: Calculate from X position
+        // Get slot width based on view mode - standard values
+        const pixelsPerSlot = viewMode === 'day' ? 40 : viewMode === 'week' ? 160 : 320;
+        const weeksOffset = mouseFinalX / pixelsPerSlot; 
         const daysOffset = viewMode === 'week' ? weeksOffset * 7 : weeksOffset;
         
         // Calculate the exact start date from pixel position
@@ -3266,71 +3249,63 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`⚠️ FALLBACK: Using calculated date: ${formattedStartDate}`);
     }
     
-    // 9) REMOVED ALL additional row calculations
-    // The row is now determined SOLELY from the raw Y mouse position
-    // This ensures exact placement with no adjustments
+    // ----- FINAL DATA ATTRIBUTE SETUP -----
     
-    // LOG EVERYTHING for debugging
-    console.log(`🎯 PIXEL-PERFECT PLACEMENT:
-      Container: ${containerRect.width}x${containerRect.height}px
-      Mouse: ${e.clientX},${e.clientY}
-      Raw container position: ${rawX},${rawY}
-      Drag offset: ${dragOffset.x},${dragOffset.y}
-      Final position: ${finalX},${finalY}
-      Bay ${bayId} has ${totalRows} rows (height per row: ${rowHeight}px)
-      Calculated row: ${exactRow} (clamped to ${clampedRow})
-      Exact date: ${formattedStartDate} (from cell data attributes)
-    `);
-    
-    // CRITICAL FIX: Store the exact week position date in multiple places to ensure it's used
-    // This is crucial for the fix - we need this date to be available in multiple ways
-    document.body.setAttribute('data-precision-drop-row', clampedRow.toString());
+    // CRITICAL: Store both date and row in multiple places to ensure they're used
+    document.body.setAttribute('data-precision-drop-row', exactRowIndex.toString());
     document.body.setAttribute('data-precision-drop-date', formattedStartDate);
     document.body.setAttribute('data-exact-drop-date', formattedStartDate);
-    document.body.setAttribute('data-current-drag-row', clampedRow.toString());
+    document.body.setAttribute('data-current-drag-row', exactRowIndex.toString());
+    
     // Store in global variable as fallback
     (window as any).lastExactDate = formattedStartDate;
+    
     // Also store in a data attribute on the target element
     if (e.target && e.target instanceof HTMLElement) {
       e.target.setAttribute('data-exact-date', formattedStartDate);
+      e.target.setAttribute('data-exact-row', exactRowIndex.toString());
     }
     
-    // Indicate we're using pixel-perfect placement
-    console.log(`📅 EXACT DROP DATE: ${formattedStartDate} (CRITICAL FIX: Using pixel-precise week)`);
-    console.log(`🔹 FORCED ROW PLACEMENT: Row ${clampedRow}`);
+    // ----- FINAL LOGGING -----
     
-    // CRITICAL FIX: Force using the exact bay ID from the event parameters
-    // This prevents the bay jumping issue by ensuring we always use the bay where the drop happened
-    console.log(`🔴 CRITICAL FIX: Using exact bayId=${bayId} from drop event parameters`);
+    console.log(`📅 EXACT DATE AND ROW: 
+      Date: ${formattedStartDate} (direct from cell or attributes)
+      Row: ${exactRowIndex} (pure Y-position calculation)
+      Bay: ${bayId} (${bay?.name || 'Unknown'})
+      Emergency Fix Mode: ENABLED
+    `);
     
-    // ENHANCED BAY 3 FIX: Special handling for Bay 3 drops
-    // Additional data verification and handling for Bay 3
+    // ----- HANDLE BAY SELECTION LOGIC -----
+    
+    // Always use the exact bay ID from the event parameters
+    console.log(`🔴 CRITICAL FIX: Using exact bayId=${bayId} from event parameters`);
     let finalBayId = bayId;
     
+    // Special handling for Bay 3 (known problem bay)
     if (bayId === 3) {
-      console.log('🔶 BAY 3 DROP DETECTED - Applying special handling');
+      console.log('🔶 BAY 3 DROP DETECTED - Special handling enabled');
       
-      // Add a visual indicator for Bay 3 drop target
+      // Visual indicator for Bay 3 target
       const bay3Element = document.querySelector(`.bay-content[data-bay-id="3"]`);
       if (bay3Element) {
         bay3Element.classList.add('bay-3-drop-active');
         setTimeout(() => bay3Element.classList.remove('bay-3-drop-active'), 1000);
       }
       
-      // Force Bay 3 data attribute to be set on the document body to ensure consistency
+      // Set Bay 3 flag for consistency
       document.body.setAttribute('data-bay-three-drop', 'true');
     } else {
       document.body.removeAttribute('data-bay-three-drop');
     }
     
-    // Additional data consistency check for Bay 3 using multiple sources
+    // Additional bay verification for Bay 3 from multiple sources
     const bodyBayId = document.body.getAttribute('data-current-drag-bay');
     const lastBayDrag = document.body.getAttribute('data-last-bay-drag');
     const bay3Flag = document.body.hasAttribute('data-bay-three-drag');
     
-    console.log(`Drop context: Event bayId=${bayId}, Body bayId=${bodyBayId}, Last drag=${lastBayDrag}, Bay3 flag=${bay3Flag}`);
+    console.log(`Bay context: Event=${bayId}, Body=${bodyBayId}, Last=${lastBayDrag}, Flag=${bay3Flag}`);
     
-    // If ANY source indicates this is a Bay 3 drop, respect that
+    // Check if this should be a Bay 3 drop from any source
     const isBay3ByMultipleChecks = 
       bayId === 3 || 
       bodyBayId === '3' || 
@@ -3338,89 +3313,38 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       bay3Flag;
       
     if (isBay3ByMultipleChecks && bayId !== 3) {
-      console.log('⚠️ Bay 3 detected through alternate data sources - overriding with Bay 3');
+      console.log('⚠️ Bay 3 detected through alternate sources - enforcing Bay 3');
       finalBayId = 3;
     }
     
-    // Force any data-bay-id attribute on the element to match the parameter for consistency
+    // Set consistent bay ID on the element
     if (e.currentTarget && e.currentTarget instanceof HTMLElement) {
       e.currentTarget.setAttribute('data-bay-id', finalBayId.toString());
       
-      // Add a visual cue for the specific bay
+      // Visual indicator for bay
       e.currentTarget.classList.remove('drop-bay-1', 'drop-bay-2', 'drop-bay-3', 'drop-bay-4', 'drop-bay-5', 'drop-bay-6');
       e.currentTarget.classList.add(`drop-bay-${finalBayId}`);
     }
     
-    // For row, we will still use the global attribute if available as it works correctly
-    const globalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
+    // ----- DIRECT ROW PLACEMENT LOGIC -----
     
-    // MAY 16 2025 - EMERGENCY FIX - COMPLETE BYPASS OF ROW CALCULATION LOGIC
-    let targetRowIndex;
+    // ⚠️ MAY 16 2025 - USE ONLY THE PURE Y-CALCULATED ROW
+    // The exactRowIndex comes directly from Y position with no adjustments
+    let targetRowIndex = exactRowIndex;
     
-    // Check if emergency fix mode is active
-    if (emergencyFixMode && forceExactRowPlacement) {
-      // EMERGENCY MODE: Use direct row without ANY processing
-      console.log(`🚨 EMERGENCY MODE: Using EXACT row ${rowIndex} with ZERO PROCESSING`);
-      
-      // Pull row value from multiple possible sources (redundant for reliability)
-      const forcedRowIndex = document.body.getAttribute('data-forced-row-index');
-      const absoluteRowIndex = document.body.getAttribute('data-absolute-row-index');
-      const finalExactRow = document.body.getAttribute('data-final-exact-row');
-      const emergencyOverride = document.body.getAttribute('data-emergency-row-override');
-      
-      // Log all available sources to help debug
-      console.log(`ℹ️ Row sources - Parameter: ${rowIndex}, Global: ${globalRowIndex}`);
-      console.log(`ℹ️ Attributes - Forced: ${forcedRowIndex}, Absolute: ${absoluteRowIndex}`);
-      console.log(`ℹ️ Attributes - Final: ${finalExactRow}, Emergency: ${emergencyOverride}`);
-      
-      // Use the direct parameter value - GUARANTEED EXACT PLACEMENT
-      targetRowIndex = rowIndex;
-      
-      // SUPER IMPORTANT: Log a special marker that can be used to confirm this path was taken
-      console.log(`✅✅✅ EMERGENCY ROW BYPASS ACTIVE - USING EXACT ROW ${targetRowIndex} ✅✅✅`);
-    }
-    // Regular path - only used if emergency mode is not active
-    else {
-      // Get the event target to check if this is a bay-specific drop area
-      const dropTarget = e.currentTarget as HTMLElement;
-      const dropTargetBayId = dropTarget?.getAttribute('data-bay-id');
-      
-      // Make sure the bay ID used in the event handler matches the element's bay ID
-      if (dropTargetBayId && dropTargetBayId !== finalBayId.toString()) {
-        console.log(`Correcting bay ID mismatch: event=${bayId}, resolved=${finalBayId}, element=${dropTargetBayId}`);
-        dropTarget.setAttribute('data-bay-id', finalBayId.toString());
-      }
-      
-      if (rowIndex !== undefined && rowIndex >= 0) {
-        console.log(`Using direct row parameter: ${rowIndex} for bay ${bayId}`);
-        targetRowIndex = rowIndex;
-      } else if (globalRowIndex >= 0) {
-        console.log(`Using global row attribute: ${globalRowIndex} for bay ${bayId}`);
-        targetRowIndex = globalRowIndex;
-      } else {
-        console.log(`No valid row found, using default row 0 for bay ${bayId}`);
-        targetRowIndex = 0;
-      }
-    }
+    // Log the direct Y-based row positioning for clarity
+    console.log(`🚨 EMERGENCY MODE: Using PURE Y-POSITION row ${targetRowIndex} with NO ADJUSTMENTS`);
     
-    // CRITICAL FIX: Safety bounds check on row based on the actual row count for the bay
-    // Bays 1-6 have 4 rows (0-3), while Bay 7 (TCV Line) has 20 rows
-    
-    // Find the bay to get its row count - default to 4 rows (indexes 0-3) for bays 1-6
+    // Safety check: is the row within valid range for this bay?
     const targetBay = bays.find(b => b.id === finalBayId);
     
-    // Calculate max row index based on bay number
-    // Bay 7 (TCV Line) has 20 rows, all others have 4 rows
-    let maxRowForBay = 3; // Default to 3 (4 rows, indexes 0-3) for all regular bays
+    // Max row differs by bay type: Bay 7 (TCV Line) has 20 rows, others have 4
+    let maxRowForBay = (finalBayId === 7 || targetBay?.bayNumber === 7) ? 19 : 3;
     
-    if (targetBay) {
-      if (targetBay.bayNumber === 7) {
-        // TCV Line has 20 rows
-        maxRowForBay = 19; // 20 rows, indexes 0-19
-      } else {
-        // All other bays (1-6) have 4 rows
-        maxRowForBay = 3;  // 4 rows, indexes 0-3
-      }
+    // If the target row exceeds the bay's capacity, clamp it to the maximum
+    if (targetRowIndex > maxRowForBay) {
+      console.log(`⚠️ Row ${targetRowIndex} exceeds bay maximum (${maxRowForBay}) - clamping to maximum`);
+      targetRowIndex = maxRowForBay;
     }
     
     // MAY 16 2025 - ROW BOUNDARY CHECK WITH WARNING
