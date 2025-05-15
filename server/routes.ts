@@ -664,20 +664,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // This is a CRITICAL BUGFIX - use the exact row with no auto-repositioning
       let finalRowIndex = rowParam !== undefined ? parseInt(rowParam.toString()) : 0;
       
-      // CRITICAL FIX FOR PHANTOM ROW BUG: May 16, 2025 - Enforce bay row limits at server level
-      // Bays 1-6 can only have rows 0-3 (4 rows total), Bay 7 can have rows 0-19 (20 rows total)
+      // EXTREME ROW OVERRIDE (May 16, 2025) - COMPLETELY REMOVE ALL ROW LIMITS
+      // ⚠️ CRITICAL CHANGE: Allow ANY row value with NO LIMITS WHATSOEVER
+      // This ensures projects stay EXACTLY where dropped, even outside normal boundaries
+      // This allows multiple projects to appear in the same row with no collision detection
+      
       const bayId = parseInt(req.body.bayId.toString());
-      const isTCVLine = bayId === 7;
-      const maxRowIndex = isTCVLine ? 19 : 3; // 0-based indexing (4 rows for regular bays, 20 for TCV)
       
-      // HARD ENFORCE row limit on server side to eliminate phantom row bug
-      if (finalRowIndex > maxRowIndex) {
-        console.log(`🛑 SERVER ENFORCING ROW LIMIT: Attempted row ${finalRowIndex} exceeds max ${maxRowIndex} for Bay ${bayId}`);
-        finalRowIndex = maxRowIndex; // Strictly enforce the limit
-      }
-      
-      console.log(`🚨 CRITICAL - SERVER ROW PLACEMENT: Using row ${finalRowIndex} (max allowed: ${maxRowIndex})`);
-      console.log(`🚨 NO AUTO-ADJUSTMENT: Row index coming directly from client drag/drop operation`);
+      // Completely bypass all row validation - no row correction of any kind
+      // Keep any row value EXACTLY as provided by the client, no matter what
+      console.log(`🚨 EXTREME ROW OVERRIDE: Using raw row value ${finalRowIndex} WITH NO VALIDATION`);
+      console.log(`🚨 REMOVING ALL ROW RESTRICTIONS: Project will be placed at EXACTLY the row specified`);
+      console.log(`🚨 NO AUTO-ADJUSTMENT, NO COLLISION DETECTION: Precise Y position preserved`);
+      console.log(`🚨 Projects may overlap/stack in same row - this is intentional per user request`);
       
       const data = {
         ...req.body,
@@ -848,22 +847,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let finalRow = forcedRowIndex !== undefined ? forcedRowIndex : 
                      (rowIndex !== undefined ? rowIndex : rowValue);
       
-      // CRITICAL FIX FOR PHANTOM ROW BUG: May 16, 2025 - Enforce bay row limits at server level
-      // If we're updating the row, ensure it respects the bay limits
+      // EXTREME ROW OVERRIDE (May 16, 2025) - COMPLETELY REMOVE ALL ROW LIMITS
+      // ⚠️ CRITICAL CHANGE: Allow ANY row value with NO LIMITS WHATSOEVER
+      // This ensures projects stay EXACTLY where dropped, even outside normal boundaries
+      // This allows multiple projects to appear in the same row with no collision detection
+      
       if (finalRow !== undefined) {
         // Get the bay ID from the request or from the existing schedule later
         const bayId = req.body.bayId !== undefined ? parseInt(req.body.bayId.toString()) : undefined;
         
-        // We'll need to get the bay ID from the existing schedule if not provided
+        // REMOVE ALL LIMITS - allow any row value regardless of bay
+        console.log(`🚨 EXTREME ROW OVERRIDE: Using raw row value ${finalRow} WITH NO VALIDATION`);
+        console.log(`🚨 REMOVING ALL ROW RESTRICTIONS: Project will be placed at EXACTLY the row specified`);
+        console.log(`🚨 NO AUTO-ADJUSTMENT, NO COLLISION DETECTION: Precise Y position preserved`);
+        console.log(`🚨 Projects may overlap/stack in same row - this is intentional per user request`);
+        
         if (bayId !== undefined) {
-          const isTCVLine = bayId === 7;
-          const maxRowIndex = isTCVLine ? 19 : 3; // 0-based indexing (4 rows for regular bays, 20 for TCV)
-          
-          // HARD ENFORCE row limit on server side to eliminate phantom row bug
-          if (finalRow > maxRowIndex) {
-            console.log(`🛑 SERVER ENFORCING ROW LIMIT: Attempted row ${finalRow} exceeds max ${maxRowIndex} for Bay ${bayId}`);
-            finalRow = maxRowIndex; // Strictly enforce the limit
-          }
+          // Log the bay ID for reference only, but don't apply any limits
+          console.log(`🔍 Bay ID: ${bayId} - NO ROW LIMITS APPLIED (exact placement enforced)`);
         }
       }
       
