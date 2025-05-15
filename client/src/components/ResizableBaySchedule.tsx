@@ -5676,98 +5676,121 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           </div>
           {/* Label row aligned with the week headers */}
           <div className="h-12 border-b border-gray-700"></div>
-          {/* Group bays by team and display each team as a single entity */}
-          {(() => {
-            // Group bays by team number
-            const teamBays = {};
-            bays.forEach(bay => {
-              const teamNumber = bay.bayNumber % 2 === 1 
-                ? Math.ceil(bay.bayNumber / 2) 
-                : Math.floor(bay.bayNumber / 2);
-              
-              if (!teamBays[teamNumber]) {
-                teamBays[teamNumber] = [];
-              }
-              teamBays[teamNumber].push(bay);
+          {/* Group bays in teams of two (Bay 1 & 2 = Team 1, Bay 3 & 4 = Team 2, etc.) */}
+          {bays.map((bay, bayIndex) => {
+            // Calculate team number (pair of bays)
+            const teamNumber = Math.ceil(bay.bayNumber / 2);
+            const isFirstBayInTeam = bay.bayNumber % 2 === 1;
+            
+            // Find the other bay in this team (if any)
+            const otherBayInTeam = bays.find(b => {
+              const otherTeamNumber = Math.ceil(b.bayNumber / 2);
+              return otherTeamNumber === teamNumber && b.id !== bay.id;
             });
-
-            // Render each team as a single unit
-            return Object.entries(teamBays).map(([teamNumber, teamBaysList]) => {
-              // Sort bays by bay number to ensure consistent ordering
-              const sortedTeamBays = [...teamBaysList].sort((a, b) => a.bayNumber - b.bayNumber);
+            
+            // Only render for the first bay in each team to avoid duplication
+            if (!isFirstBayInTeam) return null;
+            
+            // Prepare bay data for rendering
+            const bayIds = otherBayInTeam 
+              ? [bay.id, otherBayInTeam.id]
+              : [bay.id];
               
-              // Get the first bay in the team (should be the odd-numbered bay)
-              const primaryBay = sortedTeamBays.find(bay => bay.bayNumber % 2 === 1) || sortedTeamBays[0];
-              const secondaryBay = sortedTeamBays.find(bay => bay.bayNumber % 2 === 0);
-
-              // Use height for single bay as we're reducing the number of displayed boxes
-              return (
-                <div 
-                  key={`team-${teamNumber}`}
-                  className={`flex flex-col px-3 py-3 border-b border-gray-700 ${primaryBay.id === 7 || primaryBay.id === 8 || primaryBay.bayNumber === 7 || primaryBay.bayNumber === 8 ? 'h-[600px]' : 'h-[128px]'}`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center">
-                      <div className="flex flex-col items-center mr-2">
-                        {/* Team badge with bay numbers */}
-                        <span className="text-xs font-semibold text-green-400 mb-1">TEAM {teamNumber}</span>
-                        <div className="flex flex-col gap-1">
-                          {sortedTeamBays.map(bay => (
-                            <Badge key={bay.id} variant="outline" className="bg-green-100/10">
-                              Bay {bay.bayNumber}
-                            </Badge>
-                          ))}
-                        </div>
+            // Get schedules for this team's bays
+            const teamSchedules = schedules.filter(s => 
+              bayIds.includes(s.bayId)
+            );
+            
+            // Calculate team capacity metrics
+            const totalTeamCapacity = 4 * bayIds.length; // 4 projects per bay
+            const currentTeamLoad = teamSchedules.length;
+            const teamUtilizationPercentage = (currentTeamLoad / totalTeamCapacity) * 100;
+            
+            // Determine team status based on utilization
+            let teamStatus = 'Capacity Available';
+            let teamStatusColor = 'text-green-500';
+            let teamStatusBg = 'bg-green-500';
+            
+            if (teamUtilizationPercentage > 75) {
+              teamStatus = 'Near Capacity';
+              teamStatusColor = 'text-amber-500';
+              teamStatusBg = 'bg-amber-500';
+            }
+            if (teamUtilizationPercentage >= 100) {
+              teamStatus = 'At Capacity';
+              teamStatusColor = 'text-red-500';
+              teamStatusBg = 'bg-red-500';
+            }
+            
+            // Use height for special bays (7 and 8)
+            const isSpecialBay = bay.bayNumber === 7 || bay.bayNumber === 8 || 
+                                (otherBayInTeam && (otherBayInTeam.bayNumber === 7 || otherBayInTeam.bayNumber === 8));
+            const heightClass = isSpecialBay ? 'h-[600px]' : 'h-[128px]';
+            
+            return (
+              <div 
+                key={`team-${teamNumber}`}
+                className={`flex flex-col px-3 py-3 border-b border-gray-700 ${heightClass}`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <div className="flex flex-col items-center mr-2">
+                      {/* Team badge with bay numbers */}
+                      <span className="text-xs font-semibold text-green-400 mb-1">TEAM {teamNumber}</span>
+                      <div className="flex flex-col gap-1">
+                        <Badge key={bay.id} variant="outline" className="bg-green-100/10">
+                          Bay {bay.bayNumber}
+                        </Badge>
+                        {otherBayInTeam && (
+                          <Badge key={otherBayInTeam.id} variant="outline" className="bg-green-100/10">
+                            Bay {otherBayInTeam.bayNumber}
+                          </Badge>
+                        )}
                       </div>
-                      <div>
-                        <div className="text-sm font-semibold">
-                          {primaryBay && secondaryBay ? (
-                            <>
-                              {primaryBay.name.split(' - ')[0]}
-                              {primaryBay.description && (
-                                <span className="text-gray-400 text-xs font-normal ml-1">
-                                  - {primaryBay.description}
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              {primaryBay.name}
-                              {primaryBay.description && (
-                                <span className="text-gray-400 text-xs font-normal ml-1">
-                                  - {primaryBay.description}
-                                </span>
-                              )}
-                            </>
-                          )}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold">
+                        {bay.name.split(' - ')[0]}
+                        {bay.description && (
+                          <span className="text-gray-400 text-xs font-normal ml-1">
+                            - {bay.description}
+                          </span>
+                        )}
+                      </div>
+                      {/* Consolidated capacity info for the team */}
+                      <div className="flex items-center mt-1">
+                        <div className={`flex items-center ${teamStatusColor} text-xs`}>
+                          <div className={`h-2 w-2 rounded-full ${teamStatusBg} mr-1`}></div>
+                          <span>{teamStatus}</span>
                         </div>
-                        {/* Always show capacity info for the team */}
-                        <BayCapacityInfo bay={primaryBay} allSchedules={schedules} projects={projects} bays={bays} />
+                        <div className="text-xs text-gray-400 ml-2">
+                          {currentTeamLoad} of {totalTeamCapacity} slots filled
+                        </div>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Action buttons row - one set per team */}
-                  <div className="flex items-center justify-center gap-1 mb-2">
-                    {/* Single Edit button that affects both bays */}
+                  {/* Action buttons - one set per team */}
+                  <div className="flex items-center gap-1">
+                    {/* Edit team button */}
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => setEditingBay(primaryBay)}
+                      onClick={() => setEditingBay(bay)}
                       title="Edit Team"
                     >
                       <PencilIcon className="h-3.5 w-3.5" />
                     </Button>
                     
-                    {/* Single Auto-Adjust button for the team */}
+                    {/* Auto-Adjust button for the team */}
                     <Button 
                       variant="ghost" 
                       size="sm"
                       onClick={() => {
                         // Apply auto-adjustment to all team bays
-                        sortedTeamBays.forEach(bay => {
-                          applyAutoCapacityAdjustment(bay.id);
-                          setAutoAdjustedBays(prev => ({...prev, [bay.id]: true}));
+                        [bay, ...(otherBayInTeam ? [otherBayInTeam] : [])].forEach(teamBay => {
+                          applyAutoCapacityAdjustment(teamBay.id);
+                          setAutoAdjustedBays(prev => ({...prev, [teamBay.id]: true}));
                         });
                         
                         // Show toast notification
@@ -5778,7 +5801,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         });
                       }}
                       title="Auto-Adjust Team Capacity"
-                      className={sortedTeamBays.every(bay => autoAdjustedBays[bay.id]) ? "text-green-500" : "text-blue-400 hover:text-blue-500"}
+                      className={
+                        [bay, ...(otherBayInTeam ? [otherBayInTeam] : [])].every(
+                          teamBay => autoAdjustedBays[teamBay.id]
+                        ) 
+                        ? "text-green-500" 
+                        : "text-blue-400 hover:text-blue-500"
+                      }
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M18 8L22 12L18 16" />
@@ -5786,26 +5815,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       </svg>
                     </Button>
                   </div>
-              
-              {/* Bay capacity area with work level indicator */}
-              {/* Remove the bay capacity indicator - we show it in BayCapacityInfo now */}
-              <div className="flex-1 flex flex-col items-center justify-center gap-1">
-                <div className="text-sm text-amber-500 font-semibold">
-                  {/* Yellow status circle */}
-                  <div className="flex items-center">
-                    <div className="h-2 w-2 rounded-full bg-amber-500 mr-1"></div>
-                    <span>Near Capacity</span>
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    1 project in PROD • Avg 1.0 projects/week
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    4 projects max
-                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           
           {/* Empty slots for additional bays */}
           {Array.from({ length: Math.max(0, 8 - bays.length) }).map((_, index) => {
