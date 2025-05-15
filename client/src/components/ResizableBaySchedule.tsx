@@ -4380,16 +4380,16 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`  - Project ID: ${data.projectId}`);
         console.log(`  - Project Number: ${data.projectNumber}`);
         console.log(`  - Bay ID: ${finalBayId} (${bay.name})`);
-        console.log(`  - Row Index: ${finalRowIndex} (max row for this bay: ${maxRowForBay})`);
+        console.log(`  - Row Index: ${rowIndexToUse} (max row for this bay: ${maxRowForBay})`);
         console.log(`  - Start Date: ${startDateToUse}`); 
         console.log(`  - End Date: ${formattedFinalEndDate}`);
         console.log(`  - Target bay has ${targetBay?.bayNumber === 7 ? 20 : 4} rows (indexes 0-${maxRowForBay})`);
-        console.log(`  - Row visualization: row ${finalRowIndex} maps to ${finalRowIndex % 4} visual position (0-3)`);
+        console.log(`  - Row visualization: row ${rowIndexToUse} maps to ${rowIndexToUse % 4} visual position (0-3)`);
         console.log(`  - Drop coordinates: x=${e.clientX}, y=${e.clientY}`);
         
         // Add visual indicator to the DOM to show exact bay/row placement for debugging
         document.body.setAttribute('data-last-drop-bay', finalBayId.toString());
-        document.body.setAttribute('data-last-drop-row', finalRowIndex.toString());
+        document.body.setAttribute('data-last-drop-row', rowIndexToUse.toString());
         
         // Call the API with our forced values
         onScheduleCreate(
@@ -4398,7 +4398,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           startDateToUse,
           formattedFinalEndDate,
           data.totalHours !== null ? Number(data.totalHours) : 1000,
-          finalRowIndex // Include rowIndex for vertical positioning
+          rowIndexToUse // CRITICAL FIX: Use computed rowIndexToUse for pixel-perfect Y-position
         )
         .then(() => {
           // Find the target bay to show proper bay number in toast
