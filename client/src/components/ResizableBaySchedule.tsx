@@ -1278,6 +1278,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         console.log(`Project ${project.projectNumber} phase dates:`, {
           schedule: { start: format(startDate, 'yyyy-MM-dd'), end: format(endDate, 'yyyy-MM-dd') },
+          
+          // Add DEBUG for timeline position
+          position: { 
+            startSlotIndex,
+            endSlotIndex, 
+            barLeft, 
+            barWidth,
+            validStartIndex,
+            validEndIndex,
+            startTime,
+            endTime,
+            totalDays
+          },
           fabStart: fabStartDate ? format(fabStartDate, 'yyyy-MM-dd') : 'N/A',
           paintStart: paintStartDate ? format(paintStartDate, 'yyyy-MM-dd') : 'N/A',
           assemblyStart: assemblyStartDate ? format(assemblyStartDate, 'yyyy-MM-dd') : 'N/A',
