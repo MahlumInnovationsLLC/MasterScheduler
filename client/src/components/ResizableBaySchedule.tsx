@@ -232,13 +232,9 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
     if (viewMode === 'day') {
       currentDate = addDays(currentDate, 1);
     } else if (viewMode === 'week') {
-      if (isStartOfWeek || slots.length === 0) {
-        currentDate = addDays(currentDate, 1);
-      } else {
-        // Move to next Monday
-        const daysUntilMonday = (8 - currentDate.getDay()) % 7;
-        currentDate = addDays(currentDate, daysUntilMonday > 0 ? daysUntilMonday : 7);
-      }
+      // Always advance by 7 days (full week) in week view
+      // This ensures consistent alignment and equal width cells
+      currentDate = addDays(currentDate, 7);
     } else if (viewMode === 'month') {
       if (isStartOfMonth || slots.length === 0) {
         currentDate = addDays(currentDate, 1);
@@ -349,7 +345,9 @@ export default function ResizableBaySchedule({
   const [scheduleDuration, setScheduleDuration] = useState(4); // in weeks
   const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [slotWidth, setSlotWidth] = useState(56); // Perfectly match header width (each week is 56*7 = 392px)
+  // EXACT ALIGNMENT: Each slot is exactly 56px, each week is 7 slots (392px total)
+  // The header width is set to 3.5*56 = 196px (half week) for perfect alignment
+  const [slotWidth, setSlotWidth] = useState(56);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [showAddMultipleWarning, setShowAddMultipleWarning] = useState(false);
@@ -759,6 +757,10 @@ export default function ResizableBaySchedule({
       console.log(`⚠️ DROP DEBUG: Target row index: ${rowIndex}`);
       console.log(`⚠️ DROP DEBUG: Start date: ${format(date, 'yyyy-MM-dd')}, End date: ${format(newEndDate, 'yyyy-MM-dd')}`);
       console.log(`🔒 DROP DEBUG: NO AUTO OPTIMIZATION: Projects can overlap - NO collision detection`);
+      
+      // Enhanced logs for phase-specific information
+      console.log(`DROP DEBUG PHASES: Project has phases - FAB: ${bar.fabPercentage}%, PAINT: ${bar.paintPercentage}%, PROD: ${bar.productionPercentage}%`);
+      console.log(`DROP DEBUG PHASE WIDTHS: FAB: ${bar.fabWidth}px, PAINT: ${bar.paintWidth}px, PROD: ${bar.prodWidth || bar.productionWidth}px`);
       
       // Format dates for the API
       const formattedStartDate = format(date, 'yyyy-MM-dd');
