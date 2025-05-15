@@ -309,6 +309,53 @@ const BaySchedulingPage = () => {
       rowIndex?: number,
       forcedRowIndex?: number
     }) => {
+      // 🚨 MAY 17 2025 - CRITICAL FIX FOR ROW POSITIONING 🚨
+      // Get any force-set row values from DOM attributes (highest priority)
+      const domForcedRowIndex = document.body.getAttribute('data-forced-row-index');
+      const domFinalExactRow = document.body.getAttribute('data-final-exact-row');
+      const domCurrentDragRow = document.body.getAttribute('data-current-drag-row');
+
+      // Use the best row value available (in priority order)
+      const bestRowIndex = 
+        // 1. Use forcedRowIndex parameter if available
+        forcedRowIndex !== undefined ? forcedRowIndex :
+        // 2. Use any DOM-stored forced row index if available  
+        (domForcedRowIndex ? parseInt(domForcedRowIndex) :
+        // 3. Use any DOM-stored final row if available
+        (domFinalExactRow ? parseInt(domFinalExactRow) :
+        // 4. Use any DOM-stored current drag row if available
+        (domCurrentDragRow ? parseInt(domCurrentDragRow) :
+        // 5. Use provided rowIndex or row parameter
+        (rowIndex !== undefined ? rowIndex : 
+        (row !== undefined ? row : 0)))));
+      
+      // Log detailed debug info about all available row sources
+      console.log(`🔴 CREATE SCHEDULE MUTATION - ALL ROW SOURCES:
+        - Function param forcedRowIndex: ${forcedRowIndex}
+        - Function param rowIndex: ${rowIndex}
+        - Function param row: ${row}
+        - DOM data-forced-row-index: ${domForcedRowIndex}
+        - DOM data-final-exact-row: ${domFinalExactRow}
+        - DOM data-current-drag-row: ${domCurrentDragRow}
+        - 🚨 FINAL SELECTED ROW: ${bestRowIndex}
+      `);
+      
+      // Ensure consistency by using the same value for all row parameters 
+      const finalRowValue = bestRowIndex;
+      
+      // Log the final body being sent to API
+      console.log(`🚨 SENDING API REQUEST WITH FOLLOWING BODY:`);
+      console.log({
+        projectId, 
+        bayId, 
+        startDate, 
+        endDate, 
+        totalHours,
+        row: finalRowValue,
+        rowIndex: finalRowValue,
+        forcedRowIndex: finalRowValue
+      });
+      
       const response = await fetch('/api/manufacturing-schedules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -318,9 +365,10 @@ const BaySchedulingPage = () => {
           startDate, 
           endDate, 
           totalHours, 
-          row,                  // Original row param 
-          rowIndex,             // Include rowIndex
-          forcedRowIndex        // Add forcedRowIndex with highest priority
+          // 🚨 CRITICAL: Use the exact same value for all row parameters to ensure consistency
+          row: finalRowValue,                  
+          rowIndex: finalRowValue,             
+          forcedRowIndex: finalRowValue        
         }),
       });
       

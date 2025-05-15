@@ -798,23 +798,43 @@ export class DatabaseStorage implements IStorage {
   
   async createManufacturingSchedule(schedule: InsertManufacturingSchedule): Promise<ManufacturingSchedule> {
     try {
-      // CRITICAL FIX: Maintain row integrity - ensure both row and rowIndex are set
-      // with HIGHEST PRIORITY and no auto-adjustment
+      // 🚨 MAY 17 2025 - EMERGENCY ROW PLACEMENT ENHANCEMENT
+      // HIGHEST PRIORITY PLACEMENT LOGIC - Guaranteed exact positioning
+      
+      // Add extended debug output for forcing row values
+      console.log(`🔴🔴🔴 CRITICAL ROW DEBUG - All row values in createManufacturingSchedule:`);
+      console.log(`- Original schedule.forcedRowIndex: ${schedule.forcedRowIndex}`);
+      console.log(`- Original schedule.rowIndex: ${schedule.rowIndex}`);
+      console.log(`- Original schedule.row: ${schedule.row}`);
+      
+      // CRITICAL: Calculate the best row value from all available sources
+      // Priority: forcedRowIndex > rowIndex > row > 0 (default)
+      const bestRowValue = 
+        schedule.forcedRowIndex !== undefined ? Number(schedule.forcedRowIndex) :
+        (schedule.rowIndex !== undefined ? Number(schedule.rowIndex) :
+        (schedule.row !== undefined ? Number(schedule.row) : 0));
+      
+      // CRITICAL: Use this final calculated value for BOTH row fields to ensure consistency
       const scheduleWithRows = {
         ...schedule,
-        // Force row parameter to be maintained exactly as specified
-        row: schedule.row !== undefined ? schedule.row : 0,
-        // Also maintain the rowIndex parameter for compatibility
-        rowIndex: schedule.rowIndex || schedule.row || 0
+        // 🔴 CRITICAL: Force BOTH row values to be exactly the same
+        row: bestRowValue,
+        rowIndex: bestRowValue
       };
       
-      console.log(`🚨 FINAL MANDATORY ROW: Will use ROW=${scheduleWithRows.row}, ROWINDEX=${scheduleWithRows.rowIndex}`);
-      console.log(`🚨 EXACT BAY PLACEMENT: Will use BAY=${scheduleWithRows.bayId}`);
+      console.log(`⭐⭐⭐ ENHANCED ROW PLACEMENT - FINAL VALUES: 
+        - Calculated best row: ${bestRowValue}
+        - Final row value: ${scheduleWithRows.row}
+        - Final rowIndex value: ${scheduleWithRows.rowIndex}
+        - Target bay: ${scheduleWithRows.bayId}
+        - This ensures projects appear EXACTLY where dropped with NO ADJUSTMENT
+      `);
       
       // Insert with our guaranteed row values
       const [newSchedule] = await db.insert(manufacturingSchedules).values(scheduleWithRows).returning();
       
       console.log(`✅ SCHEDULE CREATED with GUARANTEED placement: Bay=${newSchedule.bayId}, Row=${newSchedule.row}`);
+      console.log(`✅ DATABASE ROW VALUE VERIFICATION: ${newSchedule.row}`);
       return newSchedule;
     } catch (error) {
       console.error("Error creating manufacturing schedule:", error);
