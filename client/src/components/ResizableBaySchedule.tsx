@@ -3110,71 +3110,90 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
   };
   
-  // Handle drop on a bay timeline
+  // Handle drop on a bay timeline - COMPLETELY REWRITTEN FOR EXACT Y-BASED PLACEMENT
   const handleDrop = (e: React.DragEvent<Element>, bayId: number, slotIndex: number, rowIndex: number = 0) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // MAY 16 2025 - EMERGENCY FIX
-    // Set the exact row parameter to be used for positioning - no auto-adjustment
-    document.body.setAttribute('data-forced-row-index', rowIndex.toString());
-    document.body.setAttribute('data-computed-row-index', rowIndex.toString());
-    document.body.setAttribute('data-strict-y-position-row', rowIndex.toString());
-    document.body.setAttribute('data-bypass-all-row-logic', 'true');
+    console.log(`⚠️ EMERGENCY FIX: Using PURE Y POSITION for row calculation`);
+    
+    // Exit early if no container
+    if (!timelineContainerRef.current) {
+      console.error("Timeline container ref not available!");
+      return;
+    }
+    
+    // ----- DEFINE ALL VARIABLES NEEDED FOR FURTHER PROCESSING -----
+    
+    // Set emergency mode flags (always true)
+    const emergencyFixMode = true;
+    const forceExactRowPlacement = true;
+    
+    // Get bay information
+    const bay = bays.find(b => b.id === bayId);
+    const MAX_ROWS = bayId === 7 ? 20 : 4; // Bays 1-6 have 4 rows, Bay 7 (TCV Line) has 20 rows
+    
+    // Get container rect and calculate mouse positions
+    const rectContainer = timelineContainerRef.current.getBoundingClientRect();
+    const mouseRawX = e.clientX - rectContainer.left;
+    const mouseRawY = e.clientY - rectContainer.top;
+    const mouseFinalX = mouseRawX - dragOffset.x;
+    const mouseFinalY = mouseRawY - dragOffset.y;
+    
+    // ----- DIRECT Y-POSITION CALCULATION -----
+    
+    // Calculate row based ONLY on Y position - simple math, no complex logic
+    const rowHeight = rectContainer.height / MAX_ROWS;
+    const yBasedRow = Math.floor(mouseRawY / rowHeight);
+    const exactRowIndex = Math.min(yBasedRow, MAX_ROWS - 1); // Ensure we don't exceed max rows
+    
+    // Log the raw calculation
+    console.log(`🎯 DIRECT Y-POSITION ROW CALCULATION:
+    - Raw Y position: ${mouseRawY}px
+    - Bay height: ${rectContainer.height}px, Row height: ${rowHeight}px 
+    - Bay ${bayId} has ${MAX_ROWS} rows (0-${MAX_ROWS-1})
+    - CALCULATED ROW: ${exactRowIndex} (pure Y position calculation)
+    - NO ADJUSTMENTS OR OVERLAP CHECKING`);
+    
+    // ----- SET ALL DATA ATTRIBUTES TO FORCE THIS ROW -----
+    
+    // Define all possible row-related attributes
+    const rowAttributes = [
+      'data-computed-row-index',
+      'data-exact-row-index',
+      'data-forced-row-index',
+      'data-force-exact-row',
+      'data-strict-y-position-row',
+      'data-y-axis-row',
+      'data-current-drag-row',
+      'data-drop-row',
+      'data-direct-row-calculation',
+      'data-absolute-row-index',
+      'data-final-row-placement',
+      'data-emergency-y-position',
+      'data-raw-y-calculation',
+      'data-bypass-all-row-logic'
+    ];
+    
+    // Set ALL attributes to the same row value
+    rowAttributes.forEach(attr => {
+      document.body.setAttribute(attr, exactRowIndex.toString());
+    });
+    
+    // Enable all emergency bypass modes
     document.body.setAttribute('data-force-exact-row-placement', 'true');
     document.body.setAttribute('data-allow-row-overlap', 'true');
     document.body.setAttribute('data-emergency-fix-mode', 'true');
+    document.body.setAttribute('data-y-only-mode', 'true');
     
-    console.log(`🔴 EMERGENCY FIX: Using exact row ${rowIndex} from drop event parameters`);
-    console.log(`🔴 This is the direct row from user drop position - NO AUTO-ADJUSTMENT`);
-    console.log(`🔴 STRICT POSITIONING: Projects will stay EXACTLY where dropped`);
-    
-    // Add a visual indicator of the target bay row
-    const bayRowIndicator = document.querySelector(`[data-bay-id="${bayId}"] [data-row-index="${rowIndex}"]`);
-    if (bayRowIndicator) {
-      bayRowIndicator.classList.add('target-row-highlight');
+    // Add visual indicator for exactly which row we're targeting
+    const rowIndicator = document.querySelector(`[data-bay-id="${bayId}"] [data-row-index="${exactRowIndex}"]`);
+    if (rowIndicator) {
+      rowIndicator.classList.add('target-row-highlight', 'exact-drop-target');
       setTimeout(() => {
-        bayRowIndicator.classList.remove('target-row-highlight');
+        rowIndicator.classList.remove('target-row-highlight', 'exact-drop-target');
       }, 1500);
     }
-    // Define maximum rows per bay (4 for regular bays, 20 for TCV Line)
-    const MAX_ROWS = bayId === 7 ? 20 : 4;
-    
-    // Calculate row index with safety bounds - never exceed max rows for the bay
-    const finalRowIndex = Math.max(0, Math.min(MAX_ROWS - 1, rowIndex));
-    
-    // NO complex calculation needed - using direct row index
-    console.log(`
-    ✅ USING DIRECT ROW INDEX: ${rowIndex}
-    ✅ Final row index (after bounds check): ${finalRowIndex}
-    ✅ Maximum rows for this bay: ${MAX_ROWS}
-    ✅ NO mouse position calculation - using parameter directly
-    `);
-    
-    // Add emergency fix mode flags
-    const emergencyFixMode = true; // Always enable emergency fix mode
-    const forceExactRowPlacement = true; // Always force exact placement
-    
-    // 6. SET ALL ROW RELATED ATTRIBUTES
-    // This direct calculation overrides all existing row logic in the application
-    const allAttributes = [
-      'data-computed-row-index',     // Main calculation source
-      'data-exact-row-index',        // Used by API call
-      'data-forced-row-index',       // Override for handleScheduleChange
-      'data-force-exact-row',        // Original emergency fix
-      'data-strict-y-position-row',  // Y positioning priority
-      'data-y-axis-row',             // Alternative source
-      'data-current-drag-row',       // Used during drag
-      'data-drop-row',               // New direct attribute
-      'data-direct-row-calculation', // Lowest level override
-      'data-absolute-row-index',     // Bypasses all logic
-      'data-final-row-placement'     // Last chance override
-    ];
-    
-    // Update ALL attributes with the same value to guarantee consistency
-    allAttributes.forEach(attr => {
-      document.body.setAttribute(attr, finalRowIndex.toString());
-    });
     
     // ── NEW: PIXEL-PERFECT DROP PLACEMENT ────────────────────────────────────
     if (!timelineContainerRef.current) {
@@ -3247,61 +3266,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`⚠️ FALLBACK: Using calculated date: ${formattedStartDate}`);
     }
     
-    // 5) Convert Y position to row index and LOCK the row from multiple sources
-    // Use exact bay row count (4 for normal bays, 20 for TCV Line)
-    const bay = bays.find(b => b.id === bayId);
-    const totalRows = getBayRowCount(bayId, bay?.name || '');
-    const rowHeight = containerRect.height / totalRows;
-    const exactRow = Math.floor(finalY / rowHeight);
-    
-    // Highest priority row source: data attribute from dragOver
-    const dataExactRow = document.body.getAttribute('data-current-drag-row');
-    
-    // Use the current event rowIndex if present
-    let trueExactRow = rowIndex;
-    
-    // Otherwise use the data attribute if present
-    if (trueExactRow === 0 && dataExactRow) {
-      trueExactRow = parseInt(dataExactRow);
-      console.log(`⭐ USING ROW FROM DATA ATTRIBUTE: ${trueExactRow}`);
-    }
-    
-    // Finally, use the Y calculation as fallback
-    if (trueExactRow === 0 && exactRow > 0) {
-      trueExactRow = exactRow;
-      console.log(`✅ USING CALCULATED ROW: ${trueExactRow}`);
-    }
-    
-    // MAY 16 2025 CRITICAL FIX: Hard-enforce row limits at the client-side for DROP operation
-    // Direct calculation based on bay number, preventing any possibility of phantom rows
-    const isTCVLine = bay?.bayNumber === 7;
-    const hardMaxRowIndex = isTCVLine ? 19 : 3; // 0-based indexing (4 rows for regular bays, 20 for TCV)
-    
-    // Check if we're trying to place in a row beyond the limit
-    if (trueExactRow > hardMaxRowIndex) {
-      console.log(`🛑 DROP ROW LIMIT ENFORCED: Attempted row ${trueExactRow} exceeds max ${hardMaxRowIndex} for Bay ${bayId}`);
-      
-      // Show visual feedback that we hit the row limit
-      const bayContentElement = document.querySelector(`[data-bay-id="${bayId}"]`);
-      bayContentElement?.classList.add('row-limit-reached', 'row-limit-flash');
-      
-      // Set toast notification
-      toast({
-        title: "Row limit reached",
-        description: `Bay ${bay?.name || bayId} can only have ${hardMaxRowIndex + 1} rows. Project placed in row ${hardMaxRowIndex + 1}.`,
-        variant: "destructive"
-      });
-      
-      // Force to valid row
-      trueExactRow = hardMaxRowIndex;
-    }
-    
-    // Clamp to valid range but log if outside bounds
-    const rowMax = Math.min(totalRows - 1, hardMaxRowIndex); // Never exceed hard row limit
-    if (trueExactRow < 0 || trueExactRow > rowMax) {
-      console.warn(`Row ${trueExactRow} is outside valid range 0-${rowMax}. Clamping.`);
-    }
-    const clampedRow = Math.max(0, Math.min(rowMax, trueExactRow));
+    // 9) REMOVED ALL additional row calculations
+    // The row is now determined SOLELY from the raw Y mouse position
+    // This ensures exact placement with no adjustments
     
     // LOG EVERYTHING for debugging
     console.log(`🎯 PIXEL-PERFECT PLACEMENT:
