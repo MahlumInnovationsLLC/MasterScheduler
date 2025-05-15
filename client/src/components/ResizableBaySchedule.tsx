@@ -3582,7 +3582,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Remove dragging active class from body
     document.body.classList.remove('dragging-active');
     
-    try {
+    let dataStrOuter = ""; try {
       // Try multiple formats in case one fails
       let dataStr = '';
       try {
