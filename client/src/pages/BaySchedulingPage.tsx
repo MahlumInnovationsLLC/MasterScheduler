@@ -61,11 +61,11 @@ const BaySchedulingPage = () => {
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'quarter'>('week');
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
-    // Start range from July 2024 for more past date visibility
-    const startDate = new Date(2024, 6, 1); // July 1st, 2024
+    // Start range from January 2024 for much more past date visibility
+    const startDate = new Date(2024, 0, 1); // January 1st, 2024
     return {
       start: startDate,
-      end: addWeeks(today, 24) // Show 24 weeks ahead from today
+      end: addMonths(today, 36) // Show 3 years ahead from today
     };
   });
   
