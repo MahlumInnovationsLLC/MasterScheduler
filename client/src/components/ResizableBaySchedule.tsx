@@ -5803,26 +5803,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     4 projects max
                   </div>
                 </div>
-                      
-                      // Check if any week exceeds capacity by looking at overlapping projects
-                      // Break down by weeks in the visible range
-                      const weeklyLoad: {[key: string]: number} = {};
-                      const weeklyProjects: {[key: string]: number} = {};
-                      
-                      // Initialize weeks
-                      slots.forEach(slot => {
-                        const weekStart = format(startOfWeek(slot.date), 'yyyy-MM-dd');
-                        if (!weeklyLoad[weekStart]) {
-                          weeklyLoad[weekStart] = 0;
-                          weeklyProjects[weekStart] = 0;
-                        }
-                      });
-                      
-                      // Calculate load for each week
-                      baySchedules.forEach(schedule => {
-                        const startDate = new Date(schedule.startDate);
-                        const endDate = new Date(schedule.endDate);
-                        const projectFabWeeks = schedule.fabWeeks || 4;
                         const productionStartDate = addDays(startDate, projectFabWeeks * 7);
                         
                         // Only count hours during the production phase (after FAB phase)
