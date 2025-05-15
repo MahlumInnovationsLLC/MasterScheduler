@@ -410,15 +410,18 @@ const BaySchedulingPage = () => {
       const forcedRowIndexAttr = document.body.getAttribute('data-forced-row-index');
       const forcedRowIndex = forcedRowIndexAttr ? parseInt(forcedRowIndexAttr) : undefined;
       
-      // Use the forced row with highest priority, then fall back to the passed rowIndex
+      // CRITICAL MAY 2025 FIX: Use the forced row with ABSOLUTE HIGHEST priority
+      // This is a hard override that has been carefully set during pixel-exact drop
       const finalRowIndex = forcedRowIndex !== undefined ? forcedRowIndex : rowIndex;
       
-      // Log the exact row being sent to the API
-      console.log(`🚨 API CALL DEBUG - Row parameter:
-        - Row from data-forced-row-index: ${forcedRowIndex}
-        - Row from function parameter: ${rowIndex}
-        - FINAL ROW BEING SENT: ${finalRowIndex}
-      `);
+      // MAXIMUM VISIBILITY Logging for this absolutely critical value
+      console.log(`🔴🔴🔴 CRITICAL VALUE CHECK BEFORE API CALL`);
+      console.log(`🔴🔴🔴 ABSOLUTE ROW POSITIONING DATA:`);
+      console.log(`🔴🔴🔴 Row from data-forced-row-index: ${forcedRowIndex}`);
+      console.log(`🔴🔴🔴 Row from function parameter: ${rowIndex}`);
+      console.log(`🔴🔴🔴 FINAL ROW BEING SENT TO API: ${finalRowIndex}`);
+      console.log(`🔴🔴🔴 THIS IS ABSOLUTE PRIORITY - NO AUTO-ADJUSTMENT`);
+      console.log(`🔴🔴🔴 PROJECT WILL BE PLACED AT EXACTLY ROW ${finalRowIndex}`);
       
       // Perform the actual API update with guaranteed row value
       const result = await updateScheduleMutation.mutateAsync({
