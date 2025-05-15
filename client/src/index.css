@@ -1604,6 +1604,85 @@ body.resizing-mode .resize-handle {
   z-index: 20;
 }
 
+/* 
+ * MAY 16 2025 CRITICAL UPDATE: Allow project bars to appear at ANY row position
+ * This CSS matches our server changes to remove row limits
+ * Projects will appear at EXACT Y pixel position where they were dropped
+ */
+
+/* Generic dynamic positioning - each bar gets positioned at exact % of total height */
+[class*="row-"][class$="-bar"] {
+  position: absolute !important;
+  height: var(--row-height, 25%) !important;
+  transform: none !important;
+}
+
+/* Auto-calculate the top position for ANY row index */
+/* Note: This uses CSS calc to dynamically position based on row index in class name */
+/* For example: row-5-bar will be positioned at top: calc(5 * var(--row-unit-height, 5%)) */
+[class*="row-"][class$="-bar"] {
+  --row-index: 0; /* Default fallback value */
+  top: calc(var(--row-index) * var(--row-unit-height, 5%)) !important;
+}
+
+/* Define all possible row positions dynamically using CSS variables */
+.row-0-bar { --row-index: 0; }
+.row-1-bar { --row-index: 1; }
+.row-2-bar { --row-index: 2; }
+.row-3-bar { --row-index: 3; }
+.row-4-bar { --row-index: 4; }
+.row-5-bar { --row-index: 5; }
+.row-6-bar { --row-index: 6; }
+.row-7-bar { --row-index: 7; }
+.row-8-bar { --row-index: 8; }
+.row-9-bar { --row-index: 9; }
+.row-10-bar { --row-index: 10; }
+.row-11-bar { --row-index: 11; }
+.row-12-bar { --row-index: 12; }
+.row-13-bar { --row-index: 13; }
+.row-14-bar { --row-index: 14; }
+.row-15-bar { --row-index: 15; }
+.row-16-bar { --row-index: 16; }
+.row-17-bar { --row-index: 17; }
+.row-18-bar { --row-index: 18; }
+.row-19-bar { --row-index: 19; }
+/* Add more rows as needed - there's no limit now that server constraints are removed */
+.row-20-bar { --row-index: 20; }
+.row-21-bar { --row-index: 21; }
+.row-22-bar { --row-index: 22; }
+.row-23-bar { --row-index: 23; }
+.row-24-bar { --row-index: 24; }
+.row-25-bar { --row-index: 25; }
+.row-26-bar { --row-index: 26; }
+.row-27-bar { --row-index: 27; }
+.row-28-bar { --row-index: 28; }
+.row-29-bar { --row-index: 29; }
+.row-30-bar { --row-index: 30; }
+
+/* For standard bays, we set the unit height to 25% (4 rows) */
+.bay[data-bay-number="1"] .bay-content .bay-project-area,
+.bay[data-bay-number="2"] .bay-content .bay-project-area,
+.bay[data-bay-number="3"] .bay-content .bay-project-area,
+.bay[data-bay-number="4"] .bay-content .bay-project-area,
+.bay[data-bay-number="5"] .bay-content .bay-project-area,
+.bay[data-bay-number="6"] .bay-content .bay-project-area,
+.bay[data-bay-number="9"] .bay-content .bay-project-area,
+.bay[data-bay-number="10"] .bay-content .bay-project-area,
+.bay[data-bay-number="11"] .bay-content .bay-project-area,
+.bay[data-bay-number="12"] .bay-content .bay-project-area {
+  /* Standard bays show 4 rows, so each row is 25% of height */
+  --row-unit-height: 25%;
+  --row-height: 25%;
+}
+
+/* For multi-row bays (7-8), we set the unit height to 5% (20 rows) */
+.bay[data-bay-number="7"] .bay-content .bay-project-area,
+.bay[data-bay-number="8"] .bay-content .bay-project-area {
+  /* Multi-row bays show 20 rows, so each row is 5% of height */
+  --row-unit-height: 5%;
+  --row-height: 5%;
+}
+
 /* CRITICAL FIX: Bay type markers for differentiating between standard and multi-row bays */
 .bay[data-bay-number="1"],
 .bay[data-bay-number="2"],
