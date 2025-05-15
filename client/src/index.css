@@ -1772,3 +1772,43 @@ body.resizing-mode .resize-handle {
   color: rgb(255, 255, 255);
   pointer-events: none;
 }
+
+/* Enhanced project bar styling for dark mode - May 15, 2025 */
+.big-project-bar, 
+.project-bar, 
+.bay-project-area .project-bar {
+  border-radius: 4px;
+  cursor: move;
+  position: absolute;
+  user-select: none;
+  border: 1px solid rgba(255, 255, 255, 0.25); /* Brighter border for better visibility */
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Stronger shadow */
+  background-color: rgba(59, 130, 246, 0.3); /* More vibrant blue */
+  z-index: 2; /* Ensure project bars are above the grid */
+}
+
+/* Project bar styles for light mode */
+.light .big-project-bar,
+.light .project-bar,
+.light .bay-project-area .project-bar {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Project bar highlights when being dragged */
+.big-project-bar.is-dragging,
+.project-bar.is-dragging,
+.bay-project-area .project-bar.is-dragging {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important; 
+  opacity: 0.8;
+  z-index: 1000 !important; /* Ensure dragged element is on top */
+}
+
+/* Enhanced hover states for project bars */
+.big-project-bar:hover,
+.project-bar:hover,
+.bay-project-area .project-bar:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+}

@@ -595,19 +595,24 @@ export default function ResizableBaySchedule({
   
   const handleDrop = async (e: React.DragEvent, bayId: number, slotIndex: number, rowIndex: number) => {
     e.preventDefault();
+    console.log(`DROP DEBUG: handleDrop called with bayId=${bayId}, slotIndex=${slotIndex}, rowIndex=${rowIndex}`);
     
     // Get the schedule ID from the drag data
     const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    console.log(`DROP DEBUG: Moving schedule ID ${scheduleId}`);
     
     // Find the schedule bar being moved
     const bar = scheduleBars.find((b) => b.id === scheduleId);
-    if (!bar) return;
+    if (!bar) {
+      console.error('DROP ERROR: Could not find schedule bar with ID', scheduleId);
+      return;
+    }
     
     try {
       // Determine the new start and end dates based on drop position
       const targetDate = getDateFromDropPosition(e, bayId, rowIndex);
       if (!targetDate) {
-        console.error('Could not determine target date for drop');
+        console.error('DROP ERROR: Could not determine target date for drop');
         return;
       }
       
@@ -616,21 +621,23 @@ export default function ResizableBaySchedule({
       const newEndDate = addDays(targetDate, durationDays);
       
       // Debug info
-      console.log(`⚠️ AUTO-ADJUSTMENT DISABLED PER USER REQUEST - Each project will maintain its EXACT dates`);
-      console.log(`🔒 NO AUTO OPTIMIZATION: Projects will NEVER be automatically moved to optimize capacity`);
+      console.log(`⚠️ DROP DEBUG: AUTO-ADJUSTMENT DISABLED - Project will be placed EXACTLY where dropped`);
+      console.log(`⚠️ DROP DEBUG: Target row index: ${rowIndex}`);
+      console.log(`⚠️ DROP DEBUG: Start date: ${format(targetDate, 'yyyy-MM-dd')}, End date: ${format(newEndDate, 'yyyy-MM-dd')}`);
+      console.log(`🔒 DROP DEBUG: NO AUTO OPTIMIZATION: Projects can overlap - NO collision detection`);
       
       // Format dates for the API
       const formattedStartDate = format(targetDate, 'yyyy-MM-dd');
       const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
       
-      // Update the schedule
+      // Update the schedule with EXACT row position
       await onScheduleChange(
         scheduleId,
         bayId,
         formattedStartDate,
         formattedEndDate,
         bar.totalHours, 
-        rowIndex
+        rowIndex // CRITICAL: This preserves the exact row where the user dropped
       );
       
       // Show success toast
@@ -706,29 +713,53 @@ export default function ResizableBaySchedule({
   };
   
   const getDateFromDropPosition = (e: React.DragEvent, bayId: number, rowIndex: number): Date | null => {
-    // Try to get date from data attributes first
+    console.log(`DROP DEBUG: Bay ID ${bayId}, Row Index ${rowIndex}`);
+    
+    // Try to get date from data attributes first (more precise if available)
     if (e.currentTarget instanceof HTMLElement) {
       const dateAttr = e.currentTarget.getAttribute('data-date');
       if (dateAttr) {
+        console.log(`DROP DEBUG: Using date attribute: ${dateAttr}`);
+        return new Date(dateAttr);
+      }
+    }
+    
+    // Get the element where the drop happened
+    const dropTarget = e.target as HTMLElement;
+    if (dropTarget?.classList.contains('week-cell')) {
+      const dateAttr = dropTarget.getAttribute('data-date');
+      if (dateAttr) {
+        console.log(`DROP DEBUG: Using week-cell date attribute: ${dateAttr}`);
         return new Date(dateAttr);
       }
     }
     
     // Get the parent container
     const bayContainer = document.querySelector(`[data-bay-id="${bayId}"]`);
-    if (!bayContainer) return null;
+    if (!bayContainer) {
+      console.error(`DROP DEBUG: Bay container not found for bay ID ${bayId}`);
+      return null;
+    }
     
     // Get bounding rect
     const rect = bayContainer.getBoundingClientRect();
     
-    // Calculate position relative to bay container
+    // Calculate EXACT position relative to bay container - no rounding or snapping
     const mouseX = e.clientX - rect.left;
     
-    // Calculate date based on slot width
+    // Calculate date based on slot width with precise positioning
     const dayWidth = viewMode === 'day' ? slotWidth : slotWidth / 7;
-    const dayOffset = Math.floor(mouseX / dayWidth);
     
-    return addDays(dateRange.start, dayOffset);
+    // Use exact positioning (no Math.floor) to place at the exact pixel location
+    // This ensures the project is positioned precisely where the user dropped it
+    const dayOffset = mouseX / dayWidth;
+    console.log(`DROP DEBUG: Exact position - mouseX: ${mouseX}px, dayWidth: ${dayWidth}px, dayOffset: ${dayOffset} days`);
+    
+    // Get the exact date (including fractional day)
+    const exactDate = addDays(dateRange.start, Math.floor(dayOffset));
+    console.log(`DROP DEBUG: Target date: ${format(exactDate, 'yyyy-MM-dd')}`);
+    
+    return exactDate;
   };
   
   const handleDeleteRow = async (bayId: number, rowIndex: number) => {
