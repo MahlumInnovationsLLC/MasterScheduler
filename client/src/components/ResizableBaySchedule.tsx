@@ -2940,16 +2940,35 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const finalX = rawX - dragOffset.x;
     const finalY = rawY - dragOffset.y;
     
-    // 4) Convert X position to date - CRITICAL TIMING FIX
-    // EXACT WEEK POSITION WHERE USER DROPS PROJECT
-    // This is the most important fix - calculates precise date from pixel position
-    const weeksOffset = finalX / slotWidth; // slotWidth is pixels per week
-    const daysOffset = viewMode === 'week' ? weeksOffset * 7 : weeksOffset;
+    // 4) CRITICAL DATE SELECTION FIX
+    // First try to use the exact week date from attributes set during cell dragover
+    let formattedStartDate = '';
     
-    // CRITICAL: Use the EXACT date based on pixel position - ensure we get the precise week
-    const exactStartDate = addDays(dateRange.start, Math.floor(daysOffset));
-    // Format it properly for the API
-    const formattedStartDate = format(exactStartDate, 'yyyy-MM-dd');
+    // Try to get the exact date from various sources in order of preference
+    const exactDropDate = document.body.getAttribute('data-exact-drop-date');
+    const weekStartDate = document.body.getAttribute('data-week-start-date');
+    const globalExactDate = (window as any).lastExactDate;
+    
+    if (exactDropDate) {
+        formattedStartDate = exactDropDate;
+        console.log(`✅ USING EXACT DROP DATE FROM ATTRIBUTE: ${formattedStartDate}`);
+    } else if (weekStartDate) {
+        formattedStartDate = weekStartDate;
+        console.log(`✅ USING WEEK START DATE FROM ATTRIBUTE: ${formattedStartDate}`);
+    } else if (globalExactDate) {
+        formattedStartDate = globalExactDate;
+        console.log(`✅ USING GLOBALLY STORED DATE: ${formattedStartDate}`);
+    } else {
+        // Fallback to calculated date if no precise date was found
+        // This calculation is less precise as it's based on pixels
+        const weeksOffset = finalX / slotWidth; // slotWidth is pixels per week
+        const daysOffset = viewMode === 'week' ? weeksOffset * 7 : weeksOffset;
+        
+        // Calculate the exact start date from pixel position
+        const exactStartDate = addDays(dateRange.start, Math.floor(daysOffset));
+        formattedStartDate = format(exactStartDate, 'yyyy-MM-dd');
+        console.log(`⚠️ FALLBACK: Using calculated date: ${formattedStartDate}`);
+    }
     
     // 5) Convert Y position to row index
     // Use exact bay row count (4 for normal bays, 20 for TCV Line)
@@ -5811,6 +5830,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             document.body.setAttribute('data-current-drag-row', '1');
                             document.body.setAttribute('data-current-drag-bay', bay.id.toString());
                             
+                            // CRITICAL FIX: Store the week start date in a body attribute
+                            const weekStartDate = e.currentTarget.getAttribute('data-start-date');
+                            if (weekStartDate) {
+                              document.body.setAttribute('data-exact-drop-date', weekStartDate);
+                              document.body.setAttribute('data-week-start-date', weekStartDate);
+                              console.log(`🎯 STORING PRECISE DROP DATE FROM CELL: ${weekStartDate}`);
+                              
+                              // Also store globally for redundancy
+                              (window as any).lastExactDate = weekStartDate;
+                            }
+                            
                             // Ensure the element has the correct bay ID attribute
                             if (e.currentTarget instanceof HTMLElement) {
                               e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
@@ -5928,6 +5958,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           data-date={format(slot.date, 'yyyy-MM-dd')}
                           data-bay-id={bay.id}
                           data-row-index="2"
+                          data-start-date={slot.formattedStartDate || format(slot.date, 'yyyy-MM-dd')}
+                          data-exact-week="true"
                           onDragOver={(e) => {
                             // Prevent event from propagating to parent elements
                             e.stopPropagation();
@@ -5935,6 +5967,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             // Store the row index and bay ID in body attributes for the drop handler
                             document.body.setAttribute('data-current-drag-row', '2');
                             document.body.setAttribute('data-current-drag-bay', bay.id.toString());
+                            
+                            // CRITICAL FIX: Store the week start date in a body attribute
+                            const weekStartDate = e.currentTarget.getAttribute('data-start-date');
+                            if (weekStartDate) {
+                              document.body.setAttribute('data-exact-drop-date', weekStartDate);
+                              document.body.setAttribute('data-week-start-date', weekStartDate);
+                              console.log(`🎯 STORING PRECISE DROP DATE FROM CELL: ${weekStartDate}`);
+                              
+                              // Also store globally for redundancy
+                              (window as any).lastExactDate = weekStartDate;
+                            }
                             
                             // Ensure the element has the correct bay ID attribute
                             if (e.currentTarget instanceof HTMLElement) {
@@ -6053,6 +6096,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           data-date={format(slot.date, 'yyyy-MM-dd')}
                           data-bay-id={bay.id}
                           data-row-index="3"
+                          data-start-date={slot.formattedStartDate || format(slot.date, 'yyyy-MM-dd')}
+                          data-exact-week="true"
                           onDragOver={(e) => {
                             // Prevent event from propagating to parent elements
                             e.stopPropagation();
@@ -6060,6 +6105,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                             // Store the row index and bay ID in body attributes for the drop handler
                             document.body.setAttribute('data-current-drag-row', '3');
                             document.body.setAttribute('data-current-drag-bay', bay.id.toString());
+                            
+                            // CRITICAL FIX: Store the week start date in a body attribute
+                            const weekStartDate = e.currentTarget.getAttribute('data-start-date');
+                            if (weekStartDate) {
+                              document.body.setAttribute('data-exact-drop-date', weekStartDate);
+                              document.body.setAttribute('data-week-start-date', weekStartDate);
+                              console.log(`🎯 STORING PRECISE DROP DATE FROM CELL: ${weekStartDate}`);
+                              
+                              // Also store globally for redundancy
+                              (window as any).lastExactDate = weekStartDate;
+                            }
                             
                             // Ensure the element has the correct bay ID attribute
                             if (e.currentTarget instanceof HTMLElement) {
