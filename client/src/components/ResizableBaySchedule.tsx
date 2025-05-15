@@ -6238,76 +6238,127 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     rowCount={getBayRowCount(bay.id, bay.name)}
                   />
                 ) : (
-                  // NEW SIMPLIFIED SINGLE-ROW LAYOUT - EACH BAY IS ONE ROW
+                  // SIMPLIFIED SINGLE-ROW LAYOUT - EACH BAY IS ONE ROW
                   <div className="absolute inset-0 flex flex-col">
-                  {/* Single row per bay - simplified drop zone */}
-                  <div 
-                    className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
-                    onDragOver={(e) => {
-                      // Add strong visual indicator for this bay's single row
-                      e.currentTarget.classList.add('row-target-highlight', 'bay-highlight');
-                      // Always use row 0 for consistent placement
-                      handleDragOver(e, bay.id, 0, 0);
-                    }}
-                    onDragLeave={(e) => {
-                      // Remove the highlight when leaving this bay
-                      e.currentTarget.classList.remove('row-target-highlight', 'bay-highlight');
-                    }}
-                    onDrop={(e) => {
-                      // In the simplified single-row model, we're always using row 0
-                      // This is a complete redesign where each bay is ONE row
+                    {/* Single row per bay - simplified drop zone */}
+                    <div 
+                      className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
+                      onDragOver={(e) => {
+                        // Add strong visual indicator for this bay's single row
+                        e.currentTarget.classList.add('row-target-highlight', 'bay-highlight');
+                        // Always use row 0 for consistent placement
+                        handleDragOver(e, bay.id, 0, 0);
+                      }}
+                      onDragLeave={(e) => {
+                        // Remove the highlight when leaving this bay
+                        e.currentTarget.classList.remove('row-target-highlight', 'bay-highlight');
+                      }}
+                      onDrop={(e) => {
+                        // In the simplified single-row model, we're always using row 0
+                        // This is a complete redesign where each bay is ONE row
+                        
+                        // Logging for debugging
+                        console.log(`🎮 SIMPLIFIED SINGLE-ROW DROP HANDLER: BAY ${bay.id} (${bay.name})`);
+                        console.log(`🎮 Using single-row layout - always placing in row 0`);
+                        
+                        // Always use row 0 in the simplified model
+                        const targetRow = 0;
+                        
+                        // In the single-row model, we only need one data attribute 
+                        // The row is always fixed at 0 in our new model
+                        document.body.setAttribute('data-single-row-drop', '0');
+                        
+                        // Add visual indicator for debugging
+                        const indicator = document.createElement('div');
+                        indicator.className = 'absolute bg-green-500/30 border border-green-500 px-2 py-1 text-xs font-bold text-white z-50';
+                        indicator.style.top = '5px';  // Position at top of bay since we're using single row
+                        indicator.style.left = '5px';
+                        indicator.textContent = `Bay ${bay.id} - Single Row Layout`;
+                        e.currentTarget.appendChild(indicator);
+                        
+                        // Remove indicator after 2 seconds
+                        setTimeout(() => {
+                          if (indicator.parentNode) {
+                            indicator.parentNode.removeChild(indicator);
+                          }
+                        }, 2000);
+                        
+                        // Call handleDrop with the calculated row
+                        handleDrop(e, bay.id, 0, targetRow);
+                      }}
+                    >
+                      {/* Bay indicator */}
+                      <div className="absolute -left-6 top-0 h-full opacity-70 pointer-events-none flex items-center justify-center">
+                        <div className="bg-primary/20 rounded-md px-2 py-0.5 text-xs font-bold text-primary">
+                          B{bay.bayNumber}
+                        </div>
+                      </div>
                       
-                      // Logging for debugging
-                      console.log(`🎮 SIMPLIFIED SINGLE-ROW DROP HANDLER: BAY ${bay.id} (${bay.name})`);
-                      console.log(`🎮 Using single-row layout - always placing in row 0`);
+                      {/* Bay details */}
+                      <div className="bay-details absolute right-1 top-1">
+                        <div className="text-xs font-medium text-gray-700 bg-white/50 px-1 py-0.5 rounded">
+                          {bay.name}
+                        </div>
+                      </div>
                       
-                      // Always use row 0 in the simplified model
-                      const targetRow = 0;
-                      
-                      // In the single-row model, we only need one data attribute 
-                      // The row is always fixed at 0 in our new model
-                      document.body.setAttribute('data-single-row-drop', '0');
-                      
-                      // Add visual indicator for debugging
-                      const indicator = document.createElement('div');
-                      indicator.className = 'absolute bg-green-500/30 border border-green-500 px-2 py-1 text-xs font-bold text-white z-50';
-                      indicator.style.top = '5px';  // Position at top of bay since we're using single row
-                      indicator.style.left = '5px';
-                      indicator.textContent = `Bay ${bay.id} - Single Row Layout`;
-                      e.currentTarget.appendChild(indicator);
-                      
-                      // Remove indicator after 2 seconds
-                      setTimeout(() => {
-                        if (indicator.parentNode) {
-                          indicator.parentNode.removeChild(indicator);
-                        }
-                      }, 2000);
-                      
-                      // Call handleDrop with the calculated row
-                      handleDrop(e, bay.id, 0, targetRow);
-                    }}
-                  >
-                    {/* Row number indicator */}
+                      {/* Cell grid for this bay */}
+                      <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
+                        {slots.map((slot, index) => (
+                          <div 
+                            key={`bay-${bay.id}-slot-${index}`} 
+                            className="relative h-full border-r border-gray-700/30"
+                            data-row="0"
+                            data-slot-index={index}
+                            data-date={format(slot.date, 'yyyy-MM-dd')}
+                            data-start-date={format(slot.date, 'yyyy-MM-dd')}
+                            data-bay-id={bay.id}
+                            data-row-index="0"
+                            data-exact-week="true"
+                            onDragOver={(e) => {
+                              // Prevent event from propagating to parent elements
+                              e.stopPropagation();
+                              
+                              // Store the row index and bay id in body attributes for the drop handler
+                              document.body.setAttribute('data-current-drag-row', '0');
+                              document.body.setAttribute('data-current-drag-bay', bay.id.toString());
+                              
+                              // Make sure the element has the correct bay ID
+                              if (e.currentTarget instanceof HTMLElement) {
+                                e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
+                              }
+                              
+                              // Add highlight classes
+                              e.currentTarget.classList.add('cell-highlight');
+                              
+                              handleSlotDragOver(e, bay.id, 0, slot.date);
+                            }}
+                            onDragLeave={(e) => {
+                              // Remove highlight when leaving
+                              e.currentTarget.classList.remove('cell-highlight');
+                            }}
+                            onDrop={(e) => {
+                              // Use the data stored on the element for drop handling
+                              handleSlotDrop(e, bay.id, 0, slot.date);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    {/* Bay indicator */}
                     <div className="absolute -left-6 top-0 h-full opacity-70 pointer-events-none flex items-center justify-center">
                       <div className="bg-primary/20 rounded-md px-2 py-0.5 text-xs font-bold text-primary">
-                        1
+                        B{bay.bayNumber}
                       </div>
                     </div>
                     
-                    {/* Visible action buttons at row divider */}
-                    <div className="row-management-buttons">
-                      {/* Delete row button */}
-                      <div
-                        className="row-delete-button"
-                        title="Delete Row"
-                        onClick={() => {
-                          // Get projects in this row
-                          const projectsInRow = scheduleBars
-                            .filter(bar => bar.bayId === bay.id && bar.row === 0)
-                            .map(bar => {
-                              const project = projects.find(p => p.id === bar.projectId);
-                              return {
-                                id: bar.id,
+                    {/* In single-row layout, we don't show row management buttons */}
+                    <div className="bay-details absolute right-1 top-1">
+                      <div className="text-xs font-medium text-gray-700 bg-white/50 px-1 py-0.5 rounded">
+                        {bay.name}
+                      </div>
+                    </div>
+                    
+                    {/* Time slots for this bay */}
                                 projectId: bar.projectId,
                                 projectName: project?.name || 'Unknown Project',
                                 projectNumber: project?.projectNumber || 'Unknown'
