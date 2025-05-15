@@ -2959,10 +2959,28 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Calculate exact row index based on finalY position - TRULY NO BOUNDS CHECKING
     // CRITICAL FIX: Remove ALL min/max constraints to allow absolute positioning
     const targetRowIndex = Math.floor(finalY / rowHeight);
-    console.log(`🚨 ABSOLUTE POSITION: Calculated row ${targetRowIndex} with NO bounds checking`);
+    
+    // SUPER VERBOSE LOGGING to track all row calculation logic
+    console.log(`
+    🚨🚨🚨 MOUSE POSITION DEBUGGING
+    --------------------------------
+    Mouse Y position: ${e.clientY}
+    Drag offset Y: ${dragOffset.y}
+    Final calculated Y: ${finalY}
+    Container height: ${containerRect.height}
+    Row height: ${rowHeight}
+    RAW ROW CALCULATION: ${finalY} / ${rowHeight} = ${finalY/rowHeight}
+    FINAL ROW: ${targetRowIndex}
+    WEEK CALCULATION: X=${finalX}, slotWidth=${slotWidth}, offset=${finalX/slotWidth}
+    DATE AT POSITION: ${format(addDays(dateRange.start, Math.floor(finalX / slotWidth * 7)), 'yyyy-MM-dd')}
+    --------------------------------
+    `);
     
     // Force this row into the DOM for later verification
     document.body.setAttribute('data-precision-drop-row', targetRowIndex.toString());
+    document.body.setAttribute('data-client-y', e.clientY.toString());
+    document.body.setAttribute('data-final-y', finalY.toString());
+    document.body.setAttribute('data-row-height', rowHeight.toString());
     
     // Convert X position to date
     const weeksOffset = finalX / slotWidth; // slotWidth is pixels per week
