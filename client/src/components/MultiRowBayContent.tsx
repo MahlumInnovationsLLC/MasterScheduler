@@ -59,7 +59,7 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
   const isTeam7Or8 = bay.name && bay.name.trim().startsWith('Team') && 
                     (bay.name.includes('7') || bay.name.includes('8'));
 
-  // Enhanced handleDragOver with pixel-perfect positioning
+  // Enhanced handleDragOver with pixel-perfect positioning and row limit enforcement
   const handleEnhancedDragOver = (e: React.DragEvent<HTMLElement>, bayId: number, weekIndex: number) => {
     e.preventDefault();
     e.stopPropagation();
@@ -73,12 +73,47 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
 
     // Calculate exact row from Y position
     const rowHeight = rect.height / rowCount;
-    const exactRow = Math.floor(mouseY / rowHeight);
+    let exactRow = Math.floor(mouseY / rowHeight);
+    
+    // Check if this is a regular bay (not TCV Line/Team 7&8)
+    const isRegularBay = bay.bayNumber !== 7 && bay.bayNumber !== 8;
+    const maxRowIndex = isRegularBay ? 3 : 19; // 4 rows (0-3) for regular bays, 20 rows (0-19) for TCV Line
+    
+    // Store raw position before enforcing limits
+    document.body.setAttribute('data-raw-exact-row', exactRow.toString());
+    
+    // Enforce row limits (except if emergency mode is active)
+    const emergencyFixMode = localStorage.getItem('emergencyFixMode') === 'true';
+    const forceExactPlacement = localStorage.getItem('forceExactRowPlacement') === 'true';
+    
+    // Only apply limits if not in emergency mode
+    if (isRegularBay && exactRow > maxRowIndex && !emergencyFixMode) {
+      console.log(`⚠️ Row limit reached: ${exactRow} exceeds max of ${maxRowIndex} for bay ${bayId}`);
+      exactRow = maxRowIndex;
+      
+      // Add visual warning for reaching row limit
+      document.body.setAttribute('data-row-limit-reached', 'true');
+      
+      // Add a style to indicate we've hit the row limit
+      container.classList.add('row-limit-reached');
+    } else {
+      document.body.setAttribute('data-row-limit-reached', 'false');
+      container.classList.remove('row-limit-reached');
+    }
 
-    // Store exact position data
+    // Store exact position data with additional attributes
     document.body.setAttribute('data-exact-y-position', mouseY.toString());
     document.body.setAttribute('data-computed-row-index', exactRow.toString());
     document.body.setAttribute('data-row-height', rowHeight.toString());
+    document.body.setAttribute('data-current-drag-row', exactRow.toString()); 
+    document.body.setAttribute('data-bay-max-row-index', maxRowIndex.toString());
+    document.body.setAttribute('data-bay-is-regular', isRegularBay.toString());
+    
+    // For emergency mode tracking
+    if (emergencyFixMode) {
+      document.body.setAttribute('data-emergency-drag-active', 'true');
+      document.body.setAttribute('data-forced-row-index', exactRow.toString());
+    }
 
     // Add visual feedback for the exact row
     const allRows = container.querySelectorAll('.bay-row');
@@ -94,7 +129,7 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
     handleDragOver(e, bayId, weekIndex, exactRow);
   };
 
-  // Enhanced handleDrop with pixel-perfect positioning
+  // Enhanced handleDrop with pixel-perfect positioning and row limit enforcement
   const handleEnhancedDrop = (e: React.DragEvent<HTMLElement>, bayId: number, weekIndex?: number) => {
     e.preventDefault();
     e.stopPropagation();
@@ -108,12 +143,65 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
 
     // Calculate exact row from Y position
     const rowHeight = rect.height / rowCount;
-    const exactRow = Math.floor(mouseY / rowHeight);
-
-    // Store drop position data
+    let exactRow = Math.floor(mouseY / rowHeight);
+    
+    // Check if this is a regular bay (not TCV Line/Team 7&8)
+    const isRegularBay = bay.bayNumber !== 7 && bay.bayNumber !== 8;
+    const maxRowIndex = isRegularBay ? 3 : 19; // 4 rows (0-3) for regular bays, 20 rows (0-19) for TCV Line
+    
+    // Store raw position before enforcing limits
+    document.body.setAttribute('data-raw-drop-row', exactRow.toString());
     document.body.setAttribute('data-drop-y-position', mouseY.toString());
+    
+    // Check for emergency fix mode
+    const emergencyFixMode = localStorage.getItem('emergencyFixMode') === 'true';
+    const forceExactPlacement = localStorage.getItem('forceExactRowPlacement') === 'true';
+    
+    // Only enforce row limits if we're not in emergency mode
+    if (isRegularBay && exactRow > maxRowIndex && !emergencyFixMode) {
+      console.log(`⚠️ DROP ROW LIMIT: Row ${exactRow} exceeds max of ${maxRowIndex} for bay ${bayId}`);
+      
+      // Add visual indicator that we're limiting the row
+      container.classList.add('row-limit-enforced');
+      
+      // Enforce the limit for the drop operation
+      exactRow = maxRowIndex;
+      
+      // Show a quick visual indication
+      const flashElement = document.createElement('div');
+      flashElement.className = 'row-limit-flash';
+      flashElement.style.position = 'absolute';
+      flashElement.style.top = `${maxRowIndex * rowHeight}px`;
+      flashElement.style.left = '0';
+      flashElement.style.right = '0';
+      flashElement.style.height = `${rowHeight}px`;
+      flashElement.style.backgroundColor = 'rgba(255, 100, 100, 0.3)';
+      flashElement.style.zIndex = '100';
+      flashElement.style.pointerEvents = 'none';
+      container.appendChild(flashElement);
+      
+      // Remove flash after animation
+      setTimeout(() => {
+        if (flashElement.parentElement) {
+          flashElement.parentElement.removeChild(flashElement);
+        }
+        container.classList.remove('row-limit-enforced');
+      }, 800);
+    }
+    
+    // Store all final position data with additional redundant attributes
     document.body.setAttribute('data-final-row-index', exactRow.toString());
+    document.body.setAttribute('data-final-exact-row', exactRow.toString());
+    document.body.setAttribute('data-absolute-row-index', exactRow.toString());
     document.body.setAttribute('data-force-exact-row-placement', 'true');
+    document.body.setAttribute('data-bay-limited-to', maxRowIndex.toString());
+    document.body.setAttribute('data-bay-is-regular-type', isRegularBay.toString());
+    
+    // For emergency mode tracking
+    if (emergencyFixMode) {
+      document.body.setAttribute('data-emergency-drop-active', 'true');
+      document.body.setAttribute('data-emergency-row-override', exactRow.toString());
+    }
 
     // Call original handler with exact row
     handleDrop(e, bayId, weekIndex, exactRow);

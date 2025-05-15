@@ -3350,18 +3350,43 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
     }
     
-    // CRITICAL CHANGE: The line below was enforcing bounds checking which was
-    // automatically moving projects to different rows! Commenting it out to allow
-    // EXACT placement in whatever row the user selects, even if technically outside
-    // the intended bounds. THIS IS INTENTIONAL per user request.
+    // MAY 16 2025 - ROW BOUNDARY CHECK WITH WARNING
+    // For regular bays (1-6), we will enforce a maximum of 4 rows (indexes 0-3)
+    // For Bay 7 (TCV Line), we allow up to 20 rows (indexes 0-19)
+    // Instead of silently adjusting rows, we'll warn the user and enforce limits
     
-    // STRICT REQUIREMENT: DO NOT MODIFY targetRowIndex in any way, shape, or form
-    // targetRowIndex = Math.min(maxRowForBay, Math.max(0, targetRowIndex));
-    
-    // Add detailed logging for debugging
     const rowCount = targetBay?.bayNumber === 7 ? 20 : 4;
-    console.log(`🔍 ROW BOUNDS CHECK: Bay ${finalBayId} (Bay ${targetBay?.bayNumber || 'unknown'}) has ${rowCount} rows (max index: ${maxRowForBay})`);
-    console.log(`🔍 ADJUSTED ROW: ${targetRowIndex} (from original ${rowIndex}, global ${globalRowIndex})`);
+    const isRowOutOfBounds = targetRowIndex > maxRowForBay;
+    
+    if (isRowOutOfBounds && !emergencyFixMode) {
+      console.log(`⚠️⚠️⚠️ ROW OUT OF BOUNDS: Attempted to place in row ${targetRowIndex} but max is ${maxRowForBay}`);
+      
+      // Show warning toast to user
+      toast({
+        title: `Row limit reached`,
+        description: `Bay ${targetBay?.name || finalBayId} can only have ${rowCount} rows. Project placed in row ${Math.min(maxRowForBay, Math.max(0, targetRowIndex)) + 1}.`,
+        variant: "destructive"
+      });
+      
+      // Enforce boundary for regular drop mode
+      targetRowIndex = Math.min(maxRowForBay, Math.max(0, targetRowIndex));
+      
+      console.log(`🔍 ROW ADJUSTED: Project will be placed in row ${targetRowIndex} instead`);
+    } else {
+      // In regular mode with valid row, or in emergency mode (which bypasses limits)
+      console.log(`🔍 ROW BOUNDS CHECK: Bay ${finalBayId} (Bay ${targetBay?.bayNumber || 'unknown'}) has ${rowCount} rows (max index: ${maxRowForBay})`);
+      console.log(`🔍 USING ROW: ${targetRowIndex} (from original ${rowIndex}, global ${globalRowIndex})`);
+      
+      // If emergency mode is active and the row is out of bounds, show a strong warning
+      if (isRowOutOfBounds && emergencyFixMode) {
+        console.log(`🚨🚨🚨 EMERGENCY MODE - ALLOWING OUT OF BOUNDS ROW: ${targetRowIndex} > ${maxRowForBay}`);
+        toast({
+          title: `Emergency Placement`,
+          description: `Placed in row ${targetRowIndex + 1} (beyond normal limit of ${rowCount}). This may cause display issues.`,
+          variant: "destructive"
+        });
+      }
+    }
     
     
     // CRITICAL: We already decided to use the exact bay ID from the drop event parameter
