@@ -346,7 +346,7 @@ export default function ResizableBaySchedule({
   const [scheduleDuration, setScheduleDuration] = useState(4); // in weeks
   const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [slotWidth, setSlotWidth] = useState(20); // Default slot width
+  const [slotWidth, setSlotWidth] = useState(40); // Doubled width for better visibility
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [showAddMultipleWarning, setShowAddMultipleWarning] = useState(false);
@@ -558,22 +558,57 @@ export default function ResizableBaySchedule({
   };
   
   const handleDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, slotIndex: number) => {
-    e.preventDefault();
+    // SUPER CRITICAL: This prevents the "no-drop" icon from appearing
+    e.preventDefault(); 
+    e.stopPropagation();
+    
+    // Set dropEffect to 'move' to show the move cursor
     e.dataTransfer.dropEffect = 'move';
     
+    // Add important attributes to identify elements as valid drop targets 
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.setAttribute('data-droppable', 'true');
+      e.currentTarget.style.cursor = 'move';
+      e.currentTarget.classList.add('valid-drop-target');
+    }
+    
+    // Store target position in global document for easier access
+    document.body.setAttribute('data-current-drop-target-bay', bayId.toString());
+    document.body.setAttribute('data-current-drop-target-row', rowIndex.toString());
+    
+    // Log to confirm drag over is working (debugging)
+    console.log(`✅ VALID DROP TARGET: Bay ${bayId}, Row ${rowIndex}`);
+    
+    // Update drop target information for tracking
     setDropTarget({ bayId, rowIndex });
+    
+    // Add visual feedback to show this is a valid drop target
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.classList.add('drop-target-active');
+    }
+    
+    console.log(`Valid drop target: Bay ${bayId}, Row ${rowIndex}`);
   };
   
   const handleSlotDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
+    // Critical: Prevent default to enable dropping and stop propagation to prevent parent handling
     e.preventDefault();
+    e.stopPropagation();
+    
+    // Set move cursor to show this is a valid drop target
     e.dataTransfer.dropEffect = 'move';
     
-    // Update drop target info
+    // Update drop target info for state tracking
     setDropTarget({ bayId, rowIndex });
     
-    // Visually highlight the drop zone
+    // Enhanced visual feedback for the specific week cell
     if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.classList.add('drop-target');
+      // Show this is an active drop target
+      e.currentTarget.classList.add('drop-target', 'week-cell-highlight');
+      
+      // Add date information to help user see where they're dropping
+      const dateInfo = format(date, 'MMM d');
+      console.log(`Valid week drop target: ${dateInfo} in Bay ${bayId}, Row ${rowIndex}`);
     }
   };
   
@@ -757,58 +792,91 @@ export default function ResizableBaySchedule({
   const getDateFromDropPosition = (e: React.DragEvent, bayId: number, rowIndex: number): Date | null => {
     console.log(`DROP DEBUG: Bay ID ${bayId}, Row Index ${rowIndex}`);
     
-    // Try to get date from data attributes first (more precise if available)
+    // If the drop target has a data-date attribute, use that for super precise positioning
+    let targetElement: HTMLElement | null = null;
+    
+    // Try to get the week cell directly
+    if (e.target instanceof HTMLElement) {
+      targetElement = e.target;
+      if (targetElement.classList.contains('week-cell')) {
+        const dateAttr = targetElement.getAttribute('data-date');
+        if (dateAttr) {
+          console.log(`DROP DEBUG: Using EXACT week-cell date attribute: ${dateAttr}`);
+          // Visual marker for debugging
+          targetElement.style.backgroundColor = 'rgba(0, 255, 0, 0.2)';
+          setTimeout(() => {
+            targetElement!.style.backgroundColor = '';
+          }, 1000);
+          return new Date(dateAttr);
+        }
+      }
+    }
+    
+    // Check the current target element
     if (e.currentTarget instanceof HTMLElement) {
       const dateAttr = e.currentTarget.getAttribute('data-date');
       if (dateAttr) {
-        console.log(`DROP DEBUG: Using date attribute: ${dateAttr}`);
+        console.log(`DROP DEBUG: Using current target date attribute: ${dateAttr}`);
         return new Date(dateAttr);
       }
     }
     
-    // Get the element where the drop happened
-    const dropTarget = e.target as HTMLElement;
-    if (dropTarget?.classList.contains('week-cell')) {
-      const dateAttr = dropTarget.getAttribute('data-date');
-      if (dateAttr) {
-        console.log(`DROP DEBUG: Using week-cell date attribute: ${dateAttr}`);
-        return new Date(dateAttr);
-      }
-    }
-    
+    // EXACT PIXEL POSITIONING: Calculate the date from the mouse position
     try {
-      // Find the timeline element that contains the week cells
+      // Find the timeline element
       const timelineEl = timelineRef.current;
       if (!timelineEl) {
         console.error('DROP DEBUG: Timeline element not found');
-        return addDays(dateRange.start, 0); // Default to start date
+        return addDays(dateRange.start, 0); 
       }
       
-      // Get the timeline bounding rect
+      // Get the timeline bounds
       const timelineRect = timelineEl.getBoundingClientRect();
       
-      // Get the offset from the start of the timeline (left edge) 
-      const timelineX = e.clientX - timelineRect.left - 32; // Adjust for bay label width
+      // Get the bay element bounds
+      const bayContainer = document.querySelector(`[data-bay-id="${bayId}"]`) as HTMLElement;
+      if (!bayContainer) {
+        console.error(`DROP DEBUG: Bay container not found for bay ID ${bayId}`);
+        return addDays(dateRange.start, 0);
+      }
       
-      // Make sure we have a positive value
-      const adjustedX = Math.max(0, timelineX);
+      // Calculate using the bay container's bounds instead of timeline
+      // This is more accurate for positioning within a specific bay
+      const bayRect = bayContainer.getBoundingClientRect();
       
-      // Calculate date based on slot width with precise positioning
+      // Calculate X offset in pixels from the left edge of the bay content area
+      const bayX = e.clientX - bayRect.left - 32; // Adjust for bay label width
+      const adjustedX = Math.max(0, bayX);
+      
+      // Calculate date based on slot width with PRECISE positioning
       const dayWidth = viewMode === 'day' ? slotWidth : slotWidth / 7;
       
-      // Calculate the day offset based on pixels
+      // Calculate the day offset in fractional days for extreme precision
       const dayOffset = adjustedX / dayWidth;
-      console.log(`DROP DEBUG: Improved calculation - timelineX: ${timelineX}px, adjustedX: ${adjustedX}px, dayWidth: ${dayWidth}px, dayOffset: ${dayOffset} days`);
+      console.log(`🎯 PRECISE POSITION - bayX: ${bayX}px, dayWidth: ${dayWidth}px, dayOffset: ${dayOffset} days`);
       
-      // Get the exact date
+      // Use exact date with no rounding - this is crucial for pixel-perfect placement
+      // Math.floor ensures the date is at the start of the day where the drop occurred
       const exactDate = addDays(dateRange.start, Math.floor(dayOffset));
-      console.log(`DROP DEBUG: Target date: ${format(exactDate, 'yyyy-MM-dd')}`);
+      console.log(`🎯 TARGET DATE: ${format(exactDate, 'yyyy-MM-dd')}`);
+      
+      // Create visual marker to show where calculation happened
+      const marker = document.createElement('div');
+      marker.className = 'absolute w-1 h-16 bg-green-500/50 z-50 pointer-events-none';
+      marker.style.left = `${adjustedX + 32}px`; // Adjust for label
+      marker.style.top = '0px';
+      bayContainer.appendChild(marker);
+      
+      // Remove marker after 1 second
+      setTimeout(() => {
+        if (marker.parentNode) marker.parentNode.removeChild(marker);
+      }, 1000);
       
       return exactDate;
     } catch (error) {
       console.error('Error calculating drop position:', error);
       
-      // Fallback - use the center of the first visible week on screen
+      // Fallback - first day in schedule range
       return addDays(dateRange.start, 0);
     }
   };
@@ -1337,31 +1405,46 @@ export default function ResizableBaySchedule({
           <div className="bay-schedule-container relative" ref={timelineRef}>
           {/* Timeline Header */}
           <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32">
-            {slots.map((slot, index) => (
-              <div
-                key={`header-${index}`}
-                className={`
-                  timeline-slot border-r flex-shrink-0
-                  ${slot.isStartOfMonth ? 'bg-gray-800 border-r-2 border-r-blue-500' : ''}
-                  ${slot.isStartOfWeek ? 'bg-gray-850 border-r border-r-gray-600' : ''}
-                  ${!slot.isBusinessDay ? 'bg-gray-850/70' : ''}
-                `}
-                style={{ width: `${slotWidth}px`, height: '40px' }}
-              >
-                <div className="text-xs text-center w-full">
-                  {slot.isStartOfMonth && (
-                    <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
-                      {slot.monthName}
+            {slots.map((slot, index) => {
+              // For week headers, we only want one cell per week with width = 7 * slotWidth
+              // This ensures no gaps and creates a continuous header
+              if (slot.isStartOfWeek) {
+                const weekStart = slot.date;
+                const weekEnd = endOfWeek(weekStart);
+                const formattedStartDate = format(weekStart, 'MMM d');
+                const formattedEndDate = format(weekEnd, 'MMM d');
+                const weekYear = format(weekStart, 'yyyy');
+                
+                // Create a HALF-width week cell to match screenshot (3.5 days worth of width)
+                return (
+                  <div
+                    key={`header-${index}`}
+                    className="timeline-slot flex-shrink-0 bg-gray-800/90 border-r border-gray-600"
+                    style={{ 
+                      width: `${slotWidth * 3.5}px`,
+                      minWidth: `${slotWidth * 3.5}px`
+                    }}
+                    data-date={format(slot.date, 'yyyy-MM-dd')}
+                    data-week-number={slot.weekNumber || Math.floor(index / 7)}
+                  >
+                    {/* Week header with no gaps but HALF width */}
+                    <div className="week-number">
+                      Week {slot.weekNumber || Math.floor(index / 7)}
                     </div>
-                  )}
-                  {slot.isStartOfWeek && (
-                    <div className="text-gray-400 mt-1 text-[10px]">
-                      Week {slot.weekNumber}
+                    <div className="week-date-range">
+                      {formattedStartDate} - {formattedEndDate} {weekYear}
                     </div>
-                  )}
-                </div>
-              </div>
-            ))}
+                    {slot.isStartOfMonth && (
+                      <div className="text-xs font-bold text-blue-400 mt-1">
+                        {format(slot.date, 'yyyy')}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              // Skip rendering for non-week-start days
+              return null;
+            }).filter(Boolean)}
           </div>
           
           {/* Today indicator */}
@@ -1375,9 +1458,58 @@ export default function ResizableBaySchedule({
           <div className="manufacturing-bays mt-2">
             {bayTeams.map((team, teamIndex) => (
               <div key={`team-${teamIndex}`} className="team-container mb-5 relative">
-                <div className="team-header bg-slate-100 py-2 px-3 rounded-md mb-2 flex justify-between items-center shadow-sm">
+                <div className="team-header bg-gray-800 text-white py-2 px-3 rounded-md mb-2 flex justify-between items-center shadow-sm">
                   <div className="team-name font-medium">
                     Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}
+                  </div>
+                  
+                  {/* Bay status indicators for this team */}
+                  <div className="bay-status-indicators flex items-center gap-3">
+                    {team.map(bay => {
+                      // Calculate bay capacity
+                      const bayProjects = scheduleBars.filter(bar => bar.bayId === bay.id);
+                      const scheduleCount = bayProjects.length;
+                      const capacityRatio = scheduleCount > 0 ? (scheduleCount / 2) : 0; // 2 projects per bay is "full"
+                      
+                      // Determine status badge color
+                      let statusBadge;
+                      let statusText = 'Available';
+                      
+                      if (capacityRatio >= 1) {
+                        statusBadge = <Badge variant="destructive" className="text-xs">At Capacity</Badge>;
+                        statusText = 'At Capacity';
+                      } else if (capacityRatio >= 0.5) {
+                        statusBadge = <Badge variant="outline" className="text-xs bg-orange-500 text-white border-orange-500">Near Capacity</Badge>;
+                        statusText = 'Near Capacity';
+                      } else {
+                        statusBadge = <Badge variant="outline" className="text-xs text-green-400 border-green-400">Available</Badge>;
+                        statusText = 'Available';
+                      }
+                      
+                      // Add maintenance status
+                      if (bay.status === 'maintenance') {
+                        statusBadge = <Badge variant="destructive" className="text-xs">Maintenance</Badge>;
+                        statusText = 'In Maintenance';
+                      }
+                      
+                      return (
+                        <TooltipProvider key={bay.id}>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <div className="bay-status flex flex-col items-center gap-1">
+                                <div className="flex items-center gap-1">
+                                  {statusBadge}
+                                </div>
+                                <span className="text-xs text-gray-300">Bay {bay.bayNumber}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{bay.name}: {statusText} ({scheduleCount} project{scheduleCount !== 1 ? 's' : ''})</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    })}
                   </div>
                   
                   {/* Team capacity indicators */}
@@ -1385,7 +1517,7 @@ export default function ResizableBaySchedule({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger>
-                          <div className="capacity-indicator flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                          <div className="capacity-indicator flex items-center text-xs bg-blue-900 text-blue-100 px-2 py-0.5 rounded-full">
                             <Users className="h-3 w-3 mr-1" />
                             <span>
                               {scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length} projects
@@ -1401,7 +1533,7 @@ export default function ResizableBaySchedule({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger>
-                          <div className="utilization-indicator flex items-center text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                          <div className="utilization-indicator flex items-center text-xs bg-green-900 text-green-100 px-2 py-0.5 rounded-full">
                             <Zap className="h-3 w-3 mr-1" />
                             <span>
                               {Math.min(
@@ -1415,7 +1547,7 @@ export default function ResizableBaySchedule({
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Team capacity utilization percentage</p>
+                          <p>Team utilization percentage</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -1497,10 +1629,11 @@ export default function ResizableBaySchedule({
                           />
                         ) : (
                           // SIMPLIFIED SINGLE-ROW LAYOUT - EACH BAY IS ONE ROW
-                          <div className="absolute inset-0 flex flex-col">
-                            {/* Single row per bay - simplified drop zone */}
+                          <div className="absolute inset-0 flex flex-col w-full" style={{ minWidth: '100%', width: `${slots.length * slotWidth}px` }}>
+                            {/* Single row per bay - simplified drop zone - EXTENDED TO END OF TIMELINE */}
                             <div 
                               className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
+                              style={{ width: `${slots.length * slotWidth}px`, minWidth: '100%' }}
                               onDragOver={(e) => {
                                 // Add strong visual indicator for this bay's single row
                                 e.currentTarget.classList.add('row-target-highlight', 'bay-highlight');
@@ -1569,47 +1702,127 @@ export default function ResizableBaySchedule({
                                 </div>
                               </div>
                               
-                              {/* Cell grid for this bay */}
-                              <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
-                                {slots.map((slot, index) => (
-                                  <div 
-                                    key={`bay-${bay.id}-slot-${index}`} 
-                                    className="relative h-full border-r border-gray-700/30"
-                                    data-row="0"
-                                    data-slot-index={index}
-                                    data-date={format(slot.date, 'yyyy-MM-dd')}
-                                    data-start-date={format(slot.date, 'yyyy-MM-dd')}
-                                    data-bay-id={bay.id}
-                                    data-row-index="0"
-                                    data-exact-week="true"
-                                    onDragOver={(e) => {
-                                      // Prevent event from propagating to parent elements
-                                      e.stopPropagation();
-                                      
-                                      // Store the row index and bay id in body attributes for the drop handler
-                                      document.body.setAttribute('data-current-drag-row', '0');
-                                      document.body.setAttribute('data-current-drag-bay', bay.id.toString());
-                                      
-                                      // Make sure the element has the correct bay ID
-                                      if (e.currentTarget instanceof HTMLElement) {
-                                        e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
-                                      }
-                                      
-                                      // Add highlight classes
-                                      e.currentTarget.classList.add('cell-highlight');
-                                      
-                                      handleSlotDragOver(e, bay.id, 0, slot.date);
-                                    }}
-                                    onDragLeave={(e) => {
-                                      // Remove highlight when leaving
-                                      e.currentTarget.classList.remove('cell-highlight');
-                                    }}
-                                    onDrop={(e) => {
-                                      // Use the data stored on the element for drop handling
-                                      handleSlotDrop(e, bay.id, 0, slot.date);
-                                    }}
-                                  />
-                                ))}
+                              {/* Cell grid for this bay - Modified to align with header widths */}
+                              <div className="absolute inset-0 flex" style={{ width: `${slots.length * slotWidth}px` }}>
+                                {/* Instead of mapping all slots, we map only week-start slots at 3.5-day intervals to match headers */}
+                                {slots.filter((_, idx) => idx % 3.5 === 0).map((slot, groupIndex) => {
+                                  const slotIndex = Math.floor(groupIndex * 3.5);
+                                  const isStartOfMonth = slot.isStartOfMonth;
+                                  const isStartOfWeek = slot.isStartOfWeek;
+                                  const isWeekend = !slot.isBusinessDay;
+                                  const weekNumber = slot.weekNumber || Math.floor(slotIndex / 7);
+                                  
+                                  // Create cells that match the header widths exactly
+                                  const cellClasses = [
+                                    "relative h-full week-cell", // Base class for all cells
+                                    "border-l border-r border-gray-700/80", // Consistent borders
+                                    "bg-gray-900/95", // Single consistent background color
+                                    isWeekend ? "weekend-cell" : ""
+                                  ].filter(Boolean).join(" ");
+                                  
+                                  return (
+                                    <div 
+                                      key={`bay-${bay.id}-slot-${slotIndex}`} 
+                                      className={cellClasses}
+                                      data-row="0"
+                                      data-slot-index={slotIndex}
+                                      data-date={format(slot.date, 'yyyy-MM-dd')}
+                                      data-start-date={format(slot.date, 'yyyy-MM-dd')}
+                                      data-bay-id={bay.id}
+                                      data-row-index="0"
+                                      data-exact-week="true"
+                                      data-week-number={weekNumber}
+                                      data-is-start-of-month={isStartOfMonth ? "true" : "false"}
+                                      data-is-start-of-week={isStartOfWeek ? "true" : "false"}
+                                      data-is-weekend={isWeekend ? "true" : "false"}
+                                      onDragOver={(e) => {
+                                        // CRITICAL: Prevent default to enable dropping
+                                        e.preventDefault();
+                                        
+                                        // Stop propagation to prevent parent elements from handling
+                                        e.stopPropagation();
+                                        
+                                        // Explicitly set the drop effect to 'move' to show move cursor
+                                        e.dataTransfer.dropEffect = 'move';
+                                        
+                                        // Store precise location data in the document for the drop handler
+                                        document.body.setAttribute('data-current-drag-row', '0');
+                                        document.body.setAttribute('data-current-drag-bay', bay.id.toString());
+                                        document.body.setAttribute('data-current-week', (slot.weekNumber || Math.floor(index / 7)).toString());
+                                        document.body.setAttribute('data-current-date', format(slot.date, 'yyyy-MM-dd'));
+                                        
+                                        // Make sure the element has all the necessary data attributes
+                                        if (e.currentTarget instanceof HTMLElement) {
+                                          e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
+                                          e.currentTarget.setAttribute('data-row-index', '0');
+                                          e.currentTarget.setAttribute('data-week', (slot.weekNumber || Math.floor(index / 7)).toString());
+                                          
+                                          // Add enhanced visual feedback with animation
+                                          e.currentTarget.classList.add('cell-highlight', 'exact-week-highlight', 'drop-target-active');
+                                          
+                                          // Create a temporary hover label showing the exact date
+                                          const existingLabel = e.currentTarget.querySelector('.week-hover-label');
+                                          if (!existingLabel) {
+                                            const label = document.createElement('div');
+                                            label.className = 'week-hover-label absolute top-0 left-0 bg-blue-700 text-white text-xs px-1 py-0.5 rounded z-20';
+                                            label.textContent = format(slot.date, 'MMM d, yyyy');
+                                            e.currentTarget.appendChild(label);
+                                          }
+                                        }
+                                        
+                                        // Log for debugging
+                                        console.log(`✅ VALID DROP TARGET: Bay ${bay.id}, Week ${slot.weekNumber || Math.floor(index / 7)}, Date ${format(slot.date, 'yyyy-MM-dd')}`);
+                                        
+                                        // Call the slot drag over handler
+                                        handleSlotDragOver(e, bay.id, 0, slot.date);
+                                      }}
+                                      onDragLeave={(e) => {
+                                        // Remove all highlight classes when leaving
+                                        e.currentTarget.classList.remove(
+                                          'cell-highlight', 
+                                          'exact-week-highlight', 
+                                          'drop-target-active', 
+                                          'drop-target'
+                                        );
+                                        
+                                        // Remove any temporary hover labels
+                                        const hoverLabel = e.currentTarget.querySelector('.week-hover-label');
+                                        if (hoverLabel && hoverLabel.parentNode) {
+                                          hoverLabel.parentNode.removeChild(hoverLabel);
+                                        }
+                                      }}
+                                      onDrop={(e) => {
+                                        // Enhanced drop handling with week precision
+                                        console.log(`Dropping in exact week: Bay ${bay.id}, Week ${slot.weekNumber || Math.floor(index / 7)}, Date ${format(slot.date, 'yyyy-MM-dd')}`);
+                                        
+                                        // Store drop location for debugging and validation
+                                        document.body.setAttribute('data-drop-week', (slot.weekNumber || Math.floor(index / 7)).toString());
+                                        document.body.setAttribute('data-drop-date', format(slot.date, 'yyyy-MM-dd'));
+                                        
+                                        // Use the data stored on the element for drop handling
+                                        handleSlotDrop(e, bay.id, 0, slot.date);
+                                        
+                                        // Add visual indicator for drop location (remove after 2 seconds)
+                                        const indicator = document.createElement('div');
+                                        indicator.className = 'absolute bg-green-500/30 border border-green-500 w-full h-full flex items-center justify-center';
+                                        indicator.innerHTML = `<span class="text-xs font-bold text-white">Week ${slot.weekNumber || Math.floor(index / 7)}</span>`;
+                                        e.currentTarget.appendChild(indicator);
+                                        setTimeout(() => {
+                                          if (indicator.parentNode) {
+                                            indicator.parentNode.removeChild(indicator);
+                                          }
+                                        }, 2000);
+                                      }}
+                                    >
+                                      {/* Week number indicator for better visual reference */}
+                                      {isStartOfWeek && (
+                                        <div className="absolute top-0 left-0 text-[8px] bg-gray-700/30 text-gray-300 px-1 rounded-br">
+                                          W{slot.weekNumber || Math.floor(index / 7)}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>
