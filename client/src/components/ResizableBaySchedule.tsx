@@ -4065,10 +4065,49 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // CRITICAL: Always use the actual bay ID where the user dropped, with enhanced Bay 3 detection
         const finalBayId = actualBayId;
         
-        // ABSOLUTELY CRITICAL FIX - FORCE EXACT ROW PLACEMENT WITH ZERO EXCEPTIONS
+        // ABSOLUTELY CRITICAL FIX - MAY 2025 - ENSURE EXACT PIXEL-PERFECT ROW PLACEMENT
         
-        console.log(`🎯 USING PIXEL-PERFECT ROW CALCULATION: ${finalRowIndex} 
+        // ✨ NEW MAY 2025 ENHANCEMENT - Implement strict Y-position based calculation to guarantee 
+        // that projects always land at the exact Y coordinate of the cursor drop with zero exceptions
+        
+        // Get the computed row index from our direct pixel calculation
+        const computedYRowFromData = document.body.getAttribute('data-computed-row-index');
+        const yAxisRowData = document.body.getAttribute('data-y-axis-row');
+        
+        // Make sure Y-position based row is prioritized above all else
+        const strictYPositionRow = computedYRowFromData !== null 
+            ? parseInt(computedYRowFromData) 
+            : yAxisRowData !== null 
+                ? parseInt(yAxisRowData) 
+                : undefined;
+        
+        // Determine the most accurate row to use
+        let rowIndexToUse = finalRowIndex;
+                
+        // If we have a direct Y-position calculation, use it with highest priority
+        // This ensures projects ALWAYS land at the exact Y position where the mouse cursor dropped
+        if (strictYPositionRow !== undefined) {
+            console.log(`✨ PIXEL-PERFECT Y POSITIONING ACTIVATED: Using row ${strictYPositionRow} from Y-coordinate calculation`);
+            console.log(`✨ This ensures projects land at EXACTLY the Y position where the mouse was released`);
+            console.log(`✨ OVERRIDING all other row sources with direct pixel calculation`);
+            
+            // Save the original value for logging
+            const oldRowIndex = rowIndexToUse;
+            
+            // Update our row variable to the exact Y-position (no constants modified)
+            rowIndexToUse = strictYPositionRow;
+            
+            console.log(`✨ Changed row from ${oldRowIndex} to ${rowIndexToUse} based on precise Y-axis position`);
+            
+            // Store this value with highest priority for the server request
+            document.body.setAttribute('data-forced-row-index', rowIndexToUse.toString());
+            document.body.setAttribute('data-final-exact-row', rowIndexToUse.toString());
+        }
+        
+        // Use rowIndexToUse which may have been updated by the Y-position calculation
+        console.log(`🎯 USING PIXEL-PERFECT ROW CALCULATION: ${rowIndexToUse} 
           (from pixel calc: ${exactRowFromPixelCalc}, 
+           Y-position calc: ${strictYPositionRow},
            drag coords: ${exactRowFromDragCoords}, 
            exact drop: ${exactRowFromDrop}, 
            last select: ${exactRowFromLastSelect})`);
@@ -4078,8 +4117,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           console.warn(`⚠️ ROW MISMATCH - Using pixel-perfect calculation ${exactRowFromPixelCalc} instead of drag coords ${exactRowFromDragCoords}`);
         }
     
-        console.log(`🎯 EXACT ROW FORCED TO USER SELECTION: ${finalRowIndex} (from drag coordinates: ${exactRowFromDragCoords})`);
-        console.log(`⚠️ ROW PLACEMENT OVERRIDE - NO AUTO ADJUSTMENT - USING EXACT COORDINATES`);
+        console.log(`🎯 EXACT ROW FORCED TO USER SELECTION: ${rowIndexToUse} (from Y-axis position)`);
+        console.log(`⚠️ ROW PLACEMENT OVERRIDE - NO AUTO ADJUSTMENT - USING EXACT Y COORDINATES`);
+        
+        // Use our calculated rowIndexToUse instead of finalRowIndex for perfect positioning
   
         // DEVELOPMENT FLAG: Force extreme logging of all row-related variables
         console.log('🔍 ALL ROW VARIABLES:', {
