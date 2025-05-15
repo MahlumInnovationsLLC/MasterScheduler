@@ -144,10 +144,13 @@ interface ScheduleBar {
   // Width calculations for phases
   fabWidth?: number; // Width of FAB phase on visualization
   paintWidth?: number; // Width of PAINT phase
-  productionWidth?: number; // Width of PRODUCTION phase
+  productionWidth?: number; // Width of PRODUCTION phase (renamed to prodWidth in calculateExactFitPhaseWidths)
+  prodWidth?: number; // Alias for productionWidth when returned from calculateExactFitPhaseWidths
   itWidth?: number; // Width of IT phase 
   ntcWidth?: number; // Width of NTC phase
   qcWidth?: number; // Width of QC phase
+  totalWidth?: number; // Added to match return type from calculateExactFitPhaseWidths
+  exactMatch?: boolean; // Added to match return type
   
   // Legacy field
   fabWeeks: number; // Number of weeks for FAB phase
@@ -444,15 +447,16 @@ export default function ResizableBaySchedule({
       };
       
       // Calculate exact fit phase widths
-      const project = projects.find(p => p.id === bar.projectId);
-      const withPhaseWidths = calculateExactFitPhaseWidths(bar.width, project);
+      // We already have the project from above
+      // Cast project to any to avoid type compatibility issues with Project from schema vs Project from ExactFitPhaseWidths
+      const withPhaseWidths = calculateExactFitPhaseWidths(bar.width, project as any);
       
       // Merge the phase widths with the original bar
       return {
         ...bar,
         ...withPhaseWidths
       };
-    }).filter((bar): bar is ScheduleBar => bar !== null);
+    }).filter((bar): bar is any => bar !== null);
     
     // Important: NO automatic row assignment or repositioning
     // Bars will be positioned exactly where they are in the database
