@@ -6357,15 +6357,50 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       const rowHeight = rect.height / rowCount;
                       const exactRow = Math.floor(mouseY / rowHeight);
                       
-                      // Ensure row is within bounds (should be 0 for top row)
+                      // We want to use the exact pixel position for absolute precision
+                      // This should always use the exact mouse Y position with no constraints
                       const targetRow = Math.min(Math.max(0, exactRow), rowCount - 1);
                       
-                      console.log(`🎯 ROW 0 DROP HANDLER: Raw Y=${mouseY}px, Calculated exactRow=${exactRow}, Using row=${targetRow}`);
+                      console.log(`🎮 PIXEL-PERFECT DROP HANDLER: ROW 0 AREA`);
+                      console.log(`🎮 Raw Mouse Y: ${mouseY}px from top of container`);
+                      console.log(`🎮 Container Height: ${rect.height}px, Row Height: ${rowHeight}px`);
+                      console.log(`🎮 Bay ${bay.id} has ${rowCount} rows (max index: ${rowCount - 1})`);
+                      console.log(`🎮 Calculated Row from Y-Position: ${exactRow}`);
+                      console.log(`🎮 Final Target Row: ${targetRow}`);
                       
-                      // Set global row data attribute to the calculated row
-                      document.body.setAttribute('data-current-drag-row', targetRow.toString());
-                      document.body.setAttribute('data-forced-row-index', targetRow.toString());
-                      document.body.setAttribute('data-exact-row-from-y', targetRow.toString());
+                      // Set ALL possible row data attributes for maximum redundancy
+                      const rowAttributes = [
+                        'data-current-drag-row',
+                        'data-forced-row-index',
+                        'data-exact-row-from-y',
+                        'data-absolute-row-index',
+                        'data-y-position-row',
+                        'data-exact-pixel-row',
+                        'data-precision-drop-row',
+                        'data-direct-calculation-row',
+                        'data-target-row-index',
+                        'data-force-exact-row'
+                      ];
+                      
+                      // Set all attributes to the same value for maximum consistency
+                      rowAttributes.forEach(attr => {
+                        document.body.setAttribute(attr, targetRow.toString());
+                      });
+                      
+                      // Add visual indicator for debugging
+                      const indicator = document.createElement('div');
+                      indicator.className = 'absolute bg-green-500/30 border border-green-500 px-2 py-1 text-xs font-bold text-white z-50';
+                      indicator.style.top = `${mouseY}px`;
+                      indicator.style.left = '5px';
+                      indicator.textContent = `Row ${targetRow}`;
+                      e.currentTarget.appendChild(indicator);
+                      
+                      // Remove indicator after 2 seconds
+                      setTimeout(() => {
+                        if (indicator.parentNode) {
+                          indicator.parentNode.removeChild(indicator);
+                        }
+                      }, 2000);
                       
                       // Call handleDrop with the calculated row
                       handleDrop(e, bay.id, 0, targetRow);
