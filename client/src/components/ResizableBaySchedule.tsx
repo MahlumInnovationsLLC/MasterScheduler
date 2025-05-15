@@ -3591,7 +3591,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             // CRITICAL FIX: Use multiple row parameters to ensure server respects placement
             row: targetRowIndex,
             rowIndex: targetRowIndex,
-            forcedRowIndex: targetRowIndex, // Special parameter that server will prioritize
             // Additional fields to ensure all necessary data is sent
             projectId: data.projectId,
             status: data.status || 'scheduled'
@@ -3773,8 +3772,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             // CRITICAL FIX: Use multiple row parameters to ensure server respects placement
             row: targetRowIndex,
             rowIndex: targetRowIndex,
-            forcedRowIndex: targetRowIndex, // Special parameter that server will prioritize
-            status: 'scheduled'
           })
         })
         .then(response => {
