@@ -1458,11 +1458,7 @@ export default function ResizableBaySchedule({
                 return (
                   <div
                     key={`header-${slotIndex}`}
-                    className="timeline-slot flex-shrink-0 bg-gray-800/90 border-r border-gray-600"
-                    style={{ 
-                      width: `${slotWidth * 7}px`,  /* Each week header is 7 days wide (full week) */
-                      minWidth: `${slotWidth * 7}px`
-                    }}
+                    className="timeline-slot grid-cell-perfectly-aligned flex-shrink-0 bg-gray-800/90 border-r border-gray-600"
                     data-date={format(slot.date, 'yyyy-MM-dd')}
                     data-week-number={slot.weekNumber || Math.floor(slotIndex / 7)}
                   >
@@ -1742,7 +1738,7 @@ export default function ResizableBaySchedule({
                               </div>
                               
                               {/* Cell grid for this bay - Flex layout to match header */}
-                              <div className="absolute inset-0 flex" 
+                              <div className="absolute inset-0 flex bg-gray-900/30" 
                                 style={{ 
                                   width: `${slots.length * slotWidth}px` 
                                 }}>
@@ -1769,11 +1765,7 @@ export default function ResizableBaySchedule({
                                   return (
                                     <div 
                                       key={`bay-${bay.id}-slot-${slotIndex}`} 
-                                      className={cellClasses}
-                                      style={{ 
-                                        width: `${slotWidth * 7}px`,  /* Each week is 7 days wide (392px) */
-                                        minWidth: `${slotWidth * 7}px` 
-                                      }}
+                                      className={`${cellClasses} grid-cell-perfectly-aligned`}
                                       data-row="0"
                                       data-slot-index={slotIndex}
                                       data-date={format(slot.date, 'yyyy-MM-dd')}

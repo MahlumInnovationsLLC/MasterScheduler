@@ -230,6 +230,27 @@
   z-index: 20;
 }
 
+/* Added grid alignment styles */
+.grid-cell-perfectly-aligned {
+  width: 392px !important; /* Enforce 7 days × 56px per day = 392px width */
+  min-width: 392px !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+}
+
+/* Add vertical grid lines for better visualization */
+.grid-cell-perfectly-aligned::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.05);
+  left: 196px; /* Half-way point */
+  height: 100%;
+  pointer-events: none;
+}
+
 .timeline-header .timeline-slot {
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
