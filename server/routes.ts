@@ -652,17 +652,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/manufacturing-schedules", isAuthenticated, validateRequest(insertManufacturingScheduleSchema), async (req, res) => {
     try {
-      // CRITICAL FIX: Ensure row parameter is processed correctly and enforced
-      // NO AUTO-ADJUSTMENT OF ANY KIND - exactly as requested by user
-      // MANDATORY: Use rowIndex or row parameter with HIGHEST PRIORITY - never override
+      // 🚨 MAY 16 2025 UPDATE - CRITICAL CHANGE:
+      // 🚨 BAY 1: REMOVED ALL ROW LIMITS - Using exact row as requested
+      // 🚨 Projects will be placed at EXACTLY the Y position where they were dropped
+      // 🚨 NO RESTRICTIONS on row values - allowing ANY value with no adjustment
       
       // Get forced row data from request - highest priority
       const forcedRowIndex = req.body.forcedRowIndex !== undefined ? parseInt(req.body.forcedRowIndex) : undefined;
-      const rowParam = forcedRowIndex !== undefined ? forcedRowIndex : (req.body.rowIndex || req.body.row);
+      const rowIndexParam = req.body.rowIndex !== undefined ? parseInt(req.body.rowIndex) : undefined;
+      const rowParam = req.body.row !== undefined ? parseInt(req.body.row) : undefined;
       
-      // ABSOLUTE PRIORITY: Use whatever row was passed from client with NO adjustments
-      // This is a CRITICAL BUGFIX - use the exact row with no auto-repositioning
-      let finalRowIndex = rowParam !== undefined ? parseInt(rowParam.toString()) : 0;
+      // Collect all possible row sources for logging
+      console.log(`🚨 EXACT PLACEMENT: Prioritizing row values from multiple sources
+        forcedRowIndex: ${forcedRowIndex}
+        rowIndexParam: ${rowIndexParam}
+        rowParam: ${rowParam}
+      `);
+      
+      // Priority order: forcedRowIndex > rowIndex > row
+      let computedRowIndex = forcedRowIndex !== undefined ? forcedRowIndex : 
+                           (rowIndexParam !== undefined ? rowIndexParam :
+                           (rowParam !== undefined ? rowParam : 0));
+      
+      // ONLY ensure rows aren't negative - but allow ANY positive value without limits
+      if (computedRowIndex < 0) computedRowIndex = 0;
+      
+      // This is our final row value that will be used everywhere
+      const finalRowIndex = computedRowIndex;
+      
+      console.log(`🚨 EXACT PLACEMENT: Using PRECISE row ${finalRowIndex} with NO ADJUSTMENTS OR LIMITS`);
+      console.log(`🚨 This ensures pixel-perfect placement with projects appearing at exact drop position`);
       
       // MAY 16 2025 UPDATE - CRITICAL CHANGE:
       // - NO ROW CONSTRAINTS - Project should stay EXACTLY where the user drops it
@@ -670,9 +689,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // - COMPLETELY REMOVE ALL AUTO-ADJUSTMENT / ROW ENFORCEMENT MECHANISMS
       
       const bayId = parseInt(req.body.bayId.toString());
-      
-      // ONLY ensure rows aren't negative - but allow ANY positive value without limits
-      if (finalRowIndex < 0) finalRowIndex = 0;
       
       // Get the bay data for logging only (no enforcement)
       const bay = await storage.getManufacturingBay(bayId);

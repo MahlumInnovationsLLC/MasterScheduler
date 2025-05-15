@@ -3152,17 +3152,39 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // ----- DIRECT Y-POSITION CALCULATION -----
     
-    // Calculate row based ONLY on Y position - simple math, no complex logic
+    // 🚨 MAY 16 CRITICAL FIX: Ensure precise row calculation based on Y position
     const rowHeight = rectContainer.height / MAX_ROWS;
     const yBasedRow = Math.floor(mouseRawY / rowHeight);
     const exactRowIndex = Math.min(yBasedRow, MAX_ROWS - 1); // Ensure we don't exceed max rows
     
-    // Log the raw calculation
+    // Store absolute Y position for debugging
+    const relativeY = mouseRawY; // Relative to container top
+    const absoluteY = e.clientY; // Absolute on screen
+    
+    // 🚨 STORE THIS VALUE IN MULTIPLE PLACES to ensure it's used
+    // Set both on document.body and create a global variable as fallback
+    document.body.setAttribute('data-mouse-raw-y', mouseRawY.toString());
+    document.body.setAttribute('data-absolute-y', absoluteY.toString());
+    document.body.setAttribute('data-relative-y', relativeY.toString());
+    
+    // 🚨 CRITICAL: This is where we determine the exact row - store in multiple attributes
+    document.body.setAttribute('data-exact-y-row', exactRowIndex.toString());
+    document.body.setAttribute('data-y-based-row', yBasedRow.toString());
+    document.body.setAttribute('data-computed-row-index', exactRowIndex.toString());
+    document.body.setAttribute('data-drop-exact-row', exactRowIndex.toString());
+    document.body.setAttribute('data-absolute-row-index', exactRowIndex.toString());
+    document.body.setAttribute('data-forced-row-index', exactRowIndex.toString());
+    
+    // GLOBAL: Make this row index available to window scope as emergency fallback
+    (window as any).lastExactRowIndex = exactRowIndex;
+    
+    // Log the raw calculation with enhanced debugging
     console.log(`🎯 DIRECT Y-POSITION ROW CALCULATION:
-    - Raw Y position: ${mouseRawY}px
+    - Raw Y position: ${mouseRawY}px (${relativeY}px relative, ${absoluteY}px absolute)
     - Bay height: ${rectContainer.height}px, Row height: ${rowHeight}px 
     - Bay ${bayId} has ${MAX_ROWS} rows (0-${MAX_ROWS-1})
     - CALCULATED ROW: ${exactRowIndex} (pure Y position calculation)
+    - Row stored in multiple attributes for redundancy
     - NO ADJUSTMENTS OR OVERLAP CHECKING`);
     
     // ----- SET ALL DATA ATTRIBUTES TO FORCE THIS ROW -----
