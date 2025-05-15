@@ -4337,12 +4337,41 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // This will be sent to the server with highest priority
         document.body.setAttribute('data-forced-row-index', finalRowIndex.toString());
         
-        console.log(`🎯 PIXEL-PERFECT ROW PLACEMENT: Using ${finalRowIndex} from precision calculation (or ${targetRowIndex} from drop event)`);
+        // NEW MAY 2025: Add support for pixel-perfect Y-axis positioning with strictYPositionRow
+        // Get strict Y position calculation if available
+        const strictYPositionRow = document.body.hasAttribute('data-strict-y-position-row') ?
+            parseInt(document.body.getAttribute('data-strict-y-position-row') || '0') : 
+            undefined;
+            
+        // Use the latest Y-coordinate based calculation for exact placement
+        let rowIndexToUse = finalRowIndex;
+        
+        // If we have a direct Y-position calculation, use it with highest priority
+        // This ensures projects ALWAYS land at the exact Y position where the mouse cursor dropped
+        if (strictYPositionRow !== undefined) {
+            console.log(`✨ PIXEL-PERFECT Y POSITIONING ACTIVATED: Using row ${strictYPositionRow} from Y-coordinate calculation`);
+            console.log(`✨ This ensures projects land at EXACTLY the Y position where the mouse was released`);
+            console.log(`✨ OVERRIDING all other row sources with direct pixel calculation`);
+            
+            // Save the original value for logging
+            const oldRowIndex = rowIndexToUse;
+            
+            // Update our row variable to the exact Y-position (no constants modified)
+            rowIndexToUse = strictYPositionRow;
+            
+            console.log(`✨ Changed row from ${oldRowIndex} to ${rowIndexToUse} based on precise Y-axis position`);
+            
+            // Store this value with highest priority for the server request
+            document.body.setAttribute('data-forced-row-index', rowIndexToUse.toString());
+            document.body.setAttribute('data-final-exact-row', rowIndexToUse.toString());
+        }
+        
+        console.log(`🎯 PIXEL-PERFECT ROW PLACEMENT: Using ${rowIndexToUse} from precision calculation (or ${targetRowIndex} from drop event)`);
         
         // Force this row to be used throughout the application
-        document.body.setAttribute('data-final-row-placement', finalRowIndex.toString());
+        document.body.setAttribute('data-final-row-placement', rowIndexToUse.toString());
         
-        console.log(`Creating schedule with bay=${finalBayId} row=${finalRowIndex} (MANUAL ROW ASSIGNMENT)`);
+        console.log(`Creating schedule with bay=${finalBayId} row=${rowIndexToUse} (MANUAL ROW ASSIGNMENT)`);
         console.log(`(Directly using user-selected row: ${targetRowIndex})`);
         console.log(`Auto-placement logic DISABLED - using exact row where user dropped project`);
         
