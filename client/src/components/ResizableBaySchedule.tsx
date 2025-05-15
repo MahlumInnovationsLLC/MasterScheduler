@@ -2912,12 +2912,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
   };
   
-  // Handle drop on a bay timeline - completely revised to accept raw coordinates
-  const handleDrop = (e: React.DragEvent<Element>, bayId: number, clientX: number, clientY: number) => {
+  // Handle drop on a bay timeline
+  const handleDrop = (e: React.DragEvent<Element>, bayId: number, slotIndex: number, rowIndex: number = 0) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // ── BYPASS ALL OVERLAP CHECKS AND ROW ADJUSTMENT ──────────────────────────
+    // ── NEW: PIXEL-PERFECT DROP PLACEMENT ────────────────────────────────────
     // Get the timeline container element
     const timelineContainer = timelineContainerRef.current;
     if (!timelineContainer) {
@@ -2929,8 +2929,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const containerRect = timelineContainer.getBoundingClientRect();
     
     // 2) Raw mouse position inside container
-    const rawX = clientX - containerRect.left;
-    const rawY = clientY - containerRect.top;
+    const rawX = e.clientX - containerRect.left;
+    const rawY = e.clientY - containerRect.top;
     
     // 3) Subtract where the user grabbed the bar
     const finalX = rawX - dragOffset.x;
@@ -2942,38 +2942,42 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const exactStartDate = addDays(dateRange.start, Math.floor(daysOffset));
     const formattedStartDate = format(exactStartDate, 'yyyy-MM-dd');
     
-    // 5) Convert Y position to row index with NO ADJUSTMENT
+    // 5) Convert Y position to row index
     // Use exact bay row count (4 for normal bays, 20 for TCV Line)
     const bay = bays.find(b => b.id === bayId);
     const totalRows = getBayRowCount(bayId, bay?.name || '');
     const rowHeight = containerRect.height / totalRows;
+    const exactRow = Math.floor(finalY / rowHeight);
     
-    // CRITICAL: Direct row calculation with NO BOUNDS CHECKING
-    // This ensures projects stay EXACTLY where dropped with no constraints
-    const newRow = Math.floor(finalY / rowHeight);
+    // Clamp to valid range but log if outside bounds
+    const rowMax = totalRows - 1;
+    if (exactRow < 0 || exactRow > rowMax) {
+      console.warn(`Row ${exactRow} is outside valid range 0-${rowMax}. Clamping.`);
+    }
+    const clampedRow = Math.max(0, Math.min(rowMax, exactRow));
     
     // LOG EVERYTHING for debugging
-    console.log(`🎯 NO-OVERLAP DIRECT PLACEMENT:
+    console.log(`🎯 PIXEL-PERFECT PLACEMENT:
       Container: ${containerRect.width}x${containerRect.height}px
-      Mouse: ${clientX},${clientY}
+      Mouse: ${e.clientX},${e.clientY}
       Raw container position: ${rawX},${rawY}
       Drag offset: ${dragOffset.x},${dragOffset.y}
       Final position: ${finalX},${finalY}
       Bay ${bayId} has ${totalRows} rows (height per row: ${rowHeight}px)
-      Calculated row: ${newRow} with ZERO ADJUSTMENT
+      Calculated row: ${exactRow} (clamped to ${clampedRow})
       Date calculation: ${weeksOffset.toFixed(2)} weeks → ${daysOffset.toFixed(2)} days
       Exact date: ${formattedStartDate}
     `);
     
     // Store precise values in DOM for debugging/verification
-    document.body.setAttribute('data-precision-drop-row', newRow.toString());
+    document.body.setAttribute('data-precision-drop-row', clampedRow.toString());
     document.body.setAttribute('data-precision-drop-date', formattedStartDate);
     document.body.setAttribute('data-exact-drop-date', formattedStartDate);
-    document.body.setAttribute('data-current-drag-row', newRow.toString());
+    document.body.setAttribute('data-current-drag-row', clampedRow.toString());
     
-    // Indicate we're using no-overlap direct placement
+    // Indicate we're using pixel-perfect placement
     console.log(`📅 EXACT DROP DATE: ${formattedStartDate}`);
-    console.log(`🔹 FORCED ROW PLACEMENT: Row ${newRow} with NO CONSTRAINTS`);
+    console.log(`🔹 FORCED ROW PLACEMENT: Row ${clampedRow}`);
     
     // CRITICAL FIX: Force using the exact bay ID from the event parameters
     // This prevents the bay jumping issue by ensuring we always use the bay where the drop happened
@@ -3049,11 +3053,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       dropTarget.setAttribute('data-bay-id', finalBayId.toString());
     }
     
-    // NEW IMPLEMENTATION: We're using newRow from our direct pixel calculation
-    // No longer using passed rowIndex since we now accept clientX/clientY instead of slotIndex/rowIndex
-    // Using the globalRowIndex that was already declared
-    
-    if (globalRowIndex >= 0) {
+    if (rowIndex !== undefined && rowIndex >= 0) {
+      console.log(`Using direct row parameter: ${rowIndex} for bay ${bayId}`);
+      targetRowIndex = rowIndex;
+    } else if (globalRowIndex >= 0) {
       console.log(`Using global row attribute: ${globalRowIndex} for bay ${bayId}`);
       targetRowIndex = globalRowIndex;
     } else {
@@ -3092,18 +3095,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Add detailed logging for debugging
     const rowCount = targetBay?.bayNumber === 7 ? 20 : 4;
     console.log(`🔍 ROW BOUNDS CHECK: Bay ${finalBayId} (Bay ${targetBay?.bayNumber || 'unknown'}) has ${rowCount} rows (max index: ${maxRowForBay})`);
-    console.log(`🔍 ADJUSTED ROW: ${targetRowIndex} (from global ${globalRowIndex} and calculated newRow ${newRow})`);
+    console.log(`🔍 ADJUSTED ROW: ${targetRowIndex} (from original ${rowIndex}, global ${globalRowIndex})`);
     
     
     // CRITICAL: We already decided to use the exact bay ID from the drop event parameter
     // DO NOT modify the bayId parameter - use it directly to ensure correct placement
     
     console.log(`⚠️ FIXED DROP HANDLER using actual drop target bay: ${bayId} with row: ${targetRowIndex} `);
-    console.log(`(Current row=${globalRowIndex}, passed values: bay=${bayId})`);
+    console.log(`(Current row=${globalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
     
     // Read data attributes from the drop target element for more precise week targeting
     let targetElement = e.target as HTMLElement;
-    let targetSlotIndex = -1; // Initialize with invalid value, will be set from data attributes
+    let targetSlotIndex = slotIndex;
     
     // First try the direct target element for data attributes
     const dataBayId = targetElement.getAttribute('data-bay-id');
@@ -3152,8 +3155,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Ensure we have valid indexes, especially for the slot
     if (targetSlotIndex < 0 || targetSlotIndex >= slots.length) {
       console.error('Invalid slot index detected:', targetSlotIndex);
-      // Use fallback to closest valid slot index
-      targetSlotIndex = 0; // Default to first slot if no valid index found
+      // Use fallback to original slotIndex if target is out of bounds
+      targetSlotIndex = slotIndex;
     }
     
     // Remove highlighted state from all cells - safely with separate selectors
@@ -3221,7 +3224,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
       
       console.log('Data received in drop:', dataStr);
-      console.log(`Dropping at bay ${bayId}, position: ${clientX},${clientY}`);
+      console.log(`Dropping at bay ${bayId}, slot ${slotIndex}, row ${rowIndex}`);
       console.log(`DROP HANDLER: FORCING BAY ID TO USE EXACT PARAMETER: ${bayId}`);
       
       const data = JSON.parse(dataStr);
@@ -5455,12 +5458,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         e.currentTarget.removeAttribute('data-target-row');
                         e.currentTarget.removeAttribute('data-week-number');
                         
-                        // Handle the drop with raw mouse coordinates instead of slot indices
-                        handleDrop(e, bay.id, e.clientX, e.clientY);
+                        // Handle the drop with the specific row
+                        handleDrop(e, bay.id, index, rowIndex);
                         
                         // Log the exact cell location for debugging
                         const weekStartDate = format(slot.date, 'yyyy-MM-dd');
-                        console.log(`Project dropped at Bay ${bay.id}, Week ${index} (${weekStartDate})`);
+                        console.log(`Project dropped at Bay ${bay.id}, Week ${index} (${weekStartDate}), Row ${rowIndex}`);
                       }}
                     />
                   ))}
@@ -5632,8 +5635,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       e.currentTarget.classList.remove('row-target-highlight', 'row-1-target');
                     }}
                     onDrop={(e) => {
-                      // Use raw mouse coordinates for exact placement
-                      handleDrop(e, bay.id, e.clientX, e.clientY);
+                      // Set global row data attribute to row 1
+                      document.body.setAttribute('data-current-drag-row', '1');
+                      handleDrop(e, bay.id, 0, 1);
                     }}
                   >
                     {/* Row number indicator */}
