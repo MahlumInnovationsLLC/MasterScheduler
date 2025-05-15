@@ -4131,7 +4131,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           dragRowAttribute: document.body.getAttribute('data-current-drag-row')
         });
         
-        console.log(`Updating schedule with MANUAL ROW ASSIGNMENT: bay=${finalBayId} row=${finalRowIndex}`);
+        console.log(`Updating schedule with MANUAL ROW ASSIGNMENT: bay=${finalBayId} row=${rowIndexToUse}`);
         console.log(`(User selected row: ${targetRowIndex})`);
         console.log(`Auto-placement logic DISABLED - using exact row where user dropped project`);
         
@@ -4141,7 +4141,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`  - Project ID: ${data.projectId}`);
         console.log(`  - Project Number: ${data.projectNumber}`);
         console.log(`  - Bay ID: ${finalBayId} (${bay.name})`);
-        console.log(`  - Row Index: ${finalRowIndex} (max row for this bay: ${maxRowForBay})`);
+        console.log(`  - Row Index: ${rowIndexToUse} (max row for this bay: ${maxRowForBay})`);
         console.log(`  - Start Date: ${startDateToUse}`); 
         console.log(`  - End Date: ${formattedFinalEndDate}`);
         console.log(`  - Target bay has ${targetBay?.bayNumber === 7 ? 20 : 4} rows (indexes 0-${maxRowForBay})`);
@@ -4149,13 +4149,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         // Add visual indicator to the DOM to show exact bay/row placement for debugging
         document.body.setAttribute('data-last-drop-bay', finalBayId.toString());
-        document.body.setAttribute('data-last-drop-row', finalRowIndex.toString());
+        document.body.setAttribute('data-last-drop-row', rowIndexToUse.toString());
         
         // CRITICAL: Force the backend to use this exact row position
-        document.body.setAttribute('data-force-exact-row', finalRowIndex.toString());
+        document.body.setAttribute('data-force-exact-row', rowIndexToUse.toString());
         
         // Log the exact row placement for verification
-        console.log(`💯 FORCING EXACT ROW PLACEMENT: ${finalRowIndex}`);
+        console.log(`💯 FORCING EXACT ROW PLACEMENT: ${rowIndexToUse}`);
         
         // ADD DROP DEBUG LOGS
         console.log(`🚨 DROP DEBUG - SENDING TO API:
@@ -4164,21 +4164,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           - Start Date: ${startDateToUse}
           - End Date: ${formattedFinalEndDate}
           - Total Hours: ${data.totalHours !== null ? Number(data.totalHours) : 1000}
-          - ROW INDEX: ${finalRowIndex} <-- CRITICAL PARAMETER
+          - ROW INDEX: ${rowIndexToUse} <-- CRITICAL PARAMETER (pixel-perfect positioning)
         `);
         
         // Add additional backup attribute to document to force row (highest priority override)
-        document.body.setAttribute('data-forced-row-index', finalRowIndex.toString());
+        document.body.setAttribute('data-forced-row-index', rowIndexToUse.toString());
         
         // Go back to using the provided handler function
         // to avoid breaking changes in the component interface
+        console.log(`✨ FINAL API CALL: Using computed row index ${rowIndexToUse} for EXACT pixel-perfect placement`);
+        
         onScheduleChange(
           data.id,
           finalBayId,
           startDateToUse,
           formattedFinalEndDate,
           data.totalHours !== null ? Number(data.totalHours) : 1000,
-          finalRowIndex
+          rowIndexToUse // CRITICAL FIX: Use our computed rowIndexToUse for perfect Y-position
         )
         .then(result => {
           console.log('Schedule successfully updated:', result);
