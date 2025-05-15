@@ -531,32 +531,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   const [bypassAllRowLogic] = useState(true);
   const [allowRowOverlap] = useState(true);
   
-  // MAY 16 2025 - ULTRA AGGRESSIVE EMERGENCY MODE - GUARANTEED PIXEL-PERFECT PLACEMENT
-  // Set all emergency flags globally to bypass ALL automatic positioning logic throughout the app
+  // Set emergency flags globally in document body for all components to respect
   useEffect(() => {
-    // Ultra aggressive emergency mode - ZERO ADJUSTMENTS to user placement
     document.body.setAttribute('data-bypass-all-row-logic', 'true');
     document.body.setAttribute('data-force-exact-row-placement', 'true');
     document.body.setAttribute('data-allow-row-overlap', 'true');
     document.body.setAttribute('data-emergency-fix-mode', 'true');
-    document.body.setAttribute('data-emergency-override', 'ULTRA_AGGRESSIVE');
-    document.body.setAttribute('data-direct-placement', 'true');
-    document.body.setAttribute('data-pixel-perfect', 'true');
-    document.body.setAttribute('data-no-auto-adjust', 'true');
-    document.body.setAttribute('data-ignore-collisions', 'true');
-    document.body.setAttribute('data-skip-row-calculations', 'true');
-    document.body.setAttribute('data-disable-all-automatic-positioning', 'true');
-    
-    // Force this to window as well for components that might not access document.body
-    (window as any).emergencyFixMode = true;
-    (window as any).forceExactRowPlacement = true;
-    (window as any).bypassAllRowLogic = true;
-    (window as any).allowRowOverlap = true;
-    
-    console.log('🚨🚨🚨 ULTRA AGGRESSIVE EMERGENCY FIX MODE ACTIVATED');
-    console.log('🚨 ALL AUTOMATIC POSITIONING DISABLED');
-    console.log('🚨 GUARANTEED PIXEL-PERFECT PLACEMENT - ZERO ADJUSTMENTS');
-    console.log('🚨 EXACT PROJECT PLACEMENT WITH NO COLLISION DETECTION');
+    document.body.setAttribute('data-emergency-override', 'PERMANENT');
+    console.log('🚨🚨🚨 EMERGENCY FIX MODE ACTIVATED - PERMANENT');
   }, []);
   
   // Function to calculate bar position based on dates
@@ -3274,8 +3256,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // 5) Convert Y position to row index and LOCK the row from multiple sources
     // Use exact bay row count (4 for normal bays, 20 for TCV Line)
-    const bayForRowCount = bays.find(b => b.id === bayId);
-    const totalRows = getBayRowCount(bayId, bayForRowCount?.name || '');
+    const bay = bays.find(b => b.id === bayId);
+    const totalRows = getBayRowCount(bayId, bay?.name || '');
     const rowHeight = containerRect.height / totalRows;
     const exactRow = Math.floor(finalY / rowHeight);
     
@@ -3582,74 +3564,71 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Remove dragging active class from body
     document.body.classList.remove('dragging-active');
     
-    // Get drag data with proper error handling
-    let dataStr = '';
     try {
-      dataStr = e.dataTransfer.getData('application/json');
-    } catch (err) {
-      console.log('Error getting application/json data, trying text/plain...');
+      // Try multiple formats in case one fails
+      let dataStr = '';
       try {
+        dataStr = e.dataTransfer.getData('application/json');
+      } catch (err) {
+        console.log('Error getting application/json data, trying text/plain...');
         dataStr = e.dataTransfer.getData('text/plain');
-      } catch (err2) {
-        console.error('Failed to get any data format:', err2);
       }
-    }
-    
-    if (!dataStr) {
-      console.error('No data received in drop event');
-      return;
-    }
       
-    console.log('Data received in drop:', dataStr);
-    console.log(`Dropping at bay ${bayId}, slot ${slotIndex}, row ${rowIndex}`);
-    console.log(`DROP HANDLER: FORCING BAY ID TO USE EXACT PARAMETER: ${bayId}`);
+      if (!dataStr) {
+        console.error('No data received in drop event');
+        return;
+      }
       
-    const data = JSON.parse(dataStr);
-    if (!data) {
-      console.error('Failed to parse drop data');
-      return;
-    }
+      console.log('Data received in drop:', dataStr);
+      console.log(`Dropping at bay ${bayId}, slot ${slotIndex}, row ${rowIndex}`);
+      console.log(`DROP HANDLER: FORCING BAY ID TO USE EXACT PARAMETER: ${bayId}`);
       
-    // CRITICAL BUG FIX: Ensure we're using EXACTLY the bay ID from the drop event parameter
-    // This is the most reliable source of the actual bay where the drop occurred
-    // DO NOT override this with any stored value - this is what's causing projects to jump bays
-    const exactBayId = bayId;
-    console.log(`💯 Using EXACT bay ID from drop event parameter: ${exactBayId}`);
-    // Log this prominent message for debugging
-    console.log(`🚨 BAY ID VERIFICATION: Ensuring drop uses bay ${exactBayId} EXACTLY as provided by event`);
-    
-    // CRITICAL FIX: Use exactBayId instead of the normal bayId parameter
-    // This ensures we don't lose the correct bay ID between declarations
-    console.log(`Finding bay with ID ${exactBayId} (from exact parameter)`);
+      const data = JSON.parse(dataStr);
+      if (!data) {
+        console.error('Failed to parse drop data');
+        return;
+      }
       
-    const exactTargetBay = bays.find(b => b.id === exactBayId);
-    if (!exactTargetBay) {
-      console.error(`Bay with ID ${exactBayId} not found in bays list:`, bays.map(b => b.id));
-      toast({
-        title: "Error",
-        description: `Bay ID ${exactBayId} not found`,
-        variant: "destructive"
-      });
-      return;
-    }
+      // CRITICAL BUG FIX: Ensure we're using EXACTLY the bay ID from the drop event parameter
+      // This is the most reliable source of the actual bay where the drop occurred
+      // DO NOT override this with any stored value - this is what's causing projects to jump bays
+      const exactBayId = bayId;
+      console.log(`💯 Using EXACT bay ID from drop event parameter: ${exactBayId}`);
+      // Log this prominent message for debugging
+      console.log(`🚨 BAY ID VERIFICATION: Ensuring drop uses bay ${exactBayId} EXACTLY as provided by event`);
       
-    // Check if the bay has staff assigned
-    if (!exactTargetBay.staffCount || exactTargetBay.staffCount <= 0) {
-      toast({
-        title: "Cannot assign to bay",
-        description: "This bay has no staff assigned. Please add staff first.",
-        variant: "destructive"
-      });
-      return;
-    }
+      // CRITICAL FIX: Use exactBayId instead of the normal bayId parameter
+      // This ensures we don't lose the correct bay ID between declarations
+      const bay = bays.find(b => b.id === exactBayId);
+      console.log(`Finding bay with ID ${exactBayId} (from exact parameter)`);
       
-    // BUGFIX: Define targetElement safely here for the handleCreateProject function
-    // Get the target element from event, defaulting to e.currentTarget if e.target is not an HTMLElement
-    const createProjectTargetElement = e.target instanceof HTMLElement ? e.target : e.currentTarget as HTMLElement;
+      if (!bay) {
+        console.error(`Bay with ID ${exactBayId} not found in bays list:`, bays.map(b => b.id));
+        toast({
+          title: "Error",
+          description: `Bay ID ${exactBayId} not found`,
+          variant: "destructive"
+        });
+        return;
+      }
       
-    // Get the date for this slot using multiple reliable sources with fallbacks
-    let slotDate: Date | null = null;
-    let exactDateForStorage: string | null = null;
+      // Check if the bay has staff assigned
+      if (!bay.staffCount || bay.staffCount <= 0) {
+        toast({
+          title: "Cannot assign to bay",
+          description: "This bay has no staff assigned. Please add staff first.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // BUGFIX: Define targetElement safely here for the handleCreateProject function
+      // Get the target element from event, defaulting to e.currentTarget if e.target is not an HTMLElement
+      const createProjectTargetElement = e.target instanceof HTMLElement ? e.target : e.currentTarget as HTMLElement;
+      
+      // Get the date for this slot using multiple reliable sources with fallbacks
+      let slotDate: Date | null = null;
+      let exactDateForStorage: string | null = null;
       
       // HIGHEST PRIORITY: Use the pixel-perfect date calculated from mouse position
       const dropDateAttr = document.body.getAttribute('data-exact-drop-date');
@@ -3733,10 +3712,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Get the bay's base weekly capacity 
       // Handle null/undefined values safely
-      const hoursPerWeek = exactTargetBay.hoursPerPersonPerWeek !== null && exactTargetBay.hoursPerPersonPerWeek !== undefined 
-          ? exactTargetBay.hoursPerPersonPerWeek : 40;
-      const staffCount = exactTargetBay.staffCount !== null && exactTargetBay.staffCount !== undefined 
-          ? exactTargetBay.staffCount : 1;
+      const hoursPerWeek = bay.hoursPerPersonPerWeek !== null && bay.hoursPerPersonPerWeek !== undefined 
+          ? bay.hoursPerPersonPerWeek : 40;
+      const staffCount = bay.staffCount !== null && bay.staffCount !== undefined 
+          ? bay.staffCount : 1;
       const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
       
       // Find overlapping schedules in the same bay
@@ -4521,49 +4500,24 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Start with the calculated final row index
         let rowIndexToUse = finalRowIndex;
         
-        // MAY 16 2025 - GUARANTEED ROW PLACEMENT - NO CALCULATION WHATSOEVER
-        // Skip ALL calculation logic - use ONLY the row from parameters
-        if (emergencyFixMode) {
-            // ULTRA AGGRESSIVE: Use the original row index parameter directly with ZERO processing
-            console.log(`🚨🚨🚨 ULTRA AGGRESSIVE EMERGENCY ROW PLACEMENT ACTIVE`);
-            console.log(`🚨 All calculation logic bypassed - using direct parameter value`);
-            console.log(`🚨 FORCING row ${rowIndex} with zero adjustment or collision detection`);
+        // FIRST PRIORITY: Use the absolute row index from the pixel position calculation
+        // This is the NEW May 2025 approach for pixel-perfect placement
+        const absoluteRowIndex = document.body.getAttribute('data-absolute-row-index');
+        if (absoluteRowIndex !== null) {
+            console.log(`⚠️⚠️⚠️ ABSOLUTE POSITIONING OVERRIDE: Using row ${absoluteRowIndex} from direct Y-coordinate calculation`);
+            console.log(`⚠️⚠️⚠️ This ensures projects land at EXACTLY the Y position where the mouse was released`);
+            console.log(`⚠️⚠️⚠️ OVERRIDING all other row sources with direct pixel calculation`);
             
-            // Force this exact value to be used - override everything else
-            rowIndexToUse = rowIndex;
+            // Save the original value for logging
+            const oldRowIndex = rowIndexToUse;
             
-            // Force this value to all possible attributes to ensure consistency
-            document.body.setAttribute('data-absolute-row-index', rowIndex.toString());
-            document.body.setAttribute('data-forced-row-index', rowIndex.toString());
-            document.body.setAttribute('data-exact-row-drop', rowIndex.toString());
-            document.body.setAttribute('data-strict-y-position-row', rowIndex.toString());
-            document.body.setAttribute('data-final-row-index', rowIndex.toString());
-            document.body.setAttribute('data-direct-row-override', rowIndex.toString());
+            // Update our row variable to the exact Y-position (no constants modified)
+            rowIndexToUse = parseInt(absoluteRowIndex);
             
-            console.log(`🚨 GUARANTEED POSITIONING: Row ${rowIndex} (direct from drop target parameter)`);
-        }
-        // Legacy approach (only used if emergencyFixMode is false)
-        else {
-            // FIRST PRIORITY: Use the absolute row index from the pixel position calculation
-            // This is the NEW May 2025 approach for pixel-perfect placement
-            const absoluteRowIndex = document.body.getAttribute('data-absolute-row-index');
-            if (absoluteRowIndex !== null) {
-                console.log(`⚠️⚠️⚠️ ABSOLUTE POSITIONING OVERRIDE: Using row ${absoluteRowIndex} from direct Y-coordinate calculation`);
-                console.log(`⚠️⚠️⚠️ This ensures projects land at EXACTLY the Y position where the mouse was released`);
-                console.log(`⚠️⚠️⚠️ OVERRIDING all other row sources with direct pixel calculation`);
-                
-                // Save the original value for logging
-                const oldRowIndex = rowIndexToUse;
-                
-                // Update our row variable to the exact Y-position (no constants modified)
-                rowIndexToUse = parseInt(absoluteRowIndex);
-                
-                console.log(`⚠️⚠️⚠️ ABSOLUTE POSITION CHANGE: Row ${oldRowIndex} → ${rowIndexToUse} (from pixel Y position)`);
-                
-                // Store this value with highest priority for the server request
-                // CRITICAL FIX: Set data-forced-row-index FIRST before any other attributes
-            }
-        }
+            console.log(`⚠️⚠️⚠️ ABSOLUTE POSITION CHANGE: Row ${oldRowIndex} → ${rowIndexToUse} (from pixel Y position)`);
+            
+            // Store this value with highest priority for the server request
+            // CRITICAL FIX: Set data-forced-row-index FIRST before any other attributes
             document.body.setAttribute('data-forced-row-index', rowIndexToUse.toString());
             document.body.setAttribute('data-final-exact-row', rowIndexToUse.toString());
             document.body.setAttribute('data-absolute-position-used', 'true');
@@ -4574,8 +4528,34 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
               - Current value in DOM: ${document.body.getAttribute('data-forced-row-index')}
               - This is what BaySchedulingPage.handleScheduleChange() will use
             `);
+        }
+        // SECOND PRIORITY: Fall back to the strict Y position calculation if available
+        else if (strictYPositionRow !== undefined) {
+            console.log(`✨ PIXEL-PERFECT Y POSITIONING ACTIVATED: Using row ${strictYPositionRow} from Y-coordinate calculation`);
+            console.log(`✨ This ensures projects land at EXACTLY the Y position where the mouse was released`);
+            console.log(`✨ OVERRIDING all other row sources with direct pixel calculation`);
+            
+            // Save the original value for logging
+            const oldRowIndex = rowIndexToUse;
+            
+            // Update our row variable to the exact Y-position (no constants modified)
+            rowIndexToUse = strictYPositionRow;
+            
+            console.log(`✨ Changed row from ${oldRowIndex} to ${rowIndexToUse} based on precise Y-axis position`);
+            
+            // Store this value with highest priority for the server request
+            document.body.setAttribute('data-forced-row-index', rowIndexToUse.toString());
             document.body.setAttribute('data-final-exact-row', rowIndexToUse.toString());
         }
+        
+        console.log(`🎯 PIXEL-PERFECT ROW PLACEMENT: Using ${rowIndexToUse} from precision calculation (or ${targetRowIndex} from drop event)`);
+        
+        // Force this row to be used throughout the application
+        document.body.setAttribute('data-final-row-placement', rowIndexToUse.toString());
+        
+        console.log(`Creating schedule with bay=${finalBayId} row=${rowIndexToUse} (MANUAL ROW ASSIGNMENT)`);
+        console.log(`(Directly using user-selected row: ${targetRowIndex})`);
+        console.log(`Auto-placement logic DISABLED - using exact row where user dropped project`);
         
         // CRITICAL LOGGING: Log the exact placement details for easier debugging
         console.log(`🚨 EXACT PLACEMENT DETAILS FOR NEW SCHEDULE:`);
@@ -4642,13 +4622,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         description: "Failed to process schedule. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      // Reset states and clear the global variables after use
-      setDropTarget(null);
-      setDraggingSchedule(null);
-      // Clear the global date variable we set during drag operations
-      (window as any).lastExactDate = null;
     }
+    
+    // Reset states and clear the global variables after use
+    setDropTarget(null);
+    setDraggingSchedule(null);
+    // Clear the global date variable we set during drag operations
+    (window as any).lastExactDate = null;
   };
   
   // Update state after edits
