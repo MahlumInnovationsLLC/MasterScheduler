@@ -3825,26 +3825,30 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const finalX = rawX - dragOffset.x
       const finalY = rawY - dragOffset.y
       console.log('finalX, finalY:', finalX, finalY)
-      // ⚠️⚠️⚠️ MAY 2025 CRITICAL FIX: ABSOLUTE PIXEL POSITIONING ⚠️⚠️⚠️
+      // ⚠️⚠️⚠️ MAY 16 2025 CRITICAL FIX: ABSOLUTE PIXEL POSITIONING ⚠️⚠️⚠️
       // This is the single source of truth for row placement - all other methods are ignored
       const TOTAL_ROWS = getBayRowCount(bayId, bay?.name || '')
       const rowHeight = containerRect.height / TOTAL_ROWS
       
-      // CRITICAL FIX - MAY 16, 2025: Use the raw cursor position WITHOUT any offset adjustments
-      // This ensures the project lands EXACTLY where the mouse cursor is released
-      // We're completely ignoring dragOffset to make the behavior more direct and predictable
+      // 🚨 MANDATORY FIX 🚨 - DO NOT adjust the Y position with dragOffset
+      // Using raw cursor position ensures projects land EXACTLY where the mouse cursor is
       const exactPositionY = e.clientY - containerRect.top;
       
-      // MANDATORY: Compute the row index directly from the cursor's Y position
-      // This forces projects to appear at the EXACT Y position where mouse was released
+      // 🚨 MANDATORY 🚨 - Calculate row index directly from raw Y position
+      // This ensures pixel-perfect positioning with no adjustments
       const absoluteRowIndex = Math.floor(exactPositionY / rowHeight);
       
-      // CRITICAL: Don't apply any min/max bounds or adjustments - use the EXACT row calculated
-      // Except ensure we don't go off the grid completely (stay within the bay's total rows)
-      const computedRowIndex = Math.max(0, Math.min(TOTAL_ROWS - 1, absoluteRowIndex))
+      // 💥 EMERGENCY FIX - May 16 2025 - Force this to become the ONLY source of row positioning
+      // Store the absolute row in the DOM for reliable retrieval
+      document.body.setAttribute('data-absolute-row-index', absoluteRowIndex.toString());
       
-      // Log the drag offset so we can verify it's not affecting placement
-      console.log(`🔴 VERIFIED: Using cursor position without dragOffset adjustment (dx=${dragOffset.x}, dy=${dragOffset.y})`)
+      // Set both variables to the EXACT same value - no adjustments allowed
+      const computedRowIndex = absoluteRowIndex;
+      
+      // 🔴 MANDATORY: Log details to verify exact position
+      console.log(`🔴 CRITICAL FIX: Using EXACT cursor position at Y=${exactPositionY}px`);
+      console.log(`🔴 Row calculation: ${exactPositionY}px / ${rowHeight}px = EXACT ROW ${absoluteRowIndex}`);
+      console.log(`🔴 NO ADJUSTMENTS ALLOWED - Using raw position: Row ${absoluteRowIndex}`)
       
       console.log('⚠️⚠️⚠️ USING ABSOLUTE PIXEL POSITIONING:', absoluteRowIndex)
       console.log(`⚠️⚠️⚠️ Y cursor position = ${exactPositionY}px, row height = ${rowHeight}px, row = ${absoluteRowIndex}`)
@@ -4197,75 +4201,60 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
            exact drop: ${exactRowFromDrop}, 
            last select: ${exactRowFromLastSelect})`);
           
-        // EXTREME LOGGING OF ALL COORDINATES TO VERIFY PIXEL-PERFECT ROW PLACEMENT
-        if (exactRowFromPixelCalc !== exactRowFromDragCoords) {
-          console.warn(`⚠️ ROW MISMATCH - Using pixel-perfect calculation ${exactRowFromPixelCalc} instead of drag coords ${exactRowFromDragCoords}`);
-        }
-    
-        console.log(`🎯 EXACT ROW FORCED TO USER SELECTION: ${rowIndexToUse} (from Y-axis position)`);
-        console.log(`⚠️ ROW PLACEMENT OVERRIDE - NO AUTO ADJUSTMENT - USING EXACT Y COORDINATES`);
+        // 🚨 MAY 16 2025 - CRITICAL FIX 🚨
+        // Get the absoluteRowIndex directly from the DOM attribute we set
+        // This ensures we use the EXACT same value calculated from the raw Y coordinate
+        const absolutePixelRow = parseInt(document.body.getAttribute('data-absolute-row-index') || '0');
         
-        // Use our calculated rowIndexToUse instead of finalRowIndex for perfect positioning
-  
-        // DEVELOPMENT FLAG: Force extreme logging of all row-related variables
-        console.log('🔍 ALL ROW VARIABLES:', {
-          exactRowFromDragCoords,
-          forcedExactRowIndex,
-          finalRowIndex,
-          targetRowIndex,
-          dragRowAttribute: document.body.getAttribute('data-current-drag-row')
-        });
+        // 💥 EMERGENCY OVERRIDE: Force the absolute row calculated from pixel position
+        // This is the ONLY reliable source of row positioning - ignore all others
+        rowIndexToUse = absolutePixelRow;
         
-        console.log(`Updating schedule with MANUAL ROW ASSIGNMENT: bay=${finalBayId} row=${rowIndexToUse}`);
-        console.log(`(User selected row: ${targetRowIndex})`);
-        console.log(`Auto-placement logic DISABLED - using exact row where user dropped project`);
+        // 🔴 MANDATORY LOGGING: Log the emergency override
+        console.log(`🔴 CRITICAL OVERRIDE: Using ABSOLUTE ROW ${rowIndexToUse} from direct Y-coordinate calculation`);
+        console.log(`🔴 This ensures pixel-perfect placement with ZERO adjustments`);
+        console.log(`🔴 No row calculations or constraints - using EXACT pixel position: row ${rowIndexToUse}`);
         
-        // CRITICAL LOGGING: Log the exact placement details for easier debugging
+        // Store this absolute value in ALL data attributes for maximum reliability
+        document.body.setAttribute('data-absolute-pixel-row', rowIndexToUse.toString());
+        document.body.setAttribute('data-last-drop-row', rowIndexToUse.toString());
+        document.body.setAttribute('data-force-exact-row', rowIndexToUse.toString());
+        document.body.setAttribute('data-forced-row-index', rowIndexToUse.toString());
+        document.body.setAttribute('data-final-row-index', rowIndexToUse.toString());
+        
+        // 💥 CRITICAL EMERGENCY DIAGNOSTICS 💥
+        console.log(`🔴 EMERGENCY DIAGNOSTIC: Absolute row from Y position = ${rowIndexToUse}`);
+        console.log(`🔴 Original target row index = ${targetRowIndex}`);
+        console.log(`🔴 Drop coordinates: x=${e.clientX}, y=${e.clientY}`);
+        
+        // 🚨 CRITICAL PLACEMENT DETAILS 🚨
         console.log(`🚨 EXACT PLACEMENT DETAILS FOR SCHEDULE UPDATE:`);
         console.log(`  - Schedule ID: ${data.id}`);
         console.log(`  - Project ID: ${data.projectId}`);
         console.log(`  - Project Number: ${data.projectNumber}`);
         console.log(`  - Bay ID: ${finalBayId} (${bay.name})`);
-        console.log(`  - Row Index: ${rowIndexToUse} (max row for this bay: ${maxRowForBay})`);
+        console.log(`  - ROW INDEX: ${rowIndexToUse} <-- 🔴 CRITICAL PARAMETER (EXACT Y-position)`);
         console.log(`  - Start Date: ${startDateToUse}`); 
         console.log(`  - End Date: ${formattedFinalEndDate}`);
-        console.log(`  - Target bay has ${targetBay?.bayNumber === 7 ? 20 : 4} rows (indexes 0-${maxRowForBay})`);
-        console.log(`  - Drop coordinates: x=${e.clientX}, y=${e.clientY}`);
+        console.log(`  - Target bay has ${targetBay?.bayNumber === 7 ? 20 : 4} rows (max index: ${maxRowForBay})`);
         
-        // Add visual indicator to the DOM to show exact bay/row placement for debugging
-        document.body.setAttribute('data-last-drop-bay', finalBayId.toString());
-        document.body.setAttribute('data-last-drop-row', rowIndexToUse.toString());
+        // 🚨 Final validation to ensure we're using the right row
+        console.log(`🚨 FINAL ROW VERIFICATION:`);
+        console.log(`  - Y-coordinate row: ${rowIndexToUse}`);
+        console.log(`  - Drop row attribute: ${document.body.getAttribute('data-forced-row-index')}`);
+        console.log(`  - Absolute row index: ${document.body.getAttribute('data-absolute-row-index')}`);
         
-        // CRITICAL: Force the backend to use this exact row position
-        document.body.setAttribute('data-force-exact-row', rowIndexToUse.toString());
+        // 💥 CRITICAL API CALL with GUARANTEED row position 💥
+        console.log(`💥 SENDING TO API WITH EXACT ROW ${rowIndexToUse} - NO ADJUSTMENTS OF ANY KIND`);
         
-        // Log the exact row placement for verification
-        console.log(`💯 FORCING EXACT ROW PLACEMENT: ${rowIndexToUse}`);
-        
-        // ADD DROP DEBUG LOGS
-        console.log(`🚨 DROP DEBUG - SENDING TO API:
-          - Schedule ID: ${data.id}
-          - Bay ID: ${finalBayId}
-          - Start Date: ${startDateToUse}
-          - End Date: ${formattedFinalEndDate}
-          - Total Hours: ${data.totalHours !== null ? Number(data.totalHours) : 1000}
-          - ROW INDEX: ${rowIndexToUse} <-- CRITICAL PARAMETER (pixel-perfect positioning)
-        `);
-        
-        // Add additional backup attribute to document to force row (highest priority override)
-        document.body.setAttribute('data-forced-row-index', rowIndexToUse.toString());
-        
-        // Go back to using the provided handler function
-        // to avoid breaking changes in the component interface
-        console.log(`✨ FINAL API CALL: Using computed row index ${rowIndexToUse} for EXACT pixel-perfect placement`);
-        
+        // Make the API call with our ABSOLUTE row index from pixel calculation
         onScheduleChange(
           data.id,
           finalBayId,
           startDateToUse,
           formattedFinalEndDate,
           data.totalHours !== null ? Number(data.totalHours) : 1000,
-          rowIndexToUse // CRITICAL FIX: Use our computed rowIndexToUse for perfect Y-position
+          rowIndexToUse // 🔴 CRITICAL: Use absolute row from Y-position for pixel-perfect placement
         )
         .then(result => {
           console.log('Schedule successfully updated:', result);
