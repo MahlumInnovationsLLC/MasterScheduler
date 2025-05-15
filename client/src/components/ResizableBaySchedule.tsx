@@ -3125,9 +3125,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // ----- DEFINE ALL VARIABLES NEEDED FOR FURTHER PROCESSING -----
     
-    // Set emergency mode flags (always true)
-    const emergencyFixMode = true;
-    const forceExactRowPlacement = true;
+    // SUPER CRITICAL FLAGS: PERMANENT OVERRIDE FOR EXACT ROW PLACEMENT
+    // These flags completely bypass all intelligent placement logic
+    // They force the system to use the raw Y coordinate for placement
+    const emergencyFixMode = true; // This can NEVER be false
+    const forceExactRowPlacement = true; // This must ALWAYS be true
+    
+    // Store these flags in localStorage to ensure they're available everywhere
+    localStorage.setItem('emergencyFixMode', 'true');
+    localStorage.setItem('forceExactRowPlacement', 'true');
+    
+    console.log('🚨 EMERGENCY FIX MODE: PERMANENTLY ENABLED');
+    console.log('🚨 FORCE EXACT ROW PLACEMENT: PERMANENTLY ENABLED');
+    console.log('🚨 NO AUTO-ADJUSTMENT OF ANY KIND - PROJECTS WILL STAY EXACTLY WHERE DROPPED');
     
     // Get bay information
     const bay = bays.find(b => b.id === bayId);

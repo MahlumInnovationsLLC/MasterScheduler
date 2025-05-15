@@ -82,9 +82,17 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
     // Store raw position before enforcing limits
     document.body.setAttribute('data-raw-exact-row', exactRow.toString());
     
-    // Enforce row limits (except if emergency mode is active)
-    const emergencyFixMode = localStorage.getItem('emergencyFixMode') === 'true';
-    const forceExactPlacement = localStorage.getItem('forceExactRowPlacement') === 'true';
+    // SUPER CRITICAL FLAGS: PERMANENT OVERRIDE FOR EXACT ROW PLACEMENT
+    // Make these flags always true to GUARANTEE exact positioning
+    localStorage.setItem('emergencyFixMode', 'true');
+    localStorage.setItem('forceExactRowPlacement', 'true');
+    
+    // Now read them back (but they'll always be true)
+    const emergencyFixMode = true; // PERMANENTLY ENABLED
+    const forceExactPlacement = true; // PERMANENTLY ENABLED
+    
+    console.log('🚨 EMERGENCY FIX MODE: PERMANENTLY ENABLED IN ALL COMPONENTS');
+    console.log('🚨 FORCE EXACT ROW PLACEMENT: PERMANENTLY ENABLED IN ALL COMPONENTS');
     
     // Only apply limits if not in emergency mode
     if (isRegularBay && exactRow > maxRowIndex && !emergencyFixMode) {
@@ -153,9 +161,18 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
     document.body.setAttribute('data-raw-drop-row', exactRow.toString());
     document.body.setAttribute('data-drop-y-position', mouseY.toString());
     
-    // Check for emergency fix mode
-    const emergencyFixMode = localStorage.getItem('emergencyFixMode') === 'true';
-    const forceExactPlacement = localStorage.getItem('forceExactRowPlacement') === 'true';
+    // SUPER CRITICAL FLAGS: PERMANENT OVERRIDE FOR EXACT ROW PLACEMENT
+    // Make these flags always true to GUARANTEE exact positioning
+    localStorage.setItem('emergencyFixMode', 'true');
+    localStorage.setItem('forceExactRowPlacement', 'true');
+    
+    // Now read them back (but they'll always be true)
+    const emergencyFixMode = true; // PERMANENTLY ENABLED
+    const forceExactPlacement = true; // PERMANENTLY ENABLED
+    
+    console.log('🚨 DROP HANDLER - EMERGENCY FIX MODE: PERMANENTLY ENABLED');
+    console.log('🚨 DROP HANDLER - FORCE EXACT ROW PLACEMENT: PERMANENTLY ENABLED');
+    console.log(`🚨 Using RAW Y position: ${mouseY}px → Exact row: ${exactRow}`);
     
     // Only enforce row limits if we're not in emergency mode
     if (isRegularBay && exactRow > maxRowIndex && !emergencyFixMode) {
