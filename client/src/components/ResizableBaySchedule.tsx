@@ -1800,7 +1800,7 @@ export default function ResizableBaySchedule({
                                   return (
                                     <div 
                                       key={`bay-${bay.id}-slot-${slotIndex}`} 
-                                      className={`${cellClasses} grid-cell-perfectly-aligned`}
+                                      className={`${cellClasses} grid-cell-perfectly-aligned ${isStartOfWeek ? 'week-start' : ''}`}
                                       data-row="0"
                                       data-slot-index={slotIndex}
                                       data-date={format(slot.date, 'yyyy-MM-dd')}
@@ -1809,6 +1809,7 @@ export default function ResizableBaySchedule({
                                       data-row-index="0"
                                       data-exact-week="true"
                                       data-week-number={weekNumber}
+                                      data-day-of-week={slot.date.getDay()}
                                       data-is-start-of-month={isStartOfMonth ? "true" : "false"}
                                       data-is-start-of-week={isStartOfWeek ? "true" : "false"}
                                       data-is-weekend={isWeekend ? "true" : "false"}

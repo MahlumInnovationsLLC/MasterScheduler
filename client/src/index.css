@@ -282,6 +282,46 @@
   animation: dropSuccess 0.8s ease-in-out;
 }
 
+/* Cell hover effect to show grid boundaries */
+.grid-cell-perfectly-aligned:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+  outline: 1px dashed rgba(59, 130, 246, 0.3);
+}
+
+/* Add day markers for better day-level positioning */
+.day-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+}
+
+/* Add specific classes for different days of the week */
+.monday-marker { background-color: rgba(59, 130, 246, 0.2); }
+.friday-marker { background-color: rgba(234, 179, 8, 0.2); }
+.weekend-marker { background-color: rgba(239, 68, 68, 0.1); }
+
+/* Style the week start cells to make grid more visible */
+.week-start {
+  border-left: 2px solid rgba(59, 130, 246, 0.3) !important;
+  background-color: rgba(30, 58, 138, 0.05);
+}
+
+/* Add data attribute selectors for better visualization */
+[data-day-of-week="1"] { /* Monday */
+  border-left: 1px solid rgba(59, 130, 246, 0.2) !important;
+}
+
+[data-day-of-week="5"] { /* Friday */
+  border-right: 1px solid rgba(234, 179, 8, 0.2) !important;
+}
+
+[data-day-of-week="0"], [data-day-of-week="6"] { /* Weekend */
+  background-color: rgba(30, 41, 59, 0.7) !important;
+}
+
 .timeline-header .timeline-slot {
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
