@@ -6329,9 +6329,27 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       e.currentTarget.classList.remove('row-target-highlight', 'row-0-target');
                     }}
                     onDrop={(e) => {
-                      // Set global row data attribute to row 0
-                      document.body.setAttribute('data-current-drag-row', '0');
-                      handleDrop(e, bay.id, 0, 0);
+                      // Calculate exact row position based on mouse Y coordinate
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const mouseY = e.clientY - rect.top;
+                      
+                      // Calculate row within the bay based on Y position
+                      const rowCount = getBayRowCount(bay.id, bay.name);
+                      const rowHeight = rect.height / rowCount;
+                      const exactRow = Math.floor(mouseY / rowHeight);
+                      
+                      // Ensure row is within bounds (should be 0 for top row)
+                      const targetRow = Math.min(Math.max(0, exactRow), rowCount - 1);
+                      
+                      console.log(`🎯 ROW 0 DROP HANDLER: Raw Y=${mouseY}px, Calculated exactRow=${exactRow}, Using row=${targetRow}`);
+                      
+                      // Set global row data attribute to the calculated row
+                      document.body.setAttribute('data-current-drag-row', targetRow.toString());
+                      document.body.setAttribute('data-forced-row-index', targetRow.toString());
+                      document.body.setAttribute('data-exact-row-from-y', targetRow.toString());
+                      
+                      // Call handleDrop with the calculated row
+                      handleDrop(e, bay.id, 0, targetRow);
                     }}
                   >
                     {/* Row number indicator */}
