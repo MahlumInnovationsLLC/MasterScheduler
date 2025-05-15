@@ -3238,8 +3238,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`✅ USING GLOBALLY STORED DATE: ${formattedStartDate}`);
     } else {
         // Last resort: Calculate from X position
+        // Define helper function to get slot width based on view mode
+        const getSlotWidth = () => {
+          return viewMode === 'day' ? 40 : viewMode === 'week' ? 160 : 320;
+        };
+        
         // Get slot width based on view mode - standard values
-        const pixelsPerSlot = viewMode === 'day' ? 40 : viewMode === 'week' ? 160 : 320;
+        const pixelsPerSlot = getSlotWidth();
         const weeksOffset = mouseFinalX / pixelsPerSlot; 
         const daysOffset = viewMode === 'week' ? weeksOffset * 7 : weeksOffset;
         
@@ -3347,50 +3352,30 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       targetRowIndex = maxRowForBay;
     }
     
-    // MAY 16 2025 - ROW BOUNDARY CHECK WITH WARNING
-    // For regular bays (1-6), we will enforce a maximum of 4 rows (indexes 0-3)
-    // For Bay 7 (TCV Line), we allow up to 20 rows (indexes 0-19)
-    // Instead of silently adjusting rows, we'll warn the user and enforce limits
+    // CRITICAL CHANGE: COMPLETELY REMOVE ALL ROW BOUNDARY CHECKS
+    // We will accept ANY row value from the drop position with zero constraints
+    // This ensures pixel-perfect placement with no automatic adjustments
+    // IMPORTANT: This is a permanent change to how row positioning works - projects are placed EXACTLY where dropped
     
-    const rowCount = targetBay?.bayNumber === 7 ? 20 : 4;
-    const isRowOutOfBounds = targetRowIndex > maxRowForBay;
+    console.log(`🔥 ROW VALIDATION BYPASS: Using EXACT row ${targetRowIndex} from drop position`);
+    console.log(`🔥 NO ROW BOUNDARY CHECKS - Will place project EXACTLY at the Y-coordinate where dropped`);
+    console.log(`🔥 Any row overlap or collisions will be preserved exactly as user places them`);
+    console.log(`🔥 RAW Y-POSITION CONVERSION: Y=${mouseRawY}px → Row=${targetRowIndex}`);
     
-    if (isRowOutOfBounds && !emergencyFixMode) {
-      console.log(`⚠️⚠️⚠️ ROW OUT OF BOUNDS: Attempted to place in row ${targetRowIndex} but max is ${maxRowForBay}`);
-      
-      // Show warning toast to user
-      toast({
-        title: `Row limit reached`,
-        description: `Bay ${targetBay?.name || finalBayId} can only have ${rowCount} rows. Project placed in row ${Math.min(maxRowForBay, Math.max(0, targetRowIndex)) + 1}.`,
-        variant: "destructive"
-      });
-      
-      // Enforce boundary for regular drop mode
-      targetRowIndex = Math.min(maxRowForBay, Math.max(0, targetRowIndex));
-      
-      console.log(`🔍 ROW ADJUSTED: Project will be placed in row ${targetRowIndex} instead`);
-    } else {
-      // In regular mode with valid row, or in emergency mode (which bypasses limits)
-      console.log(`🔍 ROW BOUNDS CHECK: Bay ${finalBayId} (Bay ${targetBay?.bayNumber || 'unknown'}) has ${rowCount} rows (max index: ${maxRowForBay})`);
-      console.log(`🔍 USING ROW: ${targetRowIndex} (from original ${rowIndex}, global ${globalRowIndex})`);
-      
-      // If emergency mode is active and the row is out of bounds, show a strong warning
-      if (isRowOutOfBounds && emergencyFixMode) {
-        console.log(`🚨🚨🚨 EMERGENCY MODE - ALLOWING OUT OF BOUNDS ROW: ${targetRowIndex} > ${maxRowForBay}`);
-        toast({
-          title: `Emergency Placement`,
-          description: `Placed in row ${targetRowIndex + 1} (beyond normal limit of ${rowCount}). This may cause display issues.`,
-          variant: "destructive"
-        });
-      }
-    }
+    // Track row position in a consistent manner (but don't modify it)
+    document.body.setAttribute('data-target-row-index', targetRowIndex.toString());
+    document.body.setAttribute('data-raw-drop-y', mouseRawY.toString());
+    document.body.setAttribute('data-unconstrained-row', targetRowIndex.toString());
     
     
     // CRITICAL: We already decided to use the exact bay ID from the drop event parameter
     // DO NOT modify the bayId parameter - use it directly to ensure correct placement
     
     console.log(`⚠️ FIXED DROP HANDLER using actual drop target bay: ${bayId} with row: ${targetRowIndex} `);
-    console.log(`(Current row=${globalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
+    console.log(`(Passed values: bay=${bayId}, row=${rowIndex})`);
+    // Record the target row for reference in case it's needed elsewhere
+    const currentTargetRow = targetRowIndex;
+    document.body.setAttribute('data-current-target-row', currentTargetRow.toString());
     
     // Read data attributes from the drop target element for more precise week targeting
     // BUGFIX: Ensure targetElement is defined and valid
