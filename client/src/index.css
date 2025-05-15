@@ -478,6 +478,46 @@
 .light table {
   border-collapse: separate;
   border-spacing: 0;
+}
+
+/* MAY 16 2025 FIX: Row limit and highlighting styles */
+.row-limit-reached {
+  position: relative;
+  overflow: hidden;
+}
+
+.row-limit-flash {
+  animation: flashRowLimit 0.8s ease-in-out;
+}
+
+@keyframes flashRowLimit {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: inset 0 0 0 3px rgba(239, 68, 68, 0.7); } /* Red flash */
+}
+
+/* Highlight the exact row being targeted during drag */
+.exact-row-highlight {
+  background-color: rgba(59, 130, 246, 0.15); /* Blue highlight */
+  position: relative;
+}
+
+.exact-row-highlight::after {
+  content: "Drop Here";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(59, 130, 246, 0.9);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.light table {
   width: 100%;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 6px;

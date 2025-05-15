@@ -2436,21 +2436,59 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.log(`🎯 DRAG OVER EXACT DATE: ${cellStartDate} in row=${rowIndex}`);
     }
     
+    // MAY 16 2025 CRITICAL FIX: Hard-enforce row limits at the client-side
+    // Find the bay to get its row count and validate the rowIndex
+    const targetBay = bays.find(b => b.id === bayId);
+    const isTCVLine = targetBay?.bayNumber === 7;
+    const maxRowIndex = isTCVLine ? 19 : 3; // 0-based indexing (4 rows for regular bays, 20 for TCV)
+    
+    // If the row index is beyond the limit, clamp it to the max allowed
+    let clampedRowIndex = rowIndex;
+    if (rowIndex > maxRowIndex) {
+      console.log(`🛑 CLIENT ENFORCING ROW LIMIT: Attempted row ${rowIndex} exceeds max ${maxRowIndex} for Bay ${bayId}`);
+      clampedRowIndex = maxRowIndex;
+      
+      // Show visual feedback that we hit the row limit
+      const bayContentElement = document.querySelector(`[data-bay-id="${bayId}"]`);
+      bayContentElement?.classList.add('row-limit-reached', 'row-limit-flash');
+      
+      // Remove the flash animation after it completes
+      setTimeout(() => {
+        bayContentElement?.classList.remove('row-limit-flash');
+      }, 800);
+    }
+    
     // CRITICAL 2023-05-15 FIX: Store exact row in MULTIPLE attributes for redundancy
     // This is crucial for correctly positioning projects - we need this in several places
-    document.body.setAttribute('data-current-drag-row', rowIndex.toString());
-    document.body.setAttribute('data-last-row-select', rowIndex.toString());
-    document.body.setAttribute('data-force-exact-row', rowIndex.toString());
-    document.body.setAttribute('data-exact-row-drop', rowIndex.toString());
-    document.body.setAttribute('data-forced-row-index', rowIndex.toString());
-    document.body.setAttribute('data-precision-drop-row', rowIndex.toString());
+    // Now using the clamped row index that respects bay row limits
+    document.body.setAttribute('data-current-drag-row', clampedRowIndex.toString());
+    document.body.setAttribute('data-last-row-select', clampedRowIndex.toString());
+    document.body.setAttribute('data-force-exact-row', clampedRowIndex.toString());
+    document.body.setAttribute('data-exact-row-drop', clampedRowIndex.toString());
+    document.body.setAttribute('data-forced-row-index', clampedRowIndex.toString());
+    document.body.setAttribute('data-precision-drop-row', clampedRowIndex.toString());
     
     // Log the exact row to make sure it's being captured
-    console.log(`⭐ ROW CAPTURE: Using row ${rowIndex} from current drag event`);
+    console.log(`⭐ ROW CAPTURE: Using row ${clampedRowIndex} (original: ${rowIndex}) from current drag event`);
     
     // First, store the current bay ID in a data attribute on the drag element
     // This ensures we know which bay the drag started in
     const dragElement = e.currentTarget as HTMLElement;
+    
+    // MAY 16 2025 FIX: Add visual highlighting to the target row
+    // First, clear any existing highlights
+    document.querySelectorAll('.exact-row-highlight').forEach(el => {
+      el.classList.remove('exact-row-highlight');
+    });
+    
+    // Find the specific row being targeted and highlight it
+    const targetBayElement = document.querySelector(`[data-bay-id="${bayId}"]`);
+    if (targetBayElement) {
+      const rowElements = targetBayElement.querySelectorAll('.bay-row');
+      if (rowElements.length > clampedRowIndex) {
+        rowElements[clampedRowIndex].classList.add('exact-row-highlight');
+      }
+    }
     
     // ENHANCED BAY 3 FIX: Add bay-specific class to the dragElement for Bay 3
     if (bayId === 3) {
@@ -3190,8 +3228,32 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.log(`✅ USING CALCULATED ROW: ${trueExactRow}`);
     }
     
+    // MAY 16 2025 CRITICAL FIX: Hard-enforce row limits at the client-side for DROP operation
+    // Direct calculation based on bay number, preventing any possibility of phantom rows
+    const isTCVLine = bay?.bayNumber === 7;
+    const hardMaxRowIndex = isTCVLine ? 19 : 3; // 0-based indexing (4 rows for regular bays, 20 for TCV)
+    
+    // Check if we're trying to place in a row beyond the limit
+    if (trueExactRow > hardMaxRowIndex) {
+      console.log(`🛑 DROP ROW LIMIT ENFORCED: Attempted row ${trueExactRow} exceeds max ${hardMaxRowIndex} for Bay ${bayId}`);
+      
+      // Show visual feedback that we hit the row limit
+      const bayContentElement = document.querySelector(`[data-bay-id="${bayId}"]`);
+      bayContentElement?.classList.add('row-limit-reached', 'row-limit-flash');
+      
+      // Set toast notification
+      toast({
+        title: "Row limit reached",
+        description: `Bay ${bay?.name || bayId} can only have ${hardMaxRowIndex + 1} rows. Project placed in row ${hardMaxRowIndex + 1}.`,
+        variant: "destructive"
+      });
+      
+      // Force to valid row
+      trueExactRow = hardMaxRowIndex;
+    }
+    
     // Clamp to valid range but log if outside bounds
-    const rowMax = totalRows - 1;
+    const rowMax = Math.min(totalRows - 1, hardMaxRowIndex); // Never exceed hard row limit
     if (trueExactRow < 0 || trueExactRow > rowMax) {
       console.warn(`Row ${trueExactRow} is outside valid range 0-${rowMax}. Clamping.`);
     }
