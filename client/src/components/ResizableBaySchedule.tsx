@@ -3115,13 +3115,30 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    console.log(`⚠️ EMERGENCY FIX: Using PURE Y POSITION for row calculation`);
+    console.log(`⚠️ DROP DEBUG: handleDrop called with bayId=${bayId}, slotIndex=${slotIndex}, rowIndex=${rowIndex}`);
     
     // Exit early if no container
     if (!timelineContainerRef.current) {
       console.error("Timeline container ref not available!");
       return;
     }
+    
+    // ----- GET THE SPECIFIC BAY CONTAINER FOR MORE PRECISE ROW CALCULATION -----
+    
+    // Get the specific bay container element for more accurate measurements
+    // This is critical as we need the exact bay container, not the overall timeline container
+    const bayContainerElement = document.querySelector(`[data-bay-id="${bayId}"].bay-container`) as HTMLElement;
+    if (!bayContainerElement) {
+      console.error(`Cannot find bay container element for bay ${bayId}`);
+      // Fall back to timeline container, but log error
+      console.log("WARNING: Using timeline container for calculations instead of specific bay container");
+    }
+    
+    // Use the bay container for measurements if available, otherwise fall back to timeline container
+    const containerForMeasurements = bayContainerElement || timelineContainerRef.current;
+    const rectContainer = containerForMeasurements.getBoundingClientRect();
+    console.log(`Using container: ${bayContainerElement ? 'Specific bay container' : 'Timeline container'}`);
+    console.log(`Container dimensions: width=${rectContainer.width}px, height=${rectContainer.height}px`);
     
     // ----- DEFINE ALL VARIABLES NEEDED FOR FURTHER PROCESSING -----
     
@@ -3141,49 +3158,49 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // Get bay information
     const bay = bays.find(b => b.id === bayId);
-    const MAX_ROWS = bayId === 7 ? 20 : 4; // Bays 1-6 have 4 rows, Bay 7 (TCV Line) has 20 rows
+    const MAX_ROWS = bayId === 7 || bayId === 8 ? 20 : 4; // Bays 1-6 have 4 rows, Bays 7 & 8 (TCV Line) have 20 rows
+    console.log(`Bay ${bayId} (${bay?.name}) has ${MAX_ROWS} maximum rows`);
     
-    // Get container rect and calculate mouse positions
-    const rectContainer = timelineContainerRef.current.getBoundingClientRect();
+    // ----- PRECISE Y-POSITION CALCULATION -----
+    
+    // Calculate mouse positions relative to the container
+    // We get position relative to the BAY CONTAINER (not the overall timeline)
     const mouseRawX = e.clientX - rectContainer.left;
     const mouseRawY = e.clientY - rectContainer.top;
-    const mouseFinalX = mouseRawX - dragOffset.x;
-    const mouseFinalY = mouseRawY - dragOffset.y;
+    console.log(`Raw mouse position: x=${mouseRawX}px, y=${mouseRawY}px`);
     
-    // ----- DIRECT Y-POSITION CALCULATION -----
-    
-    // 🚨 MAY 16 CRITICAL FIX: Ensure precise row calculation based on Y position
+    // Calculate row height based on the container height and max rows
     const rowHeight = rectContainer.height / MAX_ROWS;
+    console.log(`Row height calculation: ${rectContainer.height}px / ${MAX_ROWS} = ${rowHeight}px per row`);
+    
+    // Calculate the row index based on the raw Y position
+    // This is the most important calculation - it determines which row the project lands in
     const yBasedRow = Math.floor(mouseRawY / rowHeight);
-    const exactRowIndex = Math.min(yBasedRow, MAX_ROWS - 1); // Ensure we don't exceed max rows
+    // Ensure the row index doesn't exceed the maximum rows for this bay
+    const exactRowIndex = Math.min(Math.max(0, yBasedRow), MAX_ROWS - 1);
     
-    // Store absolute Y position for debugging
-    const relativeY = mouseRawY; // Relative to container top
-    const absoluteY = e.clientY; // Absolute on screen
+    console.log(`CRITICAL ROW CALCULATION: ${mouseRawY}px / ${rowHeight}px = ${mouseRawY/rowHeight} → row ${exactRowIndex}`);
     
-    // 🚨 MAY 16 2025 CRITICAL UPDATE: Enhanced row tracking and calculation
-    // Store extensive debugging information in multiple places to ensure reliability
-    
-    // First, explicitly calculate and log the row position from scratch based on Y coordinates
-    // This ensures a clean, direct calculation from raw input without any interference
-    const containerHeight = rectContainer.height;
-    console.log(`🧮 RAW ROW CALCULATION:
-      - Container Height: ${containerHeight}px
-      - Raw Y Position: ${mouseRawY}px (${relativeY}px relative, ${absoluteY}px absolute)
+    // Log detailed calculation steps
+    console.log(`🧮 DETAILED ROW CALCULATION:
+      - Container Height: ${rectContainer.height}px
+      - Max Rows: ${MAX_ROWS}
       - Row Height: ${rowHeight}px
-      - Calculated Row Index: ${exactRowIndex}
-      - Y math: ${mouseRawY} / ${rowHeight} = ${mouseRawY/rowHeight} → Math.floor = ${Math.floor(mouseRawY/rowHeight)}
+      - Mouse Y Position: ${mouseRawY}px
+      - Raw Calculation: ${mouseRawY} / ${rowHeight} = ${mouseRawY/rowHeight}
+      - Calculated Row: Math.floor(${mouseRawY/rowHeight}) = ${yBasedRow}
+      - Final Row (bounded): ${exactRowIndex}
     `);
     
-    // 🚨 STORE THIS VALUE IN MULTIPLE PLACES to ensure it's used
-    // Set both on document.body and create a global variable as fallback
+    // 🚨 STORE ROW VALUES IN MULTIPLE PLACES for maximum reliability
+    // This ensures the row value is available throughout the application
     document.body.setAttribute('data-mouse-raw-y', mouseRawY.toString());
-    document.body.setAttribute('data-absolute-y', absoluteY.toString());
-    document.body.setAttribute('data-relative-y', relativeY.toString());
+    document.body.setAttribute('data-absolute-y', e.clientY.toString());
+    document.body.setAttribute('data-relative-y', mouseRawY.toString());
+    document.body.setAttribute('data-row-height', rowHeight.toString());
     
-    // 🚨 CRITICAL: This is where we determine the exact row - store in multiple redundant attributes
-    // Store in many places to ensure at least one makes it through
-    document.body.setAttribute('data-exact-y-row', exactRowIndex.toString());
+    // Store the calculated row in multiple attributes to ensure it's used
+    document.body.setAttribute('data-exact-row', exactRowIndex.toString());
     document.body.setAttribute('data-y-based-row', yBasedRow.toString());
     document.body.setAttribute('data-computed-row-index', exactRowIndex.toString());
     document.body.setAttribute('data-drop-exact-row', exactRowIndex.toString());
@@ -3193,11 +3210,49 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     document.body.setAttribute('data-final-row-placement', exactRowIndex.toString());
     document.body.setAttribute('data-final-exact-row', exactRowIndex.toString());
     
+    // Store additional attributes for debugging and redundancy
+    document.body.setAttribute('data-bay-id', bayId.toString());
+    document.body.setAttribute('data-bay-name', bay?.name || '');
+    document.body.setAttribute('data-max-rows', MAX_ROWS.toString());
+    
     // Set direct DOM properties as a last resort fallback
     (document.body as any).exactRowIndex = exactRowIndex;
     (window as any).lastExactRowIndex = exactRowIndex;
     (window as any).lastDropRow = exactRowIndex;
     (window as any).lastCalculatedRow = exactRowIndex;
+    
+    // Log final row decision for clarity
+    console.log(`🎯 FINAL ROW DECISION: Using row ${exactRowIndex} from Y-position calculation`);
+    console.log(`This row value will be sent to the API and used for positioning`);
+    console.log(`NO AUTO-ADJUSTMENT WILL BE APPLIED - Project will stay EXACTLY in row ${exactRowIndex}`);
+    
+    // CRITICAL: Visual indicator for user
+    // Add an immediate visual cue to show exactly which row was selected
+    const bayElement = document.querySelector(`[data-bay-id="${bayId}"].bay-container`);
+    if (bayElement) {
+      // First remove any existing indicators
+      const existingIndicators = document.querySelectorAll('.row-indicator');
+      existingIndicators.forEach(el => el.remove());
+      
+      // Create a new indicator element
+      const indicator = document.createElement('div');
+      indicator.classList.add('row-indicator', 'absolute', 'left-0', 'right-0', 'bg-green-300', 'opacity-20', 'z-50');
+      indicator.style.top = `${exactRowIndex * rowHeight}px`;
+      indicator.style.height = `${rowHeight}px`;
+      indicator.textContent = `Row ${exactRowIndex}`;
+      indicator.style.display = 'flex';
+      indicator.style.alignItems = 'center';
+      indicator.style.justifyContent = 'center';
+      indicator.style.border = '2px dashed green';
+      
+      // Add it to the bay element
+      bayElement.appendChild(indicator);
+      
+      // Remove it after 2 seconds
+      setTimeout(() => {
+        indicator.remove();
+      }, 2000);
+    }
     (window as any).absoluteRowPosition = exactRowIndex;
     
     // Log the raw calculation with enhanced debugging
