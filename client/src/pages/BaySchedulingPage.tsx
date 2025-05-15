@@ -723,9 +723,10 @@ const BaySchedulingPage = () => {
   const updateDateRange = (mode: 'day' | 'week' | 'month' | 'quarter') => {
     const today = new Date();
     
-    // Set a consistent start date to January 1st of current year
-    // This helps maintain consistency when switching between views
-    const startDate = new Date(today.getFullYear(), 0, 1);
+    // Always keep January 1st, 2024 as the start date for consistency
+    const startDate = new Date(2024, 0, 1);
+    // Always ensure end date is at least May 31st, 2028 (week 20)
+    const minEndDate = new Date(2028, 4, 31);
     let end;
     
     // Configure view range based on selected time scale
