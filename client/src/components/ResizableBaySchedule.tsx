@@ -6800,8 +6800,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     // This ensures bars appear EXACTLY where they should without forced positioning
                     const rowClass = `row-${rowIndex}-bar`;
                     
-                    console.log(`🔒 RENDERING BAR ${bar.id} EXACTLY at row=${rowIndex} with class ${rowClass}`);
-                    
                     // For Team 7 & 8, calculate height based on rowCount (20 rows = 5% each)
                     // Find the bay object using bayId
                     const currentBay = bays.find(b => b.id === bar.bayId);
@@ -6814,11 +6812,25 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                        bayName.trim() === 'Team7' || 
                        bayName.trim() === 'Team8');
                     
-                    // 🚨 NO MANUAL HEIGHT ADJUSTMENTS FOR STANDARD BAYS
-                    // Let CSS handle positioning via row-N-bar classes
-                    const rowHeight = isMultiRowBay 
-                      ? { height: `${100 / getBayRowCount(bar.bayId, bayName)}%`, top: `${rowIndex * (100 / getBayRowCount(bar.bayId, bayName))}%` } 
-                      : {}; // For standard bays, use the CSS classes exclusively
+                    // 🚨 CRITICAL FIX: DIRECT ROW POSITIONING FOR ALL BAYS
+                    // Don't rely on CSS classes since they're getting overridden somewhere
+                    // Instead, directly calculate and apply the top position for each row
+                    const standardBayHeight = 25; // 25% height per row in standard 4-row bays
+                    
+                    // Calculate the top percentage based on rowIndex
+                    const topPercentage = isMultiRowBay
+                      ? rowIndex * (100 / getBayRowCount(bar.bayId, bayName))
+                      : rowIndex * standardBayHeight;
+                     
+                    // Enhanced debugging logs to trace exact positioning 
+                    console.log(`🔒 RENDERING BAR ${bar.id} EXACTLY at row=${rowIndex} with class ${rowClass}`);
+                    console.log(`📏 BAR ${bar.id} STYLE: top=${topPercentage}%, height=${isMultiRowBay ? (100 / getBayRowCount(bar.bayId, bayName)) : 25}%`);
+                      
+                    // Force the top position directly in styles with !important to override any CSS
+                    const rowHeight = { 
+                      height: isMultiRowBay ? `${100 / getBayRowCount(bar.bayId, bayName)}%` : '25%', 
+                      top: `${topPercentage}%`
+                    };
                     
                     return (
                       <div
@@ -6826,13 +6838,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         data-schedule-id={bar.id}
                         data-bay-id={bar.bayId}
                         data-row-index={rowIndex}
-                        className={`absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all big-project-bar schedule-bar ${rowClass}`}
+                        className={`absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all big-project-bar schedule-bar project-row-${rowIndex} ${rowClass}`}
                         style={{
                           left: bar.left + 'px',
                           width: bar.width + 'px',  // Removed the -4px to ensure chevrons align with full bar width
                           backgroundColor: 'transparent', // Make background transparent since we're using department phases
                           opacity: draggingSchedule?.id === bar.id ? 0.5 : 1,
-                          ...(isMultiRowBay ? rowHeight : {}) // Apply custom row height for multi-row bays
+                          // 🚨 CRITICAL FIX: Always apply rowHeight for all bays, not just multi-row ones
+                          // This ensures the top position is always explicitly set
+                          ...rowHeight
                         }}
                         draggable={typeof document !== 'undefined' && document.body.classList.contains('resizing-mode') ? false : true}
                         onDragStart={(e) => {
