@@ -2993,8 +2993,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       Final position: ${finalX},${finalY}
       Bay ${bayId} has ${totalRows} rows (height per row: ${rowHeight}px)
       Calculated row: ${exactRow} (clamped to ${clampedRow})
-      Date calculation: ${weeksOffset.toFixed(2)} weeks → ${daysOffset.toFixed(2)} days 
-      Exact date: ${formattedStartDate}
+      Exact date: ${formattedStartDate} (from cell data attributes)
     `);
     
     // CRITICAL FIX: Store the exact week position date in multiple places to ensure it's used
