@@ -39,29 +39,28 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
   handleRowAdd,
   rowCount = 20 // Default to 20 rows for multi-row bays
 }) => {
+  const bayName = bay.name || '';
+  
+  // Check if this is Team 7 or 8 for special styling
+  const isTeam7Or8 = bayName.trim().startsWith('Team') && 
+                    (bayName.includes('7') || bayName.includes('8'));
   
   // Set a consistent container height based on bay type
   // This ensures all rows evenly fill the bay height
   const containerStyle = {
     height: '100%', // Use full height of container
-    minHeight: '400px', // Minimum height to ensure visibility
+    minHeight: isTeam7Or8 ? '800px' : '400px', // Team 7/8 need more height for 20 rows
+    maxHeight: isTeam7Or8 ? '1000px' : '800px', // Add maximum height for consistency
     display: 'flex',
     flexDirection: 'column' as const,
+    position: 'relative' as const,
+    overflow: 'hidden' as const, // Prevent overflow issues
   };
   
-  // Calculate the height percentage for each row
+  // Calculate the height percentage for each row (unused but kept for future reference)
   const rowHeightPercentage = 100 / rowCount;
   
-  // Use CSS variables for dynamic styling
-  // For all bays, ensure rows evenly distribute the full height
-  const rowStyle = {
-    flex: '1', // Flex grow to distribute evenly
-    minHeight: '30px', // Minimum height to ensure visibility
-  };
-  
-  // Check if this is Team 7 or 8 for special styling
-  const isTeam7Or8 = bay.name && bay.name.trim().startsWith('Team') && 
-                    (bay.name.includes('7') || bay.name.includes('8'));
+  // Row style now managed by Tailwind classes in the JSX
 
   return (
     <div className="multi-row-bay-wrapper flex flex-col h-full" style={containerStyle}>
