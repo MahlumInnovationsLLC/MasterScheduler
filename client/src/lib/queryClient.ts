@@ -1,7 +1,29 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient, QueryFunction, useMutation } from "@tanstack/react-query";
 
 // Check if we're in development mode
 const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
+
+// Custom hook for API requests
+export function useApiRequest() {
+  const mutation = useMutation({
+    mutationFn: async ({ 
+      method, 
+      url, 
+      body, 
+      headers 
+    }: { 
+      method: string; 
+      url: string; 
+      body?: any; 
+      headers?: Record<string, string> 
+    }) => {
+      const response = await apiRequest(method, url, body, headers);
+      return response.json();
+    }
+  });
+  
+  return mutation;
+}
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
