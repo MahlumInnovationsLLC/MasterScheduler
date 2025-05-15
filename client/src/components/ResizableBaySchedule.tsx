@@ -16,6 +16,8 @@ import {
 } from 'date-fns';
 import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom } from './ExactFitPhaseWidths';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
+import { TeamManagementButton } from './TeamManagementButton';
+import { TeamCapacityInfo } from './TeamCapacityInfo';
 import { 
   PlusCircle, 
   GripVertical, 
