@@ -3830,17 +3830,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const TOTAL_ROWS = getBayRowCount(bayId, bay?.name || '')
       const rowHeight = containerRect.height / TOTAL_ROWS
       
-      // NEW APPROACH: Use rawY directly (e.clientY - containerRect.top) to ensure
-      // we place projects at the EXACT position of the mouse cursor
+      // CRITICAL FIX - MAY 16, 2025: Use the raw cursor position WITHOUT any offset adjustments
+      // This ensures the project lands EXACTLY where the mouse cursor is released
+      // We're completely ignoring dragOffset to make the behavior more direct and predictable
       const exactPositionY = e.clientY - containerRect.top;
       
-      // DIRECT PIXEL PERFECT CALCULATION: Get row directly from Y position
+      // MANDATORY: Compute the row index directly from the cursor's Y position
       // This forces projects to appear at the EXACT Y position where mouse was released
       const absoluteRowIndex = Math.floor(exactPositionY / rowHeight);
       
-      // Don't apply any min/max bounds - use EXACTLY what the mouse position gives us
-      // The only adjustment is ensuring we're not completely off the grid
+      // CRITICAL: Don't apply any min/max bounds or adjustments - use the EXACT row calculated
+      // Except ensure we don't go off the grid completely (stay within the bay's total rows)
       const computedRowIndex = Math.max(0, Math.min(TOTAL_ROWS - 1, absoluteRowIndex))
+      
+      // Log the drag offset so we can verify it's not affecting placement
+      console.log(`🔴 VERIFIED: Using cursor position without dragOffset adjustment (dx=${dragOffset.x}, dy=${dragOffset.y})`)
       
       console.log('⚠️⚠️⚠️ USING ABSOLUTE PIXEL POSITIONING:', absoluteRowIndex)
       console.log(`⚠️⚠️⚠️ Y cursor position = ${exactPositionY}px, row height = ${rowHeight}px, row = ${absoluteRowIndex}`)
