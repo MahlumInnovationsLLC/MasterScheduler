@@ -3573,14 +3573,36 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         console.log(`Calculated end date: ${formattedEndDate} (${weeksNeeded} weeks from ${formattedStartDate})`);
         
-        onScheduleChange(
-          data.id,
-          bayId, // Use the EXACT bay from drop event
-          formattedStartDate, // DIRECT from coordinate calculation 
-          formattedEndDate, // Calculated directly from our exact start date
-          totalHours,
-          targetRowIndex // Use the EXACT row calculated from raw coordinates
-        )
+        // CRITICAL: Add a direct API call with custom parameters instead of using onScheduleChange
+        // This completely bypasses any potentially problematic abstractions
+        
+        console.log('🔥 DIRECT API CALL: Making PUT request with forced row placement');
+        
+        // Make direct API request instead of using the provided handler
+        // This ensures we have full control over the exact parameters sent to the server
+        fetch(`/api/manufacturing-schedules/${data.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bayId, // Use the EXACT bay from drop event
+            startDate: formattedStartDate, // DIRECT from coordinate calculation 
+            endDate: formattedEndDate, // Calculated directly from our exact start date
+            totalHours,
+            // CRITICAL FIX: Use multiple row parameters to ensure server respects placement
+            row: targetRowIndex,
+            rowIndex: targetRowIndex,
+            forcedRowIndex: targetRowIndex, // Special parameter that server will prioritize
+            // Additional fields to ensure all necessary data is sent
+            projectId: data.projectId,
+            status: data.status || 'scheduled'
+          })
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to update schedule');
+          }
+          return response.json();
+        })
         .then(result => {
           console.log('Schedule successfully updated:', result);
           
@@ -3732,14 +3754,35 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         console.log(`Calculated end date: ${formattedEndDate} (${weeksNeeded} weeks from ${formattedStartDate})`);
         
-        onScheduleCreate(
-          data.projectId,
-          bayId, // Use the EXACT bay from drop event
-          formattedStartDate, // DIRECT from coordinate calculation
-          formattedEndDate, // Calculated directly from our exact start date
-          totalHours,
-          targetRowIndex // Use the EXACT row calculated from raw coordinates
-        )
+        // CRITICAL: Add a direct API call with custom parameters instead of using onScheduleCreate
+        // This completely bypasses any potentially problematic abstractions
+        
+        console.log('🔥 DIRECT API CALL: Making POST request with forced row placement');
+        
+        // Make direct API request instead of using the provided handler
+        // This ensures we have full control over the exact parameters sent to the server
+        fetch('/api/manufacturing-schedules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId: data.projectId,
+            bayId, // Use the EXACT bay from drop event
+            startDate: formattedStartDate, // DIRECT from coordinate calculation 
+            endDate: formattedEndDate, // Calculated directly from our exact start date
+            totalHours,
+            // CRITICAL FIX: Use multiple row parameters to ensure server respects placement
+            row: targetRowIndex,
+            rowIndex: targetRowIndex,
+            forcedRowIndex: targetRowIndex, // Special parameter that server will prioritize
+            status: 'scheduled'
+          })
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to create schedule');
+          }
+          return response.json();
+        })
         .then(() => {
           // Find the target bay to show proper bay number in toast
           const targetBayInfo = bays.find(b => b.id === bayId);
