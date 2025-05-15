@@ -3514,6 +3514,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return;
       }
       
+      // BUGFIX: Define targetElement safely here for the handleCreateProject function
+      // Get the target element from event, defaulting to e.currentTarget if e.target is not an HTMLElement
+      const createProjectTargetElement = e.target instanceof HTMLElement ? e.target : e.currentTarget as HTMLElement;
+      
       // Get the date for this slot using multiple reliable sources with fallbacks
       let slotDate: Date | null = null;
       let exactDateForStorage: string | null = null;
@@ -3527,8 +3531,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       }
       // NEXT RELIABLE: Check for data-exact-date which is specifically set during drag over
       // This is the next most accurate way to get the precise date the user intended
-      else {
-        const exactDateFromAttr = targetElement.getAttribute('data-exact-date');
+      else if (createProjectTargetElement) {
+        const exactDateFromAttr = createProjectTargetElement.getAttribute('data-exact-date');
         if (exactDateFromAttr) {
           slotDate = new Date(exactDateFromAttr);
           exactDateForStorage = exactDateFromAttr; // Store the exact string for later use
@@ -3542,8 +3546,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log('Using date directly from target element data-date attribute:', dataDate, slotDate);
       }
       // Next try to find and check the closest element with a data-date attribute
-      else {
-        const dateElement = targetElement.closest('[data-date]') as HTMLElement;
+      else if (createProjectTargetElement) {
+        const dateElement = createProjectTargetElement.closest('[data-date]') as HTMLElement;
         if (dateElement) {
           const dateStr = dateElement.getAttribute('data-date');
           if (dateStr) {
