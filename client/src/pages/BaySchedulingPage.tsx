@@ -33,6 +33,7 @@ import { AIInsightsModal } from '@/components/AIInsightsModal';
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
 import BaySchedulingImport from '@/components/BaySchedulingImport';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import RowPositionTester from '@/components/RowPositionTester';
 import { 
   ManufacturingBay, 
   ManufacturingSchedule, 

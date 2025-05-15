@@ -1,10 +1,9 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { ManufacturingSchedule } from '@shared/schema';
 
 interface RowPositionTesterProps {
-  schedules: ManufacturingSchedule[];
+  schedules: any[];
   onScheduleChange: (
     scheduleId: number, 
     bayId: number, 
@@ -15,6 +14,9 @@ interface RowPositionTesterProps {
   ) => Promise<any>;
 }
 
+/**
+ * Component that tests the row positioning by automatically moving a project to a different row
+ */
 const RowPositionTester: React.FC<RowPositionTesterProps> = ({ 
   schedules,
   onScheduleChange
@@ -37,11 +39,13 @@ const RowPositionTester: React.FC<RowPositionTesterProps> = ({
     // Log test initiation details
     console.log("🧪 RUNNING AUTOMATED DROP TEST");
     console.log("🧪 Selected test project:", testProject);
-    console.log(`🧪 Current project state: Bay ${testProject.bayId}, Row ${testProject.row || 0}`);
     
-    // Pick a target row that's different from current
+    // Determine current row and new target row
     const currentRow = testProject.row || 0;
     const targetRow = currentRow === 2 ? 1 : 2; // If row is 2, use 1, otherwise use 2
+    
+    console.log(`🧪 Current project state: Bay ${testProject.bayId}, Row ${currentRow}`);
+    console.log(`🧪 Target position: Row ${targetRow}`);
     
     // Set global document test attributes for verification
     document.body.setAttribute('data-test-mode', 'true');
