@@ -3338,20 +3338,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // NO CAPPING - allow the proper calculation based on hours/capacity
       const prodDaysToUse = prodDays;
       
-      // CRITICAL FIX: Use EXACTLY the date from our pixel-perfect calculation
-      // This ensures the start date is PRECISELY where the user dropped the project
-      // We have multiple sources for this date in order of preference:
+      // CRITICAL FIX: REMOVING all pixel-perfect date calculation as requested
+      // This ensures we use exact slot dates instead of custom calculations
       
-      // 1. HIGHEST PRIORITY: The pixel-perfect date we calculated from mouse X position
-      const pixelPerfectDateAttr = document.body.getAttribute('data-exact-drop-date');
-      
-      // 2. The global date variable we set during drag over
-      const globalExactDate = (window as any).lastExactDate;
-      
-      // 3. Any date that might be stored in drag data
+      // Get the date directly from the data or from the slot
       const dataTargetDate = data.targetStartDate;
       
-      // 4. The date from the slot we're hovering over
+      // The date from the slot we're hovering over
       const slotDateValue = slotDate ? format(slotDate, 'yyyy-MM-dd') : null;
       
       // Log all potential date sources for debugging
@@ -3423,40 +3416,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       });
       
       if (data.type === 'existing') {
-        // Move variable declaration to fix "used before declaration" error
-        // First calculate the final row index from all the available sources
-        const exactRowFromPixelCalc = document.body.getAttribute('data-forced-row-index');
-        const exactRowFromDragCoords = document.body.getAttribute('data-current-drag-row');
-        const exactRowFromDrop = document.body.getAttribute('data-exact-row-drop');
-        const exactRowFromLastSelect = document.body.getAttribute('data-last-row-select');
-
-        // CRITICAL FIX: Always use the precise calculated row from pixel position
-        // Prioritize data-precision-drop-row which is set from our pixel-perfect calculation
-        const precisionDropRow = document.body.getAttribute('data-precision-drop-row');
+        // CRITICAL FIX: Completely simplified row calculation
+        // Skip all the complex calculations and just use targetRowIndex directly
         
-        // Log all potential sources for debugging
-        console.log(`ALL ROW SOURCES:
-          - NEW Precision drop row: ${precisionDropRow}
-          - Forced row index: ${exactRowFromPixelCalc}
-          - Drag coordinates row: ${exactRowFromDragCoords}
-          - Exact row drop: ${exactRowFromDrop}
-          - Last selected row: ${exactRowFromLastSelect}
-          - Target row index: ${targetRowIndex}
-        `);
+        // Log the target row index for debugging
+        console.log(`SIMPLIFIED ROW SOURCE: Using direct target row index: ${targetRowIndex}`);
         
-        // Get the PRECISE row with NO bounds adjustments
-        // Use our pixel-perfect calculation as the top priority
-        const forcedExactRowIndex = precisionDropRow !== null
-          ? parseInt(precisionDropRow)
-          : (exactRowFromPixelCalc !== null
-              ? parseInt(exactRowFromPixelCalc)
-              : (exactRowFromDragCoords !== null
-                  ? parseInt(exactRowFromDragCoords)
-                  : (exactRowFromDrop !== null
-                      ? parseInt(exactRowFromDrop)
-                      : (exactRowFromLastSelect !== null
-                          ? parseInt(exactRowFromLastSelect)
-                          : targetRowIndex))));
+        // Use targetRowIndex directly - this is the row where user dropped the item
+        const forcedExactRowIndex = targetRowIndex;
                           
         console.log(`🎯 USING EXACT ROW ${forcedExactRowIndex} FROM PRECISE PIXEL POSITION`);
                   
@@ -3531,23 +3498,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         // ABSOLUTELY CRITICAL FIX - FORCE EXACT ROW PLACEMENT WITH ZERO EXCEPTIONS
         
-        console.log(`🎯 USING PIXEL-PERFECT ROW CALCULATION: ${finalRowIndex} 
-          (from pixel calc: ${exactRowFromPixelCalc}, 
-           drag coords: ${exactRowFromDragCoords}, 
-           exact drop: ${exactRowFromDrop}, 
-           last select: ${exactRowFromLastSelect})`);
+        console.log(`🎯 USING DIRECT ROW CALCULATION: ${finalRowIndex}`);
           
-        // EXTREME LOGGING OF ALL COORDINATES TO VERIFY PIXEL-PERFECT ROW PLACEMENT
-        if (exactRowFromPixelCalc !== exactRowFromDragCoords) {
-          console.warn(`⚠️ ROW MISMATCH - Using pixel-perfect calculation ${exactRowFromPixelCalc} instead of drag coords ${exactRowFromDragCoords}`);
-        }
-    
-        console.log(`🎯 EXACT ROW FORCED TO USER SELECTION: ${finalRowIndex} (from drag coordinates: ${exactRowFromDragCoords})`);
+        // SIMPLIFIED ROW PLACEMENT LOGGING
+        console.log(`🎯 EXACT ROW FORCED TO USER SELECTION: ${finalRowIndex} (from target row index)`);
         console.log(`⚠️ ROW PLACEMENT OVERRIDE - NO AUTO ADJUSTMENT - USING EXACT COORDINATES`);
   
-        // DEVELOPMENT FLAG: Force extreme logging of all row-related variables
-        console.log('🔍 ALL ROW VARIABLES:', {
-          exactRowFromDragCoords,
+        // DEVELOPMENT FLAG: Simplified logging of row variables
+        console.log('🔍 FINAL ROW VARIABLES:', {
           forcedExactRowIndex,
           finalRowIndex,
           targetRowIndex,
@@ -3731,17 +3689,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const finalBayId = exactBayId;  // Use exactBayId which we validated earlier for consistency
         
         // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
-        // CRITICAL FIX: Use the most accurate row source - pixel-perfect calculation
-        // This is the critical fix identified in the drag/drop analysis
-        const precisionDropRow = document.body.getAttribute('data-precision-drop-row');
+        // Skip all the complex calculations and just use targetRowIndex directly
         
-        // Use the precision row from our pixel-perfect calculation as top priority
-        // If that's not available, use the targetRowIndex that was passed to handleDrop
-        const finalRowIndex = precisionDropRow !== null 
-          ? parseInt(precisionDropRow)
-          : targetRowIndex;
+        // Simplified row calculation - use the direct targetRowIndex 
+        // This is the row passed to handleDrop from the original drop event
+        const finalRowIndex = targetRowIndex;
         
-        console.log(`🎯 PIXEL-PERFECT ROW PLACEMENT: Using ${finalRowIndex} from precision calculation (or ${targetRowIndex} from drop event)`);
+        console.log(`🎯 SIMPLIFIED ROW PLACEMENT: Using direct row ${finalRowIndex} from drop event`);
         
         // Force this row to be used throughout the application
         document.body.setAttribute('data-final-row-placement', finalRowIndex.toString());
