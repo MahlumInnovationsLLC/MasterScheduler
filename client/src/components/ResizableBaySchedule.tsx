@@ -3111,24 +3111,28 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Handle drop on a bay timeline
+  // COMPLETELY REWRITTEN May 16 2025
   const handleDrop = (e: React.DragEvent<Element>, bayId: number, slotIndex: number, rowIndex: number = 0) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // MAY 16 2025 - EMERGENCY FIX: CHECK FOR BYPASS FLAGS
-    const bypassAllRowLogic = document.body.hasAttribute('data-bypass-all-row-logic');
-    const forceExactRowPlacement = document.body.hasAttribute('data-force-exact-row-placement');
-    const allowRowOverlap = document.body.hasAttribute('data-allow-row-overlap');
-    const emergencyFixMode = document.body.hasAttribute('data-emergency-fix-mode');
+    // SET GLOBAL EMERGENCY MODE FLAGS
+    // These are used throughout the codebase to force exact positioning
+    document.body.setAttribute('data-bypass-all-row-logic', 'true');
+    document.body.setAttribute('data-force-exact-row-placement', 'true');
+    document.body.setAttribute('data-allow-row-overlap', 'true');
+    document.body.setAttribute('data-emergency-fix-mode', 'true');
     
-    // Log emergency mode status
-    if (emergencyFixMode) {
-      console.log(`🔥🔥🔥 EMERGENCY FIX MODE ACTIVE 🔥🔥🔥`);
-      console.log(`🔥 BYPASSING ALL ROW CALCULATION LOGIC: ${bypassAllRowLogic}`);
-      console.log(`🔥 FORCING EXACT ROW PLACEMENT: ${forceExactRowPlacement}`);
-      console.log(`🔥 ALLOWING ROW OVERLAP: ${allowRowOverlap}`);
-      console.log(`🔥 USING DIRECT ROW: ${rowIndex} (no processing)`);
-    }
+    // MAY 16 2025 - CRITICAL PIXEL-PERFECT PLACEMENT MODE
+    console.log(`🔥🔥🔥 EMERGENCY FIX MODE ACTIVE 🔥🔥🔥`);
+    console.log(`🔥 BYPASSING ALL ROW CALCULATION LOGIC: true`);
+    console.log(`🔥 FORCING EXACT ROW PLACEMENT: true`);
+    console.log(`🔥 ALLOWING ROW OVERLAP: true`);
+    console.log(`🔥 DROPPED AT ROW: ${rowIndex} (from direct parameter)`);
+    
+    // IMPORTANT: Override all internal variables with direct rowIndex value
+    // This is critical to ensure exact placement at the position where user dropped
+    document.body.setAttribute('data-force-exact-row', rowIndex.toString());
     
     // ── NEW: PIXEL-PERFECT DROP PLACEMENT ────────────────────────────────────
     // Get the timeline container element
