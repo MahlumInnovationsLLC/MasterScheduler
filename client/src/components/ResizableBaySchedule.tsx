@@ -2292,6 +2292,28 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     
+    // Get the exact date from the slot being dragged over - CRITICAL FOR PLACEMENT
+    // Each cell should have a data-start-date attribute set during render
+    const targetCell = e.currentTarget as HTMLElement;
+    const cellStartDate = targetCell.getAttribute('data-start-date');
+    
+    if (cellStartDate) {
+      // Store this EXACT date in multiple places to ensure it's used
+      document.body.setAttribute('data-exact-drop-date', cellStartDate);
+      document.body.setAttribute('data-week-start-date', cellStartDate);
+      document.body.setAttribute('data-current-cell-date', cellStartDate);
+      
+      // Also store globally as a fallback
+      (window as any).lastExactDate = cellStartDate;
+      
+      console.log(`🎯 DRAG OVER EXACT DATE: ${cellStartDate} in row=${rowIndex}`);
+    }
+    
+    // Always store the exact row from the drag over event
+    document.body.setAttribute('data-current-drag-row', rowIndex.toString());
+    document.body.setAttribute('data-last-row-select', rowIndex.toString());
+    document.body.setAttribute('data-force-exact-row', rowIndex.toString());
+    
     // First, store the current bay ID in a data attribute on the drag element
     // This ensures we know which bay the drag started in
     const dragElement = e.currentTarget as HTMLElement;
@@ -2929,6 +2951,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       return;
     }
     
+    // CRITICAL 2023-05-15 FIX: Get drop target cell's date directly
+    // This is the most important fix - get the date directly from the target cell
+    const targetCell = e.currentTarget as HTMLElement;
+    const targetCellDate = targetCell.getAttribute('data-start-date');
+    
+    if (targetCellDate) {
+      console.log(`🎯 DIRECT CELL DATE: Found exact date ${targetCellDate} directly from drop target`);
+      // Immediately store this as our authoritative source 
+      document.body.setAttribute('data-exact-drop-date', targetCellDate);
+      document.body.setAttribute('data-week-start-date', targetCellDate);
+      document.body.setAttribute('data-current-cell-date', targetCellDate);
+      // Also store globally
+      (window as any).lastExactDate = targetCellDate;
+    }
+    
     // 1) Get container bounds
     const containerRect = timelineContainer.getBoundingClientRect();
     
@@ -2941,20 +2978,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const finalY = rawY - dragOffset.y;
     
     // 4) CRITICAL DATE SELECTION FIX
-    // First try to use the exact week date from attributes set during cell dragover
+    // Try to use the exact week date from attributes set during cell dragover
     let formattedStartDate = '';
     
-    // Try to get the exact date from various sources in order of preference
+    // Get the exact date from ALL possible sources in order of preference
+    // MOST IMPORTANT: Direct cell date from the drop target is highest priority
+    const directCellDate = targetCellDate;
     const exactDropDate = document.body.getAttribute('data-exact-drop-date');
     const weekStartDate = document.body.getAttribute('data-week-start-date');
+    const currentCellDate = document.body.getAttribute('data-current-cell-date');
     const globalExactDate = (window as any).lastExactDate;
     
-    if (exactDropDate) {
+    if (directCellDate) {
+        formattedStartDate = directCellDate;
+        console.log(`⭐ USING DIRECT CELL DATE (HIGHEST PRIORITY): ${formattedStartDate}`);
+    } else if (exactDropDate) {
         formattedStartDate = exactDropDate;
         console.log(`✅ USING EXACT DROP DATE FROM ATTRIBUTE: ${formattedStartDate}`);
     } else if (weekStartDate) {
         formattedStartDate = weekStartDate;
         console.log(`✅ USING WEEK START DATE FROM ATTRIBUTE: ${formattedStartDate}`);
+    } else if (currentCellDate) {
+        formattedStartDate = currentCellDate;
+        console.log(`✅ USING CURRENT CELL DATE FROM ATTRIBUTE: ${formattedStartDate}`);
     } else if (globalExactDate) {
         formattedStartDate = globalExactDate;
         console.log(`✅ USING GLOBALLY STORED DATE: ${formattedStartDate}`);
@@ -2970,19 +3016,37 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`⚠️ FALLBACK: Using calculated date: ${formattedStartDate}`);
     }
     
-    // 5) Convert Y position to row index
+    // 5) Convert Y position to row index and LOCK the row from multiple sources
     // Use exact bay row count (4 for normal bays, 20 for TCV Line)
     const bay = bays.find(b => b.id === bayId);
     const totalRows = getBayRowCount(bayId, bay?.name || '');
     const rowHeight = containerRect.height / totalRows;
     const exactRow = Math.floor(finalY / rowHeight);
     
+    // Highest priority row source: data attribute from dragOver
+    const dataExactRow = document.body.getAttribute('data-current-drag-row');
+    
+    // Use the current event rowIndex if present
+    let trueExactRow = rowIndex;
+    
+    // Otherwise use the data attribute if present
+    if (trueExactRow === 0 && dataExactRow) {
+      trueExactRow = parseInt(dataExactRow);
+      console.log(`⭐ USING ROW FROM DATA ATTRIBUTE: ${trueExactRow}`);
+    }
+    
+    // Finally, use the Y calculation as fallback
+    if (trueExactRow === 0 && exactRow > 0) {
+      trueExactRow = exactRow;
+      console.log(`✅ USING CALCULATED ROW: ${trueExactRow}`);
+    }
+    
     // Clamp to valid range but log if outside bounds
     const rowMax = totalRows - 1;
-    if (exactRow < 0 || exactRow > rowMax) {
-      console.warn(`Row ${exactRow} is outside valid range 0-${rowMax}. Clamping.`);
+    if (trueExactRow < 0 || trueExactRow > rowMax) {
+      console.warn(`Row ${trueExactRow} is outside valid range 0-${rowMax}. Clamping.`);
     }
-    const clampedRow = Math.max(0, Math.min(rowMax, exactRow));
+    const clampedRow = Math.max(0, Math.min(rowMax, trueExactRow));
     
     // LOG EVERYTHING for debugging
     console.log(`🎯 PIXEL-PERFECT PLACEMENT:
@@ -5692,8 +5756,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           data-row="0"
                           data-slot-index={index}
                           data-date={format(slot.date, 'yyyy-MM-dd')}
+                          data-start-date={format(slot.date, 'yyyy-MM-dd')}
                           data-bay-id={bay.id}
                           data-row-index="0"
+                          data-exact-week="true"
                           onDragOver={(e) => {
                             // Prevent event from propagating to parent elements
                             e.stopPropagation();

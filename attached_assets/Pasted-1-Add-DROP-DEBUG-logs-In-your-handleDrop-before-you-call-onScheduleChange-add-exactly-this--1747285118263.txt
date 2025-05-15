@@ -1,0 +1,51 @@
+1) Add “DROP DEBUG” logs
+
+In your handleDrop (before you call onScheduleChange), add exactly this:
+
+console.group('[DROP DEBUG]')
+console.log('bayId:', bayId)
+console.log('dragOffset:', dragOffset)
+console.log('e.clientX, e.clientY:', e.clientX, e.clientY)
+const containerRect = timelineContainerRef.current!.getBoundingClientRect()
+console.log('containerRect:', containerRect.left, containerRect.top, containerRect.width, containerRect.height)
+const rawX = e.clientX - containerRect.left
+const rawY = e.clientY - containerRect.top
+console.log('rawX, rawY:', rawX, rawY)
+const finalX = rawX - dragOffset.x
+const finalY = rawY - dragOffset.y
+console.log('finalX, finalY:', finalX, finalY)
+const TOTAL_ROWS = getBayRowCount(bayId, bay?.name || '')
+const rowHeight = containerRect.height / TOTAL_ROWS
+const targetRowIndex = Math.max(0, Math.min(TOTAL_ROWS - 1, Math.floor(finalY / rowHeight)))
+console.log('computed targetRowIndex:', targetRowIndex)
+console.groupEnd()
+Then rebuild, go to the grid, drop a bar into row 2 (for example), and copy–paste the entire [DROP DEBUG] group from your browser console here. That’ll tell us exactly what arithmetic the code is doing.
+
+2) Capture the network payload
+
+Open DevTools → Network
+Drop the bar again
+Find the request (probably a PUT /schedules/:id)
+Click it and look at the Payload tab
+Copy the JSON body you sent (including the "row" field) and paste it here.
+3) Show me your updateSchedule helper
+
+Open the file where you call apiRequest (something like queryClient.ts or your custom hook), find the function that looks like:
+
+export function updateSchedule(id, bayId, startDate, endDate, totalHours, row) {
+  return apiRequest('PUT', `/schedules/${id}`, {
+    bayId,
+    startDate,
+    endDate,
+    totalHours,
+    // …is row here?
+  })
+}
+Copy–paste that little function so I can verify it’s actually including row.
+
+Once I see:
+
+The drop debug logs,
+The Payload JSON,
+The helper code,
+I’ll know whether the bug lives in your front-end math, in the request building, or in how you re-render after the response. From there we can finally nail the fix. Thanks for bearing with the extra logging steps!
