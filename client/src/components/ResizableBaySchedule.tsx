@@ -5137,7 +5137,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       align-items: center !important;
       justify-content: flex-start !important;
       height: 25% !important; /* FULL ROW HEIGHT - exactly 25% of bay */
-      top: 0 !important; /* No offset - fill the entire row */
+      /* CRITICAL FIX: Removed "top: 0 !important" to allow row-specific positioning */
     }
     
     /* Row positions - each row gets its own vertical position */
