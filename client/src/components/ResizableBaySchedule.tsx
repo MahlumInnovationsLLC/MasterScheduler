@@ -3585,10 +3585,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           console.log('Schedule successfully updated:', result);
           
           // Find the target bay to show proper bay number in toast
-          const targetBayInfo = bays.find(b => b.id === finalBayId);
+          const targetBayInfo = bays.find(b => b.id === bayId);
           toast({
             title: "Schedule Updated",
-            description: `${data.projectNumber} moved to Bay ${targetBayInfo?.bayNumber || bay.bayNumber}`,
+            description: `${data.projectNumber} moved to Bay ${targetBayInfo?.bayNumber || bay?.bayNumber}`,
           });
           
           // Force data refresh without full page reload
