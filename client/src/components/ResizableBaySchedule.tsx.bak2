@@ -3582,46 +3582,43 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Remove dragging active class from body
     document.body.classList.remove('dragging-active');
     
-    // Get drag data with proper error handling
-    let dataStr = '';
-    try {
-      dataStr = e.dataTransfer.getData('application/json');
-    } catch (err) {
-      console.log('Error getting application/json data, trying text/plain...');
+    let dataStrOuter = ""; try {
+      // Try multiple formats in case one fails
+      let dataStr = '';
       try {
+        dataStr = e.dataTransfer.getData('application/json');
+      } catch (err) {
+        console.log('Error getting application/json data, trying text/plain...');
         dataStr = e.dataTransfer.getData('text/plain');
-      } catch (err2) {
-        console.error('Failed to get any data format:', err2);
       }
-    }
-    
-    if (!dataStr) {
-      console.error('No data received in drop event');
-      return;
-    }
       
-    console.log('Data received in drop:', dataStr);
-    console.log(`Dropping at bay ${bayId}, slot ${slotIndex}, row ${rowIndex}`);
-    console.log(`DROP HANDLER: FORCING BAY ID TO USE EXACT PARAMETER: ${bayId}`);
+      if (!dataStr) {
+        console.error('No data received in drop event');
+        return;
+      }
       
-    const data = JSON.parse(dataStr);
-    if (!data) {
-      console.error('Failed to parse drop data');
-      return;
-    }
+      console.log('Data received in drop:', dataStr);
+      console.log(`Dropping at bay ${bayId}, slot ${slotIndex}, row ${rowIndex}`);
+      console.log(`DROP HANDLER: FORCING BAY ID TO USE EXACT PARAMETER: ${bayId}`);
       
-    // CRITICAL BUG FIX: Ensure we're using EXACTLY the bay ID from the drop event parameter
-    // This is the most reliable source of the actual bay where the drop occurred
-    // DO NOT override this with any stored value - this is what's causing projects to jump bays
-    const exactBayId = bayId;
-    console.log(`💯 Using EXACT bay ID from drop event parameter: ${exactBayId}`);
-    // Log this prominent message for debugging
-    console.log(`🚨 BAY ID VERIFICATION: Ensuring drop uses bay ${exactBayId} EXACTLY as provided by event`);
-    
-    // CRITICAL FIX: Use exactBayId instead of the normal bayId parameter
-    // This ensures we don't lose the correct bay ID between declarations
-    const bay = bays.find(b => b.id === exactBayId);
-    console.log(`Finding bay with ID ${exactBayId} (from exact parameter)`);
+      const data = JSON.parse(dataStr);
+      if (!data) {
+        console.error('Failed to parse drop data');
+        return;
+      }
+      
+      // CRITICAL BUG FIX: Ensure we're using EXACTLY the bay ID from the drop event parameter
+      // This is the most reliable source of the actual bay where the drop occurred
+      // DO NOT override this with any stored value - this is what's causing projects to jump bays
+      const exactBayId = bayId;
+      console.log(`💯 Using EXACT bay ID from drop event parameter: ${exactBayId}`);
+      // Log this prominent message for debugging
+      console.log(`🚨 BAY ID VERIFICATION: Ensuring drop uses bay ${exactBayId} EXACTLY as provided by event`);
+      
+      // CRITICAL FIX: Use exactBayId instead of the normal bayId parameter
+      // This ensures we don't lose the correct bay ID between declarations
+      const bay = bays.find(b => b.id === exactBayId);
+      console.log(`Finding bay with ID ${exactBayId} (from exact parameter)`);
       
       if (!bay) {
         console.error(`Bay with ID ${exactBayId} not found in bays list:`, bays.map(b => b.id));
