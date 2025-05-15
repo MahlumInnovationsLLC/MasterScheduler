@@ -3352,7 +3352,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     console.log(`(Current row=${globalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
     
     // Read data attributes from the drop target element for more precise week targeting
-    let targetElement = e.target as HTMLElement;
+    // BUGFIX: Ensure targetElement is defined and valid
+    const targetElement = e.target instanceof HTMLElement ? e.target : e.currentTarget as HTMLElement;
     let targetSlotIndex = slotIndex;
     
     // First try the direct target element for data attributes
@@ -3373,7 +3374,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
     
     // Then try to find the closest cell marker element with data-slot-index if needed
-    if (!dataSlotIndex) {
+    if (!dataSlotIndex && targetElement) {
       const cellElement = targetElement.closest('[data-slot-index]') as HTMLElement;
       if (cellElement) {
         // Update slot index if not already set
@@ -3391,7 +3392,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           date: cellDate || dataDate
         });
       }
-    } else {
+    } else if (targetElement) {
       console.log('Drop target date info from direct target:', {
         element: targetElement,
         slotIndex: targetSlotIndex,
