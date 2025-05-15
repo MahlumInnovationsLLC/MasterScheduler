@@ -309,22 +309,59 @@
   background-color: rgba(30, 58, 138, 0.05);
 }
 
-/* Add data attribute selectors for better visualization */
-[data-day-of-week="1"] { /* Monday */
+/* Add data attribute selectors for better visualization - Dark Mode */
+.dark [data-day-of-week="1"] { /* Monday */
   border-left: 1px solid rgba(59, 130, 246, 0.2) !important;
 }
 
-[data-day-of-week="5"] { /* Friday */
+.dark [data-day-of-week="5"] { /* Friday */
   border-right: 1px solid rgba(234, 179, 8, 0.2) !important;
 }
 
-[data-day-of-week="0"], [data-day-of-week="6"] { /* Weekend */
+.dark [data-day-of-week="0"], .dark [data-day-of-week="6"] { /* Weekend */
   background-color: rgba(30, 41, 59, 0.7) !important;
 }
 
-.timeline-header .timeline-slot {
+/* Light mode styling for grid cells */
+.light [data-day-of-week="1"] { /* Monday */
+  border-left: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+.light [data-day-of-week="5"] { /* Friday */
+  border-right: 1px solid rgba(234, 179, 8, 0.4) !important;
+}
+
+.light [data-day-of-week="0"], .light [data-day-of-week="6"] { /* Weekend */
+  background-color: rgba(226, 232, 240, 0.6) !important;
+}
+
+.light .week-start {
+  border-left: 2px solid rgba(59, 130, 246, 0.5) !important;
+  background-color: rgba(219, 234, 254, 0.2);
+}
+
+.light .grid-cell-perfectly-aligned {
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent,
+    transparent 55px,
+    rgba(100, 116, 139, 0.1) 55px,
+    rgba(100, 116, 139, 0.1) 56px
+  );
+}
+
+.dark .timeline-header .timeline-slot {
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.light .timeline-header .timeline-slot {
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  background-color: rgba(241, 245, 249, 0.8);
+}
+
+.timeline-header .timeline-slot {
   min-height: 60px;
   display: flex;
   flex-direction: column;

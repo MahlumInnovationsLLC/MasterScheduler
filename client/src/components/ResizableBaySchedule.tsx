@@ -1699,11 +1699,19 @@ export default function ResizableBaySchedule({
                           />
                         ) : (
                           // SIMPLIFIED SINGLE-ROW LAYOUT - EACH BAY IS ONE ROW
-                          <div className="absolute inset-0 flex flex-col w-full" style={{ minWidth: '100%', width: `${slots.length * slotWidth}px` }}>
+                          <div className="absolute inset-0 flex flex-col" style={{ 
+                            width: `${slots.length * slotWidth}px`, 
+                            minWidth: '100%',
+                            maxWidth: 'none' /* Ensures the bay extends beyond the viewport */
+                          }}>
                             {/* Single row per bay - simplified drop zone - EXTENDED TO END OF TIMELINE */}
                             <div 
                               className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
-                              style={{ width: `${slots.length * slotWidth}px`, minWidth: '100%' }}
+                              style={{ 
+                                width: `${slots.length * slotWidth}px`, 
+                                minWidth: '100%',
+                                maxWidth: 'none' /* Ensures the bay extends beyond the viewport */
+                              }}
                               onDragOver={(e) => {
                                 // Add strong visual indicator for this bay's single row
                                 e.currentTarget.classList.add('row-target-highlight', 'bay-highlight');
@@ -1775,7 +1783,9 @@ export default function ResizableBaySchedule({
                               {/* Cell grid for this bay - Flex layout to match header */}
                               <div className="absolute inset-0 flex bg-gray-900/30" 
                                 style={{ 
-                                  width: `${slots.length * slotWidth}px` 
+                                  width: `${slots.length * slotWidth}px`,
+                                  minWidth: '100%',
+                                  maxWidth: 'none' /* Ensures the grid extends beyond the viewport */
                                 }}>
                                 {/* We only render cells for the start of weeks to match timeline headers */}
                                 {slots.filter(slot => slot.isStartOfWeek).map((slot, weekIndex) => {
