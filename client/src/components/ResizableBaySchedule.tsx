@@ -1164,8 +1164,13 @@ export default function ResizableBaySchedule({
     return { earliestDate, latestDate };
   };
   
+  // Find unassigned projects that don't have any schedules
+  const unassignedProjects = projects.filter(project => 
+    !schedules.some(schedule => schedule.projectId === project.id)
+  );
+  
   return (
-    <div className="resizable-bay-schedule relative flex flex-col h-full">
+    <div className="resizable-bay-schedule relative flex flex-col h-full dark">
       <div className="schedule-header sticky top-0 z-10 bg-background border-b shadow-sm">
         <div className="flex justify-between items-center p-2">
           <div className="flex items-center space-x-2">
@@ -1177,14 +1182,14 @@ export default function ResizableBaySchedule({
           
           <div className="flex items-center space-x-2">
             <button 
-              className="bg-gray-200 hover:bg-gray-300 p-1 rounded"
+              className="bg-gray-700 hover:bg-gray-600 p-1 rounded"
               onClick={() => setDialogOpen(true)}
             >
-              <PlusCircle className="h-5 w-5 text-gray-700" />
+              <PlusCircle className="h-5 w-5 text-white" />
             </button>
             
             <button
-              className="bg-gray-200 hover:bg-gray-300 p-1 rounded"
+              className="bg-gray-700 hover:bg-gray-600 p-1 rounded"
               onClick={() => {
                 setNewBayDialog(true);
                 setEditingBay({
@@ -1214,29 +1219,91 @@ export default function ResizableBaySchedule({
         </div>
       </div>
       
-      <div className="bay-schedule-viewport flex-grow overflow-auto" ref={viewportRef}>
-        <div className="bay-schedule-container relative" ref={timelineRef}>
+      <div className="flex flex-row flex-1 h-full">
+        {/* Unassigned Projects Sidebar */}
+        <div className="unassigned-projects-sidebar w-64 border-r border-gray-700 flex-shrink-0 overflow-y-auto bg-gray-900 p-4">
+          <h3 className="font-bold text-white mb-4">Unassigned Projects</h3>
+          
+          {unassignedProjects.length === 0 ? (
+            <div className="text-sm text-gray-400 italic">No unassigned projects</div>
+          ) : (
+            <div className="space-y-3">
+              {unassignedProjects.map(project => (
+                <div 
+                  key={`unassigned-${project.id}`}
+                  className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
+                  draggable
+                  onDragStart={(e) => {
+                    // Create dummy schedule to use the existing drag logic
+                    const dummySchedule = {
+                      id: -project.id, // Negative ID to mark as new
+                      projectId: project.id,
+                      bayId: 0,
+                      startDate: new Date(),
+                      endDate: addWeeks(new Date(), 4),
+                      totalHours: 160,
+                      row: 0
+                    };
+                    
+                    // Set drag data
+                    e.dataTransfer.setData('text/plain', String(dummySchedule.id));
+                    e.dataTransfer.effectAllowed = 'copy';
+                    
+                    // Visual feedback
+                    e.currentTarget.classList.add('opacity-50');
+                    
+                    // Create custom drag image
+                    const dragImage = document.createElement('div');
+                    dragImage.className = 'bg-blue-600 text-white p-2 rounded opacity-80 pointer-events-none fixed -left-full';
+                    dragImage.textContent = `${project.projectNumber}: ${project.name}`;
+                    document.body.appendChild(dragImage);
+                    e.dataTransfer.setDragImage(dragImage, 10, 10);
+                    
+                    // Add to temporary data to be accessed by drop handlers
+                    (window as any).draggedProject = project;
+                    console.log(`Dragging unassigned project ${project.projectNumber}: ${project.name}`);
+                  }}
+                  onDragEnd={(e) => {
+                    e.currentTarget.classList.remove('opacity-50');
+                    const dragImages = document.querySelectorAll('div.pointer-events-none.fixed.-left-full');
+                    dragImages.forEach(el => el.remove());
+                  }}
+                >
+                  <div className="font-medium text-white text-sm mb-1 truncate">{project.projectNumber}: {project.name}</div>
+                  <div className="text-xs text-gray-400 truncate">{project.status}</div>
+                  <div className="text-xs text-gray-400 mt-1 flex items-center">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
+                    {project.team || 'No Team'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        <div className="bay-schedule-viewport flex-grow overflow-auto" ref={viewportRef}>
+          <div className="bay-schedule-container relative" ref={timelineRef}>
           {/* Timeline Header */}
-          <div className="timeline-header sticky top-0 z-10 bg-background shadow-sm flex ml-32">
+          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32">
             {slots.map((slot, index) => (
               <div
                 key={`header-${index}`}
                 className={`
                   timeline-slot border-r flex-shrink-0
-                  ${slot.isStartOfMonth ? 'bg-gray-100 border-r-2 border-r-gray-400' : ''}
-                  ${slot.isStartOfWeek ? 'bg-gray-50 border-r border-r-gray-300' : ''}
-                  ${!slot.isBusinessDay ? 'bg-gray-50/50' : ''}
+                  ${slot.isStartOfMonth ? 'bg-gray-800 border-r-2 border-r-blue-500' : ''}
+                  ${slot.isStartOfWeek ? 'bg-gray-850 border-r border-r-gray-600' : ''}
+                  ${!slot.isBusinessDay ? 'bg-gray-850/70' : ''}
                 `}
                 style={{ width: `${slotWidth}px`, height: '40px' }}
               >
                 <div className="text-xs text-center w-full">
                   {slot.isStartOfMonth && (
-                    <div className="font-semibold text-gray-700 whitespace-nowrap overflow-hidden">
+                    <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
                       {slot.monthName}
                     </div>
                   )}
                   {slot.isStartOfWeek && (
-                    <div className="text-gray-500 mt-1 text-[10px]">
+                    <div className="text-gray-400 mt-1 text-[10px]">
                       Week {slot.weekNumber}
                     </div>
                   )}
