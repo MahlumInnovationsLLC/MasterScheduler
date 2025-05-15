@@ -4170,28 +4170,29 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 ? parseInt(yAxisRowData) 
                 : undefined;
         
-        // Determine the most accurate row to use
-        let rowIndexToUse = finalRowIndex;
-                
-        // If we have a direct Y-position calculation, use it with highest priority
-        // This ensures projects ALWAYS land at the exact Y position where the mouse cursor dropped
-        if (strictYPositionRow !== undefined) {
-            console.log(`✨ PIXEL-PERFECT Y POSITIONING ACTIVATED: Using row ${strictYPositionRow} from Y-coordinate calculation`);
-            console.log(`✨ This ensures projects land at EXACTLY the Y position where the mouse was released`);
-            console.log(`✨ OVERRIDING all other row sources with direct pixel calculation`);
-            
-            // Save the original value for logging
-            const oldRowIndex = rowIndexToUse;
-            
-            // Update our row variable to the exact Y-position (no constants modified)
-            rowIndexToUse = strictYPositionRow;
-            
-            console.log(`✨ Changed row from ${oldRowIndex} to ${rowIndexToUse} based on precise Y-axis position`);
-            
-            // Store this value with highest priority for the server request
-            document.body.setAttribute('data-forced-row-index', rowIndexToUse.toString());
-            document.body.setAttribute('data-final-exact-row', rowIndexToUse.toString());
-        }
+        // Determine the most accurate row to use based on the absoluteRowIndex 
+        // from the data-absolute-row-index attribute that we set earlier
+        const tempRowIndex = finalRowIndex;
+        
+        // Get the absoluteRowIndex directly from the DOM attribute we set
+        const exactPixelRowPos = parseInt(document.body.getAttribute('data-absolute-row-index') || '0');
+        
+        // 🚨 MAY 16 2025 CRITICAL FIX: Force exact Y position with highest priority
+        console.log(`✨ PIXEL-PERFECT Y POSITIONING ACTIVATED: Using row ${exactPixelRowPos} from direct Y-coordinate calculation`);
+        console.log(`✨ This ensures projects land at EXACTLY the Y position where the mouse was released`);
+        console.log(`✨ OVERRIDING all other row sources with direct pixel calculation`);
+        
+        // Save the original value for logging
+        const oldRowIndex = tempRowIndex;
+        
+        // Create our final row variable with the exact Y-position (no adjustments)
+        let rowIndexToUse = exactPixelRowPos;
+        
+        console.log(`✨ Using Y-coordinate position: Row ${rowIndexToUse} (original: ${oldRowIndex})`);
+        
+        // Store this value with highest priority for the server request
+        document.body.setAttribute('data-forced-row-index', rowIndexToUse.toString());
+        document.body.setAttribute('data-final-exact-row', rowIndexToUse.toString());
         
         // Use rowIndexToUse which may have been updated by the Y-position calculation
         console.log(`🎯 USING PIXEL-PERFECT ROW CALCULATION: ${rowIndexToUse} 
@@ -4202,13 +4203,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
            last select: ${exactRowFromLastSelect})`);
           
         // 🚨 MAY 16 2025 - CRITICAL FIX 🚨
-        // Get the absoluteRowIndex directly from the DOM attribute we set
-        // This ensures we use the EXACT same value calculated from the raw Y coordinate
-        const absolutePixelRow = parseInt(document.body.getAttribute('data-absolute-row-index') || '0');
+        // EMERGENCY OVERRIDE: Just use the row value we computed earlier
+        // This ensures consistent row positioning throughout the entire codebase
         
-        // 💥 EMERGENCY OVERRIDE: Force the absolute row calculated from pixel position
-        // This is the ONLY reliable source of row positioning - ignore all others
-        rowIndexToUse = absolutePixelRow;
+        // 💥 LOGGING: Show that we're using the same exact pixel position
+        // as calculated in the earlier section of the code
+        console.log(`🎯 Reusing absoluteRowIndex: ${rowIndexToUse} from earlier calculation`);
         
         // 🔴 MANDATORY LOGGING: Log the emergency override
         console.log(`🔴 CRITICAL OVERRIDE: Using ABSOLUTE ROW ${rowIndexToUse} from direct Y-coordinate calculation`);
