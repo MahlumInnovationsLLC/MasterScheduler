@@ -564,7 +564,29 @@ export default function ResizableBaySchedule({
   // Drag handling functions
   const handleDragStart = (e: React.DragEvent, scheduleId: number) => {
     e.dataTransfer.setData('text/plain', scheduleId.toString());
+    e.dataTransfer.setData('scheduleId', scheduleId.toString());
     e.dataTransfer.effectAllowed = 'move';
+    
+    // Store important information about the existing schedule for precise positioning
+    const schedule = schedules.find(s => s.id === scheduleId);
+    if (schedule) {
+      // Store original bay and row data for exact calculations during drop
+      e.dataTransfer.setData('original-bay-id', schedule.bayId.toString());
+      e.dataTransfer.setData('original-row', (schedule.row || 0).toString());
+      
+      // Get the exact offset within the element where user started the drag
+      if (e.currentTarget instanceof HTMLElement) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left;
+        const offsetY = e.clientY - rect.top;
+        
+        // Store these offsets for precise positioning on drop
+        e.dataTransfer.setData('drag-offset-x', offsetX.toString());
+        e.dataTransfer.setData('drag-offset-y', offsetY.toString());
+        
+        console.log(`🎯 Drag offsets: X=${offsetX}, Y=${offsetY}`);
+      }
+    }
     
     // Add some visual feedback
     if (e.currentTarget instanceof HTMLElement) {
@@ -734,8 +756,21 @@ export default function ResizableBaySchedule({
     
     console.log(`🎯 PRECISE DROP: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
     
+    // Get the exact drop position data
+    const offsetX = parseInt(e.dataTransfer.getData('drag-offset-x') || '0', 10);
+    const offsetY = parseInt(e.dataTransfer.getData('drag-offset-y') || '0', 10);
+    const originalBayId = parseInt(e.dataTransfer.getData('original-bay-id') || '0', 10);
+    const originalRow = parseInt(e.dataTransfer.getData('original-row') || '0', 10);
+    
+    console.log(`📊 DROP DETAILS: 
+      - Exact drop date: ${format(date, 'yyyy-MM-dd')}
+      - Offset X: ${offsetX}px, Offset Y: ${offsetY}px
+      - From Bay: ${originalBayId} to Bay: ${bayId}
+      - From Row: ${originalRow} to Row: ${rowIndex}
+    `);
+    
     // Get the schedule ID from the drag data
-    const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    const scheduleId = parseInt(e.dataTransfer.getData('scheduleId'), 10);
     
     // Find the schedule bar being moved
     const bar = scheduleBars.find((b) => b.id === scheduleId);

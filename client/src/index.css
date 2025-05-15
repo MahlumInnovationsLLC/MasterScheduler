@@ -257,9 +257,19 @@
     to right,
     transparent,
     transparent 55px,
-    rgba(255, 255, 255, 0.03) 55px,
-    rgba(255, 255, 255, 0.03) 56px
+    rgba(255, 255, 255, 0.07) 55px,
+    rgba(255, 255, 255, 0.07) 56px
   );
+}
+
+/* Every 7th day (week boundary) is more prominent */
+.week-boundary-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: rgba(59, 130, 246, 0.3);
+  pointer-events: none;
 }
 
 /* Success animation for drop location */
