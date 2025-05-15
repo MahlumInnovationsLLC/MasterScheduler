@@ -132,35 +132,37 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
                       }
                     }
                     
-                    // CRITICAL FIX: PIXEL-PERFECT ROW PLACEMENT
-                    // Calculate the exact row position based on pixel-perfect Y position
-                    const cell = e.currentTarget;
-                    const cellRect = cell.getBoundingClientRect();
+                    // MAY 16, 2025 CRITICAL USER-DEMANDED FIX:
+                    // ABSOLUTELY EXACT ROW PLACEMENT - ZERO PROCESSING
                     
-                    // Get the Y offset where user initially grabbed the bar
-                    const dragOffsetY = parseInt(document.body.getAttribute('data-drag-offset-y') || '0');
+                    // USE EXTREMELY SIMPLE APPROACH - JUST USE ROW INDEX DIRECTLY
+                    // NO CALCULATIONS, NO ADJUSTMENTS, NO AUTOMATIC REPOSITIONING
+                    // This is what the user explicitly demands - total control over positioning
                     
-                    // Calculate relative Y position within the cell, adjusted for drag offset
-                    const relativeY = e.clientY - cellRect.top;
-                    
-                    // Get the cell height and calculate exact row based on percentage
-                    const cellHeight = cellRect.height;
-                    const rowHeight = cellHeight / rowCount; // Height of a single row
-                    
-                    // Calculate the exact row where cursor is, adjusted for the drag offset
-                    // This ensures the bar's original grab point aligns with where it's dropped
-                    const adjustedY = Math.max(0, relativeY - dragOffsetY);
-                    const exactRow = Math.floor(adjustedY / rowHeight);
-                    
-                    // Clamp the row index to valid range
-                    const clampedExactRow = Math.max(0, Math.min(rowCount - 1, exactRow));
-                    
-                    // STORE EXACT ROW IN MULTIPLE ATTRIBUTES FOR REDUNDANCY
-                    // This guarantees we always have the row position available during processing
+                    // FOR MAXIMUM REDUNDANCY: Set all possible attributes with this row
+                    // This provides maximum compatibility with all code paths
                     document.body.setAttribute('data-current-drag-row', rowIdx.toString());
                     document.body.setAttribute('data-exact-row-drop', rowIdx.toString());
                     document.body.setAttribute('data-last-row-select', rowIdx.toString());
-                    document.body.setAttribute('data-precision-drop-row', clampedExactRow.toString());
+                    document.body.setAttribute('data-precision-drop-row', rowIdx.toString());
+                    document.body.setAttribute('data-absolute-row-index', rowIdx.toString());
+                    document.body.setAttribute('data-forced-row-index', rowIdx.toString());
+                    document.body.setAttribute('data-final-exact-row', rowIdx.toString());
+                    document.body.setAttribute('data-y-axis-row', rowIdx.toString());
+                    
+                    // SET EMERGENCY BYPASS FLAGS
+                    document.body.setAttribute('data-bypass-all-row-logic', 'true');
+                    document.body.setAttribute('data-force-exact-row-placement', 'true');
+                    document.body.setAttribute('data-allow-row-overlap', 'true');
+                    document.body.setAttribute('data-emergency-fix-mode', 'true');
+                    
+                    // Log emergency bypass mode
+                    console.log(`🚨🚨🚨 EMERGENCY USER-DEMANDED FIX - EXACT ROW PLACEMENT`);
+                    console.log(`🚨🚨🚨 Using ROW ${rowIdx} with ZERO PROCESSING`);
+                    console.log(`🚨🚨🚨 ALL COLLISION DETECTION DISABLED`);
+                    console.log(`🚨🚨🚨 ALL AUTOMATIC POSITIONING DISABLED`);
+                    console.log(`🚨🚨🚨 ALL ROW OVERLAP PREVENTION DISABLED`);
+                    console.log(`🚨🚨🚨 PROJECT WILL BE PLACED EXACTLY WHERE DROPPED`);
                     
                     // Store pixel-perfect calculation details for debugging
                     const rowPct = (relativeY / cellHeight);

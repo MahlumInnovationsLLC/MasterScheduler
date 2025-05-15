@@ -1103,14 +1103,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           console.warn(`⚠️ Schedule ${schedule.id} row value ${assignedRow} is outside expected range 0-${maxRows-1}, but keeping as-is per user request`);
         }
         
-        // CRITICAL FIX: DELIBERATELY NOT TRACKING ROW END DATES
-        // In previous code, this is where we would update rowEndDates with:
-        // rowEndDates[assignedRow] = new Date(endDate);
-        // We have removed this to COMPLETELY DISABLE collition detection
-        console.log(`⚠️⚠️⚠️ DELIBERATELY NOT TRACKING END DATE FOR ROW ${assignedRow}`);
-        console.log(`⚠️⚠️⚠️ This ensures we never use rowEndDates[] for collision detection`);
-        // This is intentional - we do not want to track row end dates at all
-        // This prevents any remaining collision detection in the system
+        // MAY 16 EMERGENCY FIX: COMPLETE BYPASS OF ALL ROW CALCULATION LOGIC
+        // Completely remove all collision and row positioning logic
+        // This is an absolute override that disables all intelligent placement
+        
+        // Log the critical bypass
+        console.log(`🔥🔥🔥 EMERGENCY BYPASS: ALL ROW CALCULATION LOGIC DISABLED`);
+        console.log(`🔥🔥🔥 NO INTELLIGENT PLACEMENT - USING RAW ROW POSITION FROM DATABASE`);
+        console.log(`🔥🔥🔥 THIS PERMITS MULTIPLE PROJECTS IN THE SAME ROW`);
+        console.log(`🔥🔥🔥 OVERLAP IS NOW ALLOWED AND EXPECTED`);
+        console.log(`🔥🔥🔥 ROW END DATES TRACKING COMPLETELY REMOVED`);
+        
+        // CRITICAL: Set global flags to ensure zero processing of row positions
+        document.body.setAttribute('data-bypass-all-row-logic', 'true');
+        document.body.setAttribute('data-force-exact-row-placement', 'true');
+        document.body.setAttribute('data-allow-row-overlap', 'true');
         
         // CRITICAL FIX: DO NOT MAP OR CHANGE ROWS
         // Keep exact row from database with no adjustment
