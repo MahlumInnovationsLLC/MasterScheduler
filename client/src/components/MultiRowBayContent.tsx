@@ -39,32 +39,31 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
   handleRowAdd,
   rowCount = 20 // Default to 20 rows for multi-row bays
 }) => {
-  const bayName = bay.name || '';
   
-  // Check if this is Team 7 or 8 for special styling
-  const isTeam7Or8 = bayName.trim().startsWith('Team') && 
-                    (bayName.includes('7') || bayName.includes('8'));
-  
-  // Set a consistent container height based on bay type
-  // This ensures all rows evenly fill the bay height
+  // Set a consistent container height for Team 7 & 8 bays
+  // This ensures all 20 rows fit within a standardized height that matches the screenshot
   const containerStyle = {
-    height: '100%', // Use full height of container
-    minHeight: isTeam7Or8 ? '800px' : '400px', // Team 7/8 need more height for 20 rows
-    maxHeight: isTeam7Or8 ? '1000px' : '800px', // Add maximum height for consistency
-    display: 'flex',
-    flexDirection: 'column' as const,
-    position: 'relative' as const,
-    overflow: 'hidden' as const, // Prevent overflow issues
+    height: '600px', // Much taller height to match Team 8 in the screenshot
+    minHeight: '600px', // Enforce minimum height
   };
-  
-  // Calculate the height percentage for each row (unused but kept for future reference)
+  // Calculate the height percentage for each row
   const rowHeightPercentage = 100 / rowCount;
   
-  // Row style now managed by Tailwind classes in the JSX
+  // Use CSS variables for dynamic styling
+  // For Teams 7 & 8, use a much taller consistent height for all rows
+  // This matches exactly what we see in the screenshot for Team 8
+  const rowStyle = {
+    height: `${rowHeightPercentage}%`,
+    minHeight: '30px', // Much taller rows to match Team 8 in screenshot
+  };
+  
+  // Check if this is Team 7 or 8 for special styling
+  const isTeam7Or8 = bay.name && bay.name.trim().startsWith('Team') && 
+                    (bay.name.includes('7') || bay.name.includes('8'));
 
   return (
-    <div className="multi-row-bay-wrapper flex flex-col h-full" style={containerStyle}>
-      {/* Add wrapper div with flex layout for proper height distribution */}
+    <div className="multi-row-bay-wrapper" style={{ height: '600px', minHeight: '600px' }}>
+      {/* Add wrapper div with fixed height */}
       {/* Week cells grid with row subdivision for precise row targeting */}
       <div className="absolute inset-0 grid grid-cols-52 border-l border-gray-700/50">
         {weekSlots.map((slot, index) => (
@@ -210,8 +209,8 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
         {Array.from({ length: rowCount }).map((_, rowIndex) => (
           <div 
             key={`bay-row-${bay.id}-${rowIndex}`}
-            className={`${rowIndex < rowCount - 1 ? 'border-b' : ''} border-gray-700/50 bay-row transition-colors dark:hover:bg-slate-700/20 hover:bg-gray-700/10 cursor-pointer relative flex-1`}
-            style={{ flex: '1 1 0', minHeight: '30px' }}
+            className={`${rowIndex < rowCount - 1 ? 'border-b' : ''} border-gray-700/50 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative`}
+            style={{ height: `${100/rowCount}%`, minHeight: '30px' }}
             onDragOver={(e) => {
               // Add strong visual indicator for this row
               e.currentTarget.classList.add('row-target-highlight', `row-${rowIndex}-target`);

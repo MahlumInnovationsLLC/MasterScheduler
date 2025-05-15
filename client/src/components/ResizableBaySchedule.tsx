@@ -524,23 +524,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Track where on the bar the user grabbed it for pixel-perfect positioning
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   
-  // MAY 16 2025 - EMERGENCY FIX MODE
-  // Force emergency mode to be active permanently for ALL bays
-  const [emergencyFixMode] = useState(true);
-  const [forceExactRowPlacement] = useState(true);
-  const [bypassAllRowLogic] = useState(true);
-  const [allowRowOverlap] = useState(true);
-  
-  // Set emergency flags globally in document body for all components to respect
-  useEffect(() => {
-    document.body.setAttribute('data-bypass-all-row-logic', 'true');
-    document.body.setAttribute('data-force-exact-row-placement', 'true');
-    document.body.setAttribute('data-allow-row-overlap', 'true');
-    document.body.setAttribute('data-emergency-fix-mode', 'true');
-    document.body.setAttribute('data-emergency-override', 'PERMANENT');
-    console.log('🚨🚨🚨 EMERGENCY FIX MODE ACTIVATED - PERMANENT');
-  }, []);
-  
   // Function to calculate bar position based on dates
 
   const calculateBarPosition = (startDate: Date, endDate: Date): { left?: number, width?: number } => {
@@ -3094,94 +3077,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // MAY 16 2025 - ULTRA AGGRESSIVE EMERGENCY FIX
-    // Completely bypass ALL automatic positioning logic - use EXACTLY what user specifies
-    
-    // Force all emergency flags to TRUE regardless of attributes
-    const bypassAllRowLogic = true; 
-    const forceExactRowPlacement = true;
-    const allowRowOverlap = true;
-    const emergencyFixMode = true;
-    
-    // Set all flags in document body to ensure other components respect these settings
-    document.body.setAttribute('data-bypass-all-row-logic', 'true');
-    document.body.setAttribute('data-force-exact-row-placement', 'true');
-    document.body.setAttribute('data-allow-row-overlap', 'true');
-    document.body.setAttribute('data-emergency-fix-mode', 'true');
-    document.body.setAttribute('data-emergency-override', 'EMERGENCY_DIRECT_DROP');
-    
-    // Always use the exact row index passed to this function - ZERO ADJUSTMENTS
-    document.body.setAttribute('data-current-drag-row', rowIndex.toString());
-    document.body.setAttribute('data-exact-row-drop', rowIndex.toString());
-    document.body.setAttribute('data-absolute-row-index', rowIndex.toString());
-    document.body.setAttribute('data-forced-row-index', rowIndex.toString());
-    document.body.setAttribute('data-final-exact-row', rowIndex.toString());
-    document.body.setAttribute('data-emergency-row-override', rowIndex.toString());
+    // MAY 16 2025 - EMERGENCY FIX: CHECK FOR BYPASS FLAGS
+    const bypassAllRowLogic = document.body.hasAttribute('data-bypass-all-row-logic');
+    const forceExactRowPlacement = document.body.hasAttribute('data-force-exact-row-placement');
+    const allowRowOverlap = document.body.hasAttribute('data-allow-row-overlap');
+    const emergencyFixMode = document.body.hasAttribute('data-emergency-fix-mode');
     
     // Log emergency mode status
-    console.log(`🚨🚨🚨 ULTRA AGGRESSIVE EMERGENCY MODE ACTIVE 🚨🚨🚨`);
-    console.log(`🚨 TARGET: Bay ${bayId}, Row=${rowIndex}, SlotIndex=${slotIndex}`);
-    console.log(`🚨 EMERGENCY DIRECT PLACEMENT - ZERO PROCESSING - NO ADJUSTMENTS`);
-    console.log(`🚨 ALL COLLISION DETECTION AND POSITIONING LOGIC BYPASSED`);
-    
-    // ── MAY 16 2025 - ULTRA DIRECT ROW PLACEMENT ────────────────────────────
-    // Skip all row calculation logic and force use of exact provided row
     if (emergencyFixMode) {
-      // Get the target cell date if available
-      const targetCell = e.currentTarget as HTMLElement;
-      const targetCellDate = targetCell.getAttribute('data-start-date');
-      
-      // Create server-side payload with GUARANTEED row placement
-      const serverPayload = {
-        bayId: bayId,
-        projectId: draggingSchedule.projectId,
-        startDate: targetCellDate ? targetCellDate : format(draggingSchedule.startDate, 'yyyy-MM-dd'),
-        endDate: format(draggingSchedule.endDate, 'yyyy-MM-dd'),
-        totalHours: draggingSchedule.totalHours,
-        row: rowIndex,
-        rowIndex: rowIndex
-      };
-      
-      console.log(`✅✅✅ GUARANTEED ROW PLACEMENT: Using exact row ${rowIndex} with zero calculation`);
-      console.log(`✅ Server payload with EXACT row: `, serverPayload);
-      
-      // If existing schedule, update it with exact row placement
-      if (draggingSchedule.id) {
-        console.log(`✅ Updating existing schedule with EXACT row: ${rowIndex}`);
-        onScheduleChange(
-          draggingSchedule.id,
-          bayId,
-          serverPayload.startDate,
-          serverPayload.endDate,
-          draggingSchedule.totalHours,
-          rowIndex
-        ).then(() => {
-          // Clear dragging state
-          setDraggingSchedule(null);
-          document.body.removeAttribute('data-is-dragging');
-        });
-        return; // Exit early - guaranteed placement complete
-      }
-      // If new schedule, create it with exact row placement
-      else {
-        console.log(`✅ Creating new schedule with EXACT row: ${rowIndex}`);
-        onScheduleCreate(
-          draggingSchedule.projectId,
-          bayId,
-          serverPayload.startDate,
-          serverPayload.endDate, 
-          draggingSchedule.totalHours,
-          rowIndex
-        ).then(() => {
-          // Clear dragging state
-          setDraggingSchedule(null);
-          document.body.removeAttribute('data-is-dragging');
-        });
-        return; // Exit early - guaranteed placement complete
-      }
+      console.log(`🔥🔥🔥 EMERGENCY FIX MODE ACTIVE 🔥🔥🔥`);
+      console.log(`🔥 BYPASSING ALL ROW CALCULATION LOGIC: ${bypassAllRowLogic}`);
+      console.log(`🔥 FORCING EXACT ROW PLACEMENT: ${forceExactRowPlacement}`);
+      console.log(`🔥 ALLOWING ROW OVERLAP: ${allowRowOverlap}`);
+      console.log(`🔥 USING DIRECT ROW: ${rowIndex} (no processing)`);
     }
     
-    // ── LEGACY: PIXEL-PERFECT DROP PLACEMENT ────────────────────────────────────
+    // ── NEW: PIXEL-PERFECT DROP PLACEMENT ────────────────────────────────────
     // Get the timeline container element
     const timelineContainer = timelineContainerRef.current;
     if (!timelineContainer) {
@@ -6244,119 +6155,30 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 </div>
                 
                 {/* Row dividers with visible action buttons */}
-                {/* 
-                  MAY 16 2025 - ULTRA AGGRESSIVE EMERGENCY FIX MODE
-                  COMPLETELY REPLACE ALL BAY ROW IMPLEMENTATIONS FOR ALL BAYS
-                  Force use of direct implementation on ALL bays for consistent behavior
-                  This ensures exact row placement with no adjustments or automatic repositioning
-                */}
                 {(() => {
-                  // Get row count for this bay
-                  const rowCount = getBayRowCount(bay.id, bay.name);
+                  // IMPORTANT UPDATE: Use bay NUMBER (7 or 8) to determine if we should use multi-row
+                  // This ensures ANY bay with ID 7 or 8 will get 20 rows, regardless of name
+                  // This is necessary to handle cases like "TCV Line" which is bay number 7
+                  const isMultiRowBay = bay.id === 7 || bay.id === 8 || bay.bayNumber === 7 || bay.bayNumber === 8;
                   
-                  // Log aggressive emergency mode activation for ALL bays
-                  console.log(`⚠️⚠️⚠️ MAY 16 EMERGENCY MODE: Forcing direct row implementation for ALL bays`);
-                  console.log(`⚠️ Bay ${bay.id} (${bay.name}): rowCount=${rowCount}, bayNumber=${bay.bayNumber}`);
-                  
-                  // Always return true to force direct implementation for ALL bays
-                  return true;
+                  // Add debug logging to troubleshoot the issue
+                  console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${getBayRowCount(bay.id, bay.name)}, bayNumber=${bay.bayNumber}`);
+                  return isMultiRowBay;
                 })() ? (
-                  // MAY 16 EMERGENCY FIX: DIRECT ROW IMPLEMENTATION
-                  // Completely bypass MultiRowBayContent component to ensure exact placement
-                  <div className="absolute inset-0 grid grid-cols-52 border-l border-gray-700/50 multi-row-direct">
-                    {/* Create a direct row grid with exact cells for precise drop targeting */}
-                    <div className="absolute inset-0 grid grid-cols-52 multi-row-grid">
-                      {slots.map((slot, weekIndex) => (
-                        <div 
-                          key={`direct-week-${bay.id}-${weekIndex}`}
-                          className="relative week-column"
-                          data-bay-id={bay.id}
-                          data-week-index={weekIndex}
-                          data-date={format(slot.date, 'yyyy-MM-dd')}
-                        >
-                          {/* Create direct row cells for each possible row */}
-                          <div className="absolute inset-0 flex flex-col h-full">
-                            {Array.from({ length: getBayRowCount(bay.id, bay.name) }).map((_, rowIndex) => (
-                              <div
-                                key={`direct-row-${bay.id}-${weekIndex}-${rowIndex}`}
-                                className={`direct-row flex-1 border-b border-gray-800/10 ${rowIndex % 2 === 0 ? 'bg-gray-50/5' : ''}`}
-                                data-bay-id={bay.id}
-                                data-week-index={weekIndex}
-                                data-row-index={rowIndex}
-                                data-date={format(slot.date, 'yyyy-MM-dd')}
-                                data-exact-row={rowIndex}
-                                data-forced-row-index={rowIndex}
-                                onDragOver={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  
-                                  // Set critical emergency bypass flags
-                                  document.body.setAttribute('data-bypass-all-row-logic', 'true');
-                                  document.body.setAttribute('data-force-exact-row-placement', 'true');
-                                  document.body.setAttribute('data-allow-row-overlap', 'true');
-                                  document.body.setAttribute('data-emergency-fix-mode', 'true');
-                                  
-                                  // Set all row identifiers to the exact row value
-                                  document.body.setAttribute('data-current-drag-row', rowIndex.toString());
-                                  document.body.setAttribute('data-exact-row-drop', rowIndex.toString());
-                                  document.body.setAttribute('data-last-row-select', rowIndex.toString());
-                                  document.body.setAttribute('data-precision-drop-row', rowIndex.toString());
-                                  document.body.setAttribute('data-absolute-row-index', rowIndex.toString());
-                                  document.body.setAttribute('data-forced-row-index', rowIndex.toString());
-                                  document.body.setAttribute('data-final-exact-row', rowIndex.toString());
-                                  
-                                  // Add visual highlight for target row
-                                  e.currentTarget.classList.add('direct-row-highlight');
-                                  
-                                  // Call drag over handler with EXACT row
-                                  handleDragOver(e, bay.id, weekIndex, rowIndex);
-                                }}
-                                onDragLeave={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  e.currentTarget.classList.remove('direct-row-highlight');
-                                }}
-                                onDrop={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  
-                                  // EMERGENCY MODE - DIRECT DROP
-                                  console.log(`🚨🚨🚨 EMERGENCY DIRECT DROP - BAY ${bay.id}, WEEK ${weekIndex}, ROW ${rowIndex}`);
-                                  console.log(`🚨🚨🚨 ZERO PROCESSING - EXACT PLACEMENT GUARANTEED`);
-                                  
-                                  // Clear any highlights
-                                  e.currentTarget.classList.remove('direct-row-highlight');
-                                  
-                                  // Set critical emergency bypass flags
-                                  document.body.setAttribute('data-bypass-all-row-logic', 'true');
-                                  document.body.setAttribute('data-force-exact-row-placement', 'true');
-                                  document.body.setAttribute('data-allow-row-overlap', 'true');
-                                  document.body.setAttribute('data-emergency-fix-mode', 'true');
-                                  
-                                  // Set all row identifiers to this exact row
-                                  document.body.setAttribute('data-current-drag-row', rowIndex.toString());
-                                  document.body.setAttribute('data-exact-row-drop', rowIndex.toString());
-                                  document.body.setAttribute('data-last-row-select', rowIndex.toString());
-                                  document.body.setAttribute('data-precision-drop-row', rowIndex.toString());
-                                  document.body.setAttribute('data-absolute-row-index', rowIndex.toString());
-                                  document.body.setAttribute('data-forced-row-index', rowIndex.toString());
-                                  document.body.setAttribute('data-final-exact-row', rowIndex.toString());
-                                  document.body.setAttribute('data-y-axis-row', rowIndex.toString());
-                                  
-                                  // Call drop handler with EXACT values - no adjustments
-                                  handleDrop(e, bay.id, weekIndex, rowIndex);
-                                }}
-                              >
-                                <div className="absolute -left-6 text-xs text-blue-500 h-full flex items-center">
-                                  <span className="bg-blue-100/10 px-1 rounded">{rowIndex+1}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  // Use MultiRowBayContent for Team 7 & 8 which needs 20 rows
+                  <MultiRowBayContent
+                    bay={bay}
+                    weekSlots={slots}
+                    scheduleBars={scheduleBars}
+                    projects={projects}
+                    handleDragOver={(e, bayId, weekIndex, rowIndex) => handleDragOver(e, bayId, weekIndex, rowIndex)}
+                    handleDrop={(e, bayId, weekIndex, rowIndex) => handleDrop(e, bayId, weekIndex || 0, rowIndex)}
+                    setRowToDelete={setRowToDelete}
+                    setDeleteRowDialogOpen={setDeleteRowDialogOpen}
+                    handleRowDelete={handleDeleteRow}
+                    handleRowAdd={handleRowAdd}
+                    rowCount={getBayRowCount(bay.id, bay.name)}
+                  />
                 ) : (
                   // Standard 4-row layout for other bays
                   <div className="absolute inset-0 flex flex-col">
