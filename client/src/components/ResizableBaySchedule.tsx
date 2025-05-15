@@ -3203,26 +3203,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         return;
       }
       
-      // Get the date for this slot using multiple reliable sources with fallbacks
+      // Get the date for this slot using data attributes
       let slotDate: Date | null = null;
       let exactDateForStorage: string | null = null;
       
-      // HIGHEST PRIORITY: Use the pixel-perfect date calculated from mouse position
-      const dropDateAttr = document.body.getAttribute('data-exact-drop-date');
-      if (dropDateAttr) {
-        slotDate = new Date(dropDateAttr);
-        exactDateForStorage = dropDateAttr;
-        console.log('🎯 USING PIXEL-PERFECT DATE from mouse position:', dropDateAttr, slotDate);
-      }
-      // NEXT RELIABLE: Check for data-exact-date which is specifically set during drag over
-      // This is the next most accurate way to get the precise date the user intended
-      else {
-        const exactDateFromAttr = targetElement.getAttribute('data-exact-date');
-        if (exactDateFromAttr) {
-          slotDate = new Date(exactDateFromAttr);
-          exactDateForStorage = exactDateFromAttr; // Store the exact string for later use
-          console.log('SUCCESS: Using precise date from data-exact-date attribute:', exactDateFromAttr, slotDate);
-        }
+      // CRITICAL FIX: Remove pixel-perfect date calculation and use slot date directly
+      // Check for data-exact-date which is specifically set during drag over
+      // This is the most accurate way to get the precise date the user intended
+      const exactDateFromAttr = targetElement.getAttribute('data-exact-date');
+      if (exactDateFromAttr) {
+        slotDate = new Date(exactDateFromAttr);
+        exactDateForStorage = exactDateFromAttr; // Store the exact string for later use
+        console.log('SUCCESS: Using precise date from data-exact-date attribute:', exactDateFromAttr, slotDate);
       }
       // Next check for data-date on direct target
       if (!slotDate && dataDate) {
@@ -3364,21 +3356,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Log all potential date sources for debugging
       console.log(`ALL DATE SOURCES:
-        - Pixel-perfect calculated date: ${pixelPerfectDateAttr}
-        - Global exact date from drag: ${globalExactDate}
         - Data target date: ${dataTargetDate}
         - Slot date: ${slotDateValue}
       `);
       
-      // Choose the best available date source, prioritizing the most precise one
+      // CRITICAL FIX: REMOVE pixel-perfect date calculation entirely as requested
+      // Use the slot date for reliability and expected behavior
       const exactStartDate = new Date(
-        pixelPerfectDateAttr || 
-        globalExactDate || 
         dataTargetDate || 
         (slotDate ? slotDateValue : new Date())
       );
       
-      console.log(`🎯 USING PIXEL-PERFECT DATE: ${format(exactStartDate, 'yyyy-MM-dd')} (from best available source)`);
+      console.log(`🎯 USING SLOT DATE: ${format(exactStartDate, 'yyyy-MM-dd')} (from best available source)`);
       
       // Store this date for any final verification
       document.body.setAttribute('data-final-exact-date', format(exactStartDate, 'yyyy-MM-dd'));
