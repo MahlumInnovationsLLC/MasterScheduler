@@ -6813,65 +6813,36 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                        bayName.trim() === 'Team8');
                     
                     // 🚨 CRITICAL FIX: DIRECT ROW POSITIONING FOR ALL BAYS
-                    // Don't rely on CSS classes since they're getting overridden somewhere
-                    // Instead, directly calculate and apply the top position for each row
-                    const standardBayHeight = 25; // 25% height per row in standard 4-row bays
+                    // MAY 16 2025 - CRITICAL FIX: Precise row positioning for all bay types
                     
-                    // Calculate the top percentage based on rowIndex
-                    // CRITICAL FIX: May 16 2025 - Fix top percentage calculation
-                    // For team 7/8 with 20 rows, use 5% per row (100%/20)
-                    // For regular bays with 4 rows, use 25% per row (100%/4)
+                    // 1. Calculate the number of rows for this bay type
                     const rowCount = getBayRowCount(bar.bayId, bayName);
                     
-                    // MAY 16 2025 - EMERGENCY FIX: Proper row positioning for ALL bays
-                    // Previously row 16 in Bay 7 had top position of 400%, which is wrong
-                    
-                    // 🚨 CRITICAL: Properly handle row positioning for ALL bays
-                    // 1. For regular 4-row bays (like Bay 1), rows 0-3 should be at 0%, 25%, 50%, 75%
-                    // 2. For Bay 7 (TCV Line) with 20 rows, each row should be at row*5% (row 16 → 80%)
-                    
-                    // Ensure the row is within valid range for this bay
+                    // 2. Ensure row index stays within valid range (e.g., row 20 in a 20-row bay should be capped at 19)
                     const safeRowIndex = Math.min(rowIndex, rowCount - 1);
                     
-                    // Calculate the row height percentage (100% / number of rows in this bay)
-                    // e.g., Bay 7 with 20 rows → 5% per row, Regular bays with 4 rows → 25% per row
+                    // 3. Calculate row height based on number of rows (e.g., 4 rows = 25% height each, 20 rows = 5% each)
                     const rowHeightPercentage = 100 / rowCount;
                     
-                    // Calculate the top percentage based on row index and row height
+                    // 4. Calculate top position based on row index and height percentage
+                    //    e.g., row 0 = 0%, row 1 in 4-row bay = 25%, row 16 in 20-row bay = 80%
                     const topPercentage = safeRowIndex * rowHeightPercentage;
                     
-                    console.log(`🩹 FIXED ROW POSITIONING: Row ${rowIndex} in Bay ${bar.bayId}`);
-                    console.log(`  - Bay has ${rowCount} rows → ${rowHeightPercentage}% per row`);
-                    console.log(`  - Row ${rowIndex} → top position: ${topPercentage}%`);
-                    
-                    console.log(`🔢 ROW CALCULATION FINAL: Row ${rowIndex} in bay ${bar.bayId} (${bayName})`);
-                    console.log(`  - Bay type: ${isMultiRowBay ? 'multi-row (20 rows)' : 'standard (4 rows)'}`);
-                    console.log(`  - Row count: ${rowCount} rows`);
-                    console.log(`  - Row height: ${rowHeightPercentage}%`);
-                    console.log(`  - Top position: ${topPercentage}%`);
-                     
-                    // Enhanced debugging logs to trace exact positioning 
-                    console.log(`🔒 RENDERING BAR ${bar.id} EXACTLY at row=${rowIndex} with class ${rowClass}`);
-                    console.log(`📏 BAR ${bar.id} STYLE: top=${topPercentage}%, height=${rowHeightPercentage}%`);
-                    console.log(`💾 BAR ${bar.id} DATABASE VALUES: projectId=${bar.projectId}, bayId=${bar.bayId}, ROW=${bar.row}, startDate=${bar.startDate}`);
-                    
-                    // ADDITIONAL DATA DUMP TO VERIFY ALL BAR PROPERTIES
-                    console.log(`🔍 COMPLETE BAR ${bar.id} DATA:`, JSON.stringify(bar, null, 2));
-                      
-                    // Calculate the row height percentage based on row count (e.g., 4 rows = 25% each, 20 rows = 5% each)
-                    // MAY 16 2025 - CRITICAL FIX: Use consistent formula for both positioning and height calculations
-                    const rowHeightPercentage = 100 / rowCount;
-                    
-                    // Force the top position directly in styles with !important to override any CSS
+                    // 5. Create style object with precise positioning 
                     const rowHeight = { 
                       height: `${rowHeightPercentage}%`, 
                       top: `${topPercentage}%`
                     };
                     
-                    console.log(`🧮 FINAL POSITIONING: Row ${rowIndex} in bay ${bar.bayId} (${bayName})`);
-                    console.log(`  - Top: ${topPercentage}%`);
-                    console.log(`  - Height: ${heightPercentage}%`);
-                    console.log(`  - Row unit calculation: ${isMultiRowBay ? '100% / ' + getBayRowCount(bar.bayId, bayName) + ' rows' : '25% (standard 4-row bay)'}`);
+                    // Enhanced debugging logs to trace exact positioning 
+                    console.log(`🔒 POSITIONING BAR ${bar.id} in Bay ${bar.bayId} (${bayName})`);
+                    console.log(`  - Row: ${rowIndex} of ${rowCount} rows (${isMultiRowBay ? 'multi-row bay' : 'standard bay'})`);
+                    console.log(`  - Height: ${rowHeightPercentage}% per row`);
+                    console.log(`  - Position: top=${topPercentage}%`);
+                    console.log(`  - Database values: projectId=${bar.projectId}, bayId=${bar.bayId}, row=${bar.row}`);
+                    
+                    // Additional verification data in browser console
+                    console.log(`🔍 COMPLETE BAR DATA:`, JSON.stringify(bar, null, 2));
                     
                     return (
                       <div
