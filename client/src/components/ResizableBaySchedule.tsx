@@ -5709,7 +5709,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         <span className="text-gray-400 text-xs font-normal ml-1">- {bay.description}</span>
                       )}
                     </div>
-                    <BayCapacityInfo bay={bay} allSchedules={schedules} projects={projects} bays={bays} />
+                    {/* Only show capacity info for the first bay in a team (odd numbered bays) */}
+                    {bay.bayNumber % 2 === 1 && (
+                      <BayCapacityInfo bay={bay} allSchedules={schedules} projects={projects} bays={bays} />
+                    )}
                   </div>
                 </div>
               </div>
