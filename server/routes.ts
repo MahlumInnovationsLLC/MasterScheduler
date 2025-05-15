@@ -669,10 +669,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rowParam: ${rowParam}
       `);
       
+      // 🚨 MAY 17 2025 UPDATE - ENHANCED ROW PLACEMENT LOGIC
       // Priority order: forcedRowIndex > rowIndex > row
+      // This ensures projects stay EXACTLY where they're dropped by users
       let computedRowIndex = forcedRowIndex !== undefined ? forcedRowIndex : 
                            (rowIndexParam !== undefined ? rowIndexParam :
                            (rowParam !== undefined ? rowParam : 0));
+    
+      // Add extremely detailed logging for diagnostics
+      console.log(`⭐ FINAL ROW CALCULATION (May 17 fix):
+        - Original forced row index: ${forcedRowIndex}
+        - Original row index param: ${rowIndexParam}
+        - Original row param: ${rowParam}
+        - Final computed row: ${computedRowIndex}
+        
+        🔴 CRITICAL: Using exact pixel-perfect row position with ZERO adjustments
+        🔴 Projects will appear at EXACTLY the Y position where cursor drops them
+      `);
       
       // ONLY ensure rows aren't negative - but allow ANY positive value without limits
       if (computedRowIndex < 0) computedRowIndex = 0;

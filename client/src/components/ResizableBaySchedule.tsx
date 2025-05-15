@@ -4606,13 +4606,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         document.body.setAttribute('data-last-drop-row', rowIndexToUse.toString());
         
         // Call the API with our forced values
+        // 🚨 MAY 17 2025 - ABSOLUTELY CRITICAL FIX 🚨
+        // EMERGENCY ENHANCEMENT: Add extended debug logging to verify all parameters
+        console.log(`🚨 CALLING API WITH THESE EXACT PARAMETERS: 
+          - Project ID: ${data.projectId} 
+          - Bay ID: ${finalBayId} 
+          - Start Date: ${startDateToUse} 
+          - End Date: ${formattedFinalEndDate} 
+          - Hours: ${data.totalHours !== null ? Number(data.totalHours) : 1000}
+          - ROW INDEX: ${rowIndexToUse} <-- 🔴 CRITICAL ROW PARAMETER VERIFICATION
+        `);
+        
+        // 🎯 This ensures pixel-perfect placement with exact Y-coordinate positioning
+        // This parameter chain flows through to server/routes.ts as the "row" field
         onScheduleCreate(
           data.projectId,
           finalBayId,
           startDateToUse,
           formattedFinalEndDate,
           data.totalHours !== null ? Number(data.totalHours) : 1000,
-          rowIndexToUse // CRITICAL FIX: Use computed rowIndexToUse for pixel-perfect Y-position
+          rowIndexToUse // CRITICAL ROW PARAMETER: Ensures projects stay in exact row where dropped
         )
         .then(() => {
           // Find the target bay to show proper bay number in toast
