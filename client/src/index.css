@@ -1383,3 +1383,34 @@ body.resizing-mode .resize-handle {
   min-height: 600px !important;
   overflow-y: auto !important;
 }
+
+/* MAY 16 2025 - DIRECT ROW EMERGENCY FIX */
+.multi-row-direct {
+  position: relative;
+  border: 2px solid transparent;
+  z-index: 20;
+}
+
+.multi-row-grid {
+  position: relative;
+  z-index: 30;
+}
+
+.direct-row {
+  position: relative;
+  min-height: 30px;
+  background-color: rgba(255, 255, 255, 0.01);
+  border: 1px dashed transparent;
+  cursor: pointer;
+  transition: all 0.1s ease-in-out;
+  z-index: 40;
+}
+
+.direct-row:hover {
+  border: 1px dashed rgba(59, 130, 246, 0.3);
+}
+
+.direct-row-highlight {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  border: 1px dashed rgba(59, 130, 246, 0.5) !important;
+}

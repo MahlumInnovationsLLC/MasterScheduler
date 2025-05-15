@@ -6165,20 +6165,102 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                   console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${getBayRowCount(bay.id, bay.name)}, bayNumber=${bay.bayNumber}`);
                   return isMultiRowBay;
                 })() ? (
-                  // Use MultiRowBayContent for Team 7 & 8 which needs 20 rows
-                  <MultiRowBayContent
-                    bay={bay}
-                    weekSlots={slots}
-                    scheduleBars={scheduleBars}
-                    projects={projects}
-                    handleDragOver={(e, bayId, weekIndex, rowIndex) => handleDragOver(e, bayId, weekIndex, rowIndex)}
-                    handleDrop={(e, bayId, weekIndex, rowIndex) => handleDrop(e, bayId, weekIndex || 0, rowIndex)}
-                    setRowToDelete={setRowToDelete}
-                    setDeleteRowDialogOpen={setDeleteRowDialogOpen}
-                    handleRowDelete={handleDeleteRow}
-                    handleRowAdd={handleRowAdd}
-                    rowCount={getBayRowCount(bay.id, bay.name)}
-                  />
+                  // MAY 16 EMERGENCY FIX: DIRECT ROW IMPLEMENTATION
+                  // Completely bypass MultiRowBayContent component to ensure exact placement
+                  <div className="absolute inset-0 grid grid-cols-52 border-l border-gray-700/50 multi-row-direct">
+                    {/* Create a direct row grid with exact cells for precise drop targeting */}
+                    <div className="absolute inset-0 grid grid-cols-52 multi-row-grid">
+                      {slots.map((slot, weekIndex) => (
+                        <div 
+                          key={`direct-week-${bay.id}-${weekIndex}`}
+                          className="relative week-column"
+                          data-bay-id={bay.id}
+                          data-week-index={weekIndex}
+                          data-date={format(slot.date, 'yyyy-MM-dd')}
+                        >
+                          {/* Create direct row cells for each possible row */}
+                          <div className="absolute inset-0 flex flex-col h-full">
+                            {Array.from({ length: getBayRowCount(bay.id, bay.name) }).map((_, rowIndex) => (
+                              <div
+                                key={`direct-row-${bay.id}-${weekIndex}-${rowIndex}`}
+                                className={`direct-row flex-1 border-b border-gray-800/10 ${rowIndex % 2 === 0 ? 'bg-gray-50/5' : ''}`}
+                                data-bay-id={bay.id}
+                                data-week-index={weekIndex}
+                                data-row-index={rowIndex}
+                                data-date={format(slot.date, 'yyyy-MM-dd')}
+                                data-exact-row={rowIndex}
+                                data-forced-row-index={rowIndex}
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  
+                                  // Set critical emergency bypass flags
+                                  document.body.setAttribute('data-bypass-all-row-logic', 'true');
+                                  document.body.setAttribute('data-force-exact-row-placement', 'true');
+                                  document.body.setAttribute('data-allow-row-overlap', 'true');
+                                  document.body.setAttribute('data-emergency-fix-mode', 'true');
+                                  
+                                  // Set all row identifiers to the exact row value
+                                  document.body.setAttribute('data-current-drag-row', rowIndex.toString());
+                                  document.body.setAttribute('data-exact-row-drop', rowIndex.toString());
+                                  document.body.setAttribute('data-last-row-select', rowIndex.toString());
+                                  document.body.setAttribute('data-precision-drop-row', rowIndex.toString());
+                                  document.body.setAttribute('data-absolute-row-index', rowIndex.toString());
+                                  document.body.setAttribute('data-forced-row-index', rowIndex.toString());
+                                  document.body.setAttribute('data-final-exact-row', rowIndex.toString());
+                                  
+                                  // Add visual highlight for target row
+                                  e.currentTarget.classList.add('direct-row-highlight');
+                                  
+                                  // Call drag over handler with EXACT row
+                                  handleDragOver(e, bay.id, weekIndex, rowIndex);
+                                }}
+                                onDragLeave={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  e.currentTarget.classList.remove('direct-row-highlight');
+                                }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  
+                                  // EMERGENCY MODE - DIRECT DROP
+                                  console.log(`🚨🚨🚨 EMERGENCY DIRECT DROP - BAY ${bay.id}, WEEK ${weekIndex}, ROW ${rowIndex}`);
+                                  console.log(`🚨🚨🚨 ZERO PROCESSING - EXACT PLACEMENT GUARANTEED`);
+                                  
+                                  // Clear any highlights
+                                  e.currentTarget.classList.remove('direct-row-highlight');
+                                  
+                                  // Set critical emergency bypass flags
+                                  document.body.setAttribute('data-bypass-all-row-logic', 'true');
+                                  document.body.setAttribute('data-force-exact-row-placement', 'true');
+                                  document.body.setAttribute('data-allow-row-overlap', 'true');
+                                  document.body.setAttribute('data-emergency-fix-mode', 'true');
+                                  
+                                  // Set all row identifiers to this exact row
+                                  document.body.setAttribute('data-current-drag-row', rowIndex.toString());
+                                  document.body.setAttribute('data-exact-row-drop', rowIndex.toString());
+                                  document.body.setAttribute('data-last-row-select', rowIndex.toString());
+                                  document.body.setAttribute('data-precision-drop-row', rowIndex.toString());
+                                  document.body.setAttribute('data-absolute-row-index', rowIndex.toString());
+                                  document.body.setAttribute('data-forced-row-index', rowIndex.toString());
+                                  document.body.setAttribute('data-final-exact-row', rowIndex.toString());
+                                  document.body.setAttribute('data-y-axis-row', rowIndex.toString());
+                                  
+                                  // Call drop handler with EXACT values - no adjustments
+                                  handleDrop(e, bay.id, weekIndex, rowIndex);
+                                }}
+                              >
+                                <div className="absolute -left-6 text-xs text-blue-500 h-full flex items-center">
+                                  <span className="bg-blue-100/10 px-1 rounded">{rowIndex+1}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 ) : (
                   // Standard 4-row layout for other bays
                   <div className="absolute inset-0 flex flex-col">
