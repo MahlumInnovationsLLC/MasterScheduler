@@ -3258,7 +3258,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Log the raw calculation with enhanced debugging
     console.log(`🎯 DIRECT Y-POSITION ROW CALCULATION:
     - Raw Y position: ${mouseRawY}px (relative to container)
-    - Mouse absolute position: ${e.clientY}px (on screen)
+    - Mouse Y on screen: ${e.clientY}px
     - Bay height: ${rectContainer.height}px, Row height: ${rowHeight}px 
     - Bay ${bayId} has ${MAX_ROWS} rows (0-${MAX_ROWS-1})
     - CALCULATED ROW: ${exactRowIndex} (pure Y position calculation)
