@@ -3795,8 +3795,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           // Clear loading state
           setIsMovingProject(false);
           
-          // Force refresh to show changes after a delay
-          setTimeout(() => window.location.reload(), 1000);
+          // Invalidate queries to update data without page reload
+          setTimeout(() => {
+            queryClient.invalidateQueries({
+              queryKey: ['/api/manufacturing-schedules']
+            });
+          }, 1000);
         })
         .catch(err => {
           // Clear loading state
