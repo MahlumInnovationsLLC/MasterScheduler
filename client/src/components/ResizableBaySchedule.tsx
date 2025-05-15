@@ -558,22 +558,43 @@ export default function ResizableBaySchedule({
   };
   
   const handleDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, slotIndex: number) => {
+    // Critical: This prevents the "no-drop" icon from appearing
     e.preventDefault();
+    e.stopPropagation();
+    
+    // Set dropEffect to 'move' to show the move cursor
     e.dataTransfer.dropEffect = 'move';
     
+    // Update drop target information for tracking
     setDropTarget({ bayId, rowIndex });
+    
+    // Add visual feedback to show this is a valid drop target
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.classList.add('drop-target-active');
+    }
+    
+    console.log(`Valid drop target: Bay ${bayId}, Row ${rowIndex}`);
   };
   
   const handleSlotDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
+    // Critical: Prevent default to enable dropping and stop propagation to prevent parent handling
     e.preventDefault();
+    e.stopPropagation();
+    
+    // Set move cursor to show this is a valid drop target
     e.dataTransfer.dropEffect = 'move';
     
-    // Update drop target info
+    // Update drop target info for state tracking
     setDropTarget({ bayId, rowIndex });
     
-    // Visually highlight the drop zone
+    // Enhanced visual feedback for the specific week cell
     if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.classList.add('drop-target');
+      // Show this is an active drop target
+      e.currentTarget.classList.add('drop-target', 'week-cell-highlight');
+      
+      // Add date information to help user see where they're dropping
+      const dateInfo = format(date, 'MMM d');
+      console.log(`Valid week drop target: ${dateInfo} in Bay ${bayId}, Row ${rowIndex}`);
     }
   };
   
@@ -1685,31 +1706,60 @@ export default function ResizableBaySchedule({
                                       data-is-start-of-week={isStartOfWeek ? "true" : "false"}
                                       data-is-weekend={isWeekend ? "true" : "false"}
                                       onDragOver={(e) => {
-                                        // Prevent event from propagating to parent elements
+                                        // CRITICAL: Prevent default to enable dropping
+                                        e.preventDefault();
+                                        
+                                        // Stop propagation to prevent parent elements from handling
                                         e.stopPropagation();
                                         
-                                        // Store the row index and bay id in body attributes for the drop handler
+                                        // Explicitly set the drop effect to 'move' to show move cursor
+                                        e.dataTransfer.dropEffect = 'move';
+                                        
+                                        // Store precise location data in the document for the drop handler
                                         document.body.setAttribute('data-current-drag-row', '0');
                                         document.body.setAttribute('data-current-drag-bay', bay.id.toString());
                                         document.body.setAttribute('data-current-week', (slot.weekNumber || Math.floor(index / 7)).toString());
                                         document.body.setAttribute('data-current-date', format(slot.date, 'yyyy-MM-dd'));
                                         
-                                        // Make sure the element has the correct bay ID
+                                        // Make sure the element has all the necessary data attributes
                                         if (e.currentTarget instanceof HTMLElement) {
                                           e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
+                                          e.currentTarget.setAttribute('data-row-index', '0');
+                                          e.currentTarget.setAttribute('data-week', (slot.weekNumber || Math.floor(index / 7)).toString());
+                                          
+                                          // Add enhanced visual feedback with animation
+                                          e.currentTarget.classList.add('cell-highlight', 'exact-week-highlight', 'drop-target-active');
+                                          
+                                          // Create a temporary hover label showing the exact date
+                                          const existingLabel = e.currentTarget.querySelector('.week-hover-label');
+                                          if (!existingLabel) {
+                                            const label = document.createElement('div');
+                                            label.className = 'week-hover-label absolute top-0 left-0 bg-blue-700 text-white text-xs px-1 py-0.5 rounded z-20';
+                                            label.textContent = format(slot.date, 'MMM d, yyyy');
+                                            e.currentTarget.appendChild(label);
+                                          }
                                         }
                                         
-                                        // Add highlight classes with enhanced visibility
-                                        e.currentTarget.classList.add('cell-highlight', 'exact-week-highlight');
+                                        // Log for debugging
+                                        console.log(`✅ VALID DROP TARGET: Bay ${bay.id}, Week ${slot.weekNumber || Math.floor(index / 7)}, Date ${format(slot.date, 'yyyy-MM-dd')}`);
                                         
-                                        // Add debug info to console
-                                        console.log(`Dragging over bay ${bay.id}, week ${slot.weekNumber || Math.floor(index / 7)}, date ${format(slot.date, 'yyyy-MM-dd')}`);
-                                        
+                                        // Call the slot drag over handler
                                         handleSlotDragOver(e, bay.id, 0, slot.date);
                                       }}
                                       onDragLeave={(e) => {
-                                        // Remove highlight when leaving
-                                        e.currentTarget.classList.remove('cell-highlight', 'exact-week-highlight');
+                                        // Remove all highlight classes when leaving
+                                        e.currentTarget.classList.remove(
+                                          'cell-highlight', 
+                                          'exact-week-highlight', 
+                                          'drop-target-active', 
+                                          'drop-target'
+                                        );
+                                        
+                                        // Remove any temporary hover labels
+                                        const hoverLabel = e.currentTarget.querySelector('.week-hover-label');
+                                        if (hoverLabel && hoverLabel.parentNode) {
+                                          hoverLabel.parentNode.removeChild(hoverLabel);
+                                        }
                                       }}
                                       onDrop={(e) => {
                                         // Enhanced drop handling with week precision
