@@ -142,86 +142,109 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
     e.preventDefault();
     e.stopPropagation();
 
-    // Get container dimensions
+    // 🚨 MAY 17 2025 - CRITICAL DROP PLACEMENT UPDATE 🚨
+    console.log(`🚨🚨🚨 DROP EVENT TRIGGERED FOR BAY ${bayId} - WEEK ${weekIndex} 🚨🚨🚨`);
+    console.log(`🚨 Implementing direct Y-position to row mapping with NO ADJUSTMENTS`);
+    
+    // Get container dimensions for precise row calculations
     const container = e.currentTarget.closest('.multi-row-bay-wrapper');
-    if (!container) return;
-
+    if (!container) {
+      console.error("DROP ERROR: Could not find container element for bay, defaulting to row 0");
+      if (weekIndex !== undefined) {
+        handleDrop(e, bayId, weekIndex, 0); // Fallback to row 0 if container not found
+      }
+      return;
+    }
+    
     const rect = container.getBoundingClientRect();
     const mouseY = e.clientY - rect.top;
-
-    // Calculate exact row from Y position
+    
+    // Calculate exact row from Y position with NO rounding or constraints
     const rowHeight = rect.height / rowCount;
-    let exactRow = Math.floor(mouseY / rowHeight);
+    const exactRow = Math.floor(mouseY / rowHeight);
     
-    // Check if this is a regular bay (not TCV Line/Team 7&8)
-    const isRegularBay = bay.bayNumber !== 7 && bay.bayNumber !== 8;
-    const maxRowIndex = isRegularBay ? 3 : 19; // 4 rows (0-3) for regular bays, 20 rows (0-19) for TCV Line
+    // 🚨 CRITICAL: Log all the raw data with high precision
+    console.log(`🔴 RAW DROP COORDINATES:
+      - Mouse Y = ${mouseY.toFixed(2)}px from container top
+      - Container height = ${rect.height.toFixed(2)}px
+      - Row height = ${rowHeight.toFixed(2)}px
+      - Using ${rowCount} rows for this bay
+      - Exact calculated row = ${exactRow}
+      - Bay ID = ${bayId}
+      - Week index = ${weekIndex}
+    `);
     
-    // Store raw position before enforcing limits
+    // Set MULTIPLE data attributes for maximum reliability
+    // We need to ensure at least one of these survives to the API call
+    document.body.setAttribute('data-drop-mouse-y', mouseY.toString());
+    document.body.setAttribute('data-drop-container-height', rect.height.toString());
+    document.body.setAttribute('data-drop-row-height', rowHeight.toString());
+    document.body.setAttribute('data-drop-exact-row', exactRow.toString());
+    document.body.setAttribute('data-forced-row-index', exactRow.toString());
+    document.body.setAttribute('data-strict-y-position-row', exactRow.toString());
+    document.body.setAttribute('data-precision-drop-row', exactRow.toString());
+    document.body.setAttribute('data-absolute-row-index', exactRow.toString());
+    document.body.setAttribute('data-final-row-position', exactRow.toString());
     document.body.setAttribute('data-raw-drop-row', exactRow.toString());
     document.body.setAttribute('data-drop-y-position', mouseY.toString());
+    document.body.setAttribute('data-exact-row-from-y', exactRow.toString());
+    document.body.setAttribute('data-emergency-row-override', exactRow.toString());
+    document.body.setAttribute('data-emergency-drop-active', 'true');
+    document.body.setAttribute('data-force-exact-row-placement', 'true');
     
-    // SUPER CRITICAL FLAGS: PERMANENT OVERRIDE FOR EXACT ROW PLACEMENT
-    // Make these flags always true to GUARANTEE exact positioning
+    // Also store in window object as backup
+    (window as any).lastExactRow = exactRow;
+    (window as any).forcedRowIndex = exactRow;
+    (window as any).lastDroppedRow = exactRow;
+    
+    // Calculate top percentage for CSS - used for visual positioning
+    const topPercentage = (exactRow * rowHeight) / rect.height * 100;
+    document.body.setAttribute('data-drop-top-percentage', `${topPercentage}%`);
+    
+    // Force permanently enabled for maximum reliability
     localStorage.setItem('emergencyFixMode', 'true');
     localStorage.setItem('forceExactRowPlacement', 'true');
     
-    // Now read them back (but they'll always be true)
-    const emergencyFixMode = true; // PERMANENTLY ENABLED
-    const forceExactPlacement = true; // PERMANENTLY ENABLED
+    console.log(`⭐⭐⭐ ABSOLUTE PRECISION ROW PLACEMENT: Using row=${exactRow} with NO CONSTRAINTS`);
+    console.log(`⭐⭐⭐ This will be passed directly to handleDrop with ZERO modifications`);
+    console.log(`⭐⭐⭐ Using highest precision mouse coordinates`);
     
-    console.log('🚨 DROP HANDLER - EMERGENCY FIX MODE: PERMANENTLY ENABLED');
-    console.log('🚨 DROP HANDLER - FORCE EXACT ROW PLACEMENT: PERMANENTLY ENABLED');
-    console.log(`🚨 Using RAW Y position: ${mouseY}px → Exact row: ${exactRow}`);
-    
-    // Only enforce row limits if we're not in emergency mode
-    if (isRegularBay && exactRow > maxRowIndex && !emergencyFixMode) {
-      console.log(`⚠️ DROP ROW LIMIT: Row ${exactRow} exceeds max of ${maxRowIndex} for bay ${bayId}`);
-      
-      // Add visual indicator that we're limiting the row
-      container.classList.add('row-limit-enforced');
-      
-      // Enforce the limit for the drop operation
-      exactRow = maxRowIndex;
-      
-      // Show a quick visual indication
-      const flashElement = document.createElement('div');
-      flashElement.className = 'row-limit-flash';
-      flashElement.style.position = 'absolute';
-      flashElement.style.top = `${maxRowIndex * rowHeight}px`;
-      flashElement.style.left = '0';
-      flashElement.style.right = '0';
-      flashElement.style.height = `${rowHeight}px`;
-      flashElement.style.backgroundColor = 'rgba(255, 100, 100, 0.3)';
-      flashElement.style.zIndex = '100';
-      flashElement.style.pointerEvents = 'none';
-      container.appendChild(flashElement);
-      
-      // Remove flash after animation
-      setTimeout(() => {
-        if (flashElement.parentElement) {
-          flashElement.parentElement.removeChild(flashElement);
-        }
-        container.classList.remove('row-limit-enforced');
-      }, 800);
+    // Force a brief highlight of the row where we'll place the item
+    const rows = container.querySelectorAll('.bay-row');
+    if (exactRow >= 0 && exactRow < rows.length) {
+      const targetRow = rows[exactRow];
+      // Add a brief flash highlight
+      targetRow.classList.add('bg-primary/20');
+      setTimeout(() => targetRow.classList.remove('bg-primary/20'), 500);
     }
     
-    // Store all final position data with additional redundant attributes
-    document.body.setAttribute('data-final-row-index', exactRow.toString());
-    document.body.setAttribute('data-final-exact-row', exactRow.toString());
-    document.body.setAttribute('data-absolute-row-index', exactRow.toString());
-    document.body.setAttribute('data-force-exact-row-placement', 'true');
-    document.body.setAttribute('data-bay-limited-to', maxRowIndex.toString());
-    document.body.setAttribute('data-bay-is-regular-type', isRegularBay.toString());
+    // ABSOLUTELY CRITICAL - Log the final row value that will be passed
+    console.log(`🎯 FINAL ROW VALUE PASSING TO HANDLER: ${exactRow}`);
     
-    // For emergency mode tracking
-    if (emergencyFixMode) {
-      document.body.setAttribute('data-emergency-drop-active', 'true');
-      document.body.setAttribute('data-emergency-row-override', exactRow.toString());
+    // Add a visual indicator at the drop position for debugging
+    const debugMarker = document.createElement('div');
+    debugMarker.style.position = 'absolute';
+    debugMarker.style.left = '0';
+    debugMarker.style.top = `${mouseY}px`;
+    debugMarker.style.width = '100%';
+    debugMarker.style.height = '2px';
+    debugMarker.style.backgroundColor = 'red';
+    debugMarker.style.zIndex = '9999';
+    debugMarker.setAttribute('data-debug-drop-marker', 'true');
+    debugMarker.textContent = `Row: ${exactRow}`;
+    container.appendChild(debugMarker);
+    setTimeout(() => {
+      if (debugMarker.parentNode) {
+        debugMarker.parentNode.removeChild(debugMarker);
+      }
+    }, 2000);
+    
+    // Call the parent component's drop handler with EXACT calculated row
+    // This is THE critical parameter that ensures exact positioning
+    if (weekIndex !== undefined) {
+      console.log(`💥 Calling handleDrop with EXACT row=${exactRow} (NO LIMITS OR CONSTRAINTS)`);
+      handleDrop(e, bayId, weekIndex, exactRow);
     }
-
-    // Call original handler with exact row
-    handleDrop(e, bayId, weekIndex, exactRow);
   };
 
   return (
