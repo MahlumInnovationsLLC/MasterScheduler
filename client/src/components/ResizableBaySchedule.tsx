@@ -3161,22 +3161,44 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const relativeY = mouseRawY; // Relative to container top
     const absoluteY = e.clientY; // Absolute on screen
     
+    // 🚨 MAY 16 2025 CRITICAL UPDATE: Enhanced row tracking and calculation
+    // Store extensive debugging information in multiple places to ensure reliability
+    
+    // First, explicitly calculate and log the row position from scratch based on Y coordinates
+    // This ensures a clean, direct calculation from raw input without any interference
+    const containerHeight = rectContainer.height;
+    console.log(`🧮 RAW ROW CALCULATION:
+      - Container Height: ${containerHeight}px
+      - Raw Y Position: ${mouseRawY}px (${relativeY}px relative, ${absoluteY}px absolute)
+      - Row Height: ${rowHeight}px
+      - Calculated Row Index: ${exactRowIndex}
+      - Y math: ${mouseRawY} / ${rowHeight} = ${mouseRawY/rowHeight} → Math.floor = ${Math.floor(mouseRawY/rowHeight)}
+    `);
+    
     // 🚨 STORE THIS VALUE IN MULTIPLE PLACES to ensure it's used
     // Set both on document.body and create a global variable as fallback
     document.body.setAttribute('data-mouse-raw-y', mouseRawY.toString());
     document.body.setAttribute('data-absolute-y', absoluteY.toString());
     document.body.setAttribute('data-relative-y', relativeY.toString());
     
-    // 🚨 CRITICAL: This is where we determine the exact row - store in multiple attributes
+    // 🚨 CRITICAL: This is where we determine the exact row - store in multiple redundant attributes
+    // Store in many places to ensure at least one makes it through
     document.body.setAttribute('data-exact-y-row', exactRowIndex.toString());
     document.body.setAttribute('data-y-based-row', yBasedRow.toString());
     document.body.setAttribute('data-computed-row-index', exactRowIndex.toString());
     document.body.setAttribute('data-drop-exact-row', exactRowIndex.toString());
     document.body.setAttribute('data-absolute-row-index', exactRowIndex.toString());
     document.body.setAttribute('data-forced-row-index', exactRowIndex.toString());
+    document.body.setAttribute('data-strict-y-position-row', exactRowIndex.toString());
+    document.body.setAttribute('data-final-row-placement', exactRowIndex.toString());
+    document.body.setAttribute('data-final-exact-row', exactRowIndex.toString());
     
-    // GLOBAL: Make this row index available to window scope as emergency fallback
+    // Set direct DOM properties as a last resort fallback
+    (document.body as any).exactRowIndex = exactRowIndex;
     (window as any).lastExactRowIndex = exactRowIndex;
+    (window as any).lastDropRow = exactRowIndex;
+    (window as any).lastCalculatedRow = exactRowIndex;
+    (window as any).absoluteRowPosition = exactRowIndex;
     
     // Log the raw calculation with enhanced debugging
     console.log(`🎯 DIRECT Y-POSITION ROW CALCULATION:
