@@ -454,19 +454,55 @@ const BaySchedulingPage = () => {
         queryClient.setQueryData(['/api/manufacturing-schedules'], optimisticData);
       }
       
-      // Check if a forced row index is set in the DOM (highest priority)
-      const forcedRowIndexAttr = document.body.getAttribute('data-forced-row-index');
-      const forcedRowIndex = forcedRowIndexAttr ? parseInt(forcedRowIndexAttr) : undefined;
+      // 🚨 MAY 17 2025 EMERGENCY FIX: Get row from EVERY POSSIBLE SOURCE with priority order
+      // Check all potential row position sources with careful priority ordering
       
-      // CRITICAL MAY 2025 FIX: Use the forced row with ABSOLUTE HIGHEST priority
-      // This is a hard override that has been carefully set during pixel-exact drop
-      const finalRowIndex = forcedRowIndex !== undefined ? forcedRowIndex : rowIndex;
+      // Source 1: data attribute on body (highest priority)
+      const forcedRowIndexAttr = document.body.getAttribute('data-forced-row-index');
+      const dataAttrRow = forcedRowIndexAttr ? parseInt(forcedRowIndexAttr) : undefined;
+      
+      // Source 2: Global variable on window
+      const windowVarRow = (window as any).absoluteRowPosition !== undefined ? 
+        parseInt(String((window as any).absoluteRowPosition)) : undefined;
+      
+      // Source 3: localStorage backup (used in case of page refresh)
+      const localStorageRow = localStorage.getItem('absoluteRowPosition') ?
+        parseInt(localStorage.getItem('absoluteRowPosition')!) : undefined;
+      
+      // Source 4: forcedRowIndex from localStorage
+      const localStorageForcedRow = localStorage.getItem('forcedRowIndex') ?
+        parseInt(localStorage.getItem('forcedRowIndex')!) : undefined;
+        
+      // Source 5: Other data attributes that might have been set (emergency fallbacks)
+      const emergencyDataAttrRow = document.body.getAttribute('data-emergency-row-override') ?
+        parseInt(document.body.getAttribute('data-emergency-row-override')!) : undefined;
+      
+      // Source 6: lastDropRowIndex from localStorage (final emergency fallback)
+      const lastDropRowIndex = localStorage.getItem('lastDropRowIndex') ?
+        parseInt(localStorage.getItem('lastDropRowIndex')!) : undefined;
+      
+      // Source 7: Function parameter row (lowest priority, but still used)
+      
+      // CRITICAL MAY 2025 FIX: Use the first valid row value in priority order
+      // Always prefer the most direct/reliable source, with carefully designed fallbacks
+      const finalRowIndex = dataAttrRow !== undefined ? dataAttrRow :
+                           windowVarRow !== undefined ? windowVarRow :
+                           localStorageRow !== undefined ? localStorageRow :
+                           localStorageForcedRow !== undefined ? localStorageForcedRow :
+                           emergencyDataAttrRow !== undefined ? emergencyDataAttrRow :
+                           lastDropRowIndex !== undefined ? lastDropRowIndex :
+                           rowIndex;
       
       // MAXIMUM VISIBILITY Logging for this absolutely critical value
-      console.log(`🔴🔴🔴 CRITICAL VALUE CHECK BEFORE API CALL`);
-      console.log(`🔴🔴🔴 ABSOLUTE ROW POSITIONING DATA:`);
-      console.log(`🔴🔴🔴 Row from data-forced-row-index: ${forcedRowIndex}`);
-      console.log(`🔴🔴🔴 Row from function parameter: ${rowIndex}`);
+      console.log(`🔴🔴🔴 CRITICAL VALUE CHECK BEFORE API CALL - MAY 17 2025 EMERGENCY FIX`);
+      console.log(`🔴🔴🔴 ABSOLUTE ROW POSITIONING DATA SOURCES:`);
+      console.log(`Row from data-forced-row-index: ${dataAttrRow}`);
+      console.log(`Row from window.absoluteRowPosition: ${windowVarRow}`);
+      console.log(`Row from localStorage.absoluteRowPosition: ${localStorageRow}`);
+      console.log(`Row from localStorage.forcedRowIndex: ${localStorageForcedRow}`);
+      console.log(`Row from data-emergency-row-override: ${emergencyDataAttrRow}`);
+      console.log(`Row from localStorage.lastDropRowIndex: ${lastDropRowIndex}`);
+      console.log(`Row from function parameter: ${rowIndex}`);
       console.log(`🔴🔴🔴 FINAL ROW BEING SENT TO API: ${finalRowIndex}`);
       console.log(`🔴🔴🔴 THIS IS ABSOLUTE PRIORITY - NO AUTO-ADJUSTMENT`);
       console.log(`🔴🔴🔴 PROJECT WILL BE PLACED AT EXACTLY ROW ${finalRowIndex}`);
@@ -562,19 +598,58 @@ const BaySchedulingPage = () => {
         );
       }
       
-      // Check for forced row in DOM attributes with highest priority
+      // 🚨 MAY 17 2025 EMERGENCY FIX: Get row from EVERY POSSIBLE SOURCE with priority order
+      // Check all potential row position sources with careful priority ordering
+      
+      // Source 1: data attribute on body (highest priority)
       const forcedRowIndexAttr = document.body.getAttribute('data-forced-row-index');
-      const forcedRowIndex = forcedRowIndexAttr ? parseInt(forcedRowIndexAttr) : undefined;
+      const dataAttrRow = forcedRowIndexAttr ? parseInt(forcedRowIndexAttr) : undefined;
       
-      // Use the forced row with highest priority, then fall back to the passed rowIndex
-      const finalRowIndex = forcedRowIndex !== undefined ? forcedRowIndex : rowIndex;
+      // Source 2: Global variable on window
+      const windowVarRow = (window as any).absoluteRowPosition !== undefined ? 
+        parseInt(String((window as any).absoluteRowPosition)) : undefined;
       
-      // Log the exact row being sent to the API for creation
-      console.log(`🚨 CRITICAL CREATE DEBUG - Row parameter:
-        - Row from data-forced-row-index: ${forcedRowIndex}
-        - Row from function parameter: ${rowIndex}
-        - FINAL ROW BEING SENT: ${finalRowIndex}
-      `);
+      // Source 3: localStorage backup (used in case of page refresh)
+      const localStorageRow = localStorage.getItem('absoluteRowPosition') ?
+        parseInt(localStorage.getItem('absoluteRowPosition')!) : undefined;
+      
+      // Source 4: forcedRowIndex from localStorage
+      const localStorageForcedRow = localStorage.getItem('forcedRowIndex') ?
+        parseInt(localStorage.getItem('forcedRowIndex')!) : undefined;
+        
+      // Source 5: Other data attributes that might have been set (emergency fallbacks)
+      const emergencyDataAttrRow = document.body.getAttribute('data-emergency-row-override') ?
+        parseInt(document.body.getAttribute('data-emergency-row-override')!) : undefined;
+      
+      // Source 6: lastDropRowIndex from localStorage (final emergency fallback)
+      const lastDropRowIndex = localStorage.getItem('lastDropRowIndex') ?
+        parseInt(localStorage.getItem('lastDropRowIndex')!) : undefined;
+      
+      // Source 7: Function parameter row (lowest priority, but still used)
+      
+      // CRITICAL MAY 2025 FIX: Use the first valid row value in priority order
+      // Always prefer the most direct/reliable source, with carefully designed fallbacks
+      const finalRowIndex = dataAttrRow !== undefined ? dataAttrRow :
+                           windowVarRow !== undefined ? windowVarRow :
+                           localStorageRow !== undefined ? localStorageRow :
+                           localStorageForcedRow !== undefined ? localStorageForcedRow :
+                           emergencyDataAttrRow !== undefined ? emergencyDataAttrRow :
+                           lastDropRowIndex !== undefined ? lastDropRowIndex :
+                           rowIndex;
+      
+      // Log the exact row being sent to the API for creation with MAXIMUM visibility
+      console.log(`🔴🔴🔴 CRITICAL CREATE DEBUG - MAY 17 2025 EMERGENCY FIX`);
+      console.log(`🔴🔴🔴 ABSOLUTE ROW POSITIONING DATA SOURCES:`);
+      console.log(`Row from data-forced-row-index: ${dataAttrRow}`);
+      console.log(`Row from window.absoluteRowPosition: ${windowVarRow}`);
+      console.log(`Row from localStorage.absoluteRowPosition: ${localStorageRow}`);
+      console.log(`Row from localStorage.forcedRowIndex: ${localStorageForcedRow}`);
+      console.log(`Row from data-emergency-row-override: ${emergencyDataAttrRow}`);
+      console.log(`Row from localStorage.lastDropRowIndex: ${lastDropRowIndex}`);
+      console.log(`Row from function parameter: ${rowIndex}`);
+      console.log(`🔴🔴🔴 FINAL ROW BEING SENT TO API: ${finalRowIndex}`);
+      console.log(`🔴🔴🔴 THIS IS ABSOLUTE PRIORITY - NO AUTO-ADJUSTMENT`);
+      console.log(`🔴🔴🔴 PROJECT WILL BE PLACED AT EXACTLY ROW ${finalRowIndex}`);
       
       // Perform the actual API request
       // CRITICAL FIX: Ensure row is explicitly set to the finalRowIndex and passed with highest priority
