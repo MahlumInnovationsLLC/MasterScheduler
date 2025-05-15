@@ -2309,10 +2309,17 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       console.log(`🎯 DRAG OVER EXACT DATE: ${cellStartDate} in row=${rowIndex}`);
     }
     
-    // Always store the exact row from the drag over event
+    // CRITICAL 2023-05-15 FIX: Store exact row in MULTIPLE attributes for redundancy
+    // This is crucial for correctly positioning projects - we need this in several places
     document.body.setAttribute('data-current-drag-row', rowIndex.toString());
     document.body.setAttribute('data-last-row-select', rowIndex.toString());
     document.body.setAttribute('data-force-exact-row', rowIndex.toString());
+    document.body.setAttribute('data-exact-row-drop', rowIndex.toString());
+    document.body.setAttribute('data-forced-row-index', rowIndex.toString());
+    document.body.setAttribute('data-precision-drop-row', rowIndex.toString());
+    
+    // Log the exact row to make sure it's being captured
+    console.log(`⭐ ROW CAPTURE: Using row ${rowIndex} from current drag event`);
     
     // First, store the current bay ID in a data attribute on the drag element
     // This ensures we know which bay the drag started in
@@ -3601,35 +3608,89 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const exactRowFromDrop = document.body.getAttribute('data-exact-row-drop');
         const exactRowFromLastSelect = document.body.getAttribute('data-last-row-select');
 
-        // CRITICAL FIX: Always use the precise calculated row from pixel position
-        // Prioritize data-precision-drop-row which is set from our pixel-perfect calculation
+        // MAY 2025 CRITICAL FIX: Always use the precise calculated row from multiple sources
+        // First check all data attributes set during drag and drop
         const precisionDropRow = document.body.getAttribute('data-precision-drop-row');
+        const exactRowSpecified = document.body.getAttribute('data-exact-row-drop');
+        const forcedRowIndex = document.body.getAttribute('data-forced-row-index');
         
-        // Log all potential sources for debugging
-        console.log(`ALL ROW SOURCES:
-          - NEW Precision drop row: ${precisionDropRow}
-          - Forced row index: ${exactRowFromPixelCalc}
-          - Drag coordinates row: ${exactRowFromDragCoords}
+        // DEBUG ENHANCEMENT: Add MAXIMUM redundancy for row tracking
+        // Collect ALL possible row sources before deciding
+        console.log(`🔍 ALL ROW SOURCES (MAY 2025):
+          - Precision drop row: ${precisionDropRow}
           - Exact row drop: ${exactRowFromDrop}
+          - Forced row index: ${exactRowFromPixelCalc}
+          - Forced-Exact-Row: ${document.body.getAttribute('data-force-exact-row')}
+          - Drag coordinates row: ${exactRowFromDragCoords}
           - Last selected row: ${exactRowFromLastSelect}
           - Target row index: ${targetRowIndex}
+          - Passed row param: ${rowIndex}
+          - New force row: ${forcedRowIndex}
         `);
         
-        // Get the PRECISE row with NO bounds adjustments
-        // Use our pixel-perfect calculation as the top priority
-        const forcedExactRowIndex = precisionDropRow !== null
-          ? parseInt(precisionDropRow)
-          : (exactRowFromPixelCalc !== null
-              ? parseInt(exactRowFromPixelCalc)
-              : (exactRowFromDragCoords !== null
-                  ? parseInt(exactRowFromDragCoords)
-                  : (exactRowFromDrop !== null
-                      ? parseInt(exactRowFromDrop)
-                      : (exactRowFromLastSelect !== null
-                          ? parseInt(exactRowFromLastSelect)
-                          : targetRowIndex))));
+        // MAY 2025 CRITICAL FIX: Prioritize exact sources in this order
+        // 1. The direct row from the handle drop (top priority)
+        // 2. The precision drop row calculated from pixel position
+        // 3. The exact row specifically stored in data-exact-row-drop
+        // 4. The forced row index from data-forced-row-index 
+        // 5. Any other row attribute
+        // 6. Finally the targetRowIndex passed to the function
+        
+        // Convert all row sources to numbers, defaulting to -1 for invalid values
+        // This helps us identify which source was used
+        const parseRowAttr = (attr: string | null): number => 
+          attr !== null ? parseInt(attr) : -1;
+        
+        // Parse all sources to numbers for easier comparison
+        const rowFromDirectParam = rowIndex !== undefined ? rowIndex : -1;
+        const rowFromPrecision = parseRowAttr(precisionDropRow);
+        const rowFromExact = parseRowAttr(exactRowSpecified); 
+        const rowFromForced = parseRowAttr(forcedRowIndex);
+        const rowFromForcedExact = parseRowAttr(document.body.getAttribute('data-force-exact-row'));
+        const rowFromDragCoords = parseRowAttr(exactRowFromDragCoords);
+        const rowFromDrop = parseRowAttr(exactRowFromDrop);
+        const rowFromLastSelect = parseRowAttr(exactRowFromLastSelect);
+        
+        // Choose the first valid row value in priority order
+        // Added console output to show exactly which source was used
+        let rowSource = "unknown";
+        let forcedExactRowIndex = -1;
+        
+        if (rowFromDirectParam >= 0) {
+          forcedExactRowIndex = rowFromDirectParam;
+          rowSource = "direct parameter";
+        } else if (rowFromPrecision >= 0) {
+          forcedExactRowIndex = rowFromPrecision;
+          rowSource = "precision calculation";
+        } else if (rowFromExact >= 0) {
+          forcedExactRowIndex = rowFromExact;
+          rowSource = "exact row specified";
+        } else if (rowFromForced >= 0) {
+          forcedExactRowIndex = rowFromForced;
+          rowSource = "forced row index";
+        } else if (rowFromForcedExact >= 0) {
+          forcedExactRowIndex = rowFromForcedExact;
+          rowSource = "force-exact-row";
+        } else if (rowFromDragCoords >= 0) {
+          forcedExactRowIndex = rowFromDragCoords;
+          rowSource = "drag coordinates";
+        } else if (rowFromDrop >= 0) {
+          forcedExactRowIndex = rowFromDrop;
+          rowSource = "drop event";
+        } else if (rowFromLastSelect >= 0) {
+          forcedExactRowIndex = rowFromLastSelect;
+          rowSource = "last selection";
+        } else if (targetRowIndex >= 0) {
+          forcedExactRowIndex = targetRowIndex;
+          rowSource = "target row index";
+        } else {
+          // Default to row 0 if no valid value found
+          forcedExactRowIndex = 0;
+          rowSource = "default fallback";
+        }
                           
-        console.log(`🎯 USING EXACT ROW ${forcedExactRowIndex} FROM PRECISE PIXEL POSITION`);
+        console.log(`🎯 USING EXACT ROW ${forcedExactRowIndex} FROM ${rowSource.toUpperCase()} (May 2025 Fix)`);
+        console.log(`💡 ROW DETERMINATION DETAILS: Using row ${forcedExactRowIndex} selected from source: ${rowSource}`);
                   
         // CRITICAL: Add extra attribute to verify we're using the right row
         document.body.setAttribute('data-final-exact-row', forcedExactRowIndex.toString());
