@@ -662,23 +662,65 @@ export default function ResizableBaySchedule({
   const handleSlotDrop = async (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
     e.preventDefault();
     
+    console.log(`🎯 PRECISE DROP: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
+    
     // Get the schedule ID from the drag data
     const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);
     
     // Find the schedule bar being moved
     const bar = scheduleBars.find((b) => b.id === scheduleId);
-    if (!bar) return;
+    if (!bar) {
+      console.error('DROP ERROR: Could not find schedule bar with ID', scheduleId);
+      return;
+    }
+    
+    // Clear any previous drop highlight markers
+    document.querySelectorAll('.drop-highlight-marker').forEach(el => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    });
+    
+    // Create visual indicators for the exact drop location
+    const targetElement = e.currentTarget instanceof HTMLElement ? e.currentTarget : document.querySelector(`[data-bay-id="${bayId}"]`);
+    if (targetElement) {
+      // Create position marker
+      const marker = document.createElement('div');
+      marker.className = 'drop-highlight-marker absolute w-2 h-10 bg-green-600 z-40 rounded';
+      marker.style.left = '0px';
+      marker.style.top = '0px';
+      targetElement.appendChild(marker);
+      
+      // Add visual indicator for user feedback
+      const indicator = document.createElement('div');
+      indicator.className = 'drop-highlight-marker absolute bg-green-500/30 border border-green-500 px-2 py-1 text-xs font-bold text-white z-50 rounded';
+      indicator.style.top = '5px';
+      indicator.style.left = '5px';
+      indicator.textContent = `EXACT PLACEMENT: ${format(date, 'MMM d')}`;
+      targetElement.appendChild(indicator);
+      
+      // Remove indicators after 2 seconds
+      setTimeout(() => {
+        document.querySelectorAll('.drop-highlight-marker').forEach(el => {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        });
+      }, 2000);
+    }
     
     try {
       // Calculate the duration in days and apply to the target date
       const durationDays = differenceInDays(bar.endDate, bar.startDate);
       const newEndDate = addDays(date, durationDays);
       
+      // Debug info
+      console.log(`⚠️ DROP DEBUG: AUTO-ADJUSTMENT DISABLED - Project will stay EXACTLY at dropped position`);
+      console.log(`⚠️ DROP DEBUG: Target row index: ${rowIndex}`);
+      console.log(`⚠️ DROP DEBUG: Start date: ${format(date, 'yyyy-MM-dd')}, End date: ${format(newEndDate, 'yyyy-MM-dd')}`);
+      console.log(`🔒 DROP DEBUG: NO AUTO OPTIMIZATION: Projects can overlap - NO collision detection`);
+      
       // Format dates for the API
       const formattedStartDate = format(date, 'yyyy-MM-dd');
       const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
       
-      // Update the schedule
+      // Update the schedule with EXACT row position
       await onScheduleChange(
         scheduleId,
         bayId,
@@ -701,6 +743,7 @@ export default function ResizableBaySchedule({
         variant: "destructive",
       });
     }
+  };
     
     // Reset drag state
     setDraggingSchedule(null);
