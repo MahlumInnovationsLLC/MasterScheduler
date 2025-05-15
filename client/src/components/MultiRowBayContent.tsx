@@ -40,21 +40,23 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
   rowCount = 20 // Default to 20 rows for multi-row bays
 }) => {
   
-  // Set a consistent container height for Team 7 & 8 bays
-  // This ensures all 20 rows fit within a standardized height that matches the screenshot
+  // Set a consistent container height based on bay type
+  // This ensures all rows evenly fill the bay height
   const containerStyle = {
-    height: '600px', // Much taller height to match Team 8 in the screenshot
-    minHeight: '600px', // Enforce minimum height
+    height: '100%', // Use full height of container
+    minHeight: '400px', // Minimum height to ensure visibility
+    display: 'flex',
+    flexDirection: 'column' as const,
   };
+  
   // Calculate the height percentage for each row
   const rowHeightPercentage = 100 / rowCount;
   
   // Use CSS variables for dynamic styling
-  // For Teams 7 & 8, use a much taller consistent height for all rows
-  // This matches exactly what we see in the screenshot for Team 8
+  // For all bays, ensure rows evenly distribute the full height
   const rowStyle = {
-    height: `${rowHeightPercentage}%`,
-    minHeight: '30px', // Much taller rows to match Team 8 in screenshot
+    flex: '1', // Flex grow to distribute evenly
+    minHeight: '30px', // Minimum height to ensure visibility
   };
   
   // Check if this is Team 7 or 8 for special styling
@@ -62,8 +64,8 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
                     (bay.name.includes('7') || bay.name.includes('8'));
 
   return (
-    <div className="multi-row-bay-wrapper" style={{ height: '600px', minHeight: '600px' }}>
-      {/* Add wrapper div with fixed height */}
+    <div className="multi-row-bay-wrapper flex flex-col h-full" style={containerStyle}>
+      {/* Add wrapper div with flex layout for proper height distribution */}
       {/* Week cells grid with row subdivision for precise row targeting */}
       <div className="absolute inset-0 grid grid-cols-52 border-l border-gray-700/50">
         {weekSlots.map((slot, index) => (

@@ -1333,8 +1333,9 @@ body.resizing-mode .resize-handle {
   position: relative;
   border-bottom: 1px dashed rgba(100, 116, 139, 0.2);
   transition: background-color 0.2s ease;
-  min-height: 30px !important; 
-  height: 30px !important;
+  flex: 1 !important; /* Use flex-grow to force even distribution */
+  min-height: 30px !important;
+  height: auto !important; /* Let flex control height */
 }
 
 /* Highlight even rows for better visibility */
@@ -1342,13 +1343,30 @@ body.resizing-mode .resize-handle {
   background-color: rgba(15, 23, 42, 0.02);
 }
 
+:root.dark .multi-row-bay .bay-row {
+  background-color: rgba(30, 41, 59, 0.4); /* Darker background in dark mode */
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.15); /* More visible borders in dark mode */
+}
+
+:root.dark .multi-row-bay .bay-row:nth-child(even) {
+  background-color: rgba(30, 41, 59, 0.55); /* Darker stripes for even rows in dark mode */
+}
+
 /* Highlight every 5th row with a slightly darker line */
 .multi-row-bay .bay-row:nth-child(5n) {
   border-bottom: 1px solid rgba(100, 116, 139, 0.3);
 }
 
+:root.dark .multi-row-bay .bay-row:nth-child(5n) {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25); /* More visible 5th row in dark mode */
+}
+
 .multi-row-bay .bay-row:hover {
   background-color: rgba(59, 130, 246, 0.05);
+}
+
+:root.dark .multi-row-bay .bay-row:hover {
+  background-color: rgba(59, 130, 246, 0.2); /* More visible hover in dark mode */
 }
 
 /* Row number indicators for multi-row bays */
