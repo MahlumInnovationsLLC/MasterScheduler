@@ -1152,21 +1152,42 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         console.log(`Schedule ${schedule.id} positioned in row ${assignedRow} (displays in visual row ${visualRow}) ${typeof schedule.row === 'number' ? '(using database row)' : '(auto-assigned)'}`)
         
         // Find the slot indices for the original start date (where the bar begins)
+        console.log(`SLOT FINDING FOR PROJECT ${project.projectNumber}:`, {
+          startDate: format(startDate, 'yyyy-MM-dd'),
+          firstSlotDate: slots.length > 0 ? format(slots[0].date, 'yyyy-MM-dd') : 'No slots',
+          slotCount: slots.length,
+          viewMode
+        });
+        
         const startSlotIndex = slots.findIndex(slot => {
           if (viewMode === 'day') {
-            return isSameDay(slot.date, startDate) || slot.date > startDate;
+            const matches = isSameDay(slot.date, startDate) || slot.date > startDate;
+            if (matches) console.log(`FOUND DAY SLOT at index ${slots.indexOf(slot)}: ${format(slot.date, 'yyyy-MM-dd')}`);
+            return matches;
           } else if (viewMode === 'week') {
             const slotEndDate = addDays(slot.date, 6);
-            return (startDate >= slot.date && startDate <= slotEndDate);
+            const matches = (startDate >= slot.date && startDate <= slotEndDate);
+            
+            if (matches) {
+              console.log(`FOUND WEEK SLOT MATCH at index ${slots.indexOf(slot)}: ${format(slot.date, 'yyyy-MM-dd')} to ${format(slotEndDate, 'yyyy-MM-dd')} contains ${format(startDate, 'yyyy-MM-dd')}`);
+            }
+            
+            return matches;
           } else if (viewMode === 'month') {
             const slotMonth = slot.date.getMonth();
             const slotYear = slot.date.getFullYear();
-            return (startDate.getMonth() === slotMonth && startDate.getFullYear() === slotYear);
+            const matches = (startDate.getMonth() === slotMonth && startDate.getFullYear() === slotYear);
+            
+            if (matches) console.log(`FOUND MONTH SLOT at index ${slots.indexOf(slot)}: ${slotMonth}/${slotYear}`);
+            return matches;
           } else { // quarter
             const slotQuarter = Math.floor(slot.date.getMonth() / 3);
             const slotYear = slot.date.getFullYear();
             const startQuarter = Math.floor(startDate.getMonth() / 3);
-            return (startQuarter === slotQuarter && startDate.getFullYear() === slotYear);
+            const matches = (startQuarter === slotQuarter && startDate.getFullYear() === slotYear);
+            
+            if (matches) console.log(`FOUND QUARTER SLOT at index ${slots.indexOf(slot)}: Q${slotQuarter+1}/${slotYear}`);
+            return matches;
           }
         });
         
@@ -1198,6 +1219,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const endTime = endDate.getTime();
         const totalDays = differenceInDays(endDate, startDate) + 1; // +1 to include the start day
         
+        // Add detailed logging for all schedules to help with debugging
+        console.log(`BAR POSITION DEBUGGING - Schedule ${schedule.id} (Project ${project.projectNumber}):`, {
+          dates: {
+            start: format(startDate, 'yyyy-MM-dd'),
+            end: format(endDate, 'yyyy-MM-dd')
+          },
+          slotIndices: {
+            startSlotIndex,
+            endSlotIndex,
+            validStartIndex,
+            validEndIndex
+          },
+          firstSlotDate: slots.length > 0 ? format(slots[0].date, 'yyyy-MM-dd') : 'No slots',
+          targetSlotDate: startSlotIndex >= 0 && startSlotIndex < slots.length ? 
+                          format(slots[startSlotIndex].date, 'yyyy-MM-dd') : 'Invalid slot'
+        });
+        
         // Calculate bar width based on actual day count, not just slot indices
         let barWidth;
         if (viewMode === 'day') {
@@ -1223,13 +1261,40 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Calculate barLeft position more precisely based on view mode and actual date
         let barLeft;
         
+        // PROBLEM IDENTIFIED - Sometimes the slots array doesn't contain the correct date range
+        // Logging detailed information about available slots
+        console.log(`TIMELINE CALCULATION - Project ${project.projectNumber}:`, {
+          dateRange: {
+            componentStart: format(dateRange.start, 'yyyy-MM-dd'),
+            componentEnd: format(dateRange.end, 'yyyy-MM-dd')
+          },
+          firstSlot: slots.length > 0 ? format(slots[0].date, 'yyyy-MM-dd') : 'No slots',
+          lastSlot: slots.length > 0 ? format(slots[slots.length-1].date, 'yyyy-MM-dd') : 'No slots',
+          slotCount: slots.length,
+          projectDates: {
+            start: format(startDate, 'yyyy-MM-dd'),
+            end: format(endDate, 'yyyy-MM-dd')
+          },
+          indices: {
+            startSlotIndex,
+            validStartIndex
+          }
+        });
+        
         if (viewMode === 'day') {
           // Day mode: direct slot index calculation
           barLeft = validStartIndex * slotWidth;
+          console.log(`DAY VIEW - barLeft for project ${project.projectNumber}: ${barLeft}px (slot ${validStartIndex} * ${slotWidth}px)`);
         } 
         else if (viewMode === 'week') {
           // Week mode: position based on week slots
           barLeft = validStartIndex * slotWidth;
+          console.log(`WEEK VIEW - barLeft for project ${project.projectNumber}: ${barLeft}px (slot ${validStartIndex} * ${slotWidth}px)`);
+          
+          // CHECK IF BAR WOULD BE FAR LEFT (common bug)
+          if (barLeft < 100 && new Date(startDate).getFullYear() >= 2025) {
+            console.error(`POSITIONAL ERROR DETECTED! Project ${project.projectNumber} is from ${format(startDate, 'yyyy-MM-dd')} but calculated barLeft=${barLeft} - This is too far left!`);
+          }
           
           // Add fractional position within the week if needed
           if (startDate.getDay() > 0) {
