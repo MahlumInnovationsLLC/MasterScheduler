@@ -1,0 +1,52 @@
+Below is a focused patch for client/src/components/ResizableBaySchedule.tsx. It rips out all of the rowIndex & globalRowIndex fallback logic, and replaces it with a simple calculation that always uses your drop‐point’s Y-pixel to pick the exact row under the cursor—no matter what other projects exist.
+
+*** Begin Patch: client/src/components/ResizableBaySchedule.tsx
+@@ –2918,21 +2918,12 @@ const handleDrop = (e: React.DragEvent<Element>, bayId: number, slotIndex:
+     // …after you’ve computed `finalX` and `finalY` and your start/end dates…
+
+-    // ENHANCED ROW SELECTION WITH BAY 3 FIX:
+-    // 1. First check if rowIndex from direct handler is valid (not undefined & >= 0)
+-    // 2. Then check the global attribute (set during cell hover)
+-    // 3. Finally fall back to 0 as a safe default
+-    const globalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
+-    let targetRowIndex: number;
+-
+-    if (rowIndex !== undefined && rowIndex >= 0) {
+-      targetRowIndex = rowIndex;
+-    } else if (!isNaN(globalRowIndex) && globalRowIndex >= 0) {
+-      targetRowIndex = globalRowIndex;
+-    } else {
+-      targetRowIndex = 0;
+-    }
+-
+-    // Safety‐bounds check based on bay’s row count
+-    const targetBay = bays.find(b => b.id === finalBayId);
+-    let maxRowForBay = targetBay?.bayNumber === 7 ? 19 : 3;
+-    targetRowIndex = Math.min(maxRowForBay, Math.max(0, targetRowIndex));
++    // ── OVERRIDE ALL FALLBACKS: compute the row strictly from drop‐Y
++    const targetBay = bays.find(b => b.id === finalBayId);
++    const TOTAL_ROWS = targetBay?.bayNumber === 7 ? 20 : 4;
++    const rowHeight = containerRect.height / TOTAL_ROWS;
++    const targetRowIndex = Math.max(
++      0,
++      Math.min(TOTAL_ROWS - 1, Math.floor(finalY / rowHeight))
++    );
+
+     // ── NOW update the schedule exactly where dropped ───────────────────────────
+     onScheduleChange(
+       data.id,
+       finalBayId,
+       formattedExactStartDate,
+       formattedExactEndDate,
+       data.totalHours !== null ? Number(data.totalHours) : 1000,
+-      targetRowIndex // ← this was your fallback result
++      targetRowIndex // ← now strictly “row under the cursor”
+     )
+     .then(result => {
+       console.log('Schedule successfully updated:', result);
+What this accomplishes:
+
+Removes every use of rowIndex (the old snapped‐cell row) and globalRowIndex (the hovered row attribute).
+Always calculates targetRowIndex from finalY alone, guaranteeing the bar stays in the exact row your mouse was over.
+Supports 4 rows per bay (0–3) for bays 1–6, and 20 rows (0–19) for bay 7, clamped automatically.
+After you apply this, redeploy and try dropping again—your bars should land in whichever row you release them, with no auto‐shifting or snapping back to row 0. Let me know how it goes!

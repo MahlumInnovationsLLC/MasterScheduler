@@ -1,0 +1,73 @@
+ou’re still falling back into the old “slot-index → row” code path instead of the new pixel-perfect drop logic. Here’s what to do:
+
+1) Remove any duplicate / legacy handleDrop definitions
+
+Right now your file actually defines two different handleDrop functions:
+
+One taking (e, bayId, slotIndex, rowIndex) and using rowIndex or document-body attributes to snap back to row 0 .
+One taking (e, bayId, clientX, clientY) and computing finalX/finalY .
+Action: Delete the entire legacy version (the one that takes slotIndex/rowIndex) so only the raw-coord version remains.
+
+2) Consolidate to a single raw-coord handleDrop
+
+Keep exactly this signature:
+
+const handleDrop = (
+  e: React.DragEvent,
+  bayId: number,
+  clientX: number,
+  clientY: number
+) => { … }
+Inside it:
+
+Compute
+const rawX = clientX - containerRect.left
+const rawY = clientY - containerRect.top
+const finalY = rawY - dragOffset.y
+Determine rows:
+const TOTAL_ROWS = getBayRowCount(bayId, bay?.name || '')
+const rowHeight  = containerRect.height / TOTAL_ROWS
+const finalRowIndex = Math.min(
+  TOTAL_ROWS-1,
+  Math.max(0, Math.floor(finalY / rowHeight))
+)
+Call your API with that row:
+onScheduleChange(
+  scheduleId,
+  bayId,
+  formattedStartDate,
+  formattedEndDate,
+  hours,
+  finalRowIndex
+)
+
+
+3) Update all your JSX onDrop handlers
+
+Wherever you have:
+
+onDrop={e => handleDrop(e, bay.id, idx, rowIdx)}
+change it to:
+
+onDrop={e => handleDrop(e, bay.id, e.clientX, e.clientY)}
+—both in your standard 4-row layout and inside <MultiRowBayContent> 
+
+.
+
+4) Let the backend row stick, don’t reload away your change
+
+Right now you do a window.location.reload() after onScheduleChange. That may be wiping out the very row you just set. Instead, after the promise resolves:
+
+Invalidate your query cache (you’re already doing queryClient.invalidateQueries(...)), but don’t reload the page.
+Let React re-render with the updated schedule.row from the server.
+5) Verify your visual mapper uses schedule.row
+
+In your scheduleBars = useMemo(...) you already respect schedule.row if present. Once the DB actually has the right row, its position will no longer snap back to 0. You can leave the existing “auto-assign only if no schedule.row” code in place, since now every bar dropped will have a schedule.row.
+
+Recap of the fix
+Delete the old handleDrop(e, bayId, slotIndex, rowIndex) definition.
+Keep only the raw-coord version and compute finalRowIndex = floor(finalY/rowHeight).
+Update every onDrop to pass e.clientX, e.clientY.
+Stop reloading the page; rely on query invalidation to pick up the new row.
+Trust scheduleBars to render using the saved schedule.row.
+After these changes, dropping a bar anywhere in the bay will land it in that exact sub-row, no snapping, no shifting of existing bars—even if they overlap.

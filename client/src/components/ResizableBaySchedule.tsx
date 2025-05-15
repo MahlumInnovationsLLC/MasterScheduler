@@ -5459,7 +5459,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     scheduleBars={scheduleBars}
                     projects={projects}
                     handleDragOver={(e, bayId, weekIndex, rowIndex) => handleDragOver(e, bayId, weekIndex, rowIndex)}
-                    handleDrop={(e, bayId, weekIndex, rowIndex) => handleDrop(e, bayId, weekIndex || 0, rowIndex)}
+                    handleDrop={(e, bayId) => handleDrop(e, bayId, e.clientX, e.clientY)}
                     setRowToDelete={setRowToDelete}
                     setDeleteRowDialogOpen={setDeleteRowDialogOpen}
                     handleRowDelete={handleDeleteRow}
