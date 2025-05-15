@@ -24,17 +24,30 @@ const RowPositionTester: React.FC<RowPositionTesterProps> = ({
   const { toast } = useToast();
 
   const runRowPositionTest = () => {
-    // Find project in Bay 1 for testing (we'll use project 806504 with ID 170)
-    const testProject = schedules.find(s => s.projectNumber === '806504');
+    // Find any project in Bay 1-2 for testing
+    // First try to find any project already in Bay 1
+    let testProject = schedules.find(s => s.bayId === 1);
+    
+    if (!testProject) {
+      // If no projects in Bay 1, try Bay 2
+      testProject = schedules.find(s => s.bayId === 2);
+    }
+    
+    if (!testProject) {
+      // If still no project, try to find any project in the schedule
+      testProject = schedules[0];
+    }
     
     if (!testProject) {
       toast({
         title: "Test Project Not Found",
-        description: "Couldn't find project #806504 for testing",
+        description: "Couldn't find any project in the schedule for testing",
         variant: "destructive"
       });
       return;
     }
+    
+    console.log("Found test project:", testProject);
     
     // Log test initiation details
     console.log("🧪 RUNNING AUTOMATED DROP TEST");
@@ -159,7 +172,7 @@ const RowPositionTester: React.FC<RowPositionTesterProps> = ({
         🧪 Test Row Positioning
       </Button>
       <div className="text-xs text-gray-500">
-        Tests pixel-perfect row positioning by moving project #806504 to a different row
+        Tests pixel-perfect row positioning by automatically moving a project between rows
       </div>
     </div>
   );
