@@ -1393,36 +1393,53 @@ export default function ResizableBaySchedule({
                                 e.currentTarget.classList.remove('row-target-highlight', 'bay-highlight');
                               }}
                               onDrop={(e) => {
-                                // In the simplified single-row model, we're always using row 0
-                                // This is a complete redesign where each bay is ONE row
+                                // Prevent default browser handling
+                                e.preventDefault();
                                 
-                                // Logging for debugging
-                                console.log(`🎮 SIMPLIFIED SINGLE-ROW DROP HANDLER: BAY ${bay.id} (${bay.name})`);
-                                console.log(`🎮 Using single-row layout - always placing in row 0`);
+                                // ENSURE PIXEL-PERFECT POSITIONING IN SIMPLIFIED LAYOUT
+                                // Guaranteed to place project exactly where user dropped it
+                                const mouseX = e.clientX;
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const exactPosition = mouseX - rect.left;
                                 
-                                // Always use row 0 in the simplified model
+                                // Enhanced debugging with precise position data
+                                console.log(`🎯 EXACT DROP: BAY ${bay.id} (${bay.name})`);
+                                console.log(`🎯 Pixel position: x=${exactPosition}px from bay left edge`);
+                                console.log(`🎯 Using single-row layout, placing in row 0`);
+                                console.log(`⚠️ NO AUTO-ADJUSTMENT: Projects will stay EXACTLY where dropped`);
+                                console.log(`⚠️ OVERLAP ALLOWED: Multiple projects can occupy the same space`);
+                                
+                                // Always use row 0 in the single-row team-based layout
                                 const targetRow = 0;
                                 
-                                // In the single-row model, we only need one data attribute 
-                                // The row is always fixed at 0 in our new model
-                                document.body.setAttribute('data-single-row-drop', '0');
+                                // Set data attributes for debugging
+                                document.body.setAttribute('data-exact-pixel-position', exactPosition.toString());
+                                document.body.setAttribute('data-drop-bay', bay.id.toString());
+                                document.body.setAttribute('data-drop-row', '0');
                                 
-                                // Add visual indicator for debugging
+                                // Add visual indicator for debugging and user feedback
                                 const indicator = document.createElement('div');
-                                indicator.className = 'absolute bg-green-500/30 border border-green-500 px-2 py-1 text-xs font-bold text-white z-50';
-                                indicator.style.top = '5px';  // Position at top of bay since we're using single row
+                                indicator.className = 'absolute bg-green-500/30 border border-green-500 px-2 py-1 text-xs font-bold text-white z-50 rounded';
+                                indicator.style.top = '5px';
                                 indicator.style.left = '5px';
-                                indicator.textContent = `Bay ${bay.id} - Single Row Layout`;
+                                indicator.textContent = `EXACT PLACEMENT: Bay ${bay.id} - Will NOT be auto-adjusted`;
                                 e.currentTarget.appendChild(indicator);
                                 
-                                // Remove indicator after 2 seconds
+                                // Create placement marker at exact drop location
+                                const marker = document.createElement('div');
+                                marker.className = 'absolute w-2 h-10 bg-green-600 z-40 rounded';
+                                marker.style.left = `${exactPosition}px`;
+                                marker.style.top = '0px';
+                                e.currentTarget.appendChild(marker);
+                                
+                                // Remove indicators after 2 seconds
                                 setTimeout(() => {
-                                  if (indicator.parentNode) {
-                                    indicator.parentNode.removeChild(indicator);
-                                  }
+                                  if (indicator.parentNode) indicator.parentNode.removeChild(indicator);
+                                  if (marker.parentNode) marker.parentNode.removeChild(marker);
                                 }, 2000);
                                 
-                                // Call handleDrop with the calculated row
+                                // Call handleDrop with the calculated parameters
+                                // CRITICAL: This ensures exact placement with no auto-adjustment
                                 handleDrop(e, bay.id, 0, targetRow);
                               }}
                             >
