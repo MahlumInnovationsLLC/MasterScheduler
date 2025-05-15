@@ -444,9 +444,14 @@ export default function ResizableBaySchedule({
       };
       
       // Calculate exact fit phase widths
-      const withPhaseWidths = calculateExactFitPhaseWidths(bar);
+      const project = projects.find(p => p.id === bar.projectId);
+      const withPhaseWidths = calculateExactFitPhaseWidths(bar.width, project);
       
-      return withPhaseWidths;
+      // Merge the phase widths with the original bar
+      return {
+        ...bar,
+        ...withPhaseWidths
+      };
     }).filter((bar): bar is ScheduleBar => bar !== null);
     
     // Important: NO automatic row assignment or repositioning
