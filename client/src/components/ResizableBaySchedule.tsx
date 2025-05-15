@@ -3793,6 +3793,18 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const rowHeight = containerRect.height / TOTAL_ROWS
       const computedRowIndex = Math.max(0, Math.min(TOTAL_ROWS - 1, Math.floor(finalY / rowHeight)))
       console.log('computed targetRowIndex:', computedRowIndex)
+      
+      // CRITICAL FIX: Store the computed row index from pixel position
+      // This needs to happen early in the drop process to ensure it's captured
+      document.body.setAttribute('data-computed-row-index', computedRowIndex.toString())
+      document.body.setAttribute('data-precision-drop-row', computedRowIndex.toString())
+      
+      // Make sure we store an additional attribute specifically for Y-axis positioning
+      document.body.setAttribute('data-y-axis-row', computedRowIndex.toString())
+      
+      // Log exact calculation values for debugging
+      console.log(`ROW CALCULATION: finalY=${finalY}px / rowHeight=${rowHeight}px = row ${computedRowIndex}`)
+      console.log(`TOTAL_ROWS=${TOTAL_ROWS}, rowHeight=${rowHeight}px, containerHeight=${containerRect.height}px`)
       console.groupEnd()
       
       // Add existing debugging logs as well
@@ -3887,9 +3899,27 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         let rowSource = "unknown";
         let forcedExactRowIndex = -1;
         
-        // PRIORITY ORDER FOR ROW SELECTION - critical for pixel-perfect placement
-        // Top priority given to direct params and dataset rows from the target element
-        if (rowFromDirectParam >= 0) {
+        // Get computed row index directly from our drop calculation (added May 2025)
+        const computedYAxisRow = parseRowAttr(document.body.getAttribute('data-computed-row-index'));
+        const yAxisRowValue = parseRowAttr(document.body.getAttribute('data-y-axis-row'));
+        
+        // UPDATED MAY 2025 ROW PRIORITIZATION:
+        // Pixel-perfect calculation from Y position is now the highest priority
+        // This ensures projects ALWAYS land at the exact Y position of the mouse cursor
+        
+        console.log(`✨ PIXEL POSITION Y CALCULATION: ${computedYAxisRow} (added as highest priority source)`);
+        
+        // UPDATED PRIORITY ORDER FOR ROW SELECTION - critical for pixel-perfect placement
+        // Top priority now given to the direct computation from the cursor Y position
+        if (computedYAxisRow >= 0) {
+          // NEW HIGHEST PRIORITY: Computed Y position from mouse cursor
+          forcedExactRowIndex = computedYAxisRow;
+          rowSource = "Y-axis pixel position";
+        } else if (yAxisRowValue >= 0) {
+          // Second priority: Y-axis row value stored as backup
+          forcedExactRowIndex = yAxisRowValue;
+          rowSource = "Y-axis row attribute";
+        } else if (rowFromDirectParam >= 0) {
           forcedExactRowIndex = rowFromDirectParam;
           rowSource = "direct parameter";
         } else if (targetRowFromElementDataset >= 0) {
@@ -4248,11 +4278,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // This is the critical fix identified in the drag/drop analysis
         const precisionDropRow = document.body.getAttribute('data-precision-drop-row');
         
-        // Use the precision row from our pixel-perfect calculation as top priority
-        // If that's not available, use the targetRowIndex that was passed to handleDrop
-        const finalRowIndex = precisionDropRow !== null 
-          ? parseInt(precisionDropRow)
-          : targetRowIndex;
+        // MAY 2025 ENHANCEMENT - Use the most accurate Y-based row calculation
+        // Get all possible row indicators
+        const computedY = document.body.getAttribute('data-computed-row-index');
+        const preciseYRow = document.body.getAttribute('data-y-axis-row');
+        
+        // Use the Y-axis calculation as top priority (direct from Y coordinate)
+        // This ensures projects always land at the exact Y position of the mouse cursor
+        const finalRowIndex = computedY !== null ? parseInt(computedY) : 
+                              preciseYRow !== null ? parseInt(preciseYRow) :
+                              precisionDropRow !== null ? parseInt(precisionDropRow) :
+                              targetRowIndex;
+        
+        // CRITICAL FIX: Ensure we also store the final row selection in the forcedRowIndex attribute
+        // This will be sent to the server with highest priority
+        document.body.setAttribute('data-forced-row-index', finalRowIndex.toString());
         
         console.log(`🎯 PIXEL-PERFECT ROW PLACEMENT: Using ${finalRowIndex} from precision calculation (or ${targetRowIndex} from drop event)`);
         
