@@ -547,9 +547,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Calculate viewport width in days
       const viewportDays = differenceInDays(viewportEnd, viewportStart);
       
-      // Calculate the total width of the timeline
-      const timelineContainer = timelineContainerRef.current;
-      if (!timelineContainer) {
+      // Use the ref directly - no need for a separate variable
+      // const timelineContainer = timelineContainerRef.current;
+      if (!timelineContainerRef.current) {
         console.error("Timeline container not found");
         return {};
       }
@@ -3137,18 +3137,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         bayRowIndicator.classList.remove('target-row-highlight');
       }, 1500);
     }
-    const finalRowIndex = Math.max(0, Math.min(MAX_ROWS - 1, exactRowFromMouse));
+    // Define maximum rows per bay (4 for regular bays, 20 for TCV Line)
+    const MAX_ROWS = bayId === 7 ? 20 : 4;
     
-    // 5. Log the EXACT calculation for verification
+    // Calculate row index with safety bounds - never exceed max rows for the bay
+    const finalRowIndex = Math.max(0, Math.min(MAX_ROWS - 1, rowIndex));
+    
+    // NO complex calculation needed - using direct row index
     console.log(`
-    ⭐⭐⭐ DIRECT MOUSE POSITION ROW CALCULATION ⭐⭐⭐
-    Mouse Y: ${mouseY}px
-    Container top: ${containerTop}px
-    Container height: ${containerHeight}px 
-    Row height: ${rowHeight}px
-    Calculated row: ${relativeY}px / ${rowHeight}px = row ${exactRowFromMouse}
-    Final row after bounds check: ${finalRowIndex}
+    ✅ USING DIRECT ROW INDEX: ${rowIndex}
+    ✅ Final row index (after bounds check): ${finalRowIndex}
+    ✅ Maximum rows for this bay: ${MAX_ROWS}
+    ✅ NO mouse position calculation - using parameter directly
     `);
+    
+    // Add emergency fix mode flags
+    const emergencyFixMode = true; // Always enable emergency fix mode
+    const forceExactRowPlacement = true; // Always force exact placement
     
     // 6. SET ALL ROW RELATED ATTRIBUTES
     // This direct calculation overrides all existing row logic in the application
