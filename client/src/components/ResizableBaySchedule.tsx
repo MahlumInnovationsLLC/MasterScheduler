@@ -3761,15 +3761,42 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       const finalX = rawX - dragOffset.x
       const finalY = rawY - dragOffset.y
       console.log('finalX, finalY:', finalX, finalY)
+      // ⚠️⚠️⚠️ MAY 2025 CRITICAL FIX: ABSOLUTE PIXEL POSITIONING ⚠️⚠️⚠️
+      // This is the single source of truth for row placement - all other methods are ignored
       const TOTAL_ROWS = getBayRowCount(bayId, bay?.name || '')
       const rowHeight = containerRect.height / TOTAL_ROWS
-      const computedRowIndex = Math.max(0, Math.min(TOTAL_ROWS - 1, Math.floor(finalY / rowHeight)))
-      console.log('computed targetRowIndex:', computedRowIndex)
       
-      // CRITICAL FIX: Store the computed row index from pixel position
-      // This needs to happen early in the drop process to ensure it's captured
-      document.body.setAttribute('data-computed-row-index', computedRowIndex.toString())
-      document.body.setAttribute('data-precision-drop-row', computedRowIndex.toString())
+      // NEW APPROACH: Use rawY directly (e.clientY - containerRect.top) to ensure
+      // we place projects at the EXACT position of the mouse cursor
+      const exactPositionY = e.clientY - containerRect.top;
+      
+      // DIRECT PIXEL PERFECT CALCULATION: Get row directly from Y position
+      // This forces projects to appear at the EXACT Y position where mouse was released
+      const absoluteRowIndex = Math.floor(exactPositionY / rowHeight);
+      
+      // Don't apply any min/max bounds - use EXACTLY what the mouse position gives us
+      // The only adjustment is ensuring we're not completely off the grid
+      const computedRowIndex = Math.max(0, Math.min(TOTAL_ROWS - 1, absoluteRowIndex))
+      
+      console.log('⚠️⚠️⚠️ USING ABSOLUTE PIXEL POSITIONING:', absoluteRowIndex)
+      console.log(`⚠️⚠️⚠️ Y cursor position = ${exactPositionY}px, row height = ${rowHeight}px, row = ${absoluteRowIndex}`)
+      console.log(`⚠️⚠️⚠️ PIXEL-PERFECT ROW CALCULATION: ${exactPositionY}px / ${rowHeight}px = row ${absoluteRowIndex}`)
+      console.log(`⚠️⚠️⚠️ NO AUTO-ADJUSTMENT OF ANY KIND - Using raw Y coordinate: ${absoluteRowIndex}`)
+      
+      // CRITICAL FIX: Store the computed row index from pixel position with ADDITIONAL attributes
+      // This extreme redundancy ensures the value survives through all function calls
+      document.body.setAttribute('data-computed-row-index', absoluteRowIndex.toString())
+      document.body.setAttribute('data-precision-drop-row', absoluteRowIndex.toString())
+      document.body.setAttribute('data-absolute-row-index', absoluteRowIndex.toString())
+      document.body.setAttribute('data-final-row-placement', absoluteRowIndex.toString())
+      document.body.setAttribute('data-exact-absolute-row', absoluteRowIndex.toString())
+      
+      // Store the EXACT Y pixel position - this will be used for verification
+      document.body.setAttribute('data-exact-y-position', exactPositionY.toString())
+      
+      // Add special flags to enforce this value through multiple function calls
+      document.body.setAttribute('data-use-absolute-positioning', 'true')
+      document.body.setAttribute('data-override-all-row-calculations', 'true')
       
       // Make sure we store an additional attribute specifically for Y-axis positioning
       document.body.setAttribute('data-y-axis-row', computedRowIndex.toString())
@@ -4315,12 +4342,33 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             parseInt(document.body.getAttribute('data-strict-y-position-row') || '0') : 
             undefined;
             
-        // Use the latest Y-coordinate based calculation for exact placement
+        // ⚠️⚠️⚠️ MAY 2025 CRITICAL FIX: ABSOLUTE PIXEL POSITIONING OVERRIDE ⚠️⚠️⚠️
+        // Start with the calculated final row index
         let rowIndexToUse = finalRowIndex;
         
-        // If we have a direct Y-position calculation, use it with highest priority
-        // This ensures projects ALWAYS land at the exact Y position where the mouse cursor dropped
-        if (strictYPositionRow !== undefined) {
+        // FIRST PRIORITY: Use the absolute row index from the pixel position calculation
+        // This is the NEW May 2025 approach for pixel-perfect placement
+        const absoluteRowIndex = document.body.getAttribute('data-absolute-row-index');
+        if (absoluteRowIndex !== null) {
+            console.log(`⚠️⚠️⚠️ ABSOLUTE POSITIONING OVERRIDE: Using row ${absoluteRowIndex} from direct Y-coordinate calculation`);
+            console.log(`⚠️⚠️⚠️ This ensures projects land at EXACTLY the Y position where the mouse was released`);
+            console.log(`⚠️⚠️⚠️ OVERRIDING all other row sources with direct pixel calculation`);
+            
+            // Save the original value for logging
+            const oldRowIndex = rowIndexToUse;
+            
+            // Update our row variable to the exact Y-position (no constants modified)
+            rowIndexToUse = parseInt(absoluteRowIndex);
+            
+            console.log(`⚠️⚠️⚠️ ABSOLUTE POSITION CHANGE: Row ${oldRowIndex} → ${rowIndexToUse} (from pixel Y position)`);
+            
+            // Store this value with highest priority for the server request
+            document.body.setAttribute('data-forced-row-index', rowIndexToUse.toString());
+            document.body.setAttribute('data-final-exact-row', rowIndexToUse.toString());
+            document.body.setAttribute('data-absolute-position-used', 'true');
+        }
+        // SECOND PRIORITY: Fall back to the strict Y position calculation if available
+        else if (strictYPositionRow !== undefined) {
             console.log(`✨ PIXEL-PERFECT Y POSITIONING ACTIVATED: Using row ${strictYPositionRow} from Y-coordinate calculation`);
             console.log(`✨ This ensures projects land at EXACTLY the Y position where the mouse was released`);
             console.log(`✨ OVERRIDING all other row sources with direct pixel calculation`);
