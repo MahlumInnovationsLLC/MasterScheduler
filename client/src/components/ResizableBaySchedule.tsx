@@ -1103,8 +1103,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           console.warn(`⚠️ Schedule ${schedule.id} row value ${assignedRow} is outside expected range 0-${maxRows-1}, but keeping as-is per user request`);
         }
         
-        // Update the end date for this row
-        rowEndDates[assignedRow] = new Date(endDate);
+        // CRITICAL FIX: DELIBERATELY NOT TRACKING ROW END DATES
+        // In previous code, this is where we would update rowEndDates with:
+        // rowEndDates[assignedRow] = new Date(endDate);
+        // We have removed this to COMPLETELY DISABLE collition detection
+        console.log(`⚠️⚠️⚠️ DELIBERATELY NOT TRACKING END DATE FOR ROW ${assignedRow}`);
+        console.log(`⚠️⚠️⚠️ This ensures we never use rowEndDates[] for collision detection`);
+        // This is intentional - we do not want to track row end dates at all
+        // This prevents any remaining collision detection in the system
         
         // CRITICAL FIX: DO NOT MAP OR CHANGE ROWS
         // Keep exact row from database with no adjustment
@@ -3810,6 +3816,11 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         - Container height: ${containerRect.height}px
         - Total rows: ${TOTAL_ROWS}
       `)
+      
+      // ALERT: Add even higher visibility for this critical value
+      console.log("🔴🔴🔴 CRITICAL DROP VALUE - FORCED ROW INDEX:", absoluteRowIndex)
+      console.log("🔴🔴🔴 THIS IS THE EXPLICIT ROW WHERE PROJECT MUST BE PLACED")
+      console.log("🔴🔴🔴 NO COLLISION DETECTION, NO AUTO-ADJUSTMENT, EXACT PLACEMENT ONLY")
       
       // Make sure we store an additional attribute specifically for Y-axis positioning
       document.body.setAttribute('data-y-axis-row', computedRowIndex.toString())
