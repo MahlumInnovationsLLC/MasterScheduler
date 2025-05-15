@@ -103,31 +103,59 @@ const RowPositionTester: React.FC<RowPositionTesterProps> = ({
     .then(result => {
       console.log('🧪 ROW POSITION TEST RESULT:', result);
       
-      const resultData = result?.data;
+      // Important: Extract row value directly from the returned schedule object
+      // This ensures we get the actual value stored in the database
+      const resultData = result;
+      
+      console.log('🧪 COMPLETE RAW API RESPONSE:', result);
+      
+      // Get row from different possible locations in the response
+      const returnedRow = 
+        // Either from result directly (if it's the schedule object)
+        (typeof result?.row === 'number' ? result.row : 
+        // Or from result.data if wrapped
+        (typeof result?.data?.row === 'number' ? result.data.row : 
+        // Or from a nested schedule object (common pattern)
+        (typeof result?.schedule?.row === 'number' ? result.schedule.row : 
+        // Last resort, try to parse from string representation
+        (result && typeof result === 'object' ? 
+          (() => {
+            try {
+              const resultJson = JSON.stringify(result);
+              const match = resultJson.match(/"row":(\d+)/);
+              return match && match[1] ? parseInt(match[1]) : 'unknown';
+            } catch (error) {
+              console.error('Error parsing row from result:', error);
+              return 'unknown';
+            }
+          })() : 'unknown'))));
+          
+      console.log('🧪 EXTRACTED ROW VALUE:', returnedRow);
+      
       const verificationInfo = {
         projectNumber: testProject.projectNumber,
         projectId: testProject.id,
         bayId: testProject.bayId,
         requestedRow: targetRow,
-        savedRow: resultData?.row ?? 'unknown',
-        matchStatus: resultData?.row == targetRow ? '✅ EXACT MATCH' : '❌ MISMATCH'
+        savedRow: returnedRow,
+        matchStatus: returnedRow === targetRow ? '✅ EXACT MATCH' : '❌ MISMATCH'
       };
       
       console.log('🧪 ROW POSITION VERIFICATION:', verificationInfo);
       
       // Update banner with results
-      testBanner.style.backgroundColor = resultData?.row == targetRow 
+      testBanner.style.backgroundColor = returnedRow === targetRow 
         ? 'rgba(22, 163, 74, 0.9)' // Green if match
         : 'rgba(220, 38, 38, 0.9)'; // Red if mismatch
         
       testBanner.innerHTML = `
         <div style="font-size:14px; text-align:center;">
-          ${resultData?.row == targetRow ? '✅ ROW POSITION TEST PASSED' : '❌ ROW POSITION TEST FAILED'}
+          ${returnedRow === targetRow ? '✅ ROW POSITION TEST PASSED' : '❌ ROW POSITION TEST FAILED'}
         </div>
         <div style="font-size:12px;">
-          Project: ${testProject.projectNumber}<br>
+          Project: ${testProject.projectNumber || testProject.id}<br>
           Requested Row: ${targetRow}<br>
-          Actual Saved Row: ${resultData?.row ?? 'unknown'}<br>
+          Actual Saved Row: ${returnedRow}<br>
           Bay: ${testProject.bayId}
         </div>
       `;

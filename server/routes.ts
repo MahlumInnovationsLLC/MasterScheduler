@@ -944,6 +944,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Manufacturing schedule not found" });
       }
       
+      // Create a separate log entry showing the row information for debugging purposes
+      console.log("💾 SCHEDULE UPDATE - CRITICAL ROW INFO:", {
+        id: schedule.id,
+        rowRequested: finalRow,
+        rowSaved: schedule.row,
+        match: schedule.row === finalRow ? "✅ EXACT MATCH" : "❌ ROW MISMATCH"
+      });
+      
       // Then update the project's dates to match the schedule
       try {
         const projectId = originalSchedule.projectId;
@@ -1137,7 +1145,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Don't fail the request if project update fails - still return the updated schedule
       }
       
-      res.json(schedule);
+      // Create enhanced response with explicit row information for testing and verification
+      const enhancedResponse = {
+        schedule,
+        rowInfo: {
+          requestedRow: finalRow,
+          actualRow: schedule.row,
+          exactMatch: schedule.row === finalRow
+        }
+      };
+      
+      console.log("🔄 FINAL RESPONSE WITH ROW INFO:", JSON.stringify(enhancedResponse, null, 2));
+      res.json(enhancedResponse);
     } catch (error) {
       console.error("Error updating manufacturing schedule:", error);
       res.status(500).json({ message: "Error updating manufacturing schedule" });
