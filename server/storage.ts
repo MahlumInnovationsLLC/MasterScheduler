@@ -798,14 +798,23 @@ export class DatabaseStorage implements IStorage {
   
   async createManufacturingSchedule(schedule: InsertManufacturingSchedule): Promise<ManufacturingSchedule> {
     try {
-      // CRITICAL FIX: Maintain row integrity - ensure both row and rowIndex are set
-      // with HIGHEST PRIORITY and no auto-adjustment
+      // CRITICAL FIX: Force exact row placement at all times
+      // Get highest priority row value (forcedRowIndex > rowIndex > row > default)
+      const forcedRowIndex = schedule.forcedRowIndex !== undefined ? parseInt(String(schedule.forcedRowIndex)) : undefined;
+      const rowIndex = schedule.rowIndex !== undefined ? parseInt(String(schedule.rowIndex)) : undefined;
+      const row = schedule.row !== undefined ? parseInt(String(schedule.row)) : undefined;
+      
+      // Determine row value with strict priority and NO AUTO ADJUSTMENT
+      const finalRow = forcedRowIndex !== undefined ? forcedRowIndex :
+                       rowIndex !== undefined ? rowIndex :
+                       row !== undefined ? row : 
+                       0; // Last resort default is row 0
+      
       const scheduleWithRows = {
         ...schedule,
-        // Force row parameter to be maintained exactly as specified
-        row: schedule.row !== undefined ? schedule.row : 0,
-        // Also maintain the rowIndex parameter for compatibility
-        rowIndex: schedule.rowIndex || schedule.row || 0
+        // MANDATORY: Force both row fields to be EXACTLY the same precise value 
+        row: finalRow,
+        rowIndex: finalRow
       };
       
       console.log(`🚨 FINAL MANDATORY ROW: Will use ROW=${scheduleWithRows.row}, ROWINDEX=${scheduleWithRows.rowIndex}`);
@@ -824,20 +833,31 @@ export class DatabaseStorage implements IStorage {
   
   async updateManufacturingSchedule(id: number, schedule: Partial<InsertManufacturingSchedule>): Promise<ManufacturingSchedule | undefined> {
     try {
-      // CRITICAL FIX: Maintain row integrity on update too - ensure both row and rowIndex are preserved
-      // NO AUTO-ADJUSTMENT OF ANY KIND - use exactly what comes from UI
+      // CRITICAL FIX: Force exact row placement at all times when updating
+      // Get highest priority row value (forcedRowIndex > rowIndex > row)
+      const forcedRowIndex = schedule.forcedRowIndex !== undefined ? parseInt(String(schedule.forcedRowIndex)) : undefined;
+      const rowIndex = schedule.rowIndex !== undefined ? parseInt(String(schedule.rowIndex)) : undefined;
+      const row = schedule.row !== undefined ? parseInt(String(schedule.row)) : undefined;
+      
+      // Only process row changes if at least one of the row fields is provided
+      const hasRowUpdate = forcedRowIndex !== undefined || rowIndex !== undefined || row !== undefined;
+      
+      // Determine row value with strict priority and NO AUTO ADJUSTMENT
+      const finalRow = hasRowUpdate ? (
+        forcedRowIndex !== undefined ? forcedRowIndex :
+        rowIndex !== undefined ? rowIndex :
+        row // row is definitely defined here if hasRowUpdate is true
+      ) : undefined;
+      
+      // Build the update object
       const scheduleWithRows = {
         ...schedule,
         updatedAt: new Date(),
-        // Only set these if actually present in the update, otherwise leave them unchanged
-        ...(schedule.row !== undefined ? { 
-          row: schedule.row,
-          rowIndex: schedule.row // Match rowIndex to row for consistency
-        } : {}),
-        // If rowIndex is provided but row isn't, use it for both
-        ...(schedule.row === undefined && schedule.rowIndex !== undefined ? {
-          row: schedule.rowIndex,
-          rowIndex: schedule.rowIndex
+        // Only add row updates if we have a row to update
+        ...(finalRow !== undefined ? {
+          // MANDATORY: Force both row fields to be EXACTLY the same precise value
+          row: finalRow,
+          rowIndex: finalRow
         } : {})
       };
       
