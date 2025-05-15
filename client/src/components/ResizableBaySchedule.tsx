@@ -1408,9 +1408,58 @@ export default function ResizableBaySchedule({
           <div className="manufacturing-bays mt-2">
             {bayTeams.map((team, teamIndex) => (
               <div key={`team-${teamIndex}`} className="team-container mb-5 relative">
-                <div className="team-header bg-slate-100 py-2 px-3 rounded-md mb-2 flex justify-between items-center shadow-sm">
+                <div className="team-header bg-gray-800 text-white py-2 px-3 rounded-md mb-2 flex justify-between items-center shadow-sm">
                   <div className="team-name font-medium">
                     Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}
+                  </div>
+                  
+                  {/* Bay status indicators for this team */}
+                  <div className="bay-status-indicators flex items-center gap-3">
+                    {team.map(bay => {
+                      // Calculate bay capacity
+                      const bayProjects = scheduleBars.filter(bar => bar.bayId === bay.id);
+                      const scheduleCount = bayProjects.length;
+                      const capacityRatio = scheduleCount > 0 ? (scheduleCount / 2) : 0; // 2 projects per bay is "full"
+                      
+                      // Determine status badge color
+                      let statusBadge;
+                      let statusText = 'Available';
+                      
+                      if (capacityRatio >= 1) {
+                        statusBadge = <Badge variant="destructive" className="text-xs">At Capacity</Badge>;
+                        statusText = 'At Capacity';
+                      } else if (capacityRatio >= 0.5) {
+                        statusBadge = <Badge variant="outline" className="text-xs bg-orange-500 text-white border-orange-500">Near Capacity</Badge>;
+                        statusText = 'Near Capacity';
+                      } else {
+                        statusBadge = <Badge variant="outline" className="text-xs text-green-400 border-green-400">Available</Badge>;
+                        statusText = 'Available';
+                      }
+                      
+                      // Add maintenance status
+                      if (bay.status === 'maintenance') {
+                        statusBadge = <Badge variant="destructive" className="text-xs">Maintenance</Badge>;
+                        statusText = 'In Maintenance';
+                      }
+                      
+                      return (
+                        <TooltipProvider key={bay.id}>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <div className="bay-status flex flex-col items-center gap-1">
+                                <div className="flex items-center gap-1">
+                                  {statusBadge}
+                                </div>
+                                <span className="text-xs text-gray-300">Bay {bay.bayNumber}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{bay.name}: {statusText} ({scheduleCount} project{scheduleCount !== 1 ? 's' : ''})</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    })}
                   </div>
                   
                   {/* Team capacity indicators */}
@@ -1418,7 +1467,7 @@ export default function ResizableBaySchedule({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger>
-                          <div className="capacity-indicator flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                          <div className="capacity-indicator flex items-center text-xs bg-blue-900 text-blue-100 px-2 py-0.5 rounded-full">
                             <Users className="h-3 w-3 mr-1" />
                             <span>
                               {scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length} projects
@@ -1434,7 +1483,7 @@ export default function ResizableBaySchedule({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger>
-                          <div className="utilization-indicator flex items-center text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                          <div className="utilization-indicator flex items-center text-xs bg-green-900 text-green-100 px-2 py-0.5 rounded-full">
                             <Zap className="h-3 w-3 mr-1" />
                             <span>
                               {Math.min(
@@ -1448,7 +1497,7 @@ export default function ResizableBaySchedule({
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Team capacity utilization percentage</p>
+                          <p>Team utilization percentage</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -1602,47 +1651,98 @@ export default function ResizableBaySchedule({
                                 </div>
                               </div>
                               
-                              {/* Cell grid for this bay */}
+                              {/* Cell grid for this bay - Now with extended week cells for precise placement */}
                               <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
-                                {slots.map((slot, index) => (
-                                  <div 
-                                    key={`bay-${bay.id}-slot-${index}`} 
-                                    className="relative h-full border-r border-gray-700/30"
-                                    data-row="0"
-                                    data-slot-index={index}
-                                    data-date={format(slot.date, 'yyyy-MM-dd')}
-                                    data-start-date={format(slot.date, 'yyyy-MM-dd')}
-                                    data-bay-id={bay.id}
-                                    data-row-index="0"
-                                    data-exact-week="true"
-                                    onDragOver={(e) => {
-                                      // Prevent event from propagating to parent elements
-                                      e.stopPropagation();
-                                      
-                                      // Store the row index and bay id in body attributes for the drop handler
-                                      document.body.setAttribute('data-current-drag-row', '0');
-                                      document.body.setAttribute('data-current-drag-bay', bay.id.toString());
-                                      
-                                      // Make sure the element has the correct bay ID
-                                      if (e.currentTarget instanceof HTMLElement) {
-                                        e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
-                                      }
-                                      
-                                      // Add highlight classes
-                                      e.currentTarget.classList.add('cell-highlight');
-                                      
-                                      handleSlotDragOver(e, bay.id, 0, slot.date);
-                                    }}
-                                    onDragLeave={(e) => {
-                                      // Remove highlight when leaving
-                                      e.currentTarget.classList.remove('cell-highlight');
-                                    }}
-                                    onDrop={(e) => {
-                                      // Use the data stored on the element for drop handling
-                                      handleSlotDrop(e, bay.id, 0, slot.date);
-                                    }}
-                                  />
-                                ))}
+                                {slots.map((slot, index) => {
+                                  // Enhanced styling for better week cell visibility
+                                  const isStartOfMonth = slot.isStartOfMonth;
+                                  const isStartOfWeek = slot.isStartOfWeek;
+                                  const isWeekend = !slot.isBusinessDay;
+                                  
+                                  // Apply different styling based on week boundaries
+                                  const cellClasses = [
+                                    "relative h-full week-cell", // Base class for all cells
+                                    isStartOfMonth ? "month-boundary border-l-2 border-r border-gray-700/50" : "border-r border-gray-700/30",
+                                    isStartOfWeek ? "week-boundary border-l border-gray-700/40" : "",
+                                    isWeekend ? "weekend-cell bg-gray-100/5" : "",
+                                    // Add alternate week coloring for better visibility
+                                    Math.floor(index / 7) % 2 === 0 ? "even-week" : "odd-week bg-gray-800/5"
+                                  ].filter(Boolean).join(" ");
+                                  
+                                  return (
+                                    <div 
+                                      key={`bay-${bay.id}-slot-${index}`} 
+                                      className={cellClasses}
+                                      data-row="0"
+                                      data-slot-index={index}
+                                      data-date={format(slot.date, 'yyyy-MM-dd')}
+                                      data-start-date={format(slot.date, 'yyyy-MM-dd')}
+                                      data-bay-id={bay.id}
+                                      data-row-index="0"
+                                      data-exact-week="true"
+                                      data-week-number={slot.weekNumber || Math.floor(index / 7)}
+                                      data-is-start-of-month={isStartOfMonth ? "true" : "false"}
+                                      data-is-start-of-week={isStartOfWeek ? "true" : "false"}
+                                      data-is-weekend={isWeekend ? "true" : "false"}
+                                      onDragOver={(e) => {
+                                        // Prevent event from propagating to parent elements
+                                        e.stopPropagation();
+                                        
+                                        // Store the row index and bay id in body attributes for the drop handler
+                                        document.body.setAttribute('data-current-drag-row', '0');
+                                        document.body.setAttribute('data-current-drag-bay', bay.id.toString());
+                                        document.body.setAttribute('data-current-week', (slot.weekNumber || Math.floor(index / 7)).toString());
+                                        document.body.setAttribute('data-current-date', format(slot.date, 'yyyy-MM-dd'));
+                                        
+                                        // Make sure the element has the correct bay ID
+                                        if (e.currentTarget instanceof HTMLElement) {
+                                          e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
+                                        }
+                                        
+                                        // Add highlight classes with enhanced visibility
+                                        e.currentTarget.classList.add('cell-highlight', 'exact-week-highlight');
+                                        
+                                        // Add debug info to console
+                                        console.log(`Dragging over bay ${bay.id}, week ${slot.weekNumber || Math.floor(index / 7)}, date ${format(slot.date, 'yyyy-MM-dd')}`);
+                                        
+                                        handleSlotDragOver(e, bay.id, 0, slot.date);
+                                      }}
+                                      onDragLeave={(e) => {
+                                        // Remove highlight when leaving
+                                        e.currentTarget.classList.remove('cell-highlight', 'exact-week-highlight');
+                                      }}
+                                      onDrop={(e) => {
+                                        // Enhanced drop handling with week precision
+                                        console.log(`Dropping in exact week: Bay ${bay.id}, Week ${slot.weekNumber || Math.floor(index / 7)}, Date ${format(slot.date, 'yyyy-MM-dd')}`);
+                                        
+                                        // Store drop location for debugging and validation
+                                        document.body.setAttribute('data-drop-week', (slot.weekNumber || Math.floor(index / 7)).toString());
+                                        document.body.setAttribute('data-drop-date', format(slot.date, 'yyyy-MM-dd'));
+                                        
+                                        // Use the data stored on the element for drop handling
+                                        handleSlotDrop(e, bay.id, 0, slot.date);
+                                        
+                                        // Add visual indicator for drop location (remove after 2 seconds)
+                                        const indicator = document.createElement('div');
+                                        indicator.className = 'absolute bg-green-500/30 border border-green-500 w-full h-full flex items-center justify-center';
+                                        indicator.innerHTML = `<span class="text-xs font-bold text-white">Week ${slot.weekNumber || Math.floor(index / 7)}</span>`;
+                                        e.currentTarget.appendChild(indicator);
+                                        setTimeout(() => {
+                                          if (indicator.parentNode) {
+                                            indicator.parentNode.removeChild(indicator);
+                                          }
+                                        }, 2000);
+                                      }}
+                                    >
+                                      {/* Week number indicator for better visual reference */}
+                                      {isStartOfWeek && (
+                                        <div className="absolute top-0 left-0 text-[8px] bg-gray-700/30 text-gray-300 px-1 rounded-br">
+                                          W{slot.weekNumber || Math.floor(index / 7)}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>

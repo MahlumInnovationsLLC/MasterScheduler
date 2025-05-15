@@ -1865,3 +1865,103 @@ body.resizing-mode .resize-handle {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5) !important;
   opacity: 0.9;
 }
+
+/* Enhanced week cell styling for better visibility and drop precision */
+.week-cell {
+  transition: background-color 0.1s ease;
+  position: relative;
+}
+
+.week-cell:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Week boundary styling */
+.week-boundary {
+  background-color: rgba(30, 41, 59, 0.05);
+}
+
+/* Month boundary styling */
+.month-boundary {
+  background-color: rgba(30, 41, 59, 0.1);
+}
+
+/* Weekend cell styling */
+.weekend-cell {
+  background-color: rgba(30, 41, 59, 0.05);
+}
+
+/* Highlight style for drop target cells */
+.cell-highlight {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+/* Exact week highlight for precision dropping */
+.exact-week-highlight {
+  z-index: 10;
+  box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.8);
+}
+
+/* Dark mode week cell enhancements */
+.dark .week-cell {
+  border-color: rgba(75, 85, 99, 0.4);
+}
+
+.dark .week-boundary {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.dark .month-boundary {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-left-color: rgba(156, 163, 175, 0.5);
+}
+
+.dark .weekend-cell {
+  background-color: rgba(17, 24, 39, 0.3);
+}
+
+.dark .cell-highlight {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+.dark .exact-week-highlight {
+  box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.6);
+}
+
+/* Enhanced bay row styling */
+.bay-row {
+  position: relative;
+  border-top: 1px solid rgba(75, 85, 99, 0.2);
+  transition: background-color 0.15s ease;
+}
+
+.bay-row:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+/* Bay highlight during drag operations */
+.bay-highlight {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+  box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.3);
+}
+
+/* Dark mode bay row styling */
+.dark .bay-row {
+  border-color: rgba(75, 85, 99, 0.4);
+}
+
+.dark .bay-row:hover {
+  background-color: rgba(59, 130, 246, 0.08);
+}
+
+.dark .bay-highlight {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+  box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.5);
+}
+
+/* Row target highlight for precise dropping */
+.row-target-highlight {
+  background-color: rgba(16, 185, 129, 0.15);
+}
