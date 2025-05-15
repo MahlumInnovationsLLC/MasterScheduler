@@ -664,25 +664,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // This is a CRITICAL BUGFIX - use the exact row with no auto-repositioning
       let finalRowIndex = rowParam !== undefined ? parseInt(rowParam.toString()) : 0;
       
-      // EXTREME ROW OVERRIDE (May 16, 2025) - COMPLETELY REMOVE ALL ROW LIMITS
-      // ⚠️ CRITICAL CHANGE: Allow ANY row value with NO LIMITS WHATSOEVER
-      // This ensures projects stay EXACTLY where dropped, even outside normal boundaries
-      // This allows multiple projects to appear in the same row with no collision detection
+      // CRITICAL UPDATE (May 15, 2025):
+      // - Bays 1-6 and 9+ must ONLY use rows 0-3
+      // - Only Bays 7-8 can use rows 0-19
       
       const bayId = parseInt(req.body.bayId.toString());
       
-      // Completely bypass all row validation - no row correction of any kind
-      // Keep any row value EXACTLY as provided by the client, no matter what
-      console.log(`🚨 EXTREME ROW OVERRIDE: Using raw row value ${finalRowIndex} WITH NO VALIDATION`);
-      console.log(`🚨 REMOVING ALL ROW RESTRICTIONS: Project will be placed at EXACTLY the row specified`);
-      console.log(`🚨 NO AUTO-ADJUSTMENT, NO COLLISION DETECTION: Precise Y position preserved`);
+      // Get the bay data to check its number
+      const bay = await storage.getManufacturingBay(bayId);
+      const bayNumber = bay ? bay.bayNumber : null;
+      
+      // Apply strict row limits based on bay number
+      if (bayNumber === 7 || bayNumber === 8) {
+        // Bays 7-8 can use rows 0-19
+        if (finalRowIndex < 0) finalRowIndex = 0;
+        if (finalRowIndex > 19) finalRowIndex = 19;
+        console.log(`🚨 BAY ${bayNumber}: ALLOWING EXTENDED ROWS 0-19`);
+      } else {
+        // All other bays (1-6, 9+) MUST use rows 0-3 only
+        if (finalRowIndex < 0) finalRowIndex = 0;
+        if (finalRowIndex > 3) finalRowIndex = finalRowIndex % 4; // Force into range 0-3
+        console.log(`🚨 BAY ${bayNumber || bayId}: STRICTLY ENFORCING ROWS 0-3 ONLY`);
+      }
+      
+      console.log(`🚨 ROW ENFORCEMENT: Original request row ${rowParam} adjusted to ${finalRowIndex} based on bay limits`);
+      console.log(`🚨 NO AUTO-ADJUSTMENT WITHIN ALLOWED RANGE: Precise Y position preserved within bay limits`);
       console.log(`🚨 Projects may overlap/stack in same row - this is intentional per user request`);
       
       const data = {
         ...req.body,
-        // DIRECT USER REQUEST: Projects MUST stay EXACTLY where dropped with NO AUTO ADJUSTMENT
-        // All row and bay values must be preserved AS IS from user interface
-        row: finalRowIndex, // Enforce exact row placement with hard limit
+        // DIRECT USER REQUEST: Projects stay where dropped, but must respect bay-specific row limits
+        row: finalRowIndex, // Enforce exact row placement with bay-specific limits
         rowIndex: finalRowIndex // Store in both fields for compatibility
       };
       
@@ -847,25 +859,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let finalRow = forcedRowIndex !== undefined ? forcedRowIndex : 
                      (rowIndex !== undefined ? rowIndex : rowValue);
       
-      // EXTREME ROW OVERRIDE (May 16, 2025) - COMPLETELY REMOVE ALL ROW LIMITS
-      // ⚠️ CRITICAL CHANGE: Allow ANY row value with NO LIMITS WHATSOEVER
-      // This ensures projects stay EXACTLY where dropped, even outside normal boundaries
-      // This allows multiple projects to appear in the same row with no collision detection
+      // CRITICAL UPDATE (May 15, 2025):
+      // - Bays 1-6 and 9+ must ONLY use rows 0-3
+      // - Only Bays 7-8 can use rows 0-19
       
       if (finalRow !== undefined) {
-        // Get the bay ID from the request or from the existing schedule later
-        const bayId = req.body.bayId !== undefined ? parseInt(req.body.bayId.toString()) : undefined;
+        // Get the bay ID from the request or from the existing schedule
+        let bayId = req.body.bayId !== undefined ? parseInt(req.body.bayId.toString()) : undefined;
         
-        // REMOVE ALL LIMITS - allow any row value regardless of bay
-        console.log(`🚨 EXTREME ROW OVERRIDE: Using raw row value ${finalRow} WITH NO VALIDATION`);
-        console.log(`🚨 REMOVING ALL ROW RESTRICTIONS: Project will be placed at EXACTLY the row specified`);
-        console.log(`🚨 NO AUTO-ADJUSTMENT, NO COLLISION DETECTION: Precise Y position preserved`);
-        console.log(`🚨 Projects may overlap/stack in same row - this is intentional per user request`);
-        
-        if (bayId !== undefined) {
-          // Log the bay ID for reference only, but don't apply any limits
-          console.log(`🔍 Bay ID: ${bayId} - NO ROW LIMITS APPLIED (exact placement enforced)`);
+        // If bayId not in request, get it from the original schedule (which we'll fetch below)
+        if (bayId === undefined && originalSchedule) {
+          bayId = originalSchedule.bayId;
         }
+        
+        // Get the bay data to check its number
+        if (bayId !== undefined) {
+          const bay = await storage.getManufacturingBay(bayId);
+          const bayNumber = bay ? bay.bayNumber : null;
+          
+          // Apply strict row limits based on bay number
+          if (bayNumber === 7 || bayNumber === 8) {
+            // Bays 7-8 can use rows 0-19
+            if (finalRow < 0) finalRow = 0;
+            if (finalRow > 19) finalRow = 19;
+            console.log(`🚨 BAY ${bayNumber}: ALLOWING EXTENDED ROWS 0-19`);
+          } else {
+            // All other bays (1-6, 9+) MUST use rows 0-3 only
+            if (finalRow < 0) finalRow = 0;
+            if (finalRow > 3) finalRow = finalRow % 4; // Force into range 0-3
+            console.log(`🚨 BAY ${bayNumber || bayId}: STRICTLY ENFORCING ROWS 0-3 ONLY`); 
+          }
+          
+          console.log(`🚨 ROW ENFORCEMENT: Original request row ${forcedRowIndex || rowIndex || rowValue} adjusted to ${finalRow} based on bay limits`);
+        } else {
+          console.log(`⚠️ WARNING: Could not determine bay for schedule, defaulting to standard 0-3 row limits`);
+          if (finalRow < 0) finalRow = 0;
+          if (finalRow > 3) finalRow = finalRow % 4; // Force into range 0-3
+        }
+        
+        console.log(`🚨 NO AUTO-ADJUSTMENT WITHIN ALLOWED RANGE: Precise Y position preserved within bay limits`);
+        console.log(`🚨 Projects may overlap/stack in same row - this is intentional per user request`);
       }
       
       // Create final data object with exact row placement (and row limit enforcement)
