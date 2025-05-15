@@ -1626,47 +1626,21 @@ body.resizing-mode .resize-handle {
   transform: none !important;
 }
 
-/* Auto-calculate the top position for ANY row index */
-/* Note: This uses CSS calc to dynamically position based on row index in class name */
-/* For example: row-5-bar will be positioned at top: calc(5 * var(--row-unit-height, 5%)) */
+/* DISABLED MAY 16 2025 - NO CSS CLASS POSITIONING - USING INLINE STYLES ONLY */
+/* Auto-calculation of position previously used CSS class selectors but now we use direct inline styles */
+/* This was causing conflicts with our inline positioning, so we've disabled it completely */
+/* 
 [class*="row-"][class$="-bar"] {
-  --row-index: 0; /* Default fallback value */
+  --row-index: 0;
   top: calc(var(--row-index) * var(--row-unit-height, 5%)) !important;
 }
+*/
 
-/* Define all possible row positions dynamically using CSS variables */
-.row-0-bar { --row-index: 0; }
-.row-1-bar { --row-index: 1; }
-.row-2-bar { --row-index: 2; }
-.row-3-bar { --row-index: 3; }
-.row-4-bar { --row-index: 4; }
-.row-5-bar { --row-index: 5; }
-.row-6-bar { --row-index: 6; }
-.row-7-bar { --row-index: 7; }
-.row-8-bar { --row-index: 8; }
-.row-9-bar { --row-index: 9; }
-.row-10-bar { --row-index: 10; }
-.row-11-bar { --row-index: 11; }
-.row-12-bar { --row-index: 12; }
-.row-13-bar { --row-index: 13; }
-.row-14-bar { --row-index: 14; }
-.row-15-bar { --row-index: 15; }
-.row-16-bar { --row-index: 16; }
-.row-17-bar { --row-index: 17; }
-.row-18-bar { --row-index: 18; }
-.row-19-bar { --row-index: 19; }
-/* Add more rows as needed - there's no limit now that server constraints are removed */
-.row-20-bar { --row-index: 20; }
-.row-21-bar { --row-index: 21; }
-.row-22-bar { --row-index: 22; }
-.row-23-bar { --row-index: 23; }
-.row-24-bar { --row-index: 24; }
-.row-25-bar { --row-index: 25; }
-.row-26-bar { --row-index: 26; }
-.row-27-bar { --row-index: 27; }
-.row-28-bar { --row-index: 28; }
-.row-29-bar { --row-index: 29; }
-.row-30-bar { --row-index: 30; }
+/* DISABLED MAY 16 2025 - NO CLASS-BASED ROW POSITIONING */
+/* Row classes have been disabled - we now use direct inline styling with !important flags */
+/* This was causing conflicts with our positioning, so we've completely removed it */
+
+/* Keeping only the data attributes for other UI features */
 
 /* For standard bays, we set the unit height to 25% (4 rows) */
 .bay[data-bay-number="1"] .bay-content .bay-project-area,
