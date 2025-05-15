@@ -3274,8 +3274,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // 5) Convert Y position to row index and LOCK the row from multiple sources
     // Use exact bay row count (4 for normal bays, 20 for TCV Line)
-    const bay = bays.find(b => b.id === bayId);
-    const totalRows = getBayRowCount(bayId, bay?.name || '');
+    const bayForRowCount = bays.find(b => b.id === bayId);
+    const totalRows = getBayRowCount(bayId, bayForRowCount?.name || '');
     const rowHeight = containerRect.height / totalRows;
     const exactRow = Math.floor(finalY / rowHeight);
     
@@ -3622,8 +3622,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // This ensures we don't lose the correct bay ID between declarations
     console.log(`Finding bay with ID ${exactBayId} (from exact parameter)`);
       
-    const bay = bays.find(b => b.id === exactBayId);
-    if (!bay) {
+    const exactTargetBay = bays.find(b => b.id === exactBayId);
+    if (!exactTargetBay) {
       console.error(`Bay with ID ${exactBayId} not found in bays list:`, bays.map(b => b.id));
       toast({
         title: "Error",
@@ -3634,7 +3634,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
       
     // Check if the bay has staff assigned
-    if (!bay.staffCount || bay.staffCount <= 0) {
+    if (!exactTargetBay.staffCount || exactTargetBay.staffCount <= 0) {
       toast({
         title: "Cannot assign to bay",
         description: "This bay has no staff assigned. Please add staff first.",
@@ -3733,10 +3733,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       
       // Get the bay's base weekly capacity 
       // Handle null/undefined values safely
-      const hoursPerWeek = bay.hoursPerPersonPerWeek !== null && bay.hoursPerPersonPerWeek !== undefined 
-          ? bay.hoursPerPersonPerWeek : 40;
-      const staffCount = bay.staffCount !== null && bay.staffCount !== undefined 
-          ? bay.staffCount : 1;
+      const hoursPerWeek = exactTargetBay.hoursPerPersonPerWeek !== null && exactTargetBay.hoursPerPersonPerWeek !== undefined 
+          ? exactTargetBay.hoursPerPersonPerWeek : 40;
+      const staffCount = exactTargetBay.staffCount !== null && exactTargetBay.staffCount !== undefined 
+          ? exactTargetBay.staffCount : 1;
       const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
       
       // Find overlapping schedules in the same bay
