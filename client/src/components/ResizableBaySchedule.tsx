@@ -115,16 +115,34 @@ const getBayRowCount = (bayId: number, bayName: string): number => {
   // IMPORTANT: For Team 7 & 8, the bay NUMBER is the critical requirement
   // Bay number 7 and 8 must always have 20 rows regardless of name
   
+  // First, extract the bay number from the bay name if possible
+  let bayNumber = bayId;
+  
+  // If the bayId is negative (virtual bay), use the bay number from the bay name
+  if (bayId < 0 && bayName) {
+    // Extract the bay number from the name
+    const bayNumberMatch = bayName.match(/Bay (\d+)/);
+    if (bayNumberMatch && bayNumberMatch[1]) {
+      bayNumber = parseInt(bayNumberMatch[1], 10);
+    } else if (bayName.includes('TCV')) {
+      bayNumber = 7;
+    } else if (bayName === 'Line 8') {
+      bayNumber = 8;
+    }
+  }
+  
   // PRIORITY CHECK: Check if it's bay ID 7 or 8 
   // This ensures Team 7 and Team 8 always get 20 rows
-  if (bayId === 7 || bayId === 8) {
-    console.log(`Using 20 rows for bay ${bayId} (${bayName}) - mandatory 20 rows for bay numbers 7 & 8`);
+  if (bayNumber === 7 || bayNumber === 8) {
+    console.log(`Using 20 rows for bay ${bayNumber} (${bayName}) - mandatory 20 rows for bay numbers 7 & 8`);
     return 20;
   }
   
   // Secondary check by name (in case bay number changes but name format stays)
   if (bayName && 
-      (bayName.trim() === 'Team 7' || 
+      (bayName.includes('TCV') ||
+       bayName === 'Line 8' ||
+       bayName.trim() === 'Team 7' || 
        bayName.trim() === 'Team 8' || 
        bayName.trim() === 'Team7' || 
        bayName.trim() === 'Team8' ||
@@ -135,6 +153,7 @@ const getBayRowCount = (bayId: number, bayName: string): number => {
   }
   
   // Standard 4 rows for all other bays
+  console.log(`Using 4 rows for bay ${bayNumber} (${bayName}) - standard bay`);
   return 4;
 }
 
@@ -6474,9 +6493,28 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       e.currentTarget.classList.remove('row-target-highlight', 'row-1-target');
                     }}
                     onDrop={(e) => {
-                      // Set global row data attribute to row 1
-                      document.body.setAttribute('data-current-drag-row', '1');
-                      handleDrop(e, bay.id, 0, 1);
+                      // Calculate exact row position based on mouse Y coordinate
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const mouseY = e.clientY - rect.top;
+                      
+                      // Calculate row within the bay based on Y position
+                      const rowCount = getBayRowCount(bay.id, bay.name);
+                      const rowHeight = rect.height / rowCount;
+                      const exactRow = Math.floor(mouseY / rowHeight);
+                      
+                      // Convert to bay-relative row (offset by 1 since this is row 1 area)
+                      const baseRow = 1; // This is row 1 section
+                      const targetRow = Math.min(Math.max(baseRow, exactRow), rowCount - 1);
+                      
+                      console.log(`🎯 ROW 1 DROP HANDLER: Raw Y=${mouseY}px, Calculated exactRow=${exactRow}, Using row=${targetRow}`);
+                      
+                      // Set global row data attribute to the calculated row
+                      document.body.setAttribute('data-current-drag-row', targetRow.toString());
+                      document.body.setAttribute('data-forced-row-index', targetRow.toString());
+                      document.body.setAttribute('data-exact-row-from-y', targetRow.toString());
+                      
+                      // Call handleDrop with the calculated row
+                      handleDrop(e, bay.id, 0, targetRow);
                     }}
                   >
                     {/* Row number indicator */}
@@ -6611,9 +6649,28 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       e.currentTarget.classList.remove('row-target-highlight', 'row-2-target');
                     }}
                     onDrop={(e) => {
-                      // Set global row data attribute to row 2
-                      document.body.setAttribute('data-current-drag-row', '2');
-                      handleDrop(e, bay.id, 0, 2);
+                      // Calculate exact row position based on mouse Y coordinate
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const mouseY = e.clientY - rect.top;
+                      
+                      // Calculate row within the bay based on Y position
+                      const rowCount = getBayRowCount(bay.id, bay.name);
+                      const rowHeight = rect.height / rowCount;
+                      const exactRow = Math.floor(mouseY / rowHeight);
+                      
+                      // Convert to bay-relative row (offset by 2 since this is row 2 area)
+                      const baseRow = 2; // This is row 2 section
+                      const targetRow = Math.min(Math.max(baseRow, exactRow), rowCount - 1);
+                      
+                      console.log(`🎯 ROW 2 DROP HANDLER: Raw Y=${mouseY}px, Calculated exactRow=${exactRow}, Using row=${targetRow}`);
+                      
+                      // Set global row data attribute to the calculated row
+                      document.body.setAttribute('data-current-drag-row', targetRow.toString());
+                      document.body.setAttribute('data-forced-row-index', targetRow.toString());
+                      document.body.setAttribute('data-exact-row-from-y', targetRow.toString());
+                      
+                      // Call handleDrop with the calculated row
+                      handleDrop(e, bay.id, 0, targetRow);
                     }}
                   >
                     {/* Row action buttons - Made always visible at the divider */}
@@ -6749,9 +6806,28 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       e.currentTarget.classList.remove('row-target-highlight', 'row-3-target');
                     }}
                     onDrop={(e) => {
-                      // Set global row data attribute to row 3
-                      document.body.setAttribute('data-current-drag-row', '3');
-                      handleDrop(e, bay.id, 0, 3);
+                      // Calculate exact row position based on mouse Y coordinate
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const mouseY = e.clientY - rect.top;
+                      
+                      // Calculate row within the bay based on Y position
+                      const rowCount = getBayRowCount(bay.id, bay.name);
+                      const rowHeight = rect.height / rowCount;
+                      const exactRow = Math.floor(mouseY / rowHeight);
+                      
+                      // Convert to bay-relative row (offset by 3 since this is row 3 area)
+                      const baseRow = 3; // This is row 3 section
+                      const targetRow = Math.min(Math.max(baseRow, exactRow), rowCount - 1);
+                      
+                      console.log(`🎯 ROW 3 DROP HANDLER: Raw Y=${mouseY}px, Calculated exactRow=${exactRow}, Using row=${targetRow}`);
+                      
+                      // Set global row data attribute to the calculated row
+                      document.body.setAttribute('data-current-drag-row', targetRow.toString());
+                      document.body.setAttribute('data-forced-row-index', targetRow.toString());
+                      document.body.setAttribute('data-exact-row-from-y', targetRow.toString());
+                      
+                      // Call handleDrop with the calculated row
+                      handleDrop(e, bay.id, 0, targetRow);
                     }}
                   >
                     {/* Row action buttons - Made always visible at the divider */}
