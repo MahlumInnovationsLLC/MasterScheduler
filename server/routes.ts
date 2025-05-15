@@ -846,7 +846,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // PIXEL-PERFECT PLACEMENT: Absolutely critical logging
       console.log("🚨 SERVER UPDATE - EXACT ROW PLACEMENT: Using row =", finalRow);
       console.log("Row sources: forcedRowIndex =", forcedRowIndex, "rowIndex =", rowIndex, "row =", rowValue);
-      console.log("NO AUTO ROW ADJUSTMENT: Project will remain EXACTLY where it was dropped");
+      console.log("NO AUTO ROW ADJUSTMENT: Project will remain EXACTLY where user placed it");
+      console.log("CRITICAL POLICY: Implementing pixel-perfect positioning with ZERO automatic repositioning");
       
       // First get the original schedule to access the projectId
       const originalSchedule = await storage.getManufacturingSchedule(id);
