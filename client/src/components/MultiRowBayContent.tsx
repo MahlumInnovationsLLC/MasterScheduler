@@ -239,6 +239,27 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
       }
     }, 2000);
     
+    // CRITICAL MAY 2025 FIX: Add a global variable that will be accessible everywhere
+    // This ensures the absoluteRowPosition is available to all components
+    (window as any).absoluteRowPosition = exactRow;
+    
+    // Store in localStorage for maximum reliability
+    try {
+      localStorage.setItem('lastDropRowIndex', exactRow.toString());
+      localStorage.setItem('absoluteRowPosition', exactRow.toString());
+      localStorage.setItem('forcedRowIndex', exactRow.toString());
+    } catch (e) {
+      console.error('Failed to write to localStorage:', e);
+    }
+    
+    // Log all the values we're setting for debugging
+    console.log('🚨 CRITICAL ROW VALUES SET:');
+    console.log(`  - window.absoluteRowPosition = ${(window as any).absoluteRowPosition}`);
+    console.log(`  - localStorage.lastDropRowIndex = ${localStorage.getItem('lastDropRowIndex')}`);
+    console.log(`  - localStorage.absoluteRowPosition = ${localStorage.getItem('absoluteRowPosition')}`);
+    console.log(`  - localStorage.forcedRowIndex = ${localStorage.getItem('forcedRowIndex')}`);
+    console.log(`  - document.body data-forced-row-index = ${document.body.getAttribute('data-forced-row-index')}`);
+    
     // Call the parent component's drop handler with EXACT calculated row
     // This is THE critical parameter that ensures exact positioning
     if (weekIndex !== undefined) {
