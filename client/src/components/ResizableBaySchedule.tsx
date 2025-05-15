@@ -76,6 +76,10 @@ interface ManufacturingBay {
   teamId: number | null;
   createdAt: Date | null;
   updatedAt: Date | null;
+  // Team management properties
+  assemblyStaffCount: number | null;
+  electricalStaffCount: number | null;
+  hoursPerPersonPerWeek: number | null;
 }
 
 interface Project {
@@ -294,11 +298,25 @@ const BayCapacityInfo = ({ bay, allSchedules, projects, bays }: { bay: Manufactu
   const baySchedules = allSchedules.filter(s => s.bayId === bay.id);
   const activeProjects = baySchedules.length;
   
-  // Determine capacity status 
+  // Get staff capacity information
+  const assemblyStaff = bay.assemblyStaffCount || 0;
+  const electricalStaff = bay.electricalStaffCount || 0;
+  const hoursPerWeek = bay.hoursPerPersonPerWeek || 29; // Default to 29 hours/week if not set
+  
+  // Calculate total weekly capacity in hours
+  const totalStaff = assemblyStaff + electricalStaff;
+  const weeklyCapacity = totalStaff * hoursPerWeek;
+  
+  // Determine capacity status based on project count and staff capacity
   let capacityPercentage = 0;
   if (activeProjects > 0) {
-    // Calculate based on project count
-    capacityPercentage = Math.min(activeProjects * 50, 100); // 2+ projects = 100% capacity
+    if (weeklyCapacity > 0) {
+      // Calculate based on estimated project hours (40 hours per project) divided by staff capacity
+      capacityPercentage = Math.min(Math.round((activeProjects * 40) / weeklyCapacity * 100), 100);
+    } else {
+      // Fallback if no staff assigned
+      capacityPercentage = Math.min(activeProjects * 50, 100); // 2+ projects = 100% capacity
+    }
   }
   
   let statusText = 'Available';
@@ -315,18 +333,49 @@ const BayCapacityInfo = ({ bay, allSchedules, projects, bays }: { bay: Manufactu
     statusIcon = <Clock3 className="h-4 w-4 text-white" />;
   }
   
-  console.log(`Bay ${bay.name} at ${capacityPercentage}% capacity with ${activeProjects === 0 ? 'no projects' : activeProjects + ' project' + (activeProjects > 1 ? 's' : '')}`);
-  console.log(`Bay ${bay.name} final status: ${statusText} with ${activeProjects} active project${activeProjects !== 1 ? 's' : ''}`);
+  // Create tooltip content for staff capacity
+  const staffCapacityInfo = totalStaff > 0 
+    ? `${assemblyStaff} assembly + ${electricalStaff} electrical = ${totalStaff} staff (${hoursPerWeek} hrs/week)`
+    : 'No staff assigned';
   
   return (
     <div className="bay-capacity-info absolute right-2 top-2 flex items-center space-x-2">
-      <div className={`status-indicator ${statusBg} text-white text-xs px-2 py-0.5 rounded-full flex items-center`}>
-        {statusIcon}
-        <span className="ml-1">{statusText}</span>
-      </div>
-      <div className="project-count bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded-full">
-        {activeProjects} project{activeProjects !== 1 ? 's' : ''}
-      </div>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <div className={`status-indicator ${statusBg} text-white text-xs px-2 py-0.5 rounded-full flex items-center`}>
+              {statusIcon}
+              <span className="ml-1">{statusText}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="text-sm">
+              <p className="font-medium">Bay #{bay.bayNumber} - {bay.name}</p>
+              <p className="mt-1">Staff: {staffCapacityInfo}</p>
+              <p>Capacity: {capacityPercentage}%</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <div className="project-count bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded-full flex items-center">
+              <Zap className="h-3 w-3 mr-1" />
+              <span>{activeProjects} project{activeProjects !== 1 ? 's' : ''}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Projects assigned to this bay</p>
+            {weeklyCapacity > 0 && (
+              <p className="text-xs text-gray-400 mt-1">
+                Weekly capacity: {weeklyCapacity} hours
+              </p>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 };
