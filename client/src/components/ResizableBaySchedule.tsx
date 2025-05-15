@@ -177,7 +177,11 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
           label: format(current, format_string),
           sublabel: `${format(monday, 'MMM d')} - ${format(friday, 'MMM d')}`, // Always Monday-Friday
           isWeekend: false,
-          year: current.getFullYear() // Store year for year row
+          year: current.getFullYear(), // Store year for year row
+          // CRITICAL FIX: Store formatted start date for each week to be used for data attributes
+          formattedStartDate: format(monday, 'yyyy-MM-dd'), // This is the Monday of each week
+          exactWeekStartDate: monday, // Store the exact date object for the start of this week
+          exactWeekEndDate: friday // Store the exact date object for the end of this week
         });
         current = addDays(current, 7);
       }
@@ -5797,6 +5801,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           data-date={format(slot.date, 'yyyy-MM-dd')}
                           data-bay-id={bay.id}
                           data-row-index="1"
+                          data-start-date={slot.formattedStartDate || format(slot.date, 'yyyy-MM-dd')}
+                          data-exact-week="true"
                           onDragOver={(e) => {
                             // Prevent event from propagating to parent elements
                             e.stopPropagation();
