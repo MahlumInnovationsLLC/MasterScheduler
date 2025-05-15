@@ -3138,6 +3138,61 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     console.log(`⚠️ DROP DEBUG: handleDrop called with bayId=${bayId}, slotIndex=${slotIndex}, rowIndex=${rowIndex}`);
     
+    // Create a test marker to show exactly where the drop occurred
+    const dropMarker = document.createElement('div');
+    dropMarker.style.position = 'absolute';
+    dropMarker.style.left = `${e.clientX}px`;
+    dropMarker.style.top = `${e.clientY}px`;
+    dropMarker.style.width = '10px';
+    dropMarker.style.height = '10px';
+    dropMarker.style.borderRadius = '50%';
+    dropMarker.style.backgroundColor = 'red';
+    dropMarker.style.zIndex = '9999';
+    dropMarker.style.pointerEvents = 'none';
+    dropMarker.style.transform = 'translate(-50%, -50%)';
+    dropMarker.dataset.testId = 'drop-marker';
+    document.body.appendChild(dropMarker);
+    
+    // Create detailed info box
+    const infoBox = document.createElement('div');
+    infoBox.style.position = 'absolute';
+    infoBox.style.left = `${e.clientX + 15}px`;
+    infoBox.style.top = `${e.clientY + 15}px`;
+    infoBox.style.padding = '5px';
+    infoBox.style.backgroundColor = 'rgba(0,0,0,0.8)';
+    infoBox.style.color = 'white';
+    infoBox.style.borderRadius = '4px';
+    infoBox.style.fontSize = '12px';
+    infoBox.style.zIndex = '9999';
+    infoBox.style.pointerEvents = 'none';
+    infoBox.style.maxWidth = '300px';
+    infoBox.textContent = `DROP POSITION: Bay ${bayId}, Row ${rowIndex}`;
+    infoBox.dataset.testId = 'drop-info';
+    document.body.appendChild(infoBox);
+    
+    // Log the exact event data for debugging
+    console.log(`🎯 TEST DROP EVENT DATA:
+      - clientX: ${e.clientX}px, clientY: ${e.clientY}px
+      - Bay ID: ${bayId}
+      - Row Index: ${rowIndex}
+      - Target Element: ${e.target instanceof HTMLElement ? e.target.tagName : 'Unknown'}
+      - Current Target: ${e.currentTarget instanceof HTMLElement ? e.currentTarget.tagName : 'Unknown'}
+    `);
+    
+    // Set a test attribute on document body for visual confirmation
+    document.body.setAttribute('data-test-last-drop-bay', bayId.toString());
+    document.body.setAttribute('data-test-last-drop-row', rowIndex.toString());
+    
+    // Remove markers after 3 seconds
+    setTimeout(() => {
+      if (document.body.contains(dropMarker)) {
+        document.body.removeChild(dropMarker);
+      }
+      if (document.body.contains(infoBox)) {
+        document.body.removeChild(infoBox);
+      }
+    }, 3000);
+    
     // Exit early if no container
     if (!timelineContainerRef.current) {
       console.error("Timeline container ref not available!");
@@ -4382,9 +4437,58 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           
           // Find the target bay to show proper bay number in toast
           const targetBayInfo = bays.find(b => b.id === finalBayId);
+          
+          // Verify the row position in the saved data vs what we requested
+          const resultData = result?.data;
+          const verificationInfo = {
+            requestedRow: rowIndexToUse,
+            savedRow: resultData?.row ?? 'unknown',
+            matchStatus: resultData?.row == rowIndexToUse ? '✅ EXACT MATCH' : '❌ MISMATCH',
+            bayId: finalBayId,
+            projectId: data.projectId,
+            projectNumber: data.projectNumber
+          };
+          
+          // Log verification data
+          console.log(`🧪 ROW POSITION VERIFICATION:`, verificationInfo);
+          console.log(`🧪 API RESULT:`, result);
+          
+          // Create a verification banner for visual confirmation
+          const banner = document.createElement('div');
+          banner.style.position = 'fixed';
+          banner.style.top = '10px';
+          banner.style.left = '50%';
+          banner.style.transform = 'translateX(-50%)';
+          banner.style.padding = '10px 20px';
+          banner.style.backgroundColor = resultData?.row == rowIndexToUse ? 'rgba(0,180,0,0.9)' : 'rgba(180,0,0,0.9)';
+          banner.style.color = 'white';
+          banner.style.borderRadius = '4px';
+          banner.style.fontWeight = 'bold';
+          banner.style.zIndex = '9999';
+          banner.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+          banner.innerHTML = `
+            <div style="font-size:14px; margin-bottom:5px; text-align:center;">
+              ${resultData?.row == rowIndexToUse ? '✅ ROW POSITION EXACT MATCH' : '❌ ROW POSITION MISMATCH'}
+            </div>
+            <div style="font-size:12px;">
+              Project: ${data.projectNumber}<br>
+              Requested Row: ${rowIndexToUse}<br>
+              Actual Saved Row: ${resultData?.row ?? 'unknown'}<br>
+              Bay: ${targetBayInfo?.name || 'Unknown'}
+            </div>
+          `;
+          document.body.appendChild(banner);
+          
+          // Remove verification banner after 5 seconds
+          setTimeout(() => {
+            if (document.body.contains(banner)) {
+              document.body.removeChild(banner);
+            }
+          }, 5000);
+          
           toast({
             title: "Schedule Updated",
-            description: `${data.projectNumber} moved to Bay ${targetBayInfo?.bayNumber || bay.bayNumber}`,
+            description: `${data.projectNumber} moved to Bay ${targetBayInfo?.bayNumber || bay.bayNumber}, Row ${resultData?.row ?? rowIndexToUse}`,
           });
           
           // Force data refresh without full page reload
