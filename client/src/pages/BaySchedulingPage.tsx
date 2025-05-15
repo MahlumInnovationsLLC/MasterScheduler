@@ -33,6 +33,8 @@ import { AIInsightsModal } from '@/components/AIInsightsModal';
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
 import BaySchedulingImport from '@/components/BaySchedulingImport';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import { TeamManagementButton } from '@/components/TeamManagementButton';
+import { TeamCapacityInfo } from '@/components/TeamCapacityInfo';
 // RowPositionTester removed as requested
 import { 
   ManufacturingBay, 
