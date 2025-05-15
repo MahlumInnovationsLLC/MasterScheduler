@@ -1546,8 +1546,17 @@ export default function ResizableBaySchedule({
             {bayTeams.map((team, teamIndex) => (
               <div key={`team-${teamIndex}`} className="team-container mb-5 relative">
                 <div className="team-header bg-gray-800 text-white py-2 px-3 rounded-md mb-2 flex justify-between items-center shadow-sm">
-                  <div className="team-name font-medium">
-                    Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}
+                  <div className="flex items-center gap-2">
+                    <div className="team-name font-medium">
+                      {/* Use the first bay's team name if available, otherwise use a default name */}
+                      {team[0].team || `Team ${teamIndex + 1}`}: {team.map(b => b.name).join(' & ')}
+                    </div>
+                    
+                    {/* Add team management button */}
+                    <TeamManagementButton 
+                      teamName={team[0].team || `Team ${teamIndex + 1}`}
+                      bays={bays}
+                    />
                   </div>
                   
                   {/* Bay status indicators for this team */}
@@ -1611,30 +1620,53 @@ export default function ResizableBaySchedule({
                             </span>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Number of projects assigned to this team</p>
+                        <TooltipContent className="w-64 p-0">
+                          <TeamCapacityInfo 
+                            teamName={team[0].team || `Team ${teamIndex + 1}`} 
+                            bays={bays} 
+                            schedules={schedules} 
+                          />
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                     
+                    {/* Calculate actual utilization based on staff capacity */}
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger>
                           <div className="utilization-indicator flex items-center text-xs bg-green-900 text-green-100 px-2 py-0.5 rounded-full">
                             <Zap className="h-3 w-3 mr-1" />
                             <span>
-                              {Math.min(
-                                Math.round(
-                                  (scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length / 
-                                  (team.length * 2)) * 100
-                                ), 
-                                100
-                              )}% utilization
+                              {(() => {
+                                // Get team bays
+                                const teamBays = bays.filter(bay => bay.team === team[0].team || (team[0].team === null && team.some(t => t.id === bay.id)));
+                                
+                                // Calculate staff capacity with 29 hours/week default
+                                const assemblyStaff = teamBays.reduce((sum, bay) => sum + (bay.assemblyStaffCount || 0), 0);
+                                const electricalStaff = teamBays.reduce((sum, bay) => sum + (bay.electricalStaffCount || 0), 0);
+                                const totalStaff = assemblyStaff + electricalStaff;
+                                
+                                // Calculate hours per week (use default 29 if not set)
+                                const hoursPerWeek = teamBays.length > 0 ? (teamBays[0].hoursPerPersonPerWeek || 29) : 29;
+                                
+                                // Calculate weekly capacity
+                                const weeklyCapacity = totalStaff * hoursPerWeek;
+                                
+                                // Get active projects count
+                                const projectCount = scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length;
+                                
+                                // Calculate simplified utilization (projects / capacity)
+                                const utilization = weeklyCapacity > 0 
+                                  ? Math.min(100, Math.round((projectCount * 40) / weeklyCapacity * 100)) 
+                                  : 0;
+                                  
+                                return `${utilization}% utilization`;
+                              })()}
                             </span>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Team utilization percentage</p>
+                          <p>Team utilization based on staff capacity</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
