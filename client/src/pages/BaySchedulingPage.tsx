@@ -33,7 +33,7 @@ import { AIInsightsModal } from '@/components/AIInsightsModal';
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
 import BaySchedulingImport from '@/components/BaySchedulingImport';
 import LoadingOverlay from '@/components/LoadingOverlay';
-import RowPositionTester from '@/components/RowPositionTester';
+// RowPositionTester removed as requested
 import { 
   ManufacturingBay, 
   ManufacturingSchedule, 
@@ -823,40 +823,7 @@ const BaySchedulingPage = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                createBayMutation.mutate({
-                  name: "Team 7",
-                  bayNumber: 207,
-                  staffCount: 10,
-                  assemblyStaffCount: 8,
-                  electricalStaffCount: 2,
-                  hoursPerPersonPerWeek: 40,
-                  isActive: true
-                });
-              }}
-            >
-              Create Team 7
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                createBayMutation.mutate({
-                  name: "Team 8",
-                  bayNumber: 208,
-                  staffCount: 10,
-                  assemblyStaffCount: 8,
-                  electricalStaffCount: 2,
-                  hoursPerPersonPerWeek: 40,
-                  isActive: true
-                });
-              }}
-            >
-              Create Team 8
-            </Button>
+            {/* Team 7 and Team 8 buttons removed as requested */}
           </div>
         </div>
       </div>
@@ -1035,11 +1002,7 @@ const BaySchedulingPage = () => {
           <h2 className="text-lg font-semibold">Manufacturing Schedule</h2>
         </div>
         <div className="p-4 overflow-x-auto">
-          {/* Row Position Testing Tool */}
-          <RowPositionTester 
-            schedules={manufacturingSchedules} 
-            onScheduleChange={handleScheduleChange}
-          />
+          {/* Row Position Testing Tool removed as requested */}
           
           <ResizableBaySchedule
             schedules={manufacturingSchedules}

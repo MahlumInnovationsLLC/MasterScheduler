@@ -18,32 +18,32 @@
   --danger: 341 100% 50%;
 }
 
-/* Dark theme (default) */
+/* Dark theme (default) - Improved contrast for better visibility */
 .dark {
-  --background: 240 10% 3.9%;
+  --background: 240 10% 10%; /* Lightened background for better visibility */
   --foreground: 0 0% 98%;
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  --popover: 240 10% 3.9%;
+  --muted: 240 3.7% 20%; /* Lightened muted for better contrast */
+  --muted-foreground: 240 5% 80%; /* Brightened muted foreground for better contrast */
+  --popover: 240 10% 10%; /* Lightened popover to match background */
   --popover-foreground: 0 0% 98%;
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --primary: 217 90% 60%;
+  --card: 240 10% 12%; /* Lightened card background for better contrast */
+  --card-foreground: 0 0% 100%; /* Pure white text for better readability */
+  --border: 240 3.7% 25%; /* Brightened border for better visibility */
+  --input: 240 3.7% 20%; /* Brightened input for better visibility */
+  --primary: 217 90% 65%; /* Brightened primary color */
   --primary-foreground: 211 100% 99%;
-  --secondary: 199 89% 62%;
+  --secondary: 199 89% 70%; /* Brightened secondary color */
   --secondary-foreground: 0 0% 98%;
-  --accent: 270 74% 57%;
+  --accent: 270 74% 65%; /* Brightened accent color */
   --accent-foreground: 0 0% 98%;
   --destructive: 341 100% 50%;
   --destructive-foreground: 0 0% 98%;
   --ring: 240 4.9% 83.9%;
 
-  /* Custom dark theme colors */
-  --darkBg: 0 0% 7%;
-  --darkCard: 0 0% 12%;
-  --darkInput: 0 0% 18%;
+  /* Custom dark theme colors - improved for visibility */
+  --darkBg: 0 0% 12%; /* Lightened dark background */
+  --darkCard: 0 0% 18%; /* Lightened dark card */
+  --darkInput: 0 0% 22%; /* Lightened dark input */
 
   /* Sidebar colors */
   --sidebar-background: var(--background);
