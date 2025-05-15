@@ -547,14 +547,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       // Calculate viewport width in days
       const viewportDays = differenceInDays(viewportEnd, viewportStart);
       
-      // Use the ref directly - no need for a separate variable
-      // const timelineContainer = timelineContainerRef.current;
+      // Use the ref directly
       if (!timelineContainerRef.current) {
         console.error("Timeline container not found");
         return {};
       }
       
-      const timelineWidth = timelineContainer.clientWidth;
+      // Get timeline width from the ref directly
+      const timelineWidth = timelineContainerRef.current.clientWidth;
       
       // Calculate pixels per day
       const pixelsPerDay = timelineWidth / viewportDays;
@@ -3177,7 +3177,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     });
     
     // ── NEW: PIXEL-PERFECT DROP PLACEMENT ────────────────────────────────────
-    if (!timelineContainer) {
+    if (!timelineContainerRef.current) {
       console.error("Timeline container ref not available!");
       return;
     }
@@ -3198,7 +3198,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     }
     
     // 1) Get container bounds
-    const containerRect = timelineContainer.getBoundingClientRect();
+    const containerRect = timelineContainerRef.current.getBoundingClientRect();
     
     // 2) Raw mouse position inside container
     const rawX = e.clientX - containerRect.left;
