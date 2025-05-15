@@ -3844,6 +3844,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // Log the exact row placement for verification
         console.log(`💯 FORCING EXACT ROW PLACEMENT: ${finalRowIndex}`);
         
+        // ADD DROP DEBUG LOGS
+        console.log(`🚨 DROP DEBUG - SENDING TO API:
+          - Schedule ID: ${data.id}
+          - Bay ID: ${finalBayId}
+          - Start Date: ${startDateToUse}
+          - End Date: ${formattedFinalEndDate}
+          - Total Hours: ${data.totalHours !== null ? Number(data.totalHours) : 1000}
+          - ROW INDEX: ${finalRowIndex} <-- CRITICAL PARAMETER
+        `);
+        
+        // Add additional backup attribute to document to force row (highest priority override)
+        document.body.setAttribute('data-forced-row-index', finalRowIndex.toString());
+        
         // Go back to using the provided handler function
         // to avoid breaking changes in the component interface
         onScheduleChange(

@@ -256,18 +256,27 @@ const BaySchedulingPage = () => {
   
   // Mutations for schedules
   const updateScheduleMutation = useMutation({
-    mutationFn: async ({ scheduleId, bayId, startDate, endDate, totalHours, row }: { 
+    mutationFn: async ({ scheduleId, bayId, startDate, endDate, totalHours, row, forcedRowIndex }: { 
       scheduleId: number, 
       bayId: number, 
       startDate: string, 
       endDate: string, 
       totalHours?: number,
-      row?: number
+      row?: number,
+      forcedRowIndex?: number  // Add forcedRowIndex to type interface
     }) => {
       const response = await fetch(`/api/manufacturing-schedules/${scheduleId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bayId, startDate, endDate, totalHours, row }),
+        body: JSON.stringify({ 
+          bayId, 
+          startDate, 
+          endDate, 
+          totalHours, 
+          row,                  // Original row param 
+          rowIndex: row,        // Include rowIndex to be sure
+          forcedRowIndex        // Add the forcedRowIndex parameter with highest priority
+        }),
       });
       
       if (!response.ok) {
@@ -290,13 +299,15 @@ const BaySchedulingPage = () => {
   });
   
   const createScheduleMutation = useMutation({
-    mutationFn: async ({ projectId, bayId, startDate, endDate, totalHours, row }: { 
+    mutationFn: async ({ projectId, bayId, startDate, endDate, totalHours, row, rowIndex, forcedRowIndex }: { 
       projectId: number, 
       bayId: number, 
       startDate: string, 
       endDate: string, 
       totalHours?: number,
-      row?: number 
+      row?: number,
+      rowIndex?: number,
+      forcedRowIndex?: number
     }) => {
       const response = await fetch('/api/manufacturing-schedules', {
         method: 'POST',
@@ -386,14 +397,29 @@ const BaySchedulingPage = () => {
         queryClient.setQueryData(['/api/manufacturing-schedules'], optimisticData);
       }
       
-      // Perform the actual API update
+      // Check if a forced row index is set in the DOM (highest priority)
+      const forcedRowIndexAttr = document.body.getAttribute('data-forced-row-index');
+      const forcedRowIndex = forcedRowIndexAttr ? parseInt(forcedRowIndexAttr) : undefined;
+      
+      // Use the forced row with highest priority, then fall back to the passed rowIndex
+      const finalRowIndex = forcedRowIndex !== undefined ? forcedRowIndex : rowIndex;
+      
+      // Log the exact row being sent to the API
+      console.log(`🚨 API CALL DEBUG - Row parameter:
+        - Row from data-forced-row-index: ${forcedRowIndex}
+        - Row from function parameter: ${rowIndex}
+        - FINAL ROW BEING SENT: ${finalRowIndex}
+      `);
+      
+      // Perform the actual API update with guaranteed row value
       const result = await updateScheduleMutation.mutateAsync({
         scheduleId,
         bayId: newBayId,
         startDate: newStartDate,
         endDate: newEndDate,
         totalHours,
-        row: rowIndex
+        row: finalRowIndex,            // Use final calculated row
+        forcedRowIndex: finalRowIndex  // Add forcedRowIndex as highest priority signal
       });
       
       // No need to invalidate, just refresh the query silently
@@ -476,17 +502,32 @@ const BaySchedulingPage = () => {
         );
       }
       
+      // Check for forced row in DOM attributes with highest priority
+      const forcedRowIndexAttr = document.body.getAttribute('data-forced-row-index');
+      const forcedRowIndex = forcedRowIndexAttr ? parseInt(forcedRowIndexAttr) : undefined;
+      
+      // Use the forced row with highest priority, then fall back to the passed rowIndex
+      const finalRowIndex = forcedRowIndex !== undefined ? forcedRowIndex : rowIndex;
+      
+      // Log the exact row being sent to the API for creation
+      console.log(`🚨 CRITICAL CREATE DEBUG - Row parameter:
+        - Row from data-forced-row-index: ${forcedRowIndex}
+        - Row from function parameter: ${rowIndex}
+        - FINAL ROW BEING SENT: ${finalRowIndex}
+      `);
+      
       // Perform the actual API request
-      // CRITICAL FIX: Ensure row is explicitly set to the rowIndex and passed with highest priority
-      console.log(`🚨 EXACT ROW PLACEMENT: Forcing row=${rowIndex} for projectId=${projectId} in bayId=${bayId}`);
+      // CRITICAL FIX: Ensure row is explicitly set to the finalRowIndex and passed with highest priority
+      console.log(`🚨 EXACT ROW PLACEMENT: Forcing row=${finalRowIndex} for projectId=${projectId} in bayId=${bayId}`);
       await createScheduleMutation.mutateAsync({
         projectId,
         bayId,
         startDate,
         endDate,
         totalHours,
-        row: rowIndex,
-        rowIndex: rowIndex // Include both for absolute certainty
+        row: finalRowIndex,
+        rowIndex: finalRowIndex, // Include both for absolute certainty
+        forcedRowIndex: finalRowIndex // Add highest priority signal
       });
       
       return true;
