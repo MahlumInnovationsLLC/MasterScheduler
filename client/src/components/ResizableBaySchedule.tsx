@@ -4639,13 +4639,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         description: "Failed to process schedule. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      // Reset states and clear the global variables after use
+      setDropTarget(null);
+      setDraggingSchedule(null);
+      // Clear the global date variable we set during drag operations
+      (window as any).lastExactDate = null;
     }
-    
-    // Reset states and clear the global variables after use
-    setDropTarget(null);
-    setDraggingSchedule(null);
-    // Clear the global date variable we set during drag operations
-    (window as any).lastExactDate = null;
   };
   
   // Update state after edits
