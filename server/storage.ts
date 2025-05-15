@@ -799,20 +799,42 @@ export class DatabaseStorage implements IStorage {
   async createManufacturingSchedule(schedule: InsertManufacturingSchedule): Promise<ManufacturingSchedule> {
     try {
       // CRITICAL FIX: Force exact row placement at all times
-      // Get highest priority row value (rowIndex > row > default)
+      // Get highest priority row value (forcedRowIndex > rowIndex > row > default)
+      const forcedRowIndex = schedule.forcedRowIndex !== undefined ? parseInt(String(schedule.forcedRowIndex)) : undefined;
       const rowIndex = schedule.rowIndex !== undefined ? parseInt(String(schedule.rowIndex)) : undefined;
       const row = schedule.row !== undefined ? parseInt(String(schedule.row)) : undefined;
       
+      // Check for exactPosition flag - this means client wants ABSOLUTE positioning
+      const exactPosition = !!schedule.exactPosition;
+      
+      // When exactPosition is true, we MUST respect the exact row without any adjustments
+      if (exactPosition) {
+        console.log(`⚠️ EXACT POSITION FLAG: User has requested ZERO adjustments`);
+        console.log(`⚠️ NO AUTO CHECKS: Using exact row position with NO bounds checking`);
+      }
+      
       // Determine row value with strict priority and NO AUTO ADJUSTMENT
-      const finalRow = rowIndex !== undefined ? rowIndex :
+      const finalRow = forcedRowIndex !== undefined ? forcedRowIndex :
+                       rowIndex !== undefined ? rowIndex :
                        row !== undefined ? row : 
                        0; // Last resort default is row 0
+      
+      console.log(`🔴 ROW SELECTION FOR NEW SCHEDULE:
+        - forcedRowIndex: ${forcedRowIndex}
+        - rowIndex: ${rowIndex}
+        - row: ${row}
+        - exactPosition: ${exactPosition}
+        - FINAL ROW: ${finalRow}
+      `);
       
       const scheduleWithRows = {
         ...schedule,
         // MANDATORY: Force both row fields to be EXACTLY the same precise value 
         row: finalRow,
-        rowIndex: finalRow
+        rowIndex: finalRow,
+        // Clear these special fields to avoid confusion later
+        forcedRowIndex: undefined,
+        exactPosition: undefined
       };
       
       console.log(`🚨 FINAL MANDATORY ROW: Will use ROW=${scheduleWithRows.row}, ROWINDEX=${scheduleWithRows.rowIndex}`);
@@ -832,15 +854,29 @@ export class DatabaseStorage implements IStorage {
   async updateManufacturingSchedule(id: number, schedule: Partial<InsertManufacturingSchedule>): Promise<ManufacturingSchedule | undefined> {
     try {
       // CRITICAL FIX: Force exact row placement at all times when updating
-      // Get highest priority row value (rowIndex > row)
+      // Get highest priority row value (forcedRowIndex > rowIndex > row)
+      // The forcedRowIndex parameter indicates the client is DEMANDING exact positioning
+      // Use type casting to handle extended properties not in schema
+      const forcedRowIndex = (schedule as any).forcedRowIndex !== undefined ? 
+        parseInt(String((schedule as any).forcedRowIndex)) : undefined;
       const rowIndex = schedule.rowIndex !== undefined ? parseInt(String(schedule.rowIndex)) : undefined;
       const row = schedule.row !== undefined ? parseInt(String(schedule.row)) : undefined;
       
+      // Check for exactPosition flag - this means client wants ABSOLUTE positioning
+      const exactPosition = !!schedule.exactPosition;
+      
+      // When exactPosition is true, we MUST respect the exact row without any adjustments
+      if (exactPosition) {
+        console.log(`⚠️ EXACT POSITION FLAG: User has requested ZERO adjustments`);
+        console.log(`⚠️ NO AUTO CHECKS: Using exact row position with NO bounds checking`);
+      }
+      
       // Only process row changes if at least one of the row fields is provided
-      const hasRowUpdate = rowIndex !== undefined || row !== undefined;
+      const hasRowUpdate = forcedRowIndex !== undefined || rowIndex !== undefined || row !== undefined;
       
       // Determine row value with strict priority and NO AUTO ADJUSTMENT
       const finalRow = hasRowUpdate ? (
+        forcedRowIndex !== undefined ? forcedRowIndex :
         rowIndex !== undefined ? rowIndex :
         row // row is definitely defined here if hasRowUpdate is true
       ) : undefined;
@@ -853,7 +889,9 @@ export class DatabaseStorage implements IStorage {
         ...(finalRow !== undefined ? {
           // MANDATORY: Force both row fields to be EXACTLY the same precise value
           row: finalRow,
-          rowIndex: finalRow
+          rowIndex: finalRow,
+          forcedRowIndex: undefined, // Clear this after use to avoid confusion later
+          exactPosition: undefined   // Clear this after use to avoid confusion later
         } : {})
       };
       

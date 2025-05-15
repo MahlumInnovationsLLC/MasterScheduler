@@ -3601,9 +3601,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
             startDate: formattedStartDate, // DIRECT from coordinate calculation 
             endDate: formattedEndDate, // Calculated directly from our exact start date
             totalHours,
-            // CRITICAL FIX: Use multiple row parameters to ensure server respects placement
+            // CRITICAL FIX: Use EXACT coordinates with NO BOUNDS CHECKING WHATSOEVER
+            // FORCE exact row placement with absolute precision
             row: targetRowIndex,
             rowIndex: targetRowIndex,
+            // Add these extra parameters to absolutely guarantee no bounds checking is applied
+            forcedRowIndex: targetRowIndex,
+            exactPosition: true,
             // Additional fields to ensure all necessary data is sent
             projectId: data.projectId,
             status: data.status || 'scheduled'
