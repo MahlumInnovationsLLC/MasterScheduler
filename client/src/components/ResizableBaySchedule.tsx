@@ -6238,66 +6238,42 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     rowCount={getBayRowCount(bay.id, bay.name)}
                   />
                 ) : (
-                  // Standard 4-row layout for other bays
+                  // NEW SIMPLIFIED SINGLE-ROW LAYOUT - EACH BAY IS ONE ROW
                   <div className="absolute inset-0 flex flex-col">
-                  {/* Row 1 */}
+                  {/* Single row per bay - simplified drop zone */}
                   <div 
-                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
+                    className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
                     onDragOver={(e) => {
-                      // Add strong visual indicator for this row
-                      e.currentTarget.classList.add('row-target-highlight', 'row-0-target');
+                      // Add strong visual indicator for this bay's single row
+                      e.currentTarget.classList.add('row-target-highlight', 'bay-highlight');
+                      // Always use row 0 for consistent placement
                       handleDragOver(e, bay.id, 0, 0);
                     }}
                     onDragLeave={(e) => {
-                      // Remove the highlight when leaving this row
-                      e.currentTarget.classList.remove('row-target-highlight', 'row-0-target');
+                      // Remove the highlight when leaving this bay
+                      e.currentTarget.classList.remove('row-target-highlight', 'bay-highlight');
                     }}
                     onDrop={(e) => {
-                      // Calculate exact row position based on mouse Y coordinate
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const mouseY = e.clientY - rect.top;
+                      // In the simplified single-row model, we're always using row 0
+                      // This is a complete redesign where each bay is ONE row
                       
-                      // Calculate row within the bay based on Y position
-                      const rowCount = getBayRowCount(bay.id, bay.name);
-                      const rowHeight = rect.height / rowCount;
-                      const exactRow = Math.floor(mouseY / rowHeight);
+                      // Logging for debugging
+                      console.log(`🎮 SIMPLIFIED SINGLE-ROW DROP HANDLER: BAY ${bay.id} (${bay.name})`);
+                      console.log(`🎮 Using single-row layout - always placing in row 0`);
                       
-                      // We want to use the exact pixel position for absolute precision
-                      // This should always use the exact mouse Y position with no constraints
-                      const targetRow = Math.min(Math.max(0, exactRow), rowCount - 1);
+                      // Always use row 0 in the simplified model
+                      const targetRow = 0;
                       
-                      console.log(`🎮 PIXEL-PERFECT DROP HANDLER: ROW 0 AREA`);
-                      console.log(`🎮 Raw Mouse Y: ${mouseY}px from top of container`);
-                      console.log(`🎮 Container Height: ${rect.height}px, Row Height: ${rowHeight}px`);
-                      console.log(`🎮 Bay ${bay.id} has ${rowCount} rows (max index: ${rowCount - 1})`);
-                      console.log(`🎮 Calculated Row from Y-Position: ${exactRow}`);
-                      console.log(`🎮 Final Target Row: ${targetRow}`);
-                      
-                      // Set ALL possible row data attributes for maximum redundancy
-                      const rowAttributes = [
-                        'data-current-drag-row',
-                        'data-forced-row-index',
-                        'data-exact-row-from-y',
-                        'data-absolute-row-index',
-                        'data-y-position-row',
-                        'data-exact-pixel-row',
-                        'data-precision-drop-row',
-                        'data-direct-calculation-row',
-                        'data-target-row-index',
-                        'data-force-exact-row'
-                      ];
-                      
-                      // Set all attributes to the same value for maximum consistency
-                      rowAttributes.forEach(attr => {
-                        document.body.setAttribute(attr, targetRow.toString());
-                      });
+                      // In the single-row model, we only need one data attribute 
+                      // The row is always fixed at 0 in our new model
+                      document.body.setAttribute('data-single-row-drop', '0');
                       
                       // Add visual indicator for debugging
                       const indicator = document.createElement('div');
                       indicator.className = 'absolute bg-green-500/30 border border-green-500 px-2 py-1 text-xs font-bold text-white z-50';
-                      indicator.style.top = `${mouseY}px`;
+                      indicator.style.top = '5px';  // Position at top of bay since we're using single row
                       indicator.style.left = '5px';
-                      indicator.textContent = `Row ${targetRow}`;
+                      indicator.textContent = `Bay ${bay.id} - Single Row Layout`;
                       e.currentTarget.appendChild(indicator);
                       
                       // Remove indicator after 2 seconds
