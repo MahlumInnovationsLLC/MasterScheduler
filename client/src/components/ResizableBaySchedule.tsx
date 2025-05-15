@@ -1073,48 +1073,20 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const startDate = new Date(schedule.startDate);
         const endDate = new Date(schedule.endDate);
         
-        // CRITICAL FIX: RESPECT THE ROW FROM DATABASE
-        // Check if the schedule has a row value in the database, and use it directly
-        let assignedRow = typeof schedule.row === 'number' ? schedule.row : -1;
+        // ⚠️ MAY 2025 CRITICAL FIX: FORCED ROW ASSIGNMENT
+        // ⚠️ COMPLETE ELIMINATION OF ALL COLLISION DETECTION AND OVERLAP LOGIC
+        // ⚠️ Projects will be placed EXACTLY where dropped - NO ADJUSTMENTS OF ANY KIND
         
-        // Only use automatic row assignment if no row is specified in the database
-        if (assignedRow === -1) {
-          // FIXED: Check for time-based overlaps in each row
-          // This allows adding a project in the same row AFTER another project has ended
-          for (let row = 0; row < 4; row++) { // Check first 4 rows first (visual rows)
-            // CRITICAL FIX: Check if this row is available for this time period by checking against all processed bars
-            // We specifically check if projects DON'T overlap in time (one ends before the other starts)
-            const barsInSameRow = processedBars.filter(bar => 
-              bar.row === row && 
-              bar.bayId === bayId
-            );
-            
-            // If no bars in this row, it's completely free
-            if (barsInSameRow.length === 0) {
-              assignedRow = row;
-              break;
-            }
-            
-            // Check if the new schedule would overlap with any existing bars in this row
-            const hasOverlap = barsInSameRow.some(bar => {
-              // No overlap if new schedule starts after existing bar ends OR ends before existing bar starts
-              const noOverlap = startDate >= bar.endDate || endDate <= bar.startDate;
-              return !noOverlap; // We want to check for overlap, so invert the condition
-            });
-            
-            // If there's no overlap with any bars in this row, we can use it
-            if (!hasOverlap) {
-              assignedRow = row;
-              break;
-            }
-          }
-          
-          // If all rows have overlapping projects, find the row with least overlap
-          if (assignedRow === -1) {
-            // Default to row 0 if we can't find a better option
-            assignedRow = 0;
-          }
-        }
+        // Get the row directly from the database and use it with ZERO adjustment
+        let assignedRow = typeof schedule.row === 'number' ? schedule.row : 0;
+        
+        // CRITICAL: Log with extreme visibility that we are NOT checking for overlaps
+        console.log(`⚠️⚠️⚠️ COLLISION DETECTION COMPLETELY DISABLED FOR PROJECT ${schedule.id}`);
+        console.log(`⚠️⚠️⚠️ USING EXACT ROW ${assignedRow} WITH NO OVERLAP CHECKING`);
+        console.log(`⚠️⚠️⚠️ PROJECTS MAY VISUALLY OVERLAP - THIS IS INTENTIONAL PER USER REQUEST`);
+        
+        // No collision detection - will place projects exactly where specified
+        // Projects may overlap visually - this is intentional per user request
         
         // CRITICAL FIX: DO NOT ADJUST ROW VALUE - keep exactly as specified in database
         // Remove all boundary checking that would force projects into different rows
