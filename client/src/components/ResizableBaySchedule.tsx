@@ -2390,13 +2390,24 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       });
       
       // Clear any data attributes used for highlighting
-      document.querySelectorAll('[data-active-drop-target="true"]').forEach(el => {
-        el.removeAttribute('data-active-drop-target');
-      });
-      
-      document.querySelectorAll('[data-active-row]').forEach(el => {
-        el.removeAttribute('data-active-row');
-      });
+      try {
+        // Use optional chaining and null checks to avoid DOM exceptions
+        const dropTargets = document.querySelectorAll('[data-active-drop-target="true"]');
+        if (dropTargets?.length) {
+          dropTargets.forEach(el => {
+            if (el) el.removeAttribute('data-active-drop-target');
+          });
+        }
+        
+        const activeRows = document.querySelectorAll('[data-active-row]');
+        if (activeRows?.length) {
+          activeRows.forEach(el => {
+            if (el) el.removeAttribute('data-active-row');
+          });
+        }
+      } catch (e) {
+        console.warn('Safely handled attribute cleanup:', e);
+      }
     } catch (error) {
       console.error('Error cleaning up highlight classes in drag over:', error);
     }
