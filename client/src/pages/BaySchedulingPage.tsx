@@ -749,6 +749,11 @@ const BaySchedulingPage = () => {
         break;
     }
     
+    // Make sure end date is never before our minimum end date
+    if (end < minEndDate) {
+      end = minEndDate;
+    }
+    
     // Update state with new date range
     setDateRange({ start: startDate, end });
     

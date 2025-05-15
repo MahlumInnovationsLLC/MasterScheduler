@@ -349,7 +349,7 @@ export default function ResizableBaySchedule({
   const [scheduleDuration, setScheduleDuration] = useState(4); // in weeks
   const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [slotWidth, setSlotWidth] = useState(40); // Doubled width for better visibility
+  const [slotWidth, setSlotWidth] = useState(56); // Perfectly match header width (each week is 56*7 = 392px)
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [showAddMultipleWarning, setShowAddMultipleWarning] = useState(false);
