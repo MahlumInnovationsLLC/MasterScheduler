@@ -1035,6 +1035,12 @@ const BaySchedulingPage = () => {
           <h2 className="text-lg font-semibold">Manufacturing Schedule</h2>
         </div>
         <div className="p-4 overflow-x-auto">
+          {/* Row Position Testing Tool */}
+          <RowPositionTester 
+            schedules={manufacturingSchedules} 
+            onScheduleChange={handleScheduleChange}
+          />
+          
           <ResizableBaySchedule
             schedules={manufacturingSchedules}
             projects={projects}
