@@ -814,31 +814,32 @@ export class DatabaseStorage implements IStorage {
       const exactPositionFlag = !!scheduleExtras.exactPosition;
       
       // When exactPosition is true, we MUST respect the exact row without any adjustments
-      if (exactPosition) {
+      if (exactPositionFlag) {
         console.log(`⚠️ EXACT POSITION FLAG: User has requested ZERO adjustments`);
         console.log(`⚠️ NO AUTO CHECKS: Using exact row position with NO bounds checking`);
       }
       
       // Determine row value with strict priority and NO AUTO ADJUSTMENT
-      const finalRow = forcedRowIndex !== undefined ? forcedRowIndex :
-                       rowIndex !== undefined ? rowIndex :
-                       row !== undefined ? row : 
+      const finalRow = forcedRowInput !== undefined ? forcedRowInput :
+                       rowIndexInput !== undefined ? rowIndexInput :
+                       rowInput !== undefined ? rowInput : 
                        0; // Last resort default is row 0
       
       console.log(`🔴 ROW SELECTION FOR NEW SCHEDULE:
-        - forcedRowIndex: ${forcedRowIndex}
-        - rowIndex: ${rowIndex}
-        - row: ${row}
-        - exactPosition: ${exactPosition}
+        - forcedRowIndex: ${forcedRowInput}
+        - rowIndex: ${rowIndexInput}
+        - row: ${rowInput}
+        - exactPosition: ${exactPositionFlag}
         - FINAL ROW: ${finalRow}
       `);
       
-      // Extract the special fields that aren't part of the schema
-      const { forcedRowIndex, exactPosition, ...cleanedSchedule } = schedule as any;
+      // Need to strip out the special properties that aren't in DB schema
+      // Create a clean copy by destructuring non-schema fields
+      const { forcedRowIndex: _, exactPosition: __, ...dbSafeSchedule } = scheduleExtras;
       
       // Create the final object with just DB-compatible fields
       const scheduleWithRows = {
-        ...cleanedSchedule,
+        ...dbSafeSchedule,
         // MANDATORY: Force both row fields to be EXACTLY the same precise value 
         row: finalRow,
         rowIndex: finalRow
