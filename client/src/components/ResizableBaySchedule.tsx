@@ -919,8 +919,11 @@ export default function ResizableBaySchedule({
       const bayRect = bayContainer.getBoundingClientRect();
       
       // Calculate X offset in pixels from the left edge of the bay content area
-      const bayX = e.clientX - bayRect.left - 32; // Adjust for bay label width
+      // For full timeline view (2024-2028), we need to account for the scroll position
+      const scrollLeft = document.querySelector('.schedule-container')?.scrollLeft || 0;
+      const bayX = e.clientX - bayRect.left - 32 + scrollLeft; // Adjust for bay label width + scroll position
       const adjustedX = Math.max(0, bayX);
+      console.log(`🔍 SCROLL POSITION: ${scrollLeft}px, Adjusted for calculation`);
       
       // Calculate date based on slot width with PRECISE positioning
       const dayWidth = viewMode === 'day' ? slotWidth : slotWidth / 7;
@@ -937,14 +940,26 @@ export default function ResizableBaySchedule({
       // Create visual marker to show where calculation happened
       const marker = document.createElement('div');
       marker.className = 'absolute w-1 h-16 bg-green-500/50 z-50 pointer-events-none';
-      marker.style.left = `${adjustedX + 32}px`; // Adjust for label
+      
+      // Account for scroll position in visual marker positioning
+      const markerX = adjustedX + 32 - scrollLeft; // Adjust for label and remove scroll offset for visual display
+      marker.style.left = `${markerX}px`; 
       marker.style.top = '0px';
       bayContainer.appendChild(marker);
       
-      // Remove marker after 1 second
+      // Add text indicator for debugging
+      const indicator = document.createElement('div');
+      indicator.className = 'absolute px-2 py-1 text-xs bg-blue-800 text-white rounded z-50 pointer-events-none';
+      indicator.textContent = `Date: ${format(exactDate, 'MMM d, yyyy')}`;
+      indicator.style.left = `${markerX}px`;
+      indicator.style.top = '16px';
+      bayContainer.appendChild(indicator);
+      
+      // Remove marker and indicator after 2 seconds
       setTimeout(() => {
         if (marker.parentNode) marker.parentNode.removeChild(marker);
-      }, 1000);
+        if (indicator.parentNode) indicator.parentNode.removeChild(indicator);
+      }, 2000);
       
       return exactDate;
     } catch (error) {
