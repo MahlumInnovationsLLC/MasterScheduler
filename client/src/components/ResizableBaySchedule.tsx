@@ -3077,6 +3077,21 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
+    // MAY 16 2025 - EMERGENCY FIX: CHECK FOR BYPASS FLAGS
+    const bypassAllRowLogic = document.body.hasAttribute('data-bypass-all-row-logic');
+    const forceExactRowPlacement = document.body.hasAttribute('data-force-exact-row-placement');
+    const allowRowOverlap = document.body.hasAttribute('data-allow-row-overlap');
+    const emergencyFixMode = document.body.hasAttribute('data-emergency-fix-mode');
+    
+    // Log emergency mode status
+    if (emergencyFixMode) {
+      console.log(`🔥🔥🔥 EMERGENCY FIX MODE ACTIVE 🔥🔥🔥`);
+      console.log(`🔥 BYPASSING ALL ROW CALCULATION LOGIC: ${bypassAllRowLogic}`);
+      console.log(`🔥 FORCING EXACT ROW PLACEMENT: ${forceExactRowPlacement}`);
+      console.log(`🔥 ALLOWING ROW OVERLAP: ${allowRowOverlap}`);
+      console.log(`🔥 USING DIRECT ROW: ${rowIndex} (no processing)`);
+    }
+    
     // ── NEW: PIXEL-PERFECT DROP PLACEMENT ────────────────────────────────────
     // Get the timeline container element
     const timelineContainer = timelineContainerRef.current;
@@ -3266,34 +3281,53 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // For row, we will still use the global attribute if available as it works correctly
     const globalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
     
-    // ENHANCED ROW SELECTION WITH BAY 3 FIX: 
-    // 1. First check if rowIndex from direct handler is valid (not undefined & >= 0)
-    // 2. Then check the global attribute (set during cell hover) 
-    // 3. Finally fall back to 0 as a safe default
+    // MAY 16 2025 - EMERGENCY FIX - COMPLETE BYPASS OF ROW CALCULATION LOGIC
     let targetRowIndex;
     
-    // Get the event target to check if this is a bay-specific drop area
-    const dropTarget = e.currentTarget as HTMLElement;
-    const dropTargetBayId = dropTarget?.getAttribute('data-bay-id');
-    
-    // Make sure the bay ID used in the event handler matches the element's bay ID
-    // Now using finalBayId which includes Bay 3 detection
-    if (dropTargetBayId && dropTargetBayId !== finalBayId.toString()) {
-      console.log(`Correcting bay ID mismatch: event=${bayId}, resolved=${finalBayId}, element=${dropTargetBayId}`);
-      // Update the element's data-bay-id attribute to match our finalBayId
-      // This ensures bay 3 and other bays are handled consistently
-      dropTarget.setAttribute('data-bay-id', finalBayId.toString());
-    }
-    
-    if (rowIndex !== undefined && rowIndex >= 0) {
-      console.log(`Using direct row parameter: ${rowIndex} for bay ${bayId}`);
+    // Check if emergency fix mode is active
+    if (emergencyFixMode && forceExactRowPlacement) {
+      // EMERGENCY MODE: Use direct row without ANY processing
+      console.log(`🚨 EMERGENCY MODE: Using EXACT row ${rowIndex} with ZERO PROCESSING`);
+      
+      // Pull row value from multiple possible sources (redundant for reliability)
+      const forcedRowIndex = document.body.getAttribute('data-forced-row-index');
+      const absoluteRowIndex = document.body.getAttribute('data-absolute-row-index');
+      const finalExactRow = document.body.getAttribute('data-final-exact-row');
+      const emergencyOverride = document.body.getAttribute('data-emergency-row-override');
+      
+      // Log all available sources to help debug
+      console.log(`ℹ️ Row sources - Parameter: ${rowIndex}, Global: ${globalRowIndex}`);
+      console.log(`ℹ️ Attributes - Forced: ${forcedRowIndex}, Absolute: ${absoluteRowIndex}`);
+      console.log(`ℹ️ Attributes - Final: ${finalExactRow}, Emergency: ${emergencyOverride}`);
+      
+      // Use the direct parameter value - GUARANTEED EXACT PLACEMENT
       targetRowIndex = rowIndex;
-    } else if (globalRowIndex >= 0) {
-      console.log(`Using global row attribute: ${globalRowIndex} for bay ${bayId}`);
-      targetRowIndex = globalRowIndex;
-    } else {
-      console.log(`No valid row found, using default row 0 for bay ${bayId}`);
-      targetRowIndex = 0;
+      
+      // SUPER IMPORTANT: Log a special marker that can be used to confirm this path was taken
+      console.log(`✅✅✅ EMERGENCY ROW BYPASS ACTIVE - USING EXACT ROW ${targetRowIndex} ✅✅✅`);
+    }
+    // Regular path - only used if emergency mode is not active
+    else {
+      // Get the event target to check if this is a bay-specific drop area
+      const dropTarget = e.currentTarget as HTMLElement;
+      const dropTargetBayId = dropTarget?.getAttribute('data-bay-id');
+      
+      // Make sure the bay ID used in the event handler matches the element's bay ID
+      if (dropTargetBayId && dropTargetBayId !== finalBayId.toString()) {
+        console.log(`Correcting bay ID mismatch: event=${bayId}, resolved=${finalBayId}, element=${dropTargetBayId}`);
+        dropTarget.setAttribute('data-bay-id', finalBayId.toString());
+      }
+      
+      if (rowIndex !== undefined && rowIndex >= 0) {
+        console.log(`Using direct row parameter: ${rowIndex} for bay ${bayId}`);
+        targetRowIndex = rowIndex;
+      } else if (globalRowIndex >= 0) {
+        console.log(`Using global row attribute: ${globalRowIndex} for bay ${bayId}`);
+        targetRowIndex = globalRowIndex;
+      } else {
+        console.log(`No valid row found, using default row 0 for bay ${bayId}`);
+        targetRowIndex = 0;
+      }
     }
     
     // CRITICAL FIX: Safety bounds check on row based on the actual row count for the bay
