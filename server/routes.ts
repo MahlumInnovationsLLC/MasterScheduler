@@ -662,16 +662,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // ABSOLUTE PRIORITY: Use whatever row was passed from client with NO adjustments
       // This is a CRITICAL BUGFIX - use the exact row with no auto-repositioning
-      const finalRowIndex = rowParam !== undefined ? parseInt(rowParam.toString()) : 0;
+      let finalRowIndex = rowParam !== undefined ? parseInt(rowParam.toString()) : 0;
       
-      console.log("🚨 CRITICAL - SERVER ROW PLACEMENT: Using exact client-provided row:", finalRowIndex);
-      console.log("🚨 NO AUTO-ADJUSTMENT: Row index coming directly from client drag/drop operation");
+      // CRITICAL FIX FOR PHANTOM ROW BUG: May 16, 2025 - Enforce bay row limits at server level
+      // Bays 1-6 can only have rows 0-3 (4 rows total), Bay 7 can have rows 0-19 (20 rows total)
+      const bayId = parseInt(req.body.bayId.toString());
+      const isTCVLine = bayId === 7;
+      const maxRowIndex = isTCVLine ? 19 : 3; // 0-based indexing (4 rows for regular bays, 20 for TCV)
+      
+      // HARD ENFORCE row limit on server side to eliminate phantom row bug
+      if (finalRowIndex > maxRowIndex) {
+        console.log(`🛑 SERVER ENFORCING ROW LIMIT: Attempted row ${finalRowIndex} exceeds max ${maxRowIndex} for Bay ${bayId}`);
+        finalRowIndex = maxRowIndex; // Strictly enforce the limit
+      }
+      
+      console.log(`🚨 CRITICAL - SERVER ROW PLACEMENT: Using row ${finalRowIndex} (max allowed: ${maxRowIndex})`);
+      console.log(`🚨 NO AUTO-ADJUSTMENT: Row index coming directly from client drag/drop operation`);
       
       const data = {
         ...req.body,
         // DIRECT USER REQUEST: Projects MUST stay EXACTLY where dropped with NO AUTO ADJUSTMENT
         // All row and bay values must be preserved AS IS from user interface
-        row: finalRowIndex, // Enforce exact row placement
+        row: finalRowIndex, // Enforce exact row placement with hard limit
         rowIndex: finalRowIndex // Store in both fields for compatibility
       };
       
@@ -833,10 +845,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rowValue = req.body.row !== undefined ? parseInt(req.body.row) : undefined;
       
       // Choose the first defined value with priority order
-      const finalRow = forcedRowIndex !== undefined ? forcedRowIndex : 
-                       (rowIndex !== undefined ? rowIndex : rowValue);
+      let finalRow = forcedRowIndex !== undefined ? forcedRowIndex : 
+                     (rowIndex !== undefined ? rowIndex : rowValue);
       
-      // Create final data object with exact row placement
+      // CRITICAL FIX FOR PHANTOM ROW BUG: May 16, 2025 - Enforce bay row limits at server level
+      // If we're updating the row, ensure it respects the bay limits
+      if (finalRow !== undefined) {
+        // Get the bay ID from the request or from the existing schedule later
+        const bayId = req.body.bayId !== undefined ? parseInt(req.body.bayId.toString()) : undefined;
+        
+        // We'll need to get the bay ID from the existing schedule if not provided
+        if (bayId !== undefined) {
+          const isTCVLine = bayId === 7;
+          const maxRowIndex = isTCVLine ? 19 : 3; // 0-based indexing (4 rows for regular bays, 20 for TCV)
+          
+          // HARD ENFORCE row limit on server side to eliminate phantom row bug
+          if (finalRow > maxRowIndex) {
+            console.log(`🛑 SERVER ENFORCING ROW LIMIT: Attempted row ${finalRow} exceeds max ${maxRowIndex} for Bay ${bayId}`);
+            finalRow = maxRowIndex; // Strictly enforce the limit
+          }
+        }
+      }
+      
+      // Create final data object with exact row placement (and row limit enforcement)
       const data = {
         ...req.body,
         row: finalRow,
