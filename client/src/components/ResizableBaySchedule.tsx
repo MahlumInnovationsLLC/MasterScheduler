@@ -3111,32 +3111,67 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   };
   
   // Handle drop on a bay timeline
-  // COMPLETELY REWRITTEN May 16 2025
   const handleDrop = (e: React.DragEvent<Element>, bayId: number, slotIndex: number, rowIndex: number = 0) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // SET GLOBAL EMERGENCY MODE FLAGS
-    // These are used throughout the codebase to force exact positioning
+    // MAY 16 2025 - EMERGENCY FIX
+    // Set the exact row parameter to be used for positioning - no auto-adjustment
+    document.body.setAttribute('data-forced-row-index', rowIndex.toString());
+    document.body.setAttribute('data-computed-row-index', rowIndex.toString());
+    document.body.setAttribute('data-strict-y-position-row', rowIndex.toString());
     document.body.setAttribute('data-bypass-all-row-logic', 'true');
     document.body.setAttribute('data-force-exact-row-placement', 'true');
     document.body.setAttribute('data-allow-row-overlap', 'true');
     document.body.setAttribute('data-emergency-fix-mode', 'true');
     
-    // MAY 16 2025 - CRITICAL PIXEL-PERFECT PLACEMENT MODE
-    console.log(`🔥🔥🔥 EMERGENCY FIX MODE ACTIVE 🔥🔥🔥`);
-    console.log(`🔥 BYPASSING ALL ROW CALCULATION LOGIC: true`);
-    console.log(`🔥 FORCING EXACT ROW PLACEMENT: true`);
-    console.log(`🔥 ALLOWING ROW OVERLAP: true`);
-    console.log(`🔥 DROPPED AT ROW: ${rowIndex} (from direct parameter)`);
+    console.log(`🔴 EMERGENCY FIX: Using exact row ${rowIndex} from drop event parameters`);
+    console.log(`🔴 This is the direct row from user drop position - NO AUTO-ADJUSTMENT`);
+    console.log(`🔴 STRICT POSITIONING: Projects will stay EXACTLY where dropped`);
     
-    // IMPORTANT: Override all internal variables with direct rowIndex value
-    // This is critical to ensure exact placement at the position where user dropped
-    document.body.setAttribute('data-force-exact-row', rowIndex.toString());
+    // Add a visual indicator of the target bay row
+    const bayRowIndicator = document.querySelector(`[data-bay-id="${bayId}"] [data-row-index="${rowIndex}"]`);
+    if (bayRowIndicator) {
+      bayRowIndicator.classList.add('target-row-highlight');
+      setTimeout(() => {
+        bayRowIndicator.classList.remove('target-row-highlight');
+      }, 1500);
+    }
+    const finalRowIndex = Math.max(0, Math.min(MAX_ROWS - 1, exactRowFromMouse));
+    
+    // 5. Log the EXACT calculation for verification
+    console.log(`
+    ⭐⭐⭐ DIRECT MOUSE POSITION ROW CALCULATION ⭐⭐⭐
+    Mouse Y: ${mouseY}px
+    Container top: ${containerTop}px
+    Container height: ${containerHeight}px 
+    Row height: ${rowHeight}px
+    Calculated row: ${relativeY}px / ${rowHeight}px = row ${exactRowFromMouse}
+    Final row after bounds check: ${finalRowIndex}
+    `);
+    
+    // 6. SET ALL ROW RELATED ATTRIBUTES
+    // This direct calculation overrides all existing row logic in the application
+    const allAttributes = [
+      'data-computed-row-index',     // Main calculation source
+      'data-exact-row-index',        // Used by API call
+      'data-forced-row-index',       // Override for handleScheduleChange
+      'data-force-exact-row',        // Original emergency fix
+      'data-strict-y-position-row',  // Y positioning priority
+      'data-y-axis-row',             // Alternative source
+      'data-current-drag-row',       // Used during drag
+      'data-drop-row',               // New direct attribute
+      'data-direct-row-calculation', // Lowest level override
+      'data-absolute-row-index',     // Bypasses all logic
+      'data-final-row-placement'     // Last chance override
+    ];
+    
+    // Update ALL attributes with the same value to guarantee consistency
+    allAttributes.forEach(attr => {
+      document.body.setAttribute(attr, finalRowIndex.toString());
+    });
     
     // ── NEW: PIXEL-PERFECT DROP PLACEMENT ────────────────────────────────────
-    // Get the timeline container element
-    const timelineContainer = timelineContainerRef.current;
     if (!timelineContainer) {
       console.error("Timeline container ref not available!");
       return;
