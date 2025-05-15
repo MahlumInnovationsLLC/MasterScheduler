@@ -251,6 +251,27 @@
   pointer-events: none;
 }
 
+/* Add daily grid markers for more precise positioning */
+.grid-cell-perfectly-aligned {
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent,
+    transparent 55px,
+    rgba(255, 255, 255, 0.03) 55px,
+    rgba(255, 255, 255, 0.03) 56px
+  );
+}
+
+/* Success animation for drop location */
+@keyframes dropSuccess {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: rgba(34, 197, 94, 0.2); }
+}
+
+.drop-success-flash {
+  animation: dropSuccess 0.8s ease-in-out;
+}
+
 .timeline-header .timeline-slot {
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
