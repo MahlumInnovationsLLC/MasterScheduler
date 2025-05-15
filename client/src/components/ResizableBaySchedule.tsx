@@ -3629,6 +3629,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       document.body.setAttribute('data-exact-drop-x', dropX.toString());
       document.body.setAttribute('data-exact-drop-y', dropY.toString());
       
+      // ADD EXPLICITLY REQUESTED DROP DEBUG LOGS
+      console.group('[DROP DEBUG]')
+      console.log('bayId:', bayId)
+      console.log('dragOffset:', dragOffset)
+      console.log('e.clientX, e.clientY:', e.clientX, e.clientY)
+      const containerRect = timelineContainerRef.current!.getBoundingClientRect()
+      console.log('containerRect:', containerRect.left, containerRect.top, containerRect.width, containerRect.height)
+      const rawX = e.clientX - containerRect.left
+      const rawY = e.clientY - containerRect.top
+      console.log('rawX, rawY:', rawX, rawY)
+      const finalX = rawX - dragOffset.x
+      const finalY = rawY - dragOffset.y
+      console.log('finalX, finalY:', finalX, finalY)
+      const TOTAL_ROWS = getBayRowCount(bayId, bay?.name || '')
+      const rowHeight = containerRect.height / TOTAL_ROWS
+      const computedRowIndex = Math.max(0, Math.min(TOTAL_ROWS - 1, Math.floor(finalY / rowHeight)))
+      console.log('computed targetRowIndex:', computedRowIndex)
+      console.groupEnd()
+      
+      // Add existing debugging logs as well
       console.log('Attempting to drop project:', {
         projectId: data.projectId || data.id,
         bayId,
@@ -3645,7 +3665,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         exactRow: exactRow, // Fixed variable name reference
         targetRowFromDataset,
         targetCellDateFromDataset,
-        dropCoordinates: { x: dropX, y: dropY }
+        dropCoordinates: { x: dropX, y: dropY },
+        // Include the newly computed row as well
+        computedRowIndex
       });
       
       if (data.type === 'existing') {
