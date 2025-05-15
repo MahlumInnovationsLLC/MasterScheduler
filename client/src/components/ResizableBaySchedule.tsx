@@ -3618,8 +3618,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           // Clear loading state
           setIsMovingProject(false);
           
-          // Force refresh to show changes after a delay to allow server processing
-          setTimeout(() => window.location.reload(), 1000);
+          // Invalidate queries to update data without page reload
+          setTimeout(() => {
+            queryClient.invalidateQueries({
+              queryKey: ['/api/manufacturing-schedules']
+            });
+          }, 1000);
         })
         .catch(error => {
           // Clear loading state
@@ -5484,7 +5488,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     onDrop={(e) => {
                       // Set global row data attribute to row 0
                       document.body.setAttribute('data-current-drag-row', '0');
-                      handleDrop(e, bay.id, 0, 0);
+                      handleDrop(e, bay.id, e.clientX, e.clientY);
                     }}
                   >
                     {/* Row number indicator */}
@@ -5732,7 +5736,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     onDrop={(e) => {
                       // Set global row data attribute to row 2
                       document.body.setAttribute('data-current-drag-row', '2');
-                      handleDrop(e, bay.id, 0, 2);
+                      handleDrop(e, bay.id, e.clientX, e.clientY);
                     }}
                   >
                     {/* Row action buttons - Made always visible at the divider */}
@@ -5857,7 +5861,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     onDrop={(e) => {
                       // Set global row data attribute to row 3
                       document.body.setAttribute('data-current-drag-row', '3');
-                      handleDrop(e, bay.id, 0, 3);
+                      handleDrop(e, bay.id, e.clientX, e.clientY);
                     }}
                   >
                     {/* Row action buttons - Made always visible at the divider */}
