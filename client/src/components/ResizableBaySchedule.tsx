@@ -1391,31 +1391,50 @@ export default function ResizableBaySchedule({
           <div className="bay-schedule-container relative" ref={timelineRef}>
           {/* Timeline Header */}
           <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32">
-            {slots.map((slot, index) => (
-              <div
-                key={`header-${index}`}
-                className={`
-                  timeline-slot border-r flex-shrink-0
-                  ${slot.isStartOfMonth ? 'bg-gray-800 border-r-2 border-r-blue-500' : ''}
-                  ${slot.isStartOfWeek ? 'bg-gray-850 border-r border-r-gray-600' : ''}
-                  ${!slot.isBusinessDay ? 'bg-gray-850/70' : ''}
-                `}
-                style={{ width: `${slotWidth}px`, height: '40px' }}
-              >
-                <div className="text-xs text-center w-full">
-                  {slot.isStartOfMonth && (
-                    <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
-                      {slot.monthName}
+            {slots.map((slot, index) => {
+              // Calculate the date range for the current week
+              const weekStart = slot.isStartOfWeek ? slot.date : startOfWeek(slot.date);
+              const weekEnd = endOfWeek(weekStart);
+              const formattedStartDate = format(weekStart, 'MMM d');
+              const formattedEndDate = format(weekEnd, 'MMM d');
+              const weekYear = format(slot.date, 'yyyy');
+              
+              // Only render cells for start of week to match design in screenshot
+              if (slot.isStartOfWeek) {
+                return (
+                  <div
+                    key={`header-${index}`}
+                    className="timeline-slot flex-shrink-0 bg-gray-800/90"
+                    style={{ width: `${slotWidth}px` }}
+                    data-date={format(slot.date, 'yyyy-MM-dd')}
+                    data-week-number={slot.weekNumber}
+                  >
+                    {/* Enhanced week header to match the screenshot design */}
+                    <div className="week-number">
+                      Week {slot.weekNumber || Math.floor(index / 7)}
                     </div>
-                  )}
-                  {slot.isStartOfWeek && (
-                    <div className="text-gray-400 mt-1 text-[10px]">
-                      Week {slot.weekNumber}
+                    <div className="week-date-range">
+                      {formattedStartDate} - {formattedEndDate}
                     </div>
-                  )}
-                </div>
-              </div>
-            ))}
+                    {slot.isStartOfMonth && (
+                      <div className="text-xs font-bold text-blue-400 mt-1">
+                        {format(slot.date, 'yyyy')}
+                      </div>
+                    )}
+                  </div>
+                );
+              } else {
+                // For non-week-start days, render an empty slot to maintain spacing
+                return (
+                  <div
+                    key={`header-${index}`}
+                    className="timeline-slot flex-shrink-0 bg-gray-800/40"
+                    style={{ width: `${slotWidth}px` }}
+                    data-date={format(slot.date, 'yyyy-MM-dd')}
+                  />
+                );
+              }
+            })}
           </div>
           
           {/* Today indicator */}
@@ -1600,10 +1619,10 @@ export default function ResizableBaySchedule({
                           />
                         ) : (
                           // SIMPLIFIED SINGLE-ROW LAYOUT - EACH BAY IS ONE ROW
-                          <div className="absolute inset-0 flex flex-col">
+                          <div className="absolute inset-0 flex flex-col w-full">
                             {/* Single row per bay - simplified drop zone */}
                             <div 
-                              className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
+                              className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative w-[100000px]" 
                               onDragOver={(e) => {
                                 // Add strong visual indicator for this bay's single row
                                 e.currentTarget.classList.add('row-target-highlight', 'bay-highlight');
