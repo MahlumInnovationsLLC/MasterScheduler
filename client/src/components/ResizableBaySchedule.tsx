@@ -1288,7 +1288,32 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         } 
         else if (viewMode === 'week') {
           // Week mode: position based on week slots
-          barLeft = validStartIndex * slotWidth;
+          
+          // CRITICAL FIX: Calculate position by date difference rather than slot index when far in future
+          // This prevents the issue where future dates render at far left because no matching slot is found
+          
+          if (startSlotIndex === -1 && startDate.getFullYear() >= 2025) {
+            // The date is outside our visible range - calculate position by date difference from first slot
+            console.warn(`Project ${project.projectNumber} date (${format(startDate, 'yyyy-MM-dd')}) is outside visible slot range`);
+            
+            // Use the first slot date as reference
+            const firstSlotDate = slots.length > 0 ? slots[0].date : dateRange.start;
+            
+            // Calculate weeks between first slot and project start
+            const weeksBetween = Math.floor(differenceInDays(startDate, firstSlotDate) / 7);
+            
+            // Calculate position based on weeks difference
+            const calculatedPosition = weeksBetween * slotWidth;
+            
+            console.log(`POSITION OVERRIDE: Project ${project.projectNumber} (${format(startDate, 'yyyy-MM-dd')}) is ${weeksBetween} weeks from first slot (${format(firstSlotDate, 'yyyy-MM-dd')})`);
+            console.log(`Setting barLeft to ${calculatedPosition}px instead of ${validStartIndex * slotWidth}px`);
+            
+            barLeft = calculatedPosition;
+          } else {
+            // Normal position calculation for visible dates
+            barLeft = validStartIndex * slotWidth;
+          }
+          
           console.log(`WEEK VIEW - barLeft for project ${project.projectNumber}: ${barLeft}px (slot ${validStartIndex} * ${slotWidth}px)`);
           
           // CHECK IF BAR WOULD BE FAR LEFT (common bug)
@@ -1308,7 +1333,26 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         } 
         else if (viewMode === 'month') {
           // Month mode: position based on month slots
-          barLeft = validStartIndex * slotWidth;
+          
+          if (startSlotIndex === -1 && startDate.getFullYear() >= 2025) {
+            // This month is outside our visible range - calculate by months difference
+            console.warn(`Project ${project.projectNumber} month (${format(startDate, 'yyyy-MM')}) is outside visible months`);
+            
+            // Use the first slot date as reference
+            const firstSlotDate = slots.length > 0 ? slots[0].date : dateRange.start;
+            
+            // Calculate months between first slot and project start
+            const monthsBetween = differenceInMonths(startDate, firstSlotDate);
+            
+            // Calculate position based on months difference
+            const calculatedPosition = monthsBetween * slotWidth;
+            
+            console.log(`MONTH POSITION OVERRIDE: Project ${project.projectNumber} is ${monthsBetween} months from first slot (${format(firstSlotDate, 'yyyy-MM')})`);
+            barLeft = calculatedPosition;
+          } else {
+            // Normal month calculation
+            barLeft = validStartIndex * slotWidth;
+          }
           
           // Add fractional position within the month if needed
           const dayOffset = startDate.getDate() - 1;
@@ -1317,7 +1361,27 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         } 
         else { // quarter
           // Quarter mode: position based on quarter slots
-          barLeft = validStartIndex * slotWidth;
+          
+          if (startSlotIndex === -1 && startDate.getFullYear() >= 2025) {
+            // This quarter is outside our visible range - calculate by quarters difference
+            console.warn(`Project ${project.projectNumber} quarter is outside visible quarters`);
+            
+            // Use the first slot date as reference
+            const firstSlotDate = slots.length > 0 ? slots[0].date : dateRange.start;
+            
+            // Calculate quarters between first slot and project start (3 months per quarter)
+            const monthsBetween = differenceInMonths(startDate, firstSlotDate);
+            const quartersBetween = Math.floor(monthsBetween / 3);
+            
+            // Calculate position based on quarters difference
+            const calculatedPosition = quartersBetween * slotWidth;
+            
+            console.log(`QUARTER POSITION OVERRIDE: Project ${project.projectNumber} is ${quartersBetween} quarters from first slot`);
+            barLeft = calculatedPosition;
+          } else {
+            // Normal quarter calculation
+            barLeft = validStartIndex * slotWidth;
+          }
           
           // Add fractional position within the quarter if needed
           const quarterStart = new Date(startDate.getFullYear(), Math.floor(startDate.getMonth() / 3) * 3, 1);
