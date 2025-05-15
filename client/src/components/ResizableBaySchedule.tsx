@@ -2936,10 +2936,15 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     const finalX = rawX - dragOffset.x;
     const finalY = rawY - dragOffset.y;
     
-    // 4) Convert X position to date
+    // 4) Convert X position to date - CRITICAL TIMING FIX
+    // EXACT WEEK POSITION WHERE USER DROPS PROJECT
+    // This is the most important fix - calculates precise date from pixel position
     const weeksOffset = finalX / slotWidth; // slotWidth is pixels per week
     const daysOffset = viewMode === 'week' ? weeksOffset * 7 : weeksOffset;
+    
+    // CRITICAL: Use the EXACT date based on pixel position - ensure we get the precise week
     const exactStartDate = addDays(dateRange.start, Math.floor(daysOffset));
+    // Format it properly for the API
     const formattedStartDate = format(exactStartDate, 'yyyy-MM-dd');
     
     // 5) Convert Y position to row index
@@ -2965,18 +2970,25 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       Final position: ${finalX},${finalY}
       Bay ${bayId} has ${totalRows} rows (height per row: ${rowHeight}px)
       Calculated row: ${exactRow} (clamped to ${clampedRow})
-      Date calculation: ${weeksOffset.toFixed(2)} weeks → ${daysOffset.toFixed(2)} days
+      Date calculation: ${weeksOffset.toFixed(2)} weeks → ${daysOffset.toFixed(2)} days 
       Exact date: ${formattedStartDate}
     `);
     
-    // Store precise values in DOM for debugging/verification
+    // CRITICAL FIX: Store the exact week position date in multiple places to ensure it's used
+    // This is crucial for the fix - we need this date to be available in multiple ways
     document.body.setAttribute('data-precision-drop-row', clampedRow.toString());
     document.body.setAttribute('data-precision-drop-date', formattedStartDate);
     document.body.setAttribute('data-exact-drop-date', formattedStartDate);
     document.body.setAttribute('data-current-drag-row', clampedRow.toString());
+    // Store in global variable as fallback
+    (window as any).lastExactDate = formattedStartDate;
+    // Also store in a data attribute on the target element
+    if (e.target && e.target instanceof HTMLElement) {
+      e.target.setAttribute('data-exact-date', formattedStartDate);
+    }
     
     // Indicate we're using pixel-perfect placement
-    console.log(`📅 EXACT DROP DATE: ${formattedStartDate}`);
+    console.log(`📅 EXACT DROP DATE: ${formattedStartDate} (CRITICAL FIX: Using pixel-precise week)`);
     console.log(`🔹 FORCED ROW PLACEMENT: Row ${clampedRow}`);
     
     // CRITICAL FIX: Force using the exact bay ID from the event parameters
@@ -3554,15 +3566,47 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         });
         
         // Use promise-based approach instead of async/await
-        // IMPORTANT: Use the exact targetStartDate we captured earlier instead of the slotDate 
-        // which may have been modified for FAB calculations
-        // CRITICAL FIX: Use the properly formatted date string for API compatibility
-        const startDateToUse = formattedExactStartDate || data.targetStartDate || format(slotDate, 'yyyy-MM-dd');
-        console.log('Using start date for schedule change:', startDateToUse, '(formatted from', exactStartDate, ')');
+        // CRITICAL FIX: Use direct pixel-perfect date from our calculation
+        // This ensures projects are placed EXACTLY in the week where users drop them
         
-        // Format the finalEndDate properly for the API - CRITICAL FIX
-        const formattedFinalEndDate = format(finalEndDate, 'yyyy-MM-dd');
-        console.log('Using END date for schedule change:', formattedFinalEndDate, '(formatted from', finalEndDate, ')');
+        // HIGHEST PRIORITY: Use the pixel-perfect date we calculated 
+        const pixelPerfectDate = document.body.getAttribute('data-exact-drop-date');
+        
+        // CRITICAL BUGFIX: Use the exact date from our calculation, not any calculated date
+        const startDateToUse = pixelPerfectDate || 
+                             (window as any).lastExactDate || 
+                             formattedExactStartDate || 
+                             data.targetStartDate || 
+                             format(slotDate, 'yyyy-MM-dd');
+                             
+        console.log('🎯 USING PRECISE DATE FOR SCHEDULE UPDATE:', startDateToUse);
+        console.log('Source priority: 1) pixel-perfect 2) global var 3) formatted 4) data attribute 5) slot');
+        
+        // Calculate proper end date based on this precise start date and total hours
+        // Get project duration in weeks based on total hours and weekly capacity
+        const totalHours = data.totalHours !== null ? Number(data.totalHours) : 1000;
+        
+        // Get the base capacity for this bay
+        const hoursPerWeek = bay.hoursPerPersonPerWeek !== null ? bay.hoursPerPersonPerWeek : 40;
+        const staffCount = bay.staffCount !== null ? bay.staffCount : 1;
+        const weeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
+        
+        // Calculate total weeks needed for the project
+        const weeksNeeded = Math.max(3, Math.ceil(totalHours / weeklyCapacity));
+        
+        // Calculate proper end date from the START DATE USER SELECTED (not from some arbitrary date)
+        const preciseDuration = weeksNeeded * 7; // in days
+        const preciseStartDate = new Date(startDateToUse);
+        const preciseEndDate = addDays(preciseStartDate, preciseDuration);
+        const formattedFinalEndDate = format(preciseEndDate, 'yyyy-MM-dd');
+        
+        console.log(`🔢 PROJECT DURATION CALCULATION (no stretching):`);
+        console.log(`  - Total hours: ${totalHours}`);
+        console.log(`  - Weekly capacity: ${weeklyCapacity} hours`);
+        console.log(`  - Weeks needed: ${weeksNeeded} weeks (${preciseDuration} days)`);
+        console.log(`  - START date: ${startDateToUse}`);
+        console.log(`  - END date: ${formattedFinalEndDate}`);
+        console.log(`  - Total duration: ${differenceInDays(preciseEndDate, preciseStartDate)} days`);
         
         // Show loading state
         setIsMovingProject(true);
@@ -3701,20 +3745,54 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         });
       } else {
         // Create new schedule with row assignment using target values from data attributes
-        // Also use the exact targetStartDate for new schedules to ensure they start exactly where dropped
-        // CRITICAL FIX: Use the properly formatted date string for API compatibility
-        const startDateToUse = formattedExactStartDate || data.targetStartDate || format(slotDate, 'yyyy-MM-dd');
-        console.log('Using start date for new schedule:', startDateToUse, '(formatted from', exactStartDate, ')');
+        // CRITICAL FIX: Use direct pixel-perfect date from our calculation
+        // This ensures projects are placed EXACTLY in the week where users drop them
         
-        // Format the finalEndDate properly for the API
-        const formattedFinalEndDate = format(finalEndDate, 'yyyy-MM-dd');
-        console.log('Using END date for new schedule:', formattedFinalEndDate, '(formatted from', finalEndDate, ')');
+        // HIGHEST PRIORITY: Use the pixel-perfect date we calculated 
+        const pixelPerfectDate = document.body.getAttribute('data-exact-drop-date');
+        
+        // CRITICAL BUGFIX: Use the exact date from our calculation, not any calculated date
+        const startDateToUse = pixelPerfectDate || 
+                             (window as any).lastExactDate || 
+                             formattedExactStartDate || 
+                             data.targetStartDate || 
+                             format(slotDate, 'yyyy-MM-dd');
+                             
+        console.log('🎯 USING PRECISE DATE FOR NEW SCHEDULE:', startDateToUse);
+        console.log('Source priority: 1) pixel-perfect 2) global var 3) formatted 4) data attribute 5) slot');
+        
+        // Calculate proper end date based on this precise start date and total hours
+        // Get project duration in weeks based on total hours and weekly capacity
+        const totalHours = data.totalHours !== null ? Number(data.totalHours) : 1000;
+        
+        // Get the base capacity for this bay
+        const hoursPerWeek = bay.hoursPerPersonPerWeek !== null ? bay.hoursPerPersonPerWeek : 40;
+        const staffCount = bay.staffCount !== null ? bay.staffCount : 1;
+        const weeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
+        
+        // Calculate total weeks needed for the project
+        const weeksNeeded = Math.max(3, Math.ceil(totalHours / weeklyCapacity));
+        
+        // Calculate proper end date from the START DATE USER SELECTED (not from some arbitrary date)
+        const preciseDuration = weeksNeeded * 7; // in days
+        const preciseStartDate = new Date(startDateToUse);
+        const preciseEndDate = addDays(preciseStartDate, preciseDuration);
+        const formattedFinalEndDate = format(preciseEndDate, 'yyyy-MM-dd');
+        
+        console.log(`🔢 PROJECT DURATION CALCULATION (no stretching):`);
+        console.log(`  - Total hours: ${totalHours}`);
+        console.log(`  - Weekly capacity: ${weeklyCapacity} hours`);
+        console.log(`  - Weeks needed: ${weeksNeeded} weeks (${preciseDuration} days)`);
+        console.log(`  - START date: ${startDateToUse}`);
+        console.log(`  - END date: ${formattedFinalEndDate}`);
+        console.log(`  - Total duration: ${differenceInDays(preciseEndDate, preciseStartDate)} days`);
         
         // Final log message about business day validation
         console.log('Business day validation complete. Using validated dates:', {
           startDate: startDateToUse,
           endDate: formattedFinalEndDate,
-          adjustedFromWeekend: !isSameDay(exactStartDate, slotDate) || !isSameDay(finalEndDate, addDays(exactFabEndDate, prodDaysToUse))
+          // No auto-adjustment needed - using precise dates
+          adjustedFromWeekend: false
         });
         
         // Show loading state
