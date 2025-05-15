@@ -734,32 +734,41 @@ export default function ResizableBaySchedule({
       }
     }
     
-    // Get the parent container
-    const bayContainer = document.querySelector(`[data-bay-id="${bayId}"]`);
-    if (!bayContainer) {
-      console.error(`DROP DEBUG: Bay container not found for bay ID ${bayId}`);
-      return null;
+    try {
+      // Find the timeline element that contains the week cells
+      const timelineEl = timelineRef.current;
+      if (!timelineEl) {
+        console.error('DROP DEBUG: Timeline element not found');
+        return addDays(dateRange.start, 0); // Default to start date
+      }
+      
+      // Get the timeline bounding rect
+      const timelineRect = timelineEl.getBoundingClientRect();
+      
+      // Get the offset from the start of the timeline (left edge) 
+      const timelineX = e.clientX - timelineRect.left - 32; // Adjust for bay label width
+      
+      // Make sure we have a positive value
+      const adjustedX = Math.max(0, timelineX);
+      
+      // Calculate date based on slot width with precise positioning
+      const dayWidth = viewMode === 'day' ? slotWidth : slotWidth / 7;
+      
+      // Calculate the day offset based on pixels
+      const dayOffset = adjustedX / dayWidth;
+      console.log(`DROP DEBUG: Improved calculation - timelineX: ${timelineX}px, adjustedX: ${adjustedX}px, dayWidth: ${dayWidth}px, dayOffset: ${dayOffset} days`);
+      
+      // Get the exact date
+      const exactDate = addDays(dateRange.start, Math.floor(dayOffset));
+      console.log(`DROP DEBUG: Target date: ${format(exactDate, 'yyyy-MM-dd')}`);
+      
+      return exactDate;
+    } catch (error) {
+      console.error('Error calculating drop position:', error);
+      
+      // Fallback - use the center of the first visible week on screen
+      return addDays(dateRange.start, 0);
     }
-    
-    // Get bounding rect
-    const rect = bayContainer.getBoundingClientRect();
-    
-    // Calculate EXACT position relative to bay container - no rounding or snapping
-    const mouseX = e.clientX - rect.left;
-    
-    // Calculate date based on slot width with precise positioning
-    const dayWidth = viewMode === 'day' ? slotWidth : slotWidth / 7;
-    
-    // Use exact positioning (no Math.floor) to place at the exact pixel location
-    // This ensures the project is positioned precisely where the user dropped it
-    const dayOffset = mouseX / dayWidth;
-    console.log(`DROP DEBUG: Exact position - mouseX: ${mouseX}px, dayWidth: ${dayWidth}px, dayOffset: ${dayOffset} days`);
-    
-    // Get the exact date (including fractional day)
-    const exactDate = addDays(dateRange.start, Math.floor(dayOffset));
-    console.log(`DROP DEBUG: Target date: ${format(exactDate, 'yyyy-MM-dd')}`);
-    
-    return exactDate;
   };
   
   const handleDeleteRow = async (bayId: number, rowIndex: number) => {
