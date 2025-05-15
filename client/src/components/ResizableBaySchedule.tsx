@@ -6756,9 +6756,14 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 {scheduleBars
                   .filter(bar => bar.bayId === bay.id)
                   .map(bar => {
-                    // Use row-specific classes for positioning instead of top style
-                    const rowIndex = bar.row || 0;
+                    // 🔥 CRITICAL FIX: ALWAYS use EXACT row from database with NO repositioning
+                    const rowIndex = bar.row !== undefined ? bar.row : 0;
+                    
+                    // 🚨 SECURITY: Apply direct row-N-bar class WITHOUT any modulo operation
+                    // This ensures bars appear EXACTLY where they should without forced positioning
                     const rowClass = `row-${rowIndex}-bar`;
+                    
+                    console.log(`🔒 RENDERING BAR ${bar.id} EXACTLY at row=${rowIndex} with class ${rowClass}`);
                     
                     // For Team 7 & 8, calculate height based on rowCount (20 rows = 5% each)
                     // Find the bay object using bayId
@@ -6771,9 +6776,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                        bayName.trim() === 'Team 8' || 
                        bayName.trim() === 'Team7' || 
                        bayName.trim() === 'Team8');
+                    
+                    // 🚨 NO MANUAL HEIGHT ADJUSTMENTS FOR STANDARD BAYS
+                    // Let CSS handle positioning via row-N-bar classes
                     const rowHeight = isMultiRowBay 
                       ? { height: `${100 / getBayRowCount(bar.bayId, bayName)}%`, top: `${rowIndex * (100 / getBayRowCount(bar.bayId, bayName))}%` } 
-                      : {}; // Default styling for standard bays
+                      : {}; // For standard bays, use the CSS classes exclusively
                     
                     return (
                       <div

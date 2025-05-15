@@ -823,27 +823,42 @@
   box-shadow: inset 0 0 0 1px rgba(var(--primary-rgb), 0.1);
 }
 
+/* Row positioning for ALL BAYS - CRITICAL FIX */
+/* Standard bay rows (4 rows at 25% height) */
+.row-0-bar { top: 0% !important; height: 25% !important; }
+.row-1-bar { top: 25% !important; height: 25% !important; }
+.row-2-bar { top: 50% !important; height: 25% !important; }
+.row-3-bar { top: 75% !important; height: 25% !important; }
+
+/* Extended row support - these will appear BELOW the bay if used */
+.row-4-bar { top: 100% !important; height: 25% !important; }
+.row-5-bar { top: 125% !important; height: 25% !important; }
+.row-6-bar { top: 150% !important; height: 25% !important; }
+.row-7-bar { top: 175% !important; height: 25% !important; }
+.row-8-bar { top: 200% !important; height: 25% !important; }
+.row-9-bar { top: 225% !important; height: 25% !important; }
+
 /* Row highlight classes for multi-row bays */
-.multi-row-bay .row-0-bar { top: 0%; height: 5%; }
-.multi-row-bay .row-1-bar { top: 5%; height: 5%; }
-.multi-row-bay .row-2-bar { top: 10%; height: 5%; }
-.multi-row-bay .row-3-bar { top: 15%; height: 5%; }
-.multi-row-bay .row-4-bar { top: 20%; height: 5%; }
-.multi-row-bay .row-5-bar { top: 25%; height: 5%; }
-.multi-row-bay .row-6-bar { top: 30%; height: 5%; }
-.multi-row-bay .row-7-bar { top: 35%; height: 5%; }
-.multi-row-bay .row-8-bar { top: 40%; height: 5%; }
-.multi-row-bay .row-9-bar { top: 45%; height: 5%; }
-.multi-row-bay .row-10-bar { top: 50%; height: 5%; }
-.multi-row-bay .row-11-bar { top: 55%; height: 5%; }
-.multi-row-bay .row-12-bar { top: 60%; height: 5%; }
-.multi-row-bay .row-13-bar { top: 65%; height: 5%; }
-.multi-row-bay .row-14-bar { top: 70%; height: 5%; }
-.multi-row-bay .row-15-bar { top: 75%; height: 5%; }
-.multi-row-bay .row-16-bar { top: 80%; height: 5%; }
-.multi-row-bay .row-17-bar { top: 85%; height: 5%; }
-.multi-row-bay .row-18-bar { top: 90%; height: 5%; }
-.multi-row-bay .row-19-bar { top: 95%; height: 5%; }
+.multi-row-bay .row-0-bar { top: 0% !important; height: 5% !important; }
+.multi-row-bay .row-1-bar { top: 5% !important; height: 5% !important; }
+.multi-row-bay .row-2-bar { top: 10% !important; height: 5% !important; }
+.multi-row-bay .row-3-bar { top: 15% !important; height: 5% !important; }
+.multi-row-bay .row-4-bar { top: 20% !important; height: 5% !important; }
+.multi-row-bay .row-5-bar { top: 25% !important; height: 5% !important; }
+.multi-row-bay .row-6-bar { top: 30% !important; height: 5% !important; }
+.multi-row-bay .row-7-bar { top: 35% !important; height: 5% !important; }
+.multi-row-bay .row-8-bar { top: 40% !important; height: 5% !important; }
+.multi-row-bay .row-9-bar { top: 45% !important; height: 5% !important; }
+.multi-row-bay .row-10-bar { top: 50% !important; height: 5% !important; }
+.multi-row-bay .row-11-bar { top: 55% !important; height: 5% !important; }
+.multi-row-bay .row-12-bar { top: 60% !important; height: 5% !important; }
+.multi-row-bay .row-13-bar { top: 65% !important; height: 5% !important; }
+.multi-row-bay .row-14-bar { top: 70% !important; height: 5% !important; }
+.multi-row-bay .row-15-bar { top: 75% !important; height: 5% !important; }
+.multi-row-bay .row-16-bar { top: 80% !important; height: 5% !important; }
+.multi-row-bay .row-17-bar { top: 85% !important; height: 5% !important; }
+.multi-row-bay .row-18-bar { top: 90% !important; height: 5% !important; }
+.multi-row-bay .row-19-bar { top: 95% !important; height: 5% !important; }
 
 /* Week cell hover - enhance visibility for dragging targets */
 .week-cell.drag-hover {
