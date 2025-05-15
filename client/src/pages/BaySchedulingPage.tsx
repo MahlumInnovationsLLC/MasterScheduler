@@ -312,7 +312,16 @@ const BaySchedulingPage = () => {
       const response = await fetch('/api/manufacturing-schedules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId, bayId, startDate, endDate, totalHours, row }),
+        body: JSON.stringify({ 
+          projectId, 
+          bayId, 
+          startDate, 
+          endDate, 
+          totalHours, 
+          row,                  // Original row param 
+          rowIndex,             // Include rowIndex
+          forcedRowIndex        // Add forcedRowIndex with highest priority
+        }),
       });
       
       if (!response.ok) {

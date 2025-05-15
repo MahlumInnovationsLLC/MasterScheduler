@@ -3587,6 +3587,48 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         businessDayAdjusted: !isSameDay(exactStartDate, newExactStartDate)
       });
       
+      // Store EXACT ROW COORDINATES in multiple redundant ways
+      // Store on document body, in current event, and as dedicated tracking variables
+      
+      // Capture coordinates as early as possible
+      const dropX = e.clientX;
+      const dropY = e.clientY;
+      
+      // Track the target element's data attributes which may contain critical row information
+      let targetRowFromDataset = -1;
+      let targetCellDateFromDataset = "";
+      let exactRow = -1; // Define exactRow to fix undefined reference
+      
+      // Target element tracking - define at top of function to avoid "used before declaration" error
+      const targetElement = e.target as HTMLElement;
+      
+      // Get element dataset values
+      const targetElementRow = targetElement?.dataset?.row;
+      const targetElementRowIdx = targetElement?.dataset?.rowIndex;
+      const targetElementDataRow = targetElement?.dataset?.dataRow;
+      
+      // If dataset contains row information, capture it precisely
+      if (targetElementRow) {
+        targetRowFromDataset = parseInt(targetElementRow);
+        document.body.setAttribute('data-target-element-row', targetElementRow);
+      }
+      if (targetElementRowIdx) {
+        document.body.setAttribute('data-target-element-row-idx', targetElementRowIdx);
+      }
+      if (targetElementDataRow) {
+        document.body.setAttribute('data-target-element-data-row', targetElementDataRow);
+      }
+      
+      // Look for cell date information in the target element
+      if (targetElement?.dataset?.startDate) {
+        targetCellDateFromDataset = targetElement?.dataset?.startDate;
+        document.body.setAttribute('data-target-cell-date', targetCellDateFromDataset);
+      }
+      
+      // Store EXACT drop coordinates on document.body
+      document.body.setAttribute('data-exact-drop-x', dropX.toString());
+      document.body.setAttribute('data-exact-drop-y', dropY.toString());
+      
       console.log('Attempting to drop project:', {
         projectId: data.projectId || data.id,
         bayId,
@@ -3597,7 +3639,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         prodDays,
         fabWeeks,
         overlappingProjects: overlappingSchedules.length,
-        type: data.type
+        type: data.type,
+        // Include all row tracking information
+        targetRow: targetRowIndex,
+        exactRow: exactRow, // Fixed variable name reference
+        targetRowFromDataset,
+        targetCellDateFromDataset,
+        dropCoordinates: { x: dropX, y: dropY }
       });
       
       if (data.type === 'existing') {
@@ -3652,13 +3700,38 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         const rowFromLastSelect = parseRowAttr(exactRowFromLastSelect);
         
         // Choose the first valid row value in priority order
+        // Collect additional row information from target element dataset (May 2025 enhancement)
+        const targetRowFromElementDataset = targetRowFromDataset >= 0 ? targetRowFromDataset : -1;
+        const targetRowFromElement = targetElement?.dataset?.rowIndex ? parseInt(targetElement.dataset.rowIndex) : -1;
+        const dataRowFromElement = targetElement?.dataset?.dataRow ? parseInt(targetElement.dataset.dataRow) : -1;
+        
+        // Add all target data attributes to document body for backup
+        if (targetElement?.dataset) {
+          Object.entries(targetElement.dataset).forEach(([key, value]) => {
+            if (value && key.includes('row')) {
+              document.body.setAttribute(`data-target-${key}`, value);
+            }
+          });
+        }
+        
         // Added console output to show exactly which source was used
         let rowSource = "unknown";
         let forcedExactRowIndex = -1;
         
+        // PRIORITY ORDER FOR ROW SELECTION - critical for pixel-perfect placement
+        // Top priority given to direct params and dataset rows from the target element
         if (rowFromDirectParam >= 0) {
           forcedExactRowIndex = rowFromDirectParam;
           rowSource = "direct parameter";
+        } else if (targetRowFromElementDataset >= 0) {
+          forcedExactRowIndex = targetRowFromElementDataset;
+          rowSource = "target element dataset";
+        } else if (targetRowFromElement >= 0) {
+          forcedExactRowIndex = targetRowFromElement;
+          rowSource = "target rowIndex attribute";
+        } else if (dataRowFromElement >= 0) {
+          forcedExactRowIndex = dataRowFromElement;
+          rowSource = "target dataRow attribute";
         } else if (rowFromPrecision >= 0) {
           forcedExactRowIndex = rowFromPrecision;
           rowSource = "precision calculation";
