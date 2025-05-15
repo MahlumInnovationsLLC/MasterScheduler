@@ -3562,13 +3562,24 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         // Go back to using the provided handler function
         // to avoid breaking changes in the component interface
+        // CRITICAL FIX: Use formattedStartDate directly from coordinates
+        console.log(`Using DIRECT coordinate-calculated date: ${formattedStartDate} with NO adjustments`);
+        
+        // Calculate the end date directly based on our start date and total hours
+        const totalHours = data.totalHours !== null ? Number(data.totalHours) : 1000;
+        const weeksNeeded = Math.ceil(totalHours / 40); // 40 hours per week
+        const endDate = addWeeks(exactStartDate, weeksNeeded);
+        const formattedEndDate = format(endDate, 'yyyy-MM-dd');
+        
+        console.log(`Calculated end date: ${formattedEndDate} (${weeksNeeded} weeks from ${formattedStartDate})`);
+        
         onScheduleChange(
           data.id,
-          finalBayId,
-          startDateToUse,
-          formattedFinalEndDate,
-          data.totalHours !== null ? Number(data.totalHours) : 1000,
-          finalRowIndex
+          bayId, // Use the EXACT bay from drop event
+          formattedStartDate, // DIRECT from coordinate calculation 
+          formattedEndDate, // Calculated directly from our exact start date
+          totalHours,
+          targetRowIndex // Use the EXACT row calculated from raw coordinates
         )
         .then(result => {
           console.log('Schedule successfully updated:', result);
@@ -3707,20 +3718,34 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         document.body.setAttribute('data-last-drop-row', targetRowIndex.toString());
         
         // Call the API with our forced values
+        // CRITICAL FIX: Use the formattedStartDate directly from our coordinate-based calculation
+        console.log(`Using DIRECT coordinate-calculated date: ${formattedStartDate} with NO adjustments`);
+        
+        // Force storing this date in the DOM for verification
+        document.body.setAttribute('data-forced-start-date', formattedStartDate);
+        
+        // Calculate the end date directly based on our start date and total hours
+        const totalHours = data.totalHours !== null ? Number(data.totalHours) : 1000;
+        const weeksNeeded = Math.ceil(totalHours / 40); // 40 hours per week
+        const endDate = addWeeks(exactStartDate, weeksNeeded);
+        const formattedEndDate = format(endDate, 'yyyy-MM-dd');
+        
+        console.log(`Calculated end date: ${formattedEndDate} (${weeksNeeded} weeks from ${formattedStartDate})`);
+        
         onScheduleCreate(
           data.projectId,
-          finalBayId,
-          startDateToUse,
-          formattedFinalEndDate,
-          data.totalHours !== null ? Number(data.totalHours) : 1000,
-          finalRowIndex // Include rowIndex for vertical positioning
+          bayId, // Use the EXACT bay from drop event
+          formattedStartDate, // DIRECT from coordinate calculation
+          formattedEndDate, // Calculated directly from our exact start date
+          totalHours,
+          targetRowIndex // Use the EXACT row calculated from raw coordinates
         )
         .then(() => {
           // Find the target bay to show proper bay number in toast
-          const targetBayInfo = bays.find(b => b.id === finalBayId);
+          const targetBayInfo = bays.find(b => b.id === bayId);
           toast({
             title: "Schedule Created",
-            description: `${data.projectNumber} assigned to Bay ${targetBayInfo?.bayNumber || bay.bayNumber}`,
+            description: `${data.projectNumber} assigned to Bay ${targetBayInfo?.bayNumber || bay?.bayNumber}`,
           });
           
           // Clear loading state
