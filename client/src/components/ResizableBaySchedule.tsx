@@ -1730,9 +1730,9 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     // Calculate the drag delta
     const deltaX = e.clientX - resizingSchedule.startX;
     
-    // Get the timeline container
-    const timelineContainer = timelineContainerRef.current || barElement.closest('.timeline-container') as HTMLElement;
-    if (!timelineContainer) {
+    // Get the timeline container - use the ref directly with fallback
+    const timelineContainerElement = timelineContainerRef.current || barElement.closest('.timeline-container') as HTMLElement;
+    if (!timelineContainerElement) {
       console.error("Timeline container not found");
       return;
     }
@@ -1764,7 +1764,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // Calculate which week/slot we're hovering over
     // First, get the timeline container offset
-    const timelineRect = timelineContainer.getBoundingClientRect();
+    const timelineRect = timelineContainerElement.getBoundingClientRect();
     const relativeX = e.clientX - timelineRect.left;
     
     // Determine which slot index we're over
@@ -1783,7 +1783,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       });
       
       // Add highlight to the current week slot - we need to make this much more visible
-      const weekCells = timelineContainer.querySelectorAll(`.week-cell`);
+      const weekCells = timelineContainerElement.querySelectorAll(`.week-cell`);
       const targetWeekCell = weekCells[hoverSlotIndex];
       
       if (targetWeekCell) {
@@ -4852,8 +4852,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         // This ensures the bar properly stretches and displays at the right width
         
         // Calculate the proper visual dimensions based on the new dates
-        const timelineContainer = document.querySelector('.timeline-container') as HTMLElement;
-        if (timelineContainer) {
+        const timelineContainerEl = timelineContainerRef.current || document.querySelector('.timeline-container') as HTMLElement;
+        if (timelineContainerEl) {
           const viewportStart = dateRange.start;
           const viewportEnd = dateRange.end;
           
@@ -4866,7 +4866,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
           // Calculate viewport width in days
           const viewportDays = differenceInDays(viewportEnd, viewportStart);
           
-          const timelineWidth = timelineContainer.clientWidth;
+          const timelineWidth = timelineContainerEl.clientWidth;
           
           // Calculate pixels per day
           const pixelsPerDay = timelineWidth / viewportDays;
