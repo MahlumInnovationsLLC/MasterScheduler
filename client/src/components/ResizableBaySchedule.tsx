@@ -5697,7 +5697,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                         <span className="text-gray-400 text-xs font-normal ml-1">- {bay.description}</span>
                       )}
                     </div>
-                    <BayCapacityInfo bay={bay} allSchedules={schedules} projects={projects} />
+                    <BayCapacityInfo bay={bay} allSchedules={schedules} projects={projects} bays={bays} />
                   </div>
                 </div>
               </div>
