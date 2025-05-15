@@ -796,7 +796,7 @@ export class DatabaseStorage implements IStorage {
     );
   }
   
-  async createManufacturingSchedule(schedule: InsertManufacturingSchedule): Promise<ManufacturingSchedule> {
+  async createManufacturingSchedule(schedule: InsertManufacturingSchedule & { forcedRowIndex?: number }): Promise<ManufacturingSchedule> {
     try {
       // 🚨 MAY 17 2025 - EMERGENCY ROW PLACEMENT ENHANCEMENT
       // HIGHEST PRIORITY PLACEMENT LOGIC - Guaranteed exact positioning
@@ -820,6 +820,7 @@ export class DatabaseStorage implements IStorage {
         // 🔴 CRITICAL: Force BOTH row values to be exactly the same
         row: bestRowValue,
         rowIndex: bestRowValue
+        // Omit forcedRowIndex as it's not part of the schema
       };
       
       console.log(`⭐⭐⭐ ENHANCED ROW PLACEMENT - FINAL VALUES: 
