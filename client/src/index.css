@@ -1383,3 +1383,64 @@ body.resizing-mode .resize-handle {
   min-height: 600px !important;
   overflow-y: auto !important;
 }
+
+/* Row target and limit visualization styles */
+.exact-row-highlight {
+  background-color: rgba(25, 118, 210, 0.2) !important;
+  outline: 2px dashed rgba(25, 118, 210, 0.5) !important;
+  z-index: 5;
+  position: relative;
+}
+
+.exact-row-highlight::before {
+  content: "TARGET";
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(25, 118, 210, 0.2);
+  color: #2074cc;
+  font-size: 8px;
+  font-weight: bold;
+  padding: 1px 3px;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.row-limit-reached .bay-row:nth-child(4) {
+  position: relative;
+}
+
+.row-limit-reached .bay-row:nth-child(4)::after {
+  content: "ROW LIMIT";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 50, 50, 0.2);
+  color: #ff3232;
+  font-size: 9px;
+  font-weight: bold;
+  text-align: center;
+  padding: 2px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.row-limit-enforced .bay-row:nth-child(4) {
+  border-bottom: 2px solid #ff3232 !important;
+}
+
+.row-limit-flash {
+  animation: flash-row-limit 0.8s ease-in-out;
+}
+
+@keyframes flash-row-limit {
+  0%, 100% {
+    background-color: rgba(255, 50, 50, 0);
+  }
+  50% {
+    background-color: rgba(255, 50, 50, 0.3);
+  }
+}
