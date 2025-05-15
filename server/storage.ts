@@ -798,52 +798,14 @@ export class DatabaseStorage implements IStorage {
   
   async createManufacturingSchedule(schedule: InsertManufacturingSchedule): Promise<ManufacturingSchedule> {
     try {
-      // CRITICAL FIX: Force exact row placement at all times
-      // Get highest priority row value (forcedRowIndex > rowIndex > row > default)
-      const scheduleExtras = schedule as any;
-      
-      // Use type-safe variable names to avoid conflicts during destructuring later
-      const forcedRowInput = scheduleExtras.forcedRowIndex !== undefined ? 
-        parseInt(String(scheduleExtras.forcedRowIndex)) : undefined;
-      const rowIndexInput = schedule.rowIndex !== undefined ? 
-        parseInt(String(schedule.rowIndex)) : undefined;
-      const rowInput = schedule.row !== undefined ? 
-        parseInt(String(schedule.row)) : undefined;
-      
-      // Check for exactPosition flag - this means client wants ABSOLUTE positioning
-      const exactPositionFlag = !!scheduleExtras.exactPosition;
-      
-      // When exactPosition is true, we MUST respect the exact row without any adjustments
-      if (exactPositionFlag) {
-        console.log(`⚠️ EXACT POSITION FLAG: User has requested ZERO adjustments`);
-        console.log(`⚠️ NO AUTO CHECKS: Using exact row position with NO bounds checking`);
-      }
-      
-      // Determine row value with strict priority and NO AUTO ADJUSTMENT
-      const finalRow = forcedRowInput !== undefined ? forcedRowInput :
-                       rowIndexInput !== undefined ? rowIndexInput :
-                       rowInput !== undefined ? rowInput : 
-                       0; // Last resort default is row 0
-      
-      console.log(`🔴 ROW SELECTION FOR NEW SCHEDULE:
-        - forcedRowIndex: ${forcedRowInput}
-        - rowIndex: ${rowIndexInput}
-        - row: ${rowInput}
-        - exactPosition: ${exactPositionFlag}
-        - FINAL ROW: ${finalRow}
-      `);
-      
-      // Need to strip out the special properties that aren't in DB schema
-      // Create a clean copy by destructuring non-schema fields
-      const { forcedRowIndex: _, exactPosition: __, ...dbSafeSchedule } = scheduleExtras;
-      
-      // Create the final object with just DB-compatible fields
+      // CRITICAL FIX: Maintain row integrity - ensure both row and rowIndex are set
+      // with HIGHEST PRIORITY and no auto-adjustment
       const scheduleWithRows = {
-        ...dbSafeSchedule,
-        // MANDATORY: Force both row fields to be EXACTLY the same precise value 
-        row: finalRow,
-        rowIndex: finalRow
-        // Special fields are removed to avoid DB schema errors
+        ...schedule,
+        // Force row parameter to be maintained exactly as specified
+        row: schedule.row !== undefined ? schedule.row : 0,
+        // Also maintain the rowIndex parameter for compatibility
+        rowIndex: schedule.rowIndex || schedule.row || 0
       };
       
       console.log(`🚨 FINAL MANDATORY ROW: Will use ROW=${scheduleWithRows.row}, ROWINDEX=${scheduleWithRows.rowIndex}`);
@@ -862,48 +824,20 @@ export class DatabaseStorage implements IStorage {
   
   async updateManufacturingSchedule(id: number, schedule: Partial<InsertManufacturingSchedule>): Promise<ManufacturingSchedule | undefined> {
     try {
-      // CRITICAL FIX: Force exact row placement at all times when updating
-      // Get highest priority row value (forcedRowIndex > rowIndex > row)
-      // The forcedRowIndex parameter indicates the client is DEMANDING exact positioning
-      // Use type casting to handle extended properties not in schema
-      const scheduleAny = schedule as any;
-      const forcedRowIndex = scheduleAny.forcedRowIndex !== undefined ? 
-        parseInt(String(scheduleAny.forcedRowIndex)) : undefined;
-      const rowIndex = schedule.rowIndex !== undefined ? parseInt(String(schedule.rowIndex)) : undefined;
-      const row = schedule.row !== undefined ? parseInt(String(schedule.row)) : undefined;
-      
-      // Check for exactPosition flag - this means client wants ABSOLUTE positioning
-      const exactPosition = !!scheduleAny.exactPosition;
-      
-      // When exactPosition is true, we MUST respect the exact row without any adjustments
-      if (exactPosition) {
-        console.log(`⚠️ EXACT POSITION FLAG: User has requested ZERO adjustments`);
-        console.log(`⚠️ NO AUTO CHECKS: Using exact row position with NO bounds checking`);
-      }
-      
-      // Only process row changes if at least one of the row fields is provided
-      const hasRowUpdate = forcedRowIndex !== undefined || rowIndex !== undefined || row !== undefined;
-      
-      // Determine row value with strict priority and NO AUTO ADJUSTMENT
-      const finalRow = hasRowUpdate ? (
-        forcedRowIndex !== undefined ? forcedRowIndex :
-        rowIndex !== undefined ? rowIndex :
-        row // row is definitely defined here if hasRowUpdate is true
-      ) : undefined;
-      
-      // Extract and remove special fields before DB operations
-      const { forcedRowIndex: _, exactPosition: __, ...cleanSchedule } = scheduleAny;
-      
-      // Build the update object with only DB-compatible fields
+      // CRITICAL FIX: Maintain row integrity on update too - ensure both row and rowIndex are preserved
+      // NO AUTO-ADJUSTMENT OF ANY KIND - use exactly what comes from UI
       const scheduleWithRows = {
-        ...cleanSchedule,
+        ...schedule,
         updatedAt: new Date(),
-        // Only add row updates if we have a row to update
-        ...(finalRow !== undefined ? {
-          // MANDATORY: Force both row fields to be EXACTLY the same precise value
-          row: finalRow,
-          rowIndex: finalRow
-          // Special fields are now completely removed for DB compatibility
+        // Only set these if actually present in the update, otherwise leave them unchanged
+        ...(schedule.row !== undefined ? { 
+          row: schedule.row,
+          rowIndex: schedule.row // Match rowIndex to row for consistency
+        } : {}),
+        // If rowIndex is provided but row isn't, use it for both
+        ...(schedule.row === undefined && schedule.rowIndex !== undefined ? {
+          row: schedule.rowIndex,
+          rowIndex: schedule.rowIndex
         } : {})
       };
       

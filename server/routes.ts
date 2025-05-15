@@ -660,11 +660,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const forcedRowIndex = req.body.forcedRowIndex !== undefined ? parseInt(req.body.forcedRowIndex) : undefined;
       const rowParam = forcedRowIndex !== undefined ? forcedRowIndex : (req.body.rowIndex || req.body.row);
       
-      // Check for exactPosition flag - this means client wants ABSOLUTE positioning with NO BOUNDS CHECKING
-      const exactPosition = !!req.body.exactPosition;
-      
-      console.log(`⚠️ EXACT POSITION FLAG: ${exactPosition ? "TRUE - ABSOLUTE POSITIONING REQUESTED" : "FALSE"}`);
-      
       // ABSOLUTE PRIORITY: Use whatever row was passed from client with NO adjustments
       // This is a CRITICAL BUGFIX - use the exact row with no auto-repositioning
       const finalRowIndex = rowParam !== undefined ? parseInt(rowParam.toString()) : 0;
@@ -672,15 +667,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🚨 CRITICAL - SERVER ROW PLACEMENT: Using exact client-provided row:", finalRowIndex);
       console.log("🚨 NO AUTO-ADJUSTMENT: Row index coming directly from client drag/drop operation");
       
-      // Create cleaned data object with special parameters
       const data = {
         ...req.body,
         // DIRECT USER REQUEST: Projects MUST stay EXACTLY where dropped with NO AUTO ADJUSTMENT
         // All row and bay values must be preserved AS IS from user interface
         row: finalRowIndex, // Enforce exact row placement
-        rowIndex: finalRowIndex, // Store in both fields for compatibility
-        forcedRowIndex: finalRowIndex, // Pass through the forced index for storage
-        exactPosition: true // CRITICAL: Force NO ADJUSTMENTS throughout the system
+        rowIndex: finalRowIndex // Store in both fields for compatibility
       };
       
       // HIGHEST PRIORITY LOGGING: Critical placement details
