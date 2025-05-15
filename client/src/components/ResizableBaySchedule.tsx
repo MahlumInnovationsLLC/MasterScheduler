@@ -1413,25 +1413,26 @@ export default function ResizableBaySchedule({
                 const weekEnd = endOfWeek(weekStart);
                 const formattedStartDate = format(weekStart, 'MMM d');
                 const formattedEndDate = format(weekEnd, 'MMM d');
+                const weekYear = format(weekStart, 'yyyy');
                 
-                // Create a full-width week cell (7 days * slotWidth)
+                // Create a HALF-width week cell to match screenshot (3.5 days worth of width)
                 return (
                   <div
                     key={`header-${index}`}
                     className="timeline-slot flex-shrink-0 bg-gray-800/90 border-r border-gray-600"
                     style={{ 
-                      width: `${slotWidth * 7}px`,
-                      minWidth: `${slotWidth * 7}px`
+                      width: `${slotWidth * 3.5}px`,
+                      minWidth: `${slotWidth * 3.5}px`
                     }}
                     data-date={format(slot.date, 'yyyy-MM-dd')}
                     data-week-number={slot.weekNumber || Math.floor(index / 7)}
                   >
-                    {/* Week header with no gaps */}
+                    {/* Week header with no gaps but HALF width */}
                     <div className="week-number">
                       Week {slot.weekNumber || Math.floor(index / 7)}
                     </div>
                     <div className="week-date-range">
-                      {formattedStartDate} - {formattedEndDate}
+                      {formattedStartDate} - {formattedEndDate} {weekYear}
                     </div>
                     {slot.isStartOfMonth && (
                       <div className="text-xs font-bold text-blue-400 mt-1">
@@ -1701,40 +1702,36 @@ export default function ResizableBaySchedule({
                                 </div>
                               </div>
                               
-                              {/* Cell grid for this bay - Now with extended week cells for precise placement */}
-                              <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
-                                {slots.map((slot, index) => {
-                                  // Enhanced styling for better week cell visibility
+                              {/* Cell grid for this bay - Modified to align with header widths */}
+                              <div className="absolute inset-0 flex" style={{ width: `${slots.length * slotWidth}px` }}>
+                                {/* Instead of mapping all slots, we map only week-start slots at 3.5-day intervals to match headers */}
+                                {slots.filter((_, idx) => idx % 3.5 === 0).map((slot, groupIndex) => {
+                                  const slotIndex = Math.floor(groupIndex * 3.5);
                                   const isStartOfMonth = slot.isStartOfMonth;
                                   const isStartOfWeek = slot.isStartOfWeek;
                                   const isWeekend = !slot.isBusinessDay;
+                                  const weekNumber = slot.weekNumber || Math.floor(slotIndex / 7);
                                   
-                                  // Consistent styling for all week cells - no alternating colors
+                                  // Create cells that match the header widths exactly
                                   const cellClasses = [
                                     "relative h-full week-cell", // Base class for all cells
-                                    
-                                    // Mark week boundaries with clear border
-                                    isStartOfWeek ? "border-l border-r border-gray-700/80" : "border-r border-gray-700/30",
-                                    
-                                    // Apply darker shade for weekends
-                                    isWeekend ? "weekend-cell bg-gray-800/20" : "",
-                                    
-                                    // Single consistent background color
-                                    "bg-gray-900/95" 
+                                    "border-l border-r border-gray-700/80", // Consistent borders
+                                    "bg-gray-900/95", // Single consistent background color
+                                    isWeekend ? "weekend-cell" : ""
                                   ].filter(Boolean).join(" ");
                                   
                                   return (
                                     <div 
-                                      key={`bay-${bay.id}-slot-${index}`} 
+                                      key={`bay-${bay.id}-slot-${slotIndex}`} 
                                       className={cellClasses}
                                       data-row="0"
-                                      data-slot-index={index}
+                                      data-slot-index={slotIndex}
                                       data-date={format(slot.date, 'yyyy-MM-dd')}
                                       data-start-date={format(slot.date, 'yyyy-MM-dd')}
                                       data-bay-id={bay.id}
                                       data-row-index="0"
                                       data-exact-week="true"
-                                      data-week-number={slot.weekNumber || Math.floor(index / 7)}
+                                      data-week-number={weekNumber}
                                       data-is-start-of-month={isStartOfMonth ? "true" : "false"}
                                       data-is-start-of-week={isStartOfWeek ? "true" : "false"}
                                       data-is-weekend={isWeekend ? "true" : "false"}
