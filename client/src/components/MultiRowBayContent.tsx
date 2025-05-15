@@ -122,6 +122,13 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
                     e.preventDefault();
                     e.stopPropagation();
                     
+                    // MAY 16 2025 - EMERGENCY FIX
+                    // TRIGGER GLOBAL BYPASS OF ALL ROW CALCULATION CODE
+                    document.body.setAttribute('data-bypass-all-row-logic', 'true');
+                    document.body.setAttribute('data-force-exact-row-placement', 'true');
+                    document.body.setAttribute('data-allow-row-overlap', 'true');
+                    document.body.setAttribute('data-emergency-fix-mode', 'true');
+                    
                     // Get the week cell parent
                     const weekCell = e.currentTarget.closest('.week-cell');
                     if (weekCell) {
@@ -130,6 +137,10 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
                       for (let i = 0; i < rowCount; i++) {
                         weekCell.classList.remove(`row-${i}-highlight`);
                       }
+                      
+                      // CRITICAL: Set cell-level attribute for exact row position
+                      weekCell.setAttribute('data-exact-drop-row', rowIdx.toString());
+                      weekCell.setAttribute('data-forced-row-index', rowIdx.toString());
                     }
                     
                     // MAY 16, 2025 CRITICAL USER-DEMANDED FIX:
@@ -164,24 +175,23 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
                     console.log(`🚨🚨🚨 ALL ROW OVERLAP PREVENTION DISABLED`);
                     console.log(`🚨🚨🚨 PROJECT WILL BE PLACED EXACTLY WHERE DROPPED`);
                     
-                    // Store pixel-perfect calculation details for debugging
-                    const rowPct = (relativeY / cellHeight);
-                    document.body.setAttribute('data-exact-drop-y-percent', rowPct.toString());
-                    document.body.setAttribute('data-exact-drop-y-pixels', relativeY.toString());
-                    document.body.setAttribute('data-exact-drop-adjusted-y', adjustedY.toString());
+                    // 🚨 MAY 16 2025 - EMERGENCY FIX 🚨
+                    // ABSOLUTE OVERRIDE - Simply use the row index directly with no calculations
+                    // This is the simplest, most direct approach for guaranteed placement
                     
-                    console.log(`🎯 PIXEL-PERFECT ROW CALCULATION:`);
-                    console.log(`  - Cell height: ${cellHeight}px with ${rowCount} rows (${rowHeight}px per row)`);
-                    console.log(`  - Mouse Y position: ${relativeY}px (${rowPct.toFixed(2)}% of cell height)`);
-                    console.log(`  - Drag offset Y: ${dragOffsetY}px (where user grabbed the bar)`);
-                    console.log(`  - Adjusted Y: ${adjustedY}px (after compensating for grab offset)`);
-                    console.log(`  - Calculated exact row: ${exactRow} (clamped to ${clampedExactRow})`);
-                    console.log(`  - Cell index row: ${rowIdx} (original cell-based calculation)`);
-                    console.log(`  - USING PRECISION ROW: ${clampedExactRow} for final placement`);
+                    console.log(`🚨 EMERGENCY FIX MODE ACTIVE`);
+                    console.log(`🚨 Using DIRECT ROW INDEX: ${rowIdx}`);
+                    console.log(`🚨 Bay ID: ${bay.id}, Week: ${index}`);
+                    console.log(`🚨 NO CALCULATIONS OR ADJUSTMENTS`);
+                    console.log(`🚨 ZERO PROCESSING GUARANTEED`);
                     
-                    // CRITICAL FIX: Use the pixel-perfect calculated row instead of the cell-based rowIdx
-                    // This ensures the project lands exactly where the user expects based on pixel position
-                    handleDrop(e, bay.id, index, clampedExactRow);
+                    // Set multiple redundant data attributes to ensure exact position is preserved
+                    document.body.setAttribute('data-final-row-index', rowIdx.toString());
+                    document.body.setAttribute('data-absolute-row-drop', rowIdx.toString());
+                    document.body.setAttribute('data-emergency-row-override', rowIdx.toString());
+                    
+                    // Call the drop handler with EXACT row index - no calculations
+                    handleDrop(e, bay.id, index, rowIdx);
                     
                     // Log the exact cell location for debugging
                     const weekStartDate = format(slot.date, 'yyyy-MM-dd');
@@ -211,8 +221,24 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
               e.currentTarget.classList.remove('row-target-highlight', `row-${rowIndex}-target`);
             }}
             onDrop={(e) => {
-              // Set global row data attribute to current row
+              // MAY 16 2025 - EMERGENCY FIX - DIRECT EXACT ROW PLACEMENT
+              // Set multiple redundant attributes to ensure exact placement is preserved
+              document.body.setAttribute('data-bypass-all-row-logic', 'true');
+              document.body.setAttribute('data-force-exact-row-placement', 'true');
+              document.body.setAttribute('data-allow-row-overlap', 'true');
+              document.body.setAttribute('data-emergency-fix-mode', 'true');
+              
+              // Set global row data attributes with maximum redundancy
               document.body.setAttribute('data-current-drag-row', rowIndex.toString());
+              document.body.setAttribute('data-exact-row-drop', rowIndex.toString());
+              document.body.setAttribute('data-last-row-select', rowIndex.toString());
+              document.body.setAttribute('data-precision-drop-row', rowIndex.toString());
+              document.body.setAttribute('data-absolute-row-index', rowIndex.toString());
+              document.body.setAttribute('data-forced-row-index', rowIndex.toString());
+              document.body.setAttribute('data-final-exact-row', rowIndex.toString());
+              
+              // Use DIRECT row with ZERO processing
+              console.log(`🚨 EMERGENCY FIX MODE: Using EXACT row ${rowIndex} with ZERO processing`); 
               handleDrop(e, bay.id, 0, rowIndex);
             }}
           >
