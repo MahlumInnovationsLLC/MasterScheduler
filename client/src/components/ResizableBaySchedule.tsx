@@ -212,13 +212,40 @@ const getBayRowCount = (bayId: number, bayName: string) => {
 };
 
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
+  console.log("GENERATING TIME SLOTS WITH RANGE:", {
+    start: format(dateRange.start, 'yyyy-MM-dd'),
+    end: format(dateRange.end, 'yyyy-MM-dd'),
+    viewMode
+  });
+
   const slots: TimeSlot[] = [];
-  let currentDate = new Date(dateRange.start);
   
-  while (currentDate <= dateRange.end) {
+  // Ensure we're working with fresh date objects
+  const startDate = new Date(dateRange.start);
+  const endDate = new Date(dateRange.end);
+  
+  // IMPORTANT: Always use January 1st, 2024 to May 31st, 2028 range
+  // This ensures consistency regardless of what's passed in
+  let currentDate = new Date(2024, 0, 1);
+  const absoluteEndDate = new Date(2028, 4, 31);
+  
+  console.log(`Generating time slots from ${format(currentDate, 'yyyy-MM-dd')} to ${format(absoluteEndDate, 'yyyy-MM-dd')}`);
+  
+  let counter = 0;
+  while (currentDate <= absoluteEndDate) {
+    counter++;
+    if (counter > 2000) {
+      console.error("Too many iterations when generating time slots, breaking loop");
+      break; // Safety check to prevent infinite loops
+    }
+    
     const isStartOfMonth = currentDate.getDate() === 1;
     const isStartOfWeek = currentDate.getDay() === 1; // Monday as start of week
     const isCurrentDateBusinessDay = isBusinessDay(currentDate);
+    
+    // Compute the week number relative to Jan 1 of the current year
+    const yearStart = new Date(currentDate.getFullYear(), 0, 1);
+    const weekNumber = Math.ceil(differenceInDays(currentDate, yearStart) / 7);
     
     slots.push({
       date: new Date(currentDate),
@@ -226,7 +253,7 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
       isStartOfWeek,
       isBusinessDay: isCurrentDateBusinessDay,
       monthName: isStartOfMonth ? format(currentDate, 'MMMM') : undefined,
-      weekNumber: isStartOfWeek ? Math.ceil(differenceInDays(currentDate, new Date(currentDate.getFullYear(), 0, 1)) / 7) : undefined
+      weekNumber: weekNumber
     });
     
     if (viewMode === 'day') {
@@ -347,6 +374,7 @@ export default function ResizableBaySchedule({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // EXACT ALIGNMENT: Each slot is exactly 56px, each week is 7 slots (392px total)
   // The header width is set to 3.5*56 = 196px (half week) for perfect alignment
+  // Use consistent 56px width for day slots (for week view, we'll use multiples)
   const [slotWidth, setSlotWidth] = useState(56);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
@@ -1432,8 +1460,8 @@ export default function ResizableBaySchedule({
                     key={`header-${slotIndex}`}
                     className="timeline-slot flex-shrink-0 bg-gray-800/90 border-r border-gray-600"
                     style={{ 
-                      width: `${slotWidth * 3.5}px`,
-                      minWidth: `${slotWidth * 3.5}px`
+                      width: `${slotWidth * 7}px`,  /* Each week header is 7 days wide (full week) */
+                      minWidth: `${slotWidth * 7}px`
                     }}
                     data-date={format(slot.date, 'yyyy-MM-dd')}
                     data-week-number={slot.weekNumber || Math.floor(slotIndex / 7)}
@@ -1739,7 +1767,10 @@ export default function ResizableBaySchedule({
                                     <div 
                                       key={`bay-${bay.id}-slot-${slotIndex}`} 
                                       className={cellClasses}
-                                      style={{ width: `${slotWidth * 3.5}px` }} /* Exactly match header width (half week) */
+                                      style={{ 
+                                        width: `${slotWidth * 7}px`,  /* Each week is 7 days wide (392px) */
+                                        minWidth: `${slotWidth * 7}px` 
+                                      }}
                                       data-row="0"
                                       data-slot-index={slotIndex}
                                       data-date={format(slot.date, 'yyyy-MM-dd')}
