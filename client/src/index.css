@@ -936,14 +936,50 @@
 .multi-row-bay .project-bar[data-row-index="19"] { top: 95% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
 
 /* Week cell hover - enhance visibility for dragging targets */
+.week-cell {
+  min-width: 144px;
+  border: 1px solid rgba(180, 180, 200, 0.2); /* Brighter grid lines for better visibility */
+  position: relative; /* Ensure proper positioning of children */
+  transition: background-color 0.15s ease; /* Smooth transitions */
+}
+
+.dark .week-cell {
+  border-color: rgba(180, 180, 200, 0.3); /* Brighter borders in dark mode */
+}
+
 .week-cell.drag-hover {
   border: 2px dashed hsl(var(--primary)) !important;
+  background-color: rgba(59, 130, 246, 0.15) !important; /* Light blue background in hover state */
   z-index: 5;
 }
 
 .week-cell.active-drop-target {
   border: 2px solid hsl(var(--primary)) !important;
-  background-color: rgba(var(--primary-rgb), 0.3) !important;
+  background-color: rgba(59, 130, 246, 0.3) !important; /* Slightly darker blue when active */
+}
+
+/* Bay row styling with improved visibility */
+.bay-row {
+  position: relative;
+  border-bottom: 1px solid rgba(180, 180, 200, 0.2);
+  transition: background-color 0.15s ease;
+}
+
+.bay-row:hover {
+  background-color: rgba(100, 130, 250, 0.15); /* Brighter highlight on hover */
+}
+
+.dark .bay-row {
+  border-color: rgba(180, 180, 200, 0.3); /* Brighter row borders in dark mode */
+}
+
+.row-target-highlight {
+  background-color: rgba(59, 130, 246, 0.25) !important; /* Increased highlight opacity */
+}
+
+.bay-highlight {
+  outline: 2px dashed #60a5fa !important;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.5); /* Added glow effect for highlighting */
 }
 
 /* Styling for subcells in multi-row bays */
