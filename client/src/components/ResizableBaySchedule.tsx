@@ -3257,7 +3257,8 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // Log the raw calculation with enhanced debugging
     console.log(`🎯 DIRECT Y-POSITION ROW CALCULATION:
-    - Raw Y position: ${mouseRawY}px (${relativeY}px relative, ${absoluteY}px absolute)
+    - Raw Y position: ${mouseRawY}px (relative to container)
+    - Mouse absolute position: ${e.clientY}px (on screen)
     - Bay height: ${rectContainer.height}px, Row height: ${rowHeight}px 
     - Bay ${bayId} has ${MAX_ROWS} rows (0-${MAX_ROWS-1})
     - CALCULATED ROW: ${exactRowIndex} (pure Y position calculation)
@@ -3354,7 +3355,7 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
         
         // Get slot width based on view mode - standard values
         const pixelsPerSlot = getSlotWidth();
-        const weeksOffset = mouseFinalX / pixelsPerSlot; 
+        const weeksOffset = mouseRawX / pixelsPerSlot; 
         const daysOffset = viewMode === 'week' ? weeksOffset * 7 : weeksOffset;
         
         // Calculate the exact start date from pixel position
