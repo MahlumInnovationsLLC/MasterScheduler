@@ -1812,3 +1812,56 @@ body.resizing-mode .resize-handle {
   border-color: rgba(255, 255, 255, 0.4);
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
 }
+
+/* PIXEL-PERFECT POSITIONING ENHANCEMENTS */
+
+/* Enhanced bay highlighting for precise drop locations */
+.bay-highlight {
+  background-color: rgba(50, 205, 50, 0.1) !important; 
+  box-shadow: inset 0 0 0 2px rgba(0, 255, 0, 0.4) !important;
+  position: relative;
+}
+
+/* Row target highlight for precise positioning */
+.row-target-highlight {
+  background-color: rgba(0, 200, 100, 0.1) !important;
+  position: relative;
+}
+
+/* Grid to show exact positioning */
+.row-target-highlight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(to right, rgba(100, 255, 100, 0.1) 1px, transparent 1px);
+  background-size: 50px 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Improved schedule bar styling with drop shadow for better visibility */
+.schedule-bar {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+  /* CRITICAL: use transform to handle z-index layering instead of z-index */
+  transform: scale(1.0);
+}
+
+/* Hovering over a bar should bring it to the front without disrupting placement */
+.schedule-bar:hover {
+  /* Use transform to visually bring the bar forward rather than changing z-index */
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  /* Ensure project details are visible even when overlapping */
+  opacity: 0.95;
+}
+
+/* Style for the dragging state */
+.schedule-bar.dragging {
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5) !important;
+  opacity: 0.9;
+}
