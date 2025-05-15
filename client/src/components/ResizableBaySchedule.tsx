@@ -524,6 +524,23 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   // Track where on the bar the user grabbed it for pixel-perfect positioning
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   
+  // MAY 16 2025 - EMERGENCY FIX MODE
+  // Force emergency mode to be active permanently for ALL bays
+  const [emergencyFixMode] = useState(true);
+  const [forceExactRowPlacement] = useState(true);
+  const [bypassAllRowLogic] = useState(true);
+  const [allowRowOverlap] = useState(true);
+  
+  // Set emergency flags globally in document body for all components to respect
+  useEffect(() => {
+    document.body.setAttribute('data-bypass-all-row-logic', 'true');
+    document.body.setAttribute('data-force-exact-row-placement', 'true');
+    document.body.setAttribute('data-allow-row-overlap', 'true');
+    document.body.setAttribute('data-emergency-fix-mode', 'true');
+    document.body.setAttribute('data-emergency-override', 'PERMANENT');
+    console.log('🚨🚨🚨 EMERGENCY FIX MODE ACTIVATED - PERMANENT');
+  }, []);
+  
   // Function to calculate bar position based on dates
 
   const calculateBarPosition = (startDate: Date, endDate: Date): { left?: number, width?: number } => {
@@ -6155,15 +6172,22 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                 </div>
                 
                 {/* Row dividers with visible action buttons */}
+                {/* 
+                  MAY 16 2025 - ULTRA AGGRESSIVE EMERGENCY FIX MODE
+                  COMPLETELY REPLACE ALL BAY ROW IMPLEMENTATIONS FOR ALL BAYS
+                  Force use of direct implementation on ALL bays for consistent behavior
+                  This ensures exact row placement with no adjustments or automatic repositioning
+                */}
                 {(() => {
-                  // IMPORTANT UPDATE: Use bay NUMBER (7 or 8) to determine if we should use multi-row
-                  // This ensures ANY bay with ID 7 or 8 will get 20 rows, regardless of name
-                  // This is necessary to handle cases like "TCV Line" which is bay number 7
-                  const isMultiRowBay = bay.id === 7 || bay.id === 8 || bay.bayNumber === 7 || bay.bayNumber === 8;
+                  // Get row count for this bay
+                  const rowCount = getBayRowCount(bay.id, bay.name);
                   
-                  // Add debug logging to troubleshoot the issue
-                  console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${getBayRowCount(bay.id, bay.name)}, bayNumber=${bay.bayNumber}`);
-                  return isMultiRowBay;
+                  // Log aggressive emergency mode activation for ALL bays
+                  console.log(`⚠️⚠️⚠️ MAY 16 EMERGENCY MODE: Forcing direct row implementation for ALL bays`);
+                  console.log(`⚠️ Bay ${bay.id} (${bay.name}): rowCount=${rowCount}, bayNumber=${bay.bayNumber}`);
+                  
+                  // Always return true to force direct implementation for ALL bays
+                  return true;
                 })() ? (
                   // MAY 16 EMERGENCY FIX: DIRECT ROW IMPLEMENTATION
                   // Completely bypass MultiRowBayContent component to ensure exact placement
