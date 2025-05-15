@@ -1711,13 +1711,17 @@ export default function ResizableBaySchedule({
                                 </div>
                               </div>
                               
-                              {/* Cell grid for this bay - Modified to align with header widths */}
+                              {/* Cell grid for this bay - Exactly matches header widths */}
                               <div className="absolute inset-0 flex" style={{ width: `${slots.length * slotWidth}px` }}>
-                                {/* Instead of mapping all slots, we map only week-start slots at 3.5-day intervals to match headers */}
-                                {slots.filter((_, idx) => idx % 3.5 === 0).map((slot, groupIndex) => {
-                                  const slotIndex = Math.floor(groupIndex * 3.5);
+                                {/* We only render cells for the start of weeks to match timeline headers */}
+                                {slots.filter(slot => slot.isStartOfWeek).map((slot, weekIndex) => {
+                                  const slotIndex = slots.findIndex(s => 
+                                    s.date.getFullYear() === slot.date.getFullYear() && 
+                                    s.date.getMonth() === slot.date.getMonth() && 
+                                    s.date.getDate() === slot.date.getDate()
+                                  );
                                   const isStartOfMonth = slot.isStartOfMonth;
-                                  const isStartOfWeek = slot.isStartOfWeek;
+                                  const isStartOfWeek = true; // Always true due to our filter
                                   const isWeekend = !slot.isBusinessDay;
                                   const weekNumber = slot.weekNumber || Math.floor(slotIndex / 7);
                                   
@@ -1733,6 +1737,7 @@ export default function ResizableBaySchedule({
                                     <div 
                                       key={`bay-${bay.id}-slot-${slotIndex}`} 
                                       className={cellClasses}
+                                      style={{ width: `${slotWidth * 3.5}px` }} /* Exactly match header width (half week) */
                                       data-row="0"
                                       data-slot-index={slotIndex}
                                       data-date={format(slot.date, 'yyyy-MM-dd')}

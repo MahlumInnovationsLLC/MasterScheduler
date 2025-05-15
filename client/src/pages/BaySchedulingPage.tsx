@@ -767,8 +767,10 @@ const BaySchedulingPage = () => {
   
   // Navigate through time (forward or backward)
   const navigateTime = (direction: 'forward' | 'backward') => {
-    // Always keep January 1st of current year as the start date for consistency
-    const startDate = new Date(new Date().getFullYear(), 0, 1);
+    // Always keep January 1st, 2024 as the start date for consistency
+    const startDate = new Date(2024, 0, 1);
+    // Always ensure end date is at least May 31st, 2028 (week 20)
+    const minEndDate = new Date(2028, 4, 31);
     let newEnd;
     
     // Adjust the navigation increment based on view mode
@@ -809,7 +811,12 @@ const BaySchedulingPage = () => {
     // Log navigation action
     console.log(`Navigating ${direction} in ${viewMode} view mode`);
     
-    // Update the date range
+    // Make sure end date is never before our minimum end date (May 31st, 2028)
+    if (newEnd < minEndDate) {
+      newEnd = minEndDate;
+    }
+    
+    // Update the date range ensuring our full range is always visible
     setDateRange({ start: startDate, end: newEnd });
   };
   
