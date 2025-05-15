@@ -825,18 +825,36 @@
 
 /* Row positioning for ALL BAYS - CRITICAL FIX */
 /* Standard bay rows (4 rows at 25% height) */
+/* FIXED: Forcing all rows within bay height boundaries regardless of row index */
 .row-0-bar { top: 0% !important; height: 25% !important; }
 .row-1-bar { top: 25% !important; height: 25% !important; }
 .row-2-bar { top: 50% !important; height: 25% !important; }
 .row-3-bar { top: 75% !important; height: 25% !important; }
 
-/* Extended row support - these will appear BELOW the bay if used */
-.row-4-bar { top: 100% !important; height: 25% !important; }
-.row-5-bar { top: 125% !important; height: 25% !important; }
-.row-6-bar { top: 150% !important; height: 25% !important; }
-.row-7-bar { top: 175% !important; height: 25% !important; }
-.row-8-bar { top: 200% !important; height: 25% !important; }
-.row-9-bar { top: 225% !important; height: 25% !important; }
+/* Force non-standard rows into standard 4-row layout */
+/* Row 4-7 map to row 0 */
+.row-4-bar { top: 0% !important; height: 25% !important; }
+.row-5-bar { top: 0% !important; height: 25% !important; }
+.row-6-bar { top: 0% !important; height: 25% !important; }
+.row-7-bar { top: 0% !important; height: 25% !important; }
+
+/* Row 8-11 map to row 1 */
+.row-8-bar { top: 25% !important; height: 25% !important; }
+.row-9-bar { top: 25% !important; height: 25% !important; }
+.row-10-bar { top: 25% !important; height: 25% !important; }
+.row-11-bar { top: 25% !important; height: 25% !important; }
+
+/* Row 12-15 map to row 2 */
+.row-12-bar { top: 50% !important; height: 25% !important; }
+.row-13-bar { top: 50% !important; height: 25% !important; }
+.row-14-bar { top: 50% !important; height: 25% !important; }
+.row-15-bar { top: 50% !important; height: 25% !important; }
+
+/* Row 16-19 map to row 3 */
+.row-16-bar { top: 75% !important; height: 25% !important; }
+.row-17-bar { top: 75% !important; height: 25% !important; }
+.row-18-bar { top: 75% !important; height: 25% !important; }
+.row-19-bar { top: 75% !important; height: 25% !important; }
 
 /* Row highlight classes for multi-row bays */
 .multi-row-bay .row-0-bar { top: 0% !important; height: 5% !important; }
