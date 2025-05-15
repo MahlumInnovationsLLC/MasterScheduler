@@ -860,7 +860,52 @@
 /* These rules handle the modulo 4 requirement automatically by mapping */
 /* all the values to their visual positions within Bay 1-6 and Bay 9+ */
 
-/* Row highlight classes for multi-row bays */
+/* CRITICAL: This ensures ANY given row index from 0-19 displays properly */
+/* Row distribution mapping for modulo 4 - bay 1-6 and bay 9+ specific mapping */
+.standard-bay .project-bar[data-row-index="0"],
+.standard-bay .project-bar[data-row-index="4"],
+.standard-bay .project-bar[data-row-index="8"],
+.standard-bay .project-bar[data-row-index="12"],
+.standard-bay .project-bar[data-row-index="16"] {
+  top: 0% !important;
+  height: 25% !important;
+  border-top: 3px solid #ffffff33 !important;
+}
+
+.standard-bay .project-bar[data-row-index="1"],
+.standard-bay .project-bar[data-row-index="5"],
+.standard-bay .project-bar[data-row-index="9"],
+.standard-bay .project-bar[data-row-index="13"],
+.standard-bay .project-bar[data-row-index="17"] {
+  top: 25% !important;
+  height: 25% !important;
+  border-top: 3px solid #ffffff33 !important;
+}
+
+.standard-bay .project-bar[data-row-index="2"],
+.standard-bay .project-bar[data-row-index="6"],
+.standard-bay .project-bar[data-row-index="10"],
+.standard-bay .project-bar[data-row-index="14"],
+.standard-bay .project-bar[data-row-index="18"] {
+  top: 50% !important;
+  height: 25% !important;
+  border-top: 3px solid #ffffff33 !important;
+}
+
+.standard-bay .project-bar[data-row-index="3"],
+.standard-bay .project-bar[data-row-index="7"],
+.standard-bay .project-bar[data-row-index="11"],
+.standard-bay .project-bar[data-row-index="15"],
+.standard-bay .project-bar[data-row-index="19"] {
+  top: 75% !important;
+  height: 25% !important;
+  border-top: 3px solid #ffffff33 !important;
+}
+
+/* Row highlight classes for multi-row bays (Teams 7 & 8) */
+/* These use precise percentage positioning for 20 rows (0-19) */
+
+/* First set - Using row-X-bar for backward compatibility */
 .multi-row-bay .row-0-bar { top: 0% !important; height: 5% !important; }
 .multi-row-bay .row-1-bar { top: 5% !important; height: 5% !important; }
 .multi-row-bay .row-2-bar { top: 10% !important; height: 5% !important; }
@@ -881,6 +926,28 @@
 .multi-row-bay .row-17-bar { top: 85% !important; height: 5% !important; }
 .multi-row-bay .row-18-bar { top: 90% !important; height: 5% !important; }
 .multi-row-bay .row-19-bar { top: 95% !important; height: 5% !important; }
+
+/* Second set - Using data-row-index for new implementation consistency */
+.multi-row-bay .project-bar[data-row-index="0"] { top: 0% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="1"] { top: 5% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="2"] { top: 10% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="3"] { top: 15% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="4"] { top: 20% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="5"] { top: 25% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="6"] { top: 30% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="7"] { top: 35% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="8"] { top: 40% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="9"] { top: 45% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="10"] { top: 50% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="11"] { top: 55% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="12"] { top: 60% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="13"] { top: 65% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="14"] { top: 70% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="15"] { top: 75% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="16"] { top: 80% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="17"] { top: 85% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="18"] { top: 90% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
+.multi-row-bay .project-bar[data-row-index="19"] { top: 95% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
 
 /* Week cell hover - enhance visibility for dragging targets */
 .week-cell.drag-hover {
@@ -1520,4 +1587,90 @@ body.resizing-mode .resize-handle {
   50% {
     background-color: rgba(255, 50, 50, 0.3);
   }
+}
+
+/* MAY 15 2025 - BAY CLASSIFICATION SYSTEM */
+/* Allow perfect alignment of project bars with no DOM shifting */
+.bay-content .bay-project-area {
+  position: relative;
+  padding: 0;
+  transition: none !important;
+}
+
+/* Force absolute positioning to prevent auto-reflows */
+.bay-content .bay-project-area .project-bar {
+  position: absolute;
+  transition: none !important;
+  z-index: 20;
+}
+
+/* CRITICAL FIX: Bay type markers for differentiating between standard and multi-row bays */
+.bay[data-bay-number="1"],
+.bay[data-bay-number="2"],
+.bay[data-bay-number="3"],
+.bay[data-bay-number="4"],
+.bay[data-bay-number="5"],
+.bay[data-bay-number="6"],
+.bay[data-bay-number="9"],
+.bay[data-bay-number="10"] {
+  --bay-type: "standard";
+}
+
+.bay[data-bay-number="7"],
+.bay[data-bay-number="8"] {
+  --bay-type: "multi-row";
+}
+
+/* MAY 15 FIX: Auto-classify bays as standard or multi-row */
+.bay[data-bay-number="1"] .bay-content,
+.bay[data-bay-number="2"] .bay-content,
+.bay[data-bay-number="3"] .bay-content,
+.bay[data-bay-number="4"] .bay-content,
+.bay[data-bay-number="5"] .bay-content,
+.bay[data-bay-number="6"] .bay-content,
+.bay[data-bay-number="9"] .bay-content,
+.bay[data-bay-number="10"] .bay-content {
+  height: 150px !important;
+}
+
+.bay[data-bay-number="7"] .bay-content,
+.bay[data-bay-number="8"] .bay-content {
+  min-height: 600px !important;
+}
+
+/* Add visible bay identification clues */
+.bay[data-bay-number="1"]::before,
+.bay[data-bay-number="2"]::before,
+.bay[data-bay-number="3"]::before,
+.bay[data-bay-number="4"]::before,
+.bay[data-bay-number="5"]::before,
+.bay[data-bay-number="6"]::before,
+.bay[data-bay-number="9"]::before,
+.bay[data-bay-number="10"]::before {
+  content: "4-ROW STANDARD";
+  position: absolute;
+  top: 0;
+  right: 10px;
+  background-color: rgba(113, 113, 122, 0.3);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  z-index: 5;
+  color: rgb(250, 250, 250);
+  pointer-events: none;
+}
+
+.bay[data-bay-number="7"]::before,
+.bay[data-bay-number="8"]::before {
+  content: "20-ROW BAY";
+  position: absolute;
+  top: 0;
+  right: 10px;
+  background-color: rgba(59, 130, 246, 0.3);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  z-index: 5;
+  color: rgb(255, 255, 255);
+  pointer-events: none;
 }
