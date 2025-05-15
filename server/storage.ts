@@ -800,12 +800,18 @@ export class DatabaseStorage implements IStorage {
     try {
       // CRITICAL FIX: Force exact row placement at all times
       // Get highest priority row value (forcedRowIndex > rowIndex > row > default)
-      const forcedRowIndex = schedule.forcedRowIndex !== undefined ? parseInt(String(schedule.forcedRowIndex)) : undefined;
-      const rowIndex = schedule.rowIndex !== undefined ? parseInt(String(schedule.rowIndex)) : undefined;
-      const row = schedule.row !== undefined ? parseInt(String(schedule.row)) : undefined;
+      const scheduleExtras = schedule as any;
+      
+      // Use type-safe variable names to avoid conflicts during destructuring later
+      const forcedRowInput = scheduleExtras.forcedRowIndex !== undefined ? 
+        parseInt(String(scheduleExtras.forcedRowIndex)) : undefined;
+      const rowIndexInput = schedule.rowIndex !== undefined ? 
+        parseInt(String(schedule.rowIndex)) : undefined;
+      const rowInput = schedule.row !== undefined ? 
+        parseInt(String(schedule.row)) : undefined;
       
       // Check for exactPosition flag - this means client wants ABSOLUTE positioning
-      const exactPosition = !!schedule.exactPosition;
+      const exactPositionFlag = !!scheduleExtras.exactPosition;
       
       // When exactPosition is true, we MUST respect the exact row without any adjustments
       if (exactPosition) {
@@ -827,13 +833,16 @@ export class DatabaseStorage implements IStorage {
         - FINAL ROW: ${finalRow}
       `);
       
+      // Extract the special fields that aren't part of the schema
+      const { forcedRowIndex, exactPosition, ...cleanedSchedule } = schedule as any;
+      
+      // Create the final object with just DB-compatible fields
       const scheduleWithRows = {
-        ...schedule,
+        ...cleanedSchedule,
         // MANDATORY: Force both row fields to be EXACTLY the same precise value 
         row: finalRow,
-        rowIndex: finalRow,
-        // We need to cast to any since these fields aren't in the schema
-        // They are for processing only and don't need to be stored in DB
+        rowIndex: finalRow
+        // Special fields are removed to avoid DB schema errors
       };
       
       console.log(`🚨 FINAL MANDATORY ROW: Will use ROW=${scheduleWithRows.row}, ROWINDEX=${scheduleWithRows.rowIndex}`);
@@ -856,13 +865,14 @@ export class DatabaseStorage implements IStorage {
       // Get highest priority row value (forcedRowIndex > rowIndex > row)
       // The forcedRowIndex parameter indicates the client is DEMANDING exact positioning
       // Use type casting to handle extended properties not in schema
-      const forcedRowIndex = (schedule as any).forcedRowIndex !== undefined ? 
-        parseInt(String((schedule as any).forcedRowIndex)) : undefined;
+      const scheduleAny = schedule as any;
+      const forcedRowIndex = scheduleAny.forcedRowIndex !== undefined ? 
+        parseInt(String(scheduleAny.forcedRowIndex)) : undefined;
       const rowIndex = schedule.rowIndex !== undefined ? parseInt(String(schedule.rowIndex)) : undefined;
       const row = schedule.row !== undefined ? parseInt(String(schedule.row)) : undefined;
       
       // Check for exactPosition flag - this means client wants ABSOLUTE positioning
-      const exactPosition = !!schedule.exactPosition;
+      const exactPosition = !!scheduleAny.exactPosition;
       
       // When exactPosition is true, we MUST respect the exact row without any adjustments
       if (exactPosition) {
@@ -880,17 +890,19 @@ export class DatabaseStorage implements IStorage {
         row // row is definitely defined here if hasRowUpdate is true
       ) : undefined;
       
-      // Build the update object
+      // Extract and remove special fields before DB operations
+      const { forcedRowIndex: _, exactPosition: __, ...cleanSchedule } = scheduleAny;
+      
+      // Build the update object with only DB-compatible fields
       const scheduleWithRows = {
-        ...schedule,
+        ...cleanSchedule,
         updatedAt: new Date(),
         // Only add row updates if we have a row to update
         ...(finalRow !== undefined ? {
           // MANDATORY: Force both row fields to be EXACTLY the same precise value
           row: finalRow,
-          rowIndex: finalRow,
-          forcedRowIndex: undefined, // Clear this after use to avoid confusion later
-          exactPosition: undefined   // Clear this after use to avoid confusion later
+          rowIndex: finalRow
+          // Special fields are now completely removed for DB compatibility
         } : {})
       };
       
