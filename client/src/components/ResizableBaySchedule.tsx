@@ -6856,9 +6856,13 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           width: bar.width + 'px',  // Removed the -4px to ensure chevrons align with full bar width
                           backgroundColor: 'transparent', // Make background transparent since we're using department phases
                           opacity: draggingSchedule?.id === bar.id ? 0.5 : 1,
-                          // 🚨 CRITICAL FIX: Always apply rowHeight for all bays, not just multi-row ones
-                          // This ensures the top position is always explicitly set
-                          ...rowHeight
+                          // 🚨 CRITICAL FIX: MAY 16 2025 - Use CSS custom properties to ensure styles take top precedence
+                          // This ensures the bar appears EXACTLY where expected with no exceptions
+                          ['--explicit-top' as any]: `${topPercentage}%`,
+                          ['--explicit-height' as any]: `${rowHeightPercentage}%`,
+                          // Keep direct properties as fallback but they will be overridden by custom properties
+                          height: `${rowHeightPercentage}%`, 
+                          top: `${topPercentage}%`
                         }}
                         draggable={typeof document !== 'undefined' && document.body.classList.contains('resizing-mode') ? false : true}
                         onDragStart={(e) => {

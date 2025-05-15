@@ -1601,12 +1601,16 @@ body.resizing-mode .resize-handle {
   /* No automatic top positioning - the inline style will handle this */
 }
 
-/* 🚨 CRITICAL OVERRIDE: Force inline styles to take precedence over all CSS classes 🚨 */
-/* This ensures the top/height values we set in code always win */
-.big-project-bar[style*="top"],
-.big-project-bar[style*="height"] {
+/* 🚨 MAY 16 2025 CRITICAL OVERRIDE: Force CSS custom properties to override all other styles 🚨 */
+/* This ensures the top/height values we set in code always win, regardless of other CSS rules */
+.big-project-bar[style*="--explicit"] {
   top: var(--explicit-top) !important;
   height: var(--explicit-height) !important;
+  /* Enhanced specificty to ensure these win in all cases */
+  position: absolute !important;
+  transform: none !important;
+  transition: none !important;
+  z-index: 30 !important;
 }
 
 /* 
