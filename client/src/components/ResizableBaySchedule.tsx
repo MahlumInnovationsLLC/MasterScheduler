@@ -6825,6 +6825,10 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     // Enhanced debugging logs to trace exact positioning 
                     console.log(`🔒 RENDERING BAR ${bar.id} EXACTLY at row=${rowIndex} with class ${rowClass}`);
                     console.log(`📏 BAR ${bar.id} STYLE: top=${topPercentage}%, height=${isMultiRowBay ? (100 / getBayRowCount(bar.bayId, bayName)) : 25}%`);
+                    console.log(`💾 BAR ${bar.id} DATABASE VALUES: projectId=${bar.projectId}, bayId=${bar.bayId}, ROW=${bar.row}, startDate=${bar.startDate}`);
+                    
+                    // ADDITIONAL DATA DUMP TO VERIFY ALL BAR PROPERTIES
+                    console.log(`🔍 COMPLETE BAR ${bar.id} DATA:`, JSON.stringify(bar, null, 2));
                       
                     // Force the top position directly in styles with !important to override any CSS
                     const rowHeight = { 
