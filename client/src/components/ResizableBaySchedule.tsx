@@ -112,13 +112,14 @@ interface ScheduleBar {
 
 // Helper function to determine how many rows a bay should have
 const getBayRowCount = (bayId: number, bayName: string): number => {
-  // IMPORTANT: For Team 7 & 8, the bay NUMBER is the critical requirement
-  // Bay number 7 and 8 must always have 20 rows regardless of name
+  // IMPORTANT CHANGE: MAY 17 2025 - ALL BAYS NOW USE SINGLE ROW ONLY
+  // This is a fundamental change to the bay system, where we no longer use multiple rows
+  // Instead, we're now using a team-based approach with single-row bays
   
-  // First, extract the bay number from the bay name if possible
+  // First, extract the bay number from the bay name if possible (for logging only)
   let bayNumber = bayId;
   
-  // If the bayId is negative (virtual bay), use the bay number from the bay name
+  // If the bayId is negative (virtual bay), still identify which bay it would be
   if (bayId < 0 && bayName) {
     // Extract the bay number from the name
     const bayNumberMatch = bayName.match(/Bay (\d+)/);
@@ -131,30 +132,12 @@ const getBayRowCount = (bayId: number, bayName: string): number => {
     }
   }
   
-  // PRIORITY CHECK: Check if it's bay ID 7 or 8 
-  // This ensures Team 7 and Team 8 always get 20 rows
-  if (bayNumber === 7 || bayNumber === 8) {
-    console.log(`Using 20 rows for bay ${bayNumber} (${bayName}) - mandatory 20 rows for bay numbers 7 & 8`);
-    return 20;
-  }
+  // Log which bay we're configuring
+  console.log(`Single row configuration for bay ${bayNumber} (${bayName}) - new team-based layout`);
   
-  // Secondary check by name (in case bay number changes but name format stays)
-  if (bayName && 
-      (bayName.includes('TCV') ||
-       bayName === 'Line 8' ||
-       bayName.trim() === 'Team 7' || 
-       bayName.trim() === 'Team 8' || 
-       bayName.trim() === 'Team7' || 
-       bayName.trim() === 'Team8' ||
-       (bayName.toLowerCase().includes('team') && 
-        (bayName.includes('7') || bayName.includes('8'))))) {
-    console.log(`Using 20 rows for ${bayName} by name match`);
-    return 20;
-  }
-  
-  // Standard 4 rows for all other bays
-  console.log(`Using 4 rows for bay ${bayNumber} (${bayName}) - standard bay`);
-  return 4;
+  // Return 1 for all bays - this is the new system where each bay has just 1 row
+  // This simplifies the positioning calculation and prevents overlap issues
+  return 1;
 }
 
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
@@ -253,35 +236,65 @@ const getProjectColor = (projectId: number) => {
   return COLORS[projectId % COLORS.length];
 };
 
-// Simple BayCapacityInfo component to show staffing breakdown
-const BayCapacityInfo = ({ bay, allSchedules, projects }: { bay: ManufacturingBay, allSchedules: ManufacturingSchedule[], projects: Project[] }) => {
-  const assemblyStaff = bay.assemblyStaffCount || 0;
-  const electricalStaff = bay.electricalStaffCount || 0;
-  const hoursPerWeek = bay.hoursPerPersonPerWeek || 0; // No fallback to hardcoded value
-  const staffCount = bay.staffCount || assemblyStaff + electricalStaff;
+// Enhanced BayCapacityInfo component for team-based approach
+const BayCapacityInfo = ({ bay, allSchedules, projects, bays }: { bay: ManufacturingBay, allSchedules: ManufacturingSchedule[], projects: Project[], bays: ManufacturingBay[] }) => {
+  // CRITICAL CHANGE: MAY 17 2025 - TEAM-BASED APPROACH
+  // We now treat each pair of bays as a single team
+  // Each team consists of 2 bays working together
+  
+  // Extract the team number from the bay name
+  let teamNumber = 0;
+  const teamMatch = bay.name.match(/Bay (\d+)/);
+  if (teamMatch && teamMatch[1]) {
+    const bayNumber = parseInt(teamMatch[1], 10);
+    // Calculate team number (Bays 1-2 = Team 1, Bays 3-4 = Team 2, etc.)
+    teamNumber = Math.ceil(bayNumber / 2);
+  } else if (bay.name.includes('TCV')) {
+    teamNumber = 4; // Special case for TCV Line (Team 4)
+  }
+  
+  // Find the partner bay in this team
+  const isOddBay = bay.bayNumber % 2 === 1;
+  const partnerBayNumber = isOddBay ? bay.bayNumber + 1 : bay.bayNumber - 1;
+  const partnerBay = bays.find(b => b.bayNumber === partnerBayNumber);
+  
+  // Combined staff counts for the entire team
+  const assemblyStaff = (bay.assemblyStaffCount || 0) + (partnerBay?.assemblyStaffCount || 0);
+  const electricalStaff = (bay.electricalStaffCount || 0) + (partnerBay?.electricalStaffCount || 0);
+  const hoursPerWeek = bay.hoursPerPersonPerWeek || 0;
+  const staffCount = (bay.staffCount || assemblyStaff + electricalStaff) + 
+                     (partnerBay?.staffCount || 0);
+  
+  // Calculate combined weekly capacity for the team
   const weeklyCapacity = hoursPerWeek * staffCount;
   
-  // Get schedules for this bay
-  const baySchedules = allSchedules.filter(schedule => schedule.bayId === bay.id);
+  // Get all schedules for both bays in this team
+  const teamBayIds = [bay.id];
+  if (partnerBay) teamBayIds.push(partnerBay.id);
   
-  // Get active projects in current week (using the same logic as the main component)
+  const teamSchedules = allSchedules.filter(schedule => 
+    teamBayIds.includes(schedule.bayId)
+  );
+  
+  // Get active projects in current week
   const now = new Date();
   const currentWeekStart = startOfWeek(now);
   const currentWeekEnd = endOfWeek(now);
   
-  // Find projects that are active in the current week
-  const currentWeekProjects = baySchedules.filter(schedule => {
+  // Find team projects active in current week
+  const currentWeekProjects = teamSchedules.filter(schedule => {
     const scheduleStart = new Date(schedule.startDate);
     const scheduleEnd = new Date(schedule.endDate);
     return !(scheduleEnd < currentWeekStart || scheduleStart > currentWeekEnd);
   });
   
-  // Count projects in bay for the current week
+  // Count projects in team for the current week
   const activeCount = currentWeekProjects.length;
   
-  console.log(`Bay ${bay.name} has ${activeCount} projects in current week`);
+  // New team-based logging
+  console.log(`Team ${teamNumber} (Bays ${bay.bayNumber}-${partnerBayNumber}) has ${activeCount} projects in current week`);
   
-  // Calculate actual weekly hours used by each project
+  // Calculate actual weekly hours used by team projects
   let totalHoursUsedThisWeek = 0;
   
   currentWeekProjects.forEach(schedule => {
@@ -295,53 +308,45 @@ const BayCapacityInfo = ({ bay, allSchedules, projects }: { bay: ManufacturingBa
     const totalDays = Math.ceil(Math.abs(endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
     
-    // CRITICAL FIX: Only consider PRODUCTION hours for bay capacity calculation
-    // Get the project's production percentage or use default (60%)
+    // Only consider PRODUCTION hours for team capacity
     const productionPercentage = parseFloat(project?.productionPercentage as any) || 60;
-    
-    // Calculate production hours (this is what actually consumes bay capacity)
     const productionHours = (schedule.totalHours || 0) * (productionPercentage / 100);
-    
-    // Calculate weekly hours for this project - using ONLY production hours
     const projectWeeklyHours = productionHours / totalWeeks;
     
-    // Log the adjustment for transparency in BayCapacityInfo
-    console.log(`CAPACITY INFO: Using only PRODUCTION hours (${productionPercentage}% of total) for project ${project.projectNumber}`, {
+    // Log for transparency
+    console.log(`TEAM ${teamNumber} CAPACITY: Using production hours (${productionPercentage}%) for project ${project.projectNumber}`, {
       totalHours: schedule.totalHours || 0,
-      productionPercentage,
       productionHours,
       weeklyHours: projectWeeklyHours,
     });
     
-    // Add to total hours
     totalHoursUsedThisWeek += projectWeeklyHours;
   });
   
-  // Calculate actual utilization percentage based on hours
-  // Don't cap at 100% - show the actual utilization even if over capacity
-  const actualUtilization = weeklyCapacity > 0 ? 
+  // Calculate team utilization percentage
+  const teamUtilization = weeklyCapacity > 0 ? 
     Math.round((totalHoursUsedThisWeek / weeklyCapacity) * 100) : 0;
   
-  // For status labels, use the project count method
-  // Set status based on number of projects (0 = Available, 1 = Near Capacity, 2+ = At Capacity)
-  const displayUtilization = actualUtilization;
-  
-  // Determine the status label based on current active projects and utilization percentage
+  // Determine the team status based on capacity
   let statusLabel = "";
-  if (actualUtilization > 100) {
+  if (teamUtilization > 100) {
     statusLabel = "Over Capacity";
-  } else if (activeCount >= 2 || actualUtilization >= 90) {
+  } else if (activeCount >= 3 || teamUtilization >= 90) {
     statusLabel = "At Capacity";
-  } else if (activeCount === 1 || actualUtilization >= 50) {
+  } else if (activeCount >= 1 || teamUtilization >= 50) {
     statusLabel = "Near Capacity";
   } else {
     statusLabel = "Available";
   }
   
-  console.log(`Bay ${bay.name} final status: ${statusLabel} with ${activeCount} active projects and ${actualUtilization}% utilization`);
+  console.log(`Team ${teamNumber} final status: ${statusLabel} with ${activeCount} active projects and ${teamUtilization}% utilization`);
   
+  // The component now shows team-based statistics
   return (
     <div className="flex flex-col">
+      <div className="text-xs text-gray-400 font-semibold mb-1">
+        Team {teamNumber} (Bays {bay.bayNumber}-{partnerBayNumber})
+      </div>
       <div className="text-xs text-gray-400 mb-1">
         <div className="flex items-center">
           <div className="flex items-center mr-3">
@@ -355,9 +360,8 @@ const BayCapacityInfo = ({ bay, allSchedules, projects }: { bay: ManufacturingBa
         </div>
       </div>
       <div className="text-xs text-gray-400">
-        {weeklyCapacity}h/week capacity 
-        {/* Always show percentage along with status */}
-        {` (${displayUtilization}% utilized)`}
+        {weeklyCapacity}h/week team capacity 
+        {` (${teamUtilization}% utilized)`}
         {activeCount > 0 && ` - ${statusLabel}`}
       </div>
     </div>
