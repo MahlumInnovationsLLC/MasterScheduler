@@ -1575,7 +1575,7 @@ body.resizing-mode .resize-handle {
   }
 }
 
-/* MAY 15 2025 - BAY CLASSIFICATION SYSTEM */
+/* MAY 16 2025 - CRITICAL PIXEL-PERFECT POSITIONING SYSTEM */
 /* Allow perfect alignment of project bars with no DOM shifting */
 .bay-content .bay-project-area {
   position: relative;
@@ -1585,9 +1585,28 @@ body.resizing-mode .resize-handle {
 
 /* Force absolute positioning to prevent auto-reflows */
 .bay-content .bay-project-area .project-bar {
-  position: absolute;
+  position: absolute !important;
   transition: none !important;
-  z-index: 20;
+  z-index: 20 !important;
+}
+
+/* 🚨 MAY 16 2025 CRITICAL FIX - ABSOLUTE OVERRIDE FOR ALL POSITIONING 🚨 */
+/* This ensures ALL projects stay EXACTLY where they are placed with NO EXCEPTIONS */
+/* The !important flags with max-specificity override all other CSS rules */
+.big-project-bar {
+  height: var(--row-height, 25%) !important;
+  /* DISABLED ALL AUTO-POSITIONING - Using inline styles only */
+  transform: none !important;
+  transition: none !important;
+  /* No automatic top positioning - the inline style will handle this */
+}
+
+/* 🚨 CRITICAL OVERRIDE: Force inline styles to take precedence over all CSS classes 🚨 */
+/* This ensures the top/height values we set in code always win */
+.big-project-bar[style*="top"],
+.big-project-bar[style*="height"] {
+  top: var(--explicit-top) !important;
+  height: var(--explicit-height) !important;
 }
 
 /* 
