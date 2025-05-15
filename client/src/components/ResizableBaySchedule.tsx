@@ -6818,9 +6818,32 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     const standardBayHeight = 25; // 25% height per row in standard 4-row bays
                     
                     // Calculate the top percentage based on rowIndex
-                    const topPercentage = isMultiRowBay
-                      ? rowIndex * (100 / getBayRowCount(bar.bayId, bayName))
-                      : rowIndex * standardBayHeight;
+                    // CRITICAL FIX: May 16 2025 - Fix top percentage calculation
+                    // For team 7/8 with 20 rows, use 5% per row (100%/20)
+                    // For regular bays with 4 rows, use 25% per row (100%/4)
+                    const rowCount = getBayRowCount(bar.bayId, bayName);
+                    const rowUnitHeight = isMultiRowBay ? (100 / rowCount) : standardBayHeight;
+                    
+                    // EMERGENCY FIX: Check if we're in Bay 7, which has 20 rows
+                    // In Bay 7, the top percentage for row 16 should be 80%, not 400%
+                    // CRITICAL: row needs to be between 0% and (100% - rowUnitHeight)
+                    let topPercentage = 0;
+                    if (bar.bayId === 7) {
+                      // Ensure the row is within the valid range for this bay
+                      const safeRowIndex = Math.min(rowIndex, rowCount - 1);
+                      // Calculate the top percentage properly (0-95% for rows 0-19 in a 20-row bay)
+                      topPercentage = safeRowIndex * rowUnitHeight;
+                      console.log(`🩹 SPECIAL FIX FOR BAY 7: Row ${rowIndex} → top ${topPercentage}%`);
+                    } else {
+                      // Regular calculation for other bays
+                      topPercentage = rowIndex * rowUnitHeight;
+                    }
+                    
+                    console.log(`🔢 ROW CALCULATION: For row ${rowIndex} in bay ${bar.bayId} (${bayName})`);
+                    console.log(`  - Bay type: ${isMultiRowBay ? 'multi-row (20 rows)' : 'standard (4 rows)'}`);
+                    console.log(`  - Row count: ${rowCount} rows`);
+                    console.log(`  - Row unit height: ${rowUnitHeight}%`);
+                    console.log(`  - Final top position: ${topPercentage}%`);
                      
                     // Enhanced debugging logs to trace exact positioning 
                     console.log(`🔒 RENDERING BAR ${bar.id} EXACTLY at row=${rowIndex} with class ${rowClass}`);
@@ -6830,11 +6853,19 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                     // ADDITIONAL DATA DUMP TO VERIFY ALL BAR PROPERTIES
                     console.log(`🔍 COMPLETE BAR ${bar.id} DATA:`, JSON.stringify(bar, null, 2));
                       
+                    // Calculate the height for each row based on row count
+                    const heightPercentage = isMultiRowBay ? (100 / getBayRowCount(bar.bayId, bayName)) : 25;
+                    
                     // Force the top position directly in styles with !important to override any CSS
                     const rowHeight = { 
-                      height: isMultiRowBay ? `${100 / getBayRowCount(bar.bayId, bayName)}%` : '25%', 
+                      height: `${heightPercentage}%`, 
                       top: `${topPercentage}%`
                     };
+                    
+                    console.log(`🧮 FINAL POSITIONING: Row ${rowIndex} in bay ${bar.bayId} (${bayName})`);
+                    console.log(`  - Top: ${topPercentage}%`);
+                    console.log(`  - Height: ${heightPercentage}%`);
+                    console.log(`  - Row unit calculation: ${isMultiRowBay ? '100% / ' + getBayRowCount(bar.bayId, bayName) + ' rows' : '25% (standard 4-row bay)'}`);
                     
                     return (
                       <div
