@@ -3094,22 +3094,94 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // MAY 16 2025 - EMERGENCY FIX: CHECK FOR BYPASS FLAGS
-    const bypassAllRowLogic = document.body.hasAttribute('data-bypass-all-row-logic');
-    const forceExactRowPlacement = document.body.hasAttribute('data-force-exact-row-placement');
-    const allowRowOverlap = document.body.hasAttribute('data-allow-row-overlap');
-    const emergencyFixMode = document.body.hasAttribute('data-emergency-fix-mode');
+    // MAY 16 2025 - ULTRA AGGRESSIVE EMERGENCY FIX
+    // Completely bypass ALL automatic positioning logic - use EXACTLY what user specifies
+    
+    // Force all emergency flags to TRUE regardless of attributes
+    const bypassAllRowLogic = true; 
+    const forceExactRowPlacement = true;
+    const allowRowOverlap = true;
+    const emergencyFixMode = true;
+    
+    // Set all flags in document body to ensure other components respect these settings
+    document.body.setAttribute('data-bypass-all-row-logic', 'true');
+    document.body.setAttribute('data-force-exact-row-placement', 'true');
+    document.body.setAttribute('data-allow-row-overlap', 'true');
+    document.body.setAttribute('data-emergency-fix-mode', 'true');
+    document.body.setAttribute('data-emergency-override', 'EMERGENCY_DIRECT_DROP');
+    
+    // Always use the exact row index passed to this function - ZERO ADJUSTMENTS
+    document.body.setAttribute('data-current-drag-row', rowIndex.toString());
+    document.body.setAttribute('data-exact-row-drop', rowIndex.toString());
+    document.body.setAttribute('data-absolute-row-index', rowIndex.toString());
+    document.body.setAttribute('data-forced-row-index', rowIndex.toString());
+    document.body.setAttribute('data-final-exact-row', rowIndex.toString());
+    document.body.setAttribute('data-emergency-row-override', rowIndex.toString());
     
     // Log emergency mode status
+    console.log(`🚨🚨🚨 ULTRA AGGRESSIVE EMERGENCY MODE ACTIVE 🚨🚨🚨`);
+    console.log(`🚨 TARGET: Bay ${bayId}, Row=${rowIndex}, SlotIndex=${slotIndex}`);
+    console.log(`🚨 EMERGENCY DIRECT PLACEMENT - ZERO PROCESSING - NO ADJUSTMENTS`);
+    console.log(`🚨 ALL COLLISION DETECTION AND POSITIONING LOGIC BYPASSED`);
+    
+    // ── MAY 16 2025 - ULTRA DIRECT ROW PLACEMENT ────────────────────────────
+    // Skip all row calculation logic and force use of exact provided row
     if (emergencyFixMode) {
-      console.log(`🔥🔥🔥 EMERGENCY FIX MODE ACTIVE 🔥🔥🔥`);
-      console.log(`🔥 BYPASSING ALL ROW CALCULATION LOGIC: ${bypassAllRowLogic}`);
-      console.log(`🔥 FORCING EXACT ROW PLACEMENT: ${forceExactRowPlacement}`);
-      console.log(`🔥 ALLOWING ROW OVERLAP: ${allowRowOverlap}`);
-      console.log(`🔥 USING DIRECT ROW: ${rowIndex} (no processing)`);
+      // Get the target cell date if available
+      const targetCell = e.currentTarget as HTMLElement;
+      const targetCellDate = targetCell.getAttribute('data-start-date');
+      
+      // Create server-side payload with GUARANTEED row placement
+      const serverPayload = {
+        bayId: bayId,
+        projectId: draggingSchedule.projectId,
+        startDate: targetCellDate ? targetCellDate : format(draggingSchedule.startDate, 'yyyy-MM-dd'),
+        endDate: format(draggingSchedule.endDate, 'yyyy-MM-dd'),
+        totalHours: draggingSchedule.totalHours,
+        row: rowIndex,
+        rowIndex: rowIndex
+      };
+      
+      console.log(`✅✅✅ GUARANTEED ROW PLACEMENT: Using exact row ${rowIndex} with zero calculation`);
+      console.log(`✅ Server payload with EXACT row: `, serverPayload);
+      
+      // If existing schedule, update it with exact row placement
+      if (draggingSchedule.id) {
+        console.log(`✅ Updating existing schedule with EXACT row: ${rowIndex}`);
+        onScheduleChange(
+          draggingSchedule.id,
+          bayId,
+          serverPayload.startDate,
+          serverPayload.endDate,
+          draggingSchedule.totalHours,
+          rowIndex
+        ).then(() => {
+          // Clear dragging state
+          setDraggingSchedule(null);
+          document.body.removeAttribute('data-is-dragging');
+        });
+        return; // Exit early - guaranteed placement complete
+      }
+      // If new schedule, create it with exact row placement
+      else {
+        console.log(`✅ Creating new schedule with EXACT row: ${rowIndex}`);
+        onScheduleCreate(
+          draggingSchedule.projectId,
+          bayId,
+          serverPayload.startDate,
+          serverPayload.endDate, 
+          draggingSchedule.totalHours,
+          rowIndex
+        ).then(() => {
+          // Clear dragging state
+          setDraggingSchedule(null);
+          document.body.removeAttribute('data-is-dragging');
+        });
+        return; // Exit early - guaranteed placement complete
+      }
     }
     
-    // ── NEW: PIXEL-PERFECT DROP PLACEMENT ────────────────────────────────────
+    // ── LEGACY: PIXEL-PERFECT DROP PLACEMENT ────────────────────────────────────
     // Get the timeline container element
     const timelineContainer = timelineContainerRef.current;
     if (!timelineContainer) {
