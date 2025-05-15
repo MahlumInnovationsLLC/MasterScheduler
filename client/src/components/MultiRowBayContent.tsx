@@ -211,8 +211,8 @@ const MultiRowBayContent: React.FC<MultiRowBayContentProps> = ({
         {Array.from({ length: rowCount }).map((_, rowIndex) => (
           <div 
             key={`bay-row-${bay.id}-${rowIndex}`}
-            className={`${rowIndex < rowCount - 1 ? 'border-b' : ''} border-gray-700/50 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative`}
-            style={{ height: `${100/rowCount}%`, minHeight: '30px' }}
+            className={`${rowIndex < rowCount - 1 ? 'border-b' : ''} border-gray-700/50 bay-row transition-colors dark:hover:bg-slate-700/20 hover:bg-gray-700/10 cursor-pointer relative flex-1`}
+            style={{ flex: '1 1 0', minHeight: '30px' }}
             onDragOver={(e) => {
               // Add strong visual indicator for this row
               e.currentTarget.classList.add('row-target-highlight', `row-${rowIndex}-target`);
