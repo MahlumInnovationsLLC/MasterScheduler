@@ -3620,36 +3620,36 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
     
     // CRITICAL FIX: Use exactBayId instead of the normal bayId parameter
     // This ensures we don't lose the correct bay ID between declarations
-    const bay = bays.find(b => b.id === exactBayId);
     console.log(`Finding bay with ID ${exactBayId} (from exact parameter)`);
       
-      if (!bay) {
-        console.error(`Bay with ID ${exactBayId} not found in bays list:`, bays.map(b => b.id));
-        toast({
-          title: "Error",
-          description: `Bay ID ${exactBayId} not found`,
-          variant: "destructive"
-        });
-        return;
-      }
+    const bay = bays.find(b => b.id === exactBayId);
+    if (!bay) {
+      console.error(`Bay with ID ${exactBayId} not found in bays list:`, bays.map(b => b.id));
+      toast({
+        title: "Error",
+        description: `Bay ID ${exactBayId} not found`,
+        variant: "destructive"
+      });
+      return;
+    }
       
-      // Check if the bay has staff assigned
-      if (!bay.staffCount || bay.staffCount <= 0) {
-        toast({
-          title: "Cannot assign to bay",
-          description: "This bay has no staff assigned. Please add staff first.",
-          variant: "destructive"
-        });
-        return;
-      }
+    // Check if the bay has staff assigned
+    if (!bay.staffCount || bay.staffCount <= 0) {
+      toast({
+        title: "Cannot assign to bay",
+        description: "This bay has no staff assigned. Please add staff first.",
+        variant: "destructive"
+      });
+      return;
+    }
       
-      // BUGFIX: Define targetElement safely here for the handleCreateProject function
-      // Get the target element from event, defaulting to e.currentTarget if e.target is not an HTMLElement
-      const createProjectTargetElement = e.target instanceof HTMLElement ? e.target : e.currentTarget as HTMLElement;
+    // BUGFIX: Define targetElement safely here for the handleCreateProject function
+    // Get the target element from event, defaulting to e.currentTarget if e.target is not an HTMLElement
+    const createProjectTargetElement = e.target instanceof HTMLElement ? e.target : e.currentTarget as HTMLElement;
       
-      // Get the date for this slot using multiple reliable sources with fallbacks
-      let slotDate: Date | null = null;
-      let exactDateForStorage: string | null = null;
+    // Get the date for this slot using multiple reliable sources with fallbacks
+    let slotDate: Date | null = null;
+    let exactDateForStorage: string | null = null;
       
       // HIGHEST PRIORITY: Use the pixel-perfect date calculated from mouse position
       const dropDateAttr = document.body.getAttribute('data-exact-drop-date');
