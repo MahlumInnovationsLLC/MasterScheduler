@@ -1632,12 +1632,41 @@ export default function ResizableBaySchedule({
             // Calculate position for TODAY line - using the simulated today date of May 16, 2025
             // This matches the date used in the rest of the application
             const today = new Date(2025, 4, 16); // May 16, 2025 (months are 0-indexed)
-            const daysFromStart = differenceInDays(today, dateRange.start);
-            const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
-            const todayPosition = daysFromStart * pixelsPerDay;
+            
+            // Find the matching time slot for today's date
+            const todaySlot = slots.find(slot => {
+              // In week view, find the slot containing today
+              if (viewMode === 'week') {
+                const slotEndDate = addDays(slot.date, 6); // End of week
+                return today >= slot.date && today <= slotEndDate;
+              }
+              // For day view, exact match
+              return isSameDay(slot.date, today);
+            });
+            
+            // Calculate position based on slot index if found
+            let todayPosition = 0;
+            if (todaySlot) {
+              const slotIndex = slots.indexOf(todaySlot);
+              
+              if (viewMode === 'week') {
+                // For week view, calculate position within the week
+                todayPosition = slotIndex * slotWidth;
+                // Add offset for day within week (0-6)
+                const dayOffset = today.getDay() === 0 ? 6 : today.getDay() - 1; // Monday = 0, Sunday = 6
+                todayPosition += (dayOffset * (slotWidth / 7));
+              } else {
+                todayPosition = slotIndex * slotWidth;
+              }
+            } else {
+              // Fallback calculation if slot not found
+              const daysFromStart = differenceInDays(today, dateRange.start);
+              const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
+              todayPosition = daysFromStart * pixelsPerDay;
+            }
             
             // Only show if today is within visible range
-            if (daysFromStart >= 0) {
+            if (todayPosition >= 0) {
               return (
                 <div 
                   className="today-line absolute top-0 bottom-0 z-20 pointer-events-none" 
