@@ -2223,57 +2223,18 @@ export default function ResizableBaySchedule({
                     }}
                   >
                     <div className="flex items-center">
-                      {/* Editable Team Name with Description */}
+                      {/* Team Name with Description */}
                       <div className="flex items-center">
-                        {/* Team Name (editable on click) */}
                         {team[0]?.team ? (
                           <>
-                            <div 
-                              className="font-bold text-lg cursor-pointer flex items-center group"
-                              onClick={(e) => {
-                                // Toggle editing mode when clicked
-                                setEditingTeamName(team[0]?.team || '');
-                                setEditingTeamId(team[0]?.team || '');
-                                e.stopPropagation();
-                              }}
-                            >
-                              {editingTeamId === team[0]?.team ? (
-                                <input
-                                  type="text"
-                                  className="bg-blue-600 text-white border border-blue-300 rounded px-1 w-48"
-                                  value={editingTeamName}
-                                  onChange={(e) => setEditingTeamName(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      // Save the team name update
-                                      handleTeamNameUpdate(team[0]?.team || '', editingTeamName);
-                                      setEditingTeamId('');
-                                    } else if (e.key === 'Escape') {
-                                      setEditingTeamId('');
-                                    }
-                                  }}
-                                  onBlur={() => {
-                                    // Save when focus is lost
-                                    handleTeamNameUpdate(team[0]?.team || '', editingTeamName);
-                                    setEditingTeamId('');
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                  autoFocus
-                                />
-                              ) : (
-                                <>
-                                  <span>{team[0].team}</span>
-                                  <PencilIcon className="h-3 w-3 ml-1 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </>
-                              )}
-                            </div>
+                            <span className="font-bold text-lg">
+                              {team[0].team}
+                            </span>
                             
                             {/* Team Description (shown as smaller text to the right) */}
-                            {!editingTeamId && (
-                              <span className="text-sm ml-2 font-light text-blue-100 italic truncate max-w-[200px]">
-                                {teamDescriptions[team[0].team] || 'General Production'}
-                              </span>
-                            )}
+                            <span className="text-sm ml-2 font-light text-blue-100 italic truncate max-w-[200px]">
+                              {teamDescriptions[team[0].team] || 'General Production'}
+                            </span>
                           </>
                         ) : (
                           <span className="font-bold text-lg">
