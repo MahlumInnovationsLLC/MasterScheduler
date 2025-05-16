@@ -729,12 +729,49 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateManufacturingBay(id: number, bay: Partial<InsertManufacturingBay>): Promise<ManufacturingBay | undefined> {
-    const [updatedBay] = await db
-      .update(manufacturingBays)
-      .set(bay)
-      .where(eq(manufacturingBays.id, id))
-      .returning();
-    return updatedBay;
+    try {
+      console.log(`Storage: Updating manufacturing bay ${id} with data:`, JSON.stringify(bay));
+      
+      // Add validation for critical fields
+      if (bay.team !== undefined) {
+        console.log(`Storage: Team name being set to "${bay.team}"`);
+      }
+      
+      if (bay.description !== undefined) {
+        console.log(`Storage: Description being set to "${bay.description}"`);
+      }
+      
+      // Make sure staffCount is consistent with staff counts if provided
+      if (bay.assemblyStaffCount !== undefined && bay.electricalStaffCount !== undefined) {
+        const calculatedTotal = (bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0);
+        
+        // Only update staffCount if it's not explicitly set or doesn't match the calculation
+        if (bay.staffCount === undefined || bay.staffCount !== calculatedTotal) {
+          bay.staffCount = calculatedTotal;
+          console.log(`Storage: Auto-corrected staffCount to ${bay.staffCount}`);
+        }
+      }
+      
+      // Perform the database update, ensuring we get all fields returned
+      const [updatedBay] = await db
+        .update(manufacturingBays)
+        .set(bay)
+        .where(eq(manufacturingBays.id, id))
+        .returning();
+        
+      console.log(`Storage: Successfully updated bay ${id}:`, updatedBay ? 
+        JSON.stringify({
+          id: updatedBay.id, 
+          name: updatedBay.name, 
+          team: updatedBay.team, 
+          description: updatedBay.description
+        }) : "No bay returned");
+        
+      return updatedBay;
+    } catch (error) {
+      console.error(`Storage: Error updating manufacturing bay ${id}:`, error);
+      throw error;
+    }
   }
   
   async deleteManufacturingBay(id: number): Promise<boolean> {

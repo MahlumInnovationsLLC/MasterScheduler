@@ -591,6 +591,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error updating manufacturing bay" });
     }
   });
+  
+  // Add PATCH endpoint to support the frontend's PATCH requests
+  app.patch("/api/manufacturing-bays/:id", isAuthenticated, async (req, res) => {
+    try {
+      console.log("PATCH request received for bay ID:", req.params.id);
+      console.log("PATCH data:", req.body);
+      
+      const id = parseInt(req.params.id);
+      
+      // Add extra validation for team updates
+      if (req.body.team || req.body.description) {
+        console.log("Team/description update detected:", req.body.team, req.body.description);
+      }
+      
+      // Calculate staffCount if not provided
+      if (req.body.assemblyStaffCount !== undefined && req.body.electricalStaffCount !== undefined && req.body.staffCount === undefined) {
+        req.body.staffCount = req.body.assemblyStaffCount + req.body.electricalStaffCount;
+        console.log("Auto-calculated staffCount:", req.body.staffCount);
+      }
+      
+      const bay = await storage.updateManufacturingBay(id, req.body);
+      if (!bay) {
+        console.error("Bay not found for ID:", id);
+        return res.status(404).json({ message: "Manufacturing bay not found" });
+      }
+      
+      console.log("Successfully updated bay:", bay.id, bay.name);
+      res.json(bay);
+    } catch (error) {
+      console.error("Error in PATCH /api/manufacturing-bays/:id:", error);
+      res.status(500).json({ message: "Error updating manufacturing bay" });
+    }
+  });
 
   app.delete("/api/manufacturing-bays/:id", isAuthenticated, async (req, res) => {
     try {
