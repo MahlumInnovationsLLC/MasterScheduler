@@ -121,6 +121,8 @@ export function TeamManagementDialog({
     try {
       if (!teamName) return;
       
+      console.log("Starting team update process");
+      
       // Extract actual team name and bay IDs from the combined string (if using the new format)
       let actualTeamName = teamName;
       let bayIds: number[] = [];
@@ -131,19 +133,51 @@ export function TeamManagementDialog({
         bayIds = idsString.split(',').map(id => parseInt(id, 10));
       }
       
-      // Get team bays - either by specific IDs or by team name
+      // Fetch latest bays from API to ensure we're working with current data
+      console.log("Fetching latest bay data for team update");
       let teamBays = [];
-      if (bayIds.length > 0) {
-        // Only update the specific bays that were clicked on
-        teamBays = bays.filter(bay => bayIds.includes(bay.id));
-      } else {
-        // Fallback to old behavior if no specific bay IDs
-        teamBays = bays.filter(bay => bay.team === actualTeamName);
+      
+      try {
+        const response = await fetch('/api/manufacturing-bays');
+        if (response.ok) {
+          const latestBays = await response.json();
+          
+          if (bayIds.length > 0) {
+            // Only update the specific bays that were clicked on
+            teamBays = latestBays.filter(bay => bayIds.includes(bay.id));
+          } else {
+            // Fallback to old behavior if no specific bay IDs
+            teamBays = latestBays.filter(bay => bay.team === actualTeamName);
+          }
+          
+          console.log(`Found ${teamBays.length} bays to update for team ${actualTeamName}`);
+        }
+      } catch (error) {
+        console.error("Error fetching latest bay data for update:", error);
+        // Fallback to the provided bays if API fetch fails
+        if (bayIds.length > 0) {
+          teamBays = bays.filter(bay => bayIds.includes(bay.id));
+        } else {
+          teamBays = bays.filter(bay => bay.team === actualTeamName);
+        }
       }
       
+      if (teamBays.length === 0) {
+        console.warn("No team bays found to update!");
+        toast({
+          title: 'Warning',
+          description: 'No bays found for this team. Changes may not be applied correctly.',
+          variant: 'destructive',
+        });
+      }
+      
+      // Calculate staffCount from assembly and electrical staff
+      const staffCount = assemblyStaff + electricalStaff;
+      
       // Update only the specific bays with the new capacity settings, team name, and additional fields
-      for (const bay of teamBays) {
-        await fetch(`/api/manufacturing-bays/${bay.id}`, {
+      console.log("Updating team bays in database...");
+      const updatePromises = teamBays.map(bay => 
+        fetch(`/api/manufacturing-bays/${bay.id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json'
@@ -155,74 +189,23 @@ export function TeamManagementDialog({
             location: location,
             assemblyStaffCount: assemblyStaff,
             electricalStaffCount: electricalStaff,
+            staffCount: staffCount,
             hoursPerPersonPerWeek: hoursPerWeek
           })
-        });
-      }
+        })
+      );
+      
+      // Wait for all updates to complete
+      await Promise.all(updatePromises);
+      console.log(`Updated ${updatePromises.length} bays in database`);
       
       // Call the onTeamUpdate callback if provided
       if (onTeamUpdate) {
+        console.log("Calling parent onTeamUpdate callback");
         await onTeamUpdate(actualTeamName, newTeamName, description, assemblyStaff, electricalStaff, hoursPerWeek);
       }
       
       const teamNameChanged = actualTeamName !== newTeamName;
-      
-      // Get the bay IDs as a string to find matching elements
-      const bayIdsString = bayIds.join(',');
-      
-      console.log(`Using targeted bay-id attribute selector with bay IDs=${bayIdsString}`);
-      
-      if (bayIds.length > 0) {
-        // *** KEY CHANGE: Use the bay IDs to PRECISELY target just the header elements for these bays ***
-        // This ensures we don't update ALL elements with the same team name
-        
-        // Find team name elements that match EXACTLY these bay IDs
-        const nameSelector = `.bay-header-team-name[data-bay-id="${bayIdsString}"]`;
-        console.log(`Looking for elements with name selector: ${nameSelector}`);
-        document.querySelectorAll(nameSelector).forEach(element => {
-          if (element instanceof HTMLElement) {
-            console.log(`Updating specific team name element from ${element.innerText} to ${newTeamName}`);
-            element.innerText = newTeamName;
-            element.dataset.team = newTeamName;
-          }
-        });
-        
-        // Find team description elements that match EXACTLY these bay IDs
-        const descSelector = `.bay-header-team-description[data-bay-id="${bayIdsString}"]`;
-        console.log(`Looking for elements with description selector: ${descSelector}`);
-        document.querySelectorAll(descSelector).forEach(element => {
-          if (element instanceof HTMLElement) {
-            console.log(`Updating specific team description element from ${element.innerText} to ${description}`);
-            element.innerText = description;
-            element.dataset.team = newTeamName;
-          }
-        });
-      } else {
-        // Fallback: If no specific bay IDs provided, use the old approach with multiple safeguards
-        console.log(`FALLBACK: Using team attribute approach with team=${actualTeamName}`);
-        
-        // Find the section that contains this team first
-        const teamSections = document.querySelectorAll(`[data-team-section="${teamName}"]`);
-        console.log(`Found ${teamSections.length} matching team sections`);
-        
-        // Only update the targeted section (if we have it)
-        teamSections.forEach(section => {
-          if (section instanceof HTMLElement) {
-            const nameEl = section.querySelector('.bay-header-team-name');
-            const descEl = section.querySelector('.bay-header-team-description');
-            
-            if (nameEl instanceof HTMLElement) {
-              nameEl.innerText = newTeamName;
-              nameEl.dataset.team = newTeamName;
-            }
-            
-            if (descEl instanceof HTMLElement) {
-              descEl.innerText = description;
-              descEl.dataset.team = newTeamName;
-            }
-          }
-        });
-      }
       
       toast({
         title: 'Team updated',
@@ -231,6 +214,8 @@ export function TeamManagementDialog({
       
       // Close the dialog
       onOpenChange(false);
+      
+      // The parent's onTeamUpdate will trigger a page refresh to show the latest data
     } catch (error) {
       console.error('Error updating team capacity:', error);
       toast({

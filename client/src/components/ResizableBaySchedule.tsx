@@ -668,41 +668,36 @@ export default function ResizableBaySchedule({
       // Update state with new values
       setTeamDescriptions(newDescriptions);
       
-      // Reload fresh data from API
+      // Always reload fresh data from API after any team update
       try {
+        console.log("Fetching fresh bay data after team update");
         const response = await fetch('/api/manufacturing-bays');
         if (response.ok) {
           const freshBays = await response.json();
+          console.log("Received fresh bay data:", freshBays.length, "bays after team update");
           
-          // Compare and update bays if needed
-          let bayDataChanged = false;
-          for (const bay of freshBays) {
-            if (bay.team === newTeamName && !bays.some(b => b.id === bay.id && b.team === newTeamName)) {
-              bayDataChanged = true;
-              break;
-            }
-          }
-          
-          if (bayDataChanged) {
-            // If bays data has changed, update the state
-            console.log("Updating bays data with fresh API data");
-            // This is a direct replacement to ensure we get the latest data
-            apiRequest('/api/manufacturing-bays', {
-              onSuccess: (data) => {
-                // Force a refresh to show updated data
-                window.location.reload();
-              }
-            });
-          } else {
-            // Just force a UI update
-            setForceUpdate(Date.now() + Math.random());
-          }
+          // Always force a full page refresh after team updates
+          // This ensures all UI elements are properly updated with the latest data
+          console.log("Forcing page refresh to update UI with latest team data");
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
         }
       } catch (err) {
         console.error("Error refreshing bay data:", err);
+        // Force refresh even if API fetch failed as a fallback
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       }
     } catch (error) {
       console.error('Error in handleTeamUpdate:', error);
+      // Show error toast
+      toast({
+        title: "Update failed",
+        description: "There was an error updating the team. Please try again.",
+        variant: "destructive",
+      });
     }
   };
   // Add forceUpdate state to force re-rendering when needed
@@ -1800,17 +1795,63 @@ export default function ResizableBaySchedule({
     if (!editingBay || !onBayCreate) return;
     
     try {
-      await onBayCreate(editingBay);
+      // Check if we're creating a team (has team name and no ID)
+      const isTeamCreation = editingBay.team && !editingBay.id;
       
-      // Show success toast
-      toast({
-        title: "Bay created",
-        description: `${editingBay.name} has been created.`,
-      });
+      // Make sure we have valid staff counts
+      const updatedData = {
+        ...editingBay,
+        staffCount: (editingBay.assemblyStaffCount || 0) + (editingBay.electricalStaffCount || 0),
+      };
+      
+      console.log('Creating bay/team with data:', updatedData);
+      
+      // Create the bay using the parent component's callback
+      const newBay = await onBayCreate(updatedData);
+      
+      // Show appropriate success toast
+      if (isTeamCreation) {
+        toast({
+          title: "Team created",
+          description: `Team "${editingBay.team}" with bay "${editingBay.name}" has been created.`,
+        });
+        
+        // If we created a team, update team descriptions
+        if (editingBay.team && editingBay.description) {
+          const newDescriptions = {...teamDescriptions};
+          newDescriptions[editingBay.team] = editingBay.description;
+          setTeamDescriptions(newDescriptions);
+        }
+      } else {
+        toast({
+          title: "Bay created",
+          description: `${editingBay.name} has been created.`,
+        });
+      }
       
       // Reset dialog state
       setNewBayDialog(false);
       setEditingBay(null);
+      
+      // Fetch fresh data from API
+      console.log("Fetching fresh bay data after creation");
+      try {
+        const response = await fetch('/api/manufacturing-bays');
+        if (response.ok) {
+          const freshBays = await response.json();
+          
+          // Update bays with fresh data
+          console.log("Received fresh bay data:", freshBays.length, "bays");
+          
+          // Force a full page refresh to ensure proper rendering
+          // This is more reliable than trying to update state directly
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }
+      } catch (err) {
+        console.error("Error refreshing bay data:", err);
+      }
     } catch (error) {
       console.error('Error creating bay:', error);
       toast({
