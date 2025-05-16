@@ -1,4 +1,35 @@
 import React, { useState, useEffect } from 'react';
+
+// CRITICAL FIX: Enable global drag-and-drop anywhere
+// This ensures multiple projects can be placed in any row
+(() => {
+  // Use self-executing function to run this code immediately
+  const enableGlobalDragDrop = () => {
+    // Add global dragover handler that allows drops anywhere
+    document.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'move';
+      }
+    }, true);
+    
+    // Add global "drop" listener that allows drops
+    document.addEventListener('drop', (e) => {
+      // Don't prevent drops at the document level
+      // Just let them happen in the component handlers
+      console.log('Global drop handler: Allowing drop to proceed');
+    }, true);
+    
+    document.body.classList.add('allow-multiple-projects');
+    document.body.classList.add('force-accept-drop');
+    
+    console.log('🔒 GLOBAL DRAG-DROP LOCK DISABLED - Projects can now be placed anywhere');
+  };
+  
+  // Run immediately AND when document loads
+  enableGlobalDragDrop();
+  window.addEventListener('DOMContentLoaded', enableGlobalDragDrop);
+})();
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { addDays, addWeeks, addMonths, format } from 'date-fns';
 import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown, Upload } from 'lucide-react';
