@@ -1503,7 +1503,12 @@ export default function ResizableBaySchedule({
           {/* Manufacturing Bays */}
           <div className="manufacturing-bays mt-2">
             {bayTeams.map((team, teamIndex) => (
-              <div key={`team-${teamIndex}`} className="team-container mb-5 relative">
+              <div 
+                key={`team-${teamIndex}`} 
+                className="team-container mb-5 relative"
+                style={{
+                  minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
+                }}>
                 <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex justify-between items-center shadow-md">
                   <div className="team-name font-bold text-lg flex items-center gap-2">
                     <span>Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}</span>
@@ -1752,11 +1757,11 @@ export default function ResizableBaySchedule({
                                 </div>
                               </div>
                               
-                              {/* Cell grid for this bay - EXTENDED TO 2030 */}
+                              {/* Cell grid for this bay - EXTENDED TO 2030 PROPERLY */}
                               <div className="absolute inset-0 grid" 
                                 style={{ 
                                   gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
-                                  width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px` 
+                                  minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px` 
                                 }}>
                                 {slots.map((slot, index) => (
                                   <div 
