@@ -1729,12 +1729,24 @@ export default function ResizableBaySchedule({
                             >
                               {/* Department phases visualization */}
                               <div className="phases-container flex h-full w-full absolute top-0 left-0 overflow-hidden rounded">
-                                <div className="fab-phase bg-blue-700 h-full" style={{ width: `${bar.fabWidth}px` }}></div>
-                                <div className="paint-phase bg-green-700 h-full" style={{ width: `${bar.paintWidth}px` }}></div>
-                                <div className="production-phase bg-yellow-700 h-full" style={{ width: `${bar.productionWidth}px` }}></div>
-                                <div className="it-phase bg-purple-700 h-full" style={{ width: `${bar.itWidth}px` }}></div>
-                                <div className="ntc-phase bg-cyan-700 h-full" style={{ width: `${bar.ntcWidth}px` }}></div>
-                                <div className="qc-phase bg-pink-700 h-full" style={{ width: `${bar.qcWidth}px` }}></div>
+                                {bar.fabWidth && bar.fabWidth > 0 && (
+                                  <div className="fab-phase bg-blue-700 h-full" style={{ width: `${bar.fabWidth}px` }}></div>
+                                )}
+                                {bar.paintWidth && bar.paintWidth > 0 && (
+                                  <div className="paint-phase bg-green-700 h-full" style={{ width: `${bar.paintWidth}px` }}></div>
+                                )}
+                                {bar.productionWidth && bar.productionWidth > 0 && (
+                                  <div className="production-phase bg-yellow-700 h-full" style={{ width: `${bar.productionWidth}px` }}></div>
+                                )}
+                                {bar.itWidth && bar.itWidth > 0 && (
+                                  <div className="it-phase bg-purple-700 h-full" style={{ width: `${bar.itWidth}px` }}></div>
+                                )}
+                                {bar.ntcWidth && bar.ntcWidth > 0 && (
+                                  <div className="ntc-phase bg-cyan-700 h-full" style={{ width: `${bar.ntcWidth}px` }}></div>
+                                )}
+                                {bar.qcWidth && bar.qcWidth > 0 && (
+                                  <div className="qc-phase bg-pink-700 h-full" style={{ width: `${bar.qcWidth}px` }}></div>
+                                )}
                               </div>
                               
                               {/* Project information overlay */}
