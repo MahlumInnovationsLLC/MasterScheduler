@@ -1633,10 +1633,11 @@ export default function ResizableBaySchedule({
                     >
                       {/* Bay Label - ENHANCED sticky positioning for perfect alignment with sidebar */}
                       <div 
-                        className="bay-label top-0 left-0 w-64 h-full bg-gray-100 border-r flex flex-col justify-between py-2 px-2 z-40"
+                        className="bay-label h-full bg-gray-100 border-r flex flex-col justify-between py-2 px-2 z-40"
                         style={{ 
                           position: 'sticky',
-                          left: 0,  /* Keep at left edge for proper stickiness */
+                          left: 0,
+                          width: '240px',
                           boxShadow: '4px 0 6px rgba(0,0,0,0.1)'
                         }}
                       >
@@ -1715,10 +1716,9 @@ export default function ResizableBaySchedule({
                       </div>
                       
                       {/* Bay content area - FULL WIDTH to extend to end of timeline (2030) */}
-                      <div className="bay-content absolute left-64 top-0 bottom-0"
+                      <div className="bay-content absolute left-[240px] top-0 bottom-0"
                         style={{ 
                           width: `${Math.max(8000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
-                        paddingLeft: '64px', /* Add padding to offset content from the fixed bay labels */
                         }}>
                         {isMultiRowBay ? (
                           <MultiRowBayContent 
