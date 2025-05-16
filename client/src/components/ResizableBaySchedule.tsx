@@ -747,12 +747,14 @@ export default function ResizableBaySchedule({
     // Group bays by their team property using a string key in a dictionary
     const teamMap: Record<string, ManufacturingBay[]> = {};
     
-    // Process each bay and group it with others that have the same team name
-    sortedBays.forEach(bay => {
-      // Very important: The team key determines how bays are grouped in the UI
-      // Use the EXACT team name string as the key, or a unique key for null teams
-      // This is critical for proper grouping under a single blue header
-      const teamKey = bay.team || `unnamed_team_${bay.bayNumber}`;
+    // Skip bays that don't have a team assigned
+    const assignedTeamBays = sortedBays.filter(bay => bay.team !== null && bay.team !== undefined && bay.team !== '');
+    const unassignedBays = sortedBays.filter(bay => !bay.team);
+    
+    // Process each bay with an assigned team and group it
+    assignedTeamBays.forEach(bay => {
+      // Use the team name as the key for grouping
+      const teamKey = bay.team || '';
       
       // Initialize the array for this team if it doesn't exist yet
       if (!teamMap[teamKey]) {
@@ -761,6 +763,13 @@ export default function ResizableBaySchedule({
       
       // Add this bay to its team group
       teamMap[teamKey].push(bay);
+    });
+    
+    // Create individual entries for unassigned bays
+    unassignedBays.forEach(bay => {
+      // Create a unique key with bay name as the basis
+      const individualKey = `single_bay_${bay.id}`;
+      teamMap[individualKey] = [bay];
     });
     
     // Convert the team map to an array of bay arrays (each sub-array = one team)
@@ -2428,21 +2437,21 @@ export default function ResizableBaySchedule({
                         {/* Always show team name and description, even for static teams */}
                         <span 
                           className="font-bold text-lg bay-header-team-name" 
-                          data-team={team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`}
+                          data-team={team[0]?.team || `${team.map(b => b.name).join(' & ')}`}
                           data-bay-id={team.map(bay => bay.id).join(',')}
                         >
-                          {team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`}
+                          {team[0]?.team || `${team.map(b => b.name).join(' & ')}`}
                         </span>
                         
                         {/* Team Description (shown as smaller text to the right) */}
                         <span 
                           className="text-sm ml-2 font-light text-blue-100 italic truncate max-w-[200px] bay-header-team-description" 
-                          data-team={team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`}
+                          data-team={team[0]?.team || `${team.map(b => b.name).join(' & ')}`}
                           data-bay-id={team.map(bay => bay.id).join(',')}
                         >
                           {team[0]?.team 
                             ? teamDescriptions[team[0].team] || (team[0].description || 'General Production')
-                            : 'Advanced Manufacturing Team'
+                            : team[0]?.description || 'Production Bay'
                           }
                         </span>
                       </div>
