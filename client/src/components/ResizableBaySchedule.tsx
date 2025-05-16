@@ -398,12 +398,12 @@ export default function ResizableBaySchedule({
     }[];
   } | null>(null);
   const [currentProject, setCurrentProject] = useState<number | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // For collapsible sidebar
   const [targetBay, setTargetBay] = useState<number | null>(null);
   const [targetStartDate, setTargetStartDate] = useState<Date | null>(null);
   const [targetEndDate, setTargetEndDate] = useState<Date | null>(null);
   const [scheduleDuration, setScheduleDuration] = useState(4); // in weeks
   const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [slotWidth, setSlotWidth] = useState(60); // Increased slot width for better visibility
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
@@ -1410,17 +1410,16 @@ export default function ResizableBaySchedule({
             </button>
           </div>
           
-          {sidebarOpen && (
-            unassignedProjects.length === 0 ? (
-              <div className="text-sm text-gray-400 italic">No unassigned projects</div>
-            ) : (
-              <div className="space-y-3">
-                {unassignedProjects.map(project => (
-                  <div 
-                    key={`unassigned-${project.id}`}
-                    className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
-                    draggable
-                    onDragStart={(e) => {
+          {unassignedProjects.length === 0 ? (
+            <div className="text-sm text-gray-400 italic">No unassigned projects</div>
+          ) : (
+            <div className="space-y-3">
+              {unassignedProjects.map(project => (
+                <div 
+                  key={`unassigned-${project.id}`}
+                  className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
+                  draggable
+                  onDragStart={(e) => {
                     // Create dummy schedule to use the existing drag logic
                     const dummySchedule = {
                       id: -project.id, // Negative ID to mark as new
