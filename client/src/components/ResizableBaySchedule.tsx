@@ -13,7 +13,8 @@ import {
   startOfWeek, 
   endOfWeek,
   getDaysInMonth,
-  isWithinInterval
+  isWithinInterval,
+  parseISO
 } from 'date-fns';
 import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom } from './ExactFitPhaseWidths';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
@@ -512,9 +513,17 @@ export default function ResizableBaySchedule({
         return null;
       }
       
-      // Get start and end dates
-      const startDate = new Date(schedule.startDate);
-      const endDate = new Date(schedule.endDate);
+      // Get start and end dates - parse exactly as YYYY-MM-DD to avoid timezone issues
+      const startDate = parseISO(schedule.startDate);
+      const endDate = parseISO(schedule.endDate);
+      
+      // Log for debugging date parsing issues
+      console.log(`Parsing schedule ${schedule.id} dates:`, {
+        originalStartDate: schedule.startDate,
+        originalEndDate: schedule.endDate,
+        parsedStartDate: format(startDate, 'yyyy-MM-dd'),
+        parsedEndDate: format(endDate, 'yyyy-MM-dd')
+      });
       
       // Calculate left position based on date range start
       const daysFromStart = differenceInDays(startDate, dateRange.start);
