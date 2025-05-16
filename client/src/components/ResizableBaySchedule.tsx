@@ -2380,8 +2380,8 @@ export default function ResizableBaySchedule({
                         )}
                       </div>
                       
-                      {/* Team Management Controls */}
-                      {team[0]?.team && (
+                      {/* Team Management Controls - Show for all team sections */}
+                      {true && (
                         <div className="flex items-center space-x-1">
                           {/* Edit Button (Gear Icon) */}
                           <TooltipProvider>
