@@ -220,7 +220,17 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
   const slots: TimeSlot[] = [];
   
   // CRITICAL FIX: Start from January 1, 2025 regardless of date range passed
+  // And ensure we're starting on a Monday for week view
   let currentDate = new Date(2025, 0, 1); // January 1, 2025
+  
+  // Adjust to start on the Monday of the week containing January 1
+  if (viewMode === 'week') {
+    const day = currentDate.getDay();
+    if (day !== 1) { // If not Monday (1)
+      const daysToAdjust = day === 0 ? -6 : 1 - day; // Sunday is 0
+      currentDate = addDays(currentDate, daysToAdjust);
+    }
+  }
   
   // CRITICAL FIX: Force end date to be Dec 31, 2030 regardless of what date range is passed in
   const forcedEndDate = new Date(2030, 11, 31); // December 31, 2030
@@ -245,13 +255,8 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
     if (viewMode === 'day') {
       currentDate = addDays(currentDate, 1);
     } else if (viewMode === 'week') {
-      if (isStartOfWeek || slots.length === 0) {
-        currentDate = addDays(currentDate, 1);
-      } else {
-        // Move to next Monday
-        const daysUntilMonday = (8 - currentDate.getDay()) % 7;
-        currentDate = addDays(currentDate, daysUntilMonday > 0 ? daysUntilMonday : 7);
-      }
+      // Always move exactly 7 days for week view to ensure ONE CELL = ONE WEEK
+      currentDate = addDays(currentDate, 7);
     } else if (viewMode === 'month') {
       if (isStartOfMonth || slots.length === 0) {
         currentDate = addDays(currentDate, 1);
@@ -1713,12 +1718,10 @@ export default function ResizableBaySchedule({
                       {slot.monthName} {format(slot.date, 'yyyy')}
                     </div>
                   )}
-                  {/* Always show week numbers in week view */}
-                  {(viewMode === 'week' || slot.isStartOfWeek) && (
-                    <div className="text-gray-400 mt-1 text-[10px] font-semibold">
-                      Week {Math.ceil(differenceInDays(slot.date, new Date(slot.date.getFullYear(), 0, 1)) / 7)}
-                    </div>
-                  )}
+                  {/* Always show week numbers - one cell = one week */}
+                  <div className="text-gray-400 mt-1 text-[10px] font-semibold">
+                    Week {Math.ceil(differenceInDays(slot.date, new Date(slot.date.getFullYear(), 0, 1)) / 7)}
+                  </div>
                   <div className="text-gray-400 text-[10px]">
                     {format(slot.date, 'MM/dd')}
                   </div>
