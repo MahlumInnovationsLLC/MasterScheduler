@@ -556,53 +556,63 @@ export default function ResizableBaySchedule({
       if (affectedSchedules.length > 0) {
         console.log(`Found ${affectedSchedules.length} schedules in team "${teamName}" that will be affected`);
         
-        // Option 1: Move schedules to unassigned (implemented here)
-        // This would involve creating a dialog asking the user what to do with these schedules
-        // For now, we'll just proceed with deleting the team
+        // For now, we'll just proceed with deleting the team and its schedules will remain
+        // but be unattached to a team
       }
       
-      // Update all bays to remove this team
-      const updatePromises = bayIds.map(bayId => {
-        return fetch(`/api/manufacturing-bays/${bayId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            team: null, // Remove team association
-            description: null // Clear description
-          })
-        });
-      });
-      
-      await Promise.all(updatePromises);
-      
-      // Remove from team descriptions
-      setTeamDescriptions(prev => {
-        const newDescriptions = {...prev};
-        if (teamName in newDescriptions) {
-          delete newDescriptions[teamName];
+      // Using fetch directly for more control and to avoid any issues
+      try {
+        // Update all bays to remove this team association 
+        for (const bayId of bayIds) {
+          console.log(`Removing team "${teamName}" from bay ${bayId}`);
+          
+          const response = await fetch(`/api/manufacturing-bays/${bayId}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              team: null, // Remove team association 
+              description: null // Clear description
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to update bay ${bayId}: ${response.statusText}`);
+          }
+          
+          // Wait a small amount of time between requests
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
-        return newDescriptions;
-      });
-      
-      toast({
-        title: "Team Deleted",
-        description: `Successfully removed "${teamName}" team from ${bayIds.length} bay(s)`,
-      });
-      
-      // Force a more comprehensive refresh to actually remove the deleted team's UI elements
-      // This is critical to ensure the blue header bar and rows are fully removed from the UI
-      setTimeout(() => {
-        // Reload the page to ensure all UI elements for the team are removed
-        window.location.reload();
-      }, 1000);
-      
+        
+        // Remove from team descriptions 
+        setTeamDescriptions(prev => {
+          const newDescriptions = {...prev};
+          if (teamName in newDescriptions) {
+            delete newDescriptions[teamName];
+          }
+          return newDescriptions;
+        });
+        
+        toast({
+          title: "Team Deleted",
+          description: `Successfully removed "${teamName}" team from ${bayIds.length} bay(s). Reloading page...`,
+        });
+        
+        // Force a hard reload after a short delay to ensure UI is properly refreshed
+        setTimeout(() => {
+          console.log("Reloading page to refresh UI after team deletion");
+          window.location.href = window.location.href; // Full page reload
+        }, 1500);
+      } catch (apiError) {
+        console.error('API error when deleting team:', apiError);
+        throw apiError; // Re-throw to be caught by outer try/catch
+      }
     } catch (error) {
       console.error('Error deleting team:', error);
       toast({
         title: "Error",
-        description: "Failed to delete team",
+        description: "Failed to delete team. Please try again.",
         variant: "destructive"
       });
     } finally {
