@@ -36,7 +36,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
-  Truck
+  Truck,
+  BarChart2 // Added for utilization icon
 } from 'lucide-react';
 import {
   Dialog,
@@ -1395,18 +1396,24 @@ export default function ResizableBaySchedule({
       </div>
       
       <div className="flex flex-row flex-1 h-full">
-        {/* Unassigned Projects Sidebar - Collapsible */}
+        {/* Unassigned Projects Sidebar - Enhanced Collapsible */}
         <div 
-          className={`unassigned-projects-sidebar border-r border-gray-700 flex-shrink-0 overflow-y-auto bg-gray-900 p-4 transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-14'}`}
+          className={`unassigned-projects-sidebar border-r border-gray-700 flex-shrink-0 overflow-y-auto bg-gray-900 transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
+          style={{ transitionProperty: 'width, padding' }}
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className={`font-bold text-white ${!sidebarOpen && 'hidden'}`}>Unassigned Projects</h3>
+            <h3 className={`font-bold text-white ${!sidebarOpen ? 'hidden' : 'block'}`}>Unassigned Projects</h3>
             <button 
-              onClick={() => setSidebarOpen(!sidebarOpen)} 
-              className="p-1 bg-gray-800 rounded-full hover:bg-gray-700 transition-colors"
+              onClick={() => {
+                console.log("Toggling sidebar from", sidebarOpen, "to", !sidebarOpen);
+                setSidebarOpen(!sidebarOpen);
+                // Save to localStorage to persist between page reloads
+                localStorage.setItem('sidebarOpen', String(!sidebarOpen));
+              }} 
+              className="p-1 bg-gray-800 rounded-full hover:bg-gray-700 transition-colors flex items-center justify-center"
               title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
             >
-              {sidebarOpen ? <ChevronLeft className="h-4 w-4 text-gray-400" /> : <ChevronRight className="h-4 w-4 text-gray-400" />}
+              {sidebarOpen ? <ChevronLeft className="h-4 w-4 text-gray-300" /> : <ChevronRight className="h-4 w-4 text-gray-300" />}
             </button>
           </div>
           
@@ -1520,16 +1527,18 @@ export default function ResizableBaySchedule({
                 style={{
                   minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
                 }}>
-                <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex items-center shadow-md">
-                  <div className="team-name font-bold text-lg flex items-center gap-2 flex-grow">
-                    <span>Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}</span>
+                <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex shadow-md" style={{ position: 'relative' }}>
+                  <div className="flex items-center">
+                    <span className="font-bold text-lg">Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}</span>
                     
-                    {/* Info bubbles DIRECTLY after team name text as requested */}
-                    <div className="flex items-center space-x-1 ml-2">
-                      <div className="bg-blue-700 text-white text-xs px-2 py-0.5 rounded-full flex items-center">
+                    {/* Info bubbles RIGHT NEXT to team name */}
+                    <div className="flex items-center ml-3">
+                      <div className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full flex items-center mr-2">
+                        <Users className="h-3.5 w-3.5 mr-1" />
                         <span>{scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length} projects</span>
                       </div>
-                      <div className="bg-blue-700 text-white text-xs px-2 py-0.5 rounded-full flex items-center">
+                      <div className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full flex items-center">
+                        <BarChart2 className="h-3.5 w-3.5 mr-1" />
                         <span>{Math.floor(scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length / team.length * 100)}% utilization</span>
                       </div>
                     </div>
@@ -1537,7 +1546,7 @@ export default function ResizableBaySchedule({
                     {/* Team Management Button */}
                     {team[0]?.team && (
                       <button 
-                        className="p-1 bg-blue-700 hover:bg-blue-600 rounded-full text-white flex items-center justify-center"
+                        className="p-1 bg-blue-700 hover:bg-blue-600 rounded-full text-white flex items-center justify-center ml-2"
                         onClick={() => {
                           const teamName = team[0].team;
                           if (teamName) {
@@ -1551,8 +1560,8 @@ export default function ResizableBaySchedule({
                     )}
                   </div>
                   
-                  {/* Team management controls */}
-                  <div className="flex items-center space-x-2">
+                  {/* This div remains empty but keeps the layout clean */}
+                  <div className="ml-auto">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger>
@@ -1613,9 +1622,10 @@ export default function ResizableBaySchedule({
                         backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
                       }}
                     >
-                      {/* Bay Label - Improved to be sticky when scrolling */}
+                      {/* Bay Label - Fixed to always be visible when scrolling horizontally */}
                       <div 
-                        className="bay-label absolute top-0 left-0 w-48 h-full bg-gray-100 border-r flex flex-col justify-between py-2 px-2 z-10 sticky"
+                        className="bay-label fixed-left top-0 left-0 w-48 h-full bg-gray-100 border-r flex flex-col justify-between py-2 px-2 z-10 sticky-left"
+                        style={{ position: 'sticky', left: 0 }}
                       >
                         <div>
                           <div className="flex items-center justify-between">
