@@ -2505,8 +2505,9 @@ export default function ResizableBaySchedule({
                                     <button
                                       className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700 flex items-center"
                                       onClick={() => {
-                                        setSelectedTeam(bay.team);
-                                        setTeamDialogOpen(true);
+                                        // Use the specific bay ID format for this single bay's team
+                                      setSelectedTeam(`${bay.team}::${bay.id}`);
+                                      setTeamDialogOpen(true);
                                       }}
                                     >
                                       <Wrench className="h-3 w-3 mr-1" />

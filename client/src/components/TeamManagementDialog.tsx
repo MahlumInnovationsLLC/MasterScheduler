@@ -131,46 +131,56 @@ export function TeamManagementDialog({
       // Get the bay IDs as a string to find matching elements
       const bayIdsString = bayIds.join(',');
       
-      // First try to update the specific section by matching the exact teamName and bayIds
-      const specificSelector = `[data-team-section="${teamName}"]`;
-      const teamSection = document.querySelector(specificSelector);
+      console.log(`Using targeted bay-id attribute selector with bay IDs=${bayIdsString}`);
       
-      console.log(`Looking for team section with selector: ${specificSelector}`);
-      
-      if (teamSection) {
-        console.log(`Found team section using section selector: ${specificSelector}`);
+      if (bayIds.length > 0) {
+        // *** KEY CHANGE: Use the bay IDs to PRECISELY target just the header elements for these bays ***
+        // This ensures we don't update ALL elements with the same team name
         
-        // Update the specific team header section
-        const headerTeamName = teamSection.querySelector('.bay-header-team-name');
-        const headerTeamDesc = teamSection.querySelector('.bay-header-team-description');
-        
-        if (headerTeamName instanceof HTMLElement) {
-          headerTeamName.innerText = newTeamName;
-          headerTeamName.dataset.team = newTeamName;
-        }
-        
-        if (headerTeamDesc instanceof HTMLElement) {
-          headerTeamDesc.innerText = description;
-          headerTeamDesc.dataset.team = newTeamName;
-        }
-      } else {
-        // If we couldn't find the section, try updating by bay IDs
-        console.log(`Using bay-id attribute approach with team=${actualTeamName} and bay IDs=${bayIdsString}`);
-        
-        // Find and update only the bay header elements that match our specific bay IDs
-        document.querySelectorAll(`.bay-header-team-name[data-team="${actualTeamName}"][data-bay-id="${bayIdsString}"]`).forEach(element => {
+        // Find team name elements that match EXACTLY these bay IDs
+        const nameSelector = `.bay-header-team-name[data-bay-id="${bayIdsString}"]`;
+        console.log(`Looking for elements with name selector: ${nameSelector}`);
+        document.querySelectorAll(nameSelector).forEach(element => {
           if (element instanceof HTMLElement) {
-            console.log(`Updating team name element from ${element.innerText} to ${newTeamName}`);
+            console.log(`Updating specific team name element from ${element.innerText} to ${newTeamName}`);
             element.innerText = newTeamName;
             element.dataset.team = newTeamName;
           }
         });
         
-        document.querySelectorAll(`.bay-header-team-description[data-team="${actualTeamName}"][data-bay-id="${bayIdsString}"]`).forEach(element => {
+        // Find team description elements that match EXACTLY these bay IDs
+        const descSelector = `.bay-header-team-description[data-bay-id="${bayIdsString}"]`;
+        console.log(`Looking for elements with description selector: ${descSelector}`);
+        document.querySelectorAll(descSelector).forEach(element => {
           if (element instanceof HTMLElement) {
-            console.log(`Updating team description element from ${element.innerText} to ${description}`);
+            console.log(`Updating specific team description element from ${element.innerText} to ${description}`);
             element.innerText = description;
             element.dataset.team = newTeamName;
+          }
+        });
+      } else {
+        // Fallback: If no specific bay IDs provided, use the old approach with multiple safeguards
+        console.log(`FALLBACK: Using team attribute approach with team=${actualTeamName}`);
+        
+        // Find the section that contains this team first
+        const teamSections = document.querySelectorAll(`[data-team-section="${teamName}"]`);
+        console.log(`Found ${teamSections.length} matching team sections`);
+        
+        // Only update the targeted section (if we have it)
+        teamSections.forEach(section => {
+          if (section instanceof HTMLElement) {
+            const nameEl = section.querySelector('.bay-header-team-name');
+            const descEl = section.querySelector('.bay-header-team-description');
+            
+            if (nameEl instanceof HTMLElement) {
+              nameEl.innerText = newTeamName;
+              nameEl.dataset.team = newTeamName;
+            }
+            
+            if (descEl instanceof HTMLElement) {
+              descEl.innerText = description;
+              descEl.dataset.team = newTeamName;
+            }
           }
         });
       }
