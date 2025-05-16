@@ -1520,9 +1520,19 @@ export default function ResizableBaySchedule({
                 style={{
                   minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
                 }}>
-                <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex justify-between items-center shadow-md">
-                  <div className="team-name font-bold text-lg flex items-center gap-2">
+                <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex items-center shadow-md">
+                  <div className="team-name font-bold text-lg flex items-center gap-2 flex-grow">
                     <span>Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}</span>
+                    
+                    {/* Info bubbles DIRECTLY after team name text as requested */}
+                    <div className="flex items-center space-x-1 ml-2">
+                      <div className="bg-blue-700 text-white text-xs px-2 py-0.5 rounded-full flex items-center">
+                        <span>{scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length} projects</span>
+                      </div>
+                      <div className="bg-blue-700 text-white text-xs px-2 py-0.5 rounded-full flex items-center">
+                        <span>{Math.floor(scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length / team.length * 100)}% utilization</span>
+                      </div>
+                    </div>
                     
                     {/* Team Management Button */}
                     {team[0]?.team && (
@@ -1541,8 +1551,8 @@ export default function ResizableBaySchedule({
                     )}
                   </div>
                   
-                  {/* Team capacity indicators */}
-                  <div className="team-capacity-indicators flex items-center space-x-2">
+                  {/* Team management controls */}
+                  <div className="flex items-center space-x-2">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger>
