@@ -747,11 +747,18 @@ export default function ResizableBaySchedule({
     // Group bays by their team property using a string key in a dictionary
     const teamMap: Record<string, ManufacturingBay[]> = {};
     
-    // Skip bays that don't have a team assigned
-    const assignedTeamBays = sortedBays.filter(bay => bay.team !== null && bay.team !== undefined && bay.team !== '');
-    const unassignedBays = sortedBays.filter(bay => !bay.team);
+    // ONLY include bays that have an actual team assigned from our known valid teams
+    // This completely eliminates phantom teams from the UI
+    const validTeams = ['General', 'Shultz / Mengelos']; // Only teams we know exist in the database
+    const assignedTeamBays = sortedBays.filter(bay => 
+      bay.team !== null && 
+      bay.team !== undefined && 
+      bay.team !== '' && 
+      // Only include bays whose team name is in our validTeams list
+      validTeams.includes(bay.team)
+    );
     
-    // Process each bay with an assigned team and group it
+    // Process each bay with a valid team and group it
     assignedTeamBays.forEach(bay => {
       // Use the team name as the key for grouping
       const teamKey = bay.team || '';
@@ -765,13 +772,6 @@ export default function ResizableBaySchedule({
       teamMap[teamKey].push(bay);
     });
     
-    // Create individual entries for unassigned bays
-    unassignedBays.forEach(bay => {
-      // Create a unique key with bay name as the basis
-      const individualKey = `single_bay_${bay.id}`;
-      teamMap[individualKey] = [bay];
-    });
-    
     // Convert the team map to an array of bay arrays (each sub-array = one team)
     const teams = Object.values(teamMap);
     
@@ -781,6 +781,8 @@ export default function ResizableBaySchedule({
       const minBayNumberB = Math.min(...b.map(bay => bay.bayNumber));
       return minBayNumberA - minBayNumberB;
     });
+    
+    console.log("Active teams found:", teams.map(team => team[0]?.team).join(", "));
     
     return teams;
   }, [bays]);
@@ -2412,7 +2414,15 @@ export default function ResizableBaySchedule({
           
           {/* Manufacturing Bays */}
           <div className="manufacturing-bays mt-2">
-            {bayTeams.map((team, teamIndex) => (
+            {bayTeams
+              .filter(team => {
+                // Only show teams from our known valid teams list
+                const validTeams = ['General', 'Shultz / Mengelos']; 
+                const teamName = team[0]?.team;
+                if (!teamName) return false;
+                return validTeams.includes(teamName);
+              })
+              .map((team, teamIndex) => (
               <div 
                 key={`team-${teamIndex}`} 
                 className="team-container mb-5 relative"
