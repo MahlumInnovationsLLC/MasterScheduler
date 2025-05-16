@@ -108,34 +108,72 @@ export function TeamManagementDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            <span>Team {teamName} Capacity</span>
+            <span>Edit Team: {teamName}</span>
           </DialogTitle>
           <DialogDescription>
-            Update team name and capacity to calculate accurate production timelines.
+            Update team information and capacity settings.
           </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="teamName" className="text-right col-span-2 flex items-center gap-1">
-              <Edit className="h-4 w-4" />
-              Team Name
+            <Label htmlFor="teamName" className="text-right col-span-1">
+              Name
             </Label>
             <Input
               id="teamName"
               value={newTeamName}
               onChange={(e) => setNewTeamName(e.target.value)}
-              className="col-span-2"
+              className="col-span-3"
             />
           </div>
           
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="assemblyStaff" className="text-right col-span-2 flex items-center gap-1">
-              <UserPlus className="h-4 w-4" />
+            <Label htmlFor="status" className="text-right col-span-1">
+              Status
+            </Label>
+            <Input
+              id="status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="col-span-3"
+            />
+          </div>
+          
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="description" className="text-right col-span-1">
+              Description
+            </Label>
+            <Input
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="col-span-3"
+            />
+          </div>
+          
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="location" className="text-right col-span-1">
+              Location
+            </Label>
+            <Input
+              id="location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="col-span-3"
+            />
+          </div>
+          
+          <div className="border-t pt-4 mt-2">
+            <h3 className="text-md font-medium mb-2">Team Capacity Settings</h3>
+          </div>
+          
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="assemblyStaff" className="text-right col-span-1">
               Assembly Staff
             </Label>
             <Input
@@ -144,13 +182,12 @@ export function TeamManagementDialog({
               min="0"
               value={assemblyStaff}
               onChange={(e) => setAssemblyStaff(Number(e.target.value))}
-              className="col-span-2"
+              className="col-span-3"
             />
           </div>
           
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="electricalStaff" className="text-right col-span-2 flex items-center gap-1">
-              <UserPlus className="h-4 w-4" />
+            <Label htmlFor="electricalStaff" className="text-right col-span-1">
               Electrical Staff
             </Label>
             <Input
@@ -159,22 +196,22 @@ export function TeamManagementDialog({
               min="0"
               value={electricalStaff}
               onChange={(e) => setElectricalStaff(Number(e.target.value))}
-              className="col-span-2"
+              className="col-span-3"
             />
           </div>
           
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="hoursPerWeek" className="text-right col-span-2 flex items-center gap-1">
-              <Clock className="h-4 w-4" />
+            <Label htmlFor="hoursPerWeek" className="text-right col-span-1">
               Hours per Week
             </Label>
             <Input
               id="hoursPerWeek"
               type="number"
               min="1"
+              max="168"
               value={hoursPerWeek}
               onChange={(e) => setHoursPerWeek(Number(e.target.value))}
-              className="col-span-2"
+              className="col-span-3"
             />
           </div>
           

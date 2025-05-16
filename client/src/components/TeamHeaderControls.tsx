@@ -60,21 +60,14 @@ export function TeamHeaderControls({ bays }: TeamHeaderControlsProps) {
       </div>
       
       {/* Team Management Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Team Capacity Management</DialogTitle>
-          </DialogHeader>
-          
-          {selectedTeam && (
-            <TeamManagementDialog 
-              teamName={selectedTeam} 
-              bays={bays} 
-              onClose={() => setIsDialogOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {selectedTeam && (
+        <TeamManagementDialog 
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          teamName={selectedTeam} 
+          bays={bays}
+        />
+      )}
     </div>
   );
 }

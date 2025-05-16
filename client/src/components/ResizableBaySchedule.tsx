@@ -2947,11 +2947,11 @@ export default function ResizableBaySchedule({
         onOpenChange={setTeamDialogOpen}
         teamName={selectedTeam}
         bays={bays}
-        onTeamUpdate={async (teamName, assemblyStaff, electricalStaff, hoursPerWeek) => {
+        onTeamUpdate={async (teamName, newTeamName, description, assemblyStaff, electricalStaff, hoursPerWeek) => {
           // After team capacity is updated, refresh the schedule data
           toast({
-            title: "Team capacity updated",
-            description: `Team ${teamName} capacity has been updated with ${assemblyStaff} assembly and ${electricalStaff} electrical staff.`
+            title: "Team updated",
+            description: `Team ${newTeamName} has been updated with ${assemblyStaff} assembly and ${electricalStaff} electrical staff.`
           });
           
           // Refresh schedule bars to reflect the new capacity settings

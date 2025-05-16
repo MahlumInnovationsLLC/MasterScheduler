@@ -39,19 +39,12 @@ export function TeamManagementButton({ teamName, bays, isHeaderButton = true }: 
         </button>
       )}
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Team Capacity Management</DialogTitle>
-          </DialogHeader>
-          
-          <TeamManagementDialog 
-            teamName={teamName} 
-            bays={bays} 
-            onClose={() => setIsOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      <TeamManagementDialog 
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        teamName={teamName} 
+        bays={bays} 
+      />
     </>
   );
 }
