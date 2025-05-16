@@ -18,7 +18,7 @@ interface TeamManagementDialogProps {
   onOpenChange: (open: boolean) => void;
   teamName: string | null;
   bays: any[]; // Will type this properly based on ManufacturingBay from your existing code
-  onTeamUpdate?: (teamName: string, newTeamName: string, assemblyStaff: number, electricalStaff: number, hoursPerWeek: number) => Promise<void>;
+  onTeamUpdate?: (teamName: string, newTeamName: string, description: string, assemblyStaff: number, electricalStaff: number, hoursPerWeek: number) => Promise<void>;
 }
 
 export function TeamManagementDialog({
@@ -29,6 +29,9 @@ export function TeamManagementDialog({
   onTeamUpdate
 }: TeamManagementDialogProps) {
   const [newTeamName, setNewTeamName] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [status, setStatus] = useState<string>("active");
+  const [location, setLocation] = useState<string>("");
   const [assemblyStaff, setAssemblyStaff] = useState<number>(2);
   const [electricalStaff, setElectricalStaff] = useState<number>(1);
   const [hoursPerWeek, setHoursPerWeek] = useState<number>(29);
@@ -37,13 +40,16 @@ export function TeamManagementDialog({
   // Calculate weekly team capacity
   const weeklyCapacity = (assemblyStaff + electricalStaff) * hoursPerWeek;
 
-  // Find the bays belonging to this team to get current staff counts
+  // Find the bays belonging to this team to get current staff counts and other information
   useEffect(() => {
     if (teamName && open) {
       setNewTeamName(teamName);
       const teamBays = bays.filter(bay => bay.team === teamName);
       if (teamBays.length > 0) {
         const firstBay = teamBays[0];
+        setDescription(firstBay.description || "");
+        setStatus(firstBay.status || "active");
+        setLocation(firstBay.location || "");
         setAssemblyStaff(firstBay.assemblyStaffCount || 2);
         setElectricalStaff(firstBay.electricalStaffCount || 1);
         setHoursPerWeek(firstBay.hoursPerPersonPerWeek || 29);
@@ -58,7 +64,7 @@ export function TeamManagementDialog({
       // Find all bays for this team
       const teamBays = bays.filter(bay => bay.team === teamName);
       
-      // Update all bays with the new capacity settings and team name
+      // Update all bays with the new capacity settings, team name, and additional fields
       for (const bay of teamBays) {
         await fetch(`/api/manufacturing-bays/${bay.id}`, {
           method: 'PATCH',
@@ -67,6 +73,9 @@ export function TeamManagementDialog({
           },
           body: JSON.stringify({
             team: newTeamName,
+            description: description,
+            status: status,
+            location: location,
             assemblyStaffCount: assemblyStaff,
             electricalStaffCount: electricalStaff,
             hoursPerPersonPerWeek: hoursPerWeek
@@ -76,7 +85,7 @@ export function TeamManagementDialog({
       
       // Call the onTeamUpdate callback if provided
       if (onTeamUpdate) {
-        await onTeamUpdate(teamName, newTeamName, assemblyStaff, electricalStaff, hoursPerWeek);
+        await onTeamUpdate(teamName, newTeamName, description, assemblyStaff, electricalStaff, hoursPerWeek);
       }
       
       const teamNameChanged = teamName !== newTeamName;
