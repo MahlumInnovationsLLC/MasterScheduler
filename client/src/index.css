@@ -2290,6 +2290,27 @@ body[data-drag-in-progress="true"] [draggable="false"] * {
   box-shadow: 4px 0 6px rgba(0,0,0,0.1) !important;
 }
 
+/* Enhanced drop zone styling for unassigned projects section */
+.drop-zone-active {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  border: 2px dashed rgba(59, 130, 246, 0.7) !important;
+  border-radius: 0.5rem !important;
+  transition: all 0.2s ease-in-out !important;
+  animation: pulse 1.5s infinite !important;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
 /* Disable all browser restrictions that might prevent dropping */
 [draggable=true] {
   -webkit-user-select: none;

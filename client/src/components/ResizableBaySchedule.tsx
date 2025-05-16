@@ -1502,12 +1502,53 @@ export default function ResizableBaySchedule({
           {unassignedProjects.length === 0 ? (
             <div className="text-sm text-gray-400 italic">No unassigned projects</div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3" 
+              onDragOver={(e) => {
+                // Make the unassigned area a valid drop target
+                e.preventDefault();
+                e.stopPropagation();
+                // Visual indicator that this is a drop zone
+                e.currentTarget.classList.add('drop-zone-active');
+              }}
+              onDragLeave={(e) => {
+                // Remove highlight when drag leaves
+                e.currentTarget.classList.remove('drop-zone-active');
+              }}
+              onDrop={async (e) => {
+                // Handle dropping projects back to unassigned section
+                e.preventDefault();
+                e.stopPropagation();
+                e.currentTarget.classList.remove('drop-zone-active');
+                
+                try {
+                  // Get the schedule ID from the drag data
+                  const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                  
+                  // Only process positive IDs (existing schedules)
+                  if (scheduleId > 0) {
+                    console.log(`🔄 Returning schedule ${scheduleId} to unassigned projects`);
+                    
+                    // Find the schedule being moved
+                    const schedule = schedules.find(s => s.id === scheduleId);
+                    if (schedule && onScheduleDelete) {
+                      // Delete the schedule to return project to unassigned status
+                      await onScheduleDelete(scheduleId);
+                      toast({
+                        title: "Project unassigned",
+                        description: "The project has been returned to unassigned projects",
+                      });
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error processing drop on unassigned section:', error);
+                }
+              }}
+            >
               {unassignedProjects.map(project => (
                 <div 
                   key={`unassigned-${project.id}`}
                   className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
-                  draggable
+                  draggable={true}
                   onDragStart={(e) => {
                     // CRITICAL FIX: Set ONLY ONE data transfer value to avoid conflicts
                     // Use negative project ID to identify as a new project from unassigned list
@@ -1519,11 +1560,11 @@ export default function ResizableBaySchedule({
                     document.body.classList.add('global-drag-active');
                     
                     // Log clear information about what's being dragged
-                    console.log(`Dragging unassigned project ${project.id}: ${project.name}`);
-                    console.log(`Using project identifier: ${projectIdentifier}`);
+                    console.log(`🔄 Dragging unassigned project ${project.id}: ${project.name}`);
+                    console.log(`🔄 Using project identifier: ${projectIdentifier}`);
                     
-                    // CRITICAL: Force browser to allow ANY drop target with move effect
-                    e.dataTransfer.effectAllowed = 'move';
+                    // CRITICAL: Force browser to allow ANY drop target with copy effect
+                    e.dataTransfer.effectAllowed = 'copy';
                     
                     // Visual feedback - make the card being dragged semi-transparent
                     e.currentTarget.classList.add('opacity-50');
@@ -1542,12 +1583,18 @@ export default function ResizableBaySchedule({
                     document.body.appendChild(dragImage);
                     e.dataTransfer.setDragImage(dragImage, 10, 10);
                     
-                    // Add to temporary data to be accessed by drop handlers
-                    (window as any).draggedProject = project;
-                    console.log(`Dragging unassigned project ${project.projectNumber}: ${project.name}`);
+                    // Clean up the drag image after a short delay
+                    setTimeout(() => {
+                      if (dragImage.parentNode) {
+                        dragImage.parentNode.removeChild(dragImage);
+                      }
+                    }, 100);
                   }}
                   onDragEnd={(e) => {
+                    // Clean up all drag-related states
                     e.currentTarget.classList.remove('opacity-50');
+                    document.body.removeAttribute('data-drag-in-progress');
+                    document.body.classList.remove('global-drag-active');
                     const dragImages = document.querySelectorAll('div.pointer-events-none.fixed.-left-full');
                     dragImages.forEach(el => el.remove());
                   }}
