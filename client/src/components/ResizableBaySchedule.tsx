@@ -288,17 +288,59 @@ const BayCapacityInfo = ({ bay, allSchedules, projects, bays }: { bay: Manufactu
     statusIcon = <Clock3 className="h-4 w-4 text-white" />;
   }
   
+  // Calculate team capacity - look for assembly/electrical staff counts on this bay
+  const assemblyStaff = bay.assemblyStaffCount || 1;
+  const electricalStaff = bay.electricalStaffCount || 1;
+  const hoursPerWeek = bay.hoursPerPersonPerWeek || 29;
+  const totalStaff = assemblyStaff + electricalStaff;
+  const totalCapacity = totalStaff * hoursPerWeek;
+  
+  // Find other bays in same team to calculate team capacity
+  let teamCapacity = totalCapacity;
+  if (bay.team) {
+    const teamBays = bays.filter(b => b.team === bay.team);
+    if (teamBays.length > 0) {
+      // Sum up assembly and electrical staff from all bays in team
+      let teamAssemblyStaff = 0;
+      let teamElectricalStaff = 0;
+      let teamHoursPerWeek = hoursPerWeek; // Use the same hours per week value across team
+      
+      teamBays.forEach(b => {
+        if (b.assemblyStaffCount) teamAssemblyStaff += b.assemblyStaffCount;
+        if (b.electricalStaffCount) teamElectricalStaff += b.electricalStaffCount;
+        if (b.hoursPerPersonPerWeek) teamHoursPerWeek = b.hoursPerPersonPerWeek;
+      });
+      
+      const teamTotalStaff = teamAssemblyStaff + teamElectricalStaff;
+      teamCapacity = teamTotalStaff * teamHoursPerWeek;
+    }
+  }
+  
   console.log(`Bay ${bay.name} at ${capacityPercentage}% capacity with ${activeProjects === 0 ? 'no projects' : activeProjects + ' project' + (activeProjects > 1 ? 's' : '')}`);
   console.log(`Bay ${bay.name} final status: ${statusText} with ${activeProjects} active project${activeProjects !== 1 ? 's' : ''}`);
   
   return (
-    <div className="bay-capacity-info absolute right-2 top-2 flex items-center space-x-2">
-      <div className={`status-indicator ${statusBg} text-white text-xs px-2 py-0.5 rounded-full flex items-center`}>
-        {statusIcon}
-        <span className="ml-1">{statusText}</span>
+    <div className="bay-capacity-info absolute right-2 top-2 flex flex-col items-end gap-1">
+      <div className="flex items-center space-x-2">
+        <div className={`status-indicator ${statusBg} text-white text-xs px-2 py-0.5 rounded-full flex items-center`}>
+          {statusIcon}
+          <span className="ml-1">{statusText}</span>
+        </div>
+        <div className="project-count bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded-full">
+          {activeProjects} project{activeProjects !== 1 ? 's' : ''}
+        </div>
       </div>
-      <div className="project-count bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded-full">
-        {activeProjects} project{activeProjects !== 1 ? 's' : ''}
+      
+      {bay.team && (
+        <div className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 mt-1">
+          <Users className="h-3 w-3" />
+          <span>Team: {teamCapacity} hrs/wk</span>
+        </div>
+      )}
+      
+      <div className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 mt-1">
+        <UserPlus className="h-3 w-3" />
+        <span>{assemblyStaff}A + {electricalStaff}E</span>
       </div>
     </div>
   );
@@ -452,7 +494,7 @@ export default function ResizableBaySchedule({
     // Bars will be positioned exactly where they are in the database
     
     // Convert manufacturing bays to the Bay type needed for capacity calculations
-    const capacityBays: Bay[] = bays.map(bay => ({
+    const capacityBays = bays.map(bay => ({
       id: bay.id,
       team: bay.team,
       assemblyStaffCount: bay.assemblyStaffCount || 1, 
@@ -462,7 +504,7 @@ export default function ResizableBaySchedule({
     
     // Apply team capacity-based calculations to all schedule bars
     const barsWithCapacityCalculation = updatePhaseWidthsWithExactFit(bars, capacityBays);
-    console.log('Applied capacity-based calculations for production phase widths', barsWithCapacityCalculation);
+    console.log('Applied capacity-based calculations for production phase widths');
     
     setScheduleBars(barsWithCapacityCalculation);
   }, [schedules, projects, dateRange, viewMode, slotWidth]);
