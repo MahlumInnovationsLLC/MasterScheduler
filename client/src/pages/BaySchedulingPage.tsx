@@ -463,11 +463,15 @@ const BaySchedulingPage = () => {
   // Delete schedule mutation
   const deleteScheduleMutation = useMutation({
     mutationFn: async (scheduleId: number) => {
+      console.log(`🔄 Deleting schedule ${scheduleId} and returning project to unassigned list`);
       const response = await apiRequest('DELETE', `/api/manufacturing-schedules/${scheduleId}`);
       return response.ok;
     },
     onSuccess: () => {
+      // Force refresh all relevant queries to ensure UI is in sync with server state
       queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      
       toast({
         title: 'Success',
         description: 'Project removed from manufacturing schedule',

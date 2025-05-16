@@ -412,6 +412,8 @@ export default function ResizableBaySchedule({
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [deleteRowDialogOpen, setDeleteRowDialogOpen] = useState(false);
+  // Add forceUpdate state to force re-rendering when needed
+  const [forceUpdate, setForceUpdate] = useState<number>(Date.now());
   const [confirmRowDelete, setConfirmRowDelete] = useState<{
     bayId: number;
     rowIndex: number;
@@ -1531,10 +1533,17 @@ export default function ResizableBaySchedule({
                       const schedule = schedules.find(s => s.id === scheduleId);
                       if (schedule && onScheduleDelete) {
                         await onScheduleDelete(scheduleId);
+                        
+                        // CRITICAL FIX: Update local state to reflect the deletion
+                        setScheduleBars(prevBars => prevBars.filter(bar => bar.id !== scheduleId));
+                        
                         toast({
                           title: "Project unassigned",
                           description: "Project moved back to unassigned list",
                         });
+                        
+                        // Force a rerender by updating a timestamp
+                        setForceUpdate(Date.now());
                       }
                     }
                   } catch (error) {
