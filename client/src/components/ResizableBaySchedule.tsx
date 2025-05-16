@@ -16,6 +16,7 @@ import {
 } from 'date-fns';
 import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom, ScheduleBar } from './ExactFitPhaseWidths';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
+import { TeamManagementButton } from './TeamManagementButton';
 import { 
   PlusCircle, 
   GripVertical, 
@@ -1510,7 +1511,14 @@ export default function ResizableBaySchedule({
                           <Badge variant="destructive" className="mt-1 text-[10px]">Maintenance</Badge>
                         )}
                         
-                        {/* Edit and delete buttons */}
+                        {/* Show team info if available */}
+                        {bay.team && (
+                          <div className="text-xs text-primary mt-1">
+                            Team: {bay.team}
+                          </div>
+                        )}
+                        
+                        {/* Edit, delete and team management buttons */}
                         <div className="bay-actions mt-2 flex space-x-1">
                           <button 
                             className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-700"
@@ -1521,6 +1529,13 @@ export default function ResizableBaySchedule({
                           >
                             <PencilIcon className="h-3 w-3" />
                           </button>
+                          
+                          {/* Team Management Button */}
+                          <TeamManagementButton
+                            teamName={bay.team}
+                            bays={bays}
+                            isHeaderButton={false}
+                          />
                           
                           {onBayDelete && (
                             <button 
