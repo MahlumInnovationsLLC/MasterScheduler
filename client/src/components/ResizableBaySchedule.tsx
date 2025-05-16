@@ -2090,30 +2090,38 @@ export default function ResizableBaySchedule({
             </button>
             
             <button
-              className="bg-gray-700 hover:bg-gray-600 p-1 rounded"
+              className="bg-blue-700 hover:bg-blue-600 p-1 rounded"
               onClick={() => {
+                // Set up a new team creation dialog
+                const teamName = "New Team";
+                const highestBayNumber = Math.max(...bays.map(b => b.bayNumber));
+                
+                // Create a new bay with the team name
                 setNewBayDialog(true);
                 setEditingBay({
                   id: 0,
-                  name: '',
-                  bayNumber: bays.length + 1,
+                  name: `${teamName} Bay 1`,
+                  bayNumber: highestBayNumber + 1,
                   status: 'active',
-                  description: null,
+                  description: 'Manufacturing Team',
                   location: null,
-                  team: null,
+                  team: teamName, // Important - this assigns the bay to the new team
                   capacityTonn: null,
                   maxWidth: null,
                   maxHeight: null,
                   maxLength: null,
                   teamId: null,
                   createdAt: null,
-                  updatedAt: null
+                  updatedAt: null,
+                  assemblyStaffCount: 4,
+                  electricalStaffCount: 2,
+                  hoursPerPersonPerWeek: 40
                 });
               }}
             >
-              <div className="flex items-center">
-                <PlusIcon className="h-4 w-4 text-gray-700" />
-                <span className="text-sm">Bay</span>
+              <div className="flex items-center text-white">
+                <PlusIcon className="h-4 w-4" />
+                <span className="text-sm ml-1">Team</span>
               </div>
             </button>
           </div>
@@ -3320,15 +3328,110 @@ export default function ResizableBaySchedule({
       <Dialog open={newBayDialog} onOpenChange={setNewBayDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingBay && editingBay.id > 0 ? 'Edit Bay' : 'Create Bay'}</DialogTitle>
+            <DialogTitle>
+              {editingBay && editingBay.id > 0 
+                ? 'Edit Bay' 
+                : editingBay?.team 
+                  ? 'Create New Team' 
+                  : 'Create Bay'}
+            </DialogTitle>
             <DialogDescription>
               {editingBay && editingBay.id > 0 
                 ? 'Update the bay information.' 
-                : 'Add a new manufacturing bay to the schedule.'}
+                : editingBay?.team 
+                  ? 'Create a new manufacturing team with initial bay' 
+                  : 'Add a new manufacturing bay to the schedule.'}
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
+            {/* Team section - only show when creating a new team */}
+            {editingBay && !editingBay.id && editingBay.team && (
+              <div className="bg-blue-900/20 p-3 rounded-md border border-blue-800 mb-2">
+                <h3 className="text-blue-100 font-medium mb-2">Team Information</h3>
+                <div className="grid grid-cols-4 items-center gap-4 mb-3">
+                  <Label htmlFor="teamName" className="text-right text-blue-100">
+                    Team Name
+                  </Label>
+                  <div className="col-span-3">
+                    <Input
+                      id="teamName"
+                      placeholder="Enter team name"
+                      value={editingBay.team || ''}
+                      onChange={(e) => setEditingBay(prev => prev ? {...prev, team: e.target.value} : null)}
+                      className="border-blue-700 bg-blue-950/50"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="teamDescription" className="text-right text-blue-100">
+                    Description
+                  </Label>
+                  <div className="col-span-3">
+                    <Input
+                      id="teamDescription"
+                      placeholder="Team description"
+                      value={editingBay.description || ''}
+                      onChange={(e) => setEditingBay(prev => prev ? {...prev, description: e.target.value} : null)}
+                      className="border-blue-700 bg-blue-950/50"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4 mt-3">
+                  <Label htmlFor="assemblyStaff" className="text-right text-blue-100">
+                    Assembly Staff
+                  </Label>
+                  <div className="col-span-3">
+                    <Input
+                      id="assemblyStaff"
+                      type="number"
+                      placeholder="Number of assembly staff"
+                      value={editingBay.assemblyStaffCount || 4}
+                      onChange={(e) => setEditingBay(prev => prev ? {...prev, assemblyStaffCount: parseInt(e.target.value)} : null)}
+                      className="border-blue-700 bg-blue-950/50"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4 mt-3">
+                  <Label htmlFor="electricalStaff" className="text-right text-blue-100">
+                    Electrical Staff
+                  </Label>
+                  <div className="col-span-3">
+                    <Input
+                      id="electricalStaff"
+                      type="number"
+                      placeholder="Number of electrical staff"
+                      value={editingBay.electricalStaffCount || 2}
+                      onChange={(e) => setEditingBay(prev => prev ? {...prev, electricalStaffCount: parseInt(e.target.value)} : null)}
+                      className="border-blue-700 bg-blue-950/50"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4 mt-3">
+                  <Label htmlFor="hoursPerWeek" className="text-right text-blue-100">
+                    Hours/Week
+                  </Label>
+                  <div className="col-span-3">
+                    <Input
+                      id="hoursPerWeek"
+                      type="number"
+                      placeholder="Hours per person per week"
+                      value={editingBay.hoursPerPersonPerWeek || 40}
+                      onChange={(e) => setEditingBay(prev => prev ? {...prev, hoursPerPersonPerWeek: parseInt(e.target.value)} : null)}
+                      className="border-blue-700 bg-blue-950/50"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Bay section - Always show */}
+            <h3 className="text-gray-300 font-medium">
+              {editingBay && !editingBay.id && editingBay.team 
+                ? 'Initial Bay Settings' 
+                : 'Bay Information'}
+            </h3>
+            
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="bayName" className="text-right">
                 Name
@@ -3376,19 +3479,6 @@ export default function ResizableBaySchedule({
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="bayDescription" className="text-right">
-                Description
-              </Label>
-              <div className="col-span-3">
-                <Input
-                  id="bayDescription"
-                  value={editingBay?.description || ''}
-                  onChange={(e) => setEditingBay(prev => prev ? {...prev, description: e.target.value} : null)}
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="bayLocation" className="text-right">
                 Location
               </Label>
@@ -3401,18 +3491,21 @@ export default function ResizableBaySchedule({
               </div>
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="bayTeam" className="text-right">
-                Team
-              </Label>
-              <div className="col-span-3">
-                <Input
-                  id="bayTeam"
-                  value={editingBay?.team || ''}
-                  onChange={(e) => setEditingBay(prev => prev ? {...prev, team: e.target.value} : null)}
-                />
+            {/* Only show Team field if not creating a team */}
+            {(!editingBay?.team || editingBay.id > 0) && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="bayTeam" className="text-right">
+                  Team
+                </Label>
+                <div className="col-span-3">
+                  <Input
+                    id="bayTeam"
+                    value={editingBay?.team || ''}
+                    onChange={(e) => setEditingBay(prev => prev ? {...prev, team: e.target.value} : null)}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
           
           <DialogFooter>
@@ -3423,7 +3516,12 @@ export default function ResizableBaySchedule({
               type="button" 
               onClick={editingBay?.id > 0 ? handleSaveBayEdit : handleCreateBay}
             >
-              {editingBay?.id > 0 ? 'Save Changes' : 'Create Bay'}
+              {editingBay?.id > 0 
+                ? 'Save Changes' 
+                : editingBay?.team 
+                  ? 'Create Team' 
+                  : 'Create Bay'
+              }
             </Button>
           </DialogFooter>
         </DialogContent>
