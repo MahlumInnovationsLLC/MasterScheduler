@@ -1718,8 +1718,9 @@ export default function ResizableBaySchedule({
           })()}
           
           {/* Timeline Header */}
-          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32" 
+          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex" 
             style={{ 
+              marginLeft: "0px",  // Removed the ml-32 class and set to 0px
               width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
             }}>
             {slots.map((slot, index) => (
