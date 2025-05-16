@@ -615,29 +615,7 @@ export default function ResizableBaySchedule({
   // Drag handling functions
   const handleDragStart = (e: React.DragEvent, scheduleId: number) => {
     e.dataTransfer.setData('text/plain', scheduleId.toString());
-    e.dataTransfer.setData('scheduleId', scheduleId.toString());
     e.dataTransfer.effectAllowed = 'move';
-    
-    // Store important information about the existing schedule for precise positioning
-    const schedule = schedules.find(s => s.id === scheduleId);
-    if (schedule) {
-      // Store original bay and row data for exact calculations during drop
-      e.dataTransfer.setData('original-bay-id', schedule.bayId.toString());
-      e.dataTransfer.setData('original-row', (schedule.row || 0).toString());
-      
-      // Get the exact offset within the element where user started the drag
-      if (e.currentTarget instanceof HTMLElement) {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const offsetX = e.clientX - rect.left;
-        const offsetY = e.clientY - rect.top;
-        
-        // Store these offsets for precise positioning on drop
-        e.dataTransfer.setData('drag-offset-x', offsetX.toString());
-        e.dataTransfer.setData('drag-offset-y', offsetY.toString());
-        
-        console.log(`🎯 Drag offsets: X=${offsetX}, Y=${offsetY}`);
-      }
-    }
     
     // Add some visual feedback
     if (e.currentTarget instanceof HTMLElement) {
@@ -666,55 +644,28 @@ export default function ResizableBaySchedule({
   };
   
   const handleDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, slotIndex: number) => {
-    // SUPER CRITICAL: This prevents the "no-drop" icon from appearing
-    e.preventDefault(); 
-    e.stopPropagation();
-    
-    // Set dropEffect to 'move' to show the move cursor
+    e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     
-    // Add important attributes to identify elements as valid drop targets 
-    if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.setAttribute('data-droppable', 'true');
-      e.currentTarget.style.cursor = 'move';
-      e.currentTarget.classList.add('valid-drop-target');
-    }
-    
-    // Store target position in global document for easier access
-    document.body.setAttribute('data-current-drop-target-bay', bayId.toString());
-    document.body.setAttribute('data-current-drop-target-row', rowIndex.toString());
-    
-    // Log to confirm drag over is working (debugging)
-    console.log(`✅ VALID DROP TARGET: Bay ${bayId}, Row ${rowIndex}`);
-    
-    // Update drop target information for tracking
     setDropTarget({ bayId, rowIndex });
-    
-    // Add visual feedback to show this is a valid drop target
-    if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.classList.add('drop-target-active');
-    }
-    
-    console.log(`Valid drop target: Bay ${bayId}, Row ${rowIndex}`);
   };
   
   const handleSlotDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
-    // Critical: Prevent default to enable dropping and stop propagation to prevent parent handling
+    // Critical: Prevent default to enable dropping
     e.preventDefault();
     e.stopPropagation();
     
-    // Set move cursor to show this is a valid drop target
+    // Set move cursor
     e.dataTransfer.dropEffect = 'move';
     
-    // Update drop target info for state tracking
+    // Update drop target info
     setDropTarget({ bayId, rowIndex });
     
-    // Enhanced visual feedback for the specific week cell
+    // Enhanced visual feedback
     if (e.currentTarget instanceof HTMLElement) {
-      // Show this is an active drop target
       e.currentTarget.classList.add('drop-target', 'week-cell-highlight');
       
-      // Add date information to help user see where they're dropping
+      // Add date information to help user
       const dateInfo = format(date, 'MMM d');
       console.log(`Valid week drop target: ${dateInfo} in Bay ${bayId}, Row ${rowIndex}`);
     }
@@ -725,7 +676,7 @@ export default function ResizableBaySchedule({
     setDraggingSchedule(null);
     setDropTarget(null);
     
-    // Remove any visual feedback
+    // Remove visual feedback
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.classList.remove('dragging');
     }
@@ -734,6 +685,65 @@ export default function ResizableBaySchedule({
     document.querySelectorAll('.drop-target').forEach((el) => {
       el.classList.remove('drop-target');
     });
+  };
+  
+  const getDateFromDropPosition = (e: React.DragEvent, bayId: number, rowIndex: number): Date | null => {
+    console.log(`DROP DEBUG: Bay ID ${bayId}, Row Index ${rowIndex}`);
+    
+    // Try to get date from data attributes first (more precise if available)
+    if (e.currentTarget instanceof HTMLElement) {
+      const dateAttr = e.currentTarget.getAttribute('data-date');
+      if (dateAttr) {
+        console.log(`DROP DEBUG: Using date attribute: ${dateAttr}`);
+        return new Date(dateAttr);
+      }
+    }
+    
+    // Get the element where the drop happened
+    const dropTarget = e.target as HTMLElement;
+    if (dropTarget?.classList.contains('week-cell')) {
+      const dateAttr = dropTarget.getAttribute('data-date');
+      if (dateAttr) {
+        console.log(`DROP DEBUG: Using week-cell date attribute: ${dateAttr}`);
+        return new Date(dateAttr);
+      }
+    }
+    
+    try {
+      // Find the timeline element that contains the week cells
+      const timelineEl = timelineRef.current;
+      if (!timelineEl) {
+        console.error('DROP DEBUG: Timeline element not found');
+        return addDays(dateRange.start, 0); // Default to start date
+      }
+      
+      // Get the timeline bounding rect
+      const timelineRect = timelineEl.getBoundingClientRect();
+      
+      // Get the offset from the start of the timeline (left edge) 
+      const timelineX = e.clientX - timelineRect.left - 32; // Adjust for bay label width
+      
+      // Make sure we have a positive value
+      const adjustedX = Math.max(0, timelineX);
+      
+      // Calculate date based on slot width with precise positioning
+      const dayWidth = viewMode === 'day' ? slotWidth : slotWidth / 7;
+      
+      // Calculate the day offset based on pixels
+      const dayOffset = adjustedX / dayWidth;
+      console.log(`DROP DEBUG: Improved calculation - timelineX: ${timelineX}px, adjustedX: ${adjustedX}px, dayWidth: ${dayWidth}px, dayOffset: ${dayOffset} days`);
+      
+      // Get the exact date
+      const exactDate = addDays(dateRange.start, Math.floor(dayOffset));
+      console.log(`DROP DEBUG: Target date: ${format(exactDate, 'yyyy-MM-dd')}`);
+      
+      return exactDate;
+    } catch (error) {
+      console.error('Error calculating drop position:', error);
+      
+      // Fallback - use the center of the first visible week on screen
+      return addDays(dateRange.start, 0);
+    }
   };
   
   const handleDrop = async (e: React.DragEvent, bayId: number, slotIndex: number, rowIndex: number) => {
@@ -807,21 +817,8 @@ export default function ResizableBaySchedule({
     
     console.log(`🎯 PRECISE DROP: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
     
-    // Get the exact drop position data
-    const offsetX = parseInt(e.dataTransfer.getData('drag-offset-x') || '0', 10);
-    const offsetY = parseInt(e.dataTransfer.getData('drag-offset-y') || '0', 10);
-    const originalBayId = parseInt(e.dataTransfer.getData('original-bay-id') || '0', 10);
-    const originalRow = parseInt(e.dataTransfer.getData('original-row') || '0', 10);
-    
-    console.log(`📊 DROP DETAILS: 
-      - Exact drop date: ${format(date, 'yyyy-MM-dd')}
-      - Offset X: ${offsetX}px, Offset Y: ${offsetY}px
-      - From Bay: ${originalBayId} to Bay: ${bayId}
-      - From Row: ${originalRow} to Row: ${rowIndex}
-    `);
-    
     // Get the schedule ID from the drag data
-    const scheduleId = parseInt(e.dataTransfer.getData('scheduleId'), 10);
+    const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);
     
     // Find the schedule bar being moved
     const bar = scheduleBars.find((b) => b.id === scheduleId);
@@ -872,10 +869,6 @@ export default function ResizableBaySchedule({
       console.log(`⚠️ DROP DEBUG: Start date: ${format(date, 'yyyy-MM-dd')}, End date: ${format(newEndDate, 'yyyy-MM-dd')}`);
       console.log(`🔒 DROP DEBUG: NO AUTO OPTIMIZATION: Projects can overlap - NO collision detection`);
       
-      // Enhanced logs for phase-specific information
-      console.log(`DROP DEBUG PHASES: Project has phases - FAB: ${bar.fabPercentage}%, PAINT: ${bar.paintPercentage}%, PROD: ${bar.productionPercentage}%`);
-      console.log(`DROP DEBUG PHASE WIDTHS: FAB: ${bar.fabWidth}px, PAINT: ${bar.paintWidth}px, PROD: ${bar.prodWidth || bar.productionWidth}px`);
-      
       // Format dates for the API
       const formattedStartDate = format(date, 'yyyy-MM-dd');
       const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
@@ -913,29 +906,6 @@ export default function ResizableBaySchedule({
       el.classList.remove('drop-target');
     });
   };
-  
-  const getDateFromDropPosition = (e: React.DragEvent, bayId: number, rowIndex: number): Date | null => {
-    console.log(`DROP DEBUG: Bay ID ${bayId}, Row Index ${rowIndex}`);
-    
-    // If the drop target has a data-date attribute, use that for super precise positioning
-    let targetElement: HTMLElement | null = null;
-    
-    // Try to get the week cell directly
-    if (e.target instanceof HTMLElement) {
-      targetElement = e.target;
-      if (targetElement.classList.contains('week-cell')) {
-        const dateAttr = targetElement.getAttribute('data-date');
-        if (dateAttr) {
-          console.log(`DROP DEBUG: Using EXACT week-cell date attribute: ${dateAttr}`);
-          // Visual marker for debugging
-          targetElement.style.backgroundColor = 'rgba(0, 255, 0, 0.2)';
-          setTimeout(() => {
-            targetElement!.style.backgroundColor = '';
-          }, 1000);
-          return new Date(dateAttr);
-        }
-      }
-    }
     
     // Check the current target element
     if (e.currentTarget instanceof HTMLElement) {
