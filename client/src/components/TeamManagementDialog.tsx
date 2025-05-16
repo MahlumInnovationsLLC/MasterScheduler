@@ -64,13 +64,10 @@ export function TeamManagementDialog({ teamName, bays, onClose }: TeamManagement
     try {
       // Update all bays in this team with the same staff counts
       const promises = teamBays.map(bay => 
-        apiRequest('/api/manufacturing-bays/' + bay.id, {
-          method: 'PATCH',
-          data: {
-            assemblyStaffCount: assemblyStaff,
-            electricalStaffCount: electricalStaff,
-            hoursPerPersonPerWeek: hoursPerWeek
-          }
+        apiRequest(`/api/manufacturing-bays/${bay.id}`, 'PATCH', {
+          assemblyStaffCount: assemblyStaff,
+          electricalStaffCount: electricalStaff,
+          hoursPerPersonPerWeek: hoursPerWeek
         })
       );
       

@@ -28,6 +28,7 @@ import {
   PlusIcon, 
   MinusIcon,
   Users, 
+  UserPlus,
   Zap, 
   Wrench, // Replacing Tool with Wrench
   Clock,
