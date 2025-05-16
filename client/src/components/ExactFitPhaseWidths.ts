@@ -3,7 +3,33 @@
  * for manufacturing schedule visualization.
  */
 
-import { ScheduleBar } from './ResizableBaySchedule';
+// Define ScheduleBar type directly to avoid import issues
+export interface ScheduleBar {
+  id: number;
+  projectId: number;
+  bayId: number;
+  startDate: Date;
+  endDate: Date;
+  totalHours?: number;
+  projectName: string;
+  projectNumber: string;
+  width: number;
+  left: number;
+  color: string;
+  row: number;
+  fabPercentage: number;
+  paintPercentage: number;
+  productionPercentage: number;
+  itPercentage: number;
+  ntcPercentage: number;
+  qcPercentage: number;
+  fabWidth?: number;
+  paintWidth?: number;
+  productionWidth?: number;
+  itWidth?: number;
+  ntcWidth?: number;
+  qcWidth?: number;
+}
 
 /**
  * Calculates exact fit phase widths for a schedule bar
@@ -21,6 +47,16 @@ export const calculateExactFitPhaseWidths = (bar: ScheduleBar): ScheduleBar => {
   const itWidth = (bar.itPercentage / 100) * totalWidth;
   const ntcWidth = (bar.ntcPercentage / 100) * totalWidth;
   const qcWidth = (bar.qcPercentage / 100) * totalWidth;
+  
+  console.log(`Phase widths calculated for schedule ${bar.id}:`, {
+    totalWidth,
+    fabWidth,
+    paintWidth,
+    productionWidth,
+    itWidth,
+    ntcWidth,
+    qcWidth
+  });
   
   // Create a copy of the bar with the calculated widths
   return {
@@ -49,13 +85,13 @@ export const updatePhaseWidthsWithExactFit = (bars: ScheduleBar[]): ScheduleBar[
  * @param bar The schedule bar data
  */
 export const applyPhaseWidthsToDom = (barElement: HTMLElement, bar: ScheduleBar): void => {
-  // Find phase elements
-  const fabElement = barElement.querySelector('.phase-fab');
-  const paintElement = barElement.querySelector('.phase-paint');
-  const productionElement = barElement.querySelector('.phase-production');
-  const itElement = barElement.querySelector('.phase-it');
-  const ntcElement = barElement.querySelector('.phase-ntc');
-  const qcElement = barElement.querySelector('.phase-qc');
+  // Find phase elements - support both naming conventions
+  const fabElement = barElement.querySelector('.fab-phase') || barElement.querySelector('.phase-fab');
+  const paintElement = barElement.querySelector('.paint-phase') || barElement.querySelector('.phase-paint');
+  const productionElement = barElement.querySelector('.production-phase') || barElement.querySelector('.phase-production');
+  const itElement = barElement.querySelector('.it-phase') || barElement.querySelector('.phase-it');
+  const ntcElement = barElement.querySelector('.ntc-phase') || barElement.querySelector('.phase-ntc');
+  const qcElement = barElement.querySelector('.qc-phase') || barElement.querySelector('.phase-qc');
   
   // Apply calculated widths to phase elements
   if (fabElement instanceof HTMLElement && bar.fabWidth !== undefined) {
