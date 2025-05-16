@@ -29,6 +29,7 @@ import {
   PencilIcon, 
   PlusIcon, 
   MinusIcon,
+  MinusCircle, // Added for remove bay button
   Users, 
   UserPlus,
   Zap, 
