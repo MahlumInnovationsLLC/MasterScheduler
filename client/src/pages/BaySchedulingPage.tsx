@@ -35,7 +35,6 @@ import BaySchedulingImport from '@/components/BaySchedulingImport';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import { TeamManagementButton } from '@/components/TeamManagementButton';
 import { TeamCapacityInfo } from '@/components/TeamCapacityInfo';
-import { SimpleCollapsibleSidebar } from '@/components/SimpleCollapsibleSidebar';
 // RowPositionTester removed as requested
 import { 
   ManufacturingBay, 
