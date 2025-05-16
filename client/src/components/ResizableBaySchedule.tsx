@@ -1629,8 +1629,9 @@ export default function ResizableBaySchedule({
           <div className="bay-schedule-container relative" ref={timelineRef}>
           {/* Today Line marker - positioned absolutely */}
           {(() => {
-            // Calculate position for TODAY line
-            const today = new Date();
+            // Calculate position for TODAY line - using the simulated today date of May 16, 2025
+            // This matches the date used in the rest of the application
+            const today = new Date(2025, 4, 16); // May 16, 2025 (months are 0-indexed)
             const daysFromStart = differenceInDays(today, dateRange.start);
             const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
             const todayPosition = daysFromStart * pixelsPerDay;
