@@ -1603,12 +1603,18 @@ export default function ResizableBaySchedule({
                         backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
                       }}
                     >
-                      {/* Bay Label */}
+                      {/* Bay Label - Improved to be sticky when scrolling */}
                       <div 
-                        className="bay-label absolute top-0 left-0 w-48 h-full bg-gray-100 border-r flex flex-col justify-between py-2 px-2 z-10"
+                        className="bay-label absolute top-0 left-0 w-48 h-full bg-gray-100 border-r flex flex-col justify-between py-2 px-2 z-10 sticky"
                       >
                         <div>
-                          <div className="font-medium text-sm">{bay.name}</div>
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium text-sm">{bay.name}</div>
+                            {/* Info bubble moved to the right of bay name as requested */}
+                            <div className="bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-2">
+                              {baySchedules.length}
+                            </div>
+                          </div>
                           <div className="text-xs text-gray-500">Bay #{bay.bayNumber}</div>
                           
                           {bay.status === 'maintenance' && (
@@ -1649,25 +1655,25 @@ export default function ResizableBaySchedule({
                           </div>
                         </div>
                         
-                        {/* Bay status and capacity information - MOVED HERE as requested */}
+                        {/* Bay status and capacity information - IMPROVED CONTRAST */}
                         <div className="flex flex-col gap-1 mt-auto">
-                          {/* Bay status indicator */}
+                          {/* Bay status indicator - Improved contrast */}
                           <div className={`status-badge flex items-center justify-center rounded-full py-1 px-2 text-xs ${
-                            baySchedules.length > 0 ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'
+                            baySchedules.length > 0 ? 'bg-amber-200 text-amber-900' : 'bg-green-200 text-green-900'
                           }`}>
                             <CheckCircle2 className="h-3 w-3 mr-1" />
                             {baySchedules.length > 0 ? 'Near Capacity' : 'Available'}
                           </div>
                           
-                          {/* Project count */}
-                          <div className="project-count bg-gray-100 text-gray-800 rounded-full py-1 px-2 text-xs flex items-center justify-center">
+                          {/* Project count - Improved contrast */}
+                          <div className="project-count bg-gray-200 text-gray-900 rounded-full py-1 px-2 text-xs flex items-center justify-center">
                             <Users className="h-3 w-3 mr-1" />
                             {baySchedules.length} {baySchedules.length === 1 ? 'project' : 'projects'}
                           </div>
                           
-                          {/* Team capacity information */}
+                          {/* Team capacity information - Improved contrast */}
                           {bay.team && (
-                            <div className="team-capacity bg-blue-100 text-blue-800 rounded-full py-1 px-2 text-xs flex items-center justify-center">
+                            <div className="team-capacity bg-blue-200 text-blue-900 rounded-full py-1 px-2 text-xs flex items-center justify-center">
                               <Users className="h-3 w-3 mr-1" />
                               Team: {((bay.assemblyStaffCount || 2) + (bay.electricalStaffCount || 1)) * (bay.hoursPerPersonPerWeek || 29)} hrs/wk
                             </div>
