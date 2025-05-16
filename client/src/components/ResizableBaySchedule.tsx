@@ -1489,6 +1489,19 @@ export default function ResizableBaySchedule({
                   className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
                   draggable
                   onDragStart={(e) => {
+                    // Force the browser to allow ANY drop target
+                    e.dataTransfer.effectAllowed = 'all';
+                    
+                    // Store this as plain text to avoid any formatting issues
+                    e.dataTransfer.setData('text/plain', `-${project.id}`);
+                    
+                    // Force all elements to accept drops during this drag operation
+                    document.body.setAttribute('data-drag-in-progress', 'true');
+                    document.body.classList.add('global-drag-active');
+                    
+                    // Log clear information about what's being dragged
+                    console.log(`Dragging unassigned project ${project.id}: ${project.name}`);
+                    
                     // Create dummy schedule to use the existing drag logic
                     const dummySchedule = {
                       id: -project.id, // Negative ID to mark as new

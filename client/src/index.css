@@ -2238,43 +2238,48 @@ body.resizing-mode .resize-handle {
   background-color: rgba(16, 185, 129, 0.15);
 }
 
-/* EMERGENCY FIX: Force ALL elements to accept drops - MAXIMUM OVERRIDE */
-* {
-  cursor: auto !important;
-  pointer-events: all !important;
+/* ULTRA FORCE DROP ACCEPTANCE - NO EXCEPTIONS */
+[draggable="true"] {
+  cursor: grab !important;
+  z-index: 9999 !important;
 }
 
-/* ALL elements receive drops during drag operations */
-body * {
-  cursor: move !important;
+/* When dragging is happening, ALL elements must accept drops */
+.unassigned-project-card:active,
+.unassigned-project-card.dragging {
+  cursor: grabbing !important;
 }
 
-/* CRITICAL: Set important styles directly on bay elements */
+/* DIRECT FIX FOR DROP TARGET - All elements receive drops ALWAYS */
 .bay-row, 
-.drop-target, 
-.slot-cell, 
 .schedule-grid-cell, 
 .bay-content,
 .week-cell, 
 .day-cell,
 [data-bay-id],
 [data-row],
-[data-row-index],
 [data-date],
-[data-slot-index],
-.schedule-bar,
-.schedule-grid *,
-div[draggable="false"] {
-  cursor: move !important;
+[data-slot-index] {
+  cursor: default !important; 
   pointer-events: all !important;
-  user-select: none !important;
 }
 
-/* IMPORTANT: Force unassigned projects to have highest z-index */
+/* Force drop acceptance for ALL elements */
+body[data-drag-in-progress="true"] * {
+  pointer-events: all !important;
+  cursor: move !important;
+}
+
+/* NO ELEMENT CAN REJECT DROPS */
+body[data-drag-in-progress="true"] [draggable="false"] * {
+  pointer-events: all !important;
+}
+
+/* Force unassigned cards to always be draggable */
 .unassigned-project-card {
-  z-index: 9999 !important;
   cursor: grab !important;
-  position: relative;
+  user-select: none !important;
+  z-index: 9999 !important;
 }
 
 /* CRITICAL: Make sure all cells can be drop targets */
