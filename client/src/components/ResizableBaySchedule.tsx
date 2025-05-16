@@ -373,7 +373,7 @@ export default function ResizableBaySchedule({
   const [scheduleDuration, setScheduleDuration] = useState(4); // in weeks
   const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [slotWidth, setSlotWidth] = useState(20); // Default slot width
+  // slotWidth now comes from generateTimeSlots based on view mode
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [showAddMultipleWarning, setShowAddMultipleWarning] = useState(false);
@@ -1028,10 +1028,30 @@ export default function ResizableBaySchedule({
     }
   };
   
-  // Function to calculate bar position
+  // Function to calculate bar position based on view mode
   const calculateBarPosition = (startDate: Date, endDate: Date): { left?: number, width?: number } => {
-    // Calculate pixels per day based on slot width
-    const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
+    // Calculate pixels per day based on view mode and slot width
+    let pixelsPerDay = 0;
+    
+    switch (viewMode) {
+      case 'day':
+        pixelsPerDay = slotWidth; // Each slot is one day
+        break;
+      case 'week':
+        pixelsPerDay = slotWidth / 7; // Each slot is one week (7 days)
+        break;
+      case 'month':
+        // Each slot is one month (approx 30 days)
+        // We use a more precise average days per month for better positioning
+        pixelsPerDay = slotWidth / 30.44; 
+        break;
+      case 'quarter':
+        // Each slot is one quarter (approx 91 days)
+        pixelsPerDay = slotWidth / 91.31; 
+        break;
+      default:
+        pixelsPerDay = slotWidth / 7; // Default to week view
+    }
     
     // Calculate left position based on date range start
     const daysFromStart = differenceInDays(startDate, dateRange.start);
@@ -1040,6 +1060,10 @@ export default function ResizableBaySchedule({
     // Calculate width based on duration
     const durationDays = differenceInDays(endDate, startDate) + 1; // +1 to include the end date
     const width = durationDays * pixelsPerDay;
+    
+    console.log(`Position calculation (${viewMode} view): startDate=${format(startDate, 'yyyy-MM-dd')}, ` +
+                `endDate=${format(endDate, 'yyyy-MM-dd')}, pixelsPerDay=${pixelsPerDay.toFixed(2)}, ` +
+                `left=${left.toFixed(2)}, width=${width.toFixed(2)}`);
     
     return { left, width };
   };
