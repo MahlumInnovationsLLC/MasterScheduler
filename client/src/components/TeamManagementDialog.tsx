@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Users, UserPlus, Clock } from 'lucide-react';
-import { useApiRequest } from '@/lib/queryClient';
+// Removed unused import
 
 interface TeamManagementDialogProps {
   open: boolean;
@@ -33,7 +33,6 @@ export function TeamManagementDialog({
   const [electricalStaff, setElectricalStaff] = useState<number>(1);
   const [hoursPerWeek, setHoursPerWeek] = useState<number>(29);
   const { toast } = useToast();
-  const apiRequest = useApiRequest();
 
   // Find the bays belonging to this team to get current staff counts
   useEffect(() => {

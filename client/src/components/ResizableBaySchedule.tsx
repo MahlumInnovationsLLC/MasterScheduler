@@ -1607,11 +1607,17 @@ export default function ResizableBaySchedule({
                           </button>
                           
                           {/* Team Management Button */}
-                          <TeamManagementButton
-                            teamName={bay.team}
-                            bays={bays}
-                            isHeaderButton={false}
-                          />
+                          {bay.team && (
+                            <button
+                              className="p-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700"
+                              onClick={() => {
+                                setSelectedTeam(bay.team);
+                                setTeamDialogOpen(true);
+                              }}
+                            >
+                              <Wrench className="h-3 w-3" />
+                            </button>
+                          )}
                           
                           {onBayDelete && (
                             <button 
