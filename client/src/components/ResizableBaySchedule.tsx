@@ -468,6 +468,62 @@ export default function ResizableBaySchedule({
     'TCV Line': 'Tactical vehicle production line',
     'TCV Line 2': 'Second tactical vehicle line'
   });
+  
+  // Handler function to update team names
+  const handleTeamNameUpdate = async (oldTeamName: string, newTeamName: string) => {
+    if (oldTeamName === newTeamName || !newTeamName.trim()) {
+      // No change or empty name, just exit
+      return;
+    }
+    
+    try {
+      // Keep track of the team description
+      const description = teamDescriptions[oldTeamName] || '';
+      
+      // Update all bays with this team name
+      const updatedBays = await Promise.all(
+        bays.filter(bay => bay.team === oldTeamName).map(async (bay) => {
+          // Call the API to update each bay
+          const updatedBay = await onBayUpdate?.(bay.id, {
+            ...bay,
+            team: newTeamName
+          });
+          return updatedBay;
+        })
+      );
+      
+      // Update the team description in our local state
+      setTeamDescriptions(prev => {
+        const newDescriptions = {...prev};
+        if (oldTeamName in newDescriptions) {
+          // Transfer the description to the new team name
+          newDescriptions[newTeamName] = description;
+          // Remove the old team name if it's different
+          if (oldTeamName !== newTeamName) {
+            delete newDescriptions[oldTeamName];
+          }
+        }
+        return newDescriptions;
+      });
+      
+      // Show success toast
+      toast({
+        title: "Team Updated",
+        description: `Team name changed from "${oldTeamName}" to "${newTeamName}"`,
+      });
+      
+      // Force a refresh of the UI
+      setForceUpdate(Date.now());
+      
+    } catch (error) {
+      console.error('Error updating team name:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update team name",
+        variant: "destructive"
+      });
+    }
+  };
   // Add forceUpdate state to force re-rendering when needed
   const [forceUpdate, setForceUpdate] = useState<number>(Date.now());
   const [confirmRowDelete, setConfirmRowDelete] = useState<{
