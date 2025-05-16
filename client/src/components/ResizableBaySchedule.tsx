@@ -687,29 +687,34 @@ export default function ResizableBaySchedule({
   const viewportRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   
-  // Group bays by team name instead of arbitrary pairs
+  // Group bays by team name - this is the key to preventing duplicate blue headers
   const bayTeams = useMemo(() => {
+    // First sort all bays by their bay number
     const sortedBays = [...bays].sort((a, b) => a.bayNumber - b.bayNumber);
     
-    // Group bays by their team property
+    // Group bays by their team property using a string key in a dictionary
     const teamMap: Record<string, ManufacturingBay[]> = {};
     
-    // Group bays by their team property
+    // Process each bay and group it with others that have the same team name
     sortedBays.forEach(bay => {
-      // Use the team name as the key, or create a unique key for null teams
+      // Very important: The team key determines how bays are grouped in the UI
+      // Use the EXACT team name string as the key, or a unique key for null teams
+      // This is critical for proper grouping under a single blue header
       const teamKey = bay.team || `unnamed_team_${bay.bayNumber}`;
       
+      // Initialize the array for this team if it doesn't exist yet
       if (!teamMap[teamKey]) {
         teamMap[teamKey] = [];
       }
       
+      // Add this bay to its team group
       teamMap[teamKey].push(bay);
     });
     
-    // Convert the map to an array of bay arrays
+    // Convert the team map to an array of bay arrays (each sub-array = one team)
     const teams = Object.values(teamMap);
     
-    // Sort teams by the lowest bay number in each team
+    // Sort teams by the lowest bay number in each team (for consistent ordering)
     teams.sort((a, b) => {
       const minBayNumberA = Math.min(...a.map(bay => bay.bayNumber));
       const minBayNumberB = Math.min(...b.map(bay => bay.bayNumber));
@@ -2455,23 +2460,33 @@ export default function ResizableBaySchedule({
                                     // Create a row number for the new bay (in this team)
                                     const bayCount = team.length;
                                     
-                                    // Use a special naming convention to ensure the bay is grouped with the existing team
-                                    // The name doesn't matter much as it's only visible in admin screens
-                                    const newBayName = `${firstBay.name} ${bayCount + 1}`;
+                                    // Make sure we preserve the team's naming convention
+                                    // By following the exact format of the existing bay names in this team
+                                    const teamPrefix = firstBay.name.replace(/\s+\d+$/, ''); // Remove any trailing numbers
+                                    const newBayName = `${teamPrefix} ${bayCount + 1}`;
                                     
                                     // Find highest bay number
                                     const highestBayNumber = Math.max(...bays.map(b => b.bayNumber));
+                                    
+                                    // The key to preventing blue header duplication is to use EXACTLY the same
+                                    // team value for all bays that should be grouped together
+                                    // We need to extract the exact team name directly from the UI
+                                    
+                                    // The team name from the first bay in this group is always the right one to use
+                                    const teamName = firstBay.team || '';
+                                    
+                                    console.log('Creating new bay row with EXACT team name:', teamName);
                                     
                                     // Create bay with EXACTLY the same team name and other properties
                                     // This ensures it's displayed in the same team group
                                     const newBay: Partial<ManufacturingBay> = {
                                       name: newBayName,
                                       bayNumber: highestBayNumber + 1,
-                                      // Critical - use the EXACT same team value from the first bay
-                                      team: firstBay.team,
+                                      // Critical - use the EXACT same team value from the DOM element
+                                      team: teamName,
                                       // Copy other properties exactly as they are in the first bay
                                       description: firstBay.description,
-                                      assemblyStaffCount: firstBay.assemblyStaffCount,
+                                      assemblyStaffCount: firstBay.assemblyStaffCount, 
                                       electricalStaffCount: firstBay.electricalStaffCount,
                                       hoursPerPersonPerWeek: firstBay.hoursPerPersonPerWeek
                                     };
