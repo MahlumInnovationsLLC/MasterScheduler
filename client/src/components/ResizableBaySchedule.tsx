@@ -1395,20 +1395,32 @@ export default function ResizableBaySchedule({
       </div>
       
       <div className="flex flex-row flex-1 h-full">
-        {/* Unassigned Projects Sidebar */}
-        <div className="unassigned-projects-sidebar w-64 border-r border-gray-700 flex-shrink-0 overflow-y-auto bg-gray-900 p-4">
-          <h3 className="font-bold text-white mb-4">Unassigned Projects</h3>
+        {/* Unassigned Projects Sidebar - Collapsible */}
+        <div 
+          className={`unassigned-projects-sidebar border-r border-gray-700 flex-shrink-0 overflow-y-auto bg-gray-900 p-4 transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-14'}`}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`font-bold text-white ${!sidebarOpen && 'hidden'}`}>Unassigned Projects</h3>
+            <button 
+              onClick={() => setSidebarOpen(!sidebarOpen)} 
+              className="p-1 bg-gray-800 rounded-full hover:bg-gray-700 transition-colors"
+              title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            >
+              {sidebarOpen ? <ChevronLeft className="h-4 w-4 text-gray-400" /> : <ChevronRight className="h-4 w-4 text-gray-400" />}
+            </button>
+          </div>
           
-          {unassignedProjects.length === 0 ? (
-            <div className="text-sm text-gray-400 italic">No unassigned projects</div>
-          ) : (
-            <div className="space-y-3">
-              {unassignedProjects.map(project => (
-                <div 
-                  key={`unassigned-${project.id}`}
-                  className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
-                  draggable
-                  onDragStart={(e) => {
+          {sidebarOpen && (
+            unassignedProjects.length === 0 ? (
+              <div className="text-sm text-gray-400 italic">No unassigned projects</div>
+            ) : (
+              <div className="space-y-3">
+                {unassignedProjects.map(project => (
+                  <div 
+                    key={`unassigned-${project.id}`}
+                    className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
+                    draggable
+                    onDragStart={(e) => {
                     // Create dummy schedule to use the existing drag logic
                     const dummySchedule = {
                       id: -project.id, // Negative ID to mark as new
