@@ -1528,7 +1528,16 @@ export default function ResizableBaySchedule({
                   minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
                 }}>
                 <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex shadow-md" style={{ position: 'relative' }}>
-                  <div className="flex items-center">
+                  <div 
+                    className="flex items-center"
+                    style={{
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 40,
+                      backgroundColor: '#1e3a8a',
+                      paddingRight: '15px'
+                    }}
+                  >
                     <span className="font-bold text-lg">Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}</span>
                     
                     {/* Info bubbles RIGHT NEXT to team name */}
@@ -1622,10 +1631,14 @@ export default function ResizableBaySchedule({
                         backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
                       }}
                     >
-                      {/* Bay Label - Fixed to always be visible when scrolling horizontally */}
+                      {/* Bay Label - ENHANCED sticky positioning for perfect alignment with sidebar */}
                       <div 
-                        className="bay-label fixed-left top-0 left-0 w-48 h-full bg-gray-100 border-r flex flex-col justify-between py-2 px-2 z-10 sticky-left"
-                        style={{ position: 'sticky', left: 0 }}
+                        className="bay-label top-0 left-0 w-64 h-full bg-gray-100 border-r flex flex-col justify-between py-2 px-2 z-30"
+                        style={{ 
+                          position: 'sticky',
+                          left: 0,
+                          boxShadow: '4px 0 6px rgba(0,0,0,0.1)'
+                        }}
                       >
                         <div>
                           <div className="flex items-center justify-between">
@@ -1702,9 +1715,9 @@ export default function ResizableBaySchedule({
                       </div>
                       
                       {/* Bay content area - FULL WIDTH to extend to end of timeline (2030) */}
-                      <div className="bay-content absolute left-48 top-0 bottom-0"
+                      <div className="bay-content absolute left-64 top-0 bottom-0"
                         style={{ 
-                          width: `${Math.max(8000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px` 
+                          width: `${Math.max(8000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
                         }}>
                         {isMultiRowBay ? (
                           <MultiRowBayContent 
