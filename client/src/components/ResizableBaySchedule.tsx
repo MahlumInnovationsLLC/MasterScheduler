@@ -1779,8 +1779,13 @@ export default function ResizableBaySchedule({
                       {/* Bay capacity information */}
                       <BayCapacityInfo bay={bay} allSchedules={schedules} projects={projects} bays={bays} />
                       
-                      {/* Bay content area */}
-                      <div className="bay-content absolute left-32 right-0 top-0 bottom-0">
+                      {/* Bay content area - Set explicit width to ensure all week cells are visible */}
+                      <div 
+                        className="bay-content absolute left-32 top-0 bottom-0"
+                        style={{ 
+                          width: `${Math.max(5000, differenceInDays(dateRange.end, dateRange.start) * slotWidth)}px`,
+                          right: '0'
+                        }}>
                         {isMultiRowBay ? (
                           <MultiRowBayContent 
                             timeSlots={slots} 
