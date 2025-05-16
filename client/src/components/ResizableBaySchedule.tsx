@@ -1663,7 +1663,7 @@ export default function ResizableBaySchedule({
       <div className="flex flex-row flex-1 h-full">
         {/* Unassigned Projects Sidebar - Collapsible with Drop Zone */}
         <div 
-          className={`unassigned-projects-sidebar border-r border-gray-700 flex-shrink-0 overflow-y-auto bg-gray-900 transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
+          className={`unassigned-projects-sidebar border-r border-gray-700 flex-shrink-0 bg-gray-900 transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
           style={{ transitionProperty: 'width, padding' }}
         >
           <div className="flex items-center justify-between mb-4">
@@ -1683,10 +1683,10 @@ export default function ResizableBaySchedule({
           </div>
           
           {sidebarOpen && (
-            <>
+            <div className="flex flex-col h-[calc(100vh-120px)]">
               {/* Drop Zone for unassigning projects */}
               <div 
-                className="unassigned-drop-container min-h-[100px] rounded-md border-2 border-dashed border-gray-700 mb-4 p-2 flex flex-col" 
+                className="unassigned-drop-container min-h-[100px] rounded-md border-2 border-dashed border-gray-700 mb-4 p-2 flex-shrink-0" 
                 onDragOver={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -1732,13 +1732,13 @@ export default function ResizableBaySchedule({
                   }
                 }}
               >
-                <div className="text-sm text-gray-400 italic p-4 text-center flex-grow flex items-center justify-center">
+                <div className="text-sm text-gray-400 italic p-4 text-center flex items-center justify-center">
                   Drop projects here to unassign them
                 </div>
               </div>
               
               {/* Scrollable Unassigned Projects List */}
-              <div className="h-[calc(100vh-230px)] overflow-y-auto pr-1 custom-scrollbar">
+              <div className="flex-grow overflow-y-auto pr-1 scrollable-projects">
                 {unassignedProjects.length === 0 ? (
                   <div className="text-sm text-gray-400 italic">No unassigned projects</div>
                 ) : (
@@ -1747,80 +1747,81 @@ export default function ResizableBaySchedule({
                       <div 
                         key={`unassigned-${project.id}`}
                         className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
-                      draggable={true}
-                      onDragStart={(e) => {
-                        // Store project ID with special prefix to identify unassigned projects
-                        const projectIdentifier = `-${project.id}`;
-                        e.dataTransfer.setData('text/plain', projectIdentifier);
-                        
-                        // Also store complete project data as JSON for enhanced drop handlers
-                        const projectData = {
-                          projectId: project.id,
-                          name: project.name,
-                          projectNumber: project.projectNumber,
-                          isUnassigned: true // Flag to identify this as an unassigned project
-                        };
-                        e.dataTransfer.setData('application/json', JSON.stringify(projectData));
-                        
-                        // Set visual indicators
-                        document.body.setAttribute('data-drag-in-progress', 'true');
-                        document.body.classList.add('global-drag-active');
-                        document.body.classList.add('dragging-unassigned-project');
-                        
-                        console.log(`🔄 Dragging unassigned project ${project.id}: ${project.name}`);
-                        
-                        // Set copy effect for new project assignment
-                        e.dataTransfer.effectAllowed = 'copy';
-                        e.currentTarget.classList.add('opacity-50');
-                        
-                        // Store project data in session storage as backup
-                        sessionStorage.setItem('dragging_project', JSON.stringify({
-                          id: project.id,
-                          name: project.name,
-                          projectNumber: project.projectNumber
-                        }));
-                        
-                        // Create custom drag image
-                        const dragImage = document.createElement('div');
-                        dragImage.className = 'bg-blue-600 text-white p-2 rounded opacity-80 pointer-events-none fixed -left-full';
-                        dragImage.textContent = `${project.projectNumber}: ${project.name}`;
-                        document.body.appendChild(dragImage);
-                        e.dataTransfer.setDragImage(dragImage, 10, 10);
-                        
-                        setTimeout(() => {
-                          if (dragImage.parentNode) {
-                            dragImage.parentNode.removeChild(dragImage);
-                          }
-                        }, 100);
-                      }}
-                      onDragEnd={(e) => {
-                        e.currentTarget.classList.remove('opacity-50');
-                        document.body.removeAttribute('data-drag-in-progress');
-                        document.body.classList.remove('global-drag-active');
-                        document.body.classList.remove('dragging-unassigned-project');
-                        
-                        // Clean up any session storage
-                        sessionStorage.removeItem('dragging_project');
-                        
-                        // Clean up any highlights
-                        document.querySelectorAll('.row-target-highlight, .bay-highlight, .drop-target').forEach((el) => {
-                          el.classList.remove('row-target-highlight', 'bay-highlight', 'drop-target');
-                        });
-                        
-                        console.log('Unassigned project drag operation completed - cleaned up states');
-                      }}
-                    >
-                      <div className="font-medium text-white text-sm mb-1 truncate">{project.projectNumber}: {project.name}</div>
-                      <div className="text-xs text-gray-400 truncate">{project.status}</div>
-                      <div className="text-xs text-gray-400 mt-1 flex items-center">
-                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
-                        {project.team || 'No Team'}
+                        draggable={true}
+                        onDragStart={(e) => {
+                          // Store project ID with special prefix to identify unassigned projects
+                          const projectIdentifier = `-${project.id}`;
+                          e.dataTransfer.setData('text/plain', projectIdentifier);
+                          
+                          // Also store complete project data as JSON for enhanced drop handlers
+                          const projectData = {
+                            projectId: project.id,
+                            name: project.name,
+                            projectNumber: project.projectNumber,
+                            isUnassigned: true // Flag to identify this as an unassigned project
+                          };
+                          e.dataTransfer.setData('application/json', JSON.stringify(projectData));
+                          
+                          // Set visual indicators
+                          document.body.setAttribute('data-drag-in-progress', 'true');
+                          document.body.classList.add('global-drag-active');
+                          document.body.classList.add('dragging-unassigned-project');
+                          
+                          console.log(`🔄 Dragging unassigned project ${project.id}: ${project.name}`);
+                          
+                          // Set copy effect for new project assignment
+                          e.dataTransfer.effectAllowed = 'copy';
+                          e.currentTarget.classList.add('opacity-50');
+                          
+                          // Store project data in session storage as backup
+                          sessionStorage.setItem('dragging_project', JSON.stringify({
+                            id: project.id,
+                            name: project.name,
+                            projectNumber: project.projectNumber
+                          }));
+                          
+                          // Create custom drag image
+                          const dragImage = document.createElement('div');
+                          dragImage.className = 'bg-blue-600 text-white p-2 rounded opacity-80 pointer-events-none fixed -left-full';
+                          dragImage.textContent = `${project.projectNumber}: ${project.name}`;
+                          document.body.appendChild(dragImage);
+                          e.dataTransfer.setDragImage(dragImage, 10, 10);
+                          
+                          setTimeout(() => {
+                            if (dragImage.parentNode) {
+                              dragImage.parentNode.removeChild(dragImage);
+                            }
+                          }, 100);
+                        }}
+                        onDragEnd={(e) => {
+                          e.currentTarget.classList.remove('opacity-50');
+                          document.body.removeAttribute('data-drag-in-progress');
+                          document.body.classList.remove('global-drag-active');
+                          document.body.classList.remove('dragging-unassigned-project');
+                          
+                          // Clean up any session storage
+                          sessionStorage.removeItem('dragging_project');
+                          
+                          // Clean up any highlights
+                          document.querySelectorAll('.row-target-highlight, .bay-highlight, .drop-target').forEach((el) => {
+                            el.classList.remove('row-target-highlight', 'bay-highlight', 'drop-target');
+                          });
+                          
+                          console.log('Unassigned project drag operation completed - cleaned up states');
+                        }}
+                      >
+                        <div className="font-medium text-white text-sm mb-1 truncate">{project.projectNumber}: {project.name}</div>
+                        <div className="text-xs text-gray-400 truncate">{project.status}</div>
+                        <div className="text-xs text-gray-400 mt-1 flex items-center">
+                          <span className="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
+                          {project.team || 'No Team'}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
         
