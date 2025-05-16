@@ -1741,8 +1741,12 @@ export default function ResizableBaySchedule({
                                 </div>
                               </div>
                               
-                              {/* Cell grid for this bay */}
-                              <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
+                              {/* Cell grid for this bay - EXTENDED TO 2030 */}
+                              <div className="absolute inset-0 grid" 
+                                style={{ 
+                                  gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
+                                  width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px` 
+                                }}>
                                 {slots.map((slot, index) => (
                                   <div 
                                     key={`bay-${bay.id}-slot-${index}`} 
