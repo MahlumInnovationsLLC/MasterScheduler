@@ -2460,30 +2460,42 @@ export default function ResizableBaySchedule({
                                     // Create a row number for the new bay (in this team)
                                     const bayCount = team.length;
                                     
-                                    // Make sure we preserve the team's naming convention
-                                    // By following the exact format of the existing bay names in this team
-                                    const teamPrefix = firstBay.name.replace(/\s+\d+$/, ''); // Remove any trailing numbers
-                                    const newBayName = `${teamPrefix} ${bayCount + 1}`;
+                                    // CRITICAL: For consistent bay naming, use the existing bay name format
+                                    // But preserve any team prefix that might be in the name
+                                    let teamPrefix = '';
+                                    let numericSuffix = '';
                                     
-                                    // Find highest bay number
+                                    // Extract team prefix from the bay name pattern
+                                    const bayNameMatch = firstBay.name.match(/(.*?)\s*(\d+)$/);
+                                    
+                                    if (bayNameMatch) {
+                                      // Bay has a numeric suffix like "Team 1"
+                                      teamPrefix = bayNameMatch[1].trim();
+                                      numericSuffix = (bayCount + 1).toString();
+                                    } else {
+                                      // No numeric suffix, use the entire name as prefix
+                                      teamPrefix = firstBay.name;
+                                      numericSuffix = (bayCount + 1).toString();
+                                    }
+                                    
+                                    // Create a new bay name following the team's pattern
+                                    const newBayName = `${teamPrefix} ${numericSuffix}`;
+                                    
+                                    // Find highest bay number for the new bay
                                     const highestBayNumber = Math.max(...bays.map(b => b.bayNumber));
                                     
-                                    // The key to preventing blue header duplication is to use EXACTLY the same
-                                    // team value for all bays that should be grouped together
-                                    // We need to extract the exact team name directly from the UI
+                                    console.log(`Creating new bay row with team: "${firstBay.team}" and name: "${newBayName}"`);
                                     
-                                    // The team name from the first bay in this group is always the right one to use
-                                    const teamName = firstBay.team || '';
-                                    
-                                    console.log('Creating new bay row with EXACT team name:', teamName);
+                                    // Store the original first bay's team name for debugging
+                                    const originalTeamName = firstBay.team;
                                     
                                     // Create bay with EXACTLY the same team name and other properties
                                     // This ensures it's displayed in the same team group
                                     const newBay: Partial<ManufacturingBay> = {
                                       name: newBayName,
                                       bayNumber: highestBayNumber + 1,
-                                      // Critical - use the EXACT same team value from the DOM element
-                                      team: teamName,
+                                      // Critical - use the EXACT same team value from the first bay in the team
+                                      team: firstBay.team,
                                       // Copy other properties exactly as they are in the first bay
                                       description: firstBay.description,
                                       assemblyStaffCount: firstBay.assemblyStaffCount, 
