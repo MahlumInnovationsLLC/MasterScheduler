@@ -2238,57 +2238,48 @@ body.resizing-mode .resize-handle {
   background-color: rgba(16, 185, 129, 0.15);
 }
 
-/* SPECIAL FIX FOR UNASSIGNED PROJECTS */
+/* ULTRA FORCE DROP ACCEPTANCE - NO EXCEPTIONS */
+[draggable="true"] {
+  cursor: grab !important;
+  z-index: 9999 !important;
+}
+
+/* When dragging is happening, ALL elements must accept drops */
+.unassigned-project-card:active,
+.unassigned-project-card.dragging {
+  cursor: grabbing !important;
+}
+
+/* DIRECT FIX FOR DROP TARGET - All elements receive drops ALWAYS */
+.bay-row, 
+.schedule-grid-cell, 
+.bay-content,
+.week-cell, 
+.day-cell,
+[data-bay-id],
+[data-row],
+[data-date],
+[data-slot-index] {
+  cursor: default !important; 
+  pointer-events: all !important;
+}
+
+/* Force drop acceptance for ALL elements */
+body[data-drag-in-progress="true"] * {
+  pointer-events: all !important;
+  cursor: move !important;
+}
+
+/* NO ELEMENT CAN REJECT DROPS */
+body[data-drag-in-progress="true"] [draggable="false"] * {
+  pointer-events: all !important;
+}
+
+/* Force unassigned cards to always be draggable */
 .unassigned-project-card {
   cursor: grab !important;
   user-select: none !important;
   z-index: 9999 !important;
-  position: relative;
-}
-
-.unassigned-project-card:active {
-  cursor: grabbing !important;
-}
-
-/* BAY CELL DIRECT FIX */
-[data-bay-id],
-[data-date],
-[data-slot-index],
-[data-row],
-.bay-row,
-.bay-content,
-.schedule-grid-cell,
-.week-cell,
-.day-cell {
-  pointer-events: all !important;
-}
-
-/* EMERGENCY FIX FOR ALLOWING ALL DROPS */
-* {
-  cursor: auto !important;
-  pointer-events: all !important;
-}
-
-[draggable="true"] {
-  cursor: grab !important;
-}
-
-[draggable="true"]:active {
-  cursor: grabbing !important;
-}
-
-/* CRITICAL: When an unassigned project is dragging */
-body[data-drag-in-progress="true"] * {
-  cursor: move !important;
-  pointer-events: all !important;
-}
-
-/* Add a drop highlight effect */
-[data-bay-id]:hover,
-[data-date]:hover,
-[data-row]:hover {
-  background-color: rgba(16, 185, 129, 0.2) !important;
-  outline: 2px dashed rgb(16, 185, 129) !important;
 }
 
 /* CRITICAL: Make sure all cells can be drop targets */
