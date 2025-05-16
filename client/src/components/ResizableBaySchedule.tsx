@@ -663,11 +663,65 @@ export default function ResizableBaySchedule({
     e.preventDefault();
     
     console.log(`🎯 PRECISE DROP: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
+    console.log(`🎯 EXACT DROP: BAY ${bayId} (${bays.find(b => b.id === bayId)?.name})`);
+    console.log(`🎯 Pixel position: x=${e.nativeEvent.offsetX}px from bay left edge`);
+    console.log(`🎯 Using single-row layout, placing in row ${rowIndex}`);
+    console.log(`⚠️ NO AUTO-ADJUSTMENT: Projects will stay EXACTLY where dropped`);
+    console.log(`⚠️ OVERLAP ALLOWED: Multiple projects can occupy the same space`);
     
     // Get the schedule ID from the drag data
     const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);
     
-    // Find the schedule bar being moved
+    // Check if this is a NEW project being created (negative ID) or existing schedule
+    const isNewProject = scheduleId < 0;
+    
+    if (isNewProject) {
+      // This is a new project being added from the unassigned projects list
+      const projectId = Math.abs(scheduleId);
+      console.log(`Creating NEW schedule for project ID ${projectId} in bay ${bayId} at row ${rowIndex}`);
+      
+      // Find the project data
+      const project = projects.find(p => p.id === projectId);
+      if (!project) {
+        console.error('Cannot find project with ID', projectId);
+        return;
+      }
+      
+      // Default duration is 4 weeks if not specified
+      const endDate = addWeeks(date, scheduleDuration);
+      
+      // Format dates for API
+      const formattedStartDate = format(date, 'yyyy-MM-dd');
+      const formattedEndDate = format(endDate, 'yyyy-MM-dd');
+      
+      try {
+        // Create a new schedule with the projectId, bayId, and dates
+        await onScheduleCreate(
+          projectId,
+          bayId,
+          formattedStartDate,
+          formattedEndDate,
+          scheduleDuration * 40, // 40 hours per week default
+          rowIndex // Exact row placement
+        );
+        
+        toast({
+          title: "Schedule created",
+          description: `Added ${project.name} to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
+        });
+      } catch (error) {
+        console.error('Error creating schedule:', error);
+        toast({
+          title: "Failed to create schedule",
+          description: "There was an error creating the schedule. Please try again.",
+          variant: "destructive",
+        });
+      }
+      
+      return;
+    }
+    
+    // Handle existing schedule being moved
     const bar = scheduleBars.find((b) => b.id === scheduleId);
     if (!bar) {
       console.error('DROP ERROR: Could not find schedule bar with ID', scheduleId);
