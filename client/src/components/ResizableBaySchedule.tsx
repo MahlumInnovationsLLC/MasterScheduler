@@ -1803,10 +1803,10 @@ export default function ResizableBaySchedule({
                               style={{
                                 left: `${bar.left}px`,
                                 width: `${bar.width}px`,
-                                height: '120%', // Make the bars taller to fit phase labels
+                                height: '160%', // Double the height of project bars
                                 backgroundColor: `${bar.color}90`,
                                 // Adjust vertical positioning for row layout
-                                top: '0%',
+                                top: '-30%', // Shift up slightly to center better
                                 // Set data attributes for department phase percentages 
                                 // Store important info for drag/resize operations
                               }}

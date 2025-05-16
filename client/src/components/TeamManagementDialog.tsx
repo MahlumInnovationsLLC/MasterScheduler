@@ -11,15 +11,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Users, UserPlus, Clock } from 'lucide-react';
-// Removed unused import
+import { Users, UserPlus, Clock, Edit } from 'lucide-react';
 
 interface TeamManagementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   teamName: string | null;
   bays: any[]; // Will type this properly based on ManufacturingBay from your existing code
-  onTeamUpdate?: (teamName: string, assemblyStaff: number, electricalStaff: number, hoursPerWeek: number) => Promise<void>;
+  onTeamUpdate?: (teamName: string, newTeamName: string, assemblyStaff: number, electricalStaff: number, hoursPerWeek: number) => Promise<void>;
 }
 
 export function TeamManagementDialog({
@@ -29,14 +28,19 @@ export function TeamManagementDialog({
   bays,
   onTeamUpdate
 }: TeamManagementDialogProps) {
+  const [newTeamName, setNewTeamName] = useState<string>("");
   const [assemblyStaff, setAssemblyStaff] = useState<number>(2);
   const [electricalStaff, setElectricalStaff] = useState<number>(1);
   const [hoursPerWeek, setHoursPerWeek] = useState<number>(29);
   const { toast } = useToast();
+  
+  // Calculate weekly team capacity
+  const weeklyCapacity = (assemblyStaff + electricalStaff) * hoursPerWeek;
 
   // Find the bays belonging to this team to get current staff counts
   useEffect(() => {
     if (teamName && open) {
+      setNewTeamName(teamName);
       const teamBays = bays.filter(bay => bay.team === teamName);
       if (teamBays.length > 0) {
         const firstBay = teamBays[0];
@@ -54,7 +58,7 @@ export function TeamManagementDialog({
       // Find all bays for this team
       const teamBays = bays.filter(bay => bay.team === teamName);
       
-      // Update all bays with the new capacity settings
+      // Update all bays with the new capacity settings and team name
       for (const bay of teamBays) {
         await fetch(`/api/manufacturing-bays/${bay.id}`, {
           method: 'PATCH',
@@ -62,6 +66,7 @@ export function TeamManagementDialog({
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
+            team: newTeamName,
             assemblyStaffCount: assemblyStaff,
             electricalStaffCount: electricalStaff,
             hoursPerPersonPerWeek: hoursPerWeek
@@ -71,12 +76,14 @@ export function TeamManagementDialog({
       
       // Call the onTeamUpdate callback if provided
       if (onTeamUpdate) {
-        await onTeamUpdate(teamName, assemblyStaff, electricalStaff, hoursPerWeek);
+        await onTeamUpdate(teamName, newTeamName, assemblyStaff, electricalStaff, hoursPerWeek);
       }
       
+      const teamNameChanged = teamName !== newTeamName;
+      
       toast({
-        title: 'Team capacity updated',
-        description: `Team ${teamName} now has ${assemblyStaff} assembly and ${electricalStaff} electrical staff at ${hoursPerWeek} hours per week.`,
+        title: 'Team updated',
+        description: `Team ${teamNameChanged ? `renamed from ${teamName} to ${newTeamName}` : newTeamName} now has ${assemblyStaff} assembly and ${electricalStaff} electrical staff at ${hoursPerWeek} hours per week (${weeklyCapacity} total hours/week).`,
       });
       
       onOpenChange(false);
@@ -99,11 +106,24 @@ export function TeamManagementDialog({
             <span>Team {teamName} Capacity</span>
           </DialogTitle>
           <DialogDescription>
-            Update team capacity to calculate accurate production timelines.
+            Update team name and capacity to calculate accurate production timelines.
           </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="teamName" className="text-right col-span-2 flex items-center gap-1">
+              <Edit className="h-4 w-4" />
+              Team Name
+            </Label>
+            <Input
+              id="teamName"
+              value={newTeamName}
+              onChange={(e) => setNewTeamName(e.target.value)}
+              className="col-span-2"
+            />
+          </div>
+          
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="assemblyStaff" className="text-right col-span-2 flex items-center gap-1">
               <UserPlus className="h-4 w-4" />
@@ -147,6 +167,18 @@ export function TeamManagementDialog({
               onChange={(e) => setHoursPerWeek(Number(e.target.value))}
               className="col-span-2"
             />
+          </div>
+          
+          <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mt-2">
+            <div className="font-semibold text-blue-800 mb-1">Weekly Team Capacity</div>
+            <div className="flex items-center gap-2">
+              <div className="bg-blue-100 px-3 py-2 rounded-md text-blue-800 font-bold text-lg">
+                {weeklyCapacity} hours per week
+              </div>
+              <div className="text-sm text-blue-600">
+                ({assemblyStaff} Assembly + {electricalStaff} Electrical) × {hoursPerWeek} hours
+              </div>
+            </div>
           </div>
         </div>
         
