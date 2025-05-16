@@ -791,32 +791,52 @@ export default function ResizableBaySchedule({
     // STOP PROPAGATION to ensure no parent elements interfere
     e.stopPropagation();
     
+    // Clear any drag state from the document
+    document.body.removeAttribute('data-drag-in-progress');
+    document.body.classList.remove('global-drag-active');
+    
+    // Get data from the drop event
+    const dataString = e.dataTransfer.getData('text/plain');
+    console.log(`📦 RAW DRAG DATA: "${dataString}"`);
+    
     // EXTENDED DEBUG LOGGING - to track exactly what's happening
     console.log(`🎯 DROP SUCCESSFUL: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
     console.log(`🎯 DROP TARGET: BAY ${bayId} (${bays.find(b => b.id === bayId)?.name})`);
     console.log(`🎯 EXACT COORDINATES: x=${e.nativeEvent.offsetX}px, y=${e.nativeEvent.offsetY}px`);
-    console.log(`🎯 TARGET ELEMENT:`, e.currentTarget);
-    console.log(`🎯 DATA TRANSFER:`, e.dataTransfer.getData('text/plain'));
     console.log(`🎯 PLACEMENT: Row ${rowIndex} - NO POSITION RESTRICTIONS`);
     console.log(`⚠️ CRITICAL POLICY: Projects placed EXACTLY where dropped - NO AUTO-ADJUSTMENT`);
     console.log(`⚠️ CRITICAL POLICY: Multiple projects ALLOWED in same row - OVERLAPS PERMITTED`);
     
-    // Get the schedule ID from the drag data
-    const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    // Check for unassigned project identifier format (begins with a minus sign)
+    const isNegativeFormat = dataString.startsWith('-');
+    const scheduleId = parseInt(dataString, 10);
     
     // Check if this is a NEW project being created (negative ID) or existing schedule
-    const isNewProject = scheduleId < 0;
+    const isNewProject = isNegativeFormat || scheduleId < 0;
     
     if (isNewProject) {
       // This is a new project being added from the unassigned projects list
       const projectId = Math.abs(scheduleId);
-      console.log(`Creating NEW schedule for project ID ${projectId} in bay ${bayId} at row ${rowIndex}`);
+      console.log(`🆕 Creating NEW SCHEDULE for project ID ${projectId} in bay ${bayId} at row ${rowIndex}`);
       
       // Find the project data
       const project = projects.find(p => p.id === projectId);
       if (!project) {
-        console.error('Cannot find project with ID', projectId);
-        return;
+        // Attempt to recover from sessionStorage if project data is not found
+        try {
+          const storedProject = JSON.parse(sessionStorage.getItem('dragging_project') || '{}');
+          if (storedProject && storedProject.id === projectId) {
+            console.log(`🔄 Recovered project data from session storage: ${storedProject.name}`);
+            // Use the stored project data
+            // Continue with the scheduling creation
+          } else {
+            console.error('❌ Cannot find project with ID', projectId);
+            return;
+          }
+        } catch (error) {
+          console.error('❌ Cannot find project with ID', projectId);
+          return;
+        }
       }
       
       // Default duration is 4 weeks if not specified
@@ -1489,11 +1509,10 @@ export default function ResizableBaySchedule({
                   className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
                   draggable
                   onDragStart={(e) => {
-                    // Force the browser to allow ANY drop target
-                    e.dataTransfer.effectAllowed = 'all';
-                    
-                    // Store this as plain text to avoid any formatting issues
-                    e.dataTransfer.setData('text/plain', `-${project.id}`);
+                    // CRITICAL FIX: Set ONLY ONE data transfer value to avoid conflicts
+                    // Use negative project ID to identify as a new project from unassigned list
+                    const projectIdentifier = `-${project.id}`;
+                    e.dataTransfer.setData('text/plain', projectIdentifier);
                     
                     // Force all elements to accept drops during this drag operation
                     document.body.setAttribute('data-drag-in-progress', 'true');
@@ -1501,24 +1520,20 @@ export default function ResizableBaySchedule({
                     
                     // Log clear information about what's being dragged
                     console.log(`Dragging unassigned project ${project.id}: ${project.name}`);
+                    console.log(`Using project identifier: ${projectIdentifier}`);
                     
-                    // Create dummy schedule to use the existing drag logic
-                    const dummySchedule = {
-                      id: -project.id, // Negative ID to mark as new
-                      projectId: project.id,
-                      bayId: 0,
-                      startDate: new Date(),
-                      endDate: addWeeks(new Date(), 4),
-                      totalHours: 160,
-                      row: 0
-                    };
+                    // CRITICAL: Force browser to allow ANY drop target with move effect
+                    e.dataTransfer.effectAllowed = 'move';
                     
-                    // Set drag data
-                    e.dataTransfer.setData('text/plain', String(dummySchedule.id));
-                    e.dataTransfer.effectAllowed = 'copy';
-                    
-                    // Visual feedback
+                    // Visual feedback - make the card being dragged semi-transparent
                     e.currentTarget.classList.add('opacity-50');
+                    
+                    // Store project data in session storage as backup
+                    sessionStorage.setItem('dragging_project', JSON.stringify({
+                      id: project.id,
+                      name: project.name,
+                      projectNumber: project.projectNumber
+                    }));
                     
                     // Create custom drag image
                     const dragImage = document.createElement('div');
