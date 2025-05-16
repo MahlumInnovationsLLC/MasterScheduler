@@ -1459,7 +1459,10 @@ export default function ResizableBaySchedule({
         <div className="bay-schedule-viewport flex-grow overflow-auto" ref={viewportRef}>
           <div className="bay-schedule-container relative" ref={timelineRef}>
           {/* Timeline Header */}
-          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32">
+          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32" 
+            style={{ 
+              width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
+            }}>
             {slots.map((slot, index) => (
               <div
                 key={`header-${index}`}
