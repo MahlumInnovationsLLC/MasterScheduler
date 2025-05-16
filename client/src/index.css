@@ -2238,28 +2238,49 @@ body.resizing-mode .resize-handle {
   background-color: rgba(16, 185, 129, 0.15);
 }
 
-/* Fix for drag and drop to allow multiple projects per row */
+/* CRITICAL FIX: Allow multiple projects per row */
 body.allow-multiple-projects *[data-overlap-allowed="true"],
 body.allow-multiple-projects .bay-row,
-body.allow-multiple-projects .drop-target {
+body.allow-multiple-projects .drop-target,
+body.allow-multiple-projects [data-drop-enabled="true"],
+.force-accept-drop {
   cursor: move !important;
-}
-
-/* Ensure all drop zones accept drops regardless of content */
-.bay-row, .drop-target {
   pointer-events: all !important;
 }
 
-/* Override browser's no-drop cursor */
+/* CRITICAL: Override pointer-events to ensure all cells can receive drops */
+.bay-row, 
+.drop-target, 
+.slot-cell, 
+.schedule-grid-cell, 
+.week-cell, 
+.day-cell {
+  pointer-events: all !important;
+}
+
+/* CRITICAL: Make sure all cells can be drop targets */
 .schedule-grid * {
-  /* Critical CSS fix: prevent 'no-drop' cursor from showing */
   cursor: inherit;
 }
 
-/* Override for browser default dragging behavior */
+/* Disable all browser restrictions that might prevent dropping */
 [draggable=true] {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+/* CRITICAL: Force drop area and cursor styling */
+.bay-row {
+  cursor: move !important;
+}
+
+/* CRITICAL: Element specific overrides for drop zones */
+.schedule-row-cells .slot-cell,
+.week-cells .slot-cell,
+.schedule-grid td,
+.bay-content {
+  pointer-events: all !important;
+  cursor: move !important;
 }

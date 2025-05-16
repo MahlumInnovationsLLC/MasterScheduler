@@ -635,24 +635,44 @@ export default function ResizableBaySchedule({
   };
   
   const handleSlotDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
+    // CRITICAL: Always call preventDefault() to allow dropping
     e.preventDefault();
     
-    // CRITICAL FIX: Force dropEffect to 'move' to ensure the cursor stays as a move cursor
-    // This explicitly permits dropping on this element
+    // FORCE-ACCEPT ALL DROPS
+    e.stopPropagation();
+    
+    // Force the cursor to always show "move" and never "no-drop"
     e.dataTransfer.dropEffect = 'move';
+    
+    console.log(`✅ DRAG OVER: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
+    console.log(`✅ DROP TARGET ACTIVE: Cell accepting drop`);
     
     // Update drop target info
     setDropTarget({ bayId, rowIndex });
     
     // Visually highlight the drop zone
     if (e.currentTarget instanceof HTMLElement) {
+      // Add highlight classes
       e.currentTarget.classList.add('drop-target');
+      e.currentTarget.classList.add('force-accept-drop');
       
-      // Set a data attribute to indicate overlaps are allowed
+      // Set critical data attributes needed for drop acceptance
+      e.currentTarget.setAttribute('data-drop-enabled', 'true');
       e.currentTarget.setAttribute('data-overlap-allowed', 'true');
+      e.currentTarget.setAttribute('data-bay-id', bayId.toString());
+      e.currentTarget.setAttribute('data-row-index', rowIndex.toString());
       
-      // Add a special class to ensure the browser shows the proper drop indicator
+      // Force the parent elements to accept drops too
+      let parent = e.currentTarget.parentElement;
+      while (parent) {
+        parent.classList.add('force-accept-drop');
+        parent.setAttribute('data-drop-enabled', 'true');
+        parent = parent.parentElement;
+      }
+      
+      // Ensure the body has the special class for CSS rules
       document.body.classList.add('allow-multiple-projects');
+      document.body.classList.add('force-accept-drop');
     }
   };
   
@@ -739,22 +759,21 @@ export default function ResizableBaySchedule({
   };
   
   const handleSlotDrop = async (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
+    // This is critical - ALWAYS prevent default to allow the drop
     e.preventDefault();
     
-    // CRITICAL: Explicit allow overlapping projects in the same row
-    document.body.classList.add('allow-multiple-projects');
+    // STOP PROPAGATION to ensure no parent elements interfere
+    e.stopPropagation();
     
-    // Force-enable draggable behavior on all relevant elements
-    document.querySelectorAll('.bay-row, .drop-target').forEach(el => {
-      el.setAttribute('data-overlap-allowed', 'true');
-    });
-    
-    console.log(`🎯 PRECISE DROP: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
-    console.log(`🎯 EXACT DROP: BAY ${bayId} (${bays.find(b => b.id === bayId)?.name})`);
-    console.log(`🎯 Pixel position: x=${e.nativeEvent.offsetX}px from bay left edge`);
-    console.log(`🎯 Using single-row layout, placing in row ${rowIndex}`);
-    console.log(`⚠️ NO AUTO-ADJUSTMENT: Projects will stay EXACTLY where dropped`);
-    console.log(`⚠️ OVERLAP ALLOWED: Multiple projects can occupy the same space - EXPLICIT OVERRIDE`);
+    // EXTENDED DEBUG LOGGING - to track exactly what's happening
+    console.log(`🎯 DROP SUCCESSFUL: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
+    console.log(`🎯 DROP TARGET: BAY ${bayId} (${bays.find(b => b.id === bayId)?.name})`);
+    console.log(`🎯 EXACT COORDINATES: x=${e.nativeEvent.offsetX}px, y=${e.nativeEvent.offsetY}px`);
+    console.log(`🎯 TARGET ELEMENT:`, e.currentTarget);
+    console.log(`🎯 DATA TRANSFER:`, e.dataTransfer.getData('text/plain'));
+    console.log(`🎯 PLACEMENT: Row ${rowIndex} - NO POSITION RESTRICTIONS`);
+    console.log(`⚠️ CRITICAL POLICY: Projects placed EXACTLY where dropped - NO AUTO-ADJUSTMENT`);
+    console.log(`⚠️ CRITICAL POLICY: Multiple projects ALLOWED in same row - OVERLAPS PERMITTED`);
     
     // Get the schedule ID from the drag data
     const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);
