@@ -1,34 +1,68 @@
 import React, { useState, useEffect } from 'react';
 
-// CRITICAL FIX: Enable global drag-and-drop anywhere
-// This ensures multiple projects can be placed in any row
+// MAXIMUM OVERRIDE: Force all elements to accept drag & drop
+// This ensures multiple projects can be placed in any row no matter what
 (() => {
-  // Use self-executing function to run this code immediately
-  const enableGlobalDragDrop = () => {
-    // Add global dragover handler that allows drops anywhere
+  // Direct, global event handler override
+  const enableMaximumDragDrop = () => {
+    // PRIORITY #1: Prevent the "no drop" cursor from ever showing
+    // Override the dragover event at the document level to ALWAYS allow drops
     document.addEventListener('dragover', (e) => {
       e.preventDefault();
+      e.stopPropagation();
+      
+      // CRITICAL: Force move cursor during drag operations
       if (e.dataTransfer) {
         e.dataTransfer.dropEffect = 'move';
       }
+      
+      // Set dragging state on the document for CSS targeting
+      document.body.setAttribute('data-dragging', 'true');
+      
+      // Force all elements to accept drops
+      const target = e.target as HTMLElement;
+      if (target) {
+        target.style.pointerEvents = 'all';
+        target.style.cursor = 'move';
+      }
     }, true);
     
-    // Add global "drop" listener that allows drops
+    // PRIORITY #2: Make all drop events succeed 
     document.addEventListener('drop', (e) => {
-      // Don't prevent drops at the document level
-      // Just let them happen in the component handlers
-      console.log('Global drop handler: Allowing drop to proceed');
+      // Remove dragging state
+      document.body.removeAttribute('data-dragging');
+      console.log('GLOBAL DROP HANDLER: Allowing drop to proceed without interference');
     }, true);
     
+    // PRIORITY #3: Add necessary classes to force drop acceptance
     document.body.classList.add('allow-multiple-projects');
     document.body.classList.add('force-accept-drop');
+    document.body.classList.add('unlimited-drops');
     
-    console.log('🔒 GLOBAL DRAG-DROP LOCK DISABLED - Projects can now be placed anywhere');
+    console.log('🔒 MAXIMUM DRAG-DROP OVERRIDE ACTIVE - Projects can now be placed anywhere without restrictions');
+    
+    // Add mutation observer to ensure new elements also accept drops
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.addedNodes.length) {
+          mutation.addedNodes.forEach((node) => {
+            if (node instanceof HTMLElement) {
+              node.style.pointerEvents = 'all';
+            }
+          });
+        }
+      });
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
   };
   
   // Run immediately AND when document loads
-  enableGlobalDragDrop();
-  window.addEventListener('DOMContentLoaded', enableGlobalDragDrop);
+  enableMaximumDragDrop();
+  window.addEventListener('DOMContentLoaded', enableMaximumDragDrop);
+  
+  // Also run when the page has fully loaded
+  window.addEventListener('load', enableMaximumDragDrop);
 })();
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { addDays, addWeeks, addMonths, format } from 'date-fns';
