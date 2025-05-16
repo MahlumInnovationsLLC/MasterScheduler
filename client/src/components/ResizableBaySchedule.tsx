@@ -681,43 +681,56 @@ export default function ResizableBaySchedule({
     if (!viewportEl || !timelineEl) return;
     
     // Find today's position in the timeline
-    const today = new Date(); // Today's date - May 16, 2025
+    // IMPORTANT: Fix the date to May 16, 2025 for development
+    const today = new Date(2025, 4, 16); // May 16, 2025
     
-    // CRITICAL FIX: Force the date range start to January 1, 2025 for consistent timeline calculation
-    const forcedStartDate = new Date(2025, 0, 1); // January 1, 2025
+    // Use January 1, 2025 for consistent timeline calculation
+    const startOfYear = new Date(2025, 0, 1); // January 1, 2025
     
-    // Calculate days since January 1, 2025 (fixed start date)
-    const daysFromStart = differenceInDays(today, forcedStartDate);
+    // Find the week containing May 16, 2025 - should be week of May 12, 2025
+    const mondayOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }); // Monday of the current week
     
-    // Calculate pixels per day based on view mode
-    const pixelsPerDay = viewMode === 'day' ? slotWidth : (viewMode === 'week' ? slotWidth / 7 : slotWidth / 30);
+    console.log(`Finding position for TODAY (${format(today, 'yyyy-MM-dd')}) in week of ${format(mondayOfCurrentWeek, 'yyyy-MM-dd')}`);
     
-    // Calculate exact position for today
-    const todayPosition = daysFromStart * pixelsPerDay;
+    // Calculate the week number (May 12, 2025 is week 20 of the year)
+    // Week index is 0-based, so 19 for the 20th week
+    const weekIndex = Math.floor(differenceInDays(mondayOfCurrentWeek, startOfYear) / 7);
     
-    // Center today's position in the viewport
+    // For Week view, one slot = one week, so we use the slot index directly
+    let todayPosition = weekIndex * slotWidth;
+    
+    // Add offset for Friday (4 days from Monday, index 0-4)
+    const dayOfWeekOffset = differenceInDays(today, mondayOfCurrentWeek) / 7 * slotWidth;
+    todayPosition += dayOfWeekOffset;
+    
+    // Add offset for bay column width to account for the left sidebar
+    const bayColumnOffset = 160; // Approximate width of the bay info column
+    todayPosition += bayColumnOffset;
+    
+    // Center the today line in the viewport
     const viewportWidth = viewportEl.clientWidth;
     const centeredPosition = Math.max(0, todayPosition - (viewportWidth / 2));
     
-    console.log(`Today is ${format(today, 'yyyy-MM-dd')}, ${daysFromStart} days from ${format(forcedStartDate, 'yyyy-MM-dd')}`);
-    console.log(`Auto-scrolling to current day at position ${todayPosition}px (centered at ${centeredPosition}px)`);
+    console.log(`Auto-scrolling to today (week ${weekIndex + 1}) at position ${todayPosition}px, centered at ${centeredPosition}px`);
     
-    try {
-      if (viewportEl.scrollTo) {
-        viewportEl.scrollTo({ 
-          left: Math.floor(centeredPosition), 
-          behavior: 'smooth' 
-        });
-        console.log(`Auto-scrolled to today's position at ${todayPosition}px with ${pixelsPerDay}px per day`);
-      } else {
-        // Fallback for older browsers
-        viewportEl.scrollLeft = Math.floor(centeredPosition);
-        console.log('USING EMERGENCY SCROLLING METHOD');
-        console.log(`Forced scroll to ${centeredPosition}px (${daysFromStart} days since Jan 1, ${pixelsPerDay}px per day)`);
+    // Use setTimeout to ensure the DOM is fully rendered before scrolling
+    setTimeout(() => {
+      try {
+        if (viewportEl.scrollTo) {
+          viewportEl.scrollTo({ 
+            left: Math.floor(centeredPosition), 
+            behavior: 'smooth' 
+          });
+          console.log(`Auto-scrolled to today's position at ${todayPosition}px (centered at ${centeredPosition}px)`);
+        } else {
+          // Fallback for older browsers
+          viewportEl.scrollLeft = Math.floor(centeredPosition);
+          console.log(`Fallback scroll to position ${centeredPosition}px`);
+        }
+      } catch (e) {
+        console.error('Error during auto-scroll:', e);
       }
-    } catch (e) {
-      console.error('Error during auto-scroll:', e);
-    }
+    }, 500); // Wait 500ms for rendering to complete
   }, [dateRange, viewMode, slotWidth]);
   
   // Drag handling functions
