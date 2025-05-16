@@ -2315,9 +2315,12 @@ export default function ResizableBaySchedule({
                                       e.preventDefault();
                                       e.stopPropagation();
                                       
-                                      // Force the cursor to show "move" and never "no-drop"
+                                      // Set appropriate drop effect based on what's being dragged
                                       if (e.dataTransfer) {
-                                        e.dataTransfer.dropEffect = 'move';
+                                        // Check if this is a new project (unassigned) or an existing one
+                                        const isUnassignedProject = document.body.classList.contains('dragging-unassigned-project');
+                                        // Use 'copy' for new projects, 'move' for existing ones
+                                        e.dataTransfer.dropEffect = isUnassignedProject ? 'copy' : 'move';
                                       }
                                       
                                       // Store the row index and bay id in body attributes
@@ -2354,6 +2357,23 @@ export default function ResizableBaySchedule({
                                       console.log(`🎯 DROP HAPPENING NOW: Bay ${bay.id}, Row 0, Date ${format(slot.date, 'yyyy-MM-dd')}`);
                                       
                                       // Call the handler with EXACT placement info
+                                      // Enhanced debug for precise drop location
+                                      console.log(`🎯 PRECISE DROP: Using exact date ${format(slot.date, 'yyyy-MM-dd')} from cell data`);
+                                      console.log(`🎯 PIXEL-PERFECT: Project will start EXACTLY at this cell date`);
+                                      
+                                      // Create visual marker at the drop position for feedback
+                                      const marker = document.createElement('div');
+                                      marker.className = 'absolute w-1 h-10 bg-green-500 z-50';
+                                      marker.style.left = '0px'; 
+                                      marker.style.top = '0px';
+                                      e.currentTarget.appendChild(marker);
+                                      
+                                      // Remove marker after 1 second
+                                      setTimeout(() => {
+                                        if (marker.parentNode) marker.parentNode.removeChild(marker);
+                                      }, 1000);
+                                      
+                                      // Call handler with EXACT cell date for precise placement
                                       handleSlotDrop(e, bay.id, 0, slot.date);
                                     }}
                                   />
