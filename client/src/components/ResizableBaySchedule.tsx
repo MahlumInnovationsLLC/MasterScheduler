@@ -2441,7 +2441,8 @@ export default function ResizableBaySchedule({
                                     
                                     // Create a new bay for this team
                                     const bayCount = team.length;
-                                    const newBayName = `${teamName} Bay ${bayCount + 1}`;
+                                    // Use the exact same name as the team to keep it in the same bay section
+                                    const newBayName = `${team[0].name} ${bayCount + 1}`;
                                     
                                     // Find highest bay number
                                     const highestBayNumber = Math.max(...bays.map(b => b.bayNumber));
@@ -2450,8 +2451,8 @@ export default function ResizableBaySchedule({
                                     const newBay: Partial<ManufacturingBay> = {
                                       name: newBayName,
                                       bayNumber: highestBayNumber + 1,
-                                      team: teamName,
-                                      description: `Added to ${teamName}`,
+                                      team: teamName, // Keep the same team name to group it
+                                      description: null, // No description needed
                                       assemblyStaffCount: team[0]?.assemblyStaffCount || 4,
                                       electricalStaffCount: team[0]?.electricalStaffCount || 2,
                                       hoursPerPersonPerWeek: team[0]?.hoursPerPersonPerWeek || 40
