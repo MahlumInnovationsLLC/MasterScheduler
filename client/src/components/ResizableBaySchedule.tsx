@@ -636,6 +636,9 @@ export default function ResizableBaySchedule({
   
   const handleSlotDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
     e.preventDefault();
+    
+    // CRITICAL FIX: Force dropEffect to 'move' to ensure the cursor stays as a move cursor
+    // This explicitly permits dropping on this element
     e.dataTransfer.dropEffect = 'move';
     
     // Update drop target info
@@ -644,6 +647,12 @@ export default function ResizableBaySchedule({
     // Visually highlight the drop zone
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.classList.add('drop-target');
+      
+      // Set a data attribute to indicate overlaps are allowed
+      e.currentTarget.setAttribute('data-overlap-allowed', 'true');
+      
+      // Add a special class to ensure the browser shows the proper drop indicator
+      document.body.classList.add('allow-multiple-projects');
     }
   };
   
