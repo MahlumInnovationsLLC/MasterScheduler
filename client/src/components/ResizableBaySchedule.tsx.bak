@@ -16,7 +16,6 @@ import {
 } from 'date-fns';
 import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom } from './ExactFitPhaseWidths';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
-import { TeamManagementDialog } from './TeamManagementDialog';
 import { 
   PlusCircle, 
   GripVertical, 
@@ -28,7 +27,6 @@ import {
   PlusIcon, 
   MinusIcon,
   Users, 
-  UserPlus,
   Zap, 
   Wrench, // Replacing Tool with Wrench
   Clock,
@@ -36,8 +34,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
-  Truck,
-  BarChart2 // Added for utilization icon
+  Truck
 } from 'lucide-react';
 import {
   Dialog,
@@ -77,10 +74,6 @@ interface ManufacturingBay {
   teamId: number | null;
   createdAt: Date | null;
   updatedAt: Date | null;
-  // Team capacity management properties
-  assemblyStaffCount?: number | null;
-  electricalStaffCount?: number | null;
-  hoursPerPersonPerWeek?: number | null;
 }
 
 interface Project {
@@ -215,64 +208,83 @@ const getBayRowCount = (bayId: number, bayName: string) => {
   return 1; // Always return 1 row for the simplified single-row layout
 };
 
-// ALWAYS GENERATE TIME SLOTS THROUGH 2030 - This ensures all grid cells show properly
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
   const slots: TimeSlot[] = [];
-  // Start from dateRange.start
+  
+  // Define slot width based on view mode
+  let slotWidth = 35; // default for week view
+  
+  // Adjust slot width based on view mode
+  switch (viewMode) {
+    case 'day':
+      slotWidth = 25; // narrower for day view (more granular)
+      break;
+    case 'week':
+      slotWidth = 35; // standard width for week view
+      break;
+    case 'month':
+      slotWidth = 90; // wider for month view
+      break;
+    case 'quarter':
+      slotWidth = 140; // very wide for quarter view
+      break;
+  }
+  
+  // Use the provided date range consistently across all view modes
   let currentDate = new Date(dateRange.start);
   
-  // CRITICAL FIX: Force end date to be Dec 31, 2030 regardless of what date range is passed in
-  const forcedEndDate = new Date(2030, 11, 31); // December 31, 2030
+  // Important: Always normalize the date to midnight
+  currentDate.setHours(0, 0, 0, 0);
   
-  console.log(`⏱️ Generating time slots from ${format(currentDate, 'yyyy-MM-dd')} to ${format(forcedEndDate, 'yyyy-MM-dd')}`);
+  console.log(`VIEW MODE: ${viewMode} - Using timeline from ${format(dateRange.start, 'yyyy-MM-dd')} to ${format(dateRange.end, 'yyyy-MM-dd')} with ${slotWidth}px slots`);
   
-  // Loop until we reach the forced 2030 end date
-  while (currentDate <= forcedEndDate) {
+  // Generate slots based on view mode
+  while (currentDate <= dateRange.end) {
     const isStartOfMonth = currentDate.getDate() === 1;
     const isStartOfWeek = currentDate.getDay() === 1; // Monday as start of week
     const isCurrentDateBusinessDay = isBusinessDay(currentDate);
     
+    // Create slot with formatted dates appropriate for the view mode
     slots.push({
       date: new Date(currentDate),
       isStartOfMonth,
       isStartOfWeek,
       isBusinessDay: isCurrentDateBusinessDay,
-      monthName: isStartOfMonth ? format(currentDate, 'MMMM') : undefined,
+      formattedStartDate: format(currentDate, viewMode === 'day' ? 'MMM d' : 
+                                            viewMode === 'week' ? 'MMM d' : 
+                                            viewMode === 'month' ? 'MMM yyyy' : 
+                                            'Q[Q] yyyy'),
+      monthName: isStartOfMonth ? format(currentDate, viewMode === 'month' || viewMode === 'quarter' ? 'MMMM yyyy' : 'MMMM') : undefined,
       weekNumber: isStartOfWeek ? Math.ceil(differenceInDays(currentDate, new Date(currentDate.getFullYear(), 0, 1)) / 7) : undefined
     });
     
-    if (viewMode === 'day') {
-      currentDate = addDays(currentDate, 1);
-    } else if (viewMode === 'week') {
-      if (isStartOfWeek || slots.length === 0) {
+    // Advance date based on view mode
+    switch (viewMode) {
+      case 'day':
         currentDate = addDays(currentDate, 1);
-      } else {
-        // Move to next Monday
-        const daysUntilMonday = (8 - currentDate.getDay()) % 7;
-        currentDate = addDays(currentDate, daysUntilMonday > 0 ? daysUntilMonday : 7);
-      }
-    } else if (viewMode === 'month') {
-      if (isStartOfMonth || slots.length === 0) {
-        currentDate = addDays(currentDate, 1);
-      } else {
+        break;
+        
+      case 'week':
+        // Always move forward by exactly 7 days for consistency
+        currentDate = addDays(currentDate, 7);
+        break;
+        
+      case 'month':
         // Move to first day of next month
         currentDate = addMonths(currentDate, 1);
         currentDate.setDate(1);
-      }
-    } else if (viewMode === 'quarter') {
-      if (isStartOfMonth && [0, 3, 6, 9].includes(currentDate.getMonth()) || slots.length === 0) {
-        currentDate = addMonths(currentDate, 1);
-      } else {
-        // Move to first month of next quarter
-        const currentMonth = currentDate.getMonth();
-        const monthsToNextQuarter = 3 - (currentMonth % 3);
-        currentDate = addMonths(currentDate, monthsToNextQuarter);
-        currentDate.setDate(1);
-      }
+        break;
+        
+      case 'quarter':
+        // Move to first day of next quarter month (Jan, Apr, Jul, Oct)
+        const nextQuarter = addMonths(currentDate, 3);
+        nextQuarter.setDate(1);
+        currentDate = nextQuarter;
+        break;
     }
   }
   
-  return slots;
+  return { slots, slotWidth };
 };
 
 // Component to display bay capacity information and status indicators
@@ -302,89 +314,21 @@ const BayCapacityInfo = ({ bay, allSchedules, projects, bays }: { bay: Manufactu
     statusIcon = <Clock3 className="h-4 w-4 text-white" />;
   }
   
-  // Calculate team capacity - look for assembly/electrical staff counts on this bay
-  const assemblyStaff = bay.assemblyStaffCount || 1;
-  const electricalStaff = bay.electricalStaffCount || 1;
-  const hoursPerWeek = bay.hoursPerPersonPerWeek || 29;
-  const totalStaff = assemblyStaff + electricalStaff;
-  const totalCapacity = totalStaff * hoursPerWeek;
-  
-  // Find other bays in same team to calculate team capacity
-  let teamCapacity = totalCapacity;
-  if (bay.team) {
-    const teamBays = bays.filter(b => b.team === bay.team);
-    if (teamBays.length > 0) {
-      // Sum up assembly and electrical staff from all bays in team
-      let teamAssemblyStaff = 0;
-      let teamElectricalStaff = 0;
-      let teamHoursPerWeek = hoursPerWeek; // Use the same hours per week value across team
-      
-      teamBays.forEach(b => {
-        if (b.assemblyStaffCount) teamAssemblyStaff += b.assemblyStaffCount;
-        if (b.electricalStaffCount) teamElectricalStaff += b.electricalStaffCount;
-        if (b.hoursPerPersonPerWeek) teamHoursPerWeek = b.hoursPerPersonPerWeek;
-      });
-      
-      const teamTotalStaff = teamAssemblyStaff + teamElectricalStaff;
-      teamCapacity = teamTotalStaff * teamHoursPerWeek;
-    }
-  }
-  
   console.log(`Bay ${bay.name} at ${capacityPercentage}% capacity with ${activeProjects === 0 ? 'no projects' : activeProjects + ' project' + (activeProjects > 1 ? 's' : '')}`);
   console.log(`Bay ${bay.name} final status: ${statusText} with ${activeProjects} active project${activeProjects !== 1 ? 's' : ''}`);
   
   return (
-    <div className="bay-capacity-info absolute right-2 top-2 flex flex-col items-end gap-1">
-      <div className="flex items-center space-x-2">
-        <div className={`status-indicator ${statusBg} text-white text-xs px-2 py-0.5 rounded-full flex items-center`}>
-          {statusIcon}
-          <span className="ml-1">{statusText}</span>
-        </div>
-        <div className="project-count bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded-full">
-          {activeProjects} project{activeProjects !== 1 ? 's' : ''}
-        </div>
+    <div className="bay-capacity-info absolute right-2 top-2 flex items-center space-x-2">
+      <div className={`status-indicator ${statusBg} text-white text-xs px-2 py-0.5 rounded-full flex items-center`}>
+        {statusIcon}
+        <span className="ml-1">{statusText}</span>
       </div>
-      
-      {bay.team && (
-        <div className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 mt-1">
-          <Users className="h-3 w-3" />
-          <span>Team: {teamCapacity} hrs/wk</span>
-        </div>
-      )}
-      
-      <div className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 mt-1">
-        <UserPlus className="h-3 w-3" />
-        <span>{assemblyStaff}A + {electricalStaff}E</span>
+      <div className="project-count bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded-full">
+        {activeProjects} project{activeProjects !== 1 ? 's' : ''}
       </div>
     </div>
   );
 };
-
-// CRITICAL FIX: Global handler to ensure multiple projects can be placed in the same row
-function initializeGlobalDragDropFix() {
-  // Enable dropping anywhere by preventing default on all dragover events
-  const handleGlobalDragOver = (e: DragEvent) => {
-    e.preventDefault();
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'move';
-    }
-  };
-  
-  // Add global listeners
-  document.addEventListener('dragover', handleGlobalDragOver, true);
-  
-  // Enable special styling
-  document.body.classList.add('allow-multiple-projects');
-  document.body.classList.add('force-accept-drop');
-  
-  console.log('🔄 MULTIPLE PROJECTS FIX ACTIVATED: Projects can now be placed in ANY row');
-  
-  return () => {
-    document.removeEventListener('dragover', handleGlobalDragOver, true);
-    document.body.classList.remove('allow-multiple-projects');
-    document.body.classList.remove('force-accept-drop');
-  };
-}
 
 export default function ResizableBaySchedule({
   schedules,
@@ -409,8 +353,6 @@ export default function ResizableBaySchedule({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newBayDialog, setNewBayDialog] = useState(false);
   const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
-  const [teamDialogOpen, setTeamDialogOpen] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [deleteRowDialogOpen, setDeleteRowDialogOpen] = useState(false);
   const [confirmRowDelete, setConfirmRowDelete] = useState<{
     bayId: number;
@@ -425,13 +367,16 @@ export default function ResizableBaySchedule({
     }[];
   } | null>(null);
   const [currentProject, setCurrentProject] = useState<number | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true); // For collapsible sidebar
   const [targetBay, setTargetBay] = useState<number | null>(null);
   const [targetStartDate, setTargetStartDate] = useState<Date | null>(null);
   const [targetEndDate, setTargetEndDate] = useState<Date | null>(null);
   const [scheduleDuration, setScheduleDuration] = useState(4); // in weeks
   const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
-  const [slotWidth, setSlotWidth] = useState(60); // Increased slot width for better visibility
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Get time slots and slot width based on view mode 
+  const { slots, slotWidth } = useMemo(() => {
+    return generateTimeSlots(dateRange, viewMode);
+  }, [dateRange, viewMode]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [showAddMultipleWarning, setShowAddMultipleWarning] = useState(false);
@@ -528,27 +473,16 @@ export default function ResizableBaySchedule({
         fabWeeks: 4
       };
       
-      // Bar object is created but phase widths aren't calculated yet
-      return bar;
+      // Calculate exact fit phase widths
+      const withPhaseWidths = calculateExactFitPhaseWidths(bar);
+      
+      return withPhaseWidths;
     }).filter((bar): bar is ScheduleBar => bar !== null);
     
     // Important: NO automatic row assignment or repositioning
     // Bars will be positioned exactly where they are in the database
     
-    // Convert manufacturing bays to the Bay type needed for capacity calculations
-    const capacityBays = bays.map(bay => ({
-      id: bay.id,
-      team: bay.team,
-      assemblyStaffCount: bay.assemblyStaffCount || 1, 
-      electricalStaffCount: bay.electricalStaffCount || 1,
-      hoursPerPersonPerWeek: bay.hoursPerPersonPerWeek || 29 // Default 29 hours per week
-    }));
-    
-    // Apply team capacity-based calculations to all schedule bars
-    const barsWithCapacityCalculation = updatePhaseWidthsWithExactFit(bars, capacityBays);
-    console.log('Applied capacity-based calculations for production phase widths');
-    
-    setScheduleBars(barsWithCapacityCalculation);
+    setScheduleBars(bars);
   }, [schedules, projects, dateRange, viewMode, slotWidth]);
   
   // Filter projects when search term changes
@@ -661,44 +595,15 @@ export default function ResizableBaySchedule({
   };
   
   const handleSlotDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
-    // CRITICAL: Always call preventDefault() to allow dropping
     e.preventDefault();
-    
-    // FORCE-ACCEPT ALL DROPS
-    e.stopPropagation();
-    
-    // Force the cursor to always show "move" and never "no-drop"
     e.dataTransfer.dropEffect = 'move';
-    
-    console.log(`✅ DRAG OVER: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
-    console.log(`✅ DROP TARGET ACTIVE: Cell accepting drop`);
     
     // Update drop target info
     setDropTarget({ bayId, rowIndex });
     
     // Visually highlight the drop zone
     if (e.currentTarget instanceof HTMLElement) {
-      // Add highlight classes
       e.currentTarget.classList.add('drop-target');
-      e.currentTarget.classList.add('force-accept-drop');
-      
-      // Set critical data attributes needed for drop acceptance
-      e.currentTarget.setAttribute('data-drop-enabled', 'true');
-      e.currentTarget.setAttribute('data-overlap-allowed', 'true');
-      e.currentTarget.setAttribute('data-bay-id', bayId.toString());
-      e.currentTarget.setAttribute('data-row-index', rowIndex.toString());
-      
-      // Force the parent elements to accept drops too
-      let parent = e.currentTarget.parentElement;
-      while (parent) {
-        parent.classList.add('force-accept-drop');
-        parent.setAttribute('data-drop-enabled', 'true');
-        parent = parent.parentElement;
-      }
-      
-      // Ensure the body has the special class for CSS rules
-      document.body.classList.add('allow-multiple-projects');
-      document.body.classList.add('force-accept-drop');
     }
   };
   
@@ -785,95 +690,14 @@ export default function ResizableBaySchedule({
   };
   
   const handleSlotDrop = async (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
-    // This is critical - ALWAYS prevent default to allow the drop
     e.preventDefault();
     
-    // STOP PROPAGATION to ensure no parent elements interfere
-    e.stopPropagation();
+    console.log(`🎯 PRECISE DROP: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
     
-    // Clear any drag state from the document
-    document.body.removeAttribute('data-drag-in-progress');
-    document.body.classList.remove('global-drag-active');
+    // Get the schedule ID from the drag data
+    const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);
     
-    // Get data from the drop event
-    const dataString = e.dataTransfer.getData('text/plain');
-    console.log(`📦 RAW DRAG DATA: "${dataString}"`);
-    
-    // EXTENDED DEBUG LOGGING - to track exactly what's happening
-    console.log(`🎯 DROP SUCCESSFUL: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
-    console.log(`🎯 DROP TARGET: BAY ${bayId} (${bays.find(b => b.id === bayId)?.name})`);
-    console.log(`🎯 EXACT COORDINATES: x=${e.nativeEvent.offsetX}px, y=${e.nativeEvent.offsetY}px`);
-    console.log(`🎯 PLACEMENT: Row ${rowIndex} - NO POSITION RESTRICTIONS`);
-    console.log(`⚠️ CRITICAL POLICY: Projects placed EXACTLY where dropped - NO AUTO-ADJUSTMENT`);
-    console.log(`⚠️ CRITICAL POLICY: Multiple projects ALLOWED in same row - OVERLAPS PERMITTED`);
-    
-    // Check for unassigned project identifier format (begins with a minus sign)
-    const isNegativeFormat = dataString.startsWith('-');
-    const scheduleId = parseInt(dataString, 10);
-    
-    // Check if this is a NEW project being created (negative ID) or existing schedule
-    const isNewProject = isNegativeFormat || scheduleId < 0;
-    
-    if (isNewProject) {
-      // This is a new project being added from the unassigned projects list
-      const projectId = Math.abs(scheduleId);
-      console.log(`🆕 Creating NEW SCHEDULE for project ID ${projectId} in bay ${bayId} at row ${rowIndex}`);
-      
-      // Find the project data
-      const project = projects.find(p => p.id === projectId);
-      if (!project) {
-        // Attempt to recover from sessionStorage if project data is not found
-        try {
-          const storedProject = JSON.parse(sessionStorage.getItem('dragging_project') || '{}');
-          if (storedProject && storedProject.id === projectId) {
-            console.log(`🔄 Recovered project data from session storage: ${storedProject.name}`);
-            // Use the stored project data
-            // Continue with the scheduling creation
-          } else {
-            console.error('❌ Cannot find project with ID', projectId);
-            return;
-          }
-        } catch (error) {
-          console.error('❌ Cannot find project with ID', projectId);
-          return;
-        }
-      }
-      
-      // Default duration is 4 weeks if not specified
-      const endDate = addWeeks(date, scheduleDuration);
-      
-      // Format dates for API
-      const formattedStartDate = format(date, 'yyyy-MM-dd');
-      const formattedEndDate = format(endDate, 'yyyy-MM-dd');
-      
-      try {
-        // Create a new schedule with the projectId, bayId, and dates
-        await onScheduleCreate(
-          projectId,
-          bayId,
-          formattedStartDate,
-          formattedEndDate,
-          scheduleDuration * 40, // 40 hours per week default
-          rowIndex // Exact row placement
-        );
-        
-        toast({
-          title: "Schedule created",
-          description: `Added ${project.name} to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
-        });
-      } catch (error) {
-        console.error('Error creating schedule:', error);
-        toast({
-          title: "Failed to create schedule",
-          description: "There was an error creating the schedule. Please try again.",
-          variant: "destructive",
-        });
-      }
-      
-      return;
-    }
-    
-    // Handle existing schedule being moved
+    // Find the schedule bar being moved
     const bar = scheduleBars.find((b) => b.id === scheduleId);
     if (!bar) {
       console.error('DROP ERROR: Could not find schedule bar with ID', scheduleId);
@@ -1207,10 +1031,30 @@ export default function ResizableBaySchedule({
     }
   };
   
-  // Function to calculate bar position
+  // Function to calculate bar position based on view mode
   const calculateBarPosition = (startDate: Date, endDate: Date): { left?: number, width?: number } => {
-    // Calculate pixels per day based on slot width
-    const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
+    // Calculate pixels per day based on view mode and slot width
+    let pixelsPerDay = 0;
+    
+    switch (viewMode) {
+      case 'day':
+        pixelsPerDay = slotWidth; // Each slot is one day
+        break;
+      case 'week':
+        pixelsPerDay = slotWidth / 7; // Each slot is one week (7 days)
+        break;
+      case 'month':
+        // Each slot is one month (approx 30 days)
+        // We use a more precise average days per month for better positioning
+        pixelsPerDay = slotWidth / 30.44; 
+        break;
+      case 'quarter':
+        // Each slot is one quarter (approx 91 days)
+        pixelsPerDay = slotWidth / 91.31; 
+        break;
+      default:
+        pixelsPerDay = slotWidth / 7; // Default to week view
+    }
     
     // Calculate left position based on date range start
     const daysFromStart = differenceInDays(startDate, dateRange.start);
@@ -1219,6 +1063,10 @@ export default function ResizableBaySchedule({
     // Calculate width based on duration
     const durationDays = differenceInDays(endDate, startDate) + 1; // +1 to include the end date
     const width = durationDays * pixelsPerDay;
+    
+    console.log(`Position calculation (${viewMode} view): startDate=${format(startDate, 'yyyy-MM-dd')}, ` +
+                `endDate=${format(endDate, 'yyyy-MM-dd')}, pixelsPerDay=${pixelsPerDay.toFixed(2)}, ` +
+                `left=${left.toFixed(2)}, width=${width.toFixed(2)}`);
     
     return { left, width };
   };
@@ -1478,144 +1326,71 @@ export default function ResizableBaySchedule({
       </div>
       
       <div className="flex flex-row flex-1 h-full">
-        {/* Unassigned Projects Sidebar - Collapsible with Drop Zone */}
-        <div 
-          className={`unassigned-projects-sidebar border-r border-gray-700 flex-shrink-0 overflow-y-auto bg-gray-900 transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
-          style={{ transitionProperty: 'width, padding' }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`font-bold text-white ${!sidebarOpen ? 'hidden' : 'block'}`}>Unassigned Projects</h3>
-            <button 
-              onClick={() => {
-                console.log("Toggling sidebar from", sidebarOpen, "to", !sidebarOpen);
-                setSidebarOpen(!sidebarOpen);
-                // Save to localStorage to persist between page reloads
-                localStorage.setItem('sidebarOpen', String(!sidebarOpen));
-              }} 
-              className="p-1 bg-gray-800 rounded-full hover:bg-gray-700 transition-colors flex items-center justify-center"
-              title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-            >
-              {sidebarOpen ? <ChevronLeft className="h-4 w-4 text-gray-300" /> : <ChevronRight className="h-4 w-4 text-gray-300" />}
-            </button>
-          </div>
+        {/* Unassigned Projects Sidebar */}
+        <div className="unassigned-projects-sidebar w-64 border-r border-gray-700 flex-shrink-0 overflow-y-auto bg-gray-900 p-4">
+          <h3 className="font-bold text-white mb-4">Unassigned Projects</h3>
           
-          {sidebarOpen && (
-            <>
-              {/* Drop Zone for unassigning projects */}
-              <div 
-                className="unassigned-drop-container min-h-[100px] rounded-md border-2 border-dashed border-gray-700 mb-4 p-2 flex flex-col" 
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.currentTarget.classList.add('drop-zone-active');
-                }}
-                onDragLeave={(e) => {
-                  e.currentTarget.classList.remove('drop-zone-active');
-                }}
-                onDrop={async (e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.currentTarget.classList.remove('drop-zone-active');
-                  
-                  document.body.classList.remove('global-drag-active');
-                  
-                  try {
-                    const dataString = e.dataTransfer.getData('text/plain');
-                    console.log(`📦 UNASSIGNED DROP: "${dataString}"`);
+          {unassignedProjects.length === 0 ? (
+            <div className="text-sm text-gray-400 italic">No unassigned projects</div>
+          ) : (
+            <div className="space-y-3">
+              {unassignedProjects.map(project => (
+                <div 
+                  key={`unassigned-${project.id}`}
+                  className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
+                  draggable
+                  onDragStart={(e) => {
+                    // Create dummy schedule to use the existing drag logic
+                    const dummySchedule = {
+                      id: -project.id, // Negative ID to mark as new
+                      projectId: project.id,
+                      bayId: 0,
+                      startDate: new Date(),
+                      endDate: addWeeks(new Date(), 4),
+                      totalHours: 160,
+                      row: 0
+                    };
                     
-                    const scheduleId = parseInt(dataString, 10);
+                    // Set drag data
+                    e.dataTransfer.setData('text/plain', String(dummySchedule.id));
+                    e.dataTransfer.effectAllowed = 'copy';
                     
-                    if (scheduleId > 0) {
-                      console.log(`🔄 Returning schedule ${scheduleId} to unassigned section`);
-                      
-                      const schedule = schedules.find(s => s.id === scheduleId);
-                      if (schedule && onScheduleDelete) {
-                        await onScheduleDelete(scheduleId);
-                        toast({
-                          title: "Project unassigned",
-                          description: "Project moved back to unassigned list",
-                        });
-                      }
-                    }
-                  } catch (error) {
-                    console.error('Error processing drop on unassigned section:', error);
-                  }
-                }}
-              >
-                <div className="text-sm text-gray-400 italic p-4 text-center flex-grow flex items-center justify-center">
-                  Drop projects here to unassign them
+                    // Visual feedback
+                    e.currentTarget.classList.add('opacity-50');
+                    
+                    // Create custom drag image
+                    const dragImage = document.createElement('div');
+                    dragImage.className = 'bg-blue-600 text-white p-2 rounded opacity-80 pointer-events-none fixed -left-full';
+                    dragImage.textContent = `${project.projectNumber}: ${project.name}`;
+                    document.body.appendChild(dragImage);
+                    e.dataTransfer.setDragImage(dragImage, 10, 10);
+                    
+                    // Add to temporary data to be accessed by drop handlers
+                    (window as any).draggedProject = project;
+                    console.log(`Dragging unassigned project ${project.projectNumber}: ${project.name}`);
+                  }}
+                  onDragEnd={(e) => {
+                    e.currentTarget.classList.remove('opacity-50');
+                    const dragImages = document.querySelectorAll('div.pointer-events-none.fixed.-left-full');
+                    dragImages.forEach(el => el.remove());
+                  }}
+                >
+                  <div className="font-medium text-white text-sm mb-1 truncate">{project.projectNumber}: {project.name}</div>
+                  <div className="text-xs text-gray-400 truncate">{project.status}</div>
+                  <div className="text-xs text-gray-400 mt-1 flex items-center">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
+                    {project.team || 'No Team'}
+                  </div>
                 </div>
-              </div>
-              
-              {/* Unassigned Project List */}
-              {unassignedProjects.length === 0 ? (
-                <div className="text-sm text-gray-400 italic">No unassigned projects</div>
-              ) : (
-                <div className="space-y-3">
-                  {unassignedProjects.map(project => (
-                    <div 
-                      key={`unassigned-${project.id}`}
-                      className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
-                      draggable={true}
-                      onDragStart={(e) => {
-                        const projectIdentifier = `-${project.id}`;
-                        e.dataTransfer.setData('text/plain', projectIdentifier);
-                        
-                        document.body.setAttribute('data-drag-in-progress', 'true');
-                        document.body.classList.add('global-drag-active');
-                        
-                        console.log(`🔄 Dragging unassigned project ${project.id}: ${project.name}`);
-                        
-                        e.dataTransfer.effectAllowed = 'copy';
-                        e.currentTarget.classList.add('opacity-50');
-                        
-                        // Store project data in session storage as backup
-                        sessionStorage.setItem('dragging_project', JSON.stringify({
-                          id: project.id,
-                          name: project.name,
-                          projectNumber: project.projectNumber
-                        }));
-                        
-                        // Create custom drag image
-                        const dragImage = document.createElement('div');
-                        dragImage.className = 'bg-blue-600 text-white p-2 rounded opacity-80 pointer-events-none fixed -left-full';
-                        dragImage.textContent = `${project.projectNumber}: ${project.name}`;
-                        document.body.appendChild(dragImage);
-                        e.dataTransfer.setDragImage(dragImage, 10, 10);
-                        
-                        setTimeout(() => {
-                          if (dragImage.parentNode) {
-                            dragImage.parentNode.removeChild(dragImage);
-                          }
-                        }, 100);
-                      }}
-                      onDragEnd={(e) => {
-                        e.currentTarget.classList.remove('opacity-50');
-                        document.body.removeAttribute('data-drag-in-progress');
-                        document.body.classList.remove('global-drag-active');
-                      }}
-                    >
-                      <div className="font-medium text-white text-sm mb-1 truncate">{project.projectNumber}: {project.name}</div>
-                      <div className="text-xs text-gray-400 truncate">{project.status}</div>
-                      <div className="text-xs text-gray-400 mt-1 flex items-center">
-                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
-                        {project.team || 'No Team'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
+              ))}
+            </div>
           )}
         </div>
         
         <div className="bay-schedule-viewport flex-grow overflow-auto" ref={viewportRef}>
           <div className="bay-schedule-container relative" ref={timelineRef}>
           {/* Timeline Header */}
-          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32" 
-            style={{ 
-              width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
-            }}>
+          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32">
             {slots.map((slot, index) => (
               <div
                 key={`header-${index}`}
@@ -1627,10 +1402,10 @@ export default function ResizableBaySchedule({
                 `}
                 style={{ width: `${slotWidth}px`, height: '40px' }}
               >
-                <div className="text-xs text-center w-full flex flex-col justify-center h-full">
+                <div className="text-xs text-center w-full">
                   {slot.isStartOfMonth && (
                     <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
-                      {slot.monthName} {format(slot.date, 'yyyy')}
+                      {slot.monthName}
                     </div>
                   )}
                   {slot.isStartOfWeek && (
@@ -1638,9 +1413,6 @@ export default function ResizableBaySchedule({
                       Week {slot.weekNumber}
                     </div>
                   )}
-                  <div className="text-gray-400 text-[10px]">
-                    {format(slot.date, 'MM/dd')}
-                  </div>
                 </div>
               </div>
             ))}
@@ -1656,56 +1428,14 @@ export default function ResizableBaySchedule({
           {/* Manufacturing Bays */}
           <div className="manufacturing-bays mt-2">
             {bayTeams.map((team, teamIndex) => (
-              <div 
-                key={`team-${teamIndex}`} 
-                className="team-container mb-5 relative"
-                style={{
-                  minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
-                }}>
-                <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex shadow-md" style={{ position: 'relative' }}>
-                  <div 
-                    className="flex items-center"
-                    style={{
-                      position: 'sticky',
-                      left: 0,
-                      zIndex: 40,
-                      backgroundColor: '#1e3a8a',
-                      paddingRight: '15px'
-                    }}
-                  >
-                    <span className="font-bold text-lg">Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}</span>
-                    
-                    {/* Info bubbles RIGHT NEXT to team name */}
-                    <div className="flex items-center ml-3">
-                      <div className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full flex items-center mr-2">
-                        <Users className="h-3.5 w-3.5 mr-1" />
-                        <span>{scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length} projects</span>
-                      </div>
-                      <div className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full flex items-center">
-                        <BarChart2 className="h-3.5 w-3.5 mr-1" />
-                        <span>{Math.floor(scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length / team.length * 100)}% utilization</span>
-                      </div>
-                    </div>
-                    
-                    {/* Team Management Button */}
-                    {team[0]?.team && (
-                      <button 
-                        className="p-1 bg-blue-700 hover:bg-blue-600 rounded-full text-white flex items-center justify-center ml-2"
-                        onClick={() => {
-                          const teamName = team[0].team;
-                          if (teamName) {
-                            setSelectedTeam(teamName);
-                            setTeamDialogOpen(true);
-                          }
-                        }}
-                      >
-                        <Wrench className="h-4 w-4" />
-                      </button>
-                    )}
+              <div key={`team-${teamIndex}`} className="team-container mb-5 relative">
+                <div className="team-header bg-slate-100 py-2 px-3 rounded-md mb-2 flex justify-between items-center shadow-sm">
+                  <div className="team-name font-medium">
+                    Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}
                   </div>
                   
-                  {/* This div remains empty but keeps the layout clean */}
-                  <div className="ml-auto">
+                  {/* Team capacity indicators */}
+                  <div className="team-capacity-indicators flex items-center space-x-2">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger>
@@ -1766,95 +1496,45 @@ export default function ResizableBaySchedule({
                         backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
                       }}
                     >
-                      {/* Bay Label - ENHANCED sticky positioning for perfect alignment with sidebar */}
+                      {/* Bay Label */}
                       <div 
-                        className="bay-label h-full bg-gray-100 border-r flex flex-col justify-between py-2 px-2 z-40"
-                        style={{ 
-                          position: 'sticky',
-                          left: 0,
-                          width: '240px',
-                          boxShadow: '4px 0 6px rgba(0,0,0,0.1)'
-                        }}
+                        className="bay-label absolute top-0 left-0 w-32 h-full bg-gray-100 border-r flex flex-col justify-center px-2 z-10"
                       >
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <div className="font-medium text-sm">{bay.name}</div>
-                            {/* Info bubble moved to the right of bay name as requested */}
-                            <div className="bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-2">
-                              {baySchedules.length}
-                            </div>
-                          </div>
-                          <div className="text-xs text-gray-500">Bay #{bay.bayNumber}</div>
-                          
-                          {bay.status === 'maintenance' && (
-                            <Badge variant="destructive" className="mt-1 text-[10px]">Maintenance</Badge>
-                          )}
-                          
-                          {/* Show team info if available */}
-                          {bay.team && (
-                            <div className="text-xs text-primary mt-1">
-                              Team: {bay.team}
-                            </div>
-                          )}
-                          
-                          {/* Edit, delete and team management buttons */}
-                          <div className="bay-actions mt-2 flex space-x-1">
-                            <button 
-                              className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-700"
-                              onClick={() => {
-                                setEditingBay({...bay});
-                                setNewBayDialog(true);
-                              }}
-                            >
-                              <PencilIcon className="h-3 w-3" />
-                            </button>
-                            
-                            {/* Team Management Button */}
-                            {bay.team && (
-                              <button
-                                className="p-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700"
-                                onClick={() => {
-                                  setSelectedTeam(bay.team);
-                                  setTeamDialogOpen(true);
-                                }}
-                              >
-                                <Wrench className="h-3 w-3" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
+                        <div className="font-medium text-sm">{bay.name}</div>
+                        <div className="text-xs text-gray-500">Bay #{bay.bayNumber}</div>
                         
-                        {/* Bay status and capacity information - IMPROVED CONTRAST */}
-                        <div className="flex flex-col gap-1 mt-auto">
-                          {/* Bay status indicator - Improved contrast */}
-                          <div className={`status-badge flex items-center justify-center rounded-full py-1 px-2 text-xs ${
-                            baySchedules.length > 0 ? 'bg-amber-200 text-amber-900' : 'bg-green-200 text-green-900'
-                          }`}>
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            {baySchedules.length > 0 ? 'Near Capacity' : 'Available'}
-                          </div>
+                        {bay.status === 'maintenance' && (
+                          <Badge variant="destructive" className="mt-1 text-[10px]">Maintenance</Badge>
+                        )}
+                        
+                        {/* Edit and delete buttons */}
+                        <div className="bay-actions mt-2 flex space-x-1">
+                          <button 
+                            className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-700"
+                            onClick={() => {
+                              setEditingBay({...bay});
+                              setNewBayDialog(true);
+                            }}
+                          >
+                            <PencilIcon className="h-3 w-3" />
+                          </button>
                           
-                          {/* Project count - Improved contrast */}
-                          <div className="project-count bg-gray-200 text-gray-900 rounded-full py-1 px-2 text-xs flex items-center justify-center">
-                            <Users className="h-3 w-3 mr-1" />
-                            {baySchedules.length} {baySchedules.length === 1 ? 'project' : 'projects'}
-                          </div>
-                          
-                          {/* Team capacity information - Improved contrast */}
-                          {bay.team && (
-                            <div className="team-capacity bg-blue-200 text-blue-900 rounded-full py-1 px-2 text-xs flex items-center justify-center">
-                              <Users className="h-3 w-3 mr-1" />
-                              Team: {((bay.assemblyStaffCount || 2) + (bay.electricalStaffCount || 1)) * (bay.hoursPerPersonPerWeek || 29)} hrs/wk
-                            </div>
+                          {onBayDelete && (
+                            <button 
+                              className="p-1 bg-red-100 hover:bg-red-200 rounded text-red-700"
+                              onClick={() => handleDeleteBay(bay.id)}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
                           )}
                         </div>
                       </div>
                       
-                      {/* Bay content area - FULL WIDTH to extend to end of timeline (2030) */}
-                      <div className="bay-content absolute left-[240px] top-0 bottom-0"
-                        style={{ 
-                          width: `${Math.max(8000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
-                        }}>
+                      {/* Bay capacity information */}
+                      <BayCapacityInfo bay={bay} allSchedules={schedules} projects={projects} bays={bays} />
+                      
+                      {/* Bay content area */}
+                      <div className="bay-content absolute left-32 right-0 top-0 bottom-0">
                         {isMultiRowBay ? (
                           <MultiRowBayContent 
                             timeSlots={slots} 
@@ -1943,12 +1623,8 @@ export default function ResizableBaySchedule({
                                 </div>
                               </div>
                               
-                              {/* Cell grid for this bay - EXTENDED TO 2030 PROPERLY */}
-                              <div className="absolute inset-0 grid" 
-                                style={{ 
-                                  gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
-                                  minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px` 
-                                }}>
+                              {/* Cell grid for this bay */}
+                              <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
                                 {slots.map((slot, index) => (
                                   <div 
                                     key={`bay-${bay.id}-slot-${index}`} 
@@ -1960,44 +1636,22 @@ export default function ResizableBaySchedule({
                                     data-bay-id={bay.id}
                                     data-row-index="0"
                                     data-exact-week="true"
-                                    draggable={false}
-                                    onDragEnter={(e) => {
-                                      // CRITICAL: Always prevent default to be a valid drop target
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      
-                                      // Force visual feedback
-                                      e.currentTarget.classList.add('drop-target');
-                                      e.currentTarget.classList.add('cell-highlight');
-                                      
-                                      console.log(`✅ CELL READY FOR DROP: Bay ${bay.id}, Row 0, Date ${format(slot.date, 'yyyy-MM-dd')}`);
-                                    }}
                                     onDragOver={(e) => {
-                                      // CRITICAL: Always prevent default to allow dropping
-                                      e.preventDefault();
+                                      // Prevent event from propagating to parent elements
                                       e.stopPropagation();
                                       
-                                      // Force the cursor to show "move" and never "no-drop"
-                                      if (e.dataTransfer) {
-                                        e.dataTransfer.dropEffect = 'move';
-                                      }
-                                      
-                                      // Store the row index and bay id in body attributes
+                                      // Store the row index and bay id in body attributes for the drop handler
                                       document.body.setAttribute('data-current-drag-row', '0');
                                       document.body.setAttribute('data-current-drag-bay', bay.id.toString());
                                       
-                                      // Force the element to accept drops
+                                      // Make sure the element has the correct bay ID
                                       if (e.currentTarget instanceof HTMLElement) {
                                         e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
-                                        e.currentTarget.setAttribute('data-accept-drops', 'true');
-                                        e.currentTarget.setAttribute('data-overlap-allowed', 'true');
                                       }
                                       
-                                      // Visual indication
+                                      // Add highlight classes
                                       e.currentTarget.classList.add('cell-highlight');
-                                      e.currentTarget.classList.add('drop-target');
                                       
-                                      // Apply handler
                                       handleSlotDragOver(e, bay.id, 0, slot.date);
                                     }}
                                     onDragLeave={(e) => {
@@ -2005,17 +1659,7 @@ export default function ResizableBaySchedule({
                                       e.currentTarget.classList.remove('cell-highlight');
                                     }}
                                     onDrop={(e) => {
-                                      // CRITICAL: Always prevent default to accept the drop
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      
-                                      // Clear any visual indication
-                                      e.currentTarget.classList.remove('cell-highlight');
-                                      e.currentTarget.classList.remove('drop-target');
-                                      
-                                      console.log(`🎯 DROP HAPPENING NOW: Bay ${bay.id}, Row 0, Date ${format(slot.date, 'yyyy-MM-dd')}`);
-                                      
-                                      // Call the handler with EXACT placement info
+                                      // Use the data stored on the element for drop handling
                                       handleSlotDrop(e, bay.id, 0, slot.date);
                                     }}
                                   />
@@ -2056,10 +1700,10 @@ export default function ResizableBaySchedule({
                               style={{
                                 left: `${bar.left}px`,
                                 width: `${bar.width}px`,
-                                height: '160%', // Double the height of project bars
+                                height: '90%',
                                 backgroundColor: `${bar.color}90`,
                                 // Adjust vertical positioning for row layout
-                                top: '-30%', // Shift up slightly to center better
+                                top: '5%',
                                 // Set data attributes for department phase percentages 
                                 // Store important info for drag/resize operations
                               }}
@@ -2079,42 +1723,12 @@ export default function ResizableBaySchedule({
                             >
                               {/* Department phases visualization */}
                               <div className="phases-container flex h-full w-full absolute top-0 left-0 overflow-hidden rounded">
-                                {bar.fabWidth && bar.fabWidth > 0 && (
-                                  <div className="fab-phase bg-blue-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.fabWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">FAB</span>
-                                  </div>
-                                )}
-                                {bar.paintWidth && bar.paintWidth > 0 && (
-                                  <div className="paint-phase bg-green-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.paintWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">PAINT</span>
-                                  </div>
-                                )}
-                                {bar.productionWidth && bar.productionWidth > 0 && (
-                                  <div className="production-phase bg-yellow-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.productionWidth}px` }}>
-                                    <span className="text-xs font-bold text-gray-800 text-center">PROD</span>
-                                  </div>
-                                )}
-                                {bar.itWidth && bar.itWidth > 0 && (
-                                  <div className="it-phase bg-purple-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.itWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">IT</span>
-                                  </div>
-                                )}
-                                {bar.ntcWidth && bar.ntcWidth > 0 && (
-                                  <div className="ntc-phase bg-cyan-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.ntcWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">NTC</span>
-                                  </div>
-                                )}
-                                {bar.qcWidth && bar.qcWidth > 0 && (
-                                  <div className="qc-phase bg-pink-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.qcWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">QC</span>
-                                  </div>
-                                )}
+                                <div className="fab-phase bg-blue-700 h-full" style={{ width: `${bar.fabWidth}px` }}></div>
+                                <div className="paint-phase bg-green-700 h-full" style={{ width: `${bar.paintWidth}px` }}></div>
+                                <div className="production-phase bg-yellow-700 h-full" style={{ width: `${bar.productionWidth}px` }}></div>
+                                <div className="it-phase bg-purple-700 h-full" style={{ width: `${bar.itWidth}px` }}></div>
+                                <div className="ntc-phase bg-cyan-700 h-full" style={{ width: `${bar.ntcWidth}px` }}></div>
+                                <div className="qc-phase bg-pink-700 h-full" style={{ width: `${bar.qcWidth}px` }}></div>
                               </div>
                               
                               {/* Project information overlay */}
@@ -2450,39 +2064,6 @@ export default function ResizableBaySchedule({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Team Management Dialog */}
-      <TeamManagementDialog 
-        open={teamDialogOpen}
-        onOpenChange={setTeamDialogOpen}
-        teamName={selectedTeam}
-        bays={bays}
-        onTeamUpdate={async (teamName, assemblyStaff, electricalStaff, hoursPerWeek) => {
-          // After team capacity is updated, refresh the schedule data
-          toast({
-            title: "Team capacity updated",
-            description: `Team ${teamName} capacity has been updated with ${assemblyStaff} assembly and ${electricalStaff} electrical staff.`
-          });
-          
-          // Refresh schedule bars to reflect the new capacity settings
-          // This would trigger a re-calculation of phase widths based on the new capacity
-          const updatedScheduleBars = [...scheduleBars].map(bar => {
-            // Update production phase width calculations for affected bars
-            const bayBelongsToUpdatedTeam = bays.some(b => b.team === teamName && b.id === bar.bayId);
-            if (bayBelongsToUpdatedTeam) {
-              // Recalculate production phase width based on new capacity
-              return {
-                ...bar,
-                // Flag for re-rendering and width recalculation
-                normalizeFactor: Math.random()
-              };
-            }
-            return bar;
-          });
-          
-          setScheduleBars(updatedScheduleBars);
-        }}
-      />
       </div>
     </div>
   );

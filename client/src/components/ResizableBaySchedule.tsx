@@ -373,7 +373,10 @@ export default function ResizableBaySchedule({
   const [scheduleDuration, setScheduleDuration] = useState(4); // in weeks
   const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // slotWidth now comes from generateTimeSlots based on view mode
+  // Get time slots and slot width based on view mode 
+  const { slots, slotWidth } = useMemo(() => {
+    return generateTimeSlots(dateRange, viewMode);
+  }, [dateRange, viewMode]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [showAddMultipleWarning, setShowAddMultipleWarning] = useState(false);
