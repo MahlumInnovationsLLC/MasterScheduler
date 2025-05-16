@@ -570,10 +570,10 @@ export default function ResizableBaySchedule({
       // Calculate position using the fixed reference date
       const daysFromStart = differenceInDays(startDate, calendarStartDate);
       
-      // DIRECT FIX: Apply a negative 28-day offset to fix the 4-week discrepancy
-      // This will shift all projects 4 weeks earlier on the timeline
-      // so a project scheduled for 5/5/2025 will appear in the 5/5/2025 week instead of 6/2/2025
-      const fixedDaysFromStart = daysFromStart - 28; // Exactly 4 weeks (28 days) earlier
+      // MAJOR CORRECTION: We need to apply a +56 day offset (8 weeks) based on the new screenshot
+      // This will shift all projects 8 weeks later on the timeline
+      // A project for 2/3/2025 is showing in 12/9/2024, which is 8 weeks (56 days) too early
+      const fixedDaysFromStart = daysFromStart + 56; // Add 8 weeks offset to correct position
       const left = fixedDaysFromStart * pixelsPerDay;
       
       console.log(`Schedule ${schedule.id} position fix:`, {
