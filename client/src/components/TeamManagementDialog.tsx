@@ -56,27 +56,66 @@ export function TeamManagementDialog({
       // Set team name for the dialog
       setNewTeamName(actualTeamName);
       
-      // Get team bays either by ID (if we have specific IDs) or by name
-      let teamBays = [];
-      if (bayIds.length > 0) {
-        // Filter to only the specific bays we want to edit
-        teamBays = bays.filter(bay => bayIds.includes(bay.id));
-      } else {
-        // Fallback to the old behavior if we don't have specific bay IDs
-        teamBays = bays.filter(bay => bay.team === actualTeamName);
-      }
+      // Always fetch the latest data from the API when dialog opens
+      const fetchLatestBays = async () => {
+        try {
+          console.log("Fetching latest bay data for team dialog");
+          const response = await fetch('/api/manufacturing-bays');
+          if (response.ok) {
+            const latestBays = await response.json();
+            
+            // Get team bays either by ID (if we have specific IDs) or by name
+            let teamBays = [];
+            if (bayIds.length > 0) {
+              // Filter to only the specific bays we want to edit
+              teamBays = latestBays.filter(bay => bayIds.includes(bay.id));
+            } else {
+              // Fallback to the old behavior if we don't have specific bay IDs
+              teamBays = latestBays.filter(bay => bay.team === actualTeamName);
+            }
+            
+            if (teamBays.length > 0) {
+              const firstBay = teamBays[0];
+              console.log("Found latest bay data:", firstBay);
+              setDescription(firstBay.description || "");
+              setStatus(firstBay.status || "active");
+              setLocation(firstBay.location || "");
+              setAssemblyStaff(firstBay.assemblyStaffCount || 2);
+              setElectricalStaff(firstBay.electricalStaffCount || 1);
+              setHoursPerWeek(firstBay.hoursPerPersonPerWeek || 29);
+            } else {
+              console.log("No team bays found, using fallback data");
+              // Fallback if no bays found
+              setDescription("");
+              setStatus("active");
+              setLocation("");
+              setAssemblyStaff(2);
+              setElectricalStaff(1);
+              setHoursPerWeek(29);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching latest bay data:", error);
+          // If API fetch fails, use the provided bay data
+          const teamBays = bayIds.length > 0 
+            ? bays.filter(bay => bayIds.includes(bay.id))
+            : bays.filter(bay => bay.team === actualTeamName);
+          
+          if (teamBays.length > 0) {
+            const firstBay = teamBays[0];
+            setDescription(firstBay.description || "");
+            setStatus(firstBay.status || "active");
+            setLocation(firstBay.location || "");
+            setAssemblyStaff(firstBay.assemblyStaffCount || 2);
+            setElectricalStaff(firstBay.electricalStaffCount || 1);
+            setHoursPerWeek(firstBay.hoursPerPersonPerWeek || 29);
+          }
+        }
+      };
       
-      if (teamBays.length > 0) {
-        const firstBay = teamBays[0];
-        setDescription(firstBay.description || "");
-        setStatus(firstBay.status || "active");
-        setLocation(firstBay.location || "");
-        setAssemblyStaff(firstBay.assemblyStaffCount || 2);
-        setElectricalStaff(firstBay.electricalStaffCount || 1);
-        setHoursPerWeek(firstBay.hoursPerPersonPerWeek || 29);
-      }
+      fetchLatestBays();
     }
-  }, [teamName, bays, open]);
+  }, [teamName, open]); // Removed bays from dependencies to prevent stale data
 
   const handleSave = async () => {
     try {
