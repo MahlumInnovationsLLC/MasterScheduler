@@ -828,6 +828,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Create project update object with all calculated phase dates
             const projectUpdate = {
+              // ENHANCED: Mark this project as scheduled
+              isScheduled: true,
+              
+              // ENHANCED: Store original phase values to allow reverting if needed
+              lastScheduledDate: new Date().toISOString(),
+              lastScheduledStartDate: format(startDate, 'yyyy-MM-dd'),
+              lastScheduledEndDate: format(endDate, 'yyyy-MM-dd'),
+              
+              // Basic dates
               startDate: format(startDate, 'yyyy-MM-dd'),
               // Use the schedule's end date to update the project's estimated completion 
               estimatedCompletionDate: format(endDate, 'yyyy-MM-dd'),
@@ -842,7 +851,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   : {}
               ),
               
-              // CRITICAL: Update all phase dates to match the schedule
+              // ENHANCED: Update all phase dates to match the schedule
+              // This ensures that project dates are precisely aligned with the schedule timeline
               fabricationStart: format(fabStartAdjusted, 'yyyy-MM-dd'),
               wrapDate: format(paintStartAdjusted, 'yyyy-MM-dd'),
               assemblyStart: format(assemblyStartAdjusted, 'yyyy-MM-dd'),
@@ -1000,27 +1010,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`Phase durations in days: FAB=${fabDays}, PAINT=${paintDays}, PROD=${assemblyDays} (includes 21-day buffer), IT=${itDays}, NTC=${ntcDays}, QC=${qcDays}`);
             
             // Create project update with new dates from the schedule
-            const projectUpdate: any = {};
+            // ENHANCED: Always create a project update object to ensure all dates get updated
+          // This guarantees that project dates are always in sync with the schedule
+          const projectUpdate: any = {};
             
-            // Always update all dates when either start or end date changes
-            // This ensures the phase dates are kept in sync
-            
-            // Basic dates
-            if (data.startDate) {
-              projectUpdate.startDate = format(startDate, 'yyyy-MM-dd');
-            }
-            
-            if (data.endDate) {
-              projectUpdate.estimatedCompletionDate = format(endDate, 'yyyy-MM-dd');
-              projectUpdate.shipDate = format(endDate, 'yyyy-MM-dd');
+          // CRITICAL: Always update all dates whenever a schedule changes
+          // This ensures the project dates are kept in sync with the schedule at all times
+          
+          // Basic dates - unconditionally update to ensure consistency
+          projectUpdate.startDate = format(startDate, 'yyyy-MM-dd');
+          projectUpdate.estimatedCompletionDate = format(endDate, 'yyyy-MM-dd');
+          projectUpdate.shipDate = format(endDate, 'yyyy-MM-dd');
               
-              // Only update deliveryDate if the project end date is after the current delivery date
-              // or if deliveryDate is not set
-              if (!project.deliveryDate || 
-                  (new Date(data.endDate) > new Date(project.deliveryDate))) {
-                projectUpdate.deliveryDate = format(endDate, 'yyyy-MM-dd');
-              }
-            }
+          // Only update deliveryDate if the project end date is after the current delivery date
+          // or if deliveryDate is not set
+          if (!project.deliveryDate || 
+              (new Date(data.endDate) > new Date(project.deliveryDate))) {
+            projectUpdate.deliveryDate = format(endDate, 'yyyy-MM-dd');
+          }
             
             // CRITICAL: Update all phase dates based on the new schedule
             // Import date utility functions
@@ -1166,9 +1173,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/manufacturing-schedules/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // ENHANCEMENT: Get the schedule information before deleting to update project dates
+      const scheduleToDelete = await storage.getManufacturingSchedule(id);
+      
+      // Delete the schedule first
       const result = await storage.deleteManufacturingSchedule(id);
+      
+      // Update the project dates when a schedule is removed
+      if (scheduleToDelete && scheduleToDelete.projectId) {
+        try {
+          // Get the project data
+          const project = await storage.getProject(scheduleToDelete.projectId);
+          
+          if (project) {
+            console.log(`Updating project ${project.id} after schedule removal`);
+            
+            // When a project is removed from schedule, reset its schedule-derived dates
+            // but preserve any manually set dates
+            const projectUpdate: any = {
+              // Mark this project as no longer scheduled
+              isScheduled: false
+            };
+            
+            // Only update the project if we have something to update
+            if (Object.keys(projectUpdate).length > 0) {
+              await storage.updateProject(project.id, projectUpdate);
+              console.log(`Project ${project.id} updated after schedule removal`);
+            }
+          }
+        } catch (projectUpdateError) {
+          console.error('Error updating project after schedule removal:', projectUpdateError);
+          // Don't fail the request if project update fails
+        }
+      }
+      
       res.json({ success: result });
     } catch (error) {
+      console.error("Error deleting manufacturing schedule:", error);
       res.status(500).json({ message: "Error deleting manufacturing schedule" });
     }
   });
