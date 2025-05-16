@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import MultiRowBayContent from './MultiRowBayContent';
+import { CollapsibleSidebar } from './CollapsibleSidebar';
 import { 
   format, 
   addDays, 
@@ -1398,32 +1399,7 @@ export default function ResizableBaySchedule({
       </div>
       
       <div className="flex flex-row flex-1 h-full">
-        {/* Unassigned Projects Sidebar - Now Collapsible */}
-        <div 
-          className={`unassigned-projects-sidebar border-r border-gray-700 flex-shrink-0 overflow-y-auto bg-gray-900 transition-all duration-300 ${sidebarCollapsed ? 'w-12' : 'w-64'}`}
-        >
-          <div className="flex items-center justify-between p-4">
-            {!sidebarCollapsed && <h3 className="font-bold text-white">Unassigned Projects</h3>}
-            <button 
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-1 rounded-full bg-gray-800 hover:bg-gray-700 text-white"
-            >
-              {sidebarCollapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
-            </button>
-          </div>
-          
-          {!sidebarCollapsed && (
-            <div className="p-4 pt-0">
-              {unassignedProjects.length === 0 ? (
-                <div className="text-sm text-gray-400 italic">No unassigned projects</div>
-              ) : (
-                <div className="space-y-3">
-                  {unassignedProjects.map(project => (
-                    <div 
-                      key={`unassigned-${project.id}`}
-                      className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
-                      draggable
-                      onDragStart={(e) => {
+        <CollapsibleSidebar unassignedProjects={unassignedProjects} />
                     // Create dummy schedule to use the existing drag logic
                     const dummySchedule = {
                       id: -project.id, // Negative ID to mark as new
