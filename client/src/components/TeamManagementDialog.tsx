@@ -95,7 +95,12 @@ export function TeamManagementDialog({
         description: `Team ${teamNameChanged ? `renamed from ${teamName} to ${newTeamName}` : newTeamName} now has ${assemblyStaff} assembly and ${electricalStaff} electrical staff at ${hoursPerWeek} hours per week (${weeklyCapacity} total hours/week).`,
       });
       
+      // Close the dialog
       onOpenChange(false);
+      
+      // Force page reload to ensure all data is refreshed
+      window.location.reload();
+      
     } catch (error) {
       console.error('Error updating team capacity:', error);
       toast({

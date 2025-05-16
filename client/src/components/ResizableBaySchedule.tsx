@@ -528,20 +528,53 @@ export default function ResizableBaySchedule({
   // Handler function for when team data is updated from TeamManagementDialog
   const handleTeamUpdate = async (teamName: string, newTeamName: string, description: string, assemblyStaff: number, electricalStaff: number, hoursPerWeek: number) => {
     try {
-      // Update the team description in our local state
-      setTeamDescriptions(prev => {
-        const newDescriptions = {...prev};
-        // Set the description for the team
-        newDescriptions[newTeamName] = description;
-        // If the team name changed, remove the old one
-        if (teamName !== newTeamName && teamName in newDescriptions) {
-          delete newDescriptions[teamName];
-        }
-        return newDescriptions;
-      });
+      console.log(`Updating team from "${teamName}" to "${newTeamName}" with description: "${description}"`);
       
-      // Force a refresh of the UI
-      setForceUpdate(Date.now());
+      // Update team descriptions immediately in local state
+      const newDescriptions = {...teamDescriptions};
+      newDescriptions[newTeamName] = description; 
+      
+      // If team name changed, remove old entry
+      if (teamName !== newTeamName && teamName in newDescriptions) {
+        delete newDescriptions[teamName];
+      }
+      
+      // Update state with new values
+      setTeamDescriptions(newDescriptions);
+      
+      // Reload fresh data from API
+      try {
+        const response = await fetch('/api/manufacturing-bays');
+        if (response.ok) {
+          const freshBays = await response.json();
+          
+          // Compare and update bays if needed
+          let bayDataChanged = false;
+          for (const bay of freshBays) {
+            if (bay.team === newTeamName && !bays.some(b => b.id === bay.id && b.team === newTeamName)) {
+              bayDataChanged = true;
+              break;
+            }
+          }
+          
+          if (bayDataChanged) {
+            // If bays data has changed, update the state
+            console.log("Updating bays data with fresh API data");
+            // This is a direct replacement to ensure we get the latest data
+            apiRequest('/api/manufacturing-bays', {
+              onSuccess: (data) => {
+                // Force a refresh to show updated data
+                window.location.reload();
+              }
+            });
+          } else {
+            // Just force a UI update
+            setForceUpdate(Date.now() + Math.random());
+          }
+        }
+      } catch (err) {
+        console.error("Error refreshing bay data:", err);
+      }
     } catch (error) {
       console.error('Error in handleTeamUpdate:', error);
     }
