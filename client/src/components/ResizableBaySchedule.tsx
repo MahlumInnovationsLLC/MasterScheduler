@@ -217,15 +217,18 @@ const getBayRowCount = (bayId: number, bayName: string) => {
   return 1; // Always return 1 row for the simplified single-row layout
 };
 
-// ALWAYS GENERATE TIME SLOTS THROUGH 2030 - This ensures all grid cells show properly
+// FIXED APPROACH - We need a consistent timeline that doesn't suddenly change dates
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
   const slots: TimeSlot[] = [];
   
-  // CRITICAL FIX: Start from January 1, 2025 regardless of date range passed
-  // And ensure we're starting on a Monday for week view
-  let currentDate = new Date(2025, 0, 1); // January 1, 2025
+  // CRITICAL FIX: Use a fixed start date of January 1, 2024 to ensure consistency
+  // This prevents the date grid from being calculated differently each time
+  let currentDate = new Date(2024, 0, 1); // January 1, 2024
   
-  // Adjust to start on the Monday of the week containing January 1
+  // Ensure time component is zeroed out to avoid timezone issues
+  currentDate.setHours(0, 0, 0, 0);
+  
+  // For week view, ensure we start on a Monday
   if (viewMode === 'week') {
     const day = currentDate.getDay();
     if (day !== 1) { // If not Monday (1)
@@ -234,10 +237,12 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
     }
   }
   
-  // CRITICAL FIX: Force end date to be Dec 31, 2030 regardless of what date range is passed in
+  // Use a fixed end date of December 31, 2030
+  // This creates a stable timeline that won't shift dates around
   const forcedEndDate = new Date(2030, 11, 31); // December 31, 2030
   
-  console.log(`⏱️ Generating time slots from ${format(currentDate, 'yyyy-MM-dd')} to ${format(forcedEndDate, 'yyyy-MM-dd')}`);
+  console.log(`⏱️ FIXED DATE GRID: Using ${format(currentDate, 'yyyy-MM-dd')} to ${format(forcedEndDate, 'yyyy-MM-dd')}`);
+  console.log(`This ensures schedules appear at their exact dates without shifting`);
   
   // Loop until we reach the forced 2030 end date
   while (currentDate <= forcedEndDate) {
