@@ -2215,10 +2215,102 @@ export default function ResizableBaySchedule({
                         backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
                       }}
                     >
-                      {/* Bay Label removed as requested - Now there's no white box */}
+                      {/* Bay Label - ENHANCED sticky positioning for perfect alignment with sidebar */}
+                      <div 
+                        className="bay-label h-full bg-gray-100 border-r flex flex-col justify-between py-2 px-2 z-40"
+                        style={{ 
+                          position: 'sticky',
+                          left: 0,
+                          width: '240px',
+                          boxShadow: '4px 0 6px rgba(0,0,0,0.1)'
+                        }}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium text-sm">{bay.name}</div>
+                            {/* Info bubble moved to the right of bay name as requested */}
+                            <div className="bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-2">
+                              {baySchedules.length}
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500">Bay #{bay.bayNumber}</div>
+                          
+                          {bay.status === 'maintenance' && (
+                            <Badge variant="destructive" className="mt-1 text-[10px]">Maintenance</Badge>
+                          )}
+                          
+                          {/* Show team info if available */}
+                          {bay.team && (
+                            <div className="text-xs text-primary mt-1">
+                              Team: {bay.team}
+                            </div>
+                          )}
+                          
+                          {/* Edit, delete and team management buttons */}
+                          <div className="bay-actions mt-2 flex space-x-1">
+                            <button 
+                              className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-700"
+                              onClick={() => {
+                                setEditingBay({...bay});
+                                setNewBayDialog(true);
+                              }}
+                            >
+                              <PencilIcon className="h-3 w-3" />
+                            </button>
+                            
+                            {/* Team Management Button */}
+                            {bay.team && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700 flex items-center"
+                                      onClick={() => {
+                                        setSelectedTeam(bay.team);
+                                        setTeamDialogOpen(true);
+                                      }}
+                                    >
+                                      <Wrench className="h-3 w-3 mr-1" />
+                                      <span className="text-xs">{bay.team}</span>
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Manage {bay.team} team settings</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Bay status and capacity information - IMPROVED CONTRAST */}
+                        <div className="flex flex-col gap-1 mt-auto">
+                          {/* Bay status indicator - Improved contrast */}
+                          <div className={`status-badge flex items-center justify-center rounded-full py-1 px-2 text-xs ${
+                            baySchedules.length > 0 ? 'bg-amber-200 text-amber-900' : 'bg-green-200 text-green-900'
+                          }`}>
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            {baySchedules.length > 0 ? 'Near Capacity' : 'Available'}
+                          </div>
+                          
+                          {/* Project count - Improved contrast */}
+                          <div className="project-count bg-gray-200 text-gray-900 rounded-full py-1 px-2 text-xs flex items-center justify-center">
+                            <Users className="h-3 w-3 mr-1" />
+                            {baySchedules.length} {baySchedules.length === 1 ? 'project' : 'projects'}
+                          </div>
+                          
+                          {/* Team capacity information - Improved contrast */}
+                          {bay.team && (
+                            <div className="team-capacity bg-blue-200 text-blue-900 rounded-full py-1 px-2 text-xs flex items-center justify-center">
+                              <Users className="h-3 w-3 mr-1" />
+                              Team: {((bay.assemblyStaffCount || 2) + (bay.electricalStaffCount || 1)) * (bay.hoursPerPersonPerWeek || 29)} hrs/wk
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       
-                      {/* Bay content area - FULL WIDTH to extend to end of timeline (2030) - Adjusted since sidebar was removed */}
-                      <div className="bay-content absolute left-0 top-0 bottom-0"
+                      {/* Bay content area - FULL WIDTH to extend to end of timeline (2030) */}
+                      <div className="bay-content absolute left-[240px] top-0 bottom-0"
                         style={{ 
                           width: `${Math.max(8000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
                         }}>
