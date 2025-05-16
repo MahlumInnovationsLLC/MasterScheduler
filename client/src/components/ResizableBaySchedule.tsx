@@ -1663,10 +1663,10 @@ export default function ResizableBaySchedule({
       <div className="flex flex-row flex-1 h-full">
         {/* Unassigned Projects Sidebar - Collapsible with Drop Zone */}
         <div 
-          className={`unassigned-projects-sidebar border-r border-gray-700 flex-shrink-0 bg-gray-900 transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
-          style={{ transitionProperty: 'width, padding' }}
+          className={`unassigned-projects-sidebar border-r border-gray-700 flex-shrink-0 bg-gray-900 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
+          style={{ transitionProperty: 'width, padding', height: 'calc(100vh - 64px)' }}
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-shrink-0">
             <h3 className={`font-bold text-white ${!sidebarOpen ? 'hidden' : 'block'}`}>Unassigned Projects</h3>
             <button 
               onClick={() => {
@@ -1683,10 +1683,10 @@ export default function ResizableBaySchedule({
           </div>
           
           {sidebarOpen && (
-            <div className="flex flex-col h-[calc(100vh-120px)]">
-              {/* Drop Zone for unassigning projects */}
+            <div className="flex flex-col flex-grow overflow-hidden">
+              {/* Drop Zone for unassigning projects - fixed height, doesn't scroll */}
               <div 
-                className="unassigned-drop-container min-h-[100px] rounded-md border-2 border-dashed border-gray-700 mb-4 p-2 flex-shrink-0" 
+                className="unassigned-drop-container min-h-[80px] rounded-md border-2 border-dashed border-gray-700 mb-4 p-2 flex-shrink-0" 
                 onDragOver={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -1732,17 +1732,17 @@ export default function ResizableBaySchedule({
                   }
                 }}
               >
-                <div className="text-sm text-gray-400 italic p-4 text-center flex items-center justify-center">
+                <div className="text-sm text-gray-400 italic p-2 text-center flex items-center justify-center">
                   Drop projects here to unassign them
                 </div>
               </div>
               
-              {/* Scrollable Unassigned Projects List */}
-              <div className="flex-grow overflow-y-auto pr-1 scrollable-projects">
+              {/* Scrollable Unassigned Projects List - takes remaining space and scrolls */}
+              <div className="overflow-y-auto flex-grow" style={{ maxHeight: 'calc(100% - 100px)' }}>
                 {unassignedProjects.length === 0 ? (
                   <div className="text-sm text-gray-400 italic">No unassigned projects</div>
                 ) : (
-                  <div className="space-y-3 pb-2">
+                  <div className="space-y-3 pb-2 pr-1">
                     {unassignedProjects.map(project => (
                       <div 
                         key={`unassigned-${project.id}`}
