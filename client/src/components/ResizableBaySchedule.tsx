@@ -1079,6 +1079,9 @@ export default function ResizableBaySchedule({
     }
     
     try {
+      console.log(`📅 CREATING NEW SCHEDULE: Project ID ${currentProject}, Bay ID ${targetBay}`);
+      console.log(`📅 START DATE: ${format(targetStartDate, 'yyyy-MM-dd')}, END DATE: ${format(targetEndDate, 'yyyy-MM-dd')}`);
+      
       // Format dates for the API
       const formattedStartDate = format(targetStartDate, 'yyyy-MM-dd');
       const formattedEndDate = format(targetEndDate, 'yyyy-MM-dd');
@@ -1086,8 +1089,17 @@ export default function ResizableBaySchedule({
       // Create the schedule with default row 0
       const rowIndex = 0;
       
+      console.log(`📊 SCHEDULE CREATION PARAMETERS: 
+        Project ID: ${currentProject}
+        Bay ID: ${targetBay}
+        Row Index: ${rowIndex}
+        Start Date: ${formattedStartDate}
+        End Date: ${formattedEndDate}
+        Hours: 40 (default)
+      `);
+      
       // Create the schedule
-      await onScheduleCreate(
+      const result = await onScheduleCreate(
         currentProject,
         targetBay,
         formattedStartDate,
@@ -1095,6 +1107,8 @@ export default function ResizableBaySchedule({
         40, // Default to 40 hours
         rowIndex
       );
+      
+      console.log(`✅ SCHEDULE CREATED SUCCESSFULLY:`, result);
       
       // Show success toast
       toast({
@@ -1109,7 +1123,7 @@ export default function ResizableBaySchedule({
       setTargetStartDate(null);
       setTargetEndDate(null);
     } catch (error) {
-      console.error('Error creating schedule:', error);
+      console.error('❌ ERROR CREATING SCHEDULE:', error);
       toast({
         title: "Creation failed",
         description: "There was an error creating the schedule. Please try again.",
