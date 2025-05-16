@@ -518,23 +518,33 @@ export default function ResizableBaySchedule({
         return null;
       }
       
-      // Handle date parsing to ensure correct display in UI
-      // Fix date parsing to make sure schedules appear in the exact dates you set
+      // IMPORTANT FIX: Explicitly handle each date format possibility
+      // This ensures schedules appear in their correct position on the timeline
       let startDate: Date, endDate: Date;
       
+      // Start date handling
       if (typeof schedule.startDate === 'string') {
-        // Extract just the date part to avoid timezone issues
-        const datePart = schedule.startDate.split('T')[0];
-        startDate = parseISO(datePart);
+        // For string dates, parse without timezone influence
+        startDate = parseISO(schedule.startDate.split('T')[0]);
+      } else if (schedule.startDate instanceof Date) {
+        // For Date objects, create a new date to avoid reference issues
+        startDate = new Date(schedule.startDate.getFullYear(), schedule.startDate.getMonth(), schedule.startDate.getDate());
       } else {
-        startDate = new Date(schedule.startDate);
+        // Fallback for any other case
+        console.warn(`Unusual date format for schedule ${schedule.id}, using current date as fallback`);
+        startDate = new Date();
       }
       
+      // End date handling with the same careful approach
       if (typeof schedule.endDate === 'string') {
-        const datePart = schedule.endDate.split('T')[0];
-        endDate = parseISO(datePart);
+        endDate = parseISO(schedule.endDate.split('T')[0]);
+      } else if (schedule.endDate instanceof Date) {
+        endDate = new Date(schedule.endDate.getFullYear(), schedule.endDate.getMonth(), schedule.endDate.getDate());
       } else {
-        endDate = new Date(schedule.endDate);
+        // Fallback case
+        console.warn(`Unusual end date format for schedule ${schedule.id}, using start date + 30 days as fallback`);
+        endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 30);
       }
       
       console.log(`Parsing schedule ${schedule.id} dates (fixed version):`, {
