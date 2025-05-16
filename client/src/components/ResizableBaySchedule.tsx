@@ -210,54 +210,81 @@ const getBayRowCount = (bayId: number, bayName: string) => {
 
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
   const slots: TimeSlot[] = [];
+  
+  // Define slot width based on view mode
+  let slotWidth = 35; // default for week view
+  
+  // Adjust slot width based on view mode
+  switch (viewMode) {
+    case 'day':
+      slotWidth = 25; // narrower for day view (more granular)
+      break;
+    case 'week':
+      slotWidth = 35; // standard width for week view
+      break;
+    case 'month':
+      slotWidth = 90; // wider for month view
+      break;
+    case 'quarter':
+      slotWidth = 140; // very wide for quarter view
+      break;
+  }
+  
+  // Use the provided date range consistently across all view modes
   let currentDate = new Date(dateRange.start);
   
+  // Important: Always normalize the date to midnight
+  currentDate.setHours(0, 0, 0, 0);
+  
+  console.log(`VIEW MODE: ${viewMode} - Using timeline from ${format(dateRange.start, 'yyyy-MM-dd')} to ${format(dateRange.end, 'yyyy-MM-dd')} with ${slotWidth}px slots`);
+  
+  // Generate slots based on view mode
   while (currentDate <= dateRange.end) {
     const isStartOfMonth = currentDate.getDate() === 1;
     const isStartOfWeek = currentDate.getDay() === 1; // Monday as start of week
     const isCurrentDateBusinessDay = isBusinessDay(currentDate);
     
+    // Create slot with formatted dates appropriate for the view mode
     slots.push({
       date: new Date(currentDate),
       isStartOfMonth,
       isStartOfWeek,
       isBusinessDay: isCurrentDateBusinessDay,
-      monthName: isStartOfMonth ? format(currentDate, 'MMMM') : undefined,
+      formattedStartDate: format(currentDate, viewMode === 'day' ? 'MMM d' : 
+                                            viewMode === 'week' ? 'MMM d' : 
+                                            viewMode === 'month' ? 'MMM yyyy' : 
+                                            'Q[Q] yyyy'),
+      monthName: isStartOfMonth ? format(currentDate, viewMode === 'month' || viewMode === 'quarter' ? 'MMMM yyyy' : 'MMMM') : undefined,
       weekNumber: isStartOfWeek ? Math.ceil(differenceInDays(currentDate, new Date(currentDate.getFullYear(), 0, 1)) / 7) : undefined
     });
     
-    if (viewMode === 'day') {
-      currentDate = addDays(currentDate, 1);
-    } else if (viewMode === 'week') {
-      if (isStartOfWeek || slots.length === 0) {
+    // Advance date based on view mode
+    switch (viewMode) {
+      case 'day':
         currentDate = addDays(currentDate, 1);
-      } else {
-        // Move to next Monday
-        const daysUntilMonday = (8 - currentDate.getDay()) % 7;
-        currentDate = addDays(currentDate, daysUntilMonday > 0 ? daysUntilMonday : 7);
-      }
-    } else if (viewMode === 'month') {
-      if (isStartOfMonth || slots.length === 0) {
-        currentDate = addDays(currentDate, 1);
-      } else {
+        break;
+        
+      case 'week':
+        // Always move forward by exactly 7 days for consistency
+        currentDate = addDays(currentDate, 7);
+        break;
+        
+      case 'month':
         // Move to first day of next month
         currentDate = addMonths(currentDate, 1);
         currentDate.setDate(1);
-      }
-    } else if (viewMode === 'quarter') {
-      if (isStartOfMonth && [0, 3, 6, 9].includes(currentDate.getMonth()) || slots.length === 0) {
-        currentDate = addMonths(currentDate, 1);
-      } else {
-        // Move to first month of next quarter
-        const currentMonth = currentDate.getMonth();
-        const monthsToNextQuarter = 3 - (currentMonth % 3);
-        currentDate = addMonths(currentDate, monthsToNextQuarter);
-        currentDate.setDate(1);
-      }
+        break;
+        
+      case 'quarter':
+        // Move to first day of next quarter month (Jan, Apr, Jul, Oct)
+        const nextQuarter = addMonths(currentDate, 3);
+        nextQuarter.setDate(1);
+        currentDate = nextQuarter;
+        break;
     }
   }
   
-  return slots;
+  return { slots, slotWidth };
 };
 
 // Component to display bay capacity information and status indicators
