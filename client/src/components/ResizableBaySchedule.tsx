@@ -2436,35 +2436,41 @@ export default function ResizableBaySchedule({
                                 <button 
                                   className="p-1 bg-green-700 hover:bg-green-600 rounded-full text-white flex items-center justify-center ml-1"
                                   onClick={() => {
-                                    // Get the team name
-                                    const teamName = team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`;
+                                    // Get the first team bay to copy its properties
+                                    const firstBay = team[0];
                                     
-                                    // Create a new bay for this team
+                                    // Create a row number for the new bay (in this team)
                                     const bayCount = team.length;
-                                    // Use the exact same name as the team to keep it in the same bay section
-                                    const newBayName = `${team[0].name} ${bayCount + 1}`;
+                                    
+                                    // Use a special naming convention to ensure the bay is grouped with the existing team
+                                    // The name doesn't matter much as it's only visible in admin screens
+                                    const newBayName = `${firstBay.name} ${bayCount + 1}`;
                                     
                                     // Find highest bay number
                                     const highestBayNumber = Math.max(...bays.map(b => b.bayNumber));
                                     
-                                    // Create bay
+                                    // Create bay with EXACTLY the same team name and other properties
+                                    // This ensures it's displayed in the same team group
                                     const newBay: Partial<ManufacturingBay> = {
                                       name: newBayName,
                                       bayNumber: highestBayNumber + 1,
-                                      team: teamName, // Keep the same team name to group it
-                                      description: null, // No description needed
-                                      assemblyStaffCount: team[0]?.assemblyStaffCount || 4,
-                                      electricalStaffCount: team[0]?.electricalStaffCount || 2,
-                                      hoursPerPersonPerWeek: team[0]?.hoursPerPersonPerWeek || 40
+                                      // Critical - use the EXACT same team value from the first bay
+                                      team: firstBay.team,
+                                      // Copy other properties exactly as they are in the first bay
+                                      description: firstBay.description,
+                                      assemblyStaffCount: firstBay.assemblyStaffCount,
+                                      electricalStaffCount: firstBay.electricalStaffCount,
+                                      hoursPerPersonPerWeek: firstBay.hoursPerPersonPerWeek
                                     };
                                     
                                     // Call the onBayCreate function
                                     if (onBayCreate) {
                                       onBayCreate(newBay);
                                       
+                                      // Success notification
                                       toast({
-                                        title: "New bay added",
-                                        description: `Added ${newBayName} to ${teamName}`
+                                        title: "New bay row added",
+                                        description: `Added row to ${firstBay.team || firstBay.name}`
                                       });
                                     }
                                   }}
