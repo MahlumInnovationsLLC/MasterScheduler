@@ -747,15 +747,14 @@ export default function ResizableBaySchedule({
     // Group bays by their team property using a string key in a dictionary
     const teamMap: Record<string, ManufacturingBay[]> = {};
     
-    // ONLY include bays that have an actual team assigned from our known valid teams
+    // ONLY include bays that have an actual team assigned 
     // This completely eliminates phantom teams from the UI
-    const validTeams = ['General', 'Shultz / Mengelos']; // Only teams we know exist in the database
     const assignedTeamBays = sortedBays.filter(bay => 
       bay.team !== null && 
       bay.team !== undefined && 
       bay.team !== '' && 
-      // Only include bays whose team name is in our validTeams list
-      validTeams.includes(bay.team)
+      // Specifically filter out any bays with auto-generated "Team X:" names
+      !bay.team.match(/^Team \d+:?/)
     );
     
     // Process each bay with a valid team and group it
@@ -2424,11 +2423,10 @@ export default function ResizableBaySchedule({
           <div className="manufacturing-bays mt-2">
             {bayTeams
               .filter(team => {
-                // Only show teams from our known valid teams list
-                const validTeams = ['General', 'Shultz / Mengelos']; 
+                // Only show teams with a valid name (not auto-generated "Team X:" names)
                 const teamName = team[0]?.team;
                 if (!teamName) return false;
-                return validTeams.includes(teamName);
+                return !teamName.match(/^Team \d+:?/);
               })
               .map((team, teamIndex) => (
               <div 
