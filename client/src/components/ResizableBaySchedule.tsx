@@ -2354,30 +2354,26 @@ export default function ResizableBaySchedule({
                     <div className="flex items-center">
                       {/* Team Name with Description */}
                       <div className="flex items-center">
-                        {team[0]?.team ? (
-                          <>
-                            <span 
-                              className="font-bold text-lg bay-header-team-name" 
-                              data-team={team[0].team}
-                              data-bay-id={team.map(bay => bay.id).join(',')}
-                            >
-                              {team[0].team}
-                            </span>
-                            
-                            {/* Team Description (shown as smaller text to the right) */}
-                            <span 
-                              className="text-sm ml-2 font-light text-blue-100 italic truncate max-w-[200px] bay-header-team-description" 
-                              data-team={team[0].team}
-                              data-bay-id={team.map(bay => bay.id).join(',')}
-                            >
-                              {teamDescriptions[team[0].team] || (team[0].description || 'General Production')}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="font-bold text-lg">
-                            Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}
-                          </span>
-                        )}
+                        {/* Always show team name and description, even for static teams */}
+                        <span 
+                          className="font-bold text-lg bay-header-team-name" 
+                          data-team={team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`}
+                          data-bay-id={team.map(bay => bay.id).join(',')}
+                        >
+                          {team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`}
+                        </span>
+                        
+                        {/* Team Description (shown as smaller text to the right) */}
+                        <span 
+                          className="text-sm ml-2 font-light text-blue-100 italic truncate max-w-[200px] bay-header-team-description" 
+                          data-team={team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`}
+                          data-bay-id={team.map(bay => bay.id).join(',')}
+                        >
+                          {team[0]?.team 
+                            ? teamDescriptions[team[0].team] || (team[0].description || 'General Production')
+                            : 'Advanced Manufacturing Team'
+                          }
+                        </span>
                       </div>
                       
                       {/* Team Management Controls - Show for all team sections */}
@@ -2390,15 +2386,13 @@ export default function ResizableBaySchedule({
                                 <button 
                                   className="ml-2 p-1 bg-blue-700 hover:bg-blue-600 rounded-full text-white flex items-center justify-center"
                                   onClick={() => {
-                                    // Store the specific bay ID with the team name
-                                    const teamName = team[0].team;
+                                    // Create a team name from the display if none exists
+                                    const teamName = team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`;
                                     const teamBayIds = team.map(bay => bay.id).join(',');
                                     
-                                    if (teamName) {
-                                      // Set selected team with the specific bay IDs this team represents
-                                      setSelectedTeam(`${teamName}::${teamBayIds}`);
-                                      setTeamDialogOpen(true);
-                                    }
+                                    // Set selected team with the specific bay IDs this team represents
+                                    setSelectedTeam(`${teamName}::${teamBayIds}`);
+                                    setTeamDialogOpen(true);
                                   }}
                                 >
                                   <Wrench className="h-4 w-4" />
