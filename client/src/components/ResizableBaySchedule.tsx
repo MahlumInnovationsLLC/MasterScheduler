@@ -1492,12 +1492,15 @@ export default function ResizableBaySchedule({
                     // Force the browser to allow ANY drop target
                     e.dataTransfer.effectAllowed = 'all';
                     
+                    // Store this as plain text to avoid any formatting issues
+                    e.dataTransfer.setData('text/plain', `-${project.id}`);
+                    
                     // Force all elements to accept drops during this drag operation
                     document.body.setAttribute('data-drag-in-progress', 'true');
                     document.body.classList.add('global-drag-active');
                     
                     // Log clear information about what's being dragged
-                    console.log(`Dragging unassigned project ${project.id}: ${project.projectNumber}`);
+                    console.log(`Dragging unassigned project ${project.id}: ${project.name}`);
                     
                     // Create dummy schedule to use the existing drag logic
                     const dummySchedule = {
@@ -1510,8 +1513,7 @@ export default function ResizableBaySchedule({
                       row: 0
                     };
                     
-                    // CRITICAL FIX: Set drag data ONCE with correct formatting
-                    // This must match what the drop handlers expect
+                    // Set drag data
                     e.dataTransfer.setData('text/plain', String(dummySchedule.id));
                     e.dataTransfer.effectAllowed = 'copy';
                     
