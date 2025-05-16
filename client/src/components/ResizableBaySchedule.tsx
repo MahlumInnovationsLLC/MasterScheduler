@@ -550,7 +550,7 @@ export default function ResizableBaySchedule({
       console.log(`Deleting team "${teamName}" from bays: ${bayIds.join(', ')}`);
       
       // First, find any schedules associated with these bays
-      const affectedSchedules = allSchedules.filter(s => bayIds.includes(s.bayId));
+      const affectedSchedules = schedules.filter(s => bayIds.includes(s.bayId));
       
       // If there are schedules in these bays, handle them appropriately
       if (affectedSchedules.length > 0) {
@@ -3458,18 +3458,18 @@ export default function ResizableBaySchedule({
         }}
       />
       
-      {/* Team Delete Confirmation Dialog */}
-      <AlertDialog 
+      {/* Team Delete Confirmation Dialog - Using regular Dialog */}
+      <Dialog 
         open={teamDeleteConfirm.isOpen} 
         onOpenChange={(isOpen) => setTeamDeleteConfirm(prev => ({...prev, isOpen}))}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center">
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
               <Trash2 className="h-5 w-5 mr-2 text-red-600" />
               <span>Delete Team</span>
-            </AlertDialogTitle>
-            <AlertDialogDescription>
+            </DialogTitle>
+            <DialogDescription>
               Are you sure you want to delete the team "{teamDeleteConfirm.teamName}"?
               <div className="mt-2 mb-2 p-2 bg-amber-50 border border-amber-200 rounded-md text-amber-800">
                 <AlertTriangle className="h-4 w-4 inline-block mr-1" /> 
@@ -3478,19 +3478,25 @@ export default function ResizableBaySchedule({
               <div className="mt-1 text-sm text-gray-600">
                 The bay itself will remain, but the team information and settings will be removed.
               </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setTeamDeleteConfirm(prev => ({...prev, isOpen: false}))}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
               className="bg-red-600 hover:bg-red-700 text-white"
               onClick={() => handleTeamDelete(teamDeleteConfirm.teamName, teamDeleteConfirm.bayIds)}
             >
               Delete Team
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
   );
