@@ -2064,7 +2064,39 @@ export default function ResizableBaySchedule({
                       paddingRight: '15px'
                     }}
                   >
-                    <span className="font-bold text-lg">Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}</span>
+                    <div className="flex items-center">
+                      <span className="font-bold text-lg">
+                        Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}
+                        {team[0]?.team && (
+                          <span className="text-sm ml-1 font-normal">({team[0].team})</span>
+                        )}
+                      </span>
+                      
+                      {/* Team Management Button (gear icon only) */}
+                      {team[0]?.team && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button 
+                                className="ml-2 p-1 bg-blue-700 hover:bg-blue-600 rounded-full text-white flex items-center justify-center"
+                                onClick={() => {
+                                  const teamName = team[0].team;
+                                  if (teamName) {
+                                    setSelectedTeam(teamName);
+                                    setTeamDialogOpen(true);
+                                  }
+                                }}
+                              >
+                                <Wrench className="h-4 w-4" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Manage {team[0].team} team settings</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                     
                     {/* Info bubbles RIGHT NEXT to team name */}
                     <div className="flex items-center ml-3">
@@ -2077,32 +2109,6 @@ export default function ResizableBaySchedule({
                         <span>{Math.floor(scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length / team.length * 100)}% utilization</span>
                       </div>
                     </div>
-                    
-                    {/* Team Management Button with Team Name */}
-                    {team[0]?.team && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button 
-                              className="px-2 py-1 bg-blue-700 hover:bg-blue-600 rounded-md text-white flex items-center justify-center ml-2 text-xs"
-                              onClick={() => {
-                                const teamName = team[0].team;
-                                if (teamName) {
-                                  setSelectedTeam(teamName);
-                                  setTeamDialogOpen(true);
-                                }
-                              }}
-                            >
-                              <Wrench className="h-3 w-3 mr-1" />
-                              <span>{team[0].team}</span>
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Manage {team[0].team} team settings</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
                   </div>
                   
                   {/* This div remains empty but keeps the layout clean */}
