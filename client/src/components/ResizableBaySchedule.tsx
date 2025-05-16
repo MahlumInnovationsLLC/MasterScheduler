@@ -50,6 +50,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -454,6 +464,13 @@ export default function ResizableBaySchedule({
   const [editingTeamId, setEditingTeamId] = useState<string>('');
   const [editingTeamName, setEditingTeamName] = useState<string>('');
   
+  // State for team deletion confirmation
+  const [teamDeleteConfirm, setTeamDeleteConfirm] = useState<{isOpen: boolean; teamName: string; bayIds: number[]}>({
+    isOpen: false,
+    teamName: '',
+    bayIds: []
+  });
+  
   // Map of team descriptions (could be fetched from API in real app)
   const [teamDescriptions, setTeamDescriptions] = useState<Record<string, string>>({
     'General': 'Main production team',
@@ -522,6 +539,61 @@ export default function ResizableBaySchedule({
         title: "Error",
         description: "Failed to update team name",
         variant: "destructive"
+      });
+    }
+  };
+  
+  // Function to handle team deletion
+  const handleTeamDelete = async (teamName: string, bayIds: number[]) => {
+    try {
+      console.log(`Deleting team "${teamName}" from bays: ${bayIds.join(', ')}`);
+      
+      // Update all bays to remove this team
+      const updatePromises = bayIds.map(bayId => {
+        return fetch(`/api/manufacturing-bays/${bayId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            team: null, // Remove team association
+            description: null // Clear description
+          })
+        });
+      });
+      
+      await Promise.all(updatePromises);
+      
+      // Remove from team descriptions
+      setTeamDescriptions(prev => {
+        const newDescriptions = {...prev};
+        if (teamName in newDescriptions) {
+          delete newDescriptions[teamName];
+        }
+        return newDescriptions;
+      });
+      
+      toast({
+        title: "Team Deleted",
+        description: `Successfully removed "${teamName}" team from ${bayIds.length} bay(s)`,
+      });
+      
+      // Force refresh
+      setForceUpdate(Date.now());
+      
+    } catch (error) {
+      console.error('Error deleting team:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete team",
+        variant: "destructive"
+      });
+    } finally {
+      // Reset delete confirmation dialog
+      setTeamDeleteConfirm({
+        isOpen: false,
+        teamName: '',
+        bayIds: []
       });
     }
   };
@@ -2308,33 +2380,62 @@ export default function ResizableBaySchedule({
                         )}
                       </div>
                       
-                      {/* Team Management Button (gear icon only) */}
+                      {/* Team Management Controls */}
                       {team[0]?.team && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button 
-                                className="ml-2 p-1 bg-blue-700 hover:bg-blue-600 rounded-full text-white flex items-center justify-center"
-                                onClick={() => {
-                                  // Store the specific bay ID with the team name
-                                  const teamName = team[0].team;
-                                  const teamBayIds = team.map(bay => bay.id).join(',');
-                                  
-                                  if (teamName) {
-                                    // Set selected team with the specific bay IDs this team represents
-                                    setSelectedTeam(`${teamName}::${teamBayIds}`);
-                                    setTeamDialogOpen(true);
-                                  }
-                                }}
-                              >
-                                <Wrench className="h-4 w-4" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Edit this {team[0].team} section</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <div className="flex items-center space-x-1">
+                          {/* Edit Button (Gear Icon) */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button 
+                                  className="ml-2 p-1 bg-blue-700 hover:bg-blue-600 rounded-full text-white flex items-center justify-center"
+                                  onClick={() => {
+                                    // Store the specific bay ID with the team name
+                                    const teamName = team[0].team;
+                                    const teamBayIds = team.map(bay => bay.id).join(',');
+                                    
+                                    if (teamName) {
+                                      // Set selected team with the specific bay IDs this team represents
+                                      setSelectedTeam(`${teamName}::${teamBayIds}`);
+                                      setTeamDialogOpen(true);
+                                    }
+                                  }}
+                                >
+                                  <Wrench className="h-4 w-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit this {team[0].team} section</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          {/* Delete Button (Only for Team 5: & Team 6) */}
+                          {team[0].team.includes('Team 5: & Team 6') && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button 
+                                    className="p-1 bg-red-700 hover:bg-red-600 rounded-full text-white flex items-center justify-center"
+                                    onClick={() => {
+                                      // Set up delete confirmation with specific team info
+                                      setTeamDeleteConfirm({
+                                        isOpen: true,
+                                        teamName: team[0].team,
+                                        bayIds: team.map(bay => bay.id)
+                                      });
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete {team[0].team} team</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
                       )}
                     </div>
                     
