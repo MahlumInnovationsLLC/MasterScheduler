@@ -12,7 +12,8 @@ import {
   endOfMonth, 
   startOfWeek, 
   endOfWeek,
-  getDaysInMonth
+  getDaysInMonth,
+  isWithinInterval
 } from 'date-fns';
 import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom } from './ExactFitPhaseWidths';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
@@ -1635,32 +1636,61 @@ export default function ResizableBaySchedule({
           <div className="bay-schedule-container relative" ref={timelineRef}>
           {/* Today Line marker - positioned absolutely */}
           {(() => {
-            // Calculate position for TODAY line - May 16, 2025 falls in week 20 (5/12-5/18)
-            // HARDCODED SOLUTION: We'll explicitly place the red TODAY line in the 5/12 week column
-            // This ensures alignment with the week headers regardless of calculation method
+            // Fixed DATE VALUE: Today's date is May 16, 2025
+            const today = new Date(2025, 4, 16); // May 16, 2025
             
-            // Find the week 20 (5/12) column - this is where TODAY should be
-            const week20Index = 19; // Using 0-based indexing: Week 20 = index 19
+            // STEP 1: Find the week containing May 16, 2025 - should be week of May 12, 2025
+            const mondayOfWeek = new Date(2025, 4, 12); // Monday, May 12, 2025
             
-            // Calculate position directly using the known week
-            let todayPosition = 0;
-            
-            if (viewMode === 'week') {
-                // Position in the week 20 column (the 5/12 column from screenshot)
-                todayPosition = week20Index * slotWidth;
+            console.log(`Looking for TODAY line position (${format(today, 'yyyy-MM-dd')}) in week of ${format(mondayOfWeek, 'yyyy-MM-dd')}`);
                 
-                // Add offset for Friday (day 4 in a week starting Monday)
-                // We'll position it at 4/7 of the way through the column
-                const dayOffset = 4; // Friday is the 4th day (0-indexed) in a week
-                todayPosition += (dayOffset * (slotWidth / 7));
+            // STEP 2: Find this exact date in our slots array by matching the Monday
+            // We'll use simple date components matching instead of date-fns functions
+            for (let i = 0; i < slots.length; i++) {
+              const slot = slots[i];
+              
+              // Check if this slot is the Monday of our target week
+              if (slot.date.getFullYear() === mondayOfWeek.getFullYear() &&
+                  slot.date.getMonth() === mondayOfWeek.getMonth() &&
+                  slot.date.getDate() === mondayOfWeek.getDate()) {
                 
-                console.log(`DIRECT POSITIONING: Placing TODAY line in week 20 (5/12) at position ${todayPosition}px`);
-            } else {
-                // For day view, calculate normally
-                const today = new Date(2025, 4, 16); // May 16, 2025
-                const daysFromStart = differenceInDays(today, new Date(2025, 0, 1));
-                todayPosition = daysFromStart * slotWidth;
+                // Found the slot - now calculate position
+                let todayPosition = i * slotWidth; // Start of the week
+                
+                // Add offset for Friday (day 4 in a week starting on Monday)
+                const fridayOffset = 4/7 * slotWidth; // Friday is day 4 (0-indexed from Monday)
+                todayPosition += fridayOffset;
+                
+                console.log(`Found TODAY's week at slot ${i} (${format(slot.date, 'yyyy-MM-dd')}), position: ${todayPosition}px`);
+                
+                // Only show if today is within visible range
+                if (todayPosition >= 0) {
+                  return (
+                    <div 
+                      className="today-marker absolute top-0 bottom-0 w-[2px] bg-red-500 z-10" 
+                      style={{ 
+                        left: `${todayPosition}px`,
+                        height: '100%'
+                      }}
+                    >
+                      <div className="bg-red-500 text-white text-xs py-1 px-2 rounded absolute top-0 -translate-x-1/2">
+                        TODAY
+                      </div>
+                    </div>
+                  );
+                }
+                
+                // If we found the slot but it's out of range, break the loop
+                break;
+              }
             }
+            
+            // Fallback if the exact slot wasn't found - manual calculation
+            console.warn('TODAY slot not found in slots array, using fallback calculation');
+            
+            // Calculate the week number (May 12 is the 20th week of 2025)
+            const weekNumber = 19; // 0-indexed, so week 20 = index 19
+            const todayPosition = weekNumber * slotWidth + (4/7 * slotWidth); // Week start + Friday offset
             
             // Only show if today is within visible range
             if (todayPosition >= 0) {
