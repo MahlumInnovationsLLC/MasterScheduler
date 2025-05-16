@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import MultiRowBayContent from './MultiRowBayContent';
-import { CollapsibleSidebar } from './CollapsibleSidebar';
 import { 
   format, 
   addDays, 
@@ -17,21 +16,17 @@ import {
 } from 'date-fns';
 import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom } from './ExactFitPhaseWidths';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
-import { TeamManagementDialog } from './TeamManagementDialog';
 import { 
   PlusCircle, 
   GripVertical, 
   Info, 
   X, 
   ChevronRight, 
-  ChevronLeft,
-  ChevronsLeft,
-  ChevronsRight,
+  ChevronLeft, 
   PencilIcon, 
   PlusIcon, 
   MinusIcon,
   Users, 
-  UserPlus,
   Zap, 
   Wrench, // Replacing Tool with Wrench
   Clock,
@@ -79,10 +74,6 @@ interface ManufacturingBay {
   teamId: number | null;
   createdAt: Date | null;
   updatedAt: Date | null;
-  // Team capacity management properties
-  assemblyStaffCount?: number | null;
-  electricalStaffCount?: number | null;
-  hoursPerPersonPerWeek?: number | null;
 }
 
 interface Project {
@@ -217,19 +208,11 @@ const getBayRowCount = (bayId: number, bayName: string) => {
   return 1; // Always return 1 row for the simplified single-row layout
 };
 
-// ALWAYS GENERATE TIME SLOTS THROUGH 2030 - This ensures all grid cells show properly
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
   const slots: TimeSlot[] = [];
-  // Start from dateRange.start
   let currentDate = new Date(dateRange.start);
   
-  // CRITICAL FIX: Force end date to be Dec 31, 2030 regardless of what date range is passed in
-  const forcedEndDate = new Date(2030, 11, 31); // December 31, 2030
-  
-  console.log(`⏱️ Generating time slots from ${format(currentDate, 'yyyy-MM-dd')} to ${format(forcedEndDate, 'yyyy-MM-dd')}`);
-  
-  // Loop until we reach the forced 2030 end date
-  while (currentDate <= forcedEndDate) {
+  while (currentDate <= dateRange.end) {
     const isStartOfMonth = currentDate.getDate() === 1;
     const isStartOfWeek = currentDate.getDay() === 1; // Monday as start of week
     const isCurrentDateBusinessDay = isBusinessDay(currentDate);
@@ -304,59 +287,17 @@ const BayCapacityInfo = ({ bay, allSchedules, projects, bays }: { bay: Manufactu
     statusIcon = <Clock3 className="h-4 w-4 text-white" />;
   }
   
-  // Calculate team capacity - look for assembly/electrical staff counts on this bay
-  const assemblyStaff = bay.assemblyStaffCount || 1;
-  const electricalStaff = bay.electricalStaffCount || 1;
-  const hoursPerWeek = bay.hoursPerPersonPerWeek || 29;
-  const totalStaff = assemblyStaff + electricalStaff;
-  const totalCapacity = totalStaff * hoursPerWeek;
-  
-  // Find other bays in same team to calculate team capacity
-  let teamCapacity = totalCapacity;
-  if (bay.team) {
-    const teamBays = bays.filter(b => b.team === bay.team);
-    if (teamBays.length > 0) {
-      // Sum up assembly and electrical staff from all bays in team
-      let teamAssemblyStaff = 0;
-      let teamElectricalStaff = 0;
-      let teamHoursPerWeek = hoursPerWeek; // Use the same hours per week value across team
-      
-      teamBays.forEach(b => {
-        if (b.assemblyStaffCount) teamAssemblyStaff += b.assemblyStaffCount;
-        if (b.electricalStaffCount) teamElectricalStaff += b.electricalStaffCount;
-        if (b.hoursPerPersonPerWeek) teamHoursPerWeek = b.hoursPerPersonPerWeek;
-      });
-      
-      const teamTotalStaff = teamAssemblyStaff + teamElectricalStaff;
-      teamCapacity = teamTotalStaff * teamHoursPerWeek;
-    }
-  }
-  
   console.log(`Bay ${bay.name} at ${capacityPercentage}% capacity with ${activeProjects === 0 ? 'no projects' : activeProjects + ' project' + (activeProjects > 1 ? 's' : '')}`);
   console.log(`Bay ${bay.name} final status: ${statusText} with ${activeProjects} active project${activeProjects !== 1 ? 's' : ''}`);
   
   return (
-    <div className="bay-capacity-info absolute right-2 top-2 flex flex-col items-end gap-1">
-      <div className="flex items-center space-x-2">
-        <div className={`status-indicator ${statusBg} text-white text-xs px-2 py-0.5 rounded-full flex items-center`}>
-          {statusIcon}
-          <span className="ml-1">{statusText}</span>
-        </div>
-        <div className="project-count bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded-full">
-          {activeProjects} project{activeProjects !== 1 ? 's' : ''}
-        </div>
+    <div className="bay-capacity-info absolute right-2 top-2 flex items-center space-x-2">
+      <div className={`status-indicator ${statusBg} text-white text-xs px-2 py-0.5 rounded-full flex items-center`}>
+        {statusIcon}
+        <span className="ml-1">{statusText}</span>
       </div>
-      
-      {bay.team && (
-        <div className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 mt-1">
-          <Users className="h-3 w-3" />
-          <span>Team: {teamCapacity} hrs/wk</span>
-        </div>
-      )}
-      
-      <div className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 mt-1">
-        <UserPlus className="h-3 w-3" />
-        <span>{assemblyStaff}A + {electricalStaff}E</span>
+      <div className="project-count bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded-full">
+        {activeProjects} project{activeProjects !== 1 ? 's' : ''}
       </div>
     </div>
   );
@@ -385,8 +326,6 @@ export default function ResizableBaySchedule({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newBayDialog, setNewBayDialog] = useState(false);
   const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
-  const [teamDialogOpen, setTeamDialogOpen] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [deleteRowDialogOpen, setDeleteRowDialogOpen] = useState(false);
   const [confirmRowDelete, setConfirmRowDelete] = useState<{
     bayId: number;
@@ -407,8 +346,7 @@ export default function ResizableBaySchedule({
   const [scheduleDuration, setScheduleDuration] = useState(4); // in weeks
   const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [slotWidth, setSlotWidth] = useState(60); // Increased slot width for better visibility
+  const [slotWidth, setSlotWidth] = useState(20); // Default slot width
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [showAddMultipleWarning, setShowAddMultipleWarning] = useState(false);
@@ -505,27 +443,16 @@ export default function ResizableBaySchedule({
         fabWeeks: 4
       };
       
-      // Bar object is created but phase widths aren't calculated yet
-      return bar;
+      // Calculate exact fit phase widths
+      const withPhaseWidths = calculateExactFitPhaseWidths(bar);
+      
+      return withPhaseWidths;
     }).filter((bar): bar is ScheduleBar => bar !== null);
     
     // Important: NO automatic row assignment or repositioning
     // Bars will be positioned exactly where they are in the database
     
-    // Convert manufacturing bays to the Bay type needed for capacity calculations
-    const capacityBays = bays.map(bay => ({
-      id: bay.id,
-      team: bay.team,
-      assemblyStaffCount: bay.assemblyStaffCount || 1, 
-      electricalStaffCount: bay.electricalStaffCount || 1,
-      hoursPerPersonPerWeek: bay.hoursPerPersonPerWeek || 29 // Default 29 hours per week
-    }));
-    
-    // Apply team capacity-based calculations to all schedule bars
-    const barsWithCapacityCalculation = updatePhaseWidthsWithExactFit(bars, capacityBays);
-    console.log('Applied capacity-based calculations for production phase widths');
-    
-    setScheduleBars(barsWithCapacityCalculation);
+    setScheduleBars(bars);
   }, [schedules, projects, dateRange, viewMode, slotWidth]);
   
   // Filter projects when search term changes
@@ -736,65 +663,11 @@ export default function ResizableBaySchedule({
     e.preventDefault();
     
     console.log(`🎯 PRECISE DROP: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
-    console.log(`🎯 EXACT DROP: BAY ${bayId} (${bays.find(b => b.id === bayId)?.name})`);
-    console.log(`🎯 Pixel position: x=${e.nativeEvent.offsetX}px from bay left edge`);
-    console.log(`🎯 Using single-row layout, placing in row ${rowIndex}`);
-    console.log(`⚠️ NO AUTO-ADJUSTMENT: Projects will stay EXACTLY where dropped`);
-    console.log(`⚠️ OVERLAP ALLOWED: Multiple projects can occupy the same space`);
     
     // Get the schedule ID from the drag data
     const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);
     
-    // Check if this is a NEW project being created (negative ID) or existing schedule
-    const isNewProject = scheduleId < 0;
-    
-    if (isNewProject) {
-      // This is a new project being added from the unassigned projects list
-      const projectId = Math.abs(scheduleId);
-      console.log(`Creating NEW schedule for project ID ${projectId} in bay ${bayId} at row ${rowIndex}`);
-      
-      // Find the project data
-      const project = projects.find(p => p.id === projectId);
-      if (!project) {
-        console.error('Cannot find project with ID', projectId);
-        return;
-      }
-      
-      // Default duration is 4 weeks if not specified
-      const endDate = addWeeks(date, scheduleDuration);
-      
-      // Format dates for API
-      const formattedStartDate = format(date, 'yyyy-MM-dd');
-      const formattedEndDate = format(endDate, 'yyyy-MM-dd');
-      
-      try {
-        // Create a new schedule with the projectId, bayId, and dates
-        await onScheduleCreate(
-          projectId,
-          bayId,
-          formattedStartDate,
-          formattedEndDate,
-          scheduleDuration * 40, // 40 hours per week default
-          rowIndex // Exact row placement
-        );
-        
-        toast({
-          title: "Schedule created",
-          description: `Added ${project.name} to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
-        });
-      } catch (error) {
-        console.error('Error creating schedule:', error);
-        toast({
-          title: "Failed to create schedule",
-          description: "There was an error creating the schedule. Please try again.",
-          variant: "destructive",
-        });
-      }
-      
-      return;
-    }
-    
-    // Handle existing schedule being moved
+    // Find the schedule bar being moved
     const bar = scheduleBars.find((b) => b.id === scheduleId);
     if (!bar) {
       console.error('DROP ERROR: Could not find schedule bar with ID', scheduleId);
@@ -1399,7 +1272,20 @@ export default function ResizableBaySchedule({
       </div>
       
       <div className="flex flex-row flex-1 h-full">
-        <CollapsibleSidebar unassignedProjects={unassignedProjects} />
+        {/* Unassigned Projects Sidebar */}
+        <div className="unassigned-projects-sidebar w-64 border-r border-gray-700 flex-shrink-0 overflow-y-auto bg-gray-900 p-4">
+          <h3 className="font-bold text-white mb-4">Unassigned Projects</h3>
+          
+          {unassignedProjects.length === 0 ? (
+            <div className="text-sm text-gray-400 italic">No unassigned projects</div>
+          ) : (
+            <div className="space-y-3">
+              {unassignedProjects.map(project => (
+                <div 
+                  key={`unassigned-${project.id}`}
+                  className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
+                  draggable
+                  onDragStart={(e) => {
                     // Create dummy schedule to use the existing drag logic
                     const dummySchedule = {
                       id: -project.id, // Negative ID to mark as new
@@ -1450,10 +1336,7 @@ export default function ResizableBaySchedule({
         <div className="bay-schedule-viewport flex-grow overflow-auto" ref={viewportRef}>
           <div className="bay-schedule-container relative" ref={timelineRef}>
           {/* Timeline Header */}
-          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32" 
-            style={{ 
-              width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
-            }}>
+          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32">
             {slots.map((slot, index) => (
               <div
                 key={`header-${index}`}
@@ -1465,10 +1348,10 @@ export default function ResizableBaySchedule({
                 `}
                 style={{ width: `${slotWidth}px`, height: '40px' }}
               >
-                <div className="text-xs text-center w-full flex flex-col justify-center h-full">
+                <div className="text-xs text-center w-full">
                   {slot.isStartOfMonth && (
                     <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
-                      {slot.monthName} {format(slot.date, 'yyyy')}
+                      {slot.monthName}
                     </div>
                   )}
                   {slot.isStartOfWeek && (
@@ -1476,9 +1359,6 @@ export default function ResizableBaySchedule({
                       Week {slot.weekNumber}
                     </div>
                   )}
-                  <div className="text-gray-400 text-[10px]">
-                    {format(slot.date, 'MM/dd')}
-                  </div>
                 </div>
               </div>
             ))}
@@ -1494,76 +1374,52 @@ export default function ResizableBaySchedule({
           {/* Manufacturing Bays */}
           <div className="manufacturing-bays mt-2">
             {bayTeams.map((team, teamIndex) => (
-              <div 
-                key={`team-${teamIndex}`} 
-                className="team-container mb-5 relative"
-                style={{
-                  minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
-                }}>
-                <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex justify-between items-center shadow-md">
-                  <div className="team-name font-bold text-lg flex items-center gap-2">
-                    <span>Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}</span>
-                    
-                    {/* Team capacity indicators - MOVED INSIDE the team name box as requested */}
-                    <div className="team-capacity-indicators flex items-center space-x-2 ml-3">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <div className="capacity-indicator flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                              <Users className="h-3 w-3 mr-1" />
-                              <span>
-                                {scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length} projects
-                              </span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Number of projects assigned to this team</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <div className="utilization-indicator flex items-center text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                              <Zap className="h-3 w-3 mr-1" />
-                              <span>
-                                {Math.min(
-                                  Math.round(
-                                    (scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length / 
-                                    (team.length * 2)) * 100
-                                  ), 
-                                  100
-                                )}% utilization
-                              </span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Team capacity utilization percentage</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    
-                    {/* Team Management Button */}
-                    {team[0]?.team && (
-                      <button 
-                        className="p-1 bg-blue-700 hover:bg-blue-600 rounded-full text-white flex items-center justify-center"
-                        onClick={() => {
-                          const teamName = team[0].team;
-                          if (teamName) {
-                            setSelectedTeam(teamName);
-                            setTeamDialogOpen(true);
-                          }
-                        }}
-                      >
-                        <Wrench className="h-4 w-4" />
-                      </button>
-                    )}
+              <div key={`team-${teamIndex}`} className="team-container mb-5 relative">
+                <div className="team-header bg-slate-100 py-2 px-3 rounded-md mb-2 flex justify-between items-center shadow-sm">
+                  <div className="team-name font-medium">
+                    Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}
                   </div>
                   
-                  {/* Empty div to keep layout spacing */}
-                  <div></div>
+                  {/* Team capacity indicators */}
+                  <div className="team-capacity-indicators flex items-center space-x-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <div className="capacity-indicator flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                            <Users className="h-3 w-3 mr-1" />
+                            <span>
+                              {scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length} projects
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Number of projects assigned to this team</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <div className="utilization-indicator flex items-center text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                            <Zap className="h-3 w-3 mr-1" />
+                            <span>
+                              {Math.min(
+                                Math.round(
+                                  (scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length / 
+                                  (team.length * 2)) * 100
+                                ), 
+                                100
+                              )}% utilization
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Team capacity utilization percentage</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
                 
                 {team.map((bay) => {
@@ -1586,83 +1442,45 @@ export default function ResizableBaySchedule({
                         backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
                       }}
                     >
-                      {/* Bay Label - Fixed to stay visible when scrolling horizontally */}
+                      {/* Bay Label */}
                       <div 
-                        className="bay-label sticky left-0 w-48 h-full bg-gray-100 border-r flex flex-col justify-between py-2 px-2 z-10"
+                        className="bay-label absolute top-0 left-0 w-32 h-full bg-gray-100 border-r flex flex-col justify-center px-2 z-10"
                       >
-                        <div>
-                          <div className="font-medium text-sm">{bay.name}</div>
-                          <div className="text-xs text-gray-500">Bay #{bay.bayNumber}</div>
-                          
-                          {bay.status === 'maintenance' && (
-                            <Badge variant="destructive" className="mt-1 text-[10px]">Maintenance</Badge>
-                          )}
-                          
-                          {/* Show team info if available */}
-                          {bay.team && (
-                            <div className="text-xs text-primary mt-1">
-                              Team: {bay.team}
-                            </div>
-                          )}
-                          
-                          {/* Edit, delete and team management buttons */}
-                          <div className="bay-actions mt-2 flex space-x-1">
-                            <button 
-                              className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-700"
-                              onClick={() => {
-                                setEditingBay({...bay});
-                                setNewBayDialog(true);
-                              }}
-                            >
-                              <PencilIcon className="h-3 w-3" />
-                            </button>
-                            
-                            {/* Team Management Button */}
-                            {bay.team && (
-                              <button
-                                className="p-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700"
-                                onClick={() => {
-                                  setSelectedTeam(bay.team);
-                                  setTeamDialogOpen(true);
-                                }}
-                              >
-                                <Wrench className="h-3 w-3" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
+                        <div className="font-medium text-sm">{bay.name}</div>
+                        <div className="text-xs text-gray-500">Bay #{bay.bayNumber}</div>
                         
-                        {/* Bay status and capacity information - MOVED HERE as requested */}
-                        <div className="flex flex-col gap-1 mt-auto">
-                          {/* Bay status indicator - Fixed contrast issues */}
-                          <div className={`status-badge flex items-center justify-center rounded-full py-1 px-2 text-xs ${
-                            baySchedules.length > 0 ? 'bg-amber-200 text-amber-800' : 'bg-green-200 text-green-800'
-                          }`}>
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            {baySchedules.length > 0 ? 'Near Capacity' : 'Available'}
-                          </div>
+                        {bay.status === 'maintenance' && (
+                          <Badge variant="destructive" className="mt-1 text-[10px]">Maintenance</Badge>
+                        )}
+                        
+                        {/* Edit and delete buttons */}
+                        <div className="bay-actions mt-2 flex space-x-1">
+                          <button 
+                            className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-700"
+                            onClick={() => {
+                              setEditingBay({...bay});
+                              setNewBayDialog(true);
+                            }}
+                          >
+                            <PencilIcon className="h-3 w-3" />
+                          </button>
                           
-                          {/* Project count - Fixed contrast issues */}
-                          <div className="project-count bg-gray-200 text-gray-800 rounded-full py-1 px-2 text-xs flex items-center justify-center">
-                            <Users className="h-3 w-3 mr-1" />
-                            {baySchedules.length} {baySchedules.length === 1 ? 'project' : 'projects'}
-                          </div>
-                          
-                          {/* Team capacity information - Fixed contrast issues */}
-                          {bay.team && (
-                            <div className="team-capacity bg-blue-200 text-blue-800 rounded-full py-1 px-2 text-xs flex items-center justify-center">
-                              <Users className="h-3 w-3 mr-1" />
-                              Team: {((bay.assemblyStaffCount || 2) + (bay.electricalStaffCount || 1)) * (bay.hoursPerPersonPerWeek || 29)} hrs/wk
-                            </div>
+                          {onBayDelete && (
+                            <button 
+                              className="p-1 bg-red-100 hover:bg-red-200 rounded text-red-700"
+                              onClick={() => handleDeleteBay(bay.id)}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
                           )}
                         </div>
                       </div>
                       
-                      {/* Bay content area - FULL WIDTH to extend to end of timeline (2030) */}
-                      <div className="bay-content absolute left-48 top-0 bottom-0"
-                        style={{ 
-                          width: `${Math.max(8000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px` 
-                        }}>
+                      {/* Bay capacity information */}
+                      <BayCapacityInfo bay={bay} allSchedules={schedules} projects={projects} bays={bays} />
+                      
+                      {/* Bay content area */}
+                      <div className="bay-content absolute left-32 right-0 top-0 bottom-0">
                         {isMultiRowBay ? (
                           <MultiRowBayContent 
                             timeSlots={slots} 
@@ -1751,12 +1569,8 @@ export default function ResizableBaySchedule({
                                 </div>
                               </div>
                               
-                              {/* Cell grid for this bay - EXTENDED TO 2030 PROPERLY */}
-                              <div className="absolute inset-0 grid" 
-                                style={{ 
-                                  gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
-                                  minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px` 
-                                }}>
+                              {/* Cell grid for this bay */}
+                              <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
                                 {slots.map((slot, index) => (
                                   <div 
                                     key={`bay-${bay.id}-slot-${index}`} 
@@ -1832,10 +1646,10 @@ export default function ResizableBaySchedule({
                               style={{
                                 left: `${bar.left}px`,
                                 width: `${bar.width}px`,
-                                height: '160%', // Double the height of project bars
+                                height: '90%',
                                 backgroundColor: `${bar.color}90`,
                                 // Adjust vertical positioning for row layout
-                                top: '-30%', // Shift up slightly to center better
+                                top: '5%',
                                 // Set data attributes for department phase percentages 
                                 // Store important info for drag/resize operations
                               }}
@@ -1855,42 +1669,12 @@ export default function ResizableBaySchedule({
                             >
                               {/* Department phases visualization */}
                               <div className="phases-container flex h-full w-full absolute top-0 left-0 overflow-hidden rounded">
-                                {bar.fabWidth && bar.fabWidth > 0 && (
-                                  <div className="fab-phase bg-blue-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.fabWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">FAB</span>
-                                  </div>
-                                )}
-                                {bar.paintWidth && bar.paintWidth > 0 && (
-                                  <div className="paint-phase bg-green-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.paintWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">PAINT</span>
-                                  </div>
-                                )}
-                                {bar.productionWidth && bar.productionWidth > 0 && (
-                                  <div className="production-phase bg-yellow-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.productionWidth}px` }}>
-                                    <span className="text-xs font-bold text-gray-800 text-center">PROD</span>
-                                  </div>
-                                )}
-                                {bar.itWidth && bar.itWidth > 0 && (
-                                  <div className="it-phase bg-purple-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.itWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">IT</span>
-                                  </div>
-                                )}
-                                {bar.ntcWidth && bar.ntcWidth > 0 && (
-                                  <div className="ntc-phase bg-cyan-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.ntcWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">NTC</span>
-                                  </div>
-                                )}
-                                {bar.qcWidth && bar.qcWidth > 0 && (
-                                  <div className="qc-phase bg-pink-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.qcWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">QC</span>
-                                  </div>
-                                )}
+                                <div className="fab-phase bg-blue-700 h-full" style={{ width: `${bar.fabWidth}px` }}></div>
+                                <div className="paint-phase bg-green-700 h-full" style={{ width: `${bar.paintWidth}px` }}></div>
+                                <div className="production-phase bg-yellow-700 h-full" style={{ width: `${bar.productionWidth}px` }}></div>
+                                <div className="it-phase bg-purple-700 h-full" style={{ width: `${bar.itWidth}px` }}></div>
+                                <div className="ntc-phase bg-cyan-700 h-full" style={{ width: `${bar.ntcWidth}px` }}></div>
+                                <div className="qc-phase bg-pink-700 h-full" style={{ width: `${bar.qcWidth}px` }}></div>
                               </div>
                               
                               {/* Project information overlay */}
@@ -2226,39 +2010,6 @@ export default function ResizableBaySchedule({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Team Management Dialog */}
-      <TeamManagementDialog 
-        open={teamDialogOpen}
-        onOpenChange={setTeamDialogOpen}
-        teamName={selectedTeam}
-        bays={bays}
-        onTeamUpdate={async (teamName, assemblyStaff, electricalStaff, hoursPerWeek) => {
-          // After team capacity is updated, refresh the schedule data
-          toast({
-            title: "Team capacity updated",
-            description: `Team ${teamName} capacity has been updated with ${assemblyStaff} assembly and ${electricalStaff} electrical staff.`
-          });
-          
-          // Refresh schedule bars to reflect the new capacity settings
-          // This would trigger a re-calculation of phase widths based on the new capacity
-          const updatedScheduleBars = [...scheduleBars].map(bar => {
-            // Update production phase width calculations for affected bars
-            const bayBelongsToUpdatedTeam = bays.some(b => b.team === teamName && b.id === bar.bayId);
-            if (bayBelongsToUpdatedTeam) {
-              // Recalculate production phase width based on new capacity
-              return {
-                ...bar,
-                // Flag for re-rendering and width recalculation
-                normalizeFactor: Math.random()
-              };
-            }
-            return bar;
-          });
-          
-          setScheduleBars(updatedScheduleBars);
-        }}
-      />
       </div>
     </div>
   );
