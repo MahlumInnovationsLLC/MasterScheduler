@@ -706,10 +706,41 @@ export default function ResizableBaySchedule({
   };
   
   const handleDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, slotIndex: number) => {
+    // Always prevent default to allow dropping
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
     
+    // Set appropriate drop effect based on what's being dragged
+    try {
+      const dataString = e.dataTransfer.getData('text/plain');
+      if (dataString.startsWith('-') || document.body.classList.contains('dragging-unassigned-project')) {
+        // This is an unassigned project
+        e.dataTransfer.dropEffect = 'copy';
+      } else {
+        // This is an existing schedule being moved
+        e.dataTransfer.dropEffect = 'move';
+      }
+    } catch (err) {
+      // Default to move if we can't determine
+      e.dataTransfer.dropEffect = 'move';
+    }
+    
+    // Update the drop target for visual feedback
     setDropTarget({ bayId, rowIndex });
+    
+    // Add visual indicator for drop target
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.classList.add('drop-target-active');
+      
+      // Find parent bay container for additional highlighting
+      let parent = e.currentTarget.parentElement;
+      while (parent && !parent.classList.contains('bay-container')) {
+        parent = parent.parentElement;
+      }
+      
+      if (parent) {
+        parent.classList.add('active-drop-area');
+      }
+    }
   };
   
   const handleSlotDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
@@ -1757,6 +1788,17 @@ export default function ResizableBaySchedule({
                         e.currentTarget.classList.remove('opacity-50');
                         document.body.removeAttribute('data-drag-in-progress');
                         document.body.classList.remove('global-drag-active');
+                        document.body.classList.remove('dragging-unassigned-project');
+                        
+                        // Clean up any session storage
+                        sessionStorage.removeItem('dragging_project');
+                        
+                        // Clean up any highlights
+                        document.querySelectorAll('.row-target-highlight, .bay-highlight, .drop-target').forEach((el) => {
+                          el.classList.remove('row-target-highlight', 'bay-highlight', 'drop-target');
+                        });
+                        
+                        console.log('Unassigned project drag operation completed - cleaned up states');
                       }}
                     >
                       <div className="font-medium text-white text-sm mb-1 truncate">{project.projectNumber}: {project.name}</div>
@@ -2121,10 +2163,21 @@ export default function ResizableBaySchedule({
                           <div className="absolute inset-0 flex flex-col">
                             {/* Single row per bay - simplified drop zone */}
                             <div 
-                              className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
+                              className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative droppable-area" 
                               onDragOver={(e) => {
+                                // Must prevent default to enable drop
+                                e.preventDefault();
+                                
+                                // Set the correct drop effect based on the drag type
+                                if (document.body.classList.contains('dragging-unassigned-project')) {
+                                  e.dataTransfer.dropEffect = 'copy'; // New project
+                                } else {
+                                  e.dataTransfer.dropEffect = 'move'; // Existing project
+                                }
+                                
                                 // Add strong visual indicator for this bay's single row
                                 e.currentTarget.classList.add('row-target-highlight', 'bay-highlight');
+                                
                                 // Always use row 0 for consistent placement
                                 handleDragOver(e, bay.id, 0, 0);
                               }}
