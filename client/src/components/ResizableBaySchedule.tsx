@@ -549,43 +549,55 @@ export default function ResizableBaySchedule({
     try {
       console.log(`Deleting team "${teamName}" from bays: ${bayIds.join(', ')}`);
       
-      // First, find any schedules associated with these bays
-      const affectedSchedules = schedules.filter(s => bayIds.includes(s.bayId));
+      // For direct UI feedback, hide the team section immediately by adding a class
+      // This provides visual feedback before the actual database update completes
+      const teamSectionSelector = `[data-team-section="${teamName}::${bayIds.join(',')}"]`;
+      const teamSectionElement = document.querySelector(teamSectionSelector);
       
-      // If there are schedules in these bays, handle them appropriately
-      if (affectedSchedules.length > 0) {
-        console.log(`Found ${affectedSchedules.length} schedules in team "${teamName}" that will be affected`);
-        
-        // For now, we'll just proceed with deleting the team and its schedules will remain
-        // but be unattached to a team
+      if (teamSectionElement) {
+        // Mark for deletion with a style effect
+        teamSectionElement.classList.add('opacity-50', 'relative');
+        const overlay = document.createElement('div');
+        overlay.className = 'absolute inset-0 bg-red-500 bg-opacity-20 z-50';
+        teamSectionElement.appendChild(overlay);
       }
       
-      // Using fetch directly for more control and to avoid any issues
+      // Track success of each bay update
+      let successCount = 0;
+      
       try {
-        // Update all bays to remove this team association 
+        // Perform the actual database updates directly with individual requests
         for (const bayId of bayIds) {
           console.log(`Removing team "${teamName}" from bay ${bayId}`);
           
-          const response = await fetch(`/api/manufacturing-bays/${bayId}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              team: null, // Remove team association 
-              description: null // Clear description
-            })
-          });
-          
-          if (!response.ok) {
-            throw new Error(`Failed to update bay ${bayId}: ${response.statusText}`);
+          try {
+            // Clear the team field for this bay
+            const response = await fetch(`/api/manufacturing-bays/${bayId}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                team: null,
+                description: null
+              })
+            });
+            
+            if (response.ok) {
+              successCount++;
+              console.log(`Successfully updated bay ${bayId}`);
+            } else {
+              console.error(`Failed to update bay ${bayId}: ${response.statusText}`);
+            }
+          } catch (err) {
+            console.error(`Error updating bay ${bayId}:`, err);
           }
           
-          // Wait a small amount of time between requests
+          // Small delay between requests
           await new Promise(resolve => setTimeout(resolve, 100));
         }
         
-        // Remove from team descriptions 
+        // Remove from team descriptions
         setTeamDescriptions(prev => {
           const newDescriptions = {...prev};
           if (teamName in newDescriptions) {
@@ -594,19 +606,33 @@ export default function ResizableBaySchedule({
           return newDescriptions;
         });
         
-        toast({
-          title: "Team Deleted",
-          description: `Successfully removed "${teamName}" team from ${bayIds.length} bay(s). Reloading page...`,
-        });
-        
-        // Force a hard reload after a short delay to ensure UI is properly refreshed
-        setTimeout(() => {
-          console.log("Reloading page to refresh UI after team deletion");
-          window.location.href = window.location.href; // Full page reload
-        }, 1500);
+        // If we've updated at least one bay successfully, consider it a success
+        if (successCount > 0) {
+          toast({
+            title: "Team Deleted",
+            description: `Successfully removed "${teamName}" team from ${successCount} bay(s)`,
+          });
+          
+          // Close the dialog
+          setTeamDeleteConfirm({
+            isOpen: false,
+            teamName: '',
+            bayIds: []
+          });
+          
+          // Now reload the page for a complete refresh - this is the most reliable way
+          // to ensure the UI fully reflects the database state
+          console.log("Scheduling page reload after team deletion...");
+          setTimeout(() => {
+            window.location.href = window.location.href;
+          }, 1200);
+        } else {
+          // No bays were updated successfully
+          throw new Error("Failed to update any bays");
+        }
       } catch (apiError) {
         console.error('API error when deleting team:', apiError);
-        throw apiError; // Re-throw to be caught by outer try/catch
+        throw apiError;
       }
     } catch (error) {
       console.error('Error deleting team:', error);
@@ -615,7 +641,7 @@ export default function ResizableBaySchedule({
         description: "Failed to delete team. Please try again.",
         variant: "destructive"
       });
-    } finally {
+      
       // Reset delete confirmation dialog
       setTeamDeleteConfirm({
         isOpen: false,
@@ -3468,7 +3494,7 @@ export default function ResizableBaySchedule({
         }}
       />
       
-      {/* Team Delete Confirmation Dialog - Using regular Dialog */}
+      {/* Team Delete Confirmation Dialog - Fixed for proper DOM nesting */}
       <Dialog 
         open={teamDeleteConfirm.isOpen} 
         onOpenChange={(isOpen) => setTeamDeleteConfirm(prev => ({...prev, isOpen}))}
@@ -3479,14 +3505,16 @@ export default function ResizableBaySchedule({
               <Trash2 className="h-5 w-5 mr-2 text-red-600" />
               <span>Delete Team</span>
             </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete the team "{teamDeleteConfirm.teamName}"?
-              <div className="mt-2 mb-2 p-2 bg-amber-50 border border-amber-200 rounded-md text-amber-800">
-                <AlertTriangle className="h-4 w-4 inline-block mr-1" /> 
-                This will remove the team association from {teamDeleteConfirm.bayIds.length} bay(s).
-              </div>
-              <div className="mt-1 text-sm text-gray-600">
-                The bay itself will remain, but the team information and settings will be removed.
+            <DialogDescription asChild>
+              <div>
+                <p>Are you sure you want to delete the team "{teamDeleteConfirm.teamName}"?</p>
+                <div className="mt-2 mb-2 p-2 bg-amber-50 border border-amber-200 rounded-md text-amber-800">
+                  <AlertTriangle className="h-4 w-4 inline-block mr-1" /> 
+                  This will remove the team association from {teamDeleteConfirm.bayIds.length} bay(s).
+                </div>
+                <div className="mt-1 text-sm text-gray-600">
+                  The bay itself will remain, but the team information and settings will be removed.
+                </div>
               </div>
             </DialogDescription>
           </DialogHeader>
