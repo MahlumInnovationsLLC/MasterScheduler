@@ -38,6 +38,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
+  Trash2, // For delete icon
   Truck,
   BarChart2 // Added for utilization icon
 } from 'lucide-react';
