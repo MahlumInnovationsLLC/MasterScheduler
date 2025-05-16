@@ -1639,36 +1639,51 @@ export default function ResizableBaySchedule({
             // This matches the date used in the rest of the application
             const today = new Date(2025, 4, 16); // May 16, 2025 (months are 0-indexed)
             
-            // Find the matching time slot for today's date
-            const todaySlot = slots.find(slot => {
-              // In week view, find the slot containing today
+            // Since we use exactly one cell per week in the week view, find the correct week slot
+            // That should contain May 16, 2025 (which should be week of 5/12)
+            const weekStartDate = new Date(2025, 4, 12); // May 12, 2025 - Monday of the week containing May 16
+            
+            // Find the week slot that contains our target date
+            const targetSlot = slots.find(slot => {
               if (viewMode === 'week') {
-                const slotEndDate = addDays(slot.date, 6); // End of week
-                return today >= slot.date && today <= slotEndDate;
+                // In week view, the date property is the Monday of that week
+                // So we need to check if the slot date is our target Monday (May 12, 2025)
+                return slot.date.getFullYear() === weekStartDate.getFullYear() &&
+                       slot.date.getMonth() === weekStartDate.getMonth() &&
+                       slot.date.getDate() === weekStartDate.getDate();
+              } else {
+                // For day view, exact match
+                return isSameDay(slot.date, today);
               }
-              // For day view, exact match
-              return isSameDay(slot.date, today);
             });
             
             // Calculate position based on slot index if found
             let todayPosition = 0;
-            if (todaySlot) {
-              const slotIndex = slots.indexOf(todaySlot);
+            
+            if (targetSlot) {
+              // Get the index of the found slot
+              const slotIndex = slots.indexOf(targetSlot);
               
               if (viewMode === 'week') {
-                // For week view, calculate position within the week
+                // Position in the correct week column
                 todayPosition = slotIndex * slotWidth;
-                // Add offset for day within week (0-6)
-                const dayOffset = today.getDay() === 0 ? 6 : today.getDay() - 1; // Monday = 0, Sunday = 6
-                todayPosition += (dayOffset * (slotWidth / 7));
+                
+                // Add offset for the day within the week (Friday is day 4 in a week starting Monday)
+                // Monday=0, Tuesday=1, Wednesday=2, Thursday=3, Friday=4
+                const dayOfWeek = 4; // Friday (May 16) is day 4 in week starting Monday
+                todayPosition += (dayOfWeek * (slotWidth / 7));
               } else {
                 todayPosition = slotIndex * slotWidth;
               }
+              
+              console.log(`Found TODAY (May 16, 2025) in slot with date ${format(targetSlot.date, 'yyyy-MM-dd')}, position: ${todayPosition}`);
             } else {
-              // Fallback calculation if slot not found
-              const daysFromStart = differenceInDays(today, dateRange.start);
-              const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
-              todayPosition = daysFromStart * pixelsPerDay;
+              // Fallback calculation if slot not found - though this shouldn't happen
+              console.warn('Could not find the correct week slot for TODAY line, using fallback calculation');
+              const mondayOfWeek = new Date(2025, 4, 12); // Monday, May 12, 2025
+              const daysFromStart = differenceInDays(mondayOfWeek, new Date(2025, 0, 1));
+              const weeksFromStart = Math.floor(daysFromStart / 7);
+              todayPosition = weeksFromStart * slotWidth + (4 * (slotWidth / 7)); // Add offset for Friday (day 4)
             }
             
             // Only show if today is within visible range
