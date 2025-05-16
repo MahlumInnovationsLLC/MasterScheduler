@@ -1480,7 +1480,10 @@ export default function ResizableBaySchedule({
                       <BayCapacityInfo bay={bay} allSchedules={schedules} projects={projects} bays={bays} />
                       
                       {/* Bay content area */}
-                      <div className="bay-content absolute left-32 right-0 top-0 bottom-0">
+                      <div className="bay-content absolute left-32 top-0 bottom-0" 
+                        style={{ 
+                          width: `${Math.max(5000, differenceInDays(dateRange.end, dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px` 
+                        }}>
                         {isMultiRowBay ? (
                           <MultiRowBayContent 
                             timeSlots={slots} 
