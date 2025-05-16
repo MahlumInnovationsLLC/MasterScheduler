@@ -741,12 +741,20 @@ export default function ResizableBaySchedule({
   const handleSlotDrop = async (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
     e.preventDefault();
     
+    // CRITICAL: Explicit allow overlapping projects in the same row
+    document.body.classList.add('allow-multiple-projects');
+    
+    // Force-enable draggable behavior on all relevant elements
+    document.querySelectorAll('.bay-row, .drop-target').forEach(el => {
+      el.setAttribute('data-overlap-allowed', 'true');
+    });
+    
     console.log(`🎯 PRECISE DROP: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
     console.log(`🎯 EXACT DROP: BAY ${bayId} (${bays.find(b => b.id === bayId)?.name})`);
     console.log(`🎯 Pixel position: x=${e.nativeEvent.offsetX}px from bay left edge`);
     console.log(`🎯 Using single-row layout, placing in row ${rowIndex}`);
     console.log(`⚠️ NO AUTO-ADJUSTMENT: Projects will stay EXACTLY where dropped`);
-    console.log(`⚠️ OVERLAP ALLOWED: Multiple projects can occupy the same space`);
+    console.log(`⚠️ OVERLAP ALLOWED: Multiple projects can occupy the same space - EXPLICIT OVERRIDE`);
     
     // Get the schedule ID from the drag data
     const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);

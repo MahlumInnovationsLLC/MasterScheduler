@@ -2237,3 +2237,29 @@ body.resizing-mode .resize-handle {
 .row-target-highlight {
   background-color: rgba(16, 185, 129, 0.15);
 }
+
+/* Fix for drag and drop to allow multiple projects per row */
+body.allow-multiple-projects *[data-overlap-allowed="true"],
+body.allow-multiple-projects .bay-row,
+body.allow-multiple-projects .drop-target {
+  cursor: move !important;
+}
+
+/* Ensure all drop zones accept drops regardless of content */
+.bay-row, .drop-target {
+  pointer-events: all !important;
+}
+
+/* Override browser's no-drop cursor */
+.schedule-grid * {
+  /* Critical CSS fix: prevent 'no-drop' cursor from showing */
+  cursor: inherit;
+}
+
+/* Override for browser default dragging behavior */
+[draggable=true] {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
