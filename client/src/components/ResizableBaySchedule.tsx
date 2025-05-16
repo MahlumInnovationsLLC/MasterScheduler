@@ -1578,46 +1578,74 @@ export default function ResizableBaySchedule({
                     >
                       {/* Bay Label */}
                       <div 
-                        className="bay-label absolute top-0 left-0 w-32 h-full bg-gray-100 border-r flex flex-col justify-center px-2 z-10"
+                        className="bay-label absolute top-0 left-0 w-48 h-full bg-gray-100 border-r flex flex-col justify-between py-2 px-2 z-10"
                       >
-                        <div className="font-medium text-sm">{bay.name}</div>
-                        <div className="text-xs text-gray-500">Bay #{bay.bayNumber}</div>
-                        
-                        {bay.status === 'maintenance' && (
-                          <Badge variant="destructive" className="mt-1 text-[10px]">Maintenance</Badge>
-                        )}
-                        
-                        {/* Show team info if available */}
-                        {bay.team && (
-                          <div className="text-xs text-primary mt-1">
-                            Team: {bay.team}
-                          </div>
-                        )}
-                        
-                        {/* Edit, delete and team management buttons */}
-                        <div className="bay-actions mt-2 flex space-x-1">
-                          <button 
-                            className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-700"
-                            onClick={() => {
-                              setEditingBay({...bay});
-                              setNewBayDialog(true);
-                            }}
-                          >
-                            <PencilIcon className="h-3 w-3" />
-                          </button>
+                        <div>
+                          <div className="font-medium text-sm">{bay.name}</div>
+                          <div className="text-xs text-gray-500">Bay #{bay.bayNumber}</div>
                           
-                          {/* Team Management Button */}
+                          {bay.status === 'maintenance' && (
+                            <Badge variant="destructive" className="mt-1 text-[10px]">Maintenance</Badge>
+                          )}
+                          
+                          {/* Show team info if available */}
                           {bay.team && (
-                            <button
-                              className="p-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700"
+                            <div className="text-xs text-primary mt-1">
+                              Team: {bay.team}
+                            </div>
+                          )}
+                          
+                          {/* Edit, delete and team management buttons */}
+                          <div className="bay-actions mt-2 flex space-x-1">
+                            <button 
+                              className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-700"
                               onClick={() => {
-                                setSelectedTeam(bay.team);
-                                setTeamDialogOpen(true);
+                                setEditingBay({...bay});
+                                setNewBayDialog(true);
                               }}
                             >
-                              <Wrench className="h-3 w-3" />
+                              <PencilIcon className="h-3 w-3" />
                             </button>
+                            
+                            {/* Team Management Button */}
+                            {bay.team && (
+                              <button
+                                className="p-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700"
+                                onClick={() => {
+                                  setSelectedTeam(bay.team);
+                                  setTeamDialogOpen(true);
+                                }}
+                              >
+                                <Wrench className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Bay status and capacity information - MOVED HERE as requested */}
+                        <div className="flex flex-col gap-1 mt-auto">
+                          {/* Bay status indicator */}
+                          <div className={`status-badge flex items-center justify-center rounded-full py-1 px-2 text-xs ${
+                            baySchedules.length > 0 ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'
+                          }`}>
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            {baySchedules.length > 0 ? 'Near Capacity' : 'Available'}
+                          </div>
+                          
+                          {/* Project count */}
+                          <div className="project-count bg-gray-100 text-gray-800 rounded-full py-1 px-2 text-xs flex items-center justify-center">
+                            <Users className="h-3 w-3 mr-1" />
+                            {baySchedules.length} {baySchedules.length === 1 ? 'project' : 'projects'}
+                          </div>
+                          
+                          {/* Team capacity information */}
+                          {bay.team && (
+                            <div className="team-capacity bg-blue-100 text-blue-800 rounded-full py-1 px-2 text-xs flex items-center justify-center">
+                              <Users className="h-3 w-3 mr-1" />
+                              Team: {((bay.assemblyStaffCount || 2) + (bay.electricalStaffCount || 1)) * (bay.hoursPerPersonPerWeek || 29)} hrs/wk
+                            </div>
                           )}
+                        </div>
                           
                           {onBayDelete && (
                             <button 
@@ -1630,8 +1658,11 @@ export default function ResizableBaySchedule({
                         </div>
                       </div>
                       
-                      {/* Bay capacity information */}
-                      <BayCapacityInfo bay={bay} allSchedules={schedules} projects={projects} bays={bays} />
+                      {/* Bay content area - EXTEND timeline to entire width */}
+                      <div 
+                        className="bay-content ml-48 h-full flex"
+                        style={{ width: 'calc(100% - 48px)' }} 
+                      >
                       
                       {/* Bay content area */}
                       <div className="bay-content absolute left-32 top-0 bottom-0" 
