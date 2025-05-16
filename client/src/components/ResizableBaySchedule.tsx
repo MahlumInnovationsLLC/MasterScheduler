@@ -570,11 +570,30 @@ export default function ResizableBaySchedule({
       // Calculate position using the fixed reference date
       const daysFromStart = differenceInDays(startDate, calendarStartDate);
       
-      // DIRECT FIX WITH SPECIFIC DATE REFERENCE:
-      // Based on project for 4/6/2025 showing in week of 2/10, there's an 8-week shift backward
-      // We need to add exactly 56 days (8 weeks) to align correctly
-      const fixedDaysFromStart = daysFromStart + 56; // Add exactly 8 weeks to get proper alignment
-      const left = fixedDaysFromStart * pixelsPerDay;
+      // NEW DIRECT DATE MATCHING APPROACH:
+      // Find the exact week/timeslot in the timeSlots array that contains this date
+      const matchingSlot = timeSlots.find(slot => {
+        // For week view, we need to check if the date falls within that week
+        if (viewMode === 'week') {
+          const weekStart = new Date(slot.date);
+          const weekEnd = addDays(weekStart, 6);
+          return (startDate >= weekStart && startDate <= weekEnd);
+        }
+        // For other views, use exact date match
+        return isSameDay(slot.date, startDate);
+      });
+      
+      // Calculate position based directly on the matching timeslot
+      let left = 0;
+      if (matchingSlot) {
+        // Get the index of this slot and convert to pixels
+        const slotIndex = timeSlots.indexOf(matchingSlot);
+        left = slotIndex * (viewMode === 'week' ? 7 : 1) * pixelsPerDay;
+      } else {
+        // Fallback if no matching slot found
+        console.warn(`No matching time slot found for date ${format(startDate, 'yyyy-MM-dd')}`);
+        left = daysFromStart * pixelsPerDay;
+      }
       
       console.log(`Schedule ${schedule.id} position fix:`, {
         date: format(startDate, 'yyyy-MM-dd'),
