@@ -232,37 +232,51 @@ const getBayRowCount = (bayId: number, bayName: string) => {
 // CALENDAR CORRECTION: Fixed 4-week offset in date display
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
   const slots: TimeSlot[] = [];
+  let slotWidth = 20; // Default slot width
   
-  // OFFSET CORRECTION: Fix the 4-week offset by adjusting the starting date
-  // This ensures dates align with the UI week headers
-  let currentDate = new Date(2024, 0, 1); // January 1, 2024
+  // UNIFIED APPROACH FOR ALL VIEW MODES
+  // Use a standard starting date for all view modes
+  let currentDate = new Date(2023, 0, 1); // January 1, 2023
   
   // Zero out time component
   currentDate.setHours(0, 0, 0, 0);
   
-  // NEW CALIBRATION APPROACH
-  // Instead of trying to adjust the timeline, let's use specific reference dates
-  if (viewMode === 'week') {
-    // Explicitly set to 4 weeks earlier than what we see in the UI
-    // This ensures project 804666 scheduled for 5/5/2025 shows in the week of 5/5/2025 
-    // and not 6/2/2025 as seen in the screenshot
-    
-    // CRITICAL: Set specific reference date - 11/06/2023 is well before any of our schedules
-    // and allows us to build a consistent timeline
+  // Adjust starting date and slot width for each view mode for consistency
+  if (viewMode === 'day') {
+    // For day view, start exactly 6 months ago from today to show recent history
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    sixMonthsAgo.setDate(1); // Start at the beginning of that month
+    currentDate = sixMonthsAgo;
+    slotWidth = 25; // Narrower for day view
+    console.log(`DAY VIEW: Starting from ${format(currentDate, 'yyyy-MM-dd')} with slot width ${slotWidth}px`);
+  } 
+  else if (viewMode === 'week') {
+    // For week view, use our calibrated date
     currentDate = new Date(2023, 10, 6); // November 6, 2023 (Monday)
-    
-    // The date is already a Monday, so no need for additional adjustment
-    console.log(`USING CALIBRATED REFERENCE DATE: ${format(currentDate, 'yyyy-MM-dd')}`);
-    console.log(`This should fix the 4-week offset seen in the UI`);
+    slotWidth = 35; // Current width for week view
+    console.log(`WEEK VIEW: Starting from ${format(currentDate, 'yyyy-MM-dd')} with slot width ${slotWidth}px`);
+  }
+  else if (viewMode === 'month') {
+    // For month view, start from beginning of 2023
+    currentDate = new Date(2023, 0, 1);
+    slotWidth = 90; // Wider for month view
+    console.log(`MONTH VIEW: Starting from ${format(currentDate, 'yyyy-MM-dd')} with slot width ${slotWidth}px`);
+  }
+  else if (viewMode === 'quarter') {
+    // For quarter view, start from beginning of 2023
+    currentDate = new Date(2023, 0, 1);
+    slotWidth = 140; // Even wider for quarter view
+    console.log(`QUARTER VIEW: Starting from ${format(currentDate, 'yyyy-MM-dd')} with slot width ${slotWidth}px`);
   }
   
-  // Keep the end date stable for grid consistency
-  const forcedEndDate = new Date(2030, 11, 31); // December 31, 2030
+  // Keep the end date stable for grid consistency - go further for zoomed out views
+  const endYear = viewMode === 'quarter' ? 2035 : (viewMode === 'month' ? 2033 : 2030);
+  const forcedEndDate = new Date(endYear, 11, 31); // December 31 of end year
   
-  console.log(`⏱️ DATE GRID CORRECTION: Using ${format(currentDate, 'yyyy-MM-dd')} to ${format(forcedEndDate, 'yyyy-MM-dd')}`);
-  console.log(`OFFSET FIX: Applied 4-week (-28 day) adjustment to correct date display`);
+  console.log(`⏱️ ${viewMode.toUpperCase()} VIEW TIME RANGE: ${format(currentDate, 'yyyy-MM-dd')} to ${format(forcedEndDate, 'yyyy-MM-dd')}`);
   
-  // Loop until we reach the forced 2030 end date
+  // Loop until we reach the end date
   while (currentDate <= forcedEndDate) {
     const isStartOfMonth = currentDate.getDate() === 1;
     const isStartOfWeek = currentDate.getDay() === 1; // Monday as start of week
@@ -273,37 +287,37 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
       isStartOfMonth,
       isStartOfWeek,
       isBusinessDay: isCurrentDateBusinessDay,
-      monthName: isStartOfMonth ? format(currentDate, 'MMMM') : undefined,
+      monthName: isStartOfMonth ? format(currentDate, viewMode === 'month' || viewMode === 'quarter' ? 'MMMM yyyy' : 'MMMM') : undefined,
       weekNumber: isStartOfWeek ? Math.ceil(differenceInDays(currentDate, new Date(currentDate.getFullYear(), 0, 1)) / 7) : undefined
     });
     
-    if (viewMode === 'day') {
-      currentDate = addDays(currentDate, 1);
-    } else if (viewMode === 'week') {
-      // Always move exactly 7 days for week view to ensure ONE CELL = ONE WEEK
-      currentDate = addDays(currentDate, 7);
-    } else if (viewMode === 'month') {
-      if (isStartOfMonth || slots.length === 0) {
+    // Update currentDate based on view mode
+    switch (viewMode) {
+      case 'day':
+        // For day view, increment by 1 day
         currentDate = addDays(currentDate, 1);
-      } else {
-        // Move to first day of next month
+        break;
+      
+      case 'week':
+        // For week view, increment by 7 days exactly
+        currentDate = addDays(currentDate, 7);
+        break;
+      
+      case 'month':
+        // For month view, move to first day of next month
         currentDate = addMonths(currentDate, 1);
         currentDate.setDate(1);
-      }
-    } else if (viewMode === 'quarter') {
-      if (isStartOfMonth && [0, 3, 6, 9].includes(currentDate.getMonth()) || slots.length === 0) {
-        currentDate = addMonths(currentDate, 1);
-      } else {
-        // Move to first month of next quarter
-        const currentMonth = currentDate.getMonth();
-        const monthsToNextQuarter = 3 - (currentMonth % 3);
-        currentDate = addMonths(currentDate, monthsToNextQuarter);
+        break;
+      
+      case 'quarter':
+        // For quarter view, move to first day of next quarter
+        currentDate = addMonths(currentDate, 3);
         currentDate.setDate(1);
-      }
+        break;
     }
   }
   
-  return slots;
+  return { slots, slotWidth };
 };
 
 // Component to display bay capacity information and status indicators
@@ -782,7 +796,7 @@ export default function ResizableBaySchedule({
   }, [bays]);
   
   // Slots for the timeline
-  const slots = useMemo(() => {
+  const { slots, slotWidth } = useMemo(() => {
     return generateTimeSlots(dateRange, viewMode);
   }, [dateRange, viewMode]);
   
@@ -790,10 +804,25 @@ export default function ResizableBaySchedule({
   useEffect(() => {
     console.log('Recalculating schedule bars (version 3): ensuring NO automatic adjustments');
     
-    if (!schedules.length || !projects.length) return;
+    if (!schedules.length || !projects.length || !slots.length) return;
     
-    // Calculate pixels per day based on slot width
-    const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
+    // Calculate pixels per day based on view mode and slot width
+    let pixelsPerDay = 0;
+    
+    switch (viewMode) {
+      case 'day':
+        pixelsPerDay = slotWidth;
+        break;
+      case 'week':
+        pixelsPerDay = slotWidth / 7;
+        break;
+      case 'month':
+        pixelsPerDay = slotWidth / 30;
+        break;
+      case 'quarter':
+        pixelsPerDay = slotWidth / 90;
+        break;
+    }
     
     // Map schedules to bars
     const bars = schedules.map((schedule) => {
