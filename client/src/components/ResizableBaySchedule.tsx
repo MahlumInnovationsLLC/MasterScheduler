@@ -1627,6 +1627,39 @@ export default function ResizableBaySchedule({
         
         <div className="bay-schedule-viewport flex-grow overflow-auto" ref={viewportRef}>
           <div className="bay-schedule-container relative" ref={timelineRef}>
+          {/* Today Line marker - positioned absolutely */}
+          {(() => {
+            // Calculate position for TODAY line
+            const today = new Date();
+            const daysFromStart = differenceInDays(today, dateRange.start);
+            const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
+            const todayPosition = daysFromStart * pixelsPerDay;
+            
+            // Only show if today is within visible range
+            if (daysFromStart >= 0) {
+              return (
+                <div 
+                  className="today-line absolute top-0 bottom-0 z-20 pointer-events-none" 
+                  style={{ 
+                    left: `${todayPosition + 32}px`, // +32 to account for the left sidebar
+                    width: '2px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.8)', // Red with 80% opacity
+                    boxShadow: '0 0 8px rgba(239, 68, 68, 0.6)' // Red glow effect
+                  }}
+                >
+                  {/* TODAY label at the top */}
+                  <div 
+                    className="today-label absolute top-0 -translate-x-1/2 bg-red-600 text-white text-xs px-2 py-1 rounded" 
+                    style={{ left: '1px' }}
+                  >
+                    TODAY
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+          
           {/* Timeline Header */}
           <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32" 
             style={{ 
