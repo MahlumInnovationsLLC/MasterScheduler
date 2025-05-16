@@ -57,13 +57,16 @@ export function TeamManagementDialog({
       
       // Update all bays with the new capacity settings
       for (const bay of teamBays) {
-        await apiRequest(`/api/manufacturing-bays/${bay.id}`, {
+        await fetch(`/api/manufacturing-bays/${bay.id}`, {
           method: 'PATCH',
-          data: {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
             assemblyStaffCount: assemblyStaff,
             electricalStaffCount: electricalStaff,
             hoursPerPersonPerWeek: hoursPerWeek
-          }
+          })
         });
       }
       

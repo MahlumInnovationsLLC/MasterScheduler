@@ -14,9 +14,9 @@ import {
   endOfWeek,
   getDaysInMonth
 } from 'date-fns';
-import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom, ScheduleBar, Bay } from './ExactFitPhaseWidths';
+import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom } from './ExactFitPhaseWidths';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
-import { TeamManagementButton } from './TeamManagementButton';
+import { TeamManagementDialog } from './TeamManagementDialog';
 import { 
   PlusCircle, 
   GripVertical, 
@@ -1504,33 +1504,8 @@ export default function ResizableBaySchedule({
                         onClick={() => {
                           const teamName = team[0].team;
                           if (teamName) {
-                            // Open team management dialog for this specific team
-                            const teamDialog = document.createElement('div');
-                            teamDialog.id = 'team-management-modal';
-                            document.body.appendChild(teamDialog);
-                            
-                            const dialog = document.createElement('dialog');
-                            dialog.open = true;
-                            dialog.className = 'fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center';
-                            teamDialog.appendChild(dialog);
-                            
-                            // Close the dialog when clicking cancel
-                            const handleClose = () => {
-                              document.body.removeChild(teamDialog);
-                            };
-                            
-                            // Create the TeamManagementDialog here
-                            // For simplicity, we're opening a simple edit modal
-                            // In a real implementation, you would use a proper React dialog
-                            dialog.innerHTML = `
-                              <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-                                <h2 class="text-xl font-bold mb-4">Team ${teamName} Capacity</h2>
-                                <p class="mb-4">Edit team capacity settings</p>
-                                <div class="flex justify-end">
-                                  <button class="px-4 py-2 bg-gray-200 rounded-md mr-2" onclick="document.getElementById('team-management-modal').remove()">Close</button>
-                                </div>
-                              </div>
-                            `;
+                            setSelectedTeam(teamName);
+                            setTeamDialogOpen(true);
                           }
                         }}
                       >
@@ -2216,6 +2191,39 @@ export default function ResizableBaySchedule({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Team Management Dialog */}
+      <TeamManagementDialog 
+        open={teamDialogOpen}
+        onOpenChange={setTeamDialogOpen}
+        teamName={selectedTeam}
+        bays={bays}
+        onTeamUpdate={async (teamName, assemblyStaff, electricalStaff, hoursPerWeek) => {
+          // After team capacity is updated, refresh the schedule data
+          toast({
+            title: "Team capacity updated",
+            description: `Team ${teamName} capacity has been updated with ${assemblyStaff} assembly and ${electricalStaff} electrical staff.`
+          });
+          
+          // Refresh schedule bars to reflect the new capacity settings
+          // This would trigger a re-calculation of phase widths based on the new capacity
+          const updatedScheduleBars = [...scheduleBars].map(bar => {
+            // Update production phase width calculations for affected bars
+            const bayBelongsToUpdatedTeam = bays.some(b => b.team === teamName && b.id === bar.bayId);
+            if (bayBelongsToUpdatedTeam) {
+              // Recalculate production phase width based on new capacity
+              return {
+                ...bar,
+                // Flag for re-rendering and width recalculation
+                normalizeFactor: Math.random()
+              };
+            }
+            return bar;
+          });
+          
+          setScheduleBars(updatedScheduleBars);
+        }}
+      />
       </div>
     </div>
   );
