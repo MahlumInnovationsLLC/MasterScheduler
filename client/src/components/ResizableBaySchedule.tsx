@@ -14,7 +14,7 @@ import {
   endOfWeek,
   getDaysInMonth
 } from 'date-fns';
-import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom, ScheduleBar } from './ExactFitPhaseWidths';
+import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom, ScheduleBar, Bay } from './ExactFitPhaseWidths';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
 import { TeamManagementButton } from './TeamManagementButton';
 import { 
@@ -444,16 +444,27 @@ export default function ResizableBaySchedule({
         fabWeeks: 4
       };
       
-      // Calculate exact fit phase widths
-      const withPhaseWidths = calculateExactFitPhaseWidths(bar);
-      
-      return withPhaseWidths;
+      // Bar object is created but phase widths aren't calculated yet
+      return bar;
     }).filter((bar): bar is ScheduleBar => bar !== null);
     
     // Important: NO automatic row assignment or repositioning
     // Bars will be positioned exactly where they are in the database
     
-    setScheduleBars(bars);
+    // Convert manufacturing bays to the Bay type needed for capacity calculations
+    const capacityBays: Bay[] = bays.map(bay => ({
+      id: bay.id,
+      team: bay.team,
+      assemblyStaffCount: bay.assemblyStaffCount || 1, 
+      electricalStaffCount: bay.electricalStaffCount || 1,
+      hoursPerPersonPerWeek: bay.hoursPerPersonPerWeek || 29 // Default 29 hours per week
+    }));
+    
+    // Apply team capacity-based calculations to all schedule bars
+    const barsWithCapacityCalculation = updatePhaseWidthsWithExactFit(bars, capacityBays);
+    console.log('Applied capacity-based calculations for production phase widths', barsWithCapacityCalculation);
+    
+    setScheduleBars(barsWithCapacityCalculation);
   }, [schedules, projects, dateRange, viewMode, slotWidth]);
   
   // Filter projects when search term changes
@@ -1721,10 +1732,10 @@ export default function ResizableBaySchedule({
                               style={{
                                 left: `${bar.left}px`,
                                 width: `${bar.width}px`,
-                                height: '90%',
+                                height: '120%', // Make the bars taller to fit phase labels
                                 backgroundColor: `${bar.color}90`,
                                 // Adjust vertical positioning for row layout
-                                top: '5%',
+                                top: '0%',
                                 // Set data attributes for department phase percentages 
                                 // Store important info for drag/resize operations
                               }}
@@ -1745,22 +1756,40 @@ export default function ResizableBaySchedule({
                               {/* Department phases visualization */}
                               <div className="phases-container flex h-full w-full absolute top-0 left-0 overflow-hidden rounded">
                                 {bar.fabWidth && bar.fabWidth > 0 && (
-                                  <div className="fab-phase bg-blue-700 h-full" style={{ width: `${bar.fabWidth}px` }}></div>
+                                  <div className="fab-phase bg-blue-700 h-full flex items-center justify-center" 
+                                       style={{ width: `${bar.fabWidth}px` }}>
+                                    <span className="text-xs font-bold text-white text-center">FAB</span>
+                                  </div>
                                 )}
                                 {bar.paintWidth && bar.paintWidth > 0 && (
-                                  <div className="paint-phase bg-green-700 h-full" style={{ width: `${bar.paintWidth}px` }}></div>
+                                  <div className="paint-phase bg-green-700 h-full flex items-center justify-center" 
+                                       style={{ width: `${bar.paintWidth}px` }}>
+                                    <span className="text-xs font-bold text-white text-center">PAINT</span>
+                                  </div>
                                 )}
                                 {bar.productionWidth && bar.productionWidth > 0 && (
-                                  <div className="production-phase bg-yellow-700 h-full" style={{ width: `${bar.productionWidth}px` }}></div>
+                                  <div className="production-phase bg-yellow-700 h-full flex items-center justify-center" 
+                                       style={{ width: `${bar.productionWidth}px` }}>
+                                    <span className="text-xs font-bold text-gray-800 text-center">PROD</span>
+                                  </div>
                                 )}
                                 {bar.itWidth && bar.itWidth > 0 && (
-                                  <div className="it-phase bg-purple-700 h-full" style={{ width: `${bar.itWidth}px` }}></div>
+                                  <div className="it-phase bg-purple-700 h-full flex items-center justify-center" 
+                                       style={{ width: `${bar.itWidth}px` }}>
+                                    <span className="text-xs font-bold text-white text-center">IT</span>
+                                  </div>
                                 )}
                                 {bar.ntcWidth && bar.ntcWidth > 0 && (
-                                  <div className="ntc-phase bg-cyan-700 h-full" style={{ width: `${bar.ntcWidth}px` }}></div>
+                                  <div className="ntc-phase bg-cyan-700 h-full flex items-center justify-center" 
+                                       style={{ width: `${bar.ntcWidth}px` }}>
+                                    <span className="text-xs font-bold text-white text-center">NTC</span>
+                                  </div>
                                 )}
                                 {bar.qcWidth && bar.qcWidth > 0 && (
-                                  <div className="qc-phase bg-pink-700 h-full" style={{ width: `${bar.qcWidth}px` }}></div>
+                                  <div className="qc-phase bg-pink-700 h-full flex items-center justify-center" 
+                                       style={{ width: `${bar.qcWidth}px` }}>
+                                    <span className="text-xs font-bold text-white text-center">QC</span>
+                                  </div>
                                 )}
                               </div>
                               
