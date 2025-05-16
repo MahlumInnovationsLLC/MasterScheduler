@@ -2410,31 +2410,29 @@ export default function ResizableBaySchedule({
                             </Tooltip>
                           </TooltipProvider>
                           
-                          {/* Delete Button (Only for Team 5: & Team 6) */}
-                          {team[0].team.includes('Team 5: & Team 6') && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button 
-                                    className="p-1 bg-red-700 hover:bg-red-600 rounded-full text-white flex items-center justify-center"
-                                    onClick={() => {
-                                      // Set up delete confirmation with specific team info
-                                      setTeamDeleteConfirm({
-                                        isOpen: true,
-                                        teamName: team[0].team,
-                                        bayIds: team.map(bay => bay.id)
-                                      });
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Delete {team[0].team} team</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
+                          {/* Delete Button (For Team 5: & Team 6 and any other team) */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button 
+                                  className="p-1 bg-red-700 hover:bg-red-600 rounded-full text-white flex items-center justify-center ml-1"
+                                  onClick={() => {
+                                    // Set up delete confirmation with specific team info
+                                    setTeamDeleteConfirm({
+                                      isOpen: true,
+                                      teamName: team[0].team || "",
+                                      bayIds: team.map(bay => bay.id)
+                                    });
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Delete {team[0].team} team</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       )}
                     </div>
