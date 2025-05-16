@@ -1646,29 +1646,11 @@ export default function ResizableBaySchedule({
                             </div>
                           )}
                         </div>
-                          
-                          {onBayDelete && (
-                            <button 
-                              className="p-1 bg-red-100 hover:bg-red-200 rounded text-red-700"
-                              onClick={() => handleDeleteBay(bay.id)}
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          )}
-                        </div>
                       </div>
                       
-                      {/* Bay content area - EXTEND timeline to entire width */}
-                      <div 
-                        className="bay-content ml-48 h-full flex"
-                        style={{ width: 'calc(100% - 48px)' }} 
-                      >
-                      
-                      {/* Bay content area */}
-                      <div className="bay-content absolute left-32 top-0 bottom-0" 
-                        style={{ 
-                          width: `${Math.max(5000, differenceInDays(dateRange.end, dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px` 
-                        }}>
+                      {/* Bay content area - FULL WIDTH to extend to end of timeline */}
+                      <div className="bay-content absolute left-48 right-0 top-0 bottom-0"
+                        style={{ width: `calc(100% - 48px)` }}>
                         {isMultiRowBay ? (
                           <MultiRowBayContent 
                             timeSlots={slots} 
