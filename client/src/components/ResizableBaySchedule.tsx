@@ -360,6 +360,32 @@ const BayCapacityInfo = ({ bay, allSchedules, projects, bays }: { bay: Manufactu
   );
 };
 
+// CRITICAL FIX: Global handler to ensure multiple projects can be placed in the same row
+function initializeGlobalDragDropFix() {
+  // Enable dropping anywhere by preventing default on all dragover events
+  const handleGlobalDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move';
+    }
+  };
+  
+  // Add global listeners
+  document.addEventListener('dragover', handleGlobalDragOver, true);
+  
+  // Enable special styling
+  document.body.classList.add('allow-multiple-projects');
+  document.body.classList.add('force-accept-drop');
+  
+  console.log('🔄 MULTIPLE PROJECTS FIX ACTIVATED: Projects can now be placed in ANY row');
+  
+  return () => {
+    document.removeEventListener('dragover', handleGlobalDragOver, true);
+    document.body.classList.remove('allow-multiple-projects');
+    document.body.classList.remove('force-accept-drop');
+  };
+}
+
 export default function ResizableBaySchedule({
   schedules,
   projects,
