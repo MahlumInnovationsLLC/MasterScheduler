@@ -1424,9 +1424,16 @@ export default function ResizableBaySchedule({
   };
   
   // Find unassigned projects that don't have any schedules
-  const unassignedProjects = projects.filter(project => 
-    !schedules.some(schedule => schedule.projectId === project.id)
-  );
+  // When forceUpdate changes, this will recalculate and update the UI
+  const unassignedProjects = useMemo(() => {
+    console.log('⚡ Recalculating unassigned projects list');
+    // Make sure projects array exists before filtering
+    if (!projects || !Array.isArray(projects)) return [];
+    
+    return projects.filter(project => 
+      !schedules.some(schedule => schedule.projectId === project.id)
+    );
+  }, [projects, schedules, forceUpdate]);
   
   return (
     <div className="resizable-bay-schedule relative flex flex-col h-full dark">
