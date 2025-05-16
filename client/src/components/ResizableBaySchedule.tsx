@@ -1169,6 +1169,34 @@ export default function ResizableBaySchedule({
       // Get the timeline bounding rect
       const timelineRect = timelineEl.getBoundingClientRect();
       
+      // Find the closest date column based on mouse position
+      const allDateCells = document.querySelectorAll(`[data-bay-id="${bayId}"][data-date]`);
+      if (allDateCells && allDateCells.length > 0) {
+        // Find the closest date cell to the drop position
+        let closestCell = null;
+        let minDistance = Infinity;
+        
+        allDateCells.forEach(cell => {
+          const cellRect = (cell as HTMLElement).getBoundingClientRect();
+          const cellCenterX = cellRect.left + (cellRect.width / 2);
+          const distance = Math.abs(e.clientX - cellCenterX);
+          
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestCell = cell;
+          }
+        });
+        
+        if (closestCell) {
+          const dateAttr = closestCell.getAttribute('data-date');
+          if (dateAttr) {
+            console.log(`🎯 DROP DEBUG: Using date from closest cell: ${dateAttr} (distance: ${minDistance}px)`);
+            return new Date(dateAttr);
+          }
+        }
+      }
+      
+      // Fall back to pixel-based calculation if no cells found
       // Get the offset from the start of the timeline (left edge) 
       const timelineX = e.clientX - timelineRect.left - 32; // Adjust for bay label width
       
@@ -1180,11 +1208,11 @@ export default function ResizableBaySchedule({
       
       // Calculate the day offset based on pixels
       const dayOffset = adjustedX / dayWidth;
-      console.log(`DROP DEBUG: Improved calculation - timelineX: ${timelineX}px, adjustedX: ${adjustedX}px, dayWidth: ${dayWidth}px, dayOffset: ${dayOffset} days`);
+      console.log(`📏 DROP DEBUG: Improved calculation - timelineX: ${timelineX}px, adjustedX: ${adjustedX}px, dayWidth: ${dayWidth}px, dayOffset: ${dayOffset} days`);
       
       // Get the exact date
       const exactDate = addDays(dateRange.start, Math.floor(dayOffset));
-      console.log(`DROP DEBUG: Target date: ${format(exactDate, 'yyyy-MM-dd')}`);
+      console.log(`📅 DROP DEBUG: Target date: ${format(exactDate, 'yyyy-MM-dd')}`);
       
       return exactDate;
     } catch (error) {
