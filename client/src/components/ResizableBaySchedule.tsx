@@ -1499,12 +1499,13 @@ export default function ResizableBaySchedule({
             </button>
           </div>
           
-          {unassignedProjects.length === 0 ? (
-            <div className="text-sm text-gray-400 italic">No unassigned projects</div>
-          ) : (
-            <div className="space-y-3" 
+          {/* Unassigned Projects Container */}
+          <div className="unassigned-projects-list">
+            {/* Drop Zone for unassigning projects */}
+            <div 
+              className="unassigned-drop-container min-h-[100px] rounded-md border-2 border-dashed border-gray-700 mb-4 p-2 flex flex-col" 
               onDragOver={(e) => {
-                // Make the unassigned area a valid drop target
+                // Always prevent default to allow the drop
                 e.preventDefault();
                 e.stopPropagation();
                 // Visual indicator that this is a drop zone
@@ -1520,9 +1521,17 @@ export default function ResizableBaySchedule({
                 e.stopPropagation();
                 e.currentTarget.classList.remove('drop-zone-active');
                 
+                // Clear drag-related state
+                document.body.removeAttribute('data-drag-in-progress');
+                document.body.classList.remove('global-drag-active');
+                
                 try {
                   // Get the schedule ID from the drag data
-                  const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                  const dataString = e.dataTransfer.getData('text/plain');
+                  console.log(`📦 UNASSIGNED DROP - RAW DATA: "${dataString}"`);
+                  
+                  // Parse the schedule ID - must be a positive number to be a valid existing schedule
+                  const scheduleId = parseInt(dataString, 10);
                   
                   // Only process positive IDs (existing schedules)
                   if (scheduleId > 0) {
@@ -1535,7 +1544,7 @@ export default function ResizableBaySchedule({
                       await onScheduleDelete(scheduleId);
                       toast({
                         title: "Project unassigned",
-                        description: "The project has been returned to unassigned projects",
+                        description: "Project moved to unassigned projects list",
                       });
                     }
                   }
@@ -1544,7 +1553,17 @@ export default function ResizableBaySchedule({
                 }
               }}
             >
-              {unassignedProjects.map(project => (
+              <div className="text-sm text-gray-400 italic p-4 text-center flex-grow flex items-center justify-center">
+                Drop projects here to unassign them
+              </div>
+            </div>
+            
+            {/* Unassigned Project List */}
+            {unassignedProjects.length === 0 ? (
+              <div className="text-sm text-gray-400 italic">No unassigned projects</div>
+            ) : (
+              <div className="space-y-3">
+                {unassignedProjects.map(project => (
                 <div 
                   key={`unassigned-${project.id}`}
                   className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
