@@ -524,6 +524,28 @@ export default function ResizableBaySchedule({
       });
     }
   };
+  
+  // Handler function for when team data is updated from TeamManagementDialog
+  const handleTeamUpdate = async (teamName: string, newTeamName: string, description: string, assemblyStaff: number, electricalStaff: number, hoursPerWeek: number) => {
+    try {
+      // Update the team description in our local state
+      setTeamDescriptions(prev => {
+        const newDescriptions = {...prev};
+        // Set the description for the team
+        newDescriptions[newTeamName] = description;
+        // If the team name changed, remove the old one
+        if (teamName !== newTeamName && teamName in newDescriptions) {
+          delete newDescriptions[teamName];
+        }
+        return newDescriptions;
+      });
+      
+      // Force a refresh of the UI
+      setForceUpdate(Date.now());
+    } catch (error) {
+      console.error('Error in handleTeamUpdate:', error);
+    }
+  };
   // Add forceUpdate state to force re-rendering when needed
   const [forceUpdate, setForceUpdate] = useState<number>(Date.now());
   const [confirmRowDelete, setConfirmRowDelete] = useState<{
