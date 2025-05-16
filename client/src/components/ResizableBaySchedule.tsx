@@ -2282,12 +2282,18 @@ export default function ResizableBaySchedule({
                       <div className="flex items-center">
                         {team[0]?.team ? (
                           <>
-                            <span className="font-bold text-lg">
+                            <span 
+                              className="font-bold text-lg bay-header-team-name" 
+                              data-team={team[0].team}
+                            >
                               {team[0].team}
                             </span>
                             
                             {/* Team Description (shown as smaller text to the right) */}
-                            <span className="text-sm ml-2 font-light text-blue-100 italic truncate max-w-[200px]">
+                            <span 
+                              className="text-sm ml-2 font-light text-blue-100 italic truncate max-w-[200px] bay-header-team-description" 
+                              data-team={team[0].team}
+                            >
                               {teamDescriptions[team[0].team] || 'General Production'}
                             </span>
                           </>

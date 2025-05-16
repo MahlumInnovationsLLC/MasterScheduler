@@ -90,6 +90,25 @@ export function TeamManagementDialog({
       
       const teamNameChanged = teamName !== newTeamName;
       
+      // Directly update the blue header team info
+      const headerTeamElements = document.querySelectorAll('.bay-header-team-name');
+      const headerDescElements = document.querySelectorAll('.bay-header-team-description');
+      
+      // Update each team header with new name and description
+      headerTeamElements.forEach(element => {
+        if (element instanceof HTMLElement && element.dataset.team === teamName) {
+          element.innerText = newTeamName;
+          element.dataset.team = newTeamName;
+        }
+      });
+      
+      headerDescElements.forEach(element => {
+        if (element instanceof HTMLElement && element.dataset.team === teamName) {
+          element.innerText = description;
+          element.dataset.team = newTeamName;
+        }
+      });
+      
       toast({
         title: 'Team updated',
         description: `Team ${teamNameChanged ? `renamed from ${teamName} to ${newTeamName}` : newTeamName} now has ${assemblyStaff} assembly and ${electricalStaff} electrical staff at ${hoursPerWeek} hours per week (${weeklyCapacity} total hours/week).`,
@@ -97,10 +116,6 @@ export function TeamManagementDialog({
       
       // Close the dialog
       onOpenChange(false);
-      
-      // Force page reload to ensure all data is refreshed
-      window.location.reload();
-      
     } catch (error) {
       console.error('Error updating team capacity:', error);
       toast({
