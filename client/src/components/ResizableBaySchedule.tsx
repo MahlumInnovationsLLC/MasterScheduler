@@ -2263,6 +2263,7 @@ export default function ResizableBaySchedule({
               <div 
                 key={`team-${teamIndex}`} 
                 className="team-container mb-5 relative"
+                data-team-section={team[0]?.team ? `${team[0].team}::${team.map(bay => bay.id).join(',')}` : ''}
                 style={{
                   minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
                 }}>
@@ -2285,6 +2286,7 @@ export default function ResizableBaySchedule({
                             <span 
                               className="font-bold text-lg bay-header-team-name" 
                               data-team={team[0].team}
+                              data-bay-id={team.map(bay => bay.id).join(',')}
                             >
                               {team[0].team}
                             </span>
@@ -2293,6 +2295,7 @@ export default function ResizableBaySchedule({
                             <span 
                               className="text-sm ml-2 font-light text-blue-100 italic truncate max-w-[200px] bay-header-team-description" 
                               data-team={team[0].team}
+                              data-bay-id={team.map(bay => bay.id).join(',')}
                             >
                               {teamDescriptions[team[0].team] || 'General Production'}
                             </span>
@@ -2312,9 +2315,13 @@ export default function ResizableBaySchedule({
                               <button 
                                 className="ml-2 p-1 bg-blue-700 hover:bg-blue-600 rounded-full text-white flex items-center justify-center"
                                 onClick={() => {
+                                  // Store the specific bay ID with the team name
                                   const teamName = team[0].team;
+                                  const teamBayIds = team.map(bay => bay.id).join(',');
+                                  
                                   if (teamName) {
-                                    setSelectedTeam(teamName);
+                                    // Set selected team with the specific bay IDs this team represents
+                                    setSelectedTeam(`${teamName}::${teamBayIds}`);
                                     setTeamDialogOpen(true);
                                   }
                                 }}
@@ -2323,7 +2330,7 @@ export default function ResizableBaySchedule({
                               </button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Manage {team[0].team} team settings</p>
+                              <p>Edit this {team[0].team} section</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>

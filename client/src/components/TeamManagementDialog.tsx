@@ -43,8 +43,29 @@ export function TeamManagementDialog({
   // Find the bays belonging to this team to get current staff counts and other information
   useEffect(() => {
     if (teamName && open) {
-      setNewTeamName(teamName);
-      const teamBays = bays.filter(bay => bay.team === teamName);
+      // Extract actual team name and bay IDs from the combined string (if using the new format)
+      let actualTeamName = teamName;
+      let bayIds: number[] = [];
+      
+      if (teamName.includes('::')) {
+        const [extractedName, idsString] = teamName.split('::');
+        actualTeamName = extractedName;
+        bayIds = idsString.split(',').map(id => parseInt(id, 10));
+      }
+      
+      // Set team name for the dialog
+      setNewTeamName(actualTeamName);
+      
+      // Get team bays either by ID (if we have specific IDs) or by name
+      let teamBays = [];
+      if (bayIds.length > 0) {
+        // Filter to only the specific bays we want to edit
+        teamBays = bays.filter(bay => bayIds.includes(bay.id));
+      } else {
+        // Fallback to the old behavior if we don't have specific bay IDs
+        teamBays = bays.filter(bay => bay.team === actualTeamName);
+      }
+      
       if (teamBays.length > 0) {
         const firstBay = teamBays[0];
         setDescription(firstBay.description || "");
@@ -61,10 +82,27 @@ export function TeamManagementDialog({
     try {
       if (!teamName) return;
       
-      // Find all bays for this team
-      const teamBays = bays.filter(bay => bay.team === teamName);
+      // Extract actual team name and bay IDs from the combined string (if using the new format)
+      let actualTeamName = teamName;
+      let bayIds: number[] = [];
       
-      // Update all bays with the new capacity settings, team name, and additional fields
+      if (teamName.includes('::')) {
+        const [extractedName, idsString] = teamName.split('::');
+        actualTeamName = extractedName;
+        bayIds = idsString.split(',').map(id => parseInt(id, 10));
+      }
+      
+      // Get team bays - either by specific IDs or by team name
+      let teamBays = [];
+      if (bayIds.length > 0) {
+        // Only update the specific bays that were clicked on
+        teamBays = bays.filter(bay => bayIds.includes(bay.id));
+      } else {
+        // Fallback to old behavior if no specific bay IDs
+        teamBays = bays.filter(bay => bay.team === actualTeamName);
+      }
+      
+      // Update only the specific bays with the new capacity settings, team name, and additional fields
       for (const bay of teamBays) {
         await fetch(`/api/manufacturing-bays/${bay.id}`, {
           method: 'PATCH',
@@ -85,33 +123,61 @@ export function TeamManagementDialog({
       
       // Call the onTeamUpdate callback if provided
       if (onTeamUpdate) {
-        await onTeamUpdate(teamName, newTeamName, description, assemblyStaff, electricalStaff, hoursPerWeek);
+        await onTeamUpdate(actualTeamName, newTeamName, description, assemblyStaff, electricalStaff, hoursPerWeek);
       }
       
-      const teamNameChanged = teamName !== newTeamName;
+      const teamNameChanged = actualTeamName !== newTeamName;
       
-      // Directly update the blue header team info
-      const headerTeamElements = document.querySelectorAll('.bay-header-team-name');
-      const headerDescElements = document.querySelectorAll('.bay-header-team-description');
+      // Get the bay IDs as a string to find matching elements
+      const bayIdsString = bayIds.join(',');
       
-      // Update each team header with new name and description
-      headerTeamElements.forEach(element => {
-        if (element instanceof HTMLElement && element.dataset.team === teamName) {
-          element.innerText = newTeamName;
-          element.dataset.team = newTeamName;
+      // First try to update the specific section by matching the exact teamName and bayIds
+      const specificSelector = `[data-team-section="${teamName}"]`;
+      const teamSection = document.querySelector(specificSelector);
+      
+      console.log(`Looking for team section with selector: ${specificSelector}`);
+      
+      if (teamSection) {
+        console.log(`Found team section using section selector: ${specificSelector}`);
+        
+        // Update the specific team header section
+        const headerTeamName = teamSection.querySelector('.bay-header-team-name');
+        const headerTeamDesc = teamSection.querySelector('.bay-header-team-description');
+        
+        if (headerTeamName instanceof HTMLElement) {
+          headerTeamName.innerText = newTeamName;
+          headerTeamName.dataset.team = newTeamName;
         }
-      });
-      
-      headerDescElements.forEach(element => {
-        if (element instanceof HTMLElement && element.dataset.team === teamName) {
-          element.innerText = description;
-          element.dataset.team = newTeamName;
+        
+        if (headerTeamDesc instanceof HTMLElement) {
+          headerTeamDesc.innerText = description;
+          headerTeamDesc.dataset.team = newTeamName;
         }
-      });
+      } else {
+        // If we couldn't find the section, try updating by bay IDs
+        console.log(`Using bay-id attribute approach with team=${actualTeamName} and bay IDs=${bayIdsString}`);
+        
+        // Find and update only the bay header elements that match our specific bay IDs
+        document.querySelectorAll(`.bay-header-team-name[data-team="${actualTeamName}"][data-bay-id="${bayIdsString}"]`).forEach(element => {
+          if (element instanceof HTMLElement) {
+            console.log(`Updating team name element from ${element.innerText} to ${newTeamName}`);
+            element.innerText = newTeamName;
+            element.dataset.team = newTeamName;
+          }
+        });
+        
+        document.querySelectorAll(`.bay-header-team-description[data-team="${actualTeamName}"][data-bay-id="${bayIdsString}"]`).forEach(element => {
+          if (element instanceof HTMLElement) {
+            console.log(`Updating team description element from ${element.innerText} to ${description}`);
+            element.innerText = description;
+            element.dataset.team = newTeamName;
+          }
+        });
+      }
       
       toast({
         title: 'Team updated',
-        description: `Team ${teamNameChanged ? `renamed from ${teamName} to ${newTeamName}` : newTeamName} now has ${assemblyStaff} assembly and ${electricalStaff} electrical staff at ${hoursPerWeek} hours per week (${weeklyCapacity} total hours/week).`,
+        description: `Team ${teamNameChanged ? `renamed from ${actualTeamName} to ${newTeamName}` : newTeamName} now has ${assemblyStaff} assembly and ${electricalStaff} electrical staff at ${hoursPerWeek} hours per week (${weeklyCapacity} total hours/week).`,
       });
       
       // Close the dialog
