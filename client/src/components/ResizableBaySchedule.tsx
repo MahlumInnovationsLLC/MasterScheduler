@@ -214,11 +214,19 @@ const getBayRowCount = (bayId: number, bayName: string) => {
   return 1; // Always return 1 row for the simplified single-row layout
 };
 
+// ALWAYS GENERATE TIME SLOTS THROUGH 2030 - This ensures all grid cells show properly
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
   const slots: TimeSlot[] = [];
+  // Start from dateRange.start
   let currentDate = new Date(dateRange.start);
   
-  while (currentDate <= dateRange.end) {
+  // CRITICAL FIX: Force end date to be Dec 31, 2030 regardless of what date range is passed in
+  const forcedEndDate = new Date(2030, 11, 31); // December 31, 2030
+  
+  console.log(`⏱️ Generating time slots from ${format(currentDate, 'yyyy-MM-dd')} to ${format(forcedEndDate, 'yyyy-MM-dd')}`);
+  
+  // Loop until we reach the forced 2030 end date
+  while (currentDate <= forcedEndDate) {
     const isStartOfMonth = currentDate.getDate() === 1;
     const isStartOfWeek = currentDate.getDay() === 1; // Monday as start of week
     const isCurrentDateBusinessDay = isBusinessDay(currentDate);
