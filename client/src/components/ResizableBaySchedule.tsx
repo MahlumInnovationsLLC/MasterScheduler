@@ -218,8 +218,9 @@ const getBayRowCount = (bayId: number, bayName: string) => {
 // ALWAYS GENERATE TIME SLOTS THROUGH 2030 - This ensures all grid cells show properly
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
   const slots: TimeSlot[] = [];
-  // Start from dateRange.start
-  let currentDate = new Date(dateRange.start);
+  
+  // CRITICAL FIX: Start from January 1, 2025 regardless of date range passed
+  let currentDate = new Date(2025, 0, 1); // January 1, 2025
   
   // CRITICAL FIX: Force end date to be Dec 31, 2030 regardless of what date range is passed in
   const forcedEndDate = new Date(2030, 11, 31); // December 31, 2030
