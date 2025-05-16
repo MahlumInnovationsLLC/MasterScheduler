@@ -513,16 +513,30 @@ export default function ResizableBaySchedule({
         return null;
       }
       
-      // Get start and end dates - parse exactly as YYYY-MM-DD to avoid timezone issues
-      const startDate = parseISO(schedule.startDate);
-      const endDate = parseISO(schedule.endDate);
+      // Handle date parsing to ensure correct display in UI
+      // Fix date parsing to make sure schedules appear in the exact dates you set
+      let startDate: Date, endDate: Date;
       
-      // Log for debugging date parsing issues
-      console.log(`Parsing schedule ${schedule.id} dates:`, {
+      if (typeof schedule.startDate === 'string') {
+        // Extract just the date part to avoid timezone issues
+        const datePart = schedule.startDate.split('T')[0];
+        startDate = parseISO(datePart);
+      } else {
+        startDate = new Date(schedule.startDate);
+      }
+      
+      if (typeof schedule.endDate === 'string') {
+        const datePart = schedule.endDate.split('T')[0];
+        endDate = parseISO(datePart);
+      } else {
+        endDate = new Date(schedule.endDate);
+      }
+      
+      console.log(`Parsing schedule ${schedule.id} dates (fixed version):`, {
         originalStartDate: schedule.startDate,
         originalEndDate: schedule.endDate,
-        parsedStartDate: format(startDate, 'yyyy-MM-dd'),
-        parsedEndDate: format(endDate, 'yyyy-MM-dd')
+        fixedStartDate: format(startDate, 'yyyy-MM-dd'),
+        fixedEndDate: format(endDate, 'yyyy-MM-dd')
       });
       
       // Calculate left position based on date range start
