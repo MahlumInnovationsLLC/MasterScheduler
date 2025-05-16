@@ -2238,23 +2238,33 @@ body.resizing-mode .resize-handle {
   background-color: rgba(16, 185, 129, 0.15);
 }
 
-/* CRITICAL FIX: Allow multiple projects per row */
-body.allow-multiple-projects *[data-overlap-allowed="true"],
-body.allow-multiple-projects .bay-row,
-body.allow-multiple-projects .drop-target,
-body.allow-multiple-projects [data-drop-enabled="true"],
-.force-accept-drop {
-  cursor: move !important;
+/* CRITICAL OVERRIDE: Force ALL elements to accept drops - no exceptions */
+* {
+  cursor: auto !important;
   pointer-events: all !important;
 }
 
-/* CRITICAL: Override pointer-events to ensure all cells can receive drops */
+/* All elements while dragging should show move cursor */
+body[data-dragging="true"] * {
+  cursor: move !important;
+}
+
+/* Force every possible drop target to be valid */
 .bay-row, 
 .drop-target, 
 .slot-cell, 
 .schedule-grid-cell, 
+.bay-content,
 .week-cell, 
-.day-cell {
+.day-cell,
+.unassigned-project-card,
+[data-bay-id],
+[data-row],
+[data-row-index],
+[data-date],
+.schedule-bar,
+.schedule-grid * {
+  cursor: move !important;
   pointer-events: all !important;
 }
 
