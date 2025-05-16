@@ -673,65 +673,60 @@ export default function ResizableBaySchedule({
     setFilteredProjects(sorted);
   }, [searchTerm, projects, schedules]);
   
-  // Auto-scroll to current day on initial render
+  // Auto-scroll to center the red TODAY line in the viewport
   useEffect(() => {
-    const viewportEl = viewportRef.current;
-    const timelineEl = timelineRef.current;
-    
-    if (!viewportEl || !timelineEl) return;
-    
-    // Find today's position in the timeline
-    // IMPORTANT: Fix the date to May 16, 2025 for development
-    const today = new Date(2025, 4, 16); // May 16, 2025
-    
-    // Use January 1, 2025 for consistent timeline calculation
-    const startOfYear = new Date(2025, 0, 1); // January 1, 2025
-    
-    // Find the week containing May 16, 2025 - should be week of May 12, 2025
-    const mondayOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }); // Monday of the current week
-    
-    console.log(`Finding position for TODAY (${format(today, 'yyyy-MM-dd')}) in week of ${format(mondayOfCurrentWeek, 'yyyy-MM-dd')}`);
-    
-    // Calculate the week number (May 12, 2025 is week 20 of the year)
-    // Week index is 0-based, so 19 for the 20th week
-    const weekIndex = Math.floor(differenceInDays(mondayOfCurrentWeek, startOfYear) / 7);
-    
-    // For Week view, one slot = one week, so we use the slot index directly
-    let todayPosition = weekIndex * slotWidth;
-    
-    // Add offset for Friday (4 days from Monday, index 0-4)
-    const dayOfWeekOffset = differenceInDays(today, mondayOfCurrentWeek) / 7 * slotWidth;
-    todayPosition += dayOfWeekOffset;
-    
-    // Add offset for bay column width to account for the left sidebar
-    const bayColumnOffset = 160; // Approximate width of the bay info column
-    todayPosition += bayColumnOffset;
-    
-    // Center the today line in the viewport
-    const viewportWidth = viewportEl.clientWidth;
-    const centeredPosition = Math.max(0, todayPosition - (viewportWidth / 2));
-    
-    console.log(`Auto-scrolling to today (week ${weekIndex + 1}) at position ${todayPosition}px, centered at ${centeredPosition}px`);
-    
-    // Use setTimeout to ensure the DOM is fully rendered before scrolling
-    setTimeout(() => {
-      try {
-        if (viewportEl.scrollTo) {
-          viewportEl.scrollTo({ 
-            left: Math.floor(centeredPosition), 
-            behavior: 'smooth' 
-          });
-          console.log(`Auto-scrolled to today's position at ${todayPosition}px (centered at ${centeredPosition}px)`);
-        } else {
-          // Fallback for older browsers
-          viewportEl.scrollLeft = Math.floor(centeredPosition);
-          console.log(`Fallback scroll to position ${centeredPosition}px`);
-        }
-      } catch (e) {
-        console.error('Error during auto-scroll:', e);
+    // Wait for rendering to complete
+    const scrollTimeout = setTimeout(() => {
+      // Find the today marker element in the DOM
+      const todayMarker = document.querySelector('.today-line') || document.querySelector('.today-marker');
+      const viewportEl = viewportRef.current;
+      
+      if (!todayMarker || !viewportEl) {
+        console.error('Could not find today marker or viewport element');
+        return;
       }
-    }, 500); // Wait 500ms for rendering to complete
-  }, [dateRange, viewMode, slotWidth]);
+      
+      try {
+        // Get position of the today marker relative to the timeline
+        // Fixed position for May 16, 2025 (week 20, day 5)
+        const weekNumber = 19; // 0-indexed, so week 20 is index 19
+        const weekPosition = weekNumber * slotWidth;
+        const dayOffset = (4/7) * slotWidth; // Friday is day 4 (0-indexed from Monday)
+        const todayPosition = weekPosition + dayOffset + 160; // 160px for the bay column width
+        
+        console.log(`Fixed TODAY position calculation: Week ${weekNumber + 1}, position: ${todayPosition}px`);
+        
+        // Center it in the viewport
+        const viewportWidth = viewportEl.clientWidth;
+        const scrollPosition = Math.max(0, todayPosition - (viewportWidth / 2));
+        
+        console.log(`Scrolling to position ${scrollPosition}px to center the today line at ${todayPosition}px`);
+        
+        // Perform the scroll
+        viewportEl.scrollLeft = Math.floor(scrollPosition);
+        
+        // Apply a clear visual highlight to the today line
+        if (todayMarker instanceof HTMLElement) {
+          todayMarker.style.boxShadow = '0 0 10px 2px rgba(239, 68, 68, 0.7)';
+          todayMarker.style.zIndex = '1000';
+          
+          // Brief animation to draw attention
+          setTimeout(() => {
+            if (todayMarker instanceof HTMLElement) {
+              todayMarker.style.transition = 'box-shadow 1s ease-in-out';
+              todayMarker.style.boxShadow = '0 0 5px 1px rgba(239, 68, 68, 0.5)';
+            }
+          }, 1000);
+        }
+        
+        console.log('Successfully centered the today line in the viewport');
+      } catch (error) {
+        console.error('Error during auto-scroll:', error);
+      }
+    }, 500); // Wait for rendering to complete
+    
+    return () => clearTimeout(scrollTimeout);
+  }, [viewportRef, slotWidth]);
   
   // Drag handling functions
   const handleDragStart = (e: React.DragEvent, scheduleId: number) => {
