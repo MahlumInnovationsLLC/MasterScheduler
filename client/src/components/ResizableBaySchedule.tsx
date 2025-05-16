@@ -2414,7 +2414,7 @@ export default function ResizableBaySchedule({
                                     // Set up delete confirmation with specific team info
                                     setTeamDeleteConfirm({
                                       isOpen: true,
-                                      teamName: team[0].team || "",
+                                      teamName: team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`,
                                       bayIds: team.map(bay => bay.id)
                                     });
                                   }}
@@ -2423,10 +2423,93 @@ export default function ResizableBaySchedule({
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Delete {team[0].team} team</p>
+                                <p>Delete team</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
+                          
+                          {/* Add Bay Button */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button 
+                                  className="p-1 bg-green-700 hover:bg-green-600 rounded-full text-white flex items-center justify-center ml-1"
+                                  onClick={() => {
+                                    // Get the team name
+                                    const teamName = team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`;
+                                    
+                                    // Create a new bay for this team
+                                    const bayCount = team.length;
+                                    const newBayName = `${teamName} Bay ${bayCount + 1}`;
+                                    
+                                    // Find highest bay number
+                                    const highestBayNumber = Math.max(...bays.map(b => b.bayNumber));
+                                    
+                                    // Create bay
+                                    const newBay: Partial<ManufacturingBay> = {
+                                      name: newBayName,
+                                      bayNumber: highestBayNumber + 1,
+                                      team: teamName,
+                                      description: `Added to ${teamName}`,
+                                      assemblyStaffCount: team[0]?.assemblyStaffCount || 4,
+                                      electricalStaffCount: team[0]?.electricalStaffCount || 2,
+                                      hoursPerPersonPerWeek: team[0]?.hoursPerPersonPerWeek || 40
+                                    };
+                                    
+                                    // Call the onBayCreate function
+                                    if (onBayCreate) {
+                                      onBayCreate(newBay);
+                                      
+                                      toast({
+                                        title: "New bay added",
+                                        description: `Added ${newBayName} to ${teamName}`
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <PlusCircle className="h-4 w-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Add bay to team</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          {/* Remove Bay Button (only shown if team has more than 1 bay) */}
+                          {team.length > 1 && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button 
+                                    className="p-1 bg-orange-700 hover:bg-orange-600 rounded-full text-white flex items-center justify-center ml-1"
+                                    onClick={() => {
+                                      // Get the team name
+                                      const teamName = team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`;
+                                      
+                                      // Get the last bay in this team
+                                      const lastBay = team[team.length - 1];
+                                      
+                                      // Call the onBayDelete function for the last bay
+                                      if (onBayDelete && lastBay) {
+                                        onBayDelete(lastBay.id);
+                                        
+                                        toast({
+                                          title: "Bay removed",
+                                          description: `Removed ${lastBay.name} from ${teamName}`
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    <MinusCircle className="h-4 w-4" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Remove last bay from team</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                         </div>
                       )}
                     </div>
