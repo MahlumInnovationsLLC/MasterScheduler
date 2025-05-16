@@ -62,10 +62,10 @@ const BaySchedulingPage = () => {
   // View mode and date range
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'quarter'>('week');
   const [dateRange, setDateRange] = useState(() => {
-    // Set fixed date range to ensure all weeks from 2024 to 2028 are visible
+    // Set fixed date range to ensure all weeks from 2024 to 2030 are visible
     const startDate = new Date(2024, 0, 1); // January 1st, 2024
-    // Explicitly set end date to week 20 of 2028
-    const endDate = new Date(2028, 4, 31); // May 31st, 2028 (covers week 20)
+    // Extend end date to end of 2030 to show much more future dates
+    const endDate = new Date(2030, 11, 31); // December 31st, 2030
     return {
       start: startDate,
       end: endDate

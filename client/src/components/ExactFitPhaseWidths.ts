@@ -58,20 +58,29 @@ const calculateTeamCapacity = (bay: Bay, allBays: Bay[]): number => {
   // Find all bays in the same team
   const teamBays = allBays.filter(b => b.team === bay.team);
   
-  // Calculate total team staff capacity
-  let assemblyStaff = 0;
-  let electricalStaff = 0;
-  let hoursPerWeek = 29; // Default value
+  // Just use the first bay's capacity values for the team
+  // This ensures we don't double-count staff across multiple bays in the same team
+  const teamBay = teamBays[0];
   
-  teamBays.forEach(b => {
-    if (b.assemblyStaffCount) assemblyStaff += b.assemblyStaffCount;
-    if (b.electricalStaffCount) electricalStaff += b.electricalStaffCount;
-    if (b.hoursPerPersonPerWeek) hoursPerWeek = b.hoursPerPersonPerWeek;
-  });
+  if (!teamBay) return 29 * 2; // Default if no team bay found
+  
+  // Get capacity values with defaults
+  const assemblyStaff = teamBay.assemblyStaffCount || 2;
+  const electricalStaff = teamBay.electricalStaffCount || 1;
+  const hoursPerWeek = teamBay.hoursPerPersonPerWeek || 29;
   
   // Calculate total team capacity
   const totalStaff = assemblyStaff + electricalStaff;
   const totalCapacity = totalStaff * hoursPerWeek;
+  
+  // Log the correct calculation for debugging
+  console.log(`Team ${teamBay.team} capacity calculation:`, {
+    assemblyStaff,
+    electricalStaff,
+    totalStaff,
+    hoursPerWeek,
+    weeklyCapacity: totalCapacity
+  });
   
   return totalCapacity > 0 ? totalCapacity : 29 * 2; // Default if zero
 };
@@ -125,10 +134,25 @@ export const calculateExactFitPhaseWidths = (
   if (bar.totalHours && capacityPerProject > 0) {
     // Only apply capacity expansion to the production phase
     const productionHours = bar.totalHours * (bar.productionPercentage / 100);
-    capacityExpansionFactor = productionHours / capacityPerProject;
     
-    // Cap the expansion factor to reasonable limits (1-5x)
-    capacityExpansionFactor = Math.max(1, Math.min(5, capacityExpansionFactor));
+    // Weekly capacity is divided by 5 to get daily capacity
+    const weeksNeeded = productionHours / capacityPerProject;
+    
+    // Calculate expansion factor based on hours needed vs. capacity available
+    capacityExpansionFactor = weeksNeeded;
+    
+    console.log(`Project ${bar.projectNumber} production calculation:`, {
+      totalHours: bar.totalHours,
+      productionPercentage: bar.productionPercentage,
+      productionHours,
+      teamCapacity,
+      capacityPerProject,
+      weeksNeeded,
+      capacityExpansionFactor
+    });
+    
+    // Cap the expansion factor to reasonable limits (1-10x)
+    capacityExpansionFactor = Math.max(1, Math.min(10, capacityExpansionFactor));
   }
   
   // Store the expansion factor for debugging/reference
