@@ -1648,9 +1648,11 @@ export default function ResizableBaySchedule({
                         </div>
                       </div>
                       
-                      {/* Bay content area - FULL WIDTH to extend to end of timeline */}
-                      <div className="bay-content absolute left-48 right-0 top-0 bottom-0"
-                        style={{ width: `calc(100% - 48px)` }}>
+                      {/* Bay content area - FULL WIDTH to extend to end of timeline (2030) */}
+                      <div className="bay-content absolute left-48 top-0 bottom-0"
+                        style={{ 
+                          width: `${Math.max(8000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px` 
+                        }}>
                         {isMultiRowBay ? (
                           <MultiRowBayContent 
                             timeSlots={slots} 
