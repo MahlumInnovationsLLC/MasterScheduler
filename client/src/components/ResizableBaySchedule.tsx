@@ -1683,9 +1683,10 @@ export default function ResizableBaySchedule({
                       {slot.monthName} {format(slot.date, 'yyyy')}
                     </div>
                   )}
-                  {slot.isStartOfWeek && (
-                    <div className="text-gray-400 mt-1 text-[10px]">
-                      Week {slot.weekNumber}
+                  {/* Always show week numbers in week view */}
+                  {(viewMode === 'week' || slot.isStartOfWeek) && (
+                    <div className="text-gray-400 mt-1 text-[10px] font-semibold">
+                      Week {Math.ceil(differenceInDays(slot.date, new Date(slot.date.getFullYear(), 0, 1)) / 7)}
                     </div>
                   )}
                   <div className="text-gray-400 text-[10px]">
