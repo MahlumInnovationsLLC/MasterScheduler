@@ -408,8 +408,8 @@ export default function ResizableBaySchedule({
     return teams;
   }, [bays]);
   
-  // Slots for the timeline
-  const slots = useMemo(() => {
+  // Generate time slots and get slot width based on view mode
+  const { slots, slotWidth } = useMemo(() => {
     return generateTimeSlots(dateRange, viewMode);
   }, [dateRange, viewMode]);
   
