@@ -1737,15 +1737,16 @@ export default function ResizableBaySchedule({
                 </div>
               </div>
               
-              {/* Unassigned Project List */}
-              {unassignedProjects.length === 0 ? (
-                <div className="text-sm text-gray-400 italic">No unassigned projects</div>
-              ) : (
-                <div className="space-y-3">
-                  {unassignedProjects.map(project => (
-                    <div 
-                      key={`unassigned-${project.id}`}
-                      className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
+              {/* Scrollable Unassigned Projects List */}
+              <div className="h-[calc(100vh-230px)] overflow-y-auto pr-1 custom-scrollbar">
+                {unassignedProjects.length === 0 ? (
+                  <div className="text-sm text-gray-400 italic">No unassigned projects</div>
+                ) : (
+                  <div className="space-y-3 pb-2">
+                    {unassignedProjects.map(project => (
+                      <div 
+                        key={`unassigned-${project.id}`}
+                        className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
                       draggable={true}
                       onDragStart={(e) => {
                         // Store project ID with special prefix to identify unassigned projects
