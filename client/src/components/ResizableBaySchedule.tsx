@@ -3141,6 +3141,9 @@ export default function ResizableBaySchedule({
         teamName={selectedTeam}
         bays={bays}
         onTeamUpdate={async (teamName, newTeamName, description, assemblyStaff, electricalStaff, hoursPerWeek) => {
+          // Update team description in our local state to show in the header bar
+          handleTeamUpdate(teamName, newTeamName, description, assemblyStaff, electricalStaff, hoursPerWeek);
+          
           // After team capacity is updated, refresh the schedule data
           toast({
             title: "Team updated",
