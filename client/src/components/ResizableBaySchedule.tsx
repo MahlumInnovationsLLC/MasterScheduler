@@ -673,57 +673,131 @@ export default function ResizableBaySchedule({
     setFilteredProjects(sorted);
   }, [searchTerm, projects, schedules]);
   
-  // Auto-scroll to center the red TODAY line in the viewport
+  // Auto-scroll to center the red TODAY line in the viewport by finding it visually
   useEffect(() => {
     // Wait for rendering to complete
     const scrollTimeout = setTimeout(() => {
-      // Find the today marker element in the DOM
-      const todayMarker = document.querySelector('.today-line') || document.querySelector('.today-marker');
+      // Get the viewport element
       const viewportEl = viewportRef.current;
       
-      if (!todayMarker || !viewportEl) {
-        console.error('Could not find today marker or viewport element');
+      if (!viewportEl) {
+        console.error('Could not find viewport element');
         return;
       }
       
       try {
-        // Get position of the today marker relative to the timeline
-        // Fixed position for May 16, 2025 (week 20, day 5)
-        const weekNumber = 19; // 0-indexed, so week 20 is index 19
-        const weekPosition = weekNumber * slotWidth;
-        const dayOffset = (4/7) * slotWidth; // Friday is day 4 (0-indexed from Monday)
-        const todayPosition = weekPosition + dayOffset + 160; // 160px for the bay column width
-        
-        console.log(`Fixed TODAY position calculation: Week ${weekNumber + 1}, position: ${todayPosition}px`);
-        
-        // Center it in the viewport
-        const viewportWidth = viewportEl.clientWidth;
-        const scrollPosition = Math.max(0, todayPosition - (viewportWidth / 2));
-        
-        console.log(`Scrolling to position ${scrollPosition}px to center the today line at ${todayPosition}px`);
-        
-        // Perform the scroll
-        viewportEl.scrollLeft = Math.floor(scrollPosition);
-        
-        // Apply a clear visual highlight to the today line
-        if (todayMarker instanceof HTMLElement) {
-          todayMarker.style.boxShadow = '0 0 10px 2px rgba(239, 68, 68, 0.7)';
-          todayMarker.style.zIndex = '1000';
+        // Find the red TODAY line directly in the DOM
+        // This looks for any element with 'today-line' or 'today-marker' class
+        // or any element with red background color that might be the marker
+        const findTodayLine = () => {
+          // Try different selectors to find the today line
+          const selectors = [
+            '.today-line', 
+            '.today-marker', 
+            '.today-indicator',
+            '[data-today="true"]', 
+            '.timeline-container [style*="background-color: rgba(239, 68, 68"]',
+            '.timeline-container [style*="background: rgba(239, 68, 68"]',
+            '.timeline-container [style*="background-color: rgb(239, 68, 68"]',
+            '.timeline-container [style*="background: rgb(239, 68, 68"]',
+            '.today'
+          ];
           
-          // Brief animation to draw attention
-          setTimeout(() => {
-            if (todayMarker instanceof HTMLElement) {
-              todayMarker.style.transition = 'box-shadow 1s ease-in-out';
-              todayMarker.style.boxShadow = '0 0 5px 1px rgba(239, 68, 68, 0.5)';
+          // Try each selector
+          for (const selector of selectors) {
+            const element = document.querySelector(selector);
+            if (element) {
+              console.log(`Found today line using selector: ${selector}`);
+              return element;
             }
-          }, 1000);
-        }
+          }
+          
+          // If we couldn't find it with selectors, look for any red element
+          const allElements = document.querySelectorAll('*');
+          for (const el of allElements) {
+            if (el instanceof HTMLElement) {
+              const style = window.getComputedStyle(el);
+              const bgColor = style.backgroundColor;
+              // Check if it's a red element (rough check for red-ish colors)
+              if (
+                (bgColor.includes('rgb(239, 68, 68)') || 
+                bgColor.includes('rgb(255, 0, 0)') || 
+                bgColor.includes('rgb(220, 38, 38)') ||
+                el.classList.contains('bg-red-500')) &&
+                el.offsetHeight > 40 // Likely a vertical line
+              ) {
+                console.log('Found today line by color analysis');
+                return el;
+              }
+            }
+          }
+          
+          return null;
+        };
         
-        console.log('Successfully centered the today line in the viewport');
+        // Find the today line
+        const todayLine = findTodayLine();
+        
+        if (todayLine) {
+          // Get the position of the today line
+          const rect = todayLine.getBoundingClientRect();
+          const containerRect = viewportEl.getBoundingClientRect();
+          
+          // Calculate the today line's position relative to the viewport
+          const todayPosition = rect.left + viewportEl.scrollLeft - containerRect.left;
+          
+          console.log(`Found Today line at position: ${todayPosition}px`);
+          
+          // Center it in the viewport
+          const viewportWidth = viewportEl.clientWidth;
+          const scrollPosition = Math.max(0, todayPosition - (viewportWidth / 2));
+          
+          console.log(`Auto-scrolling to position ${scrollPosition}px to center the today line`);
+          
+          // Smooth scroll to center the today line
+          viewportEl.scrollTo({
+            left: Math.floor(scrollPosition),
+            behavior: 'smooth'
+          });
+          
+          // Enhance visibility of today line
+          if (todayLine instanceof HTMLElement) {
+            todayLine.style.boxShadow = '0 0 12px 3px rgba(239, 68, 68, 0.8)';
+            todayLine.style.zIndex = '1000';
+            todayLine.style.transition = 'all 0.3s ease-in-out';
+            
+            // Quick pulsing animation to draw attention
+            setTimeout(() => {
+              if (todayLine instanceof HTMLElement) {
+                todayLine.style.boxShadow = '0 0 20px 5px rgba(239, 68, 68, 0.9)';
+                setTimeout(() => {
+                  todayLine.style.boxShadow = '0 0 8px 2px rgba(239, 68, 68, 0.7)';
+                }, 500);
+              }
+            }, 300);
+            
+            console.log('Successfully centered and highlighted the TODAY line');
+          }
+        } else {
+          // Fallback: If we can't find the today line, use a hardcoded approach
+          // Week 20 of 2025 (May 12-18, 2025)
+          console.log("Couldn't find today line visually, using fixed position for Week 20 (May 2025)");
+          
+          const weekIndex = 19; // 0-indexed, Week 20
+          const todayPosition = (weekIndex * slotWidth) + ((4/7) * slotWidth) + 200; // Friday of Week 20
+          
+          const viewportWidth = viewportEl.clientWidth;
+          const scrollPosition = Math.max(0, todayPosition - (viewportWidth / 2));
+          
+          viewportEl.scrollTo({
+            left: Math.floor(scrollPosition),
+            behavior: 'smooth'
+          });
+        }
       } catch (error) {
         console.error('Error during auto-scroll:', error);
       }
-    }, 500); // Wait for rendering to complete
+    }, 1000); // Longer timeout to ensure everything is rendered
     
     return () => clearTimeout(scrollTimeout);
   }, [viewportRef, slotWidth]);
