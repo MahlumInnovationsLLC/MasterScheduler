@@ -687,21 +687,34 @@ export default function ResizableBaySchedule({
   const viewportRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   
-  // Group bays into teams (2 bays = 1 team)
+  // Group bays by team name instead of arbitrary pairs
   const bayTeams = useMemo(() => {
     const sortedBays = [...bays].sort((a, b) => a.bayNumber - b.bayNumber);
     
-    // Group bays into teams of 2
-    const teams: ManufacturingBay[][] = [];
+    // Group bays by their team property
+    const teamMap: Record<string, ManufacturingBay[]> = {};
     
-    // For each pair of bays, create a team
-    for (let i = 0; i < sortedBays.length; i += 2) {
-      const team = [sortedBays[i]];
-      if (i + 1 < sortedBays.length) {
-        team.push(sortedBays[i + 1]);
+    // Group bays by their team property
+    sortedBays.forEach(bay => {
+      // Use the team name as the key, or create a unique key for null teams
+      const teamKey = bay.team || `unnamed_team_${bay.bayNumber}`;
+      
+      if (!teamMap[teamKey]) {
+        teamMap[teamKey] = [];
       }
-      teams.push(team);
-    }
+      
+      teamMap[teamKey].push(bay);
+    });
+    
+    // Convert the map to an array of bay arrays
+    const teams = Object.values(teamMap);
+    
+    // Sort teams by the lowest bay number in each team
+    teams.sort((a, b) => {
+      const minBayNumberA = Math.min(...a.map(bay => bay.bayNumber));
+      const minBayNumberB = Math.min(...b.map(bay => bay.bayNumber));
+      return minBayNumberA - minBayNumberB;
+    });
     
     return teams;
   }, [bays]);
