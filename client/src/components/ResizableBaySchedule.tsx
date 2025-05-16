@@ -377,17 +377,34 @@ function initializeGlobalDragDropFix() {
     }
   };
   
+  // Add a global handler for drops outside target areas
+  const handleGlobalDrop = (e: DragEvent) => {
+    const isOverDropTarget = 
+      e.target instanceof Element && 
+      (e.target.closest('.bay-row') || 
+       e.target.closest('.week-cell') || 
+       e.target.closest('.unassigned-drop-container') ||
+       e.target.closest('.droppable-slot'));
+       
+    if (!isOverDropTarget) {
+      e.preventDefault();
+      console.log('Global drop handler caught a drop outside of designated drop zones');
+    }
+  };
+  
   // Add global listeners
   document.addEventListener('dragover', handleGlobalDragOver, true);
+  document.addEventListener('drop', handleGlobalDrop, false);
   
   // Enable special styling
   document.body.classList.add('allow-multiple-projects');
   document.body.classList.add('force-accept-drop');
   
-  console.log('🔄 MULTIPLE PROJECTS FIX ACTIVATED: Projects can now be placed in ANY row');
+  console.log('🔒 MAXIMUM DRAG-DROP OVERRIDE ACTIVE - Projects can now be placed anywhere without restrictions');
   
   return () => {
     document.removeEventListener('dragover', handleGlobalDragOver, true);
+    document.removeEventListener('drop', handleGlobalDrop, false);
     document.body.classList.remove('allow-multiple-projects');
     document.body.classList.remove('force-accept-drop');
   };
@@ -633,12 +650,38 @@ export default function ResizableBaySchedule({
   
   // Drag handling functions
   const handleDragStart = (e: React.DragEvent, scheduleId: number) => {
+    // Find the specific schedule bar to get its details
+    const bar = scheduleBars.find((b) => b.id === scheduleId);
+    if (!bar) {
+      console.error('Could not find schedule bar with ID', scheduleId);
+      return;
+    }
+
+    // Store the schedule ID as plain text (primary data)
     e.dataTransfer.setData('text/plain', scheduleId.toString());
+    
+    // Also store as JSON with complete data (enhanced data)
+    const dragData = {
+      scheduleId: bar.id,
+      projectId: bar.projectId,
+      bayId: bar.bayId,
+      startDate: format(bar.startDate, 'yyyy-MM-dd'),
+      endDate: format(bar.endDate, 'yyyy-MM-dd'),
+      totalHours: bar.totalHours,
+      projectName: bar.projectName,
+      projectNumber: bar.projectNumber
+    };
+    
+    e.dataTransfer.setData('application/json', JSON.stringify(dragData));
     e.dataTransfer.effectAllowed = 'move';
     
-    // Add some visual feedback
+    // Set global state
+    setDraggingSchedule(scheduleId);
+    
+    // Add enhanced visual feedback
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.classList.add('dragging');
+      document.body.classList.add('dragging-active');
       
       // Create a custom drag image that looks like the actual bar
       const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
@@ -712,7 +755,7 @@ export default function ResizableBaySchedule({
   };
   
   const handleDragEnd = (e: React.DragEvent) => {
-    // Reset dragging state
+    // Reset all dragging state
     setDraggingSchedule(null);
     setDropTarget(null);
     
@@ -721,28 +764,113 @@ export default function ResizableBaySchedule({
       e.currentTarget.classList.remove('dragging');
     }
     
+    // Clear global states
+    document.body.classList.remove('dragging-active');
+    
     // Remove highlights from all potential drop targets
     document.querySelectorAll('.drop-target').forEach((el) => {
       el.classList.remove('drop-target');
     });
+    
+    // Remove highlights from bay rows and other drop areas
+    document.querySelectorAll('.row-target-highlight, .bay-highlight').forEach((el) => {
+      el.classList.remove('row-target-highlight', 'bay-highlight');
+    });
+    
+    console.log('Drag operation completed, all states cleared');
   };
   
   const handleDrop = async (e: React.DragEvent, bayId: number, slotIndex: number, rowIndex: number) => {
     e.preventDefault();
     console.log(`DROP DEBUG: handleDrop called with bayId=${bayId}, slotIndex=${slotIndex}, rowIndex=${rowIndex}`);
     
-    // Get the schedule ID from the drag data
-    const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);
-    console.log(`DROP DEBUG: Moving schedule ID ${scheduleId}`);
-    
-    // Find the schedule bar being moved
-    const bar = scheduleBars.find((b) => b.id === scheduleId);
-    if (!bar) {
-      console.error('DROP ERROR: Could not find schedule bar with ID', scheduleId);
-      return;
-    }
+    // Try to get the data in both formats - we support both scheduled items and unassigned projects
+    const dataString = e.dataTransfer.getData('text/plain');
+    const jsonData = e.dataTransfer.getData('application/json');
     
     try {
+      // First, check if this is an unassigned project (identifier starts with -)
+      if (dataString.startsWith('-')) {
+        // Handle drop of an unassigned project
+        const projectId = parseInt(dataString.substring(1), 10);
+        console.log(`DROP DEBUG: Adding NEW project ID ${projectId} to schedule in bay ${bayId}`);
+        
+        // Find the project to get its details
+        const project = projects.find(p => p.id === projectId);
+        if (!project) {
+          console.error('DROP ERROR: Could not find project with ID', projectId);
+          return;
+        }
+        
+        // Get date at drop position
+        const targetDate = getDateFromDropPosition(e, bayId, rowIndex);
+        if (!targetDate) {
+          console.error('DROP ERROR: Could not determine target date for drop');
+          return;
+        }
+        
+        // Calculate default duration (4 weeks for new projects)
+        const defaultDuration = scheduleDuration || 4; // in weeks
+        const endDate = addWeeks(targetDate, defaultDuration);
+        
+        // Default hours calculation (use project.totalHours if available, otherwise estimate)
+        const totalHours = project.totalHours || 1200; // Default to 1200 hours if not set
+        
+        // Format dates for API
+        const formattedStartDate = format(targetDate, 'yyyy-MM-dd');
+        const formattedEndDate = format(endDate, 'yyyy-MM-dd');
+        
+        console.log(`⚠️ CREATING NEW SCHEDULE: Project ${project.name}`);
+        console.log(`⚠️ Bay: ${bayId}, Row: ${rowIndex}`);
+        console.log(`⚠️ Dates: ${formattedStartDate} to ${formattedEndDate}`);
+        
+        // Create a new schedule with the project
+        await onScheduleCreate(
+          projectId,
+          bayId,
+          formattedStartDate,
+          formattedEndDate,
+          totalHours,
+          rowIndex
+        );
+        
+        // Show success toast
+        toast({
+          title: "Project scheduled",
+          description: `${project.name} added to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
+        });
+        
+        return;
+      }
+      
+      // If it's not an unassigned project, it must be an existing schedule being moved
+      let scheduleId: number;
+      let bar: ScheduleBar | undefined;
+      
+      // Try to get complete data from JSON if available
+      if (jsonData) {
+        try {
+          const parsedData = JSON.parse(jsonData);
+          scheduleId = parsedData.scheduleId;
+          console.log('Using complete JSON data for drag operation:', parsedData);
+        } catch (e) {
+          // Fallback to text data if JSON parsing fails
+          scheduleId = parseInt(dataString, 10);
+        }
+      } else {
+        // Use plain text data
+        scheduleId = parseInt(dataString, 10);
+      }
+      
+      console.log(`DROP DEBUG: Moving EXISTING schedule ID ${scheduleId}`);
+      
+      // Find the schedule bar being moved
+      bar = scheduleBars.find((b) => b.id === scheduleId);
+      if (!bar) {
+        console.error('DROP ERROR: Could not find schedule bar with ID', scheduleId);
+        return;
+      }
+      
       // Determine the new start and end dates based on drop position
       const targetDate = getDateFromDropPosition(e, bayId, rowIndex);
       if (!targetDate) {
@@ -1581,14 +1709,27 @@ export default function ResizableBaySchedule({
                       className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
                       draggable={true}
                       onDragStart={(e) => {
+                        // Store project ID with special prefix to identify unassigned projects
                         const projectIdentifier = `-${project.id}`;
                         e.dataTransfer.setData('text/plain', projectIdentifier);
                         
+                        // Also store complete project data as JSON for enhanced drop handlers
+                        const projectData = {
+                          projectId: project.id,
+                          name: project.name,
+                          projectNumber: project.projectNumber,
+                          isUnassigned: true // Flag to identify this as an unassigned project
+                        };
+                        e.dataTransfer.setData('application/json', JSON.stringify(projectData));
+                        
+                        // Set visual indicators
                         document.body.setAttribute('data-drag-in-progress', 'true');
                         document.body.classList.add('global-drag-active');
+                        document.body.classList.add('dragging-unassigned-project');
                         
                         console.log(`🔄 Dragging unassigned project ${project.id}: ${project.name}`);
                         
+                        // Set copy effect for new project assignment
                         e.dataTransfer.effectAllowed = 'copy';
                         e.currentTarget.classList.add('opacity-50');
                         
