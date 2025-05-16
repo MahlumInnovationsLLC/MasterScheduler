@@ -2078,20 +2078,30 @@ export default function ResizableBaySchedule({
                       </div>
                     </div>
                     
-                    {/* Team Management Button */}
+                    {/* Team Management Button with Team Name */}
                     {team[0]?.team && (
-                      <button 
-                        className="p-1 bg-blue-700 hover:bg-blue-600 rounded-full text-white flex items-center justify-center ml-2"
-                        onClick={() => {
-                          const teamName = team[0].team;
-                          if (teamName) {
-                            setSelectedTeam(teamName);
-                            setTeamDialogOpen(true);
-                          }
-                        }}
-                      >
-                        <Wrench className="h-4 w-4" />
-                      </button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button 
+                              className="px-2 py-1 bg-blue-700 hover:bg-blue-600 rounded-md text-white flex items-center justify-center ml-2 text-xs"
+                              onClick={() => {
+                                const teamName = team[0].team;
+                                if (teamName) {
+                                  setSelectedTeam(teamName);
+                                  setTeamDialogOpen(true);
+                                }
+                              }}
+                            >
+                              <Wrench className="h-3 w-3 mr-1" />
+                              <span>{team[0].team}</span>
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Manage {team[0].team} team settings</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                   </div>
                   
@@ -2103,12 +2113,31 @@ export default function ResizableBaySchedule({
                           <div className="capacity-indicator flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
                             <Users className="h-3 w-3 mr-1" />
                             <span>
-                              {scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length} projects
+                              {(() => {
+                                // Get current week's start and end date
+                                const today = new Date();
+                                const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });  // Monday as start of week
+                                const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
+                                
+                                // Count projects active in current week only
+                                return scheduleBars.filter(bar => {
+                                  // Check if team owns this bay
+                                  const isTeamBay = team.some(b => b.id === bar.bayId);
+                                  if (!isTeamBay) return false;
+                                  
+                                  // Check if schedule overlaps with current week
+                                  const scheduleStart = new Date(bar.startDate);
+                                  const scheduleEnd = new Date(bar.endDate);
+                                  return (
+                                    (scheduleStart <= currentWeekEnd && scheduleEnd >= currentWeekStart)
+                                  );
+                                }).length;
+                              })()} projects this week
                             </span>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Number of projects assigned to this team</p>
+                          <p>Number of projects active for this team in the current week</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -2119,18 +2148,41 @@ export default function ResizableBaySchedule({
                           <div className="utilization-indicator flex items-center text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
                             <Zap className="h-3 w-3 mr-1" />
                             <span>
-                              {Math.min(
-                                Math.round(
-                                  (scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length / 
-                                  (team.length * 2)) * 100
-                                ), 
-                                100
-                              )}% utilization
+                              {(() => {
+                                // Get current week's start and end date
+                                const today = new Date();
+                                const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+                                const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
+                                
+                                // Count projects active in current week only
+                                const currentWeekProjects = scheduleBars.filter(bar => {
+                                  // Check if team owns this bay
+                                  const isTeamBay = team.some(b => b.id === bar.bayId);
+                                  if (!isTeamBay) return false;
+                                  
+                                  // Check if schedule overlaps with current week
+                                  const scheduleStart = new Date(bar.startDate);
+                                  const scheduleEnd = new Date(bar.endDate);
+                                  return (
+                                    (scheduleStart <= currentWeekEnd && scheduleEnd >= currentWeekStart)
+                                  );
+                                }).length;
+                                
+                                // Calculate utilization percentage based on team capacity
+                                const percentage = Math.min(
+                                  Math.round(
+                                    (currentWeekProjects / (team.length * 2)) * 100
+                                  ), 
+                                  100
+                                );
+                                
+                                return `${percentage}% utilization this week`;
+                              })()}
                             </span>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Team capacity utilization percentage</p>
+                          <p>Team capacity utilization percentage for the current week</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -2202,15 +2254,25 @@ export default function ResizableBaySchedule({
                             
                             {/* Team Management Button */}
                             {bay.team && (
-                              <button
-                                className="p-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700"
-                                onClick={() => {
-                                  setSelectedTeam(bay.team);
-                                  setTeamDialogOpen(true);
-                                }}
-                              >
-                                <Wrench className="h-3 w-3" />
-                              </button>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700 flex items-center"
+                                      onClick={() => {
+                                        setSelectedTeam(bay.team);
+                                        setTeamDialogOpen(true);
+                                      }}
+                                    >
+                                      <Wrench className="h-3 w-3 mr-1" />
+                                      <span className="text-xs">{bay.team}</span>
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Manage {bay.team} team settings</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             )}
                           </div>
                         </div>
