@@ -617,31 +617,39 @@ export default function ResizableBaySchedule({
     if (!viewportEl || !timelineEl) return;
     
     // Find today's position in the timeline
-    const today = new Date();
+    const today = new Date(); // Today's date - May 16, 2025
     
-    // Calculate days since the start of our date range
-    const daysFromStart = differenceInDays(today, dateRange.start);
+    // CRITICAL FIX: Force the date range start to January 1, 2025 for consistent timeline calculation
+    const forcedStartDate = new Date(2025, 0, 1); // January 1, 2025
     
-    // Calculate the position to scroll to based on slot width
-    // Use viewMode to determine pixels per day
-    const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
-    const scrollPosition = daysFromStart * pixelsPerDay;
+    // Calculate days since January 1, 2025 (fixed start date)
+    const daysFromStart = differenceInDays(today, forcedStartDate);
     
-    // Adjust for centering by subtracting half the viewport width
-    const adjustedPosition = Math.max(0, scrollPosition - viewportEl.clientWidth / 2);
+    // Calculate pixels per day based on view mode
+    const pixelsPerDay = viewMode === 'day' ? slotWidth : (viewMode === 'week' ? slotWidth / 7 : slotWidth / 30);
     
-    // Scroll to position
-    console.log('Auto-scrolling to current week');
+    // Calculate exact position for today
+    const todayPosition = daysFromStart * pixelsPerDay;
+    
+    // Center today's position in the viewport
+    const viewportWidth = viewportEl.clientWidth;
+    const centeredPosition = Math.max(0, todayPosition - (viewportWidth / 2));
+    
+    console.log(`Today is ${format(today, 'yyyy-MM-dd')}, ${daysFromStart} days from ${format(forcedStartDate, 'yyyy-MM-dd')}`);
+    console.log(`Auto-scrolling to current day at position ${todayPosition}px (centered at ${centeredPosition}px)`);
+    
     try {
       if (viewportEl.scrollTo) {
-        const weekPosition = Math.floor(adjustedPosition);
-        console.log(`Auto-scrolled to current week position: ${scrollPosition}px (week ${Math.floor(daysFromStart / 7)} of ${today.getFullYear()}) centered at ${adjustedPosition}px`);
-        viewportEl.scrollTo({ left: weekPosition, behavior: 'smooth' });
+        viewportEl.scrollTo({ 
+          left: Math.floor(centeredPosition), 
+          behavior: 'smooth' 
+        });
+        console.log(`Auto-scrolled to today's position at ${todayPosition}px with ${pixelsPerDay}px per day`);
       } else {
-        console.log('USING EMERGENCY SCROLLING METHOD');
         // Fallback for older browsers
-        viewportEl.scrollLeft = adjustedPosition;
-        console.log(`Forced scroll to ${adjustedPosition}px (${daysFromStart} days since Jan 1, ${pixelsPerDay}px per day)`);
+        viewportEl.scrollLeft = Math.floor(centeredPosition);
+        console.log('USING EMERGENCY SCROLLING METHOD');
+        console.log(`Forced scroll to ${centeredPosition}px (${daysFromStart} days since Jan 1, ${pixelsPerDay}px per day)`);
       }
     } catch (e) {
       console.error('Error during auto-scroll:', e);
