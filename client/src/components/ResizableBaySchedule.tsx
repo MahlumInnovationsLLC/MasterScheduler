@@ -2465,10 +2465,7 @@ export default function ResizableBaySchedule({
                           data-team={team[0]?.team || `${team.map(b => b.name).join(' & ')}`}
                           data-bay-id={team.map(bay => bay.id).join(',')}
                         >
-                          {team[0]?.team 
-                            ? teamDescriptions[team[0].team] || (team[0].description || 'General Production')
-                            : team[0]?.description || 'Production Bay'
-                          }
+                          {team[0]?.description || 'Production Bay'}
                         </span>
                       </div>
                       
