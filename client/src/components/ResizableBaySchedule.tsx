@@ -1861,22 +1861,44 @@ export default function ResizableBaySchedule({
                                     data-bay-id={bay.id}
                                     data-row-index="0"
                                     data-exact-week="true"
-                                    onDragOver={(e) => {
-                                      // Prevent event from propagating to parent elements
+                                    draggable={false}
+                                    onDragEnter={(e) => {
+                                      // CRITICAL: Always prevent default to be a valid drop target
+                                      e.preventDefault();
                                       e.stopPropagation();
                                       
-                                      // Store the row index and bay id in body attributes for the drop handler
+                                      // Force visual feedback
+                                      e.currentTarget.classList.add('drop-target');
+                                      e.currentTarget.classList.add('cell-highlight');
+                                      
+                                      console.log(`✅ CELL READY FOR DROP: Bay ${bay.id}, Row 0, Date ${format(slot.date, 'yyyy-MM-dd')}`);
+                                    }}
+                                    onDragOver={(e) => {
+                                      // CRITICAL: Always prevent default to allow dropping
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      
+                                      // Force the cursor to show "move" and never "no-drop"
+                                      if (e.dataTransfer) {
+                                        e.dataTransfer.dropEffect = 'move';
+                                      }
+                                      
+                                      // Store the row index and bay id in body attributes
                                       document.body.setAttribute('data-current-drag-row', '0');
                                       document.body.setAttribute('data-current-drag-bay', bay.id.toString());
                                       
-                                      // Make sure the element has the correct bay ID
+                                      // Force the element to accept drops
                                       if (e.currentTarget instanceof HTMLElement) {
                                         e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
+                                        e.currentTarget.setAttribute('data-accept-drops', 'true');
+                                        e.currentTarget.setAttribute('data-overlap-allowed', 'true');
                                       }
                                       
-                                      // Add highlight classes
+                                      // Visual indication
                                       e.currentTarget.classList.add('cell-highlight');
+                                      e.currentTarget.classList.add('drop-target');
                                       
+                                      // Apply handler
                                       handleSlotDragOver(e, bay.id, 0, slot.date);
                                     }}
                                     onDragLeave={(e) => {
@@ -1884,7 +1906,17 @@ export default function ResizableBaySchedule({
                                       e.currentTarget.classList.remove('cell-highlight');
                                     }}
                                     onDrop={(e) => {
-                                      // Use the data stored on the element for drop handling
+                                      // CRITICAL: Always prevent default to accept the drop
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      
+                                      // Clear any visual indication
+                                      e.currentTarget.classList.remove('cell-highlight');
+                                      e.currentTarget.classList.remove('drop-target');
+                                      
+                                      console.log(`🎯 DROP HAPPENING NOW: Bay ${bay.id}, Row 0, Date ${format(slot.date, 'yyyy-MM-dd')}`);
+                                      
+                                      // Call the handler with EXACT placement info
                                       handleSlotDrop(e, bay.id, 0, slot.date);
                                     }}
                                   />
