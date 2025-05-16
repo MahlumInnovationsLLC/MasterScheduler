@@ -76,6 +76,10 @@ interface ManufacturingBay {
   teamId: number | null;
   createdAt: Date | null;
   updatedAt: Date | null;
+  // Team capacity management properties
+  assemblyStaffCount?: number | null;
+  electricalStaffCount?: number | null;
+  hoursPerPersonPerWeek?: number | null;
 }
 
 interface Project {
@@ -370,6 +374,8 @@ export default function ResizableBaySchedule({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newBayDialog, setNewBayDialog] = useState(false);
   const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
+  const [teamDialogOpen, setTeamDialogOpen] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [deleteRowDialogOpen, setDeleteRowDialogOpen] = useState(false);
   const [confirmRowDelete, setConfirmRowDelete] = useState<{
     bayId: number;
@@ -1488,8 +1494,49 @@ export default function ResizableBaySchedule({
             {bayTeams.map((team, teamIndex) => (
               <div key={`team-${teamIndex}`} className="team-container mb-5 relative">
                 <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex justify-between items-center shadow-md">
-                  <div className="team-name font-bold text-lg">
-                    Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}
+                  <div className="team-name font-bold text-lg flex items-center gap-2">
+                    <span>Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}</span>
+                    
+                    {/* Team Management Button */}
+                    {team[0]?.team && (
+                      <button 
+                        className="p-1 bg-blue-700 hover:bg-blue-600 rounded-full text-white flex items-center justify-center"
+                        onClick={() => {
+                          const teamName = team[0].team;
+                          if (teamName) {
+                            // Open team management dialog for this specific team
+                            const teamDialog = document.createElement('div');
+                            teamDialog.id = 'team-management-modal';
+                            document.body.appendChild(teamDialog);
+                            
+                            const dialog = document.createElement('dialog');
+                            dialog.open = true;
+                            dialog.className = 'fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center';
+                            teamDialog.appendChild(dialog);
+                            
+                            // Close the dialog when clicking cancel
+                            const handleClose = () => {
+                              document.body.removeChild(teamDialog);
+                            };
+                            
+                            // Create the TeamManagementDialog here
+                            // For simplicity, we're opening a simple edit modal
+                            // In a real implementation, you would use a proper React dialog
+                            dialog.innerHTML = `
+                              <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+                                <h2 class="text-xl font-bold mb-4">Team ${teamName} Capacity</h2>
+                                <p class="mb-4">Edit team capacity settings</p>
+                                <div class="flex justify-end">
+                                  <button class="px-4 py-2 bg-gray-200 rounded-md mr-2" onclick="document.getElementById('team-management-modal').remove()">Close</button>
+                                </div>
+                              </div>
+                            `;
+                          }
+                        }}
+                      >
+                        <Wrench className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                   
                   {/* Team capacity indicators */}
