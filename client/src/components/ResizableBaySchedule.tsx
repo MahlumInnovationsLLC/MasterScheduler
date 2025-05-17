@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import MultiRowBayContent from './MultiRowBayContent';
+import { TeamManagementDialog } from './TeamManagementDialog';
 import { 
   format, 
   addDays, 
@@ -1493,18 +1494,95 @@ export default function ResizableBaySchedule({
                       </Tooltip>
                     </TooltipProvider>
                     
-                    {/* Add TeamManagementButton */}
-                    <button
-                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-1 rounded"
-                      onClick={() => {
-                        // Set the team being edited
-                        setEditingTeam(team);
-                        // Open the team management dialog
-                        setTeamManagementOpen(true);
-                      }}
-                    >
-                      <Wrench className="h-4 w-4" />
-                    </button>
+                    {/* Team control buttons */}
+                    <div className="flex items-center space-x-1">
+                      {/* Add Bay button */}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-1 rounded"
+                              onClick={() => {
+                                // Handle adding a new bay to this team
+                                if (onBayCreate) {
+                                  const maxBayNumber = Math.max(...bays.map(b => b.bayNumber), 0);
+                                  onBayCreate({
+                                    name: `Bay ${maxBayNumber + 1}`,
+                                    bayNumber: maxBayNumber + 1,
+                                    team: team[0].team,
+                                    status: 'active',
+                                    description: `${team[0].team} - Bay ${maxBayNumber + 1}`,
+                                    location: team[0].location
+                                  });
+                                }
+                              }}
+                            >
+                              <PlusIcon className="h-4 w-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Add Bay to {team[0].team}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      {/* Remove Bay button (only show if team has more than one bay) */}
+                      {team.length > 1 && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-1 rounded"
+                                onClick={() => {
+                                  // Find the last bay in this team for removal
+                                  const lastBay = team[team.length - 1];
+                                  if (lastBay && onBayDelete) {
+                                    // Check if bay has schedules
+                                    const schedulesInBay = schedules.filter(s => s.bayId === lastBay.id);
+                                    if (schedulesInBay.length > 0) {
+                                      alert(`Cannot remove bay ${lastBay.name} because it has ${schedulesInBay.length} project(s) scheduled.`);
+                                      return;
+                                    }
+                                    
+                                    // Confirm deletion
+                                    if (confirm(`Are you sure you want to remove bay ${lastBay.name} from ${team[0].team}?`)) {
+                                      onBayDelete(lastBay.id);
+                                    }
+                                  }
+                                }}
+                              >
+                                <MinusIcon className="h-4 w-4" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Remove Last Bay from {team[0].team}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      
+                      {/* Team settings button */}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-1 rounded"
+                              onClick={() => {
+                                // Set the team being edited
+                                setEditingTeam(team);
+                                // Open the team management dialog
+                                setTeamManagementOpen(true);
+                              }}
+                            >
+                              <Wrench className="h-4 w-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Edit Team Settings</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </div>
                 </div>
                 
@@ -2096,6 +2174,20 @@ export default function ResizableBaySchedule({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Team Management Dialog */}
+      {editingTeam && (
+        <TeamManagementDialog
+          open={teamManagementOpen}
+          onOpenChange={setTeamManagementOpen}
+          teamName={editingTeam[0].team}
+          bays={editingTeam}
+          onTeamUpdate={async (oldTeamName, newTeamName, description, assemblyStaff, electricalStaff, hoursPerWeek) => {
+            // After update, refetch the data to show updated team names and capacity
+            window.location.reload();
+          }}
+        />
+      )}
       </div>
     </div>
   );
