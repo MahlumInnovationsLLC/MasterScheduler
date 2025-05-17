@@ -393,6 +393,7 @@ export default function ResizableBaySchedule({
   // Track the viewport element for scrolling
   const viewportRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
+  const todayLineRef = useRef<HTMLDivElement>(null);
   
   // Group bays by their team property from the database
   const bayTeams = useMemo(() => {
@@ -534,6 +535,7 @@ export default function ResizableBaySchedule({
   useEffect(() => {
     const viewportEl = viewportRef.current;
     const timelineEl = timelineRef.current;
+    const todayLine = todayLineRef.current;
     
     if (!viewportEl || !timelineEl) return;
     
@@ -546,26 +548,57 @@ export default function ResizableBaySchedule({
     // Calculate the position to scroll to based on slot width
     // Use viewMode to determine pixels per day
     const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
-    const scrollPosition = daysFromStart * pixelsPerDay;
     
-    // Adjust for centering by subtracting half the viewport width
-    const adjustedPosition = Math.max(0, scrollPosition - viewportEl.clientWidth / 2);
-    
-    // Scroll to position
-    console.log('Auto-scrolling to current week');
-    try {
-      if (viewportEl.scrollTo) {
-        const weekPosition = Math.floor(adjustedPosition);
-        console.log(`Auto-scrolled to current week position: ${scrollPosition}px (week ${Math.floor(daysFromStart / 7)} of ${today.getFullYear()}) centered at ${adjustedPosition}px`);
-        viewportEl.scrollTo({ left: weekPosition, behavior: 'smooth' });
-      } else {
-        console.log('USING EMERGENCY SCROLLING METHOD');
-        // Fallback for older browsers
-        viewportEl.scrollLeft = adjustedPosition;
-        console.log(`Forced scroll to ${adjustedPosition}px (${daysFromStart} days since Jan 1, ${pixelsPerDay}px per day)`);
+    // If we have the today line element, use its position for more accurate scrolling
+    if (todayLine) {
+      // Get the position of the today line
+      const todayLineRect = todayLine.getBoundingClientRect();
+      const timelineRect = timelineEl.getBoundingClientRect();
+      
+      // Calculate the relative position of the today line within the timeline
+      const todayPosition = todayLineRect.left - timelineRect.left + timelineEl.scrollLeft;
+      
+      // Center the today line in the viewport
+      const adjustedPosition = Math.max(0, todayPosition - viewportEl.clientWidth / 2);
+      
+      // Scroll to position
+      console.log('Auto-scrolling to today line marker');
+      try {
+        if (viewportEl.scrollTo) {
+          const position = Math.floor(adjustedPosition);
+          console.log(`Auto-scrolled to today line position: ${position}px (centered in viewport)`);
+          viewportEl.scrollTo({ left: position, behavior: 'smooth' });
+        } else {
+          // Fallback for older browsers
+          viewportEl.scrollLeft = adjustedPosition;
+          console.log(`Forced scroll to today line at ${adjustedPosition}px`);
+        }
+      } catch (e) {
+        console.error('Error during auto-scroll to today line:', e);
       }
-    } catch (e) {
-      console.error('Error during auto-scroll:', e);
+    } else {
+      // Fallback to calculating position if today line ref is not available
+      const scrollPosition = daysFromStart * pixelsPerDay;
+      
+      // Adjust for centering by subtracting half the viewport width
+      const adjustedPosition = Math.max(0, scrollPosition - viewportEl.clientWidth / 2);
+      
+      // Scroll to position
+      console.log('Auto-scrolling to calculated current day position');
+      try {
+        if (viewportEl.scrollTo) {
+          const weekPosition = Math.floor(adjustedPosition);
+          console.log(`Auto-scrolled to current week position: ${scrollPosition}px (week ${Math.floor(daysFromStart / 7)} of ${today.getFullYear()}) centered at ${adjustedPosition}px`);
+          viewportEl.scrollTo({ left: weekPosition, behavior: 'smooth' });
+        } else {
+          console.log('USING EMERGENCY SCROLLING METHOD');
+          // Fallback for older browsers
+          viewportEl.scrollLeft = adjustedPosition;
+          console.log(`Forced scroll to ${adjustedPosition}px (${daysFromStart} days since Jan 1, ${pixelsPerDay}px per day)`);
+        }
+      } catch (e) {
+        console.error('Error during auto-scroll:', e);
+      }
     }
   }, [dateRange, viewMode, slotWidth]);
   
@@ -1432,7 +1465,7 @@ export default function ResizableBaySchedule({
           </div>
           
           {/* Today indicator */}
-          <div className="today-indicator absolute top-0 bottom-0 border-r-2 border-red-500 z-20 pointer-events-none">
+          <div ref={todayLineRef} className="today-indicator absolute top-0 bottom-0 border-r-2 border-red-500 z-20 pointer-events-none">
             <div className="today-label bg-red-500 text-white text-xs px-1 py-0.5 absolute top-0 -left-10 whitespace-nowrap">
               Today
             </div>
