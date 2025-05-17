@@ -1482,7 +1482,9 @@ export default function ResizableBaySchedule({
                     </div>
                     {team[0].description && (
                       <div className="text-white text-opacity-80 text-sm ml-3 italic">
-                        {team[0].description}
+                        {team[0].description.includes(team[0].team) 
+                          ? team[0].description.replace(team[0].team, '').trim().replace(/^[-:,\s]+/, '')
+                          : team[0].description}
                       </div>
                     )}
                   </div>
