@@ -209,7 +209,7 @@ const getBayRowCount = (bayId: number, bayName: string) => {
 };
 
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
-  const slotsArray: TimeSlot[] = [];
+  const slots: TimeSlot[] = [];
   
   // Define slot width based on view mode
   let slotWidth = 35; // default for week view
@@ -245,7 +245,7 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
     const isCurrentDateBusinessDay = isBusinessDay(currentDate);
     
     // Create slot with formatted dates appropriate for the view mode
-    slotsArray.push({
+    slots.push({
       date: new Date(currentDate),
       isStartOfMonth,
       isStartOfWeek,
@@ -284,9 +284,7 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
     }
   }
   
-  console.log(`Generated ${slotsArray.length} slots for ${viewMode} view with slot width ${slotWidth}px`);
-  
-  return { slots: slotsArray, slotWidth };
+  return { slots, slotWidth };
 };
 
 // Component to display bay capacity information and status indicators
@@ -310,31 +308,24 @@ const BayCapacityInfo = ({ bay, allSchedules, projects, bays }: { bay: Manufactu
     statusText = 'At Capacity';
     statusBg = 'bg-red-500';
     statusIcon = <AlertTriangle className="h-4 w-4 text-white" />;
-  } else if (capacityPercentage > 0) {
-    statusText = 'In Progress';
-    statusBg = 'bg-yellow-500';
+  } else if (capacityPercentage >= 50) {
+    statusText = 'Near Capacity';
+    statusBg = 'bg-amber-500';
     statusIcon = <Clock3 className="h-4 w-4 text-white" />;
   }
   
-  if (bay.status === 'maintenance') {
-    statusText = 'Maintenance';
-    statusBg = 'bg-orange-500';
-    statusIcon = <Wrench className="h-4 w-4 text-white" />;
-  } else if (bay.status === 'inactive') {
-    statusText = 'Inactive';
-    statusBg = 'bg-gray-500';
-    statusIcon = <X className="h-4 w-4 text-white" />;
-  }
+  console.log(`Bay ${bay.name} at ${capacityPercentage}% capacity with ${activeProjects === 0 ? 'no projects' : activeProjects + ' project' + (activeProjects > 1 ? 's' : '')}`);
+  console.log(`Bay ${bay.name} final status: ${statusText} with ${activeProjects} active project${activeProjects !== 1 ? 's' : ''}`);
   
   return (
-    <div className="flex items-center space-x-2 text-xs">
-      <div className={`rounded-full ${statusBg} flex items-center px-1.5 py-0.5 text-white`}>
+    <div className="bay-capacity-info absolute right-2 top-2 flex items-center space-x-2">
+      <div className={`status-indicator ${statusBg} text-white text-xs px-2 py-0.5 rounded-full flex items-center`}>
         {statusIcon}
         <span className="ml-1">{statusText}</span>
       </div>
-      <span className="text-gray-600">
-        Projects: {activeProjects}
-      </span>
+      <div className="project-count bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded-full">
+        {activeProjects} project{activeProjects !== 1 ? 's' : ''}
+      </div>
     </div>
   );
 };
@@ -350,30 +341,65 @@ export default function ResizableBaySchedule({
   onBayUpdate,
   onBayDelete,
   dateRange,
-  viewMode,
+  viewMode
 }: ResizableBayScheduleProps) {
-  const [scheduleBars, setScheduleBars] = useState<ScheduleBar[]>([]);
-  const [draggingBarId, setDraggingBarId] = useState<number | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { toast } = useToast();
+  const apiRequest = useApiRequest();
   
-  // Get time slots and slot width based on view mode
-  const { slots, slotWidth } = useMemo(() => {
+  // State for managing UI
+  const [scheduleBars, setScheduleBars] = useState<ScheduleBar[]>([]);
+  const [draggingSchedule, setDraggingSchedule] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ bayId: number, rowIndex: number } | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newBayDialog, setNewBayDialog] = useState(false);
+  const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
+  const [deleteRowDialogOpen, setDeleteRowDialogOpen] = useState(false);
+  const [confirmRowDelete, setConfirmRowDelete] = useState<{
+    bayId: number;
+    rowIndex: number;
+    bayName: string;
+    rowNumber: number;
+    affectedProjects: {
+      id: number;
+      projectId: number;
+      projectName: string;
+      projectNumber: string;
+    }[];
+  } | null>(null);
+  const [currentProject, setCurrentProject] = useState<number | null>(null);
+  const [targetBay, setTargetBay] = useState<number | null>(null);
+  const [targetStartDate, setTargetStartDate] = useState<Date | null>(null);
+  const [targetEndDate, setTargetEndDate] = useState<Date | null>(null);
+  const [scheduleDuration, setScheduleDuration] = useState(4); // in weeks
+  const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Get time slots and slot width based on view mode 
+  const timeSlotsData = useMemo(() => {
     return generateTimeSlots(dateRange, viewMode);
   }, [dateRange, viewMode]);
   
+  const { slots, slotWidth } = timeSlotsData;
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [showAddMultipleWarning, setShowAddMultipleWarning] = useState(false);
   const [showQcDaysWarning, setShowQcDaysWarning] = useState(false);
   const [modifiedSchedule, setModifiedSchedule] = useState<ScheduleBar | null>(null);
   const [originalSchedule, setOriginalSchedule] = useState<ScheduleBar | null>(null);
+  const [showRevertDialog, setShowRevertDialog] = useState(false);
+  
+  // Track the viewport element for scrolling
+  const viewportRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
-  const [isResizing, setIsResizing] = useState<{ id: number, direction: 'start' | 'end' } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  // State for managing teams
-  const [showTeamModal, setShowTeamModal] = useState(false);
-  const [editingBay, setEditingBay] = useState<Partial<ManufacturingBay> | null>(null);
-  const [confirmRowDelete, setConfirmRowDelete] = useState<{bayId?: number, affectedProjects?: ManufacturingSchedule[]} | null>(null);    for (let i = 0; i < sortedBays.length; i += 2) {
+  
+  // Group bays into teams (2 bays = 1 team)
+  const bayTeams = useMemo(() => {
+    const sortedBays = [...bays].sort((a, b) => a.bayNumber - b.bayNumber);
+    
+    // Group bays into teams of 2
+    const teams: ManufacturingBay[][] = [];
+    
+    // For each pair of bays, create a team
+    for (let i = 0; i < sortedBays.length; i += 2) {
       const team = [sortedBays[i]];
       if (i + 1 < sortedBays.length) {
         team.push(sortedBays[i + 1]);
@@ -384,10 +410,12 @@ export default function ResizableBaySchedule({
     return teams;
   }, [bays]);
   
-  // Generate time slots and get slot width based on view mode
-  const { slots, slotWidth } = useMemo(() => {
+  // Slots for the timeline
+  const timelineData = useMemo(() => {
     return generateTimeSlots(dateRange, viewMode);
   }, [dateRange, viewMode]);
+  
+  const { slots, slotWidth } = timelineData;
   
   // Calculate schedule bars positions based on the schedules data
   useEffect(() => {
