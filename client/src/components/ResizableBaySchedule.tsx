@@ -385,6 +385,10 @@ export default function ResizableBaySchedule({
   const [originalSchedule, setOriginalSchedule] = useState<ScheduleBar | null>(null);
   const [showRevertDialog, setShowRevertDialog] = useState(false);
   
+  // Team management state
+  const [teamManagementOpen, setTeamManagementOpen] = useState(false);
+  const [editingTeam, setEditingTeam] = useState<ManufacturingBay[] | null>(null);
+  
   // Track the viewport element for scrolling
   const viewportRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -1437,9 +1441,16 @@ export default function ResizableBaySchedule({
           <div className="manufacturing-bays mt-2">
             {bayTeams.map((team, teamIndex) => (
               <div key={`team-${teamIndex}`} className="team-container mb-5 relative">
-                <div className="team-header bg-slate-100 py-2 px-3 rounded-md mb-2 flex justify-between items-center shadow-sm">
-                  <div className="team-name font-medium">
-                    Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}
+                <div className="team-header bg-blue-600 py-2 px-3 rounded-md mb-2 flex justify-between items-center shadow-sm">
+                  <div className="flex items-center">
+                    <div className="team-name font-medium text-white">
+                      {team[0].team || `Team ${teamIndex + 1}`}
+                    </div>
+                    {team[0].description && (
+                      <div className="text-white text-opacity-80 text-sm ml-3 italic">
+                        {team[0].description}
+                      </div>
+                    )}
                   </div>
                   
                   {/* Team capacity indicators */}
@@ -1447,7 +1458,7 @@ export default function ResizableBaySchedule({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger>
-                          <div className="capacity-indicator flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                          <div className="capacity-indicator flex items-center text-xs bg-white text-blue-800 px-2 py-0.5 rounded-full">
                             <Users className="h-3 w-3 mr-1" />
                             <span>
                               {scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length} projects
@@ -1463,7 +1474,7 @@ export default function ResizableBaySchedule({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger>
-                          <div className="utilization-indicator flex items-center text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                          <div className="utilization-indicator flex items-center text-xs bg-white text-blue-800 px-2 py-0.5 rounded-full">
                             <Zap className="h-3 w-3 mr-1" />
                             <span>
                               {Math.min(
@@ -1481,6 +1492,19 @@ export default function ResizableBaySchedule({
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
+                    
+                    {/* Add TeamManagementButton */}
+                    <button
+                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-1 rounded"
+                      onClick={() => {
+                        // Set the team being edited
+                        setEditingTeam(team);
+                        // Open the team management dialog
+                        setTeamManagementOpen(true);
+                      }}
+                    >
+                      <Wrench className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
                 
