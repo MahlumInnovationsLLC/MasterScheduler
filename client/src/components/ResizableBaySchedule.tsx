@@ -374,11 +374,9 @@ export default function ResizableBaySchedule({
   const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // Get time slots and slot width based on view mode 
-  const timeSlotsData = useMemo(() => {
+  const { slots, slotWidth } = useMemo(() => {
     return generateTimeSlots(dateRange, viewMode);
   }, [dateRange, viewMode]);
-  
-  const { slots, slotWidth } = timeSlotsData;
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [showAddMultipleWarning, setShowAddMultipleWarning] = useState(false);
@@ -391,31 +389,37 @@ export default function ResizableBaySchedule({
   const viewportRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   
-  // Group bays into teams (2 bays = 1 team)
+  // Group bays by their team property from the database
   const bayTeams = useMemo(() => {
-    const sortedBays = [...bays].sort((a, b) => a.bayNumber - b.bayNumber);
+    // Filter out bays with no team
+    const sortedBays = [...bays].filter(bay => bay.team !== null && bay.team !== undefined && bay.team !== '');
     
-    // Group bays into teams of 2
-    const teams: ManufacturingBay[][] = [];
+    // Group bays by team name
+    const teamMap = new Map<string, ManufacturingBay[]>();
     
-    // For each pair of bays, create a team
-    for (let i = 0; i < sortedBays.length; i += 2) {
-      const team = [sortedBays[i]];
-      if (i + 1 < sortedBays.length) {
-        team.push(sortedBays[i + 1]);
+    sortedBays.forEach(bay => {
+      const teamName = bay.team || 'Unassigned';
+      
+      if (!teamMap.has(teamName)) {
+        teamMap.set(teamName, []);
       }
-      teams.push(team);
-    }
+      
+      teamMap.get(teamName)!.push(bay);
+    });
+    
+    // Convert to array of bay groups (teams)
+    const teams: ManufacturingBay[][] = Array.from(teamMap.values())
+      .sort((teamA, teamB) => {
+        // Sort by lowest bay number in each team for consistent order
+        const teamANumber = Math.min(...teamA.map(b => b.bayNumber));
+        const teamBNumber = Math.min(...teamB.map(b => b.bayNumber));
+        return teamANumber - teamBNumber;
+      });
     
     return teams;
   }, [bays]);
   
-  // Slots for the timeline
-  const timelineData = useMemo(() => {
-    return generateTimeSlots(dateRange, viewMode);
-  }, [dateRange, viewMode]);
-  
-  const { slots, slotWidth } = timelineData;
+  // We already have the timeSlotsData from above, no need for another memo
   
   // Calculate schedule bars positions based on the schedules data
   useEffect(() => {
