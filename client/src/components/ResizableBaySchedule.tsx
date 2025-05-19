@@ -20,6 +20,7 @@ import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhase
 import DurationCalculator from './DurationCalculator';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
 import { TeamManagementDialog } from './TeamManagementDialog';
+import FinancialImpactPopup from './FinancialImpactPopup';
 import { 
   PlusCircle, 
   GripVertical, 
@@ -43,7 +44,8 @@ import {
   Trash2, // For delete icon
   Truck,
   BarChart2, // Added for utilization icon
-  Calculator // Added for duration calculation
+  Calculator, // Added for duration calculation
+  DollarSign // Added for financial impact
 } from 'lucide-react';
 import {
   Dialog,
