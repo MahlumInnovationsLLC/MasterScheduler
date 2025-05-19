@@ -310,6 +310,35 @@ const BaySchedulingPage = () => {
     return uniqueProjectIds.size;
   }, [manufacturingSchedules]);
   
+  // Count visible bay rows in the schedule
+  const visibleBayRowsCount = React.useMemo(() => {
+    if (!manufacturingBays.length) return 0;
+    
+    // Group bays by team to count distinct rows
+    const teamRows = new Map<string, Set<number>>();
+    
+    // Count rows for each team
+    manufacturingBays.forEach(bay => {
+      const teamName = bay.team || `bay_${bay.id}`;
+      
+      // Create a new set for this team if it doesn't exist
+      if (!teamRows.has(teamName)) {
+        teamRows.set(teamName, new Set());
+      }
+      
+      // Add this bay's row to the team's set
+      teamRows.get(teamName)?.add(bay.bayNumber);
+    });
+    
+    // Count total rows across all teams
+    let totalRows = 0;
+    teamRows.forEach(rows => {
+      totalRows += rows.size;
+    });
+    
+    return totalRows;
+  }, [manufacturingBays]);
+  
   // Calculate total capacity hours - use team-based calculation
   const totalCapacityHours = React.useMemo(() => {
     if (!manufacturingBays.length) return 0;
@@ -945,7 +974,7 @@ const BaySchedulingPage = () => {
             type="resources"
             stats={[
               { label: "Total Hours", value: totalCapacityHours },
-              { label: "Total Bays", value: 10 },
+              { label: "Total Bays", value: visibleBayRowsCount },
               { label: "Active Projects", value: scheduledProjectsCount },
               { label: "Unassigned", value: projects.length - scheduledProjectsCount },
             ]}
