@@ -907,7 +907,15 @@ const SupplyChain = () => {
                                 </TableCell>
                                 <TableCell className="text-right">
                                   <Button
-                                    onClick={() => addDefaultBenchmarksMutation.mutate(project.id)}
+                                    onClick={() => {
+                                      if (totalBenchmarks === 0) {
+                                        // Add default benchmarks if none exist
+                                        addDefaultBenchmarksMutation.mutate(project.id);
+                                      } else {
+                                        // Open the project details dialog if benchmarks exist
+                                        handleOpenProjectDetails(project);
+                                      }
+                                    }}
                                     variant="ghost"
                                     size="sm"
                                   >
@@ -1046,7 +1054,7 @@ const SupplyChain = () => {
                           <SelectTrigger>
                             <SelectValue placeholder="Select a phase" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-[1000]">
                             <SelectItem value="CONTRACT">Contract</SelectItem>
                             <SelectItem value="START">Project Start</SelectItem>
                             <SelectItem value="CHASSIS">Chassis ETA</SelectItem>
