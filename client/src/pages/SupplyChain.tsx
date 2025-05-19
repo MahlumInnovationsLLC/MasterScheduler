@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, addWeeks, subWeeks } from 'date-fns';
+import { format, parseISO, addWeeks, subWeeks, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, isBefore, isAfter, isSameDay } from 'date-fns';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -54,7 +54,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Check, X, Edit, Trash, PlusCircle, Settings, AlertCircle, Calendar } from 'lucide-react';
+import { Check, X, Edit, Trash, PlusCircle, Settings, AlertCircle, Calendar, LayoutGrid, List, Clock } from 'lucide-react';
 
 interface SupplyChainBenchmark {
   id: number;
@@ -128,6 +128,7 @@ const SupplyChain = () => {
   const [openBenchmarkDialog, setOpenBenchmarkDialog] = useState(false);
   const [editingBenchmark, setEditingBenchmark] = useState<SupplyChainBenchmark | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -381,6 +382,52 @@ const SupplyChain = () => {
 
   // Get active projects only
   const activeProjects = projects?.filter(p => p.status === 'active') || [];
+  
+  // Calculate upcoming purchase needs in different time periods
+  const getUpcomingPurchaseNeeds = (timeframe: 'week' | 'month' | 'quarter') => {
+    if (!projectBenchmarks || projectBenchmarks.length === 0) return [];
+    
+    const today = new Date();
+    let periodEnd: Date;
+    
+    switch (timeframe) {
+      case 'week':
+        periodEnd = endOfWeek(today);
+        break;
+      case 'month':
+        periodEnd = endOfMonth(today);
+        break;
+      case 'quarter':
+        periodEnd = endOfQuarter(today);
+        break;
+    }
+    
+    return projectBenchmarks.filter(benchmark => {
+      if (benchmark.isCompleted) return false;
+      
+      try {
+        const targetDate = benchmark.targetDate 
+          ? parseISO(benchmark.targetDate)
+          : null;
+        
+        if (!targetDate) {
+          // If no explicit target date, calculate from project phase
+          const project = projects?.find(p => p.id === benchmark.projectId);
+          if (!project) return false;
+          
+          const phaseDate = getPhaseDate(project, benchmark.targetPhase);
+          if (!phaseDate) return false;
+          
+          const calculatedDate = subWeeks(parseISO(phaseDate), benchmark.weeksBeforePhase);
+          return isAfter(calculatedDate, today) && isBefore(calculatedDate, periodEnd);
+        }
+        
+        return isAfter(targetDate, today) && isBefore(targetDate, periodEnd);
+      } catch (error) {
+        return false;
+      }
+    });
+  };
 
   if (loadingBenchmarks || loadingProjects || loadingProjectBenchmarks) {
     return <LoadingSpinner />;
@@ -520,8 +567,8 @@ const SupplyChain = () => {
           </div>
           
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card>
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+            <Card className="md:col-span-2">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
               </CardHeader>
@@ -530,6 +577,45 @@ const SupplyChain = () => {
                   {activeProjects.length || 0}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">Active projects requiring supply chain management</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="md:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">This Week's Purchases</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {getUpcomingPurchaseNeeds('week').length}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Purchasing benchmarks due this week</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="md:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">This Month's Purchases</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {getUpcomingPurchaseNeeds('month').length}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Purchasing benchmarks due this month</p>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Additional Widgets Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Quarterly Outlook</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {getUpcomingPurchaseNeeds('quarter').length}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Purchasing benchmarks due this quarter</p>
               </CardContent>
             </Card>
             
@@ -559,99 +645,224 @@ const SupplyChain = () => {
           </div>
           
           {/* Display all projects with their benchmarks */}
-          <h3 className="text-lg font-medium mb-4">Active Projects</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">Active Projects</h3>
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+              <Button 
+                variant={viewMode === 'grid' ? "default" : "ghost"} 
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="flex items-center gap-1"
+              >
+                <LayoutGrid className="h-4 w-4" />
+                <span className="hidden sm:inline-block">Grid</span>
+              </Button>
+              <Button 
+                variant={viewMode === 'list' ? "default" : "ghost"} 
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="flex items-center gap-1"
+              >
+                <List className="h-4 w-4" />
+                <span className="hidden sm:inline-block">List</span>
+              </Button>
+            </div>
+          </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeProjects
-              .filter(p => selectedProjectId ? p.id === selectedProjectId : true)
-              .map((project) => {
-                const projectBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === project.id) || [];
-                const totalBenchmarks = projectBenchmarks.length;
-                const completedBenchmarks = projectBenchmarks.filter(b => b.isCompleted).length;
-                const progressPercentage = totalBenchmarks > 0 ? (completedBenchmarks / totalBenchmarks) * 100 : 0;
-                
-                return (
-                  <Card key={project.id} className="overflow-hidden">
-                    <CardHeader className="bg-slate-50 dark:bg-slate-800 pb-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-md">{project.projectNumber}</CardTitle>
-                          <CardDescription className="text-sm font-medium">{project.name}</CardDescription>
-                        </div>
-                        <Button
-                          onClick={() => addDefaultBenchmarksMutation.mutate(project.id)}
-                          variant="ghost"
-                          size="sm"
-                          className="text-blue-500"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      {/* Progress bar for benchmark completion */}
-                      {totalBenchmarks > 0 && (
-                        <div className="w-full mt-2">
-                          <div className="flex justify-between text-xs mb-1">
-                            <span>Supply Chain Progress</span>
-                            <span>{completedBenchmarks}/{totalBenchmarks}</span>
+          {/* Grid View */}
+          {viewMode === 'grid' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {activeProjects
+                .filter(p => selectedProjectId ? p.id === selectedProjectId : true)
+                .map((project) => {
+                  const projectBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === project.id) || [];
+                  const totalBenchmarks = projectBenchmarks.length;
+                  const completedBenchmarks = projectBenchmarks.filter(b => b.isCompleted).length;
+                  const progressPercentage = totalBenchmarks > 0 ? (completedBenchmarks / totalBenchmarks) * 100 : 0;
+                  
+                  return (
+                    <Card key={project.id} className="overflow-hidden">
+                      <CardHeader className="bg-slate-50 dark:bg-slate-800 pb-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle className="text-md">{project.projectNumber}</CardTitle>
+                            <CardDescription className="text-sm font-medium">{project.name}</CardDescription>
                           </div>
-                          <Progress value={progressPercentage} className="h-2" />
-                        </div>
-                      )}
-                    </CardHeader>
-                    <CardContent className="pt-4 pb-2 max-h-[200px] overflow-y-auto">
-                      {projectBenchmarks.length > 0 ? (
-                        <ul className="space-y-2">
-                          {projectBenchmarks.map((benchmark) => {
-                            const targetDateDisplay = benchmark.targetDate 
-                              ? format(parseISO(benchmark.targetDate), 'MMM d, yyyy')
-                              : calculateTargetDate(project, benchmark);
-                            const status = getBenchmarkStatus(benchmark);
-                            
-                            return (
-                              <li key={benchmark.id} className="flex justify-between items-center">
-                                <div>
-                                  <div className="font-medium text-sm">{benchmark.name}</div>
-                                  <div className="text-xs text-gray-500">{targetDateDisplay}</div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge className={`text-xs ${status.color}`}>{status.label}</Badge>
-                                  <Button
-                                    onClick={() => toggleBenchmarkCompletion(benchmark)}
-                                    variant="ghost"
-                                    size="sm"
-                                    className={benchmark.isCompleted ? "text-amber-500 h-6 w-6 p-0" : "text-green-500 h-6 w-6 p-0"}
-                                  >
-                                    {benchmark.isCompleted ? (
-                                      <X className="h-4 w-4" />
-                                    ) : (
-                                      <Check className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      ) : (
-                        <div className="text-center py-4">
-                          <p className="text-gray-500">No Supply Chain Benchmarks</p>
                           <Button
                             onClick={() => addDefaultBenchmarksMutation.mutate(project.id)}
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
-                            className="mt-2"
+                            className="text-blue-500"
                           >
-                            <PlusCircle className="h-4 w-4 mr-2" />
-                            Add Benchmarks
+                            <Edit className="h-4 w-4" />
                           </Button>
                         </div>
+                        
+                        {/* Progress bar for benchmark completion */}
+                        {totalBenchmarks > 0 && (
+                          <div className="w-full mt-2">
+                            <div className="flex justify-between text-xs mb-1">
+                              <span>Supply Chain Progress</span>
+                              <span>{completedBenchmarks}/{totalBenchmarks}</span>
+                            </div>
+                            <Progress value={progressPercentage} className="h-2" />
+                          </div>
+                        )}
+                      </CardHeader>
+                      <CardContent className="pt-4 pb-2 max-h-[200px] overflow-y-auto">
+                        {projectBenchmarks.length > 0 ? (
+                          <ul className="space-y-2">
+                            {projectBenchmarks.map((benchmark) => {
+                              const targetDateDisplay = benchmark.targetDate 
+                                ? format(parseISO(benchmark.targetDate), 'MMM d, yyyy')
+                                : calculateTargetDate(project, benchmark);
+                              const status = getBenchmarkStatus(benchmark);
+                              
+                              return (
+                                <li key={benchmark.id} className="flex justify-between items-center">
+                                  <div>
+                                    <div className="font-medium text-sm">{benchmark.name}</div>
+                                    <div className="text-xs text-gray-500">{targetDateDisplay}</div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge className={`text-xs ${status.color}`}>{status.label}</Badge>
+                                    <Button
+                                      onClick={() => toggleBenchmarkCompletion(benchmark)}
+                                      variant="ghost"
+                                      size="sm"
+                                      className={benchmark.isCompleted ? "text-amber-500 h-6 w-6 p-0" : "text-green-500 h-6 w-6 p-0"}
+                                    >
+                                      {benchmark.isCompleted ? (
+                                        <X className="h-4 w-4" />
+                                      ) : (
+                                        <Check className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        ) : (
+                          <div className="text-center py-4">
+                            <p className="text-gray-500">No Supply Chain Benchmarks</p>
+                            <Button
+                              onClick={() => addDefaultBenchmarksMutation.mutate(project.id)}
+                              variant="outline"
+                              size="sm"
+                              className="mt-2"
+                            >
+                              <PlusCircle className="h-4 w-4 mr-2" />
+                              Add Benchmarks
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+            </div>
+          )}
+          
+          {/* List View */}
+          {viewMode === 'list' && (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Project</TableHead>
+                      <TableHead>Benchmarks</TableHead>
+                      <TableHead>Progress</TableHead>
+                      <TableHead>Upcoming Tasks</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {activeProjects
+                      .filter(p => selectedProjectId ? p.id === selectedProjectId : true)
+                      .length > 0 ? (
+                        activeProjects
+                          .filter(p => selectedProjectId ? p.id === selectedProjectId : true)
+                          .map((project) => {
+                            const projectBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === project.id) || [];
+                            const totalBenchmarks = projectBenchmarks.length;
+                            const completedBenchmarks = projectBenchmarks.filter(b => b.isCompleted).length;
+                            const progressPercentage = totalBenchmarks > 0 ? (completedBenchmarks / totalBenchmarks) * 100 : 0;
+                            
+                            // Get upcoming (incomplete) benchmarks sorted by date
+                            const upcomingBenchmarks = projectBenchmarks
+                              .filter(b => !b.isCompleted)
+                              .sort((a, b) => {
+                                const dateA = a.targetDate ? new Date(a.targetDate) : new Date();
+                                const dateB = b.targetDate ? new Date(b.targetDate) : new Date();
+                                return dateA.getTime() - dateB.getTime();
+                              });
+                            
+                            return (
+                              <TableRow key={project.id}>
+                                <TableCell>
+                                  <div className="font-medium">{project.projectNumber}</div>
+                                  <div className="text-sm text-gray-500">{project.name}</div>
+                                </TableCell>
+                                <TableCell>{totalBenchmarks}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Progress value={progressPercentage} className="h-2 w-24" />
+                                    <span className="text-xs">{completedBenchmarks}/{totalBenchmarks}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  {upcomingBenchmarks.length > 0 ? (
+                                    <div className="max-w-[250px]">
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3 text-amber-500" />
+                                        <span className="text-sm font-medium">{upcomingBenchmarks[0].name}</span>
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        {upcomingBenchmarks[0].targetDate 
+                                          ? format(parseISO(upcomingBenchmarks[0].targetDate), 'MMM d, yyyy')
+                                          : calculateTargetDate(project, upcomingBenchmarks[0])}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-sm text-gray-500">No upcoming tasks</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    onClick={() => addDefaultBenchmarksMutation.mutate(project.id)}
+                                    variant="ghost"
+                                    size="sm"
+                                  >
+                                    {totalBenchmarks === 0 ? (
+                                      <>
+                                        <PlusCircle className="h-4 w-4 mr-2" />
+                                        Add
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Edit className="h-4 w-4 mr-2" />
+                                        Edit
+                                      </>
+                                    )}
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8">
+                            <p className="text-lg text-gray-500">No projects match your filter criteria.</p>
+                          </TableCell>
+                        </TableRow>
                       )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-          </div>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
           
           {/* Show this when there are no filtered projects */}
           {activeProjects.length === 0 && (
