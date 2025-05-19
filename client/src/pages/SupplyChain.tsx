@@ -495,15 +495,31 @@ const SupplyChain = () => {
     }
   };
 
+  // Track which benchmark is currently being updated
+  const [updatingBenchmarkId, setUpdatingBenchmarkId] = useState<number | null>(null);
+  
   // Toggle completion status of a project benchmark
   const toggleBenchmarkCompletion = (benchmark: ProjectSupplyChainBenchmark) => {
+    // Set the updating benchmark ID to show loading state
+    setUpdatingBenchmarkId(benchmark.id);
+    
     const newStatus = !benchmark.isCompleted;
+    // Create current date with the actual time (not default 12:00 AM)
+    const now = new Date();
     const data: Partial<z.infer<typeof projectBenchmarkFormSchema>> = {
       isCompleted: newStatus,
-      completedDate: newStatus ? new Date().toISOString() : null
+      completedDate: newStatus ? now.toISOString() : null
     };
     
-    updateProjectBenchmarkMutation.mutate({ id: benchmark.id, data });
+    updateProjectBenchmarkMutation.mutate(
+      { id: benchmark.id, data },
+      {
+        onSettled: () => {
+          // Clear the updating state when completed (success or error)
+          setUpdatingBenchmarkId(null);
+        }
+      }
+    );
   };
 
   // Filter project benchmarks by selected project
@@ -908,9 +924,12 @@ const SupplyChain = () => {
                                       onClick={() => toggleBenchmarkCompletion(benchmark)}
                                       variant="ghost"
                                       size="sm"
+                                      disabled={updatingBenchmarkId === benchmark.id}
                                       className={benchmark.isCompleted ? "text-amber-500 h-6 w-6 p-0" : "text-green-500 h-6 w-6 p-0"}
                                     >
-                                      {benchmark.isCompleted ? (
+                                      {updatingBenchmarkId === benchmark.id ? (
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                      ) : benchmark.isCompleted ? (
                                         <X className="h-4 w-4" />
                                       ) : (
                                         <Check className="h-4 w-4" />
@@ -1302,9 +1321,12 @@ const SupplyChain = () => {
                               onClick={() => toggleBenchmarkCompletion(benchmark)}
                               variant="ghost"
                               size="sm"
+                              disabled={updatingBenchmarkId === benchmark.id}
                               className={benchmark.isCompleted ? "text-amber-500" : "text-green-500"}
                             >
-                              {benchmark.isCompleted ? (
+                              {updatingBenchmarkId === benchmark.id ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              ) : benchmark.isCompleted ? (
                                 <X className="h-4 w-4" />
                               ) : (
                                 <Check className="h-4 w-4" />
