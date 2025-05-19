@@ -157,12 +157,57 @@ const SupplyChain = () => {
   const createBenchmarkMutation = useMutation({
     mutationFn: (data: z.infer<typeof benchmarkFormSchema>) => 
       apiRequest('POST', '/api/supply-chain-benchmarks', data),
-    onSuccess: () => {
+    onSuccess: async (response) => {
       queryClient.invalidateQueries({ queryKey: ['/api/supply-chain-benchmarks'] });
+      
+      // Check if there's a pending project ID to add this benchmark to
+      const pendingProjectId = localStorage.getItem('pendingBenchmarkProjectId');
+      
+      if (pendingProjectId) {
+        // Get the newly created benchmark ID from the response
+        const newBenchmarkId = response?.id;
+        
+        if (newBenchmarkId) {
+          // Create data for the project benchmark
+          const projectBenchmarkData = {
+            projectId: parseInt(pendingProjectId),
+            benchmarkId: newBenchmarkId,
+            name: data.name,
+            description: data.description,
+            weeksBeforePhase: data.weeksBeforePhase,
+            targetPhase: data.targetPhase,
+            isCompleted: false
+          };
+          
+          // Add this benchmark to the project
+          try {
+            await apiRequest('POST', '/api/project-supply-chain-benchmarks', projectBenchmarkData);
+            
+            // Invalidate project benchmarks query to refresh the list
+            queryClient.invalidateQueries({ queryKey: ['/api/project-supply-chain-benchmarks'] });
+            
+            toast({
+              title: "Benchmark added to project",
+              description: "The new benchmark has been added to the project successfully."
+            });
+          } catch (error) {
+            toast({
+              title: "Error adding to project",
+              description: "The benchmark was created but couldn't be added to the project.",
+              variant: "destructive"
+            });
+          }
+          
+          // Clear the pending project ID
+          localStorage.removeItem('pendingBenchmarkProjectId');
+        }
+      }
+      
       toast({
         title: "Benchmark created",
         description: "The supply chain benchmark has been created successfully."
       });
+      
       setOpenBenchmarkDialog(false);
     },
     onError: (error) => {
@@ -280,8 +325,17 @@ const SupplyChain = () => {
   };
 
   // Handle creating a new benchmark
-  const handleNewBenchmark = () => {
+  const handleNewBenchmark = (forProjectId: number | null = null) => {
     setEditingBenchmark(null);
+    
+    // Store the project ID if provided (for automatically adding to that project later)
+    if (forProjectId) {
+      // Store the project ID to associate the new benchmark with
+      localStorage.setItem('pendingBenchmarkProjectId', forProjectId.toString());
+    } else {
+      localStorage.removeItem('pendingBenchmarkProjectId');
+    }
+    
     benchmarkForm.reset({
       name: '',
       description: '',
@@ -1281,15 +1335,8 @@ const SupplyChain = () => {
                     setProjectDetailsOpen(false);
                     // Give time for the dialog to close before opening the new one
                     setTimeout(() => {
-                      benchmarkForm.reset({
-                        name: '',
-                        description: '',
-                        weeksBeforePhase: 3,
-                        targetPhase: 'FABRICATION',
-                        isDefault: false,
-                        isActive: true
-                      });
-                      setOpenBenchmarkDialog(true);
+                      // Pass the project ID to associate the new benchmark with this project
+                      handleNewBenchmark(selectedProjectDetails.id);
                     }, 100);
                   }}
                   variant="default"
