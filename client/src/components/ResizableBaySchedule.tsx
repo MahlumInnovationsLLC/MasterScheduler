@@ -1631,7 +1631,35 @@ export default function ResizableBaySchedule({
       const formattedStartDate = format(date, 'yyyy-MM-dd');
       const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
       
-      // Update the schedule with EXACT row position
+      // Check if a significant date change occurred
+      const originalStartDate = format(bar.startDate, 'yyyy-MM-dd');
+      const originalEndDate = format(bar.endDate, 'yyyy-MM-dd');
+      
+      const isSignificantChange = 
+        Math.abs(differenceInDays(date, bar.startDate)) > 0 || 
+        Math.abs(differenceInDays(newEndDate, bar.endDate)) > 0 ||
+        bayId !== bar.bayId; // Bay change is always significant
+        
+      if (isSignificantChange) {
+        // Show financial impact popup before committing changes
+        setFinancialImpactData({
+          scheduleId: scheduleId,
+          projectId: bar.projectId,
+          bayId: bayId,
+          originalStartDate: originalStartDate,
+          originalEndDate: originalEndDate,
+          newStartDate: formattedStartDate,
+          newEndDate: formattedEndDate,
+          totalHours: bar.totalHours,
+          rowIndex: rowIndex
+        });
+        setShowFinancialImpact(true);
+        
+        // Note: Changes will be committed when user confirms in the popup
+        return;
+      }
+      
+      // If no significant change, update directly
       await onScheduleChange(
         scheduleId,
         bayId,
@@ -4123,6 +4151,21 @@ export default function ResizableBaySchedule({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Financial Impact Popup */}
+      {showFinancialImpact && financialImpactData && (
+        <FinancialImpactPopup
+          isOpen={showFinancialImpact}
+          onClose={() => setShowFinancialImpact(false)}
+          projectId={financialImpactData.projectId}
+          originalStartDate={financialImpactData.originalStartDate}
+          originalEndDate={financialImpactData.originalEndDate}
+          newStartDate={financialImpactData.newStartDate}
+          newEndDate={financialImpactData.newEndDate}
+          onConfirm={handleFinancialImpactConfirm}
+          onCancel={handleFinancialImpactCancel}
+        />
+      )}
       </div>
     </div>
   );
