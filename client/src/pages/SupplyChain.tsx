@@ -54,7 +54,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Check, X, Edit, Trash, PlusCircle, Settings, AlertCircle, Calendar, LayoutGrid, List, Clock } from 'lucide-react';
+import { Check, X, Edit, Trash, PlusCircle, Settings, AlertCircle, Calendar, LayoutGrid, List, Clock, ListFilter } from 'lucide-react';
 
 interface SupplyChainBenchmark {
   id: number;
@@ -133,6 +133,8 @@ const SupplyChain = () => {
   const [projectDetailsOpen, setProjectDetailsOpen] = useState(false);
   const [selectedProjectDetails, setSelectedProjectDetails] = useState<Project | null>(null);
   const [pendingBenchmarkProjectId, setPendingBenchmarkProjectId] = useState<number | null>(null);
+  const [templateBenchmarkDialogOpen, setTemplateBenchmarkDialogOpen] = useState(false);
+  const [selectedBenchmarkTemplate, setSelectedBenchmarkTemplate] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -296,6 +298,47 @@ const SupplyChain = () => {
       toast({
         title: "Error adding default benchmarks",
         description: "There was an error adding default benchmarks to the project. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  const addTemplateBenchmarkMutation = useMutation({
+    mutationFn: ({ projectId, benchmarkId }: { projectId: number, benchmarkId: number }) => {
+      // Find the benchmark template to get its details
+      const benchmark = benchmarks?.find(b => b.id === benchmarkId);
+      
+      if (!benchmark) {
+        throw new Error("Benchmark template not found");
+      }
+      
+      // Create the project benchmark data
+      const projectBenchmarkData = {
+        projectId: projectId,
+        benchmarkId: benchmarkId,
+        name: benchmark.name,
+        description: benchmark.description,
+        weeksBeforePhase: benchmark.weeksBeforePhase,
+        targetPhase: benchmark.targetPhase,
+        isCompleted: false
+      };
+      
+      // Add this benchmark to the project
+      return apiRequest('POST', '/api/project-supply-chain-benchmarks', projectBenchmarkData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/project-supply-chain-benchmarks'] });
+      toast({
+        title: "Benchmark added",
+        description: "The selected benchmark template has been added to the project."
+      });
+      setTemplateBenchmarkDialogOpen(false);
+      setSelectedBenchmarkTemplate(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error adding benchmark",
+        description: "There was an error adding the benchmark to the project. Please try again.",
         variant: "destructive"
       });
     }
@@ -1327,8 +1370,20 @@ const SupplyChain = () => {
                 </Button>
               </div>
               
-              {/* Add custom benchmark option */}
-              <div className="mt-4">
+              {/* Add benchmark from templates */}
+              <div className="mt-4 flex justify-between space-x-2">
+                <Button
+                  onClick={() => {
+                    setTemplateBenchmarkDialogOpen(true);
+                    setPendingBenchmarkProjectId(selectedProjectDetails.id);
+                  }}
+                  variant="outline"
+                  className="w-1/2"
+                >
+                  <ListFilter className="h-4 w-4 mr-2" />
+                  Add from Templates
+                </Button>
+                
                 <Button
                   onClick={() => {
                     setProjectDetailsOpen(false);
@@ -1339,10 +1394,10 @@ const SupplyChain = () => {
                     }, 100);
                   }}
                   variant="default"
-                  className="w-full"
+                  className="w-1/2"
                 >
                   <PlusCircle className="h-4 w-4 mr-2" />
-                  Create New Benchmark
+                  Create New
                 </Button>
               </div>
             </div>
