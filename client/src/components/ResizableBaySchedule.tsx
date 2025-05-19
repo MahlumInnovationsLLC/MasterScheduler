@@ -737,6 +737,13 @@ export default function ResizableBaySchedule({
   const viewportRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   
+  // Update end date whenever start date or duration changes
+  useEffect(() => {
+    if (targetStartDate && scheduleDuration > 0) {
+      setTargetEndDate(addWeeks(targetStartDate, scheduleDuration));
+    }
+  }, [targetStartDate, scheduleDuration]);
+  
   // Group bays by team name - this is the key to preventing duplicate blue headers
   const bayTeams = useMemo(() => {
     // First sort all bays by their bay number
