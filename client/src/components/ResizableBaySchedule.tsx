@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import MultiRowBayContent from './MultiRowBayContent';
 import { 
   format, 
@@ -17,6 +17,7 @@ import {
   parseISO
 } from 'date-fns';
 import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom } from './ExactFitPhaseWidths';
+import DurationCalculator from './DurationCalculator';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
 import { TeamManagementDialog } from './TeamManagementDialog';
 import { 
@@ -3604,64 +3605,20 @@ export default function ResizableBaySchedule({
                 {/* Check if we have both project and bay selected */}
                 {currentProject && targetBay && (
                   <div className="mb-2">
-                    {(() => {
-                      // Get the selected project and bay
-                      const selectedProject = projects.find(p => p.id === currentProject);
-                      const selectedBay = bays.find(b => b.id === targetBay);
-                      
-                      if (selectedProject && selectedBay && selectedProject.totalHours) {
-                        // Calculate team's capacity (hours per week)
-                        const teamCapacity = (
-                          (selectedBay.assemblyStaffCount || 4) + 
-                          (selectedBay.electricalStaffCount || 2)
-                        ) * (selectedBay.hoursPerPersonPerWeek || 40);
-                        
-                        // Calculate production hours based on phase percentages
-                        const totalHours = selectedProject.totalHours;
-                        
-                        // Get phase percentages from the project or use defaults
-                        const prodPercentage = selectedProject.productionPercentage || 60;
-                        const itPercentage = selectedProject.itPercentage || 7;
-                        const ntcPercentage = selectedProject.ntcPercentage || 7;
-                        const qcPercentage = selectedProject.qcPercentage || 7;
-                        
-                        // Calculate total production-related percentage (exclude FAB and PAINT)
-                        const productionRelatedPercentage = prodPercentage + itPercentage + ntcPercentage + qcPercentage;
-                        
-                        // Calculate production hours
-                        const productionHours = totalHours * (productionRelatedPercentage / 100);
-                        
-                        // Calculate recommended duration based on production hours
-                        const recommendedWeeks = Math.ceil(productionHours / teamCapacity);
-                        
-                        // Set the duration dynamically
-                        setScheduleDuration(recommendedWeeks > 0 ? recommendedWeeks : 4);
-                        
-                        // Update end date if start date is set
-                        if (targetStartDate) {
-                          setTargetEndDate(addWeeks(targetStartDate, recommendedWeeks > 0 ? recommendedWeeks : 4));
+                    <DurationCalculator 
+                      projectId={currentProject} 
+                      bayId={targetBay} 
+                      projects={projects}
+                      bays={bays}
+                      onDurationCalculated={(weeks, endDate) => {
+                        // Only update duration if it's a valid number
+                        if (weeks > 0) {
+                          setScheduleDuration(weeks);
+                          // Update end date if provided
+                          if (endDate) setTargetEndDate(endDate);
                         }
-                        
-                        return (
-                          <div className="rounded-md bg-blue-50 p-2 text-xs text-blue-800 font-medium border border-blue-200">
-                            <div className="flex items-center">
-                              <Calculator className="h-3.5 w-3.5 mr-1.5" />
-                              <span>Recommended Duration Calculation:</span>
-                            </div>
-                            <div className="mt-1 pl-5">
-                              <p>Project Total Hours: {totalHours} hrs</p>
-                              <p>Production-Related Phases: {productionRelatedPercentage}%</p>
-                              <p>Production Hours: {Math.round(productionHours)} hrs</p>
-                              <p>Team Weekly Capacity: {teamCapacity} hrs/week</p>
-                              <p className="font-bold mt-1">
-                                Recommended Duration: {recommendedWeeks} weeks
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
+                      }}
+                    />
                   </div>
                 )}
                 
