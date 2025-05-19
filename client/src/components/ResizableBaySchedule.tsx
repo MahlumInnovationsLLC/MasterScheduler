@@ -2818,10 +2818,10 @@ export default function ResizableBaySchedule({
                             
                             let utilizationPercentage = 0;
                             
-                            // PROD phase: 100% capacity per project, divided among all PROD projects
+                            // PROD phase: 100% capacity is 2 projects, 50% per project
                             if (prodPhaseProjects > 0) {
-                              // Each project takes 100% of capacity
-                              utilizationPercentage += 100;
+                              // Each project takes 50% of capacity (100% capacity = 2 projects)
+                              utilizationPercentage += (prodPhaseProjects * 50);
                             }
                             
                             // IT/NTC/QC phases: 50% capacity per project
