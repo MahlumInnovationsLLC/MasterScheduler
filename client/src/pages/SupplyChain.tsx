@@ -933,6 +933,9 @@ const SupplyChain = () => {
                                       <div className="text-xs text-green-600 mt-1 flex items-center">
                                         <Clock className="h-3 w-3 mr-1" />
                                         Completed on {format(parseISO(benchmark.completedDate), 'MMM d, yyyy')} at {format(parseISO(benchmark.completedDate), 'h:mm a')}
+                                        {benchmark.completedBy && (
+                                          <span className="ml-1">by {benchmark.completedBy}</span>
+                                        )}
                                       </div>
                                     )}
                                   </div>
@@ -1330,6 +1333,9 @@ const SupplyChain = () => {
                               <div className="text-xs text-green-600 mt-1 flex items-center">
                                 <Clock className="h-3 w-3 mr-1" />
                                 Completed on {format(parseISO(benchmark.completedDate), 'MMM d, yyyy')} at {format(parseISO(benchmark.completedDate), 'h:mm a')}
+                                {benchmark.completedBy && (
+                                  <span className="ml-1">by {benchmark.completedBy}</span>
+                                )}
                               </div>
                             )}
                           </div>
