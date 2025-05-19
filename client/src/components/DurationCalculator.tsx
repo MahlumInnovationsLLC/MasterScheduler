@@ -69,12 +69,29 @@ export const DurationCalculator: React.FC<DurationCalculatorProps> = ({
         (selectedBay.electricalStaffCount || 2)
       ) * (selectedBay.hoursPerPersonPerWeek || 40);
       
+      // Log the raw project data to see what we're dealing with
+      console.log('Project data:', {
+        totalHours: selectedProject.totalHours,
+        production: selectedProject.productionPercentage,
+        it: selectedProject.itPercentage,
+        ntc: selectedProject.ntcPercentage,
+        qc: selectedProject.qcPercentage
+      });
+      
       // Get phase percentages from the project's actual data
-      // Extract directly from the project or from the associated schedule bars
-      const prodPercentage = selectedProject.productionPercentage || 60;
-      const itPercentage = selectedProject.itPercentage || 7;
-      const ntcPercentage = selectedProject.ntcPercentage || 7;
-      const qcPercentage = selectedProject.qcPercentage || 7;
+      // Parse percentage values to ensure they're numbers
+      const prodPercentage = parseFloat(String(selectedProject.productionPercentage || 60));
+      const itPercentage = parseFloat(String(selectedProject.itPercentage || 7));
+      const ntcPercentage = parseFloat(String(selectedProject.ntcPercentage || 7));
+      const qcPercentage = parseFloat(String(selectedProject.qcPercentage || 7));
+      
+      // Log the parsed percentage values for debugging
+      console.log('Parsed phase percentages:', {
+        prod: prodPercentage,
+        it: itPercentage,
+        ntc: ntcPercentage,
+        qc: qcPercentage
+      });
       
       // Calculate total production-related percentage (exclude FAB and PAINT)
       const productionRelatedPercentage = prodPercentage + itPercentage + ntcPercentage + qcPercentage;
@@ -108,10 +125,11 @@ export const DurationCalculator: React.FC<DurationCalculatorProps> = ({
   ) * (selectedBay.hoursPerPersonPerWeek || 40);
   
   // Get phase percentages directly from the project or use defaults
-  const prodPercentage = selectedProject.productionPercentage || 60;
-  const itPercentage = selectedProject.itPercentage || 7;
-  const ntcPercentage = selectedProject.ntcPercentage || 7;
-  const qcPercentage = selectedProject.qcPercentage || 7;
+  // Parse percentage values to ensure they're numbers
+  const prodPercentage = parseFloat(String(selectedProject.productionPercentage || 60));
+  const itPercentage = parseFloat(String(selectedProject.itPercentage || 7));
+  const ntcPercentage = parseFloat(String(selectedProject.ntcPercentage || 7));
+  const qcPercentage = parseFloat(String(selectedProject.qcPercentage || 7));
   
   // Calculate total production-related percentage (exclude FAB and PAINT)
   const productionRelatedPercentage = prodPercentage + itPercentage + ntcPercentage + qcPercentage;
