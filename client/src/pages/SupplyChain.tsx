@@ -13,15 +13,12 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -35,7 +32,6 @@ import {
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -45,6 +41,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Progress } from '@/components/ui/progress';
 import {
   Form,
   FormControl,
@@ -57,7 +54,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Check, X, Edit, Trash, CalendarIcon, PlusCircle, Settings } from 'lucide-react';
+import { Check, X, Edit, Trash, PlusCircle, Settings, AlertCircle, Calendar } from 'lucide-react';
 
 interface SupplyChainBenchmark {
   id: number;
@@ -143,7 +140,7 @@ const SupplyChain = () => {
   // Query for active projects
   const { data: projects, isLoading: loadingProjects } = useQuery({
     queryKey: ['/api/projects'],
-    select: (data) => (data as Project[]).filter(p => p.status === 'active')
+    select: (data) => (data as Project[])
   });
 
   // Query for project benchmarks
@@ -382,6 +379,9 @@ const SupplyChain = () => {
     ? projectBenchmarks?.filter(pb => pb.projectId === selectedProjectId)
     : projectBenchmarks;
 
+  // Get active projects only
+  const activeProjects = projects?.filter(p => p.status === 'active') || [];
+
   if (loadingBenchmarks || loadingProjects || loadingProjectBenchmarks) {
     return <LoadingSpinner />;
   }
@@ -472,7 +472,19 @@ const SupplyChain = () => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-4">
-                        No benchmarks found. Create your first benchmark.
+                        <div className="flex flex-col items-center gap-2">
+                          <AlertCircle className="h-8 w-8 text-amber-500 mb-2" />
+                          <p>No supply chain benchmarks defined yet.</p>
+                          <Button 
+                            onClick={handleNewBenchmark} 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-2"
+                          >
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Create First Benchmark
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}
@@ -490,128 +502,205 @@ const SupplyChain = () => {
             <div className="flex flex-col md:flex-row gap-4">
               <Select
                 value={selectedProjectId?.toString() || ""}
-                onValueChange={value => setSelectedProjectId(value ? parseInt(value) : null)}
+                onValueChange={value => setSelectedProjectId(value !== " " ? parseInt(value) : null)}
               >
                 <SelectTrigger className="w-[250px]">
                   <SelectValue placeholder="Filter by project" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value=" ">All Projects</SelectItem>
-                  {projects?.map((project) => (
+                  {activeProjects.map((project) => (
                     <SelectItem key={project.id} value={project.id.toString()}>
                       {project.projectNumber} - {project.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              
-              {selectedProjectId && (
-                <Button
-                  onClick={() => addDefaultBenchmarksMutation.mutate(selectedProjectId)}
-                  variant="outline"
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Default Benchmarks
-                </Button>
-              )}
             </div>
           </div>
           
-          <Card>
-            <CardContent className="pt-6">
-              {selectedProjectId ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Benchmark</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Timeline</TableHead>
-                      <TableHead>Target Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredProjectBenchmarks && filteredProjectBenchmarks.length > 0 ? (
-                      filteredProjectBenchmarks.map((benchmark) => {
-                        const project = projects?.find(p => p.id === benchmark.projectId);
-                        const status = getBenchmarkStatus(benchmark);
-                        
-                        return (
-                          <TableRow key={benchmark.id}>
-                            <TableCell className="font-medium">{benchmark.name}</TableCell>
-                            <TableCell>{benchmark.description}</TableCell>
-                            <TableCell>
-                              {benchmark.weeksBeforePhase} weeks before {benchmark.targetPhase}
-                            </TableCell>
-                            <TableCell>
-                              {calculateTargetDate(project, benchmark)}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="default" className={status.color}>
-                                {status.label}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                onClick={() => toggleBenchmarkCompletion(benchmark)}
-                                variant="ghost"
-                                size="sm"
-                                className={benchmark.isCompleted ? "text-red-500" : "text-green-500"}
-                              >
-                                {benchmark.isCompleted ? (
-                                  <X className="h-4 w-4" />
-                                ) : (
-                                  <Check className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-4">
-                          No benchmarks found for this project. Add default benchmarks or create custom ones.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-8">
-                  Please select a project to view benchmarks.
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {activeProjects.length || 0}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <p className="text-xs text-muted-foreground mt-1">Active projects requiring supply chain management</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Supply Chain Benchmarks</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {benchmarks?.length || 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Available benchmark templates</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Tracked Benchmarks</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {projectBenchmarks?.length || 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Total benchmarks tracked across all projects</p>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Display all projects with their benchmarks */}
+          <h3 className="text-lg font-medium mb-4">Active Projects</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {activeProjects
+              .filter(p => selectedProjectId ? p.id === selectedProjectId : true)
+              .map((project) => {
+                const projectBenchmarks = filteredProjectBenchmarks?.filter(pb => pb.projectId === project.id) || [];
+                const totalBenchmarks = projectBenchmarks.length;
+                const completedBenchmarks = projectBenchmarks.filter(b => b.isCompleted).length;
+                const progressPercentage = totalBenchmarks > 0 ? (completedBenchmarks / totalBenchmarks) * 100 : 0;
+                
+                return (
+                  <Card key={project.id} className="overflow-hidden">
+                    <CardHeader className="bg-slate-50 dark:bg-slate-800 pb-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-md">{project.projectNumber}</CardTitle>
+                          <CardDescription className="text-sm font-medium">{project.name}</CardDescription>
+                        </div>
+                        <Button
+                          onClick={() => addDefaultBenchmarksMutation.mutate(project.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-blue-500"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      {/* Progress bar for benchmark completion */}
+                      {totalBenchmarks > 0 && (
+                        <div className="w-full mt-2">
+                          <div className="flex justify-between text-xs mb-1">
+                            <span>Supply Chain Progress</span>
+                            <span>{completedBenchmarks}/{totalBenchmarks}</span>
+                          </div>
+                          <Progress value={progressPercentage} className="h-2" />
+                        </div>
+                      )}
+                    </CardHeader>
+                    <CardContent className="pt-4 pb-2 max-h-[200px] overflow-y-auto">
+                      {projectBenchmarks.length > 0 ? (
+                        <ul className="space-y-2">
+                          {projectBenchmarks.map((benchmark) => {
+                            const targetDateDisplay = benchmark.targetDate 
+                              ? format(parseISO(benchmark.targetDate), 'MMM d, yyyy')
+                              : calculateTargetDate(project, benchmark);
+                            const status = getBenchmarkStatus(benchmark);
+                            
+                            return (
+                              <li key={benchmark.id} className="flex justify-between items-center">
+                                <div>
+                                  <div className="font-medium text-sm">{benchmark.name}</div>
+                                  <div className="text-xs text-gray-500">{targetDateDisplay}</div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Badge className={`text-xs ${status.color}`}>{status.label}</Badge>
+                                  <Button
+                                    onClick={() => toggleBenchmarkCompletion(benchmark)}
+                                    variant="ghost"
+                                    size="sm"
+                                    className={benchmark.isCompleted ? "text-amber-500 h-6 w-6 p-0" : "text-green-500 h-6 w-6 p-0"}
+                                  >
+                                    {benchmark.isCompleted ? (
+                                      <X className="h-4 w-4" />
+                                    ) : (
+                                      <Check className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-gray-500">No Supply Chain Benchmarks</p>
+                          <Button
+                            onClick={() => addDefaultBenchmarksMutation.mutate(project.id)}
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                          >
+                            <PlusCircle className="h-4 w-4 mr-2" />
+                            Add Benchmarks
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+          </div>
+          
+          {/* Show this when there are no filtered projects */}
+          {activeProjects.length === 0 && (
+            <Card>
+              <CardContent className="py-10 text-center">
+                <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                <p className="text-lg text-gray-500">No active projects found.</p>
+                <p className="text-sm text-gray-400 mt-2">Create projects in the Projects tab first.</p>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Show when there are projects but none match the filter */}
+          {activeProjects.length > 0 && 
+           activeProjects.filter(p => selectedProjectId ? p.id === selectedProjectId : true).length === 0 && (
+            <Card>
+              <CardContent className="py-10 text-center">
+                <p className="text-lg text-gray-500">No projects match your filter criteria.</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
       
-      {/* Benchmark Creation/Editing Dialog */}
+      {/* Benchmark Form Dialog */}
       <Dialog open={openBenchmarkDialog} onOpenChange={setOpenBenchmarkDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>
-              {editingBenchmark ? 'Edit Benchmark' : 'Create New Benchmark'}
-            </DialogTitle>
+            <DialogTitle>{editingBenchmark ? 'Edit Benchmark' : 'Create New Benchmark'}</DialogTitle>
             <DialogDescription>
-              {editingBenchmark 
-                ? 'Update the supply chain benchmark information.' 
-                : 'Add a new supply chain benchmark to track purchasing and preparation.'}
+              {editingBenchmark
+                ? 'Update the supply chain benchmark details below.'
+                : 'Fill in the details to create a new supply chain benchmark.'}
             </DialogDescription>
           </DialogHeader>
           
           <Form {...benchmarkForm}>
-            <form onSubmit={benchmarkForm.handleSubmit(onBenchmarkSubmit)} className="space-y-6">
+            <form
+              onSubmit={benchmarkForm.handleSubmit(onBenchmarkSubmit)}
+              className="space-y-4"
+            >
               <FormField
                 control={benchmarkForm.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Benchmark Name</FormLabel>
+                    <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Order Materials" {...field} />
+                      <Input placeholder="Enter benchmark name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -626,10 +715,9 @@ const SupplyChain = () => {
                     <FormLabel>Description</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Description of the benchmark"
-                        className="min-h-[100px]"
+                        placeholder="Enter a description (optional)"
                         {...field}
-                        value={field.value || ""}
+                        value={field.value || ''}
                       />
                     </FormControl>
                     <FormMessage />
@@ -643,17 +731,15 @@ const SupplyChain = () => {
                   name="weeksBeforePhase"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Weeks Before</FormLabel>
+                      <FormLabel>Weeks Before Phase</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="3"
-                          type="number" 
+                        <Input
+                          type="number"
                           min={1}
+                          placeholder="3"
                           {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
                         />
                       </FormControl>
-                      <FormDescription>Weeks before phase date</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -665,49 +751,47 @@ const SupplyChain = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Target Phase</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
+                      <FormControl>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select phase" />
+                            <SelectValue placeholder="Select a phase" />
                           </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="FABRICATION">Fabrication</SelectItem>
-                          <SelectItem value="PRODUCTION">Production</SelectItem>
-                          <SelectItem value="NTC">NTC</SelectItem>
-                          <SelectItem value="QC">Quality Control</SelectItem>
-                          <SelectItem value="SHIP">Shipping</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>Project phase this benchmark relates to</FormDescription>
+                          <SelectContent>
+                            <SelectItem value="FABRICATION">Fabrication</SelectItem>
+                            <SelectItem value="PRODUCTION">Production</SelectItem>
+                            <SelectItem value="NTC">NTC</SelectItem>
+                            <SelectItem value="QC">QC</SelectItem>
+                            <SelectItem value="SHIP">Ship</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col md:flex-row gap-6">
                 <FormField
                   control={benchmarkForm.control}
                   name="isDefault"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
-                      <div className="space-y-0.5">
-                        <FormLabel>Default Benchmark</FormLabel>
-                        <FormDescription>
-                          Add to all new projects
-                        </FormDescription>
-                      </div>
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                       <FormControl>
                         <Switch
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <FormMessage />
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Default Benchmark</FormLabel>
+                        <FormDescription>
+                          Automatically added to new projects
+                        </FormDescription>
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -716,27 +800,26 @@ const SupplyChain = () => {
                   control={benchmarkForm.control}
                   name="isActive"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
-                      <div className="space-y-0.5">
-                        <FormLabel>Active</FormLabel>
-                        <FormDescription>
-                          Include in new projects
-                        </FormDescription>
-                      </div>
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                       <FormControl>
                         <Switch
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <FormMessage />
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Active</FormLabel>
+                        <FormDescription>
+                          Available for use in projects
+                        </FormDescription>
+                      </div>
                     </FormItem>
                   )}
                 />
               </div>
               
               <DialogFooter>
-                <Button type="submit" disabled={createBenchmarkMutation.isPending || updateBenchmarkMutation.isPending}>
+                <Button type="submit">
                   {editingBenchmark ? 'Update Benchmark' : 'Create Benchmark'}
                 </Button>
               </DialogFooter>
