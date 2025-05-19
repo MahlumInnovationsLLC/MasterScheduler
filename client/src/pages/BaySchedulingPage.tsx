@@ -310,17 +310,30 @@ const BaySchedulingPage = () => {
     return uniqueProjectIds.size;
   }, [manufacturingSchedules]);
   
-  // Calculate total capacity hours
+  // Calculate total capacity hours - use team-based calculation
   const totalCapacityHours = React.useMemo(() => {
     if (!manufacturingBays.length) return 0;
     
-    return manufacturingBays.reduce((sum, bay) => {
-      // Use default values if fields are null
-      const hoursPerWeek = bay.hoursPerPersonPerWeek || 0;
-      const staff = bay.staffCount || 0;
-      const weeklyHours = hoursPerWeek * staff;
-      return sum + weeklyHours;
-    }, 0);
+    // Group bays by team to avoid counting the same team's hours multiple times
+    const teamHours = new Map<string, number>();
+    
+    manufacturingBays.forEach(bay => {
+      const teamName = bay.team || `bay_${bay.id}`;
+      
+      // Calculate this team's hours
+      const assemblyStaff = bay.assemblyStaffCount || 0;
+      const electricalStaff = bay.electricalStaffCount || 0;
+      const hoursPerPerson = bay.hoursPerPersonPerWeek || 40;
+      const teamWeeklyHours = (assemblyStaff + electricalStaff) * hoursPerPerson;
+      
+      // Only store once per team (use first bay's data for each team)
+      if (!teamHours.has(teamName)) {
+        teamHours.set(teamName, teamWeeklyHours);
+      }
+    });
+    
+    // Sum up hours across all teams
+    return Array.from(teamHours.values()).reduce((sum, hours) => sum + hours, 0);
   }, [manufacturingBays]);
   
   // Mutations for schedules
