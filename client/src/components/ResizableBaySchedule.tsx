@@ -41,7 +41,8 @@ import {
   Clock3,
   Trash2, // For delete icon
   Truck,
-  BarChart2 // Added for utilization icon
+  BarChart2, // Added for utilization icon
+  Calculator // Added for duration calculation
 } from 'lucide-react';
 import {
   Dialog,
@@ -107,6 +108,7 @@ interface Project {
   createdAt: Date | null;
   startDate: Date | null;
   shipDate: Date | null;
+  totalHours?: number; // Added project total hours field
   // And other project fields
 }
 
