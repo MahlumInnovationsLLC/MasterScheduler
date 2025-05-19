@@ -18,6 +18,7 @@ import DeliveredProjects from "@/pages/DeliveredProjects";
 import OnTimeDelivery from "@/pages/OnTimeDelivery";
 import CalendarPage from "@/pages/Calendar";
 import Reports from "@/pages/Reports";
+import ExportReports from "@/pages/ExportReports";
 import ImportData from "@/pages/ImportData";
 import SystemSettings from "@/pages/SystemSettings";
 import UserPreferences from "@/pages/UserPreferences";
