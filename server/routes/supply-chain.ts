@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { eq, and, isNull, desc, asc, gt, lte, inArray } from 'drizzle-orm';
+import { eq, and, isNull, desc, asc, gt, lte, inArray, sql } from 'drizzle-orm';
 import { storage } from '../storage';
 import { z } from 'zod';
 import { 
@@ -9,6 +9,7 @@ import {
   projectSupplyChainBenchmarks,
   projects
 } from '../../shared/schema';
+import { db } from '../db';
 
 const router = Router();
 
