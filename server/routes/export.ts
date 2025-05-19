@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { format } from 'date-fns';
+import { DatabaseStorage } from '../storage';
+import { db } from '../db';
 
 interface ExportRequestData {
   module: string;
@@ -12,6 +14,9 @@ interface ExportRequestData {
   fields: string[];
   templateName?: string;
 }
+
+// Initialize database storage
+const storage = new DatabaseStorage();
 
 // Function to sanitize a string for use in filenames
 const sanitizeFilename = (str: string): string => {
@@ -29,24 +34,24 @@ const fieldIdToHeader = (fieldId: string): string => {
 
 export async function exportReport(req: Request, res: Response) {
   try {
-    const exportData = req.body as ExportRequestData;
-    const { module, subType, dateRange, format, fields } = exportData;
+    const requestData = req.body as ExportRequestData;
+    const { module, subType, dateRange, format, fields } = requestData;
     
     console.log(`Exporting ${module}/${subType} report in ${format} format`);
     console.log('Date range:', dateRange);
     console.log('Selected fields:', fields);
     
-    // For the initial implementation, we'll generate sample data based on the requested module and fields
-    const sampleData = generateSampleData(module, subType, fields);
+    // Get real data from database based on module and subtype
+    const data = await fetchRealData(module, subType, dateRange, fields);
     
     // Based on the requested format, generate and return the appropriate file
     switch (format) {
       case 'csv':
-        return generateCSV(sampleData, fields, res, `${module}-${subType}`);
+        return generateCSV(data, fields, res, `${module}-${subType}`);
       case 'pdf':
-        return generatePDF(sampleData, fields, res, `${module}-${subType}`);
+        return generatePDF(data, fields, res, `${module}-${subType}`);
       case 'docx':
-        return generateDOCX(sampleData, fields, res, `${module}-${subType}`);
+        return generateDOCX(data, fields, res, `${module}-${subType}`);
       default:
         throw new Error(`Unsupported export format: ${format}`);
     }
@@ -56,21 +61,333 @@ export async function exportReport(req: Request, res: Response) {
   }
 }
 
-// Function to generate sample data based on the requested module and fields
-function generateSampleData(module: string, subType: string, fields: string[]): any[] {
-  // Sample data based on module
-  switch (module) {
-    case 'financial':
-      return generateFinancialSampleData(subType, fields);
-    case 'manufacturing':
-      return generateManufacturingSampleData(subType, fields);
-    case 'project':
-      return generateProjectSampleData(subType, fields);
-    case 'delivery':
-      return generateDeliverySampleData(subType, fields);
+// Function to fetch real data from the database based on module and subtype
+async function fetchRealData(module: string, subType: string, dateRange: { startDate: string, endDate: string }, fields: string[]): Promise<any[]> {
+  // Parse date range
+  const startDate = new Date(dateRange.startDate);
+  const endDate = new Date(dateRange.endDate);
+  
+  console.log(`Fetching real data for ${module}/${subType} from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+  
+  // Fetch data based on module type
+  try {
+    switch (module) {
+      case 'financial':
+        return await fetchFinancialData(subType, startDate, endDate, fields);
+      case 'manufacturing':
+        return await fetchManufacturingData(subType, startDate, endDate, fields);
+      case 'project':
+        return await fetchProjectData(subType, startDate, endDate, fields);
+      case 'delivery':
+        return await fetchDeliveryData(subType, startDate, endDate, fields);
+      default:
+        return [{
+          message: 'No data available for the selected module'
+        }];
+    }
+  } catch (error) {
+    console.error(`Error fetching ${module}/${subType} data:`, error);
+    throw new Error(`Failed to fetch data for ${module}/${subType}: ${(error as Error).message}`);
+  }
+}
+
+// Function to fetch real financial data from the database
+async function fetchFinancialData(subType: string, startDate: Date, endDate: Date, fields: string[]): Promise<any[]> {
+  console.log(`Fetching financial data for ${subType}, fields:`, fields);
+  
+  switch (subType) {
+    case 'billing-milestones':
+      // Fetch billing milestones
+      const milestones = await storage.getBillingMilestones();
+      
+      return milestones
+        .filter((milestone: any) => {
+          // Apply date filter if target invoice date exists
+          if (milestone.targetInvoiceDate) {
+            const milestoneDate = new Date(milestone.targetInvoiceDate);
+            return milestoneDate >= startDate && milestoneDate <= endDate;
+          }
+          return true; // Include milestones without dates
+        })
+        .map((milestone: any) => {
+          const result: Record<string, any> = {};
+          
+          // Map database fields to requested export fields
+          fields.forEach(field => {
+            switch(field) {
+              case 'project_number':
+                result[field] = milestone.project?.projectNumber || 'N/A';
+                break;
+              case 'project_name':
+                result[field] = milestone.project?.name || 'N/A';
+                break;
+              case 'milestone_name':
+                result[field] = milestone.name || 'N/A';
+                break;
+              case 'invoice_date':
+                result[field] = milestone.targetInvoiceDate ? new Date(milestone.targetInvoiceDate) : null;
+                break;
+              case 'amount':
+                result[field] = milestone.amount || 'N/A';
+                break;
+              case 'status':
+                result[field] = milestone.status || 'N/A';
+                break;
+              case 'notes':
+                result[field] = milestone.notes || '';
+                break;
+              default:
+                // Try to get the value directly from the milestone object
+                result[field] = milestone[field] !== undefined ? milestone[field] : 'N/A';
+            }
+          });
+          
+          return result;
+        });
+    
+    case 'invoices':
+      // Fetch billing milestones that are invoiced
+      const invoices = await storage.getBillingMilestones({ 
+        status: 'invoiced' 
+      });
+      
+      return invoices
+        .filter((invoice: any) => {
+          // Apply date filter if target invoice date exists
+          if (invoice.targetInvoiceDate) {
+            const invoiceDate = new Date(invoice.targetInvoiceDate);
+            return invoiceDate >= startDate && invoiceDate <= endDate;
+          }
+          return true; // Include invoices without dates
+        })
+        .map((invoice: any) => {
+          const result: Record<string, any> = {};
+          
+          // Map database fields to requested export fields
+          fields.forEach(field => {
+            switch(field) {
+              case 'project_number':
+                result[field] = invoice.project?.projectNumber || 'N/A';
+                break;
+              case 'project_name':
+                result[field] = invoice.project?.name || 'N/A';
+                break;
+              case 'milestone_name':
+                result[field] = invoice.name || 'N/A';
+                break;
+              case 'invoice_date':
+                result[field] = invoice.targetInvoiceDate ? new Date(invoice.targetInvoiceDate) : null;
+                break;
+              case 'amount':
+                result[field] = invoice.amount || 'N/A';
+                break;
+              case 'status':
+                result[field] = invoice.status || 'N/A';
+                break;
+              case 'notes':
+                result[field] = invoice.notes || '';
+                break;
+              default:
+                // Try to get the value directly from the invoice object
+                result[field] = invoice[field] !== undefined ? invoice[field] : 'N/A';
+            }
+          });
+          
+          return result;
+        });
+      
+    case 'payments':
+      // Fetch billing milestones that are paid
+      const payments = await storage.getBillingMilestones({ 
+        status: 'paid' 
+      });
+      
+      return payments
+        .filter((payment: any) => {
+          // Apply date filter if target invoice date exists
+          if (payment.targetInvoiceDate) {
+            const paymentDate = new Date(payment.targetInvoiceDate);
+            return paymentDate >= startDate && paymentDate <= endDate;
+          }
+          return true; // Include payments without dates
+        })
+        .map((payment: any) => {
+          const result: Record<string, any> = {};
+          
+          // Map database fields to requested export fields
+          fields.forEach(field => {
+            switch(field) {
+              case 'project_number':
+                result[field] = payment.project?.projectNumber || 'N/A';
+                break;
+              case 'project_name':
+                result[field] = payment.project?.name || 'N/A';
+                break;
+              case 'milestone_name':
+                result[field] = payment.name || 'N/A';
+                break;
+              case 'invoice_date':
+              case 'payment_date':
+                result[field] = payment.targetInvoiceDate ? new Date(payment.targetInvoiceDate) : null;
+                break;
+              case 'amount':
+                result[field] = payment.amount || 'N/A';
+                break;
+              case 'status':
+                result[field] = payment.status || 'N/A';
+                break;
+              case 'notes':
+                result[field] = payment.notes || '';
+                break;
+              default:
+                // Try to get the value directly from the payment object
+                result[field] = payment[field] !== undefined ? payment[field] : 'N/A';
+            }
+          });
+          
+          return result;
+        });
+      
     default:
       return [{
-        message: 'No data available for the selected module'
+        message: `No data available for financial ${subType}`
+      }];
+  }
+}
+
+// Function to fetch real manufacturing data from the database
+async function fetchManufacturingData(subType: string, startDate: Date, endDate: Date, fields: string[]): Promise<any[]> {
+  console.log(`Fetching manufacturing data for ${subType}, fields:`, fields);
+  
+  switch (subType) {
+    case 'bay-schedules':
+      // Fetch manufacturing schedules
+      const schedules = await storage.getManufacturingSchedules();
+      const bays = await storage.getManufacturingBays();
+      const projects = await storage.getProjects();
+      
+      return schedules
+        .filter(schedule => {
+          // Apply date filter
+          const scheduleStartDate = new Date(schedule.startDate);
+          const scheduleEndDate = new Date(schedule.endDate);
+          
+          // Include schedules that overlap with the date range
+          return (scheduleStartDate <= endDate && scheduleEndDate >= startDate);
+        })
+        .map(schedule => {
+          const result: Record<string, any> = {};
+          const bay = bays.find(b => b.id === schedule.bayId);
+          const project = projects.find(p => p.id === schedule.projectId);
+          
+          // Calculate duration in days
+          const scheduleStartDate = new Date(schedule.startDate);
+          const scheduleEndDate = new Date(schedule.endDate);
+          const durationDays = Math.ceil((scheduleEndDate.getTime() - scheduleStartDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          // Map database fields to requested export fields
+          fields.forEach(field => {
+            switch(field) {
+              case 'bay_name':
+                result[field] = bay?.name || 'N/A';
+                break;
+              case 'bay_team':
+                result[field] = bay?.team || 'N/A';
+                break;  
+              case 'project_name':
+                result[field] = project?.name || 'N/A';
+                break;
+              case 'project_number':
+                result[field] = project?.projectNumber || 'N/A';
+                break;
+              case 'start_date':
+                result[field] = scheduleStartDate;
+                break;
+              case 'end_date':
+                result[field] = scheduleEndDate;
+                break;
+              case 'duration':
+                result[field] = durationDays;
+                break;
+              case 'total_hours':
+                result[field] = schedule.totalHours || 'N/A';
+                break;
+              case 'status':
+                result[field] = project?.status || 'N/A';
+                break;
+              default:
+                // Try to get the value directly from the schedule object
+                result[field] = schedule[field] !== undefined ? schedule[field] : 'N/A';
+            }
+          });
+          
+          return result;
+        });
+    
+    case 'bay-utilization':
+      // Fetch manufacturing bays
+      const allBays = await storage.getManufacturingBays();
+      const allSchedules = await storage.getManufacturingSchedules();
+      
+      return allBays.map(bay => {
+        const result: Record<string, any> = {};
+        
+        // Get all schedules for this bay
+        const baySchedules = allSchedules.filter(s => s.bayId === bay.id);
+        
+        // Calculate utilization based on schedules in the date range
+        const relevantSchedules = baySchedules.filter(schedule => {
+          const scheduleStartDate = new Date(schedule.startDate);
+          const scheduleEndDate = new Date(schedule.endDate);
+          return (scheduleStartDate <= endDate && scheduleEndDate >= startDate);
+        });
+        
+        // Calculate total scheduled hours within the date range
+        const totalScheduledHours = relevantSchedules.reduce((sum, schedule) => {
+          return sum + (schedule.totalHours || 0);
+        }, 0);
+        
+        // Calculate available hours (assuming 40-hour weeks)
+        const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        const totalWeeks = totalDays / 7;
+        const availableHours = totalWeeks * 40;
+        
+        // Calculate utilization percentage
+        const utilization = availableHours > 0 ? (totalScheduledHours / availableHours) * 100 : 0;
+        
+        // Map fields to the result
+        fields.forEach(field => {
+          switch(field) {
+            case 'bay_name':
+              result[field] = bay.name || 'N/A';
+              break;
+            case 'team':
+              result[field] = bay.team || 'N/A';
+              break;
+            case 'total_projects':
+              result[field] = relevantSchedules.length;
+              break;
+            case 'scheduled_hours':
+              result[field] = totalScheduledHours;
+              break;
+            case 'available_hours':
+              result[field] = availableHours;
+              break;
+            case 'utilization_percentage':
+              result[field] = `${utilization.toFixed(2)}%`;
+              break;
+            default:
+              // Try to get the value directly from the bay object
+              result[field] = bay[field] !== undefined ? bay[field] : 'N/A';
+          }
+        });
+        
+        return result;
+      });
+    
+    default:
+      return [{
+        message: `No data available for manufacturing ${subType}`
       }];
   }
 }
