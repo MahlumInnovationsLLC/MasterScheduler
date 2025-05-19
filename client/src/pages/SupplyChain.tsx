@@ -891,10 +891,16 @@ const SupplyChain = () => {
                               const status = getBenchmarkStatus(benchmark);
                               
                               return (
-                                <li key={benchmark.id} className="flex justify-between items-center">
+                                <li key={benchmark.id} className="flex justify-between items-start mb-3">
                                   <div>
                                     <div className="font-medium text-sm">{benchmark.name}</div>
                                     <div className="text-xs text-gray-500">{targetDateDisplay}</div>
+                                    {benchmark.isCompleted && benchmark.completedDate && (
+                                      <div className="text-xs text-green-600 mt-1 flex items-center">
+                                        <Clock className="h-3 w-3 mr-1" />
+                                        Completed on {format(parseISO(benchmark.completedDate), 'MMM d, yyyy')} at {format(parseISO(benchmark.completedDate), 'h:mm a')}
+                                      </div>
+                                    )}
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <Badge className={`text-xs ${status.color}`}>{status.label}</Badge>
@@ -1277,12 +1283,18 @@ const SupplyChain = () => {
                       
                       return (
                         <div key={benchmark.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
-                          <div>
+                          <div className="w-3/4">
                             <div className="font-medium">{benchmark.name}</div>
                             <div className="text-sm text-muted-foreground">
                               {benchmark.weeksBeforePhase} weeks before {benchmark.targetPhase} - 
                               <span className="ml-1">{targetDateDisplay}</span>
                             </div>
+                            {benchmark.isCompleted && benchmark.completedDate && (
+                              <div className="text-xs text-green-600 mt-1 flex items-center">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Completed on {format(parseISO(benchmark.completedDate), 'MMM d, yyyy')} at {format(parseISO(benchmark.completedDate), 'h:mm a')}
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge className={status.color}>{status.label}</Badge>
