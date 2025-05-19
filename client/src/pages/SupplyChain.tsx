@@ -127,7 +127,7 @@ const projectBenchmarkFormSchema = z.object({
 });
 
 const SupplyChain = () => {
-  const [activeTab, setActiveTab] = useState('benchmarks');
+  const [activeTab, setActiveTab] = useState('project-benchmarks');
   const [openBenchmarkDialog, setOpenBenchmarkDialog] = useState(false);
   const [editingBenchmark, setEditingBenchmark] = useState<SupplyChainBenchmark | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
@@ -391,10 +391,20 @@ const SupplyChain = () => {
       <h1 className="text-2xl font-bold mb-6">Supply Chain Management</h1>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-8">
-          <TabsTrigger value="benchmarks">Benchmark Settings</TabsTrigger>
-          <TabsTrigger value="project-benchmarks">Project Benchmarks</TabsTrigger>
-        </TabsList>
+        <div className="flex justify-between items-center mb-8">
+          <TabsList>
+            <TabsTrigger value="project-benchmarks">Project Benchmarks</TabsTrigger>
+          </TabsList>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setActiveTab('benchmarks')} 
+            className="flex items-center gap-2"
+          >
+            <Settings className="h-4 w-4" />
+            <span>Settings</span>
+          </Button>
+        </div>
         
         {/* Benchmark Settings Tab */}
         <TabsContent value="benchmarks" className="mt-4">
@@ -480,10 +490,10 @@ const SupplyChain = () => {
             <div className="flex flex-col md:flex-row gap-4">
               <Select
                 value={selectedProjectId?.toString() || ""}
-                onValueChange={value => setSelectedProjectId(parseInt(value))}
+                onValueChange={value => setSelectedProjectId(value ? parseInt(value) : null)}
               >
                 <SelectTrigger className="w-[250px]">
-                  <SelectValue placeholder="Select a project" />
+                  <SelectValue placeholder="Filter by project" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Projects</SelectItem>
