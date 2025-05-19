@@ -292,6 +292,12 @@ const SupplyChain = () => {
     });
     setOpenBenchmarkDialog(true);
   };
+  
+  // Handle opening the project details dialog
+  const handleOpenProjectDetails = (project: Project) => {
+    setSelectedProjectDetails(project);
+    setProjectDetailsOpen(true);
+  };
 
   // Handle form submission for benchmark creation/editing
   const onBenchmarkSubmit = (values: z.infer<typeof benchmarkFormSchema>) => {
@@ -733,7 +739,7 @@ const SupplyChain = () => {
                             <CardDescription className="text-sm font-medium">{project.name}</CardDescription>
                           </div>
                           <Button
-                            onClick={() => addDefaultBenchmarksMutation.mutate(project.id)}
+                            onClick={() => handleOpenProjectDetails(project)}
                             variant="ghost"
                             size="sm"
                             className="text-blue-500"
@@ -1101,6 +1107,136 @@ const SupplyChain = () => {
               )}
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Project Benchmarks Dialog */}
+      <Dialog open={projectDetailsOpen} onOpenChange={setProjectDetailsOpen}>
+        <DialogContent className="sm:max-w-[650px]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedProjectDetails?.projectNumber} - {selectedProjectDetails?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Manage supply chain benchmarks for this project
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedProjectDetails && (
+            <div className="mt-4">
+              {/* Show current benchmarks for the project */}
+              <div className="mb-4">
+                <h3 className="text-lg font-medium mb-2">Current Benchmarks</h3>
+                {projectBenchmarks?.filter(pb => pb.projectId === selectedProjectDetails.id).length > 0 ? (
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                    {projectBenchmarks?.filter(pb => pb.projectId === selectedProjectDetails.id).map((benchmark) => {
+                      const status = getBenchmarkStatus(benchmark);
+                      const targetDateDisplay = benchmark.targetDate 
+                        ? format(parseISO(benchmark.targetDate), 'MMM d, yyyy')
+                        : calculateTargetDate(selectedProjectDetails, benchmark);
+                      
+                      return (
+                        <div key={benchmark.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
+                          <div>
+                            <div className="font-medium">{benchmark.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {benchmark.weeksBeforePhase} weeks before {benchmark.targetPhase} - 
+                              <span className="ml-1">{targetDateDisplay}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge className={status.color}>{status.label}</Badge>
+                            <Button
+                              onClick={() => toggleBenchmarkCompletion(benchmark)}
+                              variant="ghost"
+                              size="sm"
+                              className={benchmark.isCompleted ? "text-amber-500" : "text-green-500"}
+                            >
+                              {benchmark.isCompleted ? (
+                                <X className="h-4 w-4" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button 
+                              onClick={() => updateProjectBenchmarkMutation.mutate({
+                                id: benchmark.id,
+                                data: { isCompleted: false, completedDate: null }
+                              })}
+                              variant="ghost" 
+                              size="sm"
+                              className="text-red-500"
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 bg-slate-50 dark:bg-slate-800 rounded-md">
+                    <AlertCircle className="h-10 w-10 text-amber-500 mx-auto mb-2" />
+                    <p className="text-gray-500">No benchmarks for this project</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Add default benchmarks option */}
+              <div className="mt-6 flex justify-between items-center">
+                <p className="text-sm text-muted-foreground">
+                  Add default supply chain benchmarks to this project.
+                </p>
+                <Button
+                  onClick={() => {
+                    addDefaultBenchmarksMutation.mutate(selectedProjectDetails.id);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  disabled={addDefaultBenchmarksMutation.isPending}
+                  className="ml-auto"
+                >
+                  {addDefaultBenchmarksMutation.isPending ? (
+                    <>
+                      <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-slate-800 border-t-transparent" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Add Default Benchmarks
+                    </>
+                  )}
+                </Button>
+              </div>
+              
+              {/* Add custom benchmark option */}
+              <div className="mt-4">
+                <Button
+                  onClick={() => {
+                    setProjectDetailsOpen(false);
+                    // Give time for the dialog to close before opening the new one
+                    setTimeout(() => {
+                      benchmarkForm.reset({
+                        name: '',
+                        description: '',
+                        weeksBeforePhase: 3,
+                        targetPhase: 'FABRICATION',
+                        isDefault: false,
+                        isActive: true
+                      });
+                      setOpenBenchmarkDialog(true);
+                    }, 100);
+                  }}
+                  variant="default"
+                  className="w-full"
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Create New Benchmark
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
