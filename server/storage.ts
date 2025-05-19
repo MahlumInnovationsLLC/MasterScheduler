@@ -14,6 +14,8 @@ import {
   salesDeals,
   userAuditLogs,
   financialGoals,
+  supplyChainBenchmarks,
+  projectSupplyChainBenchmarks,
   type User,
   type InsertUser,
   type Project,
@@ -44,6 +46,10 @@ import {
   type InsertUserAuditLog,
   type FinancialGoal,
   type InsertFinancialGoal,
+  type SupplyChainBenchmark,
+  type InsertSupplyChainBenchmark,
+  type ProjectSupplyChainBenchmark,
+  type InsertProjectSupplyChainBenchmark,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or } from "drizzle-orm";
@@ -203,6 +209,21 @@ export interface IStorage {
   getProjectDeliveryTrackings(projectId: number): Promise<DeliveryTracking[]>;
   getDeliveryTracking(id: number): Promise<DeliveryTracking | undefined>;
   createDeliveryTracking(tracking: InsertDeliveryTracking): Promise<DeliveryTracking>;
+  
+  // Supply Chain Benchmark methods
+  getSupplyChainBenchmarks(): Promise<SupplyChainBenchmark[]>;
+  getSupplyChainBenchmarkById(id: number): Promise<SupplyChainBenchmark | undefined>;
+  createSupplyChainBenchmark(benchmark: InsertSupplyChainBenchmark): Promise<SupplyChainBenchmark>;
+  updateSupplyChainBenchmark(id: number, benchmark: Partial<InsertSupplyChainBenchmark>): Promise<SupplyChainBenchmark | undefined>;
+  deleteSupplyChainBenchmark(id: number): Promise<boolean>;
+  
+  // Project Supply Chain Benchmark methods
+  getProjectSupplyChainBenchmarks(): Promise<ProjectSupplyChainBenchmark[]>;
+  getProjectSupplyChainBenchmarkById(id: number): Promise<ProjectSupplyChainBenchmark | undefined>;
+  getProjectSupplyChainBenchmarksByProjectId(projectId: number): Promise<ProjectSupplyChainBenchmark[]>;
+  createProjectSupplyChainBenchmark(benchmark: InsertProjectSupplyChainBenchmark): Promise<ProjectSupplyChainBenchmark>;
+  updateProjectSupplyChainBenchmark(id: number, benchmark: Partial<InsertProjectSupplyChainBenchmark>): Promise<ProjectSupplyChainBenchmark | undefined>;
+  deleteProjectSupplyChainBenchmark(id: number): Promise<boolean>;
   
   // Data migration methods
   updateDefaultProjectHours(): Promise<number>; // Returns count of updated records
