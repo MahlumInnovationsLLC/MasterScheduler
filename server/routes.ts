@@ -48,9 +48,9 @@ import {
   getFinancialReports,
   getProjectStatusReports,
   getManufacturingReports,
-  getDeliveryReports,
-  exportReportData
+  getDeliveryReports
 } from "./routes/reports";
+import { handleExportReport } from "./routes/export";
 import {
   getNotifications,
   markNotificationAsRead,
@@ -2358,7 +2358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/reports/project-status', isAuthenticated, getProjectStatusReports);
   app.get('/api/reports/manufacturing', isAuthenticated, getManufacturingReports);
   app.get('/api/reports/delivery', isAuthenticated, getDeliveryReports);
-  app.post('/api/reports/export', isAuthenticated, exportReportData);
+  app.post('/api/reports/export', isAuthenticated, handleExportReport);
   
   // AI Insights API
   app.post('/api/ai/insights', isAuthenticated, getAIInsights);
