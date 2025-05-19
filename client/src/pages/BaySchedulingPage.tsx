@@ -945,7 +945,7 @@ const BaySchedulingPage = () => {
             type="resources"
             stats={[
               { label: "Total Hours", value: totalCapacityHours },
-              { label: "Total Bays", value: manufacturingBays.length },
+              { label: "Total Bays", value: 10 },
               { label: "Active Projects", value: scheduledProjectsCount },
               { label: "Unassigned", value: projects.length - scheduledProjectsCount },
             ]}
