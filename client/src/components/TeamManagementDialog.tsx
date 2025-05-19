@@ -88,13 +88,13 @@ export function TeamManagementDialog({
             const latestBays = await response.json();
             
             // Get team bays either by ID (if we have specific IDs) or by name
-            let teamBays = [];
+            let teamBays: ManufacturingBay[] = [];
             if (bayIds.length > 0) {
               // Filter to only the specific bays we want to edit
-              teamBays = latestBays.filter(bay => bayIds.includes(bay.id));
+              teamBays = latestBays.filter((bay: ManufacturingBay) => bayIds.includes(bay.id));
             } else {
               // Fallback to the old behavior if we don't have specific bay IDs
-              teamBays = latestBays.filter(bay => bay.team === actualTeamName);
+              teamBays = latestBays.filter((bay: ManufacturingBay) => bay.team === actualTeamName);
             }
             
             if (teamBays.length > 0) {
@@ -121,8 +121,8 @@ export function TeamManagementDialog({
           console.error("Error fetching latest bay data:", error);
           // If API fetch fails, use the provided bay data
           const teamBays = bayIds.length > 0 
-            ? bays.filter(bay => bayIds.includes(bay.id))
-            : bays.filter(bay => bay.team === actualTeamName);
+            ? bays.filter((bay: ManufacturingBay) => bayIds.includes(bay.id))
+            : bays.filter((bay: ManufacturingBay) => bay.team === actualTeamName);
           
           if (teamBays.length > 0) {
             const firstBay = teamBays[0];
@@ -167,10 +167,10 @@ export function TeamManagementDialog({
           
           if (bayIds.length > 0) {
             // Only update the specific bays that were clicked on
-            teamBays = latestBays.filter(bay => bayIds.includes(bay.id));
+            teamBays = latestBays.filter((bay: ManufacturingBay) => bayIds.includes(bay.id));
           } else {
             // Fallback to old behavior if no specific bay IDs
-            teamBays = latestBays.filter(bay => bay.team === actualTeamName);
+            teamBays = latestBays.filter((bay: ManufacturingBay) => bay.team === actualTeamName);
           }
           
           console.log(`Found ${teamBays.length} bays to update for team ${actualTeamName}`);
@@ -199,7 +199,7 @@ export function TeamManagementDialog({
       
       // Update only the specific bays with the new capacity settings, team name, and additional fields
       console.log("Updating team bays in database...");
-      const updatePromises = teamBays.map(bay => 
+      const updatePromises = teamBays.map((bay: ManufacturingBay) => 
         fetch(`/api/manufacturing-bays/${bay.id}`, {
           method: 'PATCH',
           headers: {
