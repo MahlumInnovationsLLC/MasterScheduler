@@ -2362,6 +2362,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Insights API
   app.post('/api/ai/insights', isAuthenticated, getAIInsights);
 
+  // Supply Chain Routes
+  app.use('/api', supplyChainRoutes);
+
   const httpServer = createServer(app);
   return httpServer;
 }
