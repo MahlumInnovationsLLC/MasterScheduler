@@ -255,9 +255,11 @@ async function generateCSV(data: any[], fields: string[], res: Response, reportN
     ...rows.map(row => row.join(','))
   ].join('\n');
   
-  // Set response headers
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename=${sanitizeFilename(reportName)}-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+  // Set response headers for proper file download
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFilename(reportName)}-${format(new Date(), 'yyyy-MM-dd')}.csv"`);
+  res.setHeader('Content-Length', Buffer.byteLength(csvContent, 'utf8'));
+  res.setHeader('Cache-Control', 'no-cache');
   
   // Send the CSV data
   return res.status(200).send(csvContent);
@@ -265,14 +267,62 @@ async function generateCSV(data: any[], fields: string[], res: Response, reportN
 
 // Function to generate PDF output (placeholder for now)
 async function generatePDF(data: any[], fields: string[], res: Response, reportName: string) {
-  // For now, return CSV as a fallback since PDF generation requires additional libraries
-  console.log('PDF generation requested but not fully implemented, falling back to CSV');
-  return generateCSV(data, fields, res, reportName);
+  // For now, return CSV but with PDF headers to trigger download
+  console.log('PDF generation requested but not fully implemented, sending CSV with PDF headers');
+  
+  // Generate CSV content (same as CSV function)
+  const headers = fields.map(fieldIdToHeader);
+  const rows = data.map(item => {
+    return fields.map(field => {
+      const value = item[field];
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'object' && value instanceof Date) return format(value, 'yyyy-MM-dd');
+      if (typeof value === 'object') return JSON.stringify(value);
+      return String(value).replace(/"/g, '""');
+    });
+  });
+  
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\n');
+  
+  // Set response headers for PDF download
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFilename(reportName)}-${format(new Date(), 'yyyy-MM-dd')}.pdf"`);
+  res.setHeader('Content-Length', Buffer.byteLength(csvContent, 'utf8'));
+  res.setHeader('Cache-Control', 'no-cache');
+  
+  return res.status(200).send(csvContent);
 }
 
 // Function to generate DOCX output (placeholder for now)
 async function generateDOCX(data: any[], fields: string[], res: Response, reportName: string) {
-  // For now, return CSV as a fallback since DOCX generation requires additional libraries
-  console.log('DOCX generation requested but not fully implemented, falling back to CSV');
-  return generateCSV(data, fields, res, reportName);
+  // For now, return CSV but with DOCX headers to trigger download
+  console.log('DOCX generation requested but not fully implemented, sending CSV with DOCX headers');
+  
+  // Generate CSV content (same as CSV function)
+  const headers = fields.map(fieldIdToHeader);
+  const rows = data.map(item => {
+    return fields.map(field => {
+      const value = item[field];
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'object' && value instanceof Date) return format(value, 'yyyy-MM-dd');
+      if (typeof value === 'object') return JSON.stringify(value);
+      return String(value).replace(/"/g, '""');
+    });
+  });
+  
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\n');
+  
+  // Set response headers for DOCX download
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFilename(reportName)}-${format(new Date(), 'yyyy-MM-dd')}.docx"`);
+  res.setHeader('Content-Length', Buffer.byteLength(csvContent, 'utf8'));
+  res.setHeader('Cache-Control', 'no-cache');
+  
+  return res.status(200).send(csvContent);
 }
