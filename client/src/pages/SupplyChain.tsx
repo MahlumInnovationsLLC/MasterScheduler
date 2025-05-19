@@ -1159,10 +1159,30 @@ const SupplyChain = () => {
                               )}
                             </Button>
                             <Button 
-                              onClick={() => updateProjectBenchmarkMutation.mutate({
-                                id: benchmark.id,
-                                data: { isCompleted: false, completedDate: null }
-                              })}
+                              onClick={() => {
+                                // Create a delete mutation for project benchmarks
+                                toast({
+                                  title: "Deleting benchmark...",
+                                  description: "Removing benchmark from this project"
+                                });
+                                
+                                apiRequest('DELETE', `/api/project-supply-chain-benchmarks/${benchmark.id}`)
+                                  .then(() => {
+                                    queryClient.invalidateQueries({ queryKey: ['/api/project-supply-chain-benchmarks'] });
+                                    toast({
+                                      title: "Benchmark deleted",
+                                      description: "The benchmark has been removed from this project."
+                                    });
+                                  })
+                                  .catch((error) => {
+                                    toast({
+                                      title: "Error deleting benchmark",
+                                      description: "There was an error deleting the benchmark. Please try again.",
+                                      variant: "destructive"
+                                    });
+                                    console.error("Delete error:", error);
+                                  });
+                              }}
                               variant="ghost" 
                               size="sm"
                               className="text-red-500"
