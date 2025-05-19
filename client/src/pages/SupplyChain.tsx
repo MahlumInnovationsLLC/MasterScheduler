@@ -1072,10 +1072,31 @@ const SupplyChain = () => {
               </div>
               
               <DialogFooter>
-                <Button type="submit">
-                  {editingBenchmark ? 'Update Benchmark' : 'Create Benchmark'}
-                </Button>
+                {(createBenchmarkMutation.isPending || updateBenchmarkMutation.isPending) ? (
+                  <Button disabled className="relative">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    </div>
+                    <span className="opacity-0">
+                      {editingBenchmark ? 'Updating...' : 'Creating...'}
+                    </span>
+                  </Button>
+                ) : (
+                  <Button type="submit">
+                    {editingBenchmark ? 'Update Benchmark' : 'Create Benchmark'}
+                  </Button>
+                )}
               </DialogFooter>
+              
+              {/* Loading notification message */}
+              {(createBenchmarkMutation.isPending || updateBenchmarkMutation.isPending) && (
+                <div className="flex items-center justify-center text-sm text-blue-600 pt-2">
+                  <div className="animate-pulse">
+                    {editingBenchmark ? 'Updating benchmark...' : 'Creating benchmark...'}
+                    <span className="ml-1">This may take a few seconds</span>
+                  </div>
+                </div>
+              )}
             </form>
           </Form>
         </DialogContent>
