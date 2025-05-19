@@ -728,6 +728,91 @@ export default function ResizableBaySchedule({
   const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
   const [slotWidth, setSlotWidth] = useState(60); // Increased slot width for better visibility
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Financial Impact Popup State
+  const [showFinancialImpact, setShowFinancialImpact] = useState(false);
+  const [financialImpactData, setFinancialImpactData] = useState<{
+    scheduleId: number;
+    projectId: number;
+    bayId: number;
+    originalStartDate: string;
+    originalEndDate: string;
+    newStartDate: string;
+    newEndDate: string;
+    totalHours?: number;
+    rowIndex?: number;
+  } | null>(null);
+  
+  // Handler for when user confirms schedule changes in the financial impact popup
+  const handleFinancialImpactConfirm = async () => {
+    if (!financialImpactData) return;
+    
+    try {
+      // Update the schedule with the confirmed changes
+      await onScheduleChange(
+        financialImpactData.scheduleId,
+        financialImpactData.bayId,
+        financialImpactData.newStartDate,
+        financialImpactData.newEndDate,
+        financialImpactData.totalHours,
+        financialImpactData.rowIndex
+      );
+      
+      // Show success toast
+      toast({
+        title: "Schedule updated",
+        description: `Project schedule has been updated with financial impact considered.`,
+      });
+      
+      // Close the financial impact popup
+      setShowFinancialImpact(false);
+      setFinancialImpactData(null);
+    } catch (error) {
+      console.error('Error updating schedule after financial impact assessment:', error);
+      
+      toast({
+        title: "Update failed",
+        description: "There was an error updating the schedule. Please try again.",
+        variant: "destructive",
+      });
+      
+      // Close the financial impact popup
+      setShowFinancialImpact(false);
+      setFinancialImpactData(null);
+    }
+  };
+  
+  // Handler for when user cancels schedule changes in the financial impact popup
+  const handleFinancialImpactCancel = () => {
+    // Reset any visual changes to the affected schedule bar
+    const barElement = document.querySelector(`.schedule-bar[data-schedule-id="${financialImpactData?.scheduleId}"]`) as HTMLElement;
+    if (barElement) {
+      // Find the original position and size
+      const originalStartDate = parseISO(financialImpactData?.originalStartDate || '');
+      const originalEndDate = parseISO(financialImpactData?.originalEndDate || '');
+      
+      // Calculate original position in pixels
+      const { left, width } = calculateBarPosition(originalStartDate, originalEndDate) || {};
+      
+      if (left !== undefined && width !== undefined) {
+        // Revert the element to its original position and size
+        barElement.style.left = `${left}px`;
+        barElement.style.width = `${width}px`;
+        
+        // Update department phase widths based on original width
+        updateDepartmentPhaseWidths(barElement, width);
+      }
+    }
+    
+    // Close the financial impact popup without making any changes
+    setShowFinancialImpact(false);
+    setFinancialImpactData(null);
+    
+    toast({
+      title: "Changes cancelled",
+      description: "Schedule changes have been cancelled."
+    });
+  };
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [showAddMultipleWarning, setShowAddMultipleWarning] = useState(false);
   const [showQcDaysWarning, setShowQcDaysWarning] = useState(false);
@@ -2047,8 +2132,32 @@ export default function ResizableBaySchedule({
       const formattedStartDate = format(newStartDate, 'yyyy-MM-dd');
       const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
       
+      // Check if dates changed significantly (more than a day)
+      const isSignificantChange = 
+        Math.abs(differenceInDays(newStartDate, initialStartDate)) > 0 || 
+        Math.abs(differenceInDays(newEndDate, initialEndDate)) > 0;
+        
+      if (isSignificantChange) {
+        // Show financial impact popup before committing changes
+        setFinancialImpactData({
+          scheduleId: bar.id,
+          projectId: bar.projectId,
+          bayId: bar.bayId,
+          originalStartDate: format(initialStartDate, 'yyyy-MM-dd'),
+          originalEndDate: format(initialEndDate, 'yyyy-MM-dd'),
+          newStartDate: formattedStartDate,
+          newEndDate: formattedEndDate,
+          totalHours: bar.totalHours,
+          rowIndex: bar.row
+        });
+        setShowFinancialImpact(true);
+        
+        // Note: Changes will be committed when user confirms in the popup
+        return;
+      }
+      
       try {
-        // Update the schedule
+        // Update the schedule (for non-significant changes)
         await onScheduleChange(
           bar.id,
           bar.bayId,
