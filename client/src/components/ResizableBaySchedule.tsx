@@ -3599,7 +3599,17 @@ export default function ResizableBaySchedule({
                   id="startDate"
                   type="date"
                   value={targetStartDate ? format(targetStartDate, 'yyyy-MM-dd') : ''}
-                  onChange={(e) => setTargetStartDate(e.target.value ? new Date(e.target.value) : null)}
+                  onChange={(e) => {
+                    const newStartDate = e.target.value ? new Date(e.target.value) : null;
+                    setTargetStartDate(newStartDate);
+                    
+                    // Immediately update end date when start date changes
+                    if (newStartDate && scheduleDuration > 0) {
+                      const newEndDate = addWeeks(newStartDate, scheduleDuration);
+                      console.log('Auto-updating end date:', format(newEndDate, 'yyyy-MM-dd'));
+                      setTargetEndDate(newEndDate);
+                    }
+                  }}
                 />
               </div>
             </div>
