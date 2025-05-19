@@ -15,7 +15,8 @@ import {
   TrendingUp,
   GanttChart,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ShoppingCart
 } from 'lucide-react';
 import { SidebarContext } from '@/context/SidebarContext';
 
@@ -146,6 +147,14 @@ const Sidebar = () => {
               }`} title="Delivered Projects">
                 <Truck className={`text-xl ${isActive('/delivered-projects') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>Delivered Projects</span>}
+              </Link>
+            </li>
+            <li>
+              <Link href="/supply-chain" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/supply-chain') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
+              }`} title="Supply Chain">
+                <ShoppingCart className={`text-xl ${isActive('/supply-chain') ? 'text-primary' : ''}`} />
+                {!isCollapsed && <span>Supply Chain</span>}
               </Link>
             </li>
           </ul>

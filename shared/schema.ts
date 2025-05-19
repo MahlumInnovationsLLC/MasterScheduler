@@ -837,3 +837,73 @@ export const insertFinancialGoalSchema = createInsertSchema(financialGoals).omit
 
 export type FinancialGoal = typeof financialGoals.$inferSelect;
 export type InsertFinancialGoal = z.infer<typeof insertFinancialGoalSchema>;
+
+// Supply Chain Benchmarks Table
+export const supplyChainBenchmarks = pgTable("supply_chain_benchmarks", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  weeksBeforePhase: integer("weeks_before_phase").notNull(),
+  targetPhase: text("target_phase").notNull(), // FAB, PRODUCTION, NTC, QC, SHIP
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Project Supply Chain Benchmarks - specific benchmarks for each project
+export const projectSupplyChainBenchmarks = pgTable("project_supply_chain_benchmarks", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .references(() => projects.id)
+    .notNull(),
+  benchmarkId: integer("benchmark_id")
+    .references(() => supplyChainBenchmarks.id)
+    .notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  targetDate: date("target_date"),
+  isCompleted: boolean("is_completed").default(false),
+  completedDate: date("completed_date"),
+  weeksBeforePhase: integer("weeks_before_phase"),
+  targetPhase: text("target_phase"), // FAB, PRODUCTION, NTC, QC, SHIP
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Supply Chain Benchmarks Relations
+export const supplyChainBenchmarksRelations = relations(supplyChainBenchmarks, ({ many }) => ({
+  projectBenchmarks: many(projectSupplyChainBenchmarks),
+}));
+
+// Project Supply Chain Benchmarks Relations
+export const projectSupplyChainBenchmarksRelations = relations(projectSupplyChainBenchmarks, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectSupplyChainBenchmarks.projectId],
+    references: [projects.id],
+  }),
+  benchmark: one(supplyChainBenchmarks, {
+    fields: [projectSupplyChainBenchmarks.benchmarkId],
+    references: [supplyChainBenchmarks.id],
+  }),
+}));
+
+// Create insert schema for supply chain benchmarks
+export const insertSupplyChainBenchmarkSchema = createInsertSchema(supplyChainBenchmarks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Create insert schema for project supply chain benchmarks
+export const insertProjectSupplyChainBenchmarkSchema = createInsertSchema(projectSupplyChainBenchmarks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type SupplyChainBenchmark = typeof supplyChainBenchmarks.$inferSelect;
+export type InsertSupplyChainBenchmark = z.infer<typeof insertSupplyChainBenchmarkSchema>;
+export type ProjectSupplyChainBenchmark = typeof projectSupplyChainBenchmarks.$inferSelect;
+export type InsertProjectSupplyChainBenchmark = z.infer<typeof insertProjectSupplyChainBenchmarkSchema>;
