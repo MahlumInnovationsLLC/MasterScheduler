@@ -337,7 +337,7 @@ export class DatabaseStorage implements IStorage {
     return await safeQuery<Project>(() =>
       db.select()
         .from(projects)
-        .where(projects.id.in(projectIds))
+        .where(inArray(projects.id, projectIds))
     );
   }
   

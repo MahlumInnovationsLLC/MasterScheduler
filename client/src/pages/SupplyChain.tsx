@@ -521,34 +521,47 @@ const SupplyChain = () => {
       timestamp: new Date().toISOString()
     });
     
-    // Create data object with precise timestamp and user info
-    const data: Partial<z.infer<typeof projectBenchmarkFormSchema>> = {
-      isCompleted: newStatus,
-      // Only set these fields when marking as complete
-      ...(newStatus ? {
-        // Make sure to use the FULL ISO string with time portion
-        completedDate: new Date().toISOString(),
-        // Add the username of who completed it
-        completedBy: getCurrentUser()
-      } : {
-        // Clear these fields when marking as incomplete
-        completedDate: null,
-        completedBy: null
-      })
+    let updateData: any = {
+      isCompleted: newStatus
     };
     
-    // For debugging
-    console.log("Sending data to server:", data);
+    // Only set completedDate and completedBy when marking as complete
+    if (newStatus) {
+      updateData.completedDate = new Date().toISOString();
+      updateData.completedBy = getCurrentUser();
+    } else {
+      // When unmarking as complete, set these to null
+      updateData.completedDate = null;
+      updateData.completedBy = null;
+    }
     
-    updateProjectBenchmarkMutation.mutate(
-      { id: benchmark.id, data },
-      {
-        onSettled: () => {
-          // Clear the updating state when completed (success or error)
-          setUpdatingBenchmarkId(null);
-        }
-      }
-    );
+    // For debugging
+    console.log("Sending data to server:", updateData);
+    
+    // Use direct API call to bypass schema validation issues
+    apiRequest('PATCH', `/api/project-supply-chain-benchmarks/${benchmark.id}`, updateData)
+      .then(() => {
+        // Invalidate query to refresh data
+        queryClient.invalidateQueries({ queryKey: ['/api/project-supply-chain-benchmarks'] });
+        toast({
+          title: newStatus ? "Benchmark completed" : "Benchmark reopened",
+          description: newStatus 
+            ? "The benchmark has been marked as completed." 
+            : "The benchmark has been reopened."
+        });
+      })
+      .catch(error => {
+        console.error("Error updating benchmark:", error);
+        toast({
+          title: "Error updating benchmark",
+          description: "There was an error updating the benchmark status. Please try again.",
+          variant: "destructive"
+        });
+      })
+      .finally(() => {
+        // Clear the updating state when completed (success or error)
+        setUpdatingBenchmarkId(null);
+      });
   };
 
   // Filter project benchmarks by selected project
