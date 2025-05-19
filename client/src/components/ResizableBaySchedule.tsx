@@ -2812,7 +2812,22 @@ export default function ResizableBaySchedule({
                               {baySchedules.length}
                             </div>
                           </div>
-                          <div className="text-xs text-gray-500">Bay #{bay.bayNumber}</div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-xs text-gray-500">Bay #{bay.bayNumber}</div>
+                            
+                            {/* Individual bay row edit button */}
+                            <button 
+                              className="ml-1 p-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingBay({...bay});
+                                setNewBayDialog(true);
+                              }}
+                              title="Edit this bay"
+                            >
+                              <PencilIcon className="h-3 w-3" />
+                            </button>
+                          </div>
                           
                           {bay.status === 'maintenance' && (
                             <Badge variant="destructive" className="mt-1 text-[10px]">Maintenance</Badge>
