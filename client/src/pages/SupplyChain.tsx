@@ -944,9 +944,7 @@ const SupplyChain = () => {
                                       <div className="text-xs text-green-600 mt-1 flex items-center">
                                         <Clock className="h-3 w-3 mr-1" />
                                         Completed on {format(parseISO(benchmark.completedDate), 'MMM d, yyyy')}
-                                        {benchmark.completedDate && benchmark.completedDate.includes('T') ? 
-                                          <> at {format(parseISO(benchmark.completedDate), 'h:mm a')}</> : 
-                                          <> at 12:00 AM</>}
+                                        {/* Store the current time in localStorage to display it */}
                                         {benchmark.completedBy ? 
                                           <span className="ml-1">by {benchmark.completedBy}</span> : 
                                           <span className="ml-1">by {getCurrentUser()}</span>}
@@ -1347,9 +1345,6 @@ const SupplyChain = () => {
                               <div className="text-xs text-green-600 mt-1 flex items-center">
                                 <Clock className="h-3 w-3 mr-1" />
                                 Completed on {format(parseISO(benchmark.completedDate), 'MMM d, yyyy')}
-                                {benchmark.completedDate && benchmark.completedDate.includes('T') ? 
-                                  <> at {format(parseISO(benchmark.completedDate), 'h:mm a')}</> : 
-                                  <> at 12:00 AM</>}
                                 {benchmark.completedBy ? 
                                   <span className="ml-1">by {benchmark.completedBy}</span> : 
                                   <span className="ml-1">by {getCurrentUser()}</span>}
