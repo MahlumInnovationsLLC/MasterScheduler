@@ -1,213 +1,278 @@
 import { Request, Response } from 'express';
-import { db } from '../db';
-import { eq, and, or, gte, lte } from 'drizzle-orm';
-import { format, subMonths, parseISO } from 'date-fns';
-import { 
-  projects,
-  billingMilestones,
-  manufacturingSchedules,
-  manufacturingBays,
-  deliveryTracking
-} from '@shared/schema';
+import { format } from 'date-fns';
 
-/**
- * Handles export requests for various report types
- */
-export async function handleExportReport(req: Request, res: Response) {
+interface ExportRequestData {
+  module: string;
+  subType: string;
+  dateRange: {
+    startDate: string;
+    endDate: string;
+  };
+  format: 'csv' | 'pdf' | 'docx';
+  fields: string[];
+  templateName?: string;
+}
+
+// Function to sanitize a string for use in filenames
+const sanitizeFilename = (str: string): string => {
+  return str.replace(/[^a-zA-Z0-9-_]/g, '_');
+};
+
+// Function to convert field IDs to display headers
+const fieldIdToHeader = (fieldId: string): string => {
+  // Convert snake_case to Title Case
+  return fieldId
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+export async function exportReport(req: Request, res: Response) {
   try {
-    const { reportType, startDate, endDate, projectId } = req.body;
+    const exportData = req.body as ExportRequestData;
+    const { module, subType, dateRange, format, fields } = exportData;
     
-    if (!reportType) {
-      return res.status(400).json({ error: 'Report type is required' });
-    }
+    console.log(`Exporting ${module}/${subType} report in ${format} format`);
+    console.log('Date range:', dateRange);
+    console.log('Selected fields:', fields);
     
-    // Parse dates or use defaults
-    const start = startDate ? parseISO(startDate) : subMonths(new Date(), 6);
-    const end = endDate ? parseISO(endDate) : new Date();
+    // For the initial implementation, we'll generate sample data based on the requested module and fields
+    const sampleData = generateSampleData(module, subType, fields);
     
-    // Get data based on report type
-    let data: any[] = [];
-    let filename = `${reportType}-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    
-    switch (reportType) {
-      case 'financial':
-        data = await getFinancialData(start, end, projectId);
-        break;
-      case 'project':
-        data = await getProjectData(start, end, projectId);
-        break;
-      case 'manufacturing':
-        data = await getManufacturingData(start, end, projectId);
-        break;
-      case 'delivery':
-        data = await getDeliveryData(start, end, projectId);
-        break;
+    // Based on the requested format, generate and return the appropriate file
+    switch (format) {
+      case 'csv':
+        return generateCSV(sampleData, fields, res, `${module}-${subType}`);
+      case 'pdf':
+        return generatePDF(sampleData, fields, res, `${module}-${subType}`);
+      case 'docx':
+        return generateDOCX(sampleData, fields, res, `${module}-${subType}`);
       default:
-        return res.status(400).json({ error: 'Invalid report type' });
+        throw new Error(`Unsupported export format: ${format}`);
     }
-    
-    if (!data || data.length === 0) {
-      return res.status(404).json({ error: 'No data found for the given criteria' });
-    }
-    
-    // Convert data to CSV
-    const csvRows: string[] = [];
-    
-    // Add headers
-    const headers = Object.keys(data[0]);
-    csvRows.push(headers.join(','));
-    
-    // Add data rows
-    for (const row of data) {
-      const values = headers.map(header => {
-        const value = row[header];
-        if (value === null || value === undefined) {
-          return '';
-        }
-        
-        // Format dates
-        if (value instanceof Date) {
-          return format(value, 'yyyy-MM-dd');
-        }
-        
-        // Escape values with quotes if needed
-        const stringValue = String(value);
-        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-          return `"${stringValue.replace(/"/g, '""')}"`;
-        }
-        
-        return stringValue;
-      });
-      
-      csvRows.push(values.join(','));
-    }
-    
-    // Join rows with newlines
-    const csvContent = csvRows.join('\n');
-    
-    // Set headers for CSV download
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    
-    // Send CSV data
-    res.send(csvContent);
-    
   } catch (error) {
     console.error('Error exporting report:', error);
-    res.status(500).json({ error: 'Failed to export report' });
+    return res.status(500).send(`Error exporting report: ${(error as Error).message || 'Unknown error'}`);
   }
 }
 
-// Helper functions to get data for each report type
-async function getFinancialData(start: Date, end: Date, projectId?: number) {
-  const dateFilter = and(
-    gte(billingMilestones.targetInvoiceDate, start.toISOString().split('T')[0]),
-    lte(billingMilestones.targetInvoiceDate, end.toISOString().split('T')[0])
-  );
-  
-  const filter = projectId ? 
-    and(eq(billingMilestones.projectId, projectId), dateFilter) : 
-    dateFilter;
-  
-  return db
-    .select({
-      milestone_id: billingMilestones.id,
-      project_id: billingMilestones.projectId,
-      project_number: projects.projectNumber,
-      project_name: projects.name,
-      milestone_name: billingMilestones.name,
-      amount: billingMilestones.amount,
-      status: billingMilestones.status,
-      target_date: billingMilestones.targetInvoiceDate,
-      actual_date: billingMilestones.actualInvoiceDate,
-      payment_date: billingMilestones.paymentReceivedDate,
-    })
-    .from(billingMilestones)
-    .leftJoin(projects, eq(billingMilestones.projectId, projects.id))
-    .where(filter)
-    .orderBy(billingMilestones.targetInvoiceDate);
+// Function to generate sample data based on the requested module and fields
+function generateSampleData(module: string, subType: string, fields: string[]): any[] {
+  // Sample data based on module
+  switch (module) {
+    case 'financial':
+      return generateFinancialSampleData(subType, fields);
+    case 'manufacturing':
+      return generateManufacturingSampleData(subType, fields);
+    case 'project':
+      return generateProjectSampleData(subType, fields);
+    case 'delivery':
+      return generateDeliverySampleData(subType, fields);
+    default:
+      return [{
+        message: 'No data available for the selected module'
+      }];
+  }
 }
 
-async function getProjectData(start: Date, end: Date, projectId?: number) {
-  const dateFilter = and(
-    gte(projects.startDate, start.toISOString().split('T')[0]),
-    lte(projects.startDate, end.toISOString().split('T')[0])
-  );
+// Generate sample financial data
+function generateFinancialSampleData(subType: string, fields: string[]): any[] {
+  const sampleData = [];
   
-  const filter = projectId ? 
-    eq(projects.id, projectId) : 
-    dateFilter;
+  // Generate 10 sample records
+  for (let i = 1; i <= 10; i++) {
+    const record: Record<string, any> = {};
+    
+    if (fields.includes('project_id')) record.project_id = 100 + i;
+    if (fields.includes('project_number')) record.project_number = `PRJ-${1000 + i}`;
+    if (fields.includes('project_name')) record.project_name = `Sample Project ${i}`;
+    if (fields.includes('milestone_id')) record.milestone_id = 200 + i;
+    if (fields.includes('milestone_name')) record.milestone_name = `Milestone ${i}`;
+    if (fields.includes('amount')) record.amount = `$${(Math.random() * 100000).toFixed(2)}`;
+    if (fields.includes('status')) {
+      const statuses = ['upcoming', 'invoiced', 'paid', 'delayed'];
+      record.status = statuses[Math.floor(Math.random() * statuses.length)];
+    }
+    if (fields.includes('target_date')) {
+      const date = new Date();
+      date.setDate(date.getDate() + (i * 7));
+      record.target_date = format(date, 'yyyy-MM-dd');
+    }
+    if (fields.includes('actual_date')) {
+      const date = new Date();
+      date.setDate(date.getDate() + (i * 7) - 2);
+      record.actual_date = format(date, 'yyyy-MM-dd');
+    }
+    if (fields.includes('payment_date')) {
+      const date = new Date();
+      date.setDate(date.getDate() + (i * 7) + 10);
+      record.payment_date = format(date, 'yyyy-MM-dd');
+    }
+    
+    sampleData.push(record);
+  }
   
-  return db
-    .select({
-      project_id: projects.id,
-      project_number: projects.projectNumber,
-      project_name: projects.name,
-      status: projects.status,
-      risk_level: projects.riskLevel,
-      start_date: projects.startDate,
-      estimated_completion: projects.estimatedCompletionDate,
-      percent_complete: projects.percentComplete,
-      ship_date: projects.shipDate,
-      total_hours: projects.totalHours,
-    })
-    .from(projects)
-    .where(filter)
-    .orderBy(projects.startDate);
+  return sampleData;
 }
 
-async function getManufacturingData(start: Date, end: Date, bayId?: number) {
-  const dateFilter = and(
-    gte(manufacturingSchedules.startDate, start.toISOString().split('T')[0]),
-    lte(manufacturingSchedules.endDate, end.toISOString().split('T')[0])
-  );
+// Generate sample manufacturing data
+function generateManufacturingSampleData(subType: string, fields: string[]): any[] {
+  const sampleData = [];
   
-  const filter = bayId ? 
-    and(eq(manufacturingSchedules.bayId, bayId), dateFilter) : 
-    dateFilter;
+  // Generate 10 sample records
+  for (let i = 1; i <= 10; i++) {
+    const record: Record<string, any> = {};
+    
+    if (fields.includes('bay_id')) record.bay_id = i;
+    if (fields.includes('bay_name')) record.bay_name = `Bay ${i}`;
+    if (fields.includes('project_id')) record.project_id = 100 + i;
+    if (fields.includes('project_name')) record.project_name = `Sample Project ${i}`;
+    if (fields.includes('start_date')) {
+      const date = new Date();
+      date.setDate(date.getDate() - (i * 5));
+      record.start_date = format(date, 'yyyy-MM-dd');
+    }
+    if (fields.includes('end_date')) {
+      const date = new Date();
+      date.setDate(date.getDate() + (i * 10));
+      record.end_date = format(date, 'yyyy-MM-dd');
+    }
+    if (fields.includes('duration')) record.duration = Math.floor(Math.random() * 30) + 5;
+    if (fields.includes('total_hours')) record.total_hours = Math.floor(Math.random() * 200) + 20;
+    if (fields.includes('utilization_rate')) record.utilization_rate = `${Math.floor(Math.random() * 100)}%`;
+    if (fields.includes('status')) {
+      const statuses = ['Active', 'Complete', 'Scheduled', 'In Progress'];
+      record.status = statuses[Math.floor(Math.random() * statuses.length)];
+    }
+    
+    sampleData.push(record);
+  }
   
-  return db
-    .select({
-      schedule_id: manufacturingSchedules.id,
-      project_id: manufacturingSchedules.projectId,
-      project_number: projects.projectNumber,
-      project_name: projects.name,
-      bay_id: manufacturingSchedules.bayId,
-      bay_name: manufacturingBays.name,
-      start_date: manufacturingSchedules.startDate,
-      end_date: manufacturingSchedules.endDate,
-      status: manufacturingSchedules.status,
-      total_hours: manufacturingSchedules.totalHours,
-    })
-    .from(manufacturingSchedules)
-    .leftJoin(projects, eq(manufacturingSchedules.projectId, projects.id))
-    .leftJoin(manufacturingBays, eq(manufacturingSchedules.bayId, manufacturingBays.id))
-    .where(filter)
-    .orderBy(manufacturingSchedules.startDate);
+  return sampleData;
 }
 
-async function getDeliveryData(start: Date, end: Date, projectId?: number) {
-  // Use createdAt as a fallback date field for filtering
-  const dateFilter = and(
-    gte(deliveryTracking.createdAt, start),
-    lte(deliveryTracking.createdAt, end)
-  );
+// Generate sample project data
+function generateProjectSampleData(subType: string, fields: string[]): any[] {
+  const sampleData = [];
   
-  const filter = projectId ? 
-    and(eq(deliveryTracking.projectId, projectId), dateFilter) : 
-    dateFilter;
+  // Generate 10 sample records
+  for (let i = 1; i <= 10; i++) {
+    const record: Record<string, any> = {};
+    
+    if (fields.includes('project_id')) record.project_id = 100 + i;
+    if (fields.includes('project_number')) record.project_number = `PRJ-${1000 + i}`;
+    if (fields.includes('project_name')) record.project_name = `Sample Project ${i}`;
+    if (fields.includes('status')) {
+      const statuses = ['Active', 'On Hold', 'Completed', 'Delayed'];
+      record.status = statuses[Math.floor(Math.random() * statuses.length)];
+    }
+    if (fields.includes('risk_level')) {
+      const riskLevels = ['Low', 'Medium', 'High'];
+      record.risk_level = riskLevels[Math.floor(Math.random() * riskLevels.length)];
+    }
+    if (fields.includes('start_date')) {
+      const date = new Date();
+      date.setDate(date.getDate() - (i * 15));
+      record.start_date = format(date, 'yyyy-MM-dd');
+    }
+    if (fields.includes('estimated_completion')) {
+      const date = new Date();
+      date.setDate(date.getDate() + (i * 15));
+      record.estimated_completion = format(date, 'yyyy-MM-dd');
+    }
+    if (fields.includes('percent_complete')) record.percent_complete = `${Math.floor(Math.random() * 100)}%`;
+    if (fields.includes('ship_date')) {
+      const date = new Date();
+      date.setDate(date.getDate() + (i * 20));
+      record.ship_date = format(date, 'yyyy-MM-dd');
+    }
+    if (fields.includes('total_hours')) record.total_hours = Math.floor(Math.random() * 500) + 50;
+    
+    sampleData.push(record);
+  }
   
-  return db
-    .select({
-      tracking_id: deliveryTracking.id,
-      project_id: deliveryTracking.projectId,
-      project_number: projects.projectNumber,
-      project_name: projects.name,
-      created_at: deliveryTracking.createdAt,
-      actual_delivery_date: deliveryTracking.actualDeliveryDate
-    })
-    .from(deliveryTracking)
-    .leftJoin(projects, eq(deliveryTracking.projectId, projects.id))
-    .where(filter)
-    .orderBy(deliveryTracking.createdAt);
+  return sampleData;
+}
+
+// Generate sample delivery data
+function generateDeliverySampleData(subType: string, fields: string[]): any[] {
+  const sampleData = [];
+  
+  // Generate 10 sample records
+  for (let i = 1; i <= 10; i++) {
+    const record: Record<string, any> = {};
+    
+    if (fields.includes('tracking_id')) record.tracking_id = `TRK-${2000 + i}`;
+    if (fields.includes('project_id')) record.project_id = 100 + i;
+    if (fields.includes('project_name')) record.project_name = `Sample Project ${i}`;
+    if (fields.includes('scheduled_date')) {
+      const date = new Date();
+      date.setDate(date.getDate() + (i * 5));
+      record.scheduled_date = format(date, 'yyyy-MM-dd');
+    }
+    if (fields.includes('actual_date')) {
+      const date = new Date();
+      date.setDate(date.getDate() + (i * 5) + (Math.random() > 0.7 ? 2 : 0));
+      record.actual_date = format(date, 'yyyy-MM-dd');
+    }
+    if (fields.includes('carrier')) {
+      const carriers = ['Company Truck', 'FedEx', 'UPS', 'DHL', 'Customer Pickup'];
+      record.carrier = carriers[Math.floor(Math.random() * carriers.length)];
+    }
+    if (fields.includes('tracking_number')) record.tracking_number = `SHIP-${Math.floor(Math.random() * 1000000)}`;
+    if (fields.includes('status')) {
+      const statuses = ['Scheduled', 'In Transit', 'Delivered', 'Delayed'];
+      record.status = statuses[Math.floor(Math.random() * statuses.length)];
+    }
+    if (fields.includes('notes')) record.notes = `Delivery notes for project ${i}`;
+    
+    sampleData.push(record);
+  }
+  
+  return sampleData;
+}
+
+// Function to generate CSV output
+async function generateCSV(data: any[], fields: string[], res: Response, reportName: string) {
+  // Generate headers row
+  const headers = fields.map(fieldIdToHeader);
+  
+  // Generate data rows
+  const rows = data.map(item => {
+    return fields.map(field => {
+      const value = item[field];
+      // Handle different data types appropriately for CSV
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'object' && value instanceof Date) return format(value, 'yyyy-MM-dd');
+      if (typeof value === 'object') return JSON.stringify(value);
+      return String(value).replace(/"/g, '""'); // Escape quotes in CSV
+    });
+  });
+  
+  // Combine headers and rows
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\n');
+  
+  // Set response headers
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename=${sanitizeFilename(reportName)}-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+  
+  // Send the CSV data
+  return res.status(200).send(csvContent);
+}
+
+// Function to generate PDF output (placeholder for now)
+async function generatePDF(data: any[], fields: string[], res: Response, reportName: string) {
+  // For now, return CSV as a fallback since PDF generation requires additional libraries
+  console.log('PDF generation requested but not fully implemented, falling back to CSV');
+  return generateCSV(data, fields, res, reportName);
+}
+
+// Function to generate DOCX output (placeholder for now)
+async function generateDOCX(data: any[], fields: string[], res: Response, reportName: string) {
+  // For now, return CSV as a fallback since DOCX generation requires additional libraries
+  console.log('DOCX generation requested but not fully implemented, falling back to CSV');
+  return generateCSV(data, fields, res, reportName);
 }

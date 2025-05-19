@@ -19,6 +19,8 @@ import {
   insertNotificationSchema,
   insertSalesDealSchema
 } from "@shared/schema";
+
+import { exportReport } from "./routes/export";
 import { setupSession, setupLocalAuth, isAuthenticated, hasEditRights, isAdmin, isEditor, hashPassword, comparePasswords } from "./authService";
 import { 
   importProjects, 
@@ -2354,11 +2356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reports API routes
-  app.get('/api/reports/financial', isAuthenticated, getFinancialReports);
-  app.get('/api/reports/project-status', isAuthenticated, getProjectStatusReports);
-  app.get('/api/reports/manufacturing', isAuthenticated, getManufacturingReports);
-  app.get('/api/reports/delivery', isAuthenticated, getDeliveryReports);
-  app.post('/api/reports/export', isAuthenticated, handleExportReport);
+  app.post('/api/reports/export', isAuthenticated, exportReport);
   
   // AI Insights API
   app.post('/api/ai/insights', isAuthenticated, getAIInsights);
