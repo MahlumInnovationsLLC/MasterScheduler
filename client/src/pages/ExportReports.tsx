@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { format as formatDate, subMonths, startOfYear, startOfMonth } from 'date-fns';
+import { format, subMonths, startOfYear, startOfMonth } from 'date-fns';
 import { ArrowLeft, Download, FileType, Save, PlusCircle, Calendar, File, FileSpreadsheet, FileText, Settings, Columns, Edit, Trash, FileOutput, Clock } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -241,27 +241,27 @@ const ExportReportsPage = () => {
   // Calculate date range based on selected time range
   const getDateRangeStrings = (range = timeRange) => {
     let startDate = '';
-    const endDate = formatDate(new Date(), 'yyyy-MM-dd');
+    const endDate = format(new Date(), 'yyyy-MM-dd');
     const now = new Date();
     
     switch (range) {
       case '3months':
-        startDate = formatDate(subMonths(now, 3), 'yyyy-MM-dd');
+        startDate = format(subMonths(now, 3), 'yyyy-MM-dd');
         break;
       case '6months':
-        startDate = formatDate(subMonths(now, 6), 'yyyy-MM-dd');
+        startDate = format(subMonths(now, 6), 'yyyy-MM-dd');
         break;
       case '12months':
-        startDate = formatDate(subMonths(now, 12), 'yyyy-MM-dd');
+        startDate = format(subMonths(now, 12), 'yyyy-MM-dd');
         break;
       case 'ytd':
-        startDate = formatDate(startOfYear(now), 'yyyy-MM-dd');
+        startDate = format(startOfYear(now), 'yyyy-MM-dd');
         break;
       case 'mtd':
-        startDate = formatDate(startOfMonth(now), 'yyyy-MM-dd');
+        startDate = format(startOfMonth(now), 'yyyy-MM-dd');
         break;
       default:
-        startDate = formatDate(subMonths(now, 6), 'yyyy-MM-dd');
+        startDate = format(subMonths(now, 6), 'yyyy-MM-dd');
     }
     
     return { startDate, endDate };
@@ -393,7 +393,7 @@ const ExportReportsPage = () => {
         module: moduleType,
         subType: subType,
         dateRange: dateRange,
-        format: exportFileFormat,
+        format: exportFileFormat, // This is the file format (csv, pdf, docx)
         fields: fieldList,
         templateName: template?.name || 'Custom Export'
       };
@@ -423,12 +423,15 @@ const ExportReportsPage = () => {
       const a = document.createElement('a');
       a.href = downloadUrl;
       
+      // Determine file extension based on export format
       const fileExtension = exportFileFormat === 'csv' ? 'csv' : 
-                         exportFileFormat === 'pdf' ? 'pdf' : 'docx';
+                           exportFileFormat === 'pdf' ? 'pdf' : 'docx';
       
-      // Use date-fns format function to format the current date
-      const formattedDate = formatDate(new Date(), 'yyyy-MM-dd');
-      a.download = `${moduleType}-${subType}-report-${formattedDate}.${fileExtension}`;
+      // Get current date formatted as string using date-fns
+      const dateStr = format(new Date(), 'yyyy-MM-dd');
+      
+      // Set download filename
+      a.download = `${moduleType}-${subType}-report-${dateStr}.${fileExtension}`;
       document.body.appendChild(a);
       a.click();
       
