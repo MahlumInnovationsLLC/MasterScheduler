@@ -77,6 +77,7 @@ interface ProjectSupplyChainBenchmark {
   targetDate: string | null;
   isCompleted: boolean;
   completedDate: string | null;
+  completedBy: string | null;
   weeksBeforePhase: number;
   targetPhase: string;
   notes: string | null;
@@ -498,17 +499,34 @@ const SupplyChain = () => {
   // Track which benchmark is currently being updated
   const [updatingBenchmarkId, setUpdatingBenchmarkId] = useState<number | null>(null);
   
+  // Get mock username for development mode
+  const getCurrentUser = () => {
+    // In production, this would come from an authentication context
+    // For now, we'll use a mock username for demonstration
+    return "John Doe";
+  };
+
   // Toggle completion status of a project benchmark
   const toggleBenchmarkCompletion = (benchmark: ProjectSupplyChainBenchmark) => {
     // Set the updating benchmark ID to show loading state
     setUpdatingBenchmarkId(benchmark.id);
     
     const newStatus = !benchmark.isCompleted;
-    // Create current date with the actual time (not default 12:00 AM)
-    const now = new Date();
+    
+    // Create data object with precise timestamp and user info
     const data: Partial<z.infer<typeof projectBenchmarkFormSchema>> = {
       isCompleted: newStatus,
-      completedDate: newStatus ? now.toISOString() : null
+      // Only set these fields when marking as complete
+      ...(newStatus ? {
+        // Use the current date/time with the exact time
+        completedDate: new Date().toISOString(),
+        // Add the username of who completed it
+        completedBy: getCurrentUser()
+      } : {
+        // Clear these fields when marking as incomplete
+        completedDate: null,
+        completedBy: null
+      })
     };
     
     updateProjectBenchmarkMutation.mutate(
