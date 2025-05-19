@@ -132,6 +132,7 @@ const SupplyChain = () => {
   const [purchaseTimeframe, setPurchaseTimeframe] = useState<'week' | 'month' | 'quarter'>('week');
   const [projectDetailsOpen, setProjectDetailsOpen] = useState(false);
   const [selectedProjectDetails, setSelectedProjectDetails] = useState<Project | null>(null);
+  const [pendingBenchmarkProjectId, setPendingBenchmarkProjectId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -157,20 +158,20 @@ const SupplyChain = () => {
   const createBenchmarkMutation = useMutation({
     mutationFn: (data: z.infer<typeof benchmarkFormSchema>) => 
       apiRequest('POST', '/api/supply-chain-benchmarks', data),
-    onSuccess: async (response) => {
+    onSuccess: async (response, data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/supply-chain-benchmarks'] });
       
       // Check if there's a pending project ID to add this benchmark to
-      const pendingProjectId = localStorage.getItem('pendingBenchmarkProjectId');
-      
-      if (pendingProjectId) {
+      if (pendingBenchmarkProjectId) {
+        console.log("Adding benchmark to project:", pendingBenchmarkProjectId);
+        
         // Get the newly created benchmark ID from the response
         const newBenchmarkId = response?.id;
         
         if (newBenchmarkId) {
           // Create data for the project benchmark
           const projectBenchmarkData = {
-            projectId: parseInt(pendingProjectId),
+            projectId: pendingBenchmarkProjectId,
             benchmarkId: newBenchmarkId,
             name: data.name,
             description: data.description,
@@ -199,18 +200,21 @@ const SupplyChain = () => {
           }
           
           // Clear the pending project ID
-          localStorage.removeItem('pendingBenchmarkProjectId');
+          setPendingBenchmarkProjectId(null);
         }
+      } else {
+        toast({
+          title: "Benchmark created",
+          description: "The supply chain benchmark has been created successfully."
+        });
       }
-      
-      toast({
-        title: "Benchmark created",
-        description: "The supply chain benchmark has been created successfully."
-      });
       
       setOpenBenchmarkDialog(false);
     },
     onError: (error) => {
+      // Clear the pending project ID to prevent issues on retry
+      setPendingBenchmarkProjectId(null);
+      
       toast({
         title: "Error creating benchmark",
         description: "There was an error creating the benchmark. Please try again.",
@@ -329,12 +333,7 @@ const SupplyChain = () => {
     setEditingBenchmark(null);
     
     // Store the project ID if provided (for automatically adding to that project later)
-    if (forProjectId) {
-      // Store the project ID to associate the new benchmark with
-      localStorage.setItem('pendingBenchmarkProjectId', forProjectId.toString());
-    } else {
-      localStorage.removeItem('pendingBenchmarkProjectId');
-    }
+    setPendingBenchmarkProjectId(forProjectId);
     
     benchmarkForm.reset({
       name: '',
