@@ -13,11 +13,34 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Users, UserPlus, Clock, Edit } from 'lucide-react';
 
+// Define the ManufacturingBay interface based on schema
+interface ManufacturingBay {
+  id: number;
+  bayNumber: number;
+  name: string;
+  description?: string | null;
+  equipment?: string | null;
+  team?: string | null;
+  location?: string | null;
+  status?: 'active' | 'inactive' | 'maintenance';
+  staffCount?: number;
+  assemblyStaffCount?: number;
+  electricalStaffCount?: number;
+  hoursPerPersonPerWeek?: number;
+  capacityTonn?: number | null;
+  maxWidth?: number | null;
+  maxHeight?: number | null;
+  maxLength?: number | null;
+  teamId?: number | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
+}
+
 interface TeamManagementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   teamName: string | null;
-  bays: any[]; // Will type this properly based on ManufacturingBay from your existing code
+  bays: ManufacturingBay[]; 
   onTeamUpdate?: (teamName: string, newTeamName: string, description: string, assemblyStaff: number, electricalStaff: number, hoursPerWeek: number) => Promise<void>;
 }
 
@@ -42,12 +65,12 @@ export function TeamManagementDialog({
 
   // Find the bays belonging to this team to get current staff counts and other information
   useEffect(() => {
-    if (teamName && open) {
+    if (open) {
       // Extract actual team name and bay IDs from the combined string (if using the new format)
-      let actualTeamName = teamName;
+      let actualTeamName = teamName || "";
       let bayIds: number[] = [];
       
-      if (teamName.includes('::')) {
+      if (teamName && teamName.includes('::')) {
         const [extractedName, idsString] = teamName.split('::');
         actualTeamName = extractedName;
         bayIds = idsString.split(',').map(id => parseInt(id, 10));
@@ -232,7 +255,7 @@ export function TeamManagementDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            <span>Edit Team: {teamName}</span>
+            <span>Edit Team{teamName ? `: ${teamName}` : ""}</span>
           </DialogTitle>
           <DialogDescription>
             Update team information and capacity settings.
