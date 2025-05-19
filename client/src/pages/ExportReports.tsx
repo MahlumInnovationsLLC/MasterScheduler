@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,12 +9,10 @@ import { Label } from '@/components/ui/label';
 import { format, subMonths, startOfYear, startOfMonth } from 'date-fns';
 import { ArrowLeft, Download, FileType } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { useAuth } from '@/hooks/auth';
 
 const ExportReportsPage = () => {
-  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const [_, navigate] = useLocation();
   const [reportType, setReportType] = useState('financial');
   const [timeRange, setTimeRange] = useState('6months');
   const [isExporting, setIsExporting] = useState(false);
@@ -22,7 +20,6 @@ const ExportReportsPage = () => {
   const { data: projects } = useQuery({
     queryKey: ['/api/projects'],
     queryFn: () => fetch('/api/projects').then(res => res.json()),
-    enabled: isAuthenticated,
   });
 
   // Calculate date range based on selected time range

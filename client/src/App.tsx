@@ -93,6 +93,7 @@ function MainContent() {
             <ProtectedRoute path="/sales-forecast" component={SalesForecast} />
             <ProtectedRoute path="/sales-deal/:id/edit" component={SalesDealEdit} />
             <ProtectedRoute path="/reports" component={Reports} />
+            <ProtectedRoute path="/export-reports" component={ExportReports} />
             <ProtectedRoute path="/import" component={ImportData} />
             <ProtectedRoute path="/settings/system" component={SystemSettings} />
             <ProtectedRoute path="/system-settings" component={SystemSettings} />
