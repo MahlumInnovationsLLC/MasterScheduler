@@ -314,16 +314,42 @@ const SupplyChain = () => {
   // Calculate target date based on project data and benchmark settings
   const getPhaseDate = (project: Project, phase: string): string | null => {
     switch (phase.toUpperCase()) {
+      case 'CONTRACT':
+        return project.contractDate;
+      case 'START':
+        return project.startDate;
+      case 'CHASSIS':
+        return project.chassisETA;
       case 'FABRICATION':
         return project.fabricationStart;
+      case 'ASSEMBLY':
+        return project.assemblyStart;
+      case 'WRAP':
+        return project.wrapDate;
+      case 'PAINT': 
+        // Paint typically happens between fabrication and assembly
+        return project.fabricationStart ? 
+          format(addWeeks(parseISO(project.fabricationStart), 1), 'yyyy-MM-dd') : 
+          null;
       case 'PRODUCTION':
         return project.assemblyStart;
+      case 'IT':
+        // IT typically happens near the end of production
+        return project.ntcTestingDate ? 
+          format(subWeeks(parseISO(project.ntcTestingDate), 1), 'yyyy-MM-dd') : 
+          null;
       case 'NTC':
         return project.ntcTestingDate;
       case 'QC':
         return project.qcStartDate;
+      case 'EXEC_REVIEW':
+        return project.executiveReviewDate;
       case 'SHIP':
         return project.shipDate;
+      case 'DELIVERY':
+        return project.deliveryDate;
+      case 'COMPLETION':
+        return project.estimatedCompletionDate;
       default:
         return null;
     }
@@ -1021,11 +1047,21 @@ const SupplyChain = () => {
                             <SelectValue placeholder="Select a phase" />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="CONTRACT">Contract</SelectItem>
+                            <SelectItem value="START">Project Start</SelectItem>
+                            <SelectItem value="CHASSIS">Chassis ETA</SelectItem>
                             <SelectItem value="FABRICATION">Fabrication</SelectItem>
+                            <SelectItem value="ASSEMBLY">Assembly</SelectItem>
+                            <SelectItem value="WRAP">Wrap</SelectItem>
+                            <SelectItem value="PAINT">Paint</SelectItem>
                             <SelectItem value="PRODUCTION">Production</SelectItem>
-                            <SelectItem value="NTC">NTC</SelectItem>
-                            <SelectItem value="QC">QC</SelectItem>
+                            <SelectItem value="IT">IT</SelectItem>
+                            <SelectItem value="NTC">NTC Testing</SelectItem>
+                            <SelectItem value="QC">Quality Control</SelectItem>
+                            <SelectItem value="EXEC_REVIEW">Executive Review</SelectItem>
                             <SelectItem value="SHIP">Ship</SelectItem>
+                            <SelectItem value="DELIVERY">Delivery</SelectItem>
+                            <SelectItem value="COMPLETION">Completion</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormControl>
