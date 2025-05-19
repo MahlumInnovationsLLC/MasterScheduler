@@ -305,6 +305,41 @@ router.delete('/project-supply-chain-benchmarks/:id', async (req: Request, res: 
   }
 });
 
+// TOGGLE completion status of a project supply chain benchmark
+router.post('/project-supply-chain-benchmarks/:id/toggle-completion', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+    
+    const benchmark = await storage.getProjectSupplyChainBenchmarkById(id);
+    if (!benchmark) {
+      return res.status(404).json({ error: "Project benchmark not found" });
+    }
+    
+    const { isCompleted, completedBy } = req.body;
+    
+    // Execute the SQL function we created
+    await storage.executeSql(
+      "SELECT toggle_benchmark_completion($1, $2, $3)", 
+      [id, isCompleted, completedBy || null]
+    );
+    
+    // Get the updated benchmark
+    const updatedBenchmark = await storage.getProjectSupplyChainBenchmarkById(id);
+    
+    res.json({
+      success: true,
+      message: isCompleted ? "Benchmark marked as completed" : "Benchmark marked as incomplete",
+      benchmark: updatedBenchmark
+    });
+  } catch (error) {
+    console.error("Error toggling benchmark completion:", error);
+    res.status(500).json({ error: "Failed to update benchmark completion status" });
+  }
+});
+
 // Add default benchmarks to a project
 router.post('/project-supply-chain-benchmarks/add-defaults/:projectId', async (req: Request, res: Response) => {
   try {
