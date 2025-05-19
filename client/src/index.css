@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fix for dropdown menus appearing behind dialogs */
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+
 :root {
   --radius: 0.5rem;
 
