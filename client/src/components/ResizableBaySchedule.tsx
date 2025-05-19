@@ -3616,9 +3616,31 @@ export default function ResizableBaySchedule({
                           (selectedBay.electricalStaffCount || 2)
                         ) * (selectedBay.hoursPerPersonPerWeek || 40);
                         
-                        // Calculate recommended duration
+                        // Calculate production hours based on phase percentages
                         const totalHours = selectedProject.totalHours;
-                        const recommendedWeeks = Math.ceil(totalHours / teamCapacity);
+                        
+                        // Get phase percentages from the project or use defaults
+                        const prodPercentage = selectedProject.productionPercentage || 60;
+                        const itPercentage = selectedProject.itPercentage || 7;
+                        const ntcPercentage = selectedProject.ntcPercentage || 7;
+                        const qcPercentage = selectedProject.qcPercentage || 7;
+                        
+                        // Calculate total production-related percentage (exclude FAB and PAINT)
+                        const productionRelatedPercentage = prodPercentage + itPercentage + ntcPercentage + qcPercentage;
+                        
+                        // Calculate production hours
+                        const productionHours = totalHours * (productionRelatedPercentage / 100);
+                        
+                        // Calculate recommended duration based on production hours
+                        const recommendedWeeks = Math.ceil(productionHours / teamCapacity);
+                        
+                        // Set the duration dynamically
+                        setScheduleDuration(recommendedWeeks > 0 ? recommendedWeeks : 4);
+                        
+                        // Update end date if start date is set
+                        if (targetStartDate) {
+                          setTargetEndDate(addWeeks(targetStartDate, recommendedWeeks > 0 ? recommendedWeeks : 4));
+                        }
                         
                         return (
                           <div className="rounded-md bg-blue-50 p-2 text-xs text-blue-800 font-medium border border-blue-200">
@@ -3628,6 +3650,8 @@ export default function ResizableBaySchedule({
                             </div>
                             <div className="mt-1 pl-5">
                               <p>Project Total Hours: {totalHours} hrs</p>
+                              <p>Production-Related Phases: {productionRelatedPercentage}%</p>
+                              <p>Production Hours: {Math.round(productionHours)} hrs</p>
                               <p>Team Weekly Capacity: {teamCapacity} hrs/week</p>
                               <p className="font-bold mt-1">
                                 Recommended Duration: {recommendedWeeks} weeks
