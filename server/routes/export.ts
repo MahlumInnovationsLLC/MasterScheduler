@@ -147,9 +147,9 @@ async function fetchFinancialData(subType: string, startDate: Date, endDate: Dat
     
     case 'invoices':
       // Fetch billing milestones that are invoiced
-      const invoices = await storage.getBillingMilestones({ 
-        status: 'invoiced' 
-      });
+      // Fetch all billing milestones and filter for 'invoiced' status
+      const allMilestones = await storage.getBillingMilestones();
+      const invoices = allMilestones.filter(milestone => milestone.status === 'invoiced');
       
       return invoices
         .filter((invoice: any) => {
@@ -198,9 +198,9 @@ async function fetchFinancialData(subType: string, startDate: Date, endDate: Dat
       
     case 'payments':
       // Fetch billing milestones that are paid
-      const payments = await storage.getBillingMilestones({ 
-        status: 'paid' 
-      });
+      // Fetch all billing milestones and filter for 'paid' status
+      const allMilestonesForPayment = await storage.getBillingMilestones();
+      const payments = allMilestonesForPayment.filter(milestone => milestone.status === 'paid');
       
       return payments
         .filter((payment: any) => {
@@ -392,7 +392,314 @@ async function fetchManufacturingData(subType: string, startDate: Date, endDate:
   }
 }
 
-// Generate sample financial data
+// Function to fetch real project data from the database
+async function fetchProjectData(subType: string, startDate: Date, endDate: Date, fields: string[]): Promise<any[]> {
+  console.log(`Fetching project data for ${subType}, fields:`, fields);
+  
+  switch (subType) {
+    case 'overview':
+      // Fetch all projects
+      const projects = await storage.getProjects();
+      const schedules = await storage.getManufacturingSchedules();
+      
+      return projects
+        .filter(project => {
+          // Include projects that have schedules in the date range or projects
+          // created within the date range
+          const projectSchedules = schedules.filter(s => s.projectId === project.id);
+          const hasScheduleInRange = projectSchedules.some(s => {
+            const sStartDate = new Date(s.startDate);
+            const sEndDate = new Date(s.endDate);
+            return (sStartDate <= endDate && sEndDate >= startDate);
+          });
+          
+          const projectCreatedDate = new Date(project.createdAt || 0);
+          const createdInRange = projectCreatedDate >= startDate && projectCreatedDate <= endDate;
+          
+          return hasScheduleInRange || createdInRange;
+        })
+        .map(project => {
+          const result: Record<string, any> = {};
+          
+          // Get project schedules
+          const projectSchedules = schedules.filter(s => s.projectId === project.id);
+          
+          // Calculate total hours from schedules
+          const totalHours = projectSchedules.reduce((sum, schedule) => {
+            return sum + (schedule.totalHours || 0);
+          }, 0);
+          
+          // Map fields to the result
+          fields.forEach(field => {
+            switch(field) {
+              case 'project_number':
+                result[field] = project.projectNumber || 'N/A';
+                break;
+              case 'project_name':
+                result[field] = project.name || 'N/A';
+                break;
+              case 'customer':
+                result[field] = project.customer || 'N/A';
+                break;
+              case 'status':
+                result[field] = project.status || 'N/A';
+                break;
+              case 'start_date':
+                // Find earliest schedule start date
+                const startDates = projectSchedules.map(s => new Date(s.startDate));
+                result[field] = startDates.length > 0 ? new Date(Math.min(...startDates.map(d => d.getTime()))) : null;
+                break;
+              case 'end_date':
+              case 'deadline':
+                // Find latest schedule end date
+                const endDates = projectSchedules.map(s => new Date(s.endDate));
+                result[field] = endDates.length > 0 ? new Date(Math.max(...endDates.map(d => d.getTime()))) : null;
+                break;
+              case 'ship_date':
+                result[field] = project.shipDate ? new Date(project.shipDate) : null;
+                break;
+              case 'total_hours':
+                result[field] = totalHours;
+                break;
+              case 'budget':
+                result[field] = project.budget || 'N/A';
+                break;
+              case 'manager':
+                result[field] = project.projectManager || 'N/A';
+                break;
+              default:
+                // Try to get the value directly from the project object
+                result[field] = project[field] !== undefined ? project[field] : 'N/A';
+            }
+          });
+          
+          return result;
+        });
+    
+    case 'status':
+      // Fetch all projects
+      const statusProjects = await storage.getProjects();
+      const projectSchedules = await storage.getManufacturingSchedules();
+      
+      return statusProjects
+        .filter(project => {
+          // Include projects that have schedules in the date range
+          const schedules = projectSchedules.filter(s => s.projectId === project.id);
+          return schedules.some(s => {
+            const sStartDate = new Date(s.startDate);
+            const sEndDate = new Date(s.endDate);
+            return (sStartDate <= endDate && sEndDate >= startDate);
+          });
+        })
+        .map(project => {
+          const result: Record<string, any> = {};
+          
+          // Get all schedules for this project
+          const schedules = projectSchedules.filter(s => s.projectId === project.id);
+          
+          // Calculate overall progress based on date ranges
+          let progress = 0;
+          if (schedules.length > 0) {
+            const sortedStartDates = schedules.map(s => new Date(s.startDate)).sort((a, b) => a.getTime() - b.getTime());
+            const sortedEndDates = schedules.map(s => new Date(s.endDate)).sort((a, b) => b.getTime() - a.getTime());
+            
+            const projectStartDate = sortedStartDates[0];
+            const projectEndDate = sortedEndDates[0];
+            
+            const totalDuration = projectEndDate.getTime() - projectStartDate.getTime();
+            if (totalDuration > 0) {
+              const elapsed = Math.min(Date.now() - projectStartDate.getTime(), totalDuration);
+              progress = (elapsed / totalDuration) * 100;
+            }
+          }
+          
+          // Map fields to the result
+          fields.forEach(field => {
+            switch(field) {
+              case 'project_number':
+                result[field] = project.projectNumber || 'N/A';
+                break;
+              case 'project_name':
+                result[field] = project.name || 'N/A';
+                break;
+              case 'status':
+                result[field] = project.status || 'N/A';
+                break;
+              case 'progress':
+                result[field] = `${progress.toFixed(2)}%`;
+                break;
+              case 'days_remaining':
+                // Calculate days remaining based on project schedules
+                const latestEndDate = schedules.reduce((latest, s) => {
+                  const endDate = new Date(s.endDate);
+                  return endDate > latest ? endDate : latest;
+                }, new Date(0));
+                
+                const daysRemaining = Math.ceil((latestEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                result[field] = daysRemaining > 0 ? daysRemaining : 0;
+                break;
+              case 'milestones_complete':
+                // Calculate from billing milestones
+                result[field] = 'N/A';
+                break;
+              default:
+                // Try to get the value directly from the project object
+                result[field] = project[field] !== undefined ? project[field] : 'N/A';
+            }
+          });
+          
+          return result;
+        });
+      
+    case 'timeline':
+      // Fetch all projects
+      const timelineProjects = await storage.getProjects();
+      const timelineSchedules = await storage.getManufacturingSchedules();
+      
+      return timelineProjects
+        .filter(project => {
+          // Include projects with relevant schedules or with a ship date in range
+          const schedules = timelineSchedules.filter(s => s.projectId === project.id);
+          const hasScheduleInRange = schedules.some(s => {
+            const sStartDate = new Date(s.startDate);
+            const sEndDate = new Date(s.endDate);
+            return (sStartDate <= endDate && sEndDate >= startDate);
+          });
+          
+          const shipDate = project.shipDate ? new Date(project.shipDate) : null;
+          const shipDateInRange = shipDate && shipDate >= startDate && shipDate <= endDate;
+          
+          return hasScheduleInRange || shipDateInRange;
+        })
+        .map(project => {
+          const result: Record<string, any> = {};
+          
+          // Get project schedules
+          const schedules = timelineSchedules.filter(s => s.projectId === project.id);
+          
+          // Get the earliest start date and latest end date from schedules
+          const sortedStartDates = schedules.map(s => new Date(s.startDate)).sort((a, b) => a.getTime() - b.getTime());
+          const sortedEndDates = schedules.map(s => new Date(s.endDate)).sort((a, b) => b.getTime() - a.getTime());
+          
+          const projectStartDate = sortedStartDates.length > 0 ? sortedStartDates[0] : null;
+          const projectEndDate = sortedEndDates.length > 0 ? sortedEndDates[0] : null;
+          
+          // Map fields to the result
+          fields.forEach(field => {
+            switch(field) {
+              case 'project_number':
+                result[field] = project.projectNumber || 'N/A';
+                break;
+              case 'project_name':
+                result[field] = project.name || 'N/A';
+                break;
+              case 'start_date':
+                result[field] = projectStartDate;
+                break;
+              case 'fab_start_date':
+                result[field] = projectStartDate; // Actual phase dates not stored separately
+                break;
+              case 'paint_start_date':
+                // Estimate paint start date (assumption: after fab)
+                result[field] = projectStartDate ? new Date(projectStartDate.getTime() + (86400000 * 7)) : null;
+                break;
+              case 'production_start_date':
+                result[field] = project.productionStartDate ? new Date(project.productionStartDate) : null;
+                break;
+              case 'ntc_testing_date':
+                result[field] = project.ntcTestingDate ? new Date(project.ntcTestingDate) : null;
+                break;
+              case 'qc_date':
+                result[field] = project.qcDate ? new Date(project.qcDate) : null;
+                break;
+              case 'ship_date':
+                result[field] = project.shipDate ? new Date(project.shipDate) : null;
+                break;
+              case 'status':
+                result[field] = project.status || 'N/A';
+                break;
+              default:
+                // Try to get the value directly from the project object
+                result[field] = project[field] !== undefined ? project[field] : 'N/A';
+            }
+          });
+          
+          return result;
+        });
+      
+    default:
+      return [{
+        message: `No data available for project ${subType}`
+      }];
+  }
+}
+
+// Function to fetch real delivery data from the database
+async function fetchDeliveryData(subType: string, startDate: Date, endDate: Date, fields: string[]): Promise<any[]> {
+  console.log(`Fetching delivery data for ${subType}, fields:`, fields);
+  
+  switch (subType) {
+    case 'shipments':
+      // Fetch projects with shipment data
+      const projects = await storage.getProjects();
+      
+      return projects
+        .filter(project => {
+          // Filter projects with ship dates within the range
+          const shipDate = project.shipDate ? new Date(project.shipDate) : null;
+          return shipDate && shipDate >= startDate && shipDate <= endDate;
+        })
+        .map(project => {
+          const result: Record<string, any> = {};
+          
+          // Map fields to the result
+          fields.forEach(field => {
+            switch(field) {
+              case 'project_number':
+                result[field] = project.projectNumber || 'N/A';
+                break;
+              case 'project_name':
+                result[field] = project.name || 'N/A';
+                break;
+              case 'ship_date':
+                result[field] = project.shipDate ? new Date(project.shipDate) : null;
+                break;
+              case 'carrier':
+                result[field] = project.carrier || 'N/A';
+                break;
+              case 'tracking_number':
+                result[field] = project.trackingNumber || 'N/A';
+                break;
+              case 'destination':
+                result[field] = project.shipDestination || project.location || 'N/A';
+                break;
+              case 'status':
+                result[field] = project.shipmentStatus || project.status || 'N/A';
+                break;
+              case 'customer':
+                result[field] = project.customer || 'N/A';
+                break;
+              default:
+                // Try to get the value directly from the project object
+                if (project.hasOwnProperty(field)) {
+                  result[field] = project[field];
+                } else {
+                  result[field] = 'N/A';
+                }
+            }
+          });
+          
+          return result;
+        });
+    
+    default:
+      return [{
+        message: `No data available for delivery ${subType}`
+      }];
+  }
+}
+
+// Clean up - we no longer need these sample data functions since we're using real data
 function generateFinancialSampleData(subType: string, fields: string[]): any[] {
   const sampleData = [];
   
