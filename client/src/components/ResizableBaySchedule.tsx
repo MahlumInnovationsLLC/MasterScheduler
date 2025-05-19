@@ -2729,15 +2729,113 @@ export default function ResizableBaySchedule({
                               );
                             }).length;
                             
-                            // Calculate utilization percentage based on team capacity
-                            // Assuming each bay can handle 2 projects per week optimally
-                            const teamCapacity = team.length * 2;
-                            const percentage = Math.min(
-                              Math.round((currentWeekProjects / teamCapacity) * 100),
-                              999 // Cap at 999% to prevent display issues
-                            );
+                            // Enhanced phase-based utilization calculation
+                            const TODAY = new Date(2025, 4, 16); // May 16, 2025 (fixed date)
                             
-                            return `${percentage}% utilization`;
+                            // Count projects in each phase on current date
+                            let prodPhaseProjects = 0;
+                            let itNtcQcPhaseProjects = 0;
+                            let fabPaintPhaseProjects = 0;
+                            
+                            // Process each project to determine which phase it's in on the current date
+                            scheduleBars.forEach(bar => {
+                              // Skip if not part of this team
+                              const isTeamBay = team.some(b => b.id === bar.bayId);
+                              if (!isTeamBay) return;
+                              
+                              // Skip if project is not active on the current date
+                              const scheduleStart = new Date(bar.startDate);
+                              const scheduleEnd = new Date(bar.endDate);
+                              if (TODAY < scheduleStart || TODAY > scheduleEnd) return;
+                              
+                              // Calculate phase date ranges
+                              const totalDays = differenceInDays(scheduleEnd, scheduleStart) + 1;
+                              
+                              // Use the bar's actual phase percentages or default if undefined
+                              const fabPercent = bar.fabPercentage || 27;
+                              const paintPercent = bar.paintPercentage || 7;
+                              const prodPercent = bar.productionPercentage || 60;
+                              const itPercent = bar.itPercentage || 7;
+                              const ntcPercent = bar.ntcPercentage || 7;
+                              const qcPercent = bar.qcPercentage || 7;
+                              
+                              // Calculate phase durations in days
+                              const fabDays = Math.ceil(totalDays * (fabPercent / 100));
+                              const paintDays = Math.ceil(totalDays * (paintPercent / 100));
+                              const prodDays = Math.ceil(totalDays * (prodPercent / 100));
+                              const itDays = Math.ceil(totalDays * (itPercent / 100));
+                              const ntcDays = Math.ceil(totalDays * (ntcPercent / 100));
+                              const qcDays = Math.ceil(totalDays * (qcPercent / 100));
+                              
+                              // Calculate phase start dates
+                              let currentDate = new Date(scheduleStart);
+                              
+                              // FAB phase
+                              const fabStart = new Date(currentDate);
+                              const fabEnd = addDays(new Date(currentDate), fabDays);
+                              currentDate = addDays(currentDate, fabDays);
+                              
+                              // PAINT phase
+                              const paintStart = new Date(currentDate);
+                              const paintEnd = addDays(new Date(currentDate), paintDays);
+                              currentDate = addDays(currentDate, paintDays);
+                              
+                              // PRODUCTION phase
+                              const prodStart = new Date(currentDate);
+                              const prodEnd = addDays(new Date(currentDate), prodDays);
+                              currentDate = addDays(currentDate, prodDays);
+                              
+                              // IT phase
+                              const itStart = new Date(currentDate);
+                              const itEnd = addDays(new Date(currentDate), itDays);
+                              currentDate = addDays(currentDate, itDays);
+                              
+                              // NTC phase
+                              const ntcStart = new Date(currentDate);
+                              const ntcEnd = addDays(new Date(currentDate), ntcDays);
+                              currentDate = addDays(currentDate, ntcDays);
+                              
+                              // QC phase
+                              const qcStart = new Date(currentDate);
+                              const qcEnd = addDays(new Date(currentDate), qcDays);
+                              
+                              // Determine which phase the current date falls into
+                              if (TODAY >= fabStart && TODAY <= fabEnd) {
+                                fabPaintPhaseProjects++;
+                              } else if (TODAY >= paintStart && TODAY <= paintEnd) {
+                                fabPaintPhaseProjects++;
+                              } else if (TODAY >= prodStart && TODAY <= prodEnd) {
+                                prodPhaseProjects++;
+                              } else if ((TODAY >= itStart && TODAY <= itEnd) || 
+                                         (TODAY >= ntcStart && TODAY <= ntcEnd) ||
+                                         (TODAY >= qcStart && TODAY <= qcEnd)) {
+                                itNtcQcPhaseProjects++;
+                              }
+                            });
+                            
+                            // Calculate utilization based on phase rules
+                            const baseCapacity = team.length * 2; // 2 projects per bay = 100%
+                            
+                            let utilizationPercentage = 0;
+                            
+                            // PROD phase: 100% capacity per project, divided among all PROD projects
+                            if (prodPhaseProjects > 0) {
+                              // Each project takes 100% of capacity
+                              utilizationPercentage += 100;
+                            }
+                            
+                            // IT/NTC/QC phases: 50% capacity per project
+                            if (itNtcQcPhaseProjects > 0) {
+                              utilizationPercentage += (itNtcQcPhaseProjects * 50);
+                            }
+                            
+                            // FAB/PAINT phases: 0% capacity (no effect on utilization)
+                            // No calculation needed for these phases
+                            
+                            // Ensure we don't exceed sensible limits
+                            const cappedPercentage = Math.min(utilizationPercentage, 200);
+                            
+                            return `${cappedPercentage}% utilization`;
                           })()}
                         </span>
                       </div>
