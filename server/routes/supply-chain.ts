@@ -256,8 +256,14 @@ router.patch('/project-supply-chain-benchmarks/:id', async (req: Request, res: R
       });
     }
     
+    // Log the request data for debugging
+    console.log("Update benchmark request:", JSON.stringify(req.body, null, 2));
+    
     const updateData = validationResult.data;
     const updatedBenchmark = await storage.updateProjectSupplyChainBenchmark(id, updateData);
+    
+    // Log the updated benchmark for verification
+    console.log("Updated benchmark:", JSON.stringify(updatedBenchmark, null, 2));
     
     res.json(updatedBenchmark);
   } catch (error) {
