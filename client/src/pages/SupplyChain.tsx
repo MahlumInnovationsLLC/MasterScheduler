@@ -945,7 +945,11 @@ const SupplyChain = () => {
                                         <Clock className="h-3 w-3 mr-1" />
                                         Completed on {format(parseISO(benchmark.completedDate), 'MMM d, yyyy')}
                                         {benchmark.completedDate && 
-                                          <> at {format(parseISO(benchmark.completedDate), 'h:mm a')}</>}
+                                          <> at {format(
+                                            // Convert the UTC time to local time zone
+                                            new Date(benchmark.completedDate),
+                                            'h:mm a'
+                                          )}</>}
                                         {benchmark.completedBy ? 
                                           <span className="ml-1">by {benchmark.completedBy}</span> : 
                                           <span className="ml-1">by {getCurrentUser()}</span>}
@@ -1347,7 +1351,11 @@ const SupplyChain = () => {
                                 <Clock className="h-3 w-3 mr-1" />
                                 Completed on {format(parseISO(benchmark.completedDate), 'MMM d, yyyy')}
                                 {benchmark.completedDate && 
-                                  <> at {format(parseISO(benchmark.completedDate), 'h:mm a')}</>}
+                                  <> at {format(
+                                    // Convert the UTC time to local time zone
+                                    new Date(benchmark.completedDate),
+                                    'h:mm a'
+                                  )}</>}
                                 {benchmark.completedBy ? 
                                   <span className="ml-1">by {benchmark.completedBy}</span> : 
                                   <span className="ml-1">by {getCurrentUser()}</span>}
