@@ -473,7 +473,7 @@ const SupplyChain = () => {
       return { label: 'Completed', color: 'bg-green-500' };
     }
     
-    if (!benchmark.targetDate) return { label: 'No Date', color: 'bg-gray-500' };
+    if (!benchmark.targetDate) return { label: 'Pending', color: 'bg-gray-500' };
     
     try {
       const today = new Date();
