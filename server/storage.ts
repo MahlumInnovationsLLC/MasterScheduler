@@ -231,6 +231,125 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Supply Chain Benchmark methods
+  async getSupplyChainBenchmarks(): Promise<SupplyChainBenchmark[]> {
+    return await safeQuery<SupplyChainBenchmark>(() =>
+      db.select().from(supplyChainBenchmarks).orderBy(asc(supplyChainBenchmarks.name))
+    );
+  }
+  
+  async getSupplyChainBenchmarkById(id: number): Promise<SupplyChainBenchmark | undefined> {
+    return await safeSingleQuery<SupplyChainBenchmark>(() =>
+      db.select().from(supplyChainBenchmarks).where(eq(supplyChainBenchmarks.id, id))
+    );
+  }
+  
+  async createSupplyChainBenchmark(benchmark: InsertSupplyChainBenchmark): Promise<SupplyChainBenchmark> {
+    try {
+      const [newBenchmark] = await db.insert(supplyChainBenchmarks).values({
+        ...benchmark,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+      return newBenchmark;
+    } catch (error) {
+      console.error("Error creating supply chain benchmark:", error);
+      throw error;
+    }
+  }
+  
+  async updateSupplyChainBenchmark(id: number, benchmark: Partial<InsertSupplyChainBenchmark>): Promise<SupplyChainBenchmark | undefined> {
+    try {
+      const [updatedBenchmark] = await db
+        .update(supplyChainBenchmarks)
+        .set({
+          ...benchmark,
+          updatedAt: new Date()
+        })
+        .where(eq(supplyChainBenchmarks.id, id))
+        .returning();
+      return updatedBenchmark;
+    } catch (error) {
+      console.error("Error updating supply chain benchmark:", error);
+      return undefined;
+    }
+  }
+  
+  async deleteSupplyChainBenchmark(id: number): Promise<boolean> {
+    try {
+      await db
+        .delete(supplyChainBenchmarks)
+        .where(eq(supplyChainBenchmarks.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting supply chain benchmark:", error);
+      return false;
+    }
+  }
+  
+  // Project Supply Chain Benchmark methods
+  async getProjectSupplyChainBenchmarks(): Promise<ProjectSupplyChainBenchmark[]> {
+    return await safeQuery<ProjectSupplyChainBenchmark>(() =>
+      db.select().from(projectSupplyChainBenchmarks)
+    );
+  }
+  
+  async getProjectSupplyChainBenchmarkById(id: number): Promise<ProjectSupplyChainBenchmark | undefined> {
+    return await safeSingleQuery<ProjectSupplyChainBenchmark>(() =>
+      db.select().from(projectSupplyChainBenchmarks).where(eq(projectSupplyChainBenchmarks.id, id))
+    );
+  }
+  
+  async getProjectSupplyChainBenchmarksByProjectId(projectId: number): Promise<ProjectSupplyChainBenchmark[]> {
+    return await safeQuery<ProjectSupplyChainBenchmark>(() =>
+      db.select().from(projectSupplyChainBenchmarks)
+        .where(eq(projectSupplyChainBenchmarks.projectId, projectId))
+        .orderBy(asc(projectSupplyChainBenchmarks.targetDate))
+    );
+  }
+  
+  async createProjectSupplyChainBenchmark(benchmark: InsertProjectSupplyChainBenchmark): Promise<ProjectSupplyChainBenchmark> {
+    try {
+      const [newBenchmark] = await db.insert(projectSupplyChainBenchmarks).values({
+        ...benchmark,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+      return newBenchmark;
+    } catch (error) {
+      console.error("Error creating project supply chain benchmark:", error);
+      throw error;
+    }
+  }
+  
+  async updateProjectSupplyChainBenchmark(id: number, benchmark: Partial<InsertProjectSupplyChainBenchmark>): Promise<ProjectSupplyChainBenchmark | undefined> {
+    try {
+      const [updatedBenchmark] = await db
+        .update(projectSupplyChainBenchmarks)
+        .set({
+          ...benchmark,
+          updatedAt: new Date()
+        })
+        .where(eq(projectSupplyChainBenchmarks.id, id))
+        .returning();
+      return updatedBenchmark;
+    } catch (error) {
+      console.error("Error updating project supply chain benchmark:", error);
+      return undefined;
+    }
+  }
+  
+  async deleteProjectSupplyChainBenchmark(id: number): Promise<boolean> {
+    try {
+      await db
+        .delete(projectSupplyChainBenchmarks)
+        .where(eq(projectSupplyChainBenchmarks.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting project supply chain benchmark:", error);
+      return false;
+    }
+  }
   // User methods
   async getUser(id: string): Promise<User | undefined> {
     return await safeSingleQuery<User>(() => 

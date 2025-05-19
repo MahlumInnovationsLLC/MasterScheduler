@@ -64,6 +64,7 @@ import {
   generateManufacturingNotifications
 } from "./notifications";
 import { getAIInsights } from "./routes/aiInsights";
+import supplyChainRoutes from "./routes/supply-chain";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Special route to update project hours from 40 to 1000
