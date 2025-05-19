@@ -496,7 +496,7 @@ const SupplyChain = () => {
                   <SelectValue placeholder="Filter by project" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Projects</SelectItem>
+                  <SelectItem value=" ">All Projects</SelectItem>
                   {projects?.map((project) => (
                     <SelectItem key={project.id} value={project.id.toString()}>
                       {project.projectNumber} - {project.name}
