@@ -13,6 +13,13 @@ interface Project {
   startDate: Date | null;
   shipDate: Date | null;
   totalHours?: number;
+  // Phase percentages
+  fabPercentage?: number;
+  paintPercentage?: number;
+  productionPercentage?: number;
+  itPercentage?: number;
+  ntcPercentage?: number;
+  qcPercentage?: number;
 }
 
 interface ManufacturingBay {
@@ -62,12 +69,12 @@ export const DurationCalculator: React.FC<DurationCalculatorProps> = ({
         (selectedBay.electricalStaffCount || 2)
       ) * (selectedBay.hoursPerPersonPerWeek || 40);
       
-      // Get phase percentages from the schedule bars or use defaults
-      // These defaults match the standard percentages used in the project bars
-      const prodPercentage = 60; // Default production percentage
-      const itPercentage = 7;    // Default IT percentage
-      const ntcPercentage = 7;   // Default NTC percentage
-      const qcPercentage = 7;    // Default QC percentage
+      // Get phase percentages from the project's actual data
+      // Extract directly from the project or from the associated schedule bars
+      const prodPercentage = selectedProject.productionPercentage || 60;
+      const itPercentage = selectedProject.itPercentage || 7;
+      const ntcPercentage = selectedProject.ntcPercentage || 7;
+      const qcPercentage = selectedProject.qcPercentage || 7;
       
       // Calculate total production-related percentage (exclude FAB and PAINT)
       const productionRelatedPercentage = prodPercentage + itPercentage + ntcPercentage + qcPercentage;
@@ -100,12 +107,11 @@ export const DurationCalculator: React.FC<DurationCalculatorProps> = ({
     (selectedBay.electricalStaffCount || 2)
   ) * (selectedBay.hoursPerPersonPerWeek || 40);
   
-  // Get phase percentages from the project or use standard defaults
-  // In a real schedule bar these would come from the database for each project
-  const prodPercentage = 60; // Default production percentage
-  const itPercentage = 7;    // Default IT percentage
-  const ntcPercentage = 7;   // Default NTC percentage
-  const qcPercentage = 7;    // Default QC percentage
+  // Get phase percentages directly from the project or use defaults
+  const prodPercentage = selectedProject.productionPercentage || 60;
+  const itPercentage = selectedProject.itPercentage || 7;
+  const ntcPercentage = selectedProject.ntcPercentage || 7;
+  const qcPercentage = selectedProject.qcPercentage || 7;
   
   // Calculate total production-related percentage (exclude FAB and PAINT)
   const productionRelatedPercentage = prodPercentage + itPercentage + ntcPercentage + qcPercentage;
