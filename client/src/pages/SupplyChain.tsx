@@ -943,7 +943,7 @@ const SupplyChain = () => {
                                     {benchmark.isCompleted && benchmark.completedDate && (
                                       <div className="text-xs text-green-600 mt-1 flex items-center">
                                         <Clock className="h-3 w-3 mr-1" />
-                                        Completed on {format(parseISO(benchmark.completedDate), 'MMM d, yyyy')}
+                                        Completed on {format(new Date(benchmark.completedDate), 'MMM d, yyyy')}
                                         {benchmark.completedDate && 
                                           <> at {format(
                                             // Convert the UTC time to local time zone
@@ -1349,7 +1349,7 @@ const SupplyChain = () => {
                             {benchmark.isCompleted && benchmark.completedDate && (
                               <div className="text-xs text-green-600 mt-1 flex items-center">
                                 <Clock className="h-3 w-3 mr-1" />
-                                Completed on {format(parseISO(benchmark.completedDate), 'MMM d, yyyy')}
+                                Completed on {format(new Date(benchmark.completedDate), 'MMM d, yyyy')}
                                 {benchmark.completedDate && 
                                   <> at {format(
                                     // Convert the UTC time to local time zone
