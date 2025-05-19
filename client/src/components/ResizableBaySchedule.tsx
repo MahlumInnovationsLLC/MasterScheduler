@@ -3462,12 +3462,29 @@ export default function ResizableBaySchedule({
                       >
                         <div className="font-medium">{project.projectNumber}</div>
                         <div className="text-sm">{project.name}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Total Hours: {project.totalHours || "N/A"}
+                        </div>
                       </div>
                     ))}
                   </ScrollArea>
                 )}
               </div>
             </div>
+            
+            {/* Show selected project hours */}
+            {currentProject && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">
+                  Total Hours
+                </Label>
+                <div className="col-span-3">
+                  <div className="bg-blue-100 text-blue-900 rounded px-3 py-2 text-sm font-medium">
+                    {projects.find(p => p.id === currentProject)?.totalHours || "N/A"} hours
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="bay" className="text-right">
@@ -3508,7 +3525,36 @@ export default function ResizableBaySchedule({
                             className={`py-1 px-2 cursor-pointer rounded hover:bg-gray-100 ${
                               targetBay === bay.id ? 'bg-primary text-primary-foreground' : ''
                             } ${bay.status === 'maintenance' ? 'opacity-50' : ''}`}
-                            onClick={() => bay.status !== 'maintenance' && setTargetBay(bay.id)}
+                            onClick={() => {
+                              if (bay.status === 'maintenance') return;
+                              
+                              // Set the target bay
+                              setTargetBay(bay.id);
+                              
+                              // Calculate recommended duration if we have both project and bay selected
+                              if (currentProject) {
+                                const selectedProject = projects.find(p => p.id === currentProject);
+                                if (selectedProject && selectedProject.totalHours) {
+                                  // Calculate team's capacity (hours per week)
+                                  const teamCapacity = (
+                                    (bay.assemblyStaffCount || 4) + 
+                                    (bay.electricalStaffCount || 2)
+                                  ) * (bay.hoursPerPersonPerWeek || 40);
+                                  
+                                  // Calculate recommended duration in weeks
+                                  const totalHours = selectedProject.totalHours;
+                                  const recommendedWeeks = Math.ceil(totalHours / teamCapacity);
+                                  
+                                  // Update the duration field
+                                  setScheduleDuration(recommendedWeeks > 0 ? recommendedWeeks : 4);
+                                  
+                                  // Update end date if start date is set
+                                  if (targetStartDate) {
+                                    setTargetEndDate(addWeeks(targetStartDate, recommendedWeeks > 0 ? recommendedWeeks : 4));
+                                  }
+                                }
+                              }
+                            }}
                           >
                             <div className="font-medium">{bay.name}</div>
                             <div className="text-xs flex justify-between">
@@ -3522,6 +3568,9 @@ export default function ResizableBaySchedule({
                                 Maintenance
                               </Badge>
                             )}
+                            <div className="text-xs text-blue-600 mt-1">
+                              Capacity: {((bay.assemblyStaffCount || 4) + (bay.electricalStaffCount || 2)) * (bay.hoursPerPersonPerWeek || 40)} hrs/week
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -3550,6 +3599,46 @@ export default function ResizableBaySchedule({
                 Duration (Weeks)
               </Label>
               <div className="col-span-3">
+                {/* Check if we have both project and bay selected */}
+                {currentProject && targetBay && (
+                  <div className="mb-2">
+                    {(() => {
+                      // Get the selected project and bay
+                      const selectedProject = projects.find(p => p.id === currentProject);
+                      const selectedBay = bays.find(b => b.id === targetBay);
+                      
+                      if (selectedProject && selectedBay && selectedProject.totalHours) {
+                        // Calculate team's capacity (hours per week)
+                        const teamCapacity = (
+                          (selectedBay.assemblyStaffCount || 4) + 
+                          (selectedBay.electricalStaffCount || 2)
+                        ) * (selectedBay.hoursPerPersonPerWeek || 40);
+                        
+                        // Calculate recommended duration
+                        const totalHours = selectedProject.totalHours;
+                        const recommendedWeeks = Math.ceil(totalHours / teamCapacity);
+                        
+                        return (
+                          <div className="rounded-md bg-blue-50 p-2 text-xs text-blue-800 font-medium border border-blue-200">
+                            <div className="flex items-center">
+                              <Calculator className="h-3.5 w-3.5 mr-1.5" />
+                              <span>Recommended Duration Calculation:</span>
+                            </div>
+                            <div className="mt-1 pl-5">
+                              <p>Project Total Hours: {totalHours} hrs</p>
+                              <p>Team Weekly Capacity: {teamCapacity} hrs/week</p>
+                              <p className="font-bold mt-1">
+                                Recommended Duration: {recommendedWeeks} weeks
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                )}
+                
                 <Input
                   id="duration"
                   type="number"
