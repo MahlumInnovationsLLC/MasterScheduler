@@ -59,8 +59,7 @@ router.post('/supply-chain-benchmarks', async (req: Request, res: Response) => {
     
     // If this is a default benchmark, automatically add it to all active projects
     if (benchmarkData.isDefault) {
-      const activeProjects = await storage.db.select().from(projects)
-        .where(eq(projects.status, 'active'));
+      const activeProjects = await storage.getActiveProjects();
       
       for (const project of activeProjects) {
         await storage.createProjectSupplyChainBenchmark({
@@ -128,12 +127,8 @@ router.delete('/supply-chain-benchmarks/:id', async (req: Request, res: Response
       return res.status(404).json({ error: "Benchmark not found" });
     }
     
-    // Also delete all project benchmarks associated with this benchmark
-    await storage.db.delete(projectSupplyChainBenchmarks)
-      .where(eq(projectSupplyChainBenchmarks.benchmarkId, id));
-    
-    // Delete the benchmark itself
-    await storage.deleteSupplyChainBenchmark(id);
+    // Delete the benchmark and its associated project benchmarks
+    await storage.deleteSupplyChainBenchmarkWithRelated(id);
     
     res.json({ success: true, message: "Benchmark deleted successfully" });
   } catch (error) {
@@ -160,9 +155,8 @@ router.get('/project-supply-chain-benchmarks', async (req: Request, res: Respons
     
     // Include project data if requested
     if (includeProject) {
-      const projectIds = [...new Set(benchmarks.map(benchmark => benchmark.projectId))];
-      const projectsData = await storage.db.select().from(projects)
-        .where(inArray(projects.id, projectIds));
+      const projectIds = benchmarks.map(benchmark => benchmark.projectId);
+      const projectsData = await storage.getProjectsByIds(projectIds);
       
       const projectsMap = new Map(projectsData.map(project => [project.id, project]));
       
@@ -194,14 +188,12 @@ router.get('/project-supply-chain-benchmarks/:id', async (req: Request, res: Res
     
     // Handle including project data
     if (req.query.include === 'project') {
-      const project = await storage.db.select().from(projects)
-        .where(eq(projects.id, benchmark.projectId))
-        .limit(1);
+      const project = await storage.getProjectById(benchmark.projectId);
       
-      if (project.length > 0) {
+      if (project) {
         return res.json({
           ...benchmark,
-          project: project[0]
+          project: project
         });
       }
     }
@@ -227,11 +219,9 @@ router.post('/project-supply-chain-benchmarks', async (req: Request, res: Respon
     const benchmarkData = validationResult.data;
     
     // Verify the project exists
-    const project = await storage.db.select().from(projects)
-      .where(eq(projects.id, benchmarkData.projectId))
-      .limit(1);
+    const project = await storage.getProjectById(benchmarkData.projectId);
     
-    if (project.length === 0) {
+    if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
     
@@ -307,17 +297,14 @@ router.post('/project-supply-chain-benchmarks/add-defaults/:projectId', async (r
     }
     
     // Verify the project exists
-    const project = await storage.db.select().from(projects)
-      .where(eq(projects.id, projectId))
-      .limit(1);
+    const project = await storage.getProjectById(projectId);
     
-    if (project.length === 0) {
+    if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
     
     // Get all default benchmarks
-    const defaultBenchmarks = await storage.db.select().from(supplyChainBenchmarks)
-      .where(eq(supplyChainBenchmarks.isDefault, true));
+    const defaultBenchmarks = await storage.getDefaultSupplyChainBenchmarks();
     
     // Add each default benchmark to the project
     const createdBenchmarks = [];
