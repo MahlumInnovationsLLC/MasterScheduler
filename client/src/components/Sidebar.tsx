@@ -168,10 +168,10 @@ const Sidebar = () => {
               </Link>
             </li>
             <li>
-              <Link href="/export" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/export') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
+              <Link href="/export-reports" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/export-reports') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`} title="Export Reports">
-                <Download className={`text-xl ${isActive('/export') ? 'text-primary' : ''}`} />
+                <Download className={`text-xl ${isActive('/export-reports') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>Export Reports</span>}
               </Link>
             </li>

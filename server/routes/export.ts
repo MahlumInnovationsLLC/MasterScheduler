@@ -187,9 +187,10 @@ async function getManufacturingData(start: Date, end: Date, bayId?: number) {
 }
 
 async function getDeliveryData(start: Date, end: Date, projectId?: number) {
+  // Use createdAt as a fallback date field for filtering
   const dateFilter = and(
-    gte(deliveryTracking.scheduledDate, start.toISOString().split('T')[0]),
-    lte(deliveryTracking.scheduledDate, end.toISOString().split('T')[0])
+    gte(deliveryTracking.createdAt, start),
+    lte(deliveryTracking.createdAt, end)
   );
   
   const filter = projectId ? 
@@ -202,15 +203,11 @@ async function getDeliveryData(start: Date, end: Date, projectId?: number) {
       project_id: deliveryTracking.projectId,
       project_number: projects.projectNumber,
       project_name: projects.name,
-      scheduled_date: deliveryTracking.scheduledDate,
-      actual_date: deliveryTracking.actualDeliveryDate,
-      notes: deliveryTracking.notes,
-      status: deliveryTracking.status,
-      carrier: deliveryTracking.carrier,
-      tracking_number: deliveryTracking.trackingNumber,
+      created_at: deliveryTracking.createdAt,
+      actual_delivery_date: deliveryTracking.actualDeliveryDate
     })
     .from(deliveryTracking)
     .leftJoin(projects, eq(deliveryTracking.projectId, projects.id))
     .where(filter)
-    .orderBy(deliveryTracking.scheduledDate);
+    .orderBy(deliveryTracking.createdAt);
 }
