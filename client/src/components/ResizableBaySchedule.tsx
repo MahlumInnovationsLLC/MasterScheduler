@@ -3604,7 +3604,7 @@ export default function ResizableBaySchedule({
           
           <div className="grid gap-4 py-4">
             {/* Team section - only show when creating a new team */}
-            {editingBay && !editingBay.id && editingBay.team && (
+            {editingBay && !editingBay.id && editingBay.team !== undefined && (
               <div className="bg-blue-900/20 p-3 rounded-md border border-blue-800 mb-2">
                 <h3 className="text-blue-100 font-medium mb-2">Team Information</h3>
                 <div className="grid grid-cols-4 items-center gap-4 mb-3">
