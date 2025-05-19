@@ -426,7 +426,9 @@ const ExportReportsPage = () => {
       const fileExtension = format === 'csv' ? 'csv' : 
                          format === 'pdf' ? 'pdf' : 'docx';
       
-      a.download = `${moduleType}-${subType}-report-${format(new Date(), 'yyyy-MM-dd')}.${fileExtension}`;
+      // Use a different variable name for the formatted date to avoid name collision
+      const formattedDate = format(new Date(), 'yyyy-MM-dd');
+      a.download = `${moduleType}-${subType}-report-${formattedDate}.${fileExtension}`;
       document.body.appendChild(a);
       a.click();
       
