@@ -3276,22 +3276,59 @@ export default function ResizableBaySchedule({
                 Bay
               </Label>
               <div className="col-span-3">
-                <ScrollArea className="h-24 border rounded-md p-2">
-                  {bays.map((bay) => (
-                    <div
-                      key={bay.id}
-                      className={`py-1 px-2 cursor-pointer rounded hover:bg-gray-100 ${
-                        targetBay === bay.id ? 'bg-primary text-primary-foreground' : ''
-                      } ${bay.status === 'maintenance' ? 'opacity-50' : ''}`}
-                      onClick={() => bay.status !== 'maintenance' && setTargetBay(bay.id)}
-                    >
-                      <div className="font-medium">{bay.name}</div>
-                      <div className="text-sm">Bay #{bay.bayNumber}</div>
-                      {bay.status === 'maintenance' && (
-                        <Badge variant="destructive" className="mt-1">Maintenance</Badge>
-                      )}
-                    </div>
-                  ))}
+                <ScrollArea className="h-48 border rounded-md p-2">
+                  {/* Group bays by team */}
+                  {(() => {
+                    // Group bays by team name
+                    const baysByTeam = bays.reduce((groups, bay) => {
+                      const teamName = bay.team || 'Unassigned';
+                      if (!groups[teamName]) {
+                        groups[teamName] = [];
+                      }
+                      groups[teamName].push(bay);
+                      return groups;
+                    }, {} as Record<string, ManufacturingBay[]>);
+                    
+                    // Sort team names alphabetically, but put "Unassigned" at the end
+                    const sortedTeamNames = Object.keys(baysByTeam).sort((a, b) => {
+                      if (a === 'Unassigned') return 1;
+                      if (b === 'Unassigned') return -1;
+                      return a.localeCompare(b);
+                    });
+                    
+                    return sortedTeamNames.map(teamName => (
+                      <div key={teamName} className="mb-3 last:mb-0">
+                        {/* Team header */}
+                        <div className="bg-blue-900 text-white text-sm font-bold py-1 px-2 rounded-t mb-1">
+                          {teamName}
+                        </div>
+                        
+                        {/* Bays within this team */}
+                        {baysByTeam[teamName].map((bay) => (
+                          <div
+                            key={bay.id}
+                            className={`py-1 px-2 cursor-pointer rounded hover:bg-gray-100 ${
+                              targetBay === bay.id ? 'bg-primary text-primary-foreground' : ''
+                            } ${bay.status === 'maintenance' ? 'opacity-50' : ''}`}
+                            onClick={() => bay.status !== 'maintenance' && setTargetBay(bay.id)}
+                          >
+                            <div className="font-medium">{bay.name}</div>
+                            <div className="text-xs flex justify-between">
+                              <span>Bay #{bay.bayNumber}</span>
+                              {bay.description && (
+                                <span className="italic text-gray-500">{bay.description}</span>
+                              )}
+                            </div>
+                            {bay.status === 'maintenance' && (
+                              <Badge variant="destructive" className="mt-1 text-[10px]">
+                                Maintenance
+                              </Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ));
+                  })()}
                 </ScrollArea>
               </div>
             </div>
