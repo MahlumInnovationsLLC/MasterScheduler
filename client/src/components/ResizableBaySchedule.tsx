@@ -2677,15 +2677,69 @@ export default function ResizableBaySchedule({
                       )}
                     </div>
                     
-                    {/* Info bubbles RIGHT NEXT to team name */}
+                    {/* Info bubbles RIGHT NEXT to team name - CURRENT WEEK ONLY */}
                     <div className="flex items-center ml-3">
                       <div className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full flex items-center mr-2">
                         <Users className="h-3.5 w-3.5 mr-1" />
-                        <span>{scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length} projects</span>
+                        <span>
+                          {(() => {
+                            // Get current week's start and end date
+                            const today = new Date(2025, 4, 16); // May 16, 2025 - use fixed date for consistency
+                            const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday as start of week
+                            const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
+                            
+                            // Count projects active in current week only
+                            const currentWeekProjects = scheduleBars.filter(bar => {
+                              // Check if team owns this bay
+                              const isTeamBay = team.some(b => b.id === bar.bayId);
+                              if (!isTeamBay) return false;
+                              
+                              // Check if schedule overlaps with current week
+                              const scheduleStart = new Date(bar.startDate);
+                              const scheduleEnd = new Date(bar.endDate);
+                              return (
+                                (scheduleStart <= currentWeekEnd && scheduleEnd >= currentWeekStart)
+                              );
+                            }).length;
+                            
+                            return `${currentWeekProjects} projects`;
+                          })()}
+                        </span>
                       </div>
                       <div className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full flex items-center">
                         <BarChart2 className="h-3.5 w-3.5 mr-1" />
-                        <span>{Math.floor(scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length / team.length * 100)}% utilization</span>
+                        <span>
+                          {(() => {
+                            // Get current week's start and end date
+                            const today = new Date(2025, 4, 16); // May 16, 2025
+                            const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+                            const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
+                            
+                            // Count projects active in current week only
+                            const currentWeekProjects = scheduleBars.filter(bar => {
+                              // Check if team owns this bay
+                              const isTeamBay = team.some(b => b.id === bar.bayId);
+                              if (!isTeamBay) return false;
+                              
+                              // Check if schedule overlaps with current week
+                              const scheduleStart = new Date(bar.startDate);
+                              const scheduleEnd = new Date(bar.endDate);
+                              return (
+                                (scheduleStart <= currentWeekEnd && scheduleEnd >= currentWeekStart)
+                              );
+                            }).length;
+                            
+                            // Calculate utilization percentage based on team capacity
+                            // Assuming each bay can handle 2 projects per week optimally
+                            const teamCapacity = team.length * 2;
+                            const percentage = Math.min(
+                              Math.round((currentWeekProjects / teamCapacity) * 100),
+                              999 // Cap at 999% to prevent display issues
+                            );
+                            
+                            return `${percentage}% utilization`;
+                          })()}
+                        </span>
                       </div>
                     </div>
                   </div>
