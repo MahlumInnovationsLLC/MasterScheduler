@@ -2513,15 +2513,17 @@ export default function ResizableBaySchedule({
                         <span className="text-sm ml-4 font-medium text-blue-50 bg-blue-700 px-3 py-1 rounded-full flex items-center">
                           <Clock className="h-3.5 w-3.5 mr-1.5" />
                           {(() => {
-                            // Calculate total staff hours per week for this team
-                            const totalHoursPerWeek = team.reduce((total, bay) => {
-                              const assemblyStaff = bay.assemblyStaffCount || 0;
-                              const electricalStaff = bay.electricalStaffCount || 0;
-                              const hoursPerPerson = bay.hoursPerPersonPerWeek || 40;
-                              return total + ((assemblyStaff + electricalStaff) * hoursPerPerson);
-                            }, 0);
+                            // Get hours per week from the first bay of the team
+                            // This is the total hours for the entire team, regardless of bay count
+                            const firstBay = team[0];
                             
-                            return `${totalHoursPerWeek} hrs/week`;
+                            // Calculate hours based on staff count and hours per person
+                            const assemblyStaff = firstBay.assemblyStaffCount || 0;
+                            const electricalStaff = firstBay.electricalStaffCount || 0;
+                            const hoursPerPerson = firstBay.hoursPerPersonPerWeek || 40;
+                            const teamHoursPerWeek = (assemblyStaff + electricalStaff) * hoursPerPerson;
+                            
+                            return `${teamHoursPerWeek} hrs/week`;
                           })()}
                         </span>
                       </div>
