@@ -62,7 +62,8 @@ export const DurationCalculator: React.FC<DurationCalculatorProps> = ({
         (selectedBay.electricalStaffCount || 2)
       ) * (selectedBay.hoursPerPersonPerWeek || 40);
       
-      // Get phase percentages from the project or use defaults
+      // Get phase percentages from the schedule bars or use defaults
+      // These defaults match the standard percentages used in the project bars
       const prodPercentage = 60; // Default production percentage
       const itPercentage = 7;    // Default IT percentage
       const ntcPercentage = 7;   // Default NTC percentage
@@ -71,14 +72,17 @@ export const DurationCalculator: React.FC<DurationCalculatorProps> = ({
       // Calculate total production-related percentage (exclude FAB and PAINT)
       const productionRelatedPercentage = prodPercentage + itPercentage + ntcPercentage + qcPercentage;
       
-      // Calculate production hours
+      // Calculate production hours (only consider production-related phases)
       const productionHours = selectedProject.totalHours * (productionRelatedPercentage / 100);
       
       // Calculate recommended duration based on production hours
       const recommendedWeeks = Math.ceil(productionHours / teamCapacity);
       
-      // Generate an end date based on the calculated duration
-      const startDate = new Date();
+      // Generate an end date based on the calculated duration and current start date
+      let startDate = new Date();
+      if (selectedProject.startDate) {
+        startDate = selectedProject.startDate;
+      }
       const endDate = addWeeks(startDate, recommendedWeeks);
       
       // Call the callback with the calculated duration
@@ -96,7 +100,8 @@ export const DurationCalculator: React.FC<DurationCalculatorProps> = ({
     (selectedBay.electricalStaffCount || 2)
   ) * (selectedBay.hoursPerPersonPerWeek || 40);
   
-  // Get phase percentages from the schedule bar or use defaults
+  // Get phase percentages from the project or use standard defaults
+  // In a real schedule bar these would come from the database for each project
   const prodPercentage = 60; // Default production percentage
   const itPercentage = 7;    // Default IT percentage
   const ntcPercentage = 7;   // Default NTC percentage
