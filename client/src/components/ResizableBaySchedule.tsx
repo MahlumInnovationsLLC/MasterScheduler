@@ -2714,8 +2714,8 @@ export default function ResizableBaySchedule({
                         <Users className="h-3.5 w-3.5 mr-1" />
                         <span>
                           {(() => {
-                            // Get current week's start and end date
-                            const today = new Date(2025, 4, 16); // May 16, 2025 - use fixed date for consistency
+                            // Get current week's start and end date using real current date
+                            const today = new Date(); // Current real date
                             const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday as start of week
                             const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
                             
@@ -2742,7 +2742,7 @@ export default function ResizableBaySchedule({
                         <span>
                           {(() => {
                             // Get current week's start and end date
-                            const today = new Date(2025, 4, 16); // May 16, 2025
+                            const today = new Date(); // Current real date
                             const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
                             const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
                             
@@ -2761,7 +2761,7 @@ export default function ResizableBaySchedule({
                             }).length;
                             
                             // Enhanced phase-based utilization calculation
-                            const TODAY = new Date(2025, 4, 16); // May 16, 2025 (fixed date)
+                            const TODAY = new Date(); // Current real date
                             
                             // Count projects in each phase on current date
                             let prodPhaseProjects = 0;
