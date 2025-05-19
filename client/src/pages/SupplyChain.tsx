@@ -57,7 +57,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Check, X, Edit, Trash, CalendarIcon, PlusCircle } from 'lucide-react';
+import { Check, X, Edit, Trash, CalendarIcon, PlusCircle, Settings } from 'lucide-react';
 
 interface SupplyChainBenchmark {
   id: number;
