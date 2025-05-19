@@ -130,6 +130,8 @@ const SupplyChain = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [purchaseTimeframe, setPurchaseTimeframe] = useState<'week' | 'month' | 'quarter'>('week');
+  const [projectDetailsOpen, setProjectDetailsOpen] = useState(false);
+  const [selectedProjectDetails, setSelectedProjectDetails] = useState<Project | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
