@@ -864,7 +864,8 @@ export const projectSupplyChainBenchmarks = pgTable("project_supply_chain_benchm
   description: text("description"),
   targetDate: date("target_date"),
   isCompleted: boolean("is_completed").default(false),
-  completedDate: date("completed_date"),
+  completedDate: timestamp("completed_date"), // Changed from date to timestamp to store time
+  completedBy: text("completed_by"), // Added to track who completed the benchmark
   weeksBeforePhase: integer("weeks_before_phase"),
   targetPhase: text("target_phase"), // FAB, PRODUCTION, NTC, QC, SHIP
   notes: text("notes"),

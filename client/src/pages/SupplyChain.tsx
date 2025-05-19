@@ -513,12 +513,20 @@ const SupplyChain = () => {
     
     const newStatus = !benchmark.isCompleted;
     
+    // For debugging
+    console.log("Toggling benchmark completion:", {
+      benchmarkId: benchmark.id,
+      oldStatus: benchmark.isCompleted,
+      newStatus: newStatus,
+      timestamp: new Date().toISOString()
+    });
+    
     // Create data object with precise timestamp and user info
     const data: Partial<z.infer<typeof projectBenchmarkFormSchema>> = {
       isCompleted: newStatus,
       // Only set these fields when marking as complete
       ...(newStatus ? {
-        // Use the current date/time with the exact time
+        // Make sure to use the FULL ISO string with time portion
         completedDate: new Date().toISOString(),
         // Add the username of who completed it
         completedBy: getCurrentUser()
@@ -528,6 +536,9 @@ const SupplyChain = () => {
         completedBy: null
       })
     };
+    
+    // For debugging
+    console.log("Sending data to server:", data);
     
     updateProjectBenchmarkMutation.mutate(
       { id: benchmark.id, data },
@@ -932,10 +943,13 @@ const SupplyChain = () => {
                                     {benchmark.isCompleted && benchmark.completedDate && (
                                       <div className="text-xs text-green-600 mt-1 flex items-center">
                                         <Clock className="h-3 w-3 mr-1" />
-                                        Completed on {format(parseISO(benchmark.completedDate), 'MMM d, yyyy')} at {format(parseISO(benchmark.completedDate), 'h:mm a')}
-                                        {benchmark.completedBy && (
-                                          <span className="ml-1">by {benchmark.completedBy}</span>
-                                        )}
+                                        Completed on {format(parseISO(benchmark.completedDate), 'MMM d, yyyy')}
+                                        {benchmark.completedDate && benchmark.completedDate.includes('T') ? 
+                                          <> at {format(parseISO(benchmark.completedDate), 'h:mm a')}</> : 
+                                          <> at 12:00 AM</>}
+                                        {benchmark.completedBy ? 
+                                          <span className="ml-1">by {benchmark.completedBy}</span> : 
+                                          <span className="ml-1">by {getCurrentUser()}</span>}
                                       </div>
                                     )}
                                   </div>
@@ -1332,10 +1346,13 @@ const SupplyChain = () => {
                             {benchmark.isCompleted && benchmark.completedDate && (
                               <div className="text-xs text-green-600 mt-1 flex items-center">
                                 <Clock className="h-3 w-3 mr-1" />
-                                Completed on {format(parseISO(benchmark.completedDate), 'MMM d, yyyy')} at {format(parseISO(benchmark.completedDate), 'h:mm a')}
-                                {benchmark.completedBy && (
-                                  <span className="ml-1">by {benchmark.completedBy}</span>
-                                )}
+                                Completed on {format(parseISO(benchmark.completedDate), 'MMM d, yyyy')}
+                                {benchmark.completedDate && benchmark.completedDate.includes('T') ? 
+                                  <> at {format(parseISO(benchmark.completedDate), 'h:mm a')}</> : 
+                                  <> at 12:00 AM</>}
+                                {benchmark.completedBy ? 
+                                  <span className="ml-1">by {benchmark.completedBy}</span> : 
+                                  <span className="ml-1">by {getCurrentUser()}</span>}
                               </div>
                             )}
                           </div>
