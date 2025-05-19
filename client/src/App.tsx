@@ -1,3 +1,4 @@
+import React, { Suspense } from "react";
 import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -24,6 +25,7 @@ import SystemSettings from "@/pages/SystemSettings";
 import UserPreferences from "@/pages/UserPreferences";
 import SalesForecast from "@/pages/SalesForecast";
 import SalesDealEdit from "@/pages/SalesDealEdit";
+import SupplyChain from "@/pages/SupplyChain";
 import AuthPage from "@/pages/auth-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import NotFound from "@/pages/not-found";
@@ -95,6 +97,7 @@ function MainContent() {
             <ProtectedRoute path="/reports" component={Reports} />
             <ProtectedRoute path="/export-reports" component={ExportReports} />
             <ProtectedRoute path="/import" component={ImportData} />
+            <ProtectedRoute path="/supply-chain" component={SupplyChain} />
             <ProtectedRoute path="/settings/system" component={SystemSettings} />
             <ProtectedRoute path="/system-settings" component={SystemSettings} />
             <ProtectedRoute path="/settings" component={SystemSettings} />
