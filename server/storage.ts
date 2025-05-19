@@ -287,6 +287,60 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async deleteSupplyChainBenchmarkWithRelated(id: number): Promise<boolean> {
+    try {
+      // Delete related project benchmarks first
+      await db
+        .delete(projectSupplyChainBenchmarks)
+        .where(eq(projectSupplyChainBenchmarks.benchmarkId, id));
+      
+      // Then delete the main benchmark
+      await db
+        .delete(supplyChainBenchmarks)
+        .where(eq(supplyChainBenchmarks.id, id));
+        
+      return true;
+    } catch (error) {
+      console.error("Error deleting supply chain benchmark with related records:", error);
+      return false;
+    }
+  }
+  
+  async getDefaultSupplyChainBenchmarks(): Promise<SupplyChainBenchmark[]> {
+    return await safeQuery<SupplyChainBenchmark>(() =>
+      db.select()
+        .from(supplyChainBenchmarks)
+        .where(eq(supplyChainBenchmarks.isDefault, true))
+        .orderBy(asc(supplyChainBenchmarks.name))
+    );
+  }
+  
+  async getActiveProjects(): Promise<Project[]> {
+    return await safeQuery<Project>(() =>
+      db.select()
+        .from(projects)
+        .where(eq(projects.status, 'active'))
+    );
+  }
+  
+  async getProjectById(id: number): Promise<Project | undefined> {
+    return await safeSingleQuery<Project>(() =>
+      db.select()
+        .from(projects)
+        .where(eq(projects.id, id))
+    );
+  }
+  
+  async getProjectsByIds(projectIds: number[]): Promise<Project[]> {
+    if (!projectIds.length) return [];
+    
+    return await safeQuery<Project>(() =>
+      db.select()
+        .from(projects)
+        .where(inArray(projects.id, projectIds))
+    );
+  }
+  
   // Project Supply Chain Benchmark methods
   async getProjectSupplyChainBenchmarks(): Promise<ProjectSupplyChainBenchmark[]> {
     return await safeQuery<ProjectSupplyChainBenchmark>(() =>
