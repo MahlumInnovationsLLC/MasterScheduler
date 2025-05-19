@@ -129,6 +129,7 @@ const SupplyChain = () => {
   const [editingBenchmark, setEditingBenchmark] = useState<SupplyChainBenchmark | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [purchaseTimeframe, setPurchaseTimeframe] = useState<'week' | 'month' | 'quarter'>('week');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -434,7 +435,7 @@ const SupplyChain = () => {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8 px-4 max-w-7xl">
       <h1 className="text-2xl font-bold mb-6">Supply Chain Management</h1>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -567,8 +568,8 @@ const SupplyChain = () => {
           </div>
           
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
-            <Card className="md:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
               </CardHeader>
@@ -580,45 +581,86 @@ const SupplyChain = () => {
               </CardContent>
             </Card>
             
-            <Card className="md:col-span-2">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">This Week's Purchases</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {getUpcomingPurchaseNeeds('week').length}
+            {/* Combined purchasing widget with toggle buttons */}
+            <Card className="md:col-span-2 border border-slate-200">
+              <div className="p-4 pb-1">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-medium">Upcoming Purchases</h3>
+                  <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                    <Button 
+                      variant={purchaseTimeframe === 'week' ? "default" : "ghost"} 
+                      size="sm"
+                      onClick={() => setPurchaseTimeframe('week')}
+                      className="h-7 text-xs"
+                    >
+                      Week
+                    </Button>
+                    <Button 
+                      variant={purchaseTimeframe === 'month' ? "default" : "ghost"} 
+                      size="sm"
+                      onClick={() => setPurchaseTimeframe('month')}
+                      className="h-7 text-xs"
+                    >
+                      Month
+                    </Button>
+                    <Button 
+                      variant={purchaseTimeframe === 'quarter' ? "default" : "ghost"} 
+                      size="sm"
+                      onClick={() => setPurchaseTimeframe('quarter')}
+                      className="h-7 text-xs"
+                    >
+                      Quarter
+                    </Button>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Purchasing benchmarks due this week</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="md:col-span-2">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">This Month's Purchases</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {getUpcomingPurchaseNeeds('month').length}
+                
+                <div className="mt-4 mb-2">
+                  <div className="text-3xl font-bold">
+                    {getUpcomingPurchaseNeeds(purchaseTimeframe).length}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {purchaseTimeframe === 'week' && "Purchasing benchmarks due this week"}
+                    {purchaseTimeframe === 'month' && "Purchasing benchmarks due this month"}
+                    {purchaseTimeframe === 'quarter' && "Purchasing benchmarks due this quarter"}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Purchasing benchmarks due this month</p>
-              </CardContent>
+                
+                {/* Display upcoming purchase items */}
+                {getUpcomingPurchaseNeeds(purchaseTimeframe).length > 0 ? (
+                  <div className="border-t border-slate-200 mt-3 pt-3 pb-1">
+                    <p className="text-xs font-medium mb-2">Upcoming Items:</p>
+                    <ul className="text-xs text-muted-foreground space-y-1 max-h-[80px] overflow-y-auto">
+                      {getUpcomingPurchaseNeeds(purchaseTimeframe).slice(0, 3).map((benchmark) => {
+                        const project = projects?.find(p => p.id === benchmark.projectId);
+                        return (
+                          <li key={benchmark.id} className="flex items-center gap-1">
+                            <div className="h-1.5 w-1.5 rounded-full bg-amber-500 mr-1"></div>
+                            <span>
+                              {project?.projectNumber} - {benchmark.name}
+                            </span>
+                          </li>
+                        );
+                      })}
+                      {getUpcomingPurchaseNeeds(purchaseTimeframe).length > 3 && (
+                        <li className="text-center text-blue-500">
+                          +{getUpcomingPurchaseNeeds(purchaseTimeframe).length - 3} more items
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="border-t border-slate-200 mt-3 pt-3 pb-1">
+                    <p className="text-xs text-center text-muted-foreground py-2">
+                      No upcoming purchases in this timeframe
+                    </p>
+                  </div>
+                )}
+              </div>
             </Card>
           </div>
           
           {/* Additional Widgets Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Quarterly Outlook</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {getUpcomingPurchaseNeeds('quarter').length}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Purchasing benchmarks due this quarter</p>
-              </CardContent>
-            </Card>
-            
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">Supply Chain Benchmarks</CardTitle>
