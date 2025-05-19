@@ -2508,6 +2508,22 @@ export default function ResizableBaySchedule({
                         >
                           {team[0]?.description || 'Production Bay'}
                         </span>
+                        
+                        {/* Team hours per week information */}
+                        <span className="text-sm ml-4 font-medium text-blue-50 bg-blue-700 px-3 py-1 rounded-full flex items-center">
+                          <Clock className="h-3.5 w-3.5 mr-1.5" />
+                          {(() => {
+                            // Calculate total staff hours per week for this team
+                            const totalHoursPerWeek = team.reduce((total, bay) => {
+                              const assemblyStaff = bay.assemblyStaffCount || 0;
+                              const electricalStaff = bay.electricalStaffCount || 0;
+                              const hoursPerPerson = bay.hoursPerPersonPerWeek || 40;
+                              return total + ((assemblyStaff + electricalStaff) * hoursPerPerson);
+                            }, 0);
+                            
+                            return `${totalHoursPerWeek} hrs/week`;
+                          })()}
+                        </span>
                       </div>
                       
                       {/* Team Management Controls - Show for all team sections */}
