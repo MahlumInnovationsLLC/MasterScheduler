@@ -1404,6 +1404,94 @@ const SupplyChain = () => {
           )}
         </DialogContent>
       </Dialog>
+      
+      {/* Template Benchmark Selection Dialog */}
+      <Dialog open={templateBenchmarkDialogOpen} onOpenChange={setTemplateBenchmarkDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Select Benchmark Template</DialogTitle>
+            <DialogDescription>
+              Choose a benchmark template to add to this project.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            {loadingBenchmarks ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800"></div>
+              </div>
+            ) : !benchmarks || benchmarks.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No benchmark templates available. Create some first.
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                {benchmarks.filter(b => b.isActive).map((benchmark) => (
+                  <div 
+                    key={benchmark.id}
+                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                      selectedBenchmarkTemplate === benchmark.id 
+                      ? 'border-primary bg-primary/5' 
+                      : 'hover:border-primary/50'
+                    }`}
+                    onClick={() => setSelectedBenchmarkTemplate(benchmark.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="font-medium">{benchmark.name}</div>
+                      <Badge variant={benchmark.isDefault ? "secondary" : "outline"}>
+                        {benchmark.isDefault ? "Default" : "Template"}
+                      </Badge>
+                    </div>
+                    
+                    {benchmark.description && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {benchmark.description}
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center mt-2 text-sm">
+                      <Clock className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                      <span>{benchmark.weeksBeforePhase} weeks before {benchmark.targetPhase}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setTemplateBenchmarkDialogOpen(false);
+                setSelectedBenchmarkTemplate(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={!selectedBenchmarkTemplate || addTemplateBenchmarkMutation.isPending}
+              onClick={() => {
+                if (pendingBenchmarkProjectId && selectedBenchmarkTemplate) {
+                  addTemplateBenchmarkMutation.mutate({
+                    projectId: pendingBenchmarkProjectId,
+                    benchmarkId: selectedBenchmarkTemplate
+                  });
+                }
+              }}
+            >
+              {addTemplateBenchmarkMutation.isPending ? (
+                <>
+                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent" />
+                  Adding...
+                </>
+              ) : (
+                "Add to Project"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
