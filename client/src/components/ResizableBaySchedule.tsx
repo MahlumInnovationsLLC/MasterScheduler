@@ -1059,12 +1059,18 @@ export default function ResizableBaySchedule({
             console.log('Successfully centered and highlighted the TODAY line');
           }
         } else {
-          // Fallback: If we can't find the today line, use a hardcoded approach
-          // Week 20 of 2025 (May 12-18, 2025)
-          console.log("Couldn't find today line visually, using fixed position for Week 20 (May 2025)");
+          // Fallback: If we can't find the today line, calculate dynamically
+          const currentDate = new Date();
+          console.log(`Couldn't find today line visually, calculating position for current date: ${format(currentDate, 'yyyy-MM-dd')}`);
           
-          const weekIndex = 19; // 0-indexed, Week 20
-          const todayPosition = (weekIndex * slotWidth) + ((4/7) * slotWidth) + 200; // Friday of Week 20
+          // Calculate week number from start of year
+          const startOfYear = new Date(dateRange.start.getFullYear(), 0, 1);
+          const dayOfYear = differenceInDays(currentDate, startOfYear);
+          const weekIndex = Math.floor(dayOfYear / 7);
+          const dayOfWeek = (currentDate.getDay() + 6) % 7; // Convert to Monday-based
+          
+          // Calculate position based on week and day
+          const todayPosition = (weekIndex * slotWidth) + ((dayOfWeek/7) * slotWidth) + 200;
           
           const viewportWidth = viewportEl.clientWidth;
           const scrollPosition = Math.max(0, todayPosition - (viewportWidth / 2));
@@ -2337,11 +2343,11 @@ export default function ResizableBaySchedule({
           <div className="bay-schedule-container relative" ref={timelineRef}>
           {/* Today Line marker - positioned absolutely */}
           {(() => {
-            // Fixed DATE VALUE: Today's date is May 16, 2025
-            const today = new Date(2025, 4, 16); // May 16, 2025
+            // Use the current real date for TODAY marker
+            const today = new Date(); // Current date
             
-            // STEP 1: Find the week containing May 16, 2025 - should be week of May 12, 2025
-            const mondayOfWeek = new Date(2025, 4, 12); // Monday, May 12, 2025
+            // STEP 1: Find the Monday of the current week for slot matching
+            const mondayOfWeek = startOfWeek(today, { weekStartsOn: 1 }); // Get Monday of current week
             
             console.log(`Looking for TODAY line position (${format(today, 'yyyy-MM-dd')}) in week of ${format(mondayOfWeek, 'yyyy-MM-dd')}`);
                 
@@ -2386,12 +2392,19 @@ export default function ResizableBaySchedule({
               }
             }
             
-            // Fallback if the exact slot wasn't found - manual calculation
-            console.warn('TODAY slot not found in slots array, using fallback calculation');
+            // Fallback if the exact slot wasn't found - calculate dynamically based on current date
+            console.warn('TODAY slot not found in slots array, using dynamic fallback calculation');
             
-            // Calculate the week number (May 12 is the 20th week of 2025)
-            const weekNumber = 19; // 0-indexed, so week 20 = index 19
-            const todayPosition = weekNumber * slotWidth + (4/7 * slotWidth); // Week start + Friday offset
+            // Calculate the week number for the current date relative to the start of the view
+            const startOfYear = new Date(dateRange.start.getFullYear(), 0, 1);
+            const dayOfYear = differenceInDays(today, startOfYear);
+            const weekOfYear = Math.floor(dayOfYear / 7);
+            
+            // Calculate the day of week (0 = Monday, 6 = Sunday in our system)
+            const dayOfWeek = (today.getDay() + 6) % 7; // Convert from Sunday-based to Monday-based
+            
+            // Calculate position: week number * slot width + day offset
+            const todayPosition = (weekOfYear * slotWidth) + ((dayOfWeek/7) * slotWidth);
             
             // Only show if today is within visible range
             if (todayPosition >= 0) {
