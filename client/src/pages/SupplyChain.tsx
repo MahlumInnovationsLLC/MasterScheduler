@@ -154,7 +154,7 @@ const SupplyChain = () => {
   // Mutations
   const createBenchmarkMutation = useMutation({
     mutationFn: (data: z.infer<typeof benchmarkFormSchema>) => 
-      apiRequest('/api/supply-chain-benchmarks', { method: 'POST', data }),
+      apiRequest('POST', '/api/supply-chain-benchmarks', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/supply-chain-benchmarks'] });
       toast({
@@ -174,7 +174,7 @@ const SupplyChain = () => {
 
   const updateBenchmarkMutation = useMutation({
     mutationFn: ({ id, data }: { id: number, data: z.infer<typeof benchmarkFormSchema> }) => 
-      apiRequest(`/api/supply-chain-benchmarks/${id}`, { method: 'PATCH', data }),
+      apiRequest('PATCH', `/api/supply-chain-benchmarks/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/supply-chain-benchmarks'] });
       toast({
@@ -195,7 +195,7 @@ const SupplyChain = () => {
 
   const deleteBenchmarkMutation = useMutation({
     mutationFn: (id: number) => 
-      apiRequest(`/api/supply-chain-benchmarks/${id}`, { method: 'DELETE' }),
+      apiRequest('DELETE', `/api/supply-chain-benchmarks/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/supply-chain-benchmarks'] });
       toast({
@@ -214,7 +214,7 @@ const SupplyChain = () => {
 
   const updateProjectBenchmarkMutation = useMutation({
     mutationFn: ({ id, data }: { id: number, data: Partial<z.infer<typeof projectBenchmarkFormSchema>> }) => 
-      apiRequest(`/api/project-supply-chain-benchmarks/${id}`, { method: 'PATCH', data }),
+      apiRequest('PATCH', `/api/project-supply-chain-benchmarks/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/project-supply-chain-benchmarks'] });
       toast({
@@ -233,7 +233,7 @@ const SupplyChain = () => {
 
   const addDefaultBenchmarksMutation = useMutation({
     mutationFn: (projectId: number) => 
-      apiRequest(`/api/project-supply-chain-benchmarks/add-defaults/${projectId}`, { method: 'POST' }),
+      apiRequest('POST', `/api/project-supply-chain-benchmarks/add-defaults/${projectId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/project-supply-chain-benchmarks'] });
       toast({
