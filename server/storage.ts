@@ -2035,6 +2035,16 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
+  // Execute arbitrary SQL query with parameters
+  async executeSql(query: string, params: any[] = []) {
+    try {
+      const prepared = sql`${sql.raw(query)}`;
+      return await db.execute(prepared, params);
+    } catch (error) {
+      console.error("Error executing SQL query:", error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

@@ -521,25 +521,11 @@ const SupplyChain = () => {
       timestamp: new Date().toISOString()
     });
     
-    let updateData: any = {
-      isCompleted: newStatus
-    };
-    
-    // Only set completedDate and completedBy when marking as complete
-    if (newStatus) {
-      updateData.completedDate = new Date().toISOString();
-      updateData.completedBy = getCurrentUser();
-    } else {
-      // When unmarking as complete, set these to null
-      updateData.completedDate = null;
-      updateData.completedBy = null;
-    }
-    
-    // For debugging
-    console.log("Sending data to server:", updateData);
-    
-    // Use direct API call to bypass schema validation issues
-    apiRequest('PATCH', `/api/project-supply-chain-benchmarks/${benchmark.id}`, updateData)
+    // Use our new dedicated endpoint for toggling benchmark completion
+    apiRequest('POST', `/api/project-supply-chain-benchmarks/${benchmark.id}/toggle-completion`, {
+      isCompleted: newStatus,
+      completedBy: getCurrentUser()
+    })
       .then(() => {
         // Invalidate query to refresh data
         queryClient.invalidateQueries({ queryKey: ['/api/project-supply-chain-benchmarks'] });

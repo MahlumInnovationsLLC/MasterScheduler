@@ -320,11 +320,28 @@ router.post('/project-supply-chain-benchmarks/:id/toggle-completion', async (req
     
     const { isCompleted, completedBy } = req.body;
     
-    // Execute the SQL function we created
-    await storage.executeSql(
-      "SELECT toggle_benchmark_completion($1, $2, $3)", 
-      [id, isCompleted, completedBy || null]
-    );
+    // Directly update the benchmark using known columns
+    if (isCompleted) {
+      // Mark as completed
+      await db.update(projectSupplyChainBenchmarks)
+        .set({
+          isCompleted: true,
+          completedDate: new Date(),
+          completedBy: completedBy || null,
+          updatedAt: new Date()
+        })
+        .where(eq(projectSupplyChainBenchmarks.id, id));
+    } else {
+      // Mark as incomplete
+      await db.update(projectSupplyChainBenchmarks)
+        .set({
+          isCompleted: false,
+          completedDate: null,
+          completedBy: null,
+          updatedAt: new Date()
+        })
+        .where(eq(projectSupplyChainBenchmarks.id, id));
+    }
     
     // Get the updated benchmark
     const updatedBenchmark = await storage.getProjectSupplyChainBenchmarkById(id);
