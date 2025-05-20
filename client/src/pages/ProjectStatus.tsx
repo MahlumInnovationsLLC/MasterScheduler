@@ -530,7 +530,7 @@ export default function ProjectStatus() {
       
       {/* AI Insights */}
       <div className="mb-6">
-        <AIInsightsWidget />
+        {projects && <AIInsightsWidget projects={projects} />}
       </div>
       
       {/* Projects DataTable */}
