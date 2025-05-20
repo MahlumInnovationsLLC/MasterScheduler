@@ -3583,7 +3583,8 @@ export default function ResizableBaySchedule({
                                     height: '0',
                                     borderTop: '5px solid transparent',
                                     borderBottom: '5px solid transparent',
-                                    borderLeft: '6px solid rgb(239, 68, 68)' // red-500
+                                    borderRight: '6px solid rgb(239, 68, 68)', // red-500
+                                    transform: 'rotate(180deg)'
                                   }}></div>
                                 </div>
                                 
