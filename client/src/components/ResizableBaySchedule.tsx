@@ -3535,7 +3535,7 @@ export default function ResizableBaySchedule({
                                 </div>
                                 
                                 {/* Bottom FAB and PAINT phases - fixed height at bottom */}
-                                <div className="bottom-phases flex w-full h-[24px] absolute bottom-4 left-0 overflow-hidden z-20">
+                                <div className="bottom-phases flex w-full h-[24px] absolute bottom-3 left-0 overflow-hidden z-20">
                                   {/* FAB phase (starts from the left) */}
                                   {bar.fabWidth && bar.fabWidth > 0 && (
                                     <div className="fab-phase bg-blue-700 h-full flex items-center justify-center" 
