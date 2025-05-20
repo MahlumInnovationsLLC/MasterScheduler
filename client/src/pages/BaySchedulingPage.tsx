@@ -591,7 +591,7 @@ const BaySchedulingPage = () => {
     },
   });
   
-  // Handler for schedule changes with optimistic updates
+  // Handler for schedule changes with optimistic updates and sandbox support
   const handleScheduleChange = async (
     scheduleId: number,
     newBayId: number,
@@ -601,9 +601,59 @@ const BaySchedulingPage = () => {
     rowIndex?: number
   ) => {
     try {
-      setIsLoading(true);
-      setProcessingScheduleId(scheduleId);
       console.log(`Updating schedule ${scheduleId} to bay ${newBayId}, row ${rowIndex}`);
+      
+      // Set the schedule we're processing
+      setProcessingScheduleId(scheduleId);
+      
+      // Show loading indicator
+      setIsLoading(true);
+      
+      // Handle sandbox mode updates
+      if (isSandboxMode) {
+        // Find the schedule in sandbox data
+        const scheduleIndex = sandboxSchedules.findIndex(s => s.id === scheduleId);
+        
+        if (scheduleIndex !== -1) {
+          // Create updated schedules array
+          const updatedSchedules = [...sandboxSchedules];
+          
+          // Update the specific schedule with new values
+          updatedSchedules[scheduleIndex] = {
+            ...updatedSchedules[scheduleIndex],
+            bayId: newBayId,
+            startDate: updatedSchedules[scheduleIndex].startDate,
+            endDate: updatedSchedules[scheduleIndex].endDate,
+            totalHours: totalHours || updatedSchedules[scheduleIndex].totalHours,
+            row: rowIndex,
+            rowIndex: rowIndex
+          };
+          
+          // Update sandbox state after a short delay to simulate processing
+          setTimeout(() => {
+            // Update the sandbox schedules
+            setSandboxSchedules(updatedSchedules);
+            
+            // Increment the change counter
+            setSandboxChanges(prev => prev + 1);
+            
+            // Clear the loading state
+            setIsLoading(false);
+            setProcessingScheduleId(null);
+            
+            // Show success toast
+            toast({
+              title: "Sandbox Update",
+              description: `Schedule updated in sandbox mode`,
+              duration: 3000
+            });
+          }, 500);
+          
+          return { id: scheduleId };
+        } else {
+          throw new Error("Schedule not found in sandbox data");
+        }
+      }
       
       // Get the current data for optimistic updates
       const previousSchedules = queryClient.getQueryData<ManufacturingSchedule[]>(['/api/manufacturing-schedules']) || [];
