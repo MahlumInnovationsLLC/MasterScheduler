@@ -48,1071 +48,346 @@ import EditableNotesField from '../components/EditableNotesField';
 import EditableTextField from '@/components/EditableTextField';
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
-} from '@/components/ui/dropdown-menu';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from '@/components/ui/dialog';
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { formatDate, getProjectStatusColor, getProjectScheduleState } from '@/lib/utils';
-import { Project } from '@shared/schema';
+import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-// Extend Project type to ensure rawData is included
+import { StatusBadge } from '@/components/StatusBadge';
+import { PhotosTakenCheckbox } from '@/components/PhotosTakenCheckbox';
+
 interface ProjectWithRawData extends Project {
   rawData: Record<string, any>;
 }
 
-// EditableDateField is now imported from components folder
-
-// EditableNotesField is now imported from components folder
-
-// Define a type for the row in the data table
 interface ProjectRow {
   original: ProjectWithRawData;
 }
 
-const ProjectStatus = () => {
-  const [, navigate] = useLocation();
+// Main component
+export default function ProjectStatus() {
   const { toast } = useToast();
-  const { data: projects, isLoading } = useQuery<Project[]>({
-    queryKey: ['/api/projects'],
-  });
-  
-  const { data: manufacturingSchedules } = useQuery({
-    queryKey: ['/api/manufacturing-schedules'],
-  });
-  
-  const { data: billingMilestones } = useQuery({
-    queryKey: ['/api/billing-milestones'],
-  });
-  
-  const { data: manufacturingBays } = useQuery({
-    queryKey: ['/api/manufacturing-bays'],
-  });
-  // Flag to track if initial auto-filtering has been applied
-  const [hasAppliedInitialFilter, setHasAppliedInitialFilter] = useState(false);
-  
-  // Auto-filter projects by next ship date on initial load
-  useEffect(() => {
-    if (!projects || hasAppliedInitialFilter) return;
-    
-    // Helper to get valid dates and handle null/invalid dates
-    const getValidDate = (dateStr: string | null | undefined) => {
-      if (!dateStr) return null;
-      const date = new Date(dateStr);
-      return isNaN(date.getTime()) ? null : date;
-    };
-    
-    // Find upcoming ship dates (after today)
-    const now = new Date();
-    const upcomingProjects = projects.filter(p => {
-      const shipDate = getValidDate(p.shipDate);
-      return shipDate && shipDate >= now;
-    });
-    
-    // If we have upcoming projects with ship dates, auto-filter by ship date
-    if (upcomingProjects.length > 0) {
-      // Sort by earliest ship date
-      const earliestShipDate = upcomingProjects
-        .sort((a, b) => {
-          const dateA = getValidDate(a.shipDate);
-          const dateB = getValidDate(b.shipDate);
-          if (!dateA) return 1;
-          if (!dateB) return -1;
-          return dateA.getTime() - dateB.getTime();
-        })[0];
-      
-      if (earliestShipDate?.shipDate) {
-        // Set a ship date minimum filter to today
-        setDateFilters(prev => ({
-          ...prev,
-          shipDateMin: now.toISOString().split('T')[0]
-        }));
-      }
-    }
-    
-    // Mark that we've applied the initial filter
-    setHasAppliedInitialFilter(true);
-  }, [projects, hasAppliedInitialFilter]);
-  
-  // State for visible columns
-  const [visibleColumns, setVisibleColumns] = useState<{ [key: string]: boolean }>({
-    projectNumber: true,
-    name: true,
-    pmOwner: true,
-    timeline: true,
-    percentComplete: true,
-    status: true,
-    contractDate: true,
-    estimatedCompletionDate: true,
-    chassisETA: true,
-    qcStartDate: true,
-    qcDays: true,
-    shipDate: true,
-    deliveryDate: true,
-    // Making the required columns visible
-    fabricationStart: true,
-    assemblyStart: true,
-    wrapDate: true,
-    ntcTestingDate: true,
-    executiveReviewDate: true,
-    dpasRating: true,
-    stretchShortenGears: true,
-    lltsOrdered: true,
-    meAssigned: true,
-    meDesignOrdersPercent: true,
-    eeAssigned: true,
-    eeDesignOrdersPercent: true,
-    iteAssigned: true,
-    itDesignOrdersPercent: true,
-    ntcDesignOrdersPercent: true,
-    hasBillingMilestones: true,
-    // Other columns still hidden
-    description: false,
-    team: false,
-    location: true,  // Make the location column visible
-    actualCompletionDate: false,
-    notes: true,  // Make the notes column visible
-    // All raw data columns are initially hidden
-    rawData_DPAS_Rating: false,
-    rawData_ME_Assigned: false,
-    rawData_EE_Assigned: false,
-    rawData_ITE_Assigned: false,
-    rawData_ME_Design_Orders: false,
-    rawData_EE_Design_Orders: false,
-    rawData_IT_Design_Orders: false,
-    rawData_NTC_Design_Orders: false,
-    rawData_Stretch_Shorten_Gears: false,
-    rawData_LLTs_Ordered: false,
-    rawData_QC_DAYS: false,
-    rawData_Chassis_ETA: false,
-    rawData_Fabrication_Start: false,
-    rawData_Assembly_Start: false,
-    rawData_Wrap: false,
-    rawData_NTC_Testing: false,
-    rawData_QC_START: false,
-    rawData_EXECUTIVE_REVIEW: false,
-    rawData_Ship: false,
-    rawData_Delivery: false,
-    rawData_Progress: false,
-  });
-  
-  // Date filter state
+  const [location, navigate] = useLocation();
+  const [locationFilter, setLocationFilter] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [dateFilters, setDateFilters] = useState({
     startDateMin: '',
     startDateMax: '',
-    endDateMin: '',
-    endDateMax: '',
-    qcStartDateMin: '',
-    qcStartDateMax: '',
     shipDateMin: '',
     shipDateMax: '',
   });
   
-  // Location filter state
-  const [locationFilter, setLocationFilter] = useState<string>('');
-  const [sortableColumns, setSortableColumns] = useState<boolean>(false);
+  // Query to fetch all projects
+  const { data: projects, isLoading: projectsLoading, error: projectsError } = useQuery({
+    queryKey: ['/api/projects'],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
   
-  // Filter dialog state
-  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+  const handlePhotosTakenChange = async (projectId: number, checked: boolean) => {
+    try {
+      await apiRequest(`/api/projects/${projectId}`, 'PATCH', { photosTaken: checked });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      toast({
+        title: "Photos taken status updated",
+        description: `Photos taken status was ${checked ? 'checked' : 'unchecked'} for this project`,
+      });
+    } catch (error) {
+      console.error("Error updating photos taken status:", error);
+      toast({
+        title: "Error updating photos taken status",
+        description: "There was a problem updating the photos taken status. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
-  // Calculate project stats
-  const projectStats = React.useMemo(() => {
-    if (!projects || projects.length === 0) return null;
-
-    const active = projects.filter(p => p.status === 'active').length;
-    const delayed = projects.filter(p => p.status === 'delayed').length;
-    const critical = projects.filter(p => p.status === 'critical').length;
-    const completed = projects.filter(p => p.status === 'completed').length;
-
-    const avgCompletion = projects.reduce((sum, p) => sum + Number(p.percentComplete), 0) / projects.length;
-
-    return {
-      total: projects.length,
-      active,
-      delayed,
-      critical,
-      completed,
-      avgCompletion
-    };
-  }, [projects]);
-  
-  // Calculate project state breakdown
-  const projectStateBreakdown = React.useMemo(() => {
-    if (!projects || projects.length === 0) return null;
-    
-    // Initialize counters
-    let unscheduled = 0;
-    let scheduled = 0;
-    let inProgress = 0;
-    let complete = 0;
-    
-    // Count projects by schedule state
-    projects.forEach(project => {
-      // If project is completed, add to complete count
-      if (project.status === 'completed') {
-        complete++;
-        return;
-      }
-      
-      // For all other projects, categorize by their schedule state
-      const scheduleState = getProjectScheduleState(manufacturingSchedules, project.id);
-      
-      if (scheduleState === 'Unscheduled') {
-        unscheduled++;
-      } else if (scheduleState === 'Scheduled') {
-        scheduled++;
-      } else if (scheduleState === 'In Progress') {
-        inProgress++;
-      } else if (scheduleState === 'Complete') {
-        complete++;
-      }
-    });
-    
-    return {
-      unscheduled,
-      scheduled,
-      inProgress,
-      complete
-    };
-  }, [projects, manufacturingSchedules]);
-
-  // Apply date filters and location filters to projects
-  const filteredProjects = React.useMemo(() => {
+  // Filter projects based on the location filter
+  const filteredProjects = useMemo(() => {
     if (!projects) return [];
     
-    // Helper to safely parse dates
-    const parseDate = (dateString: string | null | undefined): Date | null => {
-      if (!dateString) return null;
-      
-      try {
-        const date = new Date(dateString);
-        // Check if date is valid
-        return isNaN(date.getTime()) ? null : date;
-      } catch (e) {
-        console.error("Error parsing date:", dateString, e);
-        return null;
-      }
-    };
+    if (!locationFilter) {
+      return projects as ProjectWithRawData[];
+    }
     
-    // Helper to check date range
-    const isInDateRange = (dateValue: string | null | undefined, minDate: string, maxDate: string): boolean => {
-      if (!dateValue) return true; // Skip filtering if no date value
-      
-      const parsedDate = parseDate(dateValue);
-      if (!parsedDate) return true; // Skip if unparseable
-      
-      if (minDate && parseDate(minDate) && parsedDate < parseDate(minDate)!) {
-        return false;
-      }
-      
-      if (maxDate && parseDate(maxDate) && parsedDate > parseDate(maxDate)!) {
-        return false;
-      }
-      
-      return true;
-    };
-    
-    // Cast projects to ProjectWithRawData[] to ensure rawData is available
     return (projects as ProjectWithRawData[]).filter((project: ProjectWithRawData) => {
-      // Check if any filter is active
-      const hasActiveFilters = Object.values(dateFilters).some(val => val !== '') || locationFilter !== '';
-      
-      // If no filters, return all projects
-      if (!hasActiveFilters) {
-        setSortableColumns(false);
-        return true;
-      }
-      
-      // Location filtering
-      if (locationFilter && project.location) {
-        // Enable sorting when a location filter is applied
-        setSortableColumns(true);
-        
-        // If the project location doesn't match the filter, exclude it
-        if (project.location.toLowerCase() !== locationFilter.toLowerCase()) {
-          return false;
-        }
-      }
-      
-      // Start Date Filtering
-      if (!isInDateRange(project.startDate, dateFilters.startDateMin, dateFilters.startDateMax)) {
-        return false;
-      }
-      
-      // End Date Filtering
-      if (!isInDateRange(project.estimatedCompletionDate, dateFilters.endDateMin, dateFilters.endDateMax)) {
-        return false;
-      }
-      
-      // QC Start Date Filtering
-      if (!isInDateRange(project.qcStartDate, dateFilters.qcStartDateMin, dateFilters.qcStartDateMax)) {
-        return false;
-      }
-      
-      // Ship Date Filtering
-      if (!isInDateRange(project.shipDate, dateFilters.shipDateMin, dateFilters.shipDateMax)) {
-        return false;
-      }
-      
-      return true;
+      return project.location === locationFilter;
     });
-  }, [projects, dateFilters, locationFilter]);
+  }, [projects, locationFilter]);
 
-  // Calculate upcoming milestones within the next 30 days
-  const upcomingMilestones = React.useMemo(() => {
-    if (!billingMilestones || !Array.isArray(billingMilestones)) return 0;
-    
-    const now = new Date();
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(now.getDate() + 30);
-
-    return billingMilestones.filter(milestone => {
-      if (!milestone.dueDate) return false;
-      
-      try {
-        const dueDate = new Date(milestone.dueDate);
-        return !milestone.isPaid && dueDate >= now && dueDate <= thirtyDaysFromNow;
-      } catch (e) {
-        console.error("Error parsing milestone due date:", e);
-        return false;
-      }
-    }).length;
-  }, [billingMilestones]);
-  
-  // Calculate manufacturing bay statistics
-  const manufacturingStats = React.useMemo(() => {
-    if (!manufacturingBays || !Array.isArray(manufacturingBays)) return { active: 0, available: 0, total: 0 };
-    
-    const total = manufacturingBays.length;
-    const active = manufacturingBays.filter(bay => bay.isActive && 
-      Array.isArray(manufacturingSchedules) && 
-      manufacturingSchedules.some(schedule => schedule.bayId === bay.id)
-    ).length;
-    
-    return {
-      active,
-      available: total - active,
-      total
-    };
-  }, [manufacturingBays, manufacturingSchedules]);
-
-  // Reset all filters
-  const resetFilters = () => {
-    setDateFilters({
-      startDateMin: '',
-      startDateMax: '',
-      endDateMin: '',
-      endDateMax: '',
-      qcStartDateMin: '',
-      qcStartDateMax: '',
-      shipDateMin: '',
-      shipDateMax: '',
-    });
-  };
-  
-  // Function to update a project date field
-  const updateProjectDate = async (projectId: number, field: string, value: string | null) => {
-    try {
-      const response = await apiRequest(
-        "PATCH",
-        `/api/projects/${projectId}`,
-        { [field]: value }
-      );
-      
-      if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-        toast({
-          title: "Date Updated",
-          description: `${field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1')} has been updated successfully`,
-          variant: "default"
-        });
-        return true;
-      } else {
-        throw new Error(`Failed to update ${field}`);
-      }
-    } catch (error) {
-      toast({
-        title: "Update Failed",
-        description: `Error updating date: ${(error as Error).message}`,
-        variant: "destructive"
-      });
-      return false;
-    }
-  };
-  
-  // Component for editable notes field
-  const EditableNotesField = ({
-    projectId,
-    value
-  }: {
-    projectId: number;
-    value: string | null;
-  }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [noteValue, setNoteValue] = useState<string>(value || '');
-    const [isUpdating, setIsUpdating] = useState(false);
-    
-    // Function to handle saving the notes
-    const handleSave = async () => {
-      setIsUpdating(true);
-      try {
-        const response = await apiRequest(
-          "PATCH",
-          `/api/projects/${projectId}`,
-          { notes: noteValue }
-        );
-        
-        if (response.ok) {
-          queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-          toast({
-            title: "Notes Updated",
-            description: "Notes have been updated successfully",
-            variant: "default"
-          });
-          setIsEditing(false);
-        } else {
-          throw new Error("Failed to update notes");
-        }
-      } catch (error) {
-        toast({
-          title: "Update Failed",
-          description: `Error updating notes: ${(error as Error).message}`,
-          variant: "destructive"
-        });
-      } finally {
-        setIsUpdating(false);
-      }
-    };
-    
-    // Display editor if in edit mode
-    if (isEditing) {
-      return (
-        <div className="flex flex-col space-y-2 py-1">
-          <textarea
-            className="w-full h-24 px-2 py-1 rounded text-xs bg-background border border-input"
-            value={noteValue}
-            onChange={(e) => setNoteValue(e.target.value)}
-            placeholder="Add notes here..."
-          />
-          <div className="flex justify-end space-x-1">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6" 
-              onClick={handleSave}
-              disabled={isUpdating}
-            >
-              {isUpdating ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-primary"></div> : <Check className="h-3 w-3 text-success mr-1" />}
-              Save
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6" 
-              onClick={() => setIsEditing(false)}
-              disabled={isUpdating}
-            >
-              <X className="h-3 w-3 text-danger mr-1" />
-              Cancel
-            </Button>
-          </div>
-        </div>
-      );
-    }
-    
-    // Regular display mode
-    return (
-      <div 
-        className="text-sm cursor-pointer hover:underline flex items-center min-h-[32px] relative group"
-        onClick={() => setIsEditing(true)}
-      >
-        {noteValue ? (
-          <>
-            <div className="line-clamp-2">{noteValue}</div>
-            <PencilIcon className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 absolute right-0 top-0" />
-          </>
-        ) : (
-          <div className="text-gray-400 flex items-center">
-            <span>Add notes</span>
-            <PlusCircle className="h-3 w-3 ml-1" />
-          </div>
-        )}
-      </div>
-    );
-  };
-  
-  // Use the imported EditableDateField component instead
-
-  // Toggle column visibility
-  const toggleColumnVisibility = (column: string) => {
-    setVisibleColumns(prev => ({
-      ...prev,
-      [column]: !prev[column]
-    }));
-  };
-  
-  // Helper function to create column definitions with proper typing
-  const createColumn = <T extends keyof ProjectWithRawData>(
-    id: string,
-    accessorKey: T,
-    header: string,
-    cellRenderer: (value: ProjectWithRawData[T], project: ProjectWithRawData) => React.ReactNode,
-    options: Record<string, any> = {}
-  ) => {
-    // Determine if this is a date column
-    const isDateColumn = 
-      id.toLowerCase().includes('date') || 
-      id.toLowerCase().includes('eta') || 
-      id.toLowerCase().includes('start') ||
-      id.toLowerCase().includes('completion');
-    
-    return {
-      id,
-      accessorKey,
-      header,
-      // Use custom sort function to make N/A values appear at the bottom
-      sortingFn: options.sortingFn || 'customSort' as any,
-      ...options,
-      cell: ({ row }: { row: ProjectRow }) => {
-        try {
-          // Wrap the cell content with the CellHighlighter component
-          return (
-            <CellHighlighter rowId={row.original.id} columnId={id}>
-              {cellRenderer(row.original[accessorKey], row.original)}
-            </CellHighlighter>
-          );
-        } catch (error) {
-          console.error(`Error rendering cell for column ${id}:`, error);
-          return <div className="text-red-500">Error</div>;
-        }
-      }
-    };
-  };
-  
-  // Helper function to safely access raw data fields
+  // Helper to get raw data fields safely
   const getRawDataField = (project: ProjectWithRawData, field: string, defaultValue: any = 'N/A'): any => {
     try {
       if (!project.rawData) return defaultValue;
-      
-      // If the field exists directly in rawData, return it
-      if (project.rawData[field] !== undefined && project.rawData[field] !== null) {
-        return project.rawData[field];
-      }
-      
-      // Search for case-insensitive match if no exact match
-      const keys = Object.keys(project.rawData);
-      const matchingKey = keys.find(key => key.toLowerCase() === field.toLowerCase());
-      
-      if (matchingKey) {
-        return project.rawData[matchingKey];
-      }
-      
-      // Try replacements of spaces with underscores and vice versa
-      const spaceKey = field.replace(/_/g, ' ');
-      const underscoreKey = field.replace(/ /g, '_');
-      
-      if (project.rawData[spaceKey] !== undefined) {
-        return project.rawData[spaceKey];
-      }
-      
-      if (project.rawData[underscoreKey] !== undefined) {
-        return project.rawData[underscoreKey];
-      }
-      
-      // Return default if no match found
-      return defaultValue;
-    } catch (error) {
-      console.error(`Error accessing raw data field ${field}:`, error);
+      const value = project.rawData[field];
+      return value !== undefined && value !== null ? value : defaultValue;
+    } catch (e) {
+      console.warn(`Error getting raw data field ${field}:`, e);
       return defaultValue;
     }
   };
-  
-  // Now all columns directly access the appropriate data from the project object
 
-  // Define all available columns
-  const allColumns = [
-    // Add the location column as first column to ensure it appears at the far left
+  // Define table columns
+  const columns = useMemo(() => [
+    // Location column (always enable sorting)
     {
       id: 'location',
+      header: "Location",
       accessorKey: 'location',
-      header: 'Location',
-      size: 120,
-      cell: ({ row }: { row: ProjectRow }) => {
-        const value = row.original.location;
-        return (
-          <div className="flex items-center">
-            <div className="px-3 py-1 rounded bg-primary text-white font-medium">
-              {value || 'N/A'}
-            </div>
-          </div>
-        );
-      }
-    },
-    createColumn('projectNumber', 'projectNumber', 'Project', 
-      (value, project) => (
-        <div className="flex items-center">
-          <div className="ml-2">
-            <div className="text-sm font-medium text-white whitespace-normal">{value}</div>
-            <div 
-              className="text-xs text-gray-400 line-clamp-2 overflow-hidden" 
-              title={project.name} // Show full name on hover
-            >
-              {project.name}
-            </div>
-          </div>
+      cell: ({ row }: { row: ProjectRow }) => (
+        <div className="font-medium">
+          {row.original.location || 'N/A'}
         </div>
       ),
-      { sortingFn: 'alphanumeric', size: 260 }),
-    createColumn('pmOwner', 'pmOwner', 'PM Owner', 
-      (value, project) => <EditableTextField projectId={project.id} field="pmOwner" value={value || ''} placeholder="Unassigned" />,
-      { size: 150 }),
-    {
-      id: 'timeline',
-      accessorKey: 'startDate',
-      header: 'Timeline',
-      size: 200,
-      cell: ({ row }: { row: ProjectRow }) => {
-        const project = row.original;
-        const durationDays = Math.ceil(
-          (new Date(project.estimatedCompletionDate).getTime() - new Date(project.startDate).getTime()) / 
-          (1000 * 60 * 60 * 24)
-        );
-        
-        return (
-          <div>
-            <div className="text-sm">
-              {formatDate(project.startDate)} - {formatDate(project.estimatedCompletionDate)}
-            </div>
-            <div className="text-xs text-gray-400">
-              {durationDays} days
-            </div>
-          </div>
-        );
-      },
     },
-    createColumn('percentComplete', 'percentComplete', 'Progress', 
-      (value) => {
-        const percentValue = typeof value === 'string' ? parseFloat(value) : Number(value);
-        return (
-          <div className="flex items-center gap-2">
-            <div className="w-full bg-gray-800 rounded-full h-2.5">
-              <div 
-                className="bg-success h-2.5 rounded-full" 
-                style={{ width: `${percentValue}%` }}
-              ></div>
-            </div>
-            <span className="text-xs font-medium">{percentValue}%</span>
-          </div>
-        );
-      },
-      { size: 120 }),
-    createColumn('status', 'status', 'Status', 
-      (value, project) => {
-        const percentValue = typeof project.percentComplete === 'string' 
-          ? parseFloat(project.percentComplete) 
-          : Number(project.percentComplete);
-          
-        const { status } = getProjectStatusColor(
-          percentValue,
-          project.estimatedCompletionDate
-        );
-        
-        // Get the scheduling state for this project
-        const scheduleState = manufacturingSchedules 
-          ? getProjectScheduleState(manufacturingSchedules, project.id)
-          : 'Unscheduled';
+    // Project Number column
+    {
+      id: 'projectNumber',
+      header: "Project #",
+      accessorKey: 'projectNumber',
+      cell: ({ row }: { row: ProjectRow }) => (
+        <div className="font-medium whitespace-nowrap">
+          {row.original.projectNumber}
+        </div>
+      ),
+    },
+    // Name column
+    {
+      id: 'name',
+      header: "Name",
+      accessorKey: 'name',
+      cell: ({ row }: { row: ProjectRow }) => {
+        const hasHighRiskField = getRawDataField(row.original, 'isHighRisk', false);
         
         return (
           <div className="flex items-center gap-2">
-            <ProgressBadge status={status} />
-            <ProgressBadge 
-              status={scheduleState} 
-              className={
-                scheduleState === 'Unscheduled' ? 'bg-gray-700 border-gray-600' :
-                scheduleState === 'Scheduled' ? 'bg-green-900 border-green-700' :
-                scheduleState === 'In Progress' ? 'bg-yellow-900 border-yellow-700' :
-                'bg-blue-900 border-blue-700'
-              }
+            {hasHighRiskField && (
+              <div className="text-red-500">
+                <AlertTriangle size={16} />
+              </div>
+            )}
+            <CellHighlighter 
+              value={row.original.name} 
+              highlight={getRawDataField(row.original, 'nameHighlight', false)}
+              indicator={getRawDataField(row.original, 'nameIndicator')}
             />
           </div>
         );
       },
-      { size: 180 }),
-    createColumn('contractDate', 'contractDate', 'Contract Date', 
-      (value, project) => <EditableDateField projectId={project.id} field="contractDate" value={value} />,
-      { size: 140 }),
-    createColumn('startDate', 'startDate', 'Start Date', 
-      (value) => formatDate(value),
-      { size: 140 }),
-    createColumn('estimatedCompletionDate', 'estimatedCompletionDate', 'Est. Completion', 
-      (value) => formatDate(value),
-      { size: 140 }),
-    createColumn('actualCompletionDate', 'actualCompletionDate', 'Actual Completion', 
-      (value) => formatDate(value),
-      { size: 140 }),
-    createColumn('chassisETA', 'chassisETA', 'Chassis ETA', 
-      (value, project) => <EditableDateField projectId={project.id} field="chassisETA" value={value} />,
-      { size: 140 }),
-    createColumn('dpasRating', 'dpasRating', 'DPAS Rating',
-      (value, project) => <EditableTextField projectId={project.id} field="dpasRating" value={value} />,
-      { size: 120 }),
-    createColumn('stretchShortenGears', 'stretchShortenGears', 'Stretch/Shorten Gears',
-      (value, project) => <EditableTextField projectId={project.id} field="stretchShortenGears" value={value} />,
-      { size: 150 }),
-    createColumn('hasBillingMilestones', 'hasBillingMilestones', 'Payment Milestones',
-      (value) => value ? 'Yes' : 'No',
-      { size: 140 }),
-    createColumn('lltsOrdered', 'lltsOrdered', 'LLTS Ordered',
-      (value) => value ? 'Yes' : 'No',
-      { size: 120 }),
-    createColumn('meAssigned', 'meAssigned', 'ME Assigned',
-      (value, project) => <EditableTextField projectId={project.id} field="meAssigned" value={value} />,
-      { size: 120 }),
-    createColumn('meDesignOrdersPercent', 'meDesignOrdersPercent', 'ME Design %',
-      (value, project) => <EditableTextField projectId={project.id} field="meDesignOrdersPercent" value={value} isPercentage={true} />,
-      { size: 120 }),
-    createColumn('eeAssigned', 'eeAssigned', 'EE Assigned',
-      (value, project) => <EditableTextField projectId={project.id} field="eeAssigned" value={value} />,
-      { size: 120 }),
-    createColumn('eeDesignOrdersPercent', 'eeDesignOrdersPercent', 'EE Design %',
-      (value, project) => <EditableTextField projectId={project.id} field="eeDesignOrdersPercent" value={value} isPercentage={true} />,
-      { size: 120 }),
-    createColumn('iteAssigned', 'iteAssigned', 'ITE Assigned',
-      (value, project) => <EditableTextField projectId={project.id} field="iteAssigned" value={value} />,
-      { size: 120 }),
-    createColumn('itDesignOrdersPercent', 'itDesignOrdersPercent', 'IT Design %',
-      (value, project) => <EditableTextField projectId={project.id} field="itDesignOrdersPercent" value={value} isPercentage={true} />,
-      { size: 120 }),
-    createColumn('ntcDesignOrdersPercent', 'ntcDesignOrdersPercent', 'NTC Design %',
-      (value, project) => <EditableTextField projectId={project.id} field="ntcDesignOrdersPercent" value={value} isPercentage={true} />,
-      { size: 120 }),
-    createColumn('fabricationStart', 'fabricationStart', 'Fabrication Start', 
-      (value, project) => <EditableDateField projectId={project.id} field="fabricationStart" value={value} />,
-      { size: 170 }),
-    createColumn('assemblyStart', 'assemblyStart', 'Assembly Start', 
-      (value, project) => <EditableDateField projectId={project.id} field="assemblyStart" value={value} />,
-      { size: 170 }),
-    createColumn('wrapDate', 'wrapDate', 'Wrap Date', 
-      (value, project) => <EditableDateField projectId={project.id} field="wrapDate" value={value} />,
-      { size: 170 }),
-    createColumn('ntcTestingDate', 'ntcTestingDate', 'NTC Testing', 
-      (value, project) => <EditableDateField projectId={project.id} field="ntcTestingDate" value={value} />,
-      { size: 170 }),
-    // Create a derived column for NTC Testing Days that doesn't use the column name as accessor
-    {
-      id: 'ntcTestingDays',
-      header: 'NTC Testing Days',
-      cell: ({ row }) => {
-        const project = row.original;
-        // Calculate weekdays between NTC Testing Date and QC Start Date
-        const ntcTestingDate = project.ntcTestingDate;
-        const qcStartDate = project.qcStartDate;
-        
-        // Calculate weekdays
-        const weekdays = calculateWeekdaysBetween(ntcTestingDate, qcStartDate);
-        
-        // If no calculation could be made
-        if (weekdays === null) return 'N/A';
-        
-        // Style based on weekday count
-        let style = '';
-        if (weekdays < 3) {
-          style = 'bg-red-200 text-red-800 px-2 py-1 rounded';
-        } else if (weekdays < 5) {
-          style = 'bg-yellow-200 text-yellow-800 px-2 py-1 rounded';
-        } else {
-          style = 'bg-green-200 text-green-800 px-2 py-1 rounded';
-        }
-        
-        return <div className={style}>{weekdays}</div>;
-      },
-      size: 100
     },
-    createColumn('qcStartDate', 'qcStartDate', 'QC Start', 
-      (value, project) => <EditableDateField projectId={project.id} field="qcStartDate" value={value} />,
-      { size: 170 }),
-    // Create a derived column for QC Days
+    // PM/Owner column
     {
-      id: 'qcDays',
-      header: 'QC Days',
-      cell: ({ row }) => {
-        const project = row.original;
-        // Calculate weekdays between QC Start and Exec Review (or Ship Date if Exec Review isn't set)
-        const qcStartDate = project.qcStartDate;
-        const execReviewDate = project.executiveReviewDate;
-        const shipDate = project.shipDate;
-        
-        // Use Exec Review Date if available, otherwise fall back to Ship Date
-        const endDate = execReviewDate || shipDate;
-        
-        // Calculate weekdays
-        const weekdays = calculateWeekdaysBetween(qcStartDate, endDate);
-        
-        // If no calculation could be made
-        if (weekdays === null) return 'N/A';
-        
-        // Style based on weekday count
-        let style = '';
-        if (weekdays < 3) {
-          style = 'bg-red-200 text-red-800 px-2 py-1 rounded';
-        } else if (weekdays < 5) {
-          style = 'bg-yellow-200 text-yellow-800 px-2 py-1 rounded';
-        } else {
-          style = 'bg-green-200 text-green-800 px-2 py-1 rounded';
-        }
-        
-        return <div className={style}>{weekdays}</div>;
-      },
-      size: 100
+      id: 'pmOwner',
+      header: "PM/Owner",
+      accessorKey: 'pmOwner',
+      cell: ({ row }: { row: ProjectRow }) => (
+        <CellHighlighter 
+          value={row.original.pmOwner || 'N/A'} 
+          highlight={getRawDataField(row.original, 'pmOwnerHighlight', false)}
+          indicator={getRawDataField(row.original, 'pmOwnerIndicator')}
+        />
+      ),
     },
-    createColumn('executiveReviewDate', 'executiveReviewDate', 'Exec Review', 
-      (value, project) => <EditableDateField projectId={project.id} field="executiveReviewDate" value={value} />,
-      { size: 170 }),
-    // Add Photos Taken column with checkbox functionality
+    // Progress column
+    {
+      id: 'progress',
+      header: "Progress",
+      accessorFn: (row: ProjectWithRawData) => row.progress || 0,
+      cell: ({ row }: { row: ProjectRow }) => (
+        <ProgressBadge 
+          value={row.original.progress || 0} 
+          highlight={getRawDataField(row.original, 'progressHighlight', false)}
+          indicator={getRawDataField(row.original, 'progressIndicator')}
+        />
+      ),
+    },
+    // Status column
+    {
+      id: 'status',
+      header: "Status",
+      accessorKey: 'status',
+      cell: ({ row }: { row: ProjectRow }) => (
+        <StatusBadge 
+          status={row.original.status}
+          highlight={getRawDataField(row.original, 'statusHighlight', false)}
+          indicator={getRawDataField(row.original, 'statusIndicator')}
+        />
+      ),
+    },
+    // Photos Taken column
     {
       id: 'photosTaken',
-      header: 'Photos Taken',
+      header: "Photos Taken",
       accessorKey: 'photosTaken',
-      size: 120,
-      cell: ({ row }) => {
-        const project = row.original;
-        const [isChecked, setIsChecked] = useState(project.photosTaken === true);
-        
-        const handleToggle = async () => {
-          const newValue = !isChecked;
-          setIsChecked(newValue);
-          
-          try {
-            await apiRequest('PATCH', `/api/projects/${project.id}`, {
-              photosTaken: newValue
-            });
-            
-            // Update the cache
-            queryClient.setQueryData(['/api/projects'], (oldData: Project[] | undefined) => {
-              if (!oldData) return oldData;
-              return oldData.map(p => 
-                p.id === project.id ? { ...p, photosTaken: newValue } : p
-              );
-            });
-          } catch (error) {
-            console.error('Failed to update photos taken status:', error);
-            // Revert UI state on error
-            setIsChecked(!newValue);
-            toast({
-              title: 'Update Failed',
-              description: 'Could not update photos taken status.',
-              variant: 'destructive'
-            });
-          }
-        };
-        
-        // Wrap with CellHighlighter component
-        return (
-          <CellHighlighter rowId={project.id} columnId="photosTaken">
-            <div className="flex items-center justify-center">
-              {isChecked ? (
-                <div 
-                  className="flex items-center cursor-pointer bg-green-100 text-green-800 px-2 py-1 rounded"
-                  onClick={handleToggle}
-                >
-                  <Check className="h-4 w-4 mr-1" />
-                  <span>COMPLETE</span>
-                </div>
-              ) : (
-                <div 
-                  className="flex items-center cursor-pointer bg-red-100 text-red-800 px-2 py-1 rounded"
-                  onClick={handleToggle}
-                >
-                  <X className="h-4 w-4 mr-1" />
-                  <span>NOT DONE</span>
-                </div>
-              )}
-            </div>
-          </CellHighlighter>
-        );
-      }
-    },
-    createColumn('shipDate', 'shipDate', 'Ship Date', 
-      (value, project) => <EditableDateField projectId={project.id} field="shipDate" value={value} />,
-      { size: 170 }),
-    createColumn('deliveryDate', 'deliveryDate', 'Delivery Date', 
-      (value, project) => <EditableDateField projectId={project.id} field="deliveryDate" value={value} />,
-      { size: 170 }),
-    createColumn('notes', 'notes', 'Notes',
-      (value, project) => <EditableNotesField projectId={project.id} value={value} />,
-      { size: 250 }),
-    createColumn('description', 'description', 'Description',
-      (value, project) => (
-        <div className="text-sm max-w-xs truncate" title={value as string}>
-          {value || 'N/A'}
-        </div>
+      cell: ({ row }: { row: ProjectRow }) => (
+        <PhotosTakenCheckbox
+          checked={!!row.original.photosTaken}
+          onChange={(checked) => handlePhotosTakenChange(row.original.id, checked)}
+        />
       ),
-      { size: 200 }),
-    createColumn('team', 'team', 'Team',
-      (value) => value || 'N/A',
-      { size: 120 }),
+    },
+    // Description column
+    {
+      id: 'description',
+      header: "Description",
+      accessorKey: 'description',
+      cell: ({ row }: { row: ProjectRow }) => (
+        <CellHighlighter 
+          value={row.original.description || 'N/A'} 
+          highlight={getRawDataField(row.original, 'descriptionHighlight', false)}
+          indicator={getRawDataField(row.original, 'descriptionIndicator')}
+          maxLength={150}
+        />
+      ),
+    },
+    // Client column
+    {
+      id: 'client',
+      header: "Client",
+      accessorFn: (row: ProjectWithRawData) => getRawDataField(row, 'client', 'N/A'),
+      cell: ({ row }: { row: ProjectRow }) => (
+        <CellHighlighter 
+          value={getRawDataField(row.original, 'client', 'N/A')} 
+          highlight={getRawDataField(row.original, 'clientHighlight', false)}
+          indicator={getRawDataField(row.original, 'clientIndicator')}
+        />
+      ),
+    },
+    // Ship Date column
+    {
+      id: 'shipDate',
+      header: "Ship Date",
+      accessorFn: (row: ProjectWithRawData) => row.shipDate || 'N/A',
+      cell: ({ row }: { row: ProjectRow }) => {
+        const shipDate = row.original.shipDate 
+          ? new Date(row.original.shipDate)
+          : null;
+          
+        return (
+          <CellHighlighter 
+            value={shipDate ? format(shipDate, 'MMM d, yyyy') : 'N/A'} 
+            highlight={getRawDataField(row.original, 'shipDateHighlight', false)}
+            indicator={getRawDataField(row.original, 'shipDateIndicator')}
+          />
+        );
+      },
+    },
+    // Actions column
     {
       id: 'actions',
-      header: 'Actions',
+      header: "Actions",
       cell: ({ row }: { row: ProjectRow }) => (
-        <div className="text-right space-x-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/project/${row.original.id}`)}>
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/project/${row.original.id}/edit`)}>
-            <Edit className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate(`/projects/${row.original.id}`)}
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>View</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate(`/projects/${row.original.id}/edit`)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigate(`/project/${row.original.id}`)}>
-                View Details
+              <DropdownMenuItem
+                onClick={() => navigate(`/projects/${row.original.id}/timeline`)}
+              >
+                <PieChart className="mr-2 h-4 w-4" />
+                Timeline
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate(`/project/${row.original.id}/edit`)}>
-                Edit Project
+              <DropdownMenuItem
+                onClick={() => navigate(`/bay-scheduling?project=${row.original.id}`)}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                Bay Schedule
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                const projectId = row.original.id;
-                navigate(`/project/${projectId}/task/new`);
-              }}>
-                Add Task
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                toast({
-                  title: "Archive functionality coming soon",
-                  description: "Project archiving will be available in a future update.",
-                });
-                // In the future this will archive projects to a separate database
-                // Implementation will move the project to the archived table in the database
-                // and remove it from the active projects view
-              }}>
-                Archive Project
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => navigate(`/projects/${row.original.id}/billing`)}
+              >
+                <DollarSign className="mr-2 h-4 w-4" />
+                Billing
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       ),
     },
-  ];
+  ], [navigate, handlePhotosTakenChange]);
   
-    // Create dynamic columns based on rawData fields found in the first project
-  const dynamicRawDataColumns = React.useMemo(() => {
-    if (!filteredProjects || filteredProjects.length === 0) return [];
-    
-    const sampleProject = filteredProjects[0];
-    if (!sampleProject.rawData) return [];
-    
-    // Get unique keys from rawData that aren't already in our column set
-    const rawDataKeys = Object.keys(sampleProject.rawData);
-    const existingColumnIds = allColumns.map(col => col.id);
-    
-    // Map common field names to nicer display names
-    const friendlyNames: Record<string, string> = {
-      'chassis_eta': 'Chassis ETA',
-      'delivery_date': 'Delivery Date',
-      'fabrication_start': 'Fabrication Start',
-      'assembly_start': 'Assembly Start',
-      'wrap_date': 'Wrap Date',
-      'ntc_testing_date': 'NTC Testing',
-      'qc_start_date': 'QC Start',
-      'executive_review_date': 'Exec Review',
-      'ship_date': 'Ship Date',
-    };
-    
-    // Create columns for rawData fields
-    return rawDataKeys
-      .filter(key => 
-        typeof sampleProject.rawData[key] !== 'object' && // Skip nested objects
-        sampleProject.rawData[key] !== null // Skip null values
-      )
-      .map(key => {
-        // Determine if this is a numeric column
-        const isNumeric = typeof sampleProject.rawData[key] === 'number';
-        
-        // Determine if this is a date column - check if it contains "date" in the name
-        const isDate = key.toLowerCase().includes('date') || 
-                      key.toLowerCase().includes('eta') ||
-                      key.toLowerCase().includes('start') ||
-                      key.toLowerCase().includes('completion');
-        
-        // Format the header with friendly names and proper capitalization
-        const formattedHeader = friendlyNames[key] || 
-          key.split('_')
-             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-             .join(' ');
-             
-        return {
-          id: `raw_${key}`,
-          header: formattedHeader,
-          accessorFn: (row: ProjectWithRawData) => getRawDataField(row, key),
-          cell: ({ row }: { row: ProjectRow }) => {
-            const value = getRawDataField(row.original, key);
-            
-            // Format based on detected type
-            if (isDate) {
-              return formatDate(value);
-            } else if (isNumeric) {
-              // Add percentage sign for values that look like percentages
-              const numValue = parseFloat(value);
-              if (!isNaN(numValue) && key.toLowerCase().includes('percent')) {
-                return `${numValue}%`;
-              }
-              return value;
-            } else if (typeof value === 'boolean') {
-              return value ? 'Yes' : 'No';
-            }
-            
-            return value || 'N/A';
-          }
-        };
-      });
-  }, [filteredProjects, allColumns]);
-  
-  // Only use standard columns - raw data will be loaded from the project data directly
-  const allAvailableColumns = React.useMemo(() => {
-    // We're only using the core columns for display consistency
-    return allColumns;
-  }, [allColumns]);
-  
-  // Filter columns based on visibility settings
-  const columns = allAvailableColumns.filter(col => 
-    // If the column is new (not in visibleColumns yet), show it by default
-    visibleColumns[col.id as string] === undefined ? true : visibleColumns[col.id as string] !== false
-  );
-
+  // Status options for filtering
   const statusOptions = [
-    { value: 'all', label: 'All Projects' },
-    { value: 'active', label: 'Active Projects' },
-    { value: 'delayed', label: 'Delayed Projects' },
-    { value: 'critical', label: 'Critical Projects' },
-    { value: 'completed', label: 'Completed Projects' },
+    { value: 'active', label: 'Active' },
+    { value: 'delayed', label: 'Delayed' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'critical', label: 'Critical' },
+    { value: 'archived', label: 'Archived' },
   ];
 
-  if (isLoading) {
+  if (projectsLoading) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-sans font-bold mb-6">Project Status</h1>
-        <div className="animate-pulse space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-darkCard h-28 rounded-xl border border-gray-800"></div>
-            ))}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-sans font-bold">Project Status</h1>
+            <p className="text-gray-400 text-sm">Manage and track all your project timelines and progress</p>
           </div>
-          <div className="bg-darkCard h-80 rounded-xl border border-gray-800"></div>
+        </div>
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
+              <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">Loading...</span>
+            </div>
+            <p className="mt-2 text-gray-500">Loading projects...</p>
+          </div>
         </div>
       </div>
     );
@@ -1120,320 +395,156 @@ const ProjectStatus = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <div>
           <h1 className="text-2xl font-sans font-bold">Project Status</h1>
           <p className="text-gray-400 text-sm">Manage and track all your project timelines and progress</p>
         </div>
-        
-        <div className="flex items-center gap-3">
-          {/* Location Filter Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant={locationFilter ? "default" : "outline"} 
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Building2 className="h-4 w-4" />
-                {locationFilter ? `Location: ${locationFilter}` : "Filter by Location"}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setLocationFilter('')}>
-                All Locations
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {projects && 
-                [...new Set(projects
-                  .map(p => p.location)
-                  .filter(Boolean)
-                )]
-                .sort()
-                .map(location => (
-                  <DropdownMenuItem 
-                    key={location} 
-                    onClick={() => setLocationFilter(location || '')}
-                  >
-                    {location}
-                  </DropdownMenuItem>
-                ))
-              }
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          {/* Date Filter Dialog */}
-          <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Filter className="mr-2 h-4 w-4" />
-                Date Filter
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>Filter Projects by Date</DialogTitle>
-              </DialogHeader>
-              
-              <div className="grid grid-cols-2 gap-6 pt-4">
-                <div>
-                  <h3 className="font-semibold mb-3">Start Date</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="startDateMin">From</Label>
-                      <Input
-                        id="startDateMin"
-                        type="date"
-                        value={dateFilters.startDateMin}
-                        onChange={(e) => setDateFilters({...dateFilters, startDateMin: e.target.value})}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="startDateMax">To</Label>
-                      <Input
-                        id="startDateMax"
-                        type="date"
-                        value={dateFilters.startDateMax}
-                        onChange={(e) => setDateFilters({...dateFilters, startDateMax: e.target.value})}
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold mb-3">Estimated Completion</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="endDateMin">From</Label>
-                      <Input
-                        id="endDateMin"
-                        type="date"
-                        value={dateFilters.endDateMin}
-                        onChange={(e) => setDateFilters({...dateFilters, endDateMin: e.target.value})}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="endDateMax">To</Label>
-                      <Input
-                        id="endDateMax"
-                        type="date"
-                        value={dateFilters.endDateMax}
-                        onChange={(e) => setDateFilters({...dateFilters, endDateMax: e.target.value})}
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold mb-3">QC Start Date</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="qcStartDateMin">From</Label>
-                      <Input
-                        id="qcStartDateMin"
-                        type="date"
-                        value={dateFilters.qcStartDateMin}
-                        onChange={(e) => setDateFilters({...dateFilters, qcStartDateMin: e.target.value})}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="qcStartDateMax">To</Label>
-                      <Input
-                        id="qcStartDateMax"
-                        type="date"
-                        value={dateFilters.qcStartDateMax}
-                        onChange={(e) => setDateFilters({...dateFilters, qcStartDateMax: e.target.value})}
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold mb-3">Ship Date</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="shipDateMin">From</Label>
-                      <Input
-                        id="shipDateMin"
-                        type="date"
-                        value={dateFilters.shipDateMin}
-                        onChange={(e) => setDateFilters({...dateFilters, shipDateMin: e.target.value})}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="shipDateMax">To</Label>
-                      <Input
-                        id="shipDateMax"
-                        type="date"
-                        value={dateFilters.shipDateMax}
-                        onChange={(e) => setDateFilters({...dateFilters, shipDateMax: e.target.value})}
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex justify-between mt-6">
-                <div className="text-sm text-gray-400">
-                  {filteredProjects.length} projects match filter criteria
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="destructive" onClick={resetFilters}>
-                    Reset Filters
-                  </Button>
-                  <Button onClick={() => setIsFilterDialogOpen(false)}>
-                    Apply Filters
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-          
-          {/* Column Selector */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <ListFilter className="mr-2 h-4 w-4" />
-                Columns
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 max-h-96 overflow-y-auto">
-              <DropdownMenuCheckboxItem
-                checked={Object.values(visibleColumns).every(Boolean)}
-                onCheckedChange={(checked) => {
-                  const newVisibleColumns = {...visibleColumns};
-                  // Include all columns
-                  allColumns.forEach(col => {
-                    newVisibleColumns[col.id as string] = checked;
-                  });
-                  setVisibleColumns(newVisibleColumns);
-                }}
-              >
-                Show All Columns
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuSeparator />
-              
-              {/* List all columns */}
-              {allColumns.map(column => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  checked={visibleColumns[column.id as string] !== false}
-                  onCheckedChange={() => toggleColumnVisibility(column.id as string)}
+      </div>
+      
+      {/* Filter Buttons Bar - Matches screenshot */}
+      <div className="flex items-center gap-2 mb-6 bg-zinc-900 p-2 rounded-lg shadow-sm">
+        {/* Location Filter Button */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant={locationFilter ? "default" : "outline"} 
+              size="sm"
+              className="flex items-center gap-1"
+            >
+              <Building2 className="h-4 w-4" />
+              Filter by Location
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => setLocationFilter('')}>
+              All Locations
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {projects && 
+              [...new Set(projects
+                .map(p => p.location)
+                .filter(Boolean)
+              )]
+              .sort()
+              .map(location => (
+                <DropdownMenuItem 
+                  key={location} 
+                  onClick={() => setLocationFilter(location || '')}
                 >
-                  {column.header as React.ReactNode}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <Button variant="outline" size="sm">
-            <SortDesc className="mr-2 h-4 w-4" />
-            Sort
-          </Button>
-          
-          <Button size="sm" onClick={() => navigate('/projects/new')}>
-            <Plus className="mr-2 h-4 w-4" />
+                  {location}
+                </DropdownMenuItem>
+              ))
+            }
+          </DropdownMenuContent>
+        </DropdownMenu>
+        
+        {/* Date Filter Button */}
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="flex items-center gap-1"
+          onClick={() => setIsFilterDialogOpen(true)}
+        >
+          <Calendar className="h-4 w-4" />
+          Date Filter
+        </Button>
+        
+        {/* Columns Button */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <ListFilter className="h-4 w-4" />
+              Columns
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>
+              Show All Columns
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              Hide Status Column
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        
+        {/* Sort Button */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <SortDesc className="h-4 w-4" />
+              Sort
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>
+              Sort by Name
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              Sort by Date
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              Sort by Status
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        
+        {/* Spacer to push New Project button to the right */}
+        <div className="flex-grow"></div>
+        
+        {/* New Project Button */}
+        <Link href="/projects/new">
+          <Button className="flex items-center gap-1" size="sm">
+            <Plus className="h-4 w-4" />
             New Project
           </Button>
-        </div>
+        </Link>
       </div>
+      
+      {/* Date Filter Dialog - Separate from buttons */}
+      <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Filter Projects by Date</DialogTitle>
+            <DialogDescription>Select date ranges to filter projects</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-6 pt-4">
+            {/* Date filter content here */}
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
         {/* Total Projects - Wider (5 columns) */}
         <div className="md:col-span-5">
-          <ProjectStatsCard 
-            title="Total Projects"
-            value={projectStats?.total || 0}
-            icon={<Folders className="text-primary h-5 w-5" />}
-            tags={[
-              { label: "Active", value: projectStats?.active || 0, status: "On Track" },
-              { label: "Delayed", value: projectStats?.delayed || 0, status: "Delayed" },
-              { label: "Critical", value: projectStats?.critical || 0, status: "Critical" }
-            ]}
-            stateBreakdown={projectStateBreakdown || undefined}
-            className="h-72"
-          />
+          <ProjectStatsCard />
         </div>
         
-        {/* Upcoming Milestones (2 columns) */}
-        <div className="md:col-span-2">
-          <ProjectStatsCard 
-            title="Upcoming Milestones"
-            value={upcomingMilestones}
-            icon={<Flag className="text-accent h-5 w-5" />}
-            progress={{ 
-              value: upcomingMilestones > 0 && Array.isArray(billingMilestones) && billingMilestones.length > 0 
-                ? Math.round((upcomingMilestones / billingMilestones.length) * 100)
-                : 0, 
-              label: `${upcomingMilestones} due in 30 days` 
-            }}
-            className="h-72"
-          />
-        </div>
-        
-        {/* AI Insights (3 columns) */}
-        <div className="md:col-span-3 h-72 overflow-hidden">
-          <AIInsightsWidget projects={projects || []} />
-        </div>
-        
-        {/* Manufacturing - Narrower (2 columns) */}
-        <div className="md:col-span-2">
-          <ProjectStatsCard 
-            title="Manufacturing"
-            value={`${manufacturingStats.active}/${manufacturingStats.total}`}
-            icon={<Building2 className="text-success h-5 w-5" />}
-            tags={[
-              { label: "Active", value: manufacturingStats.active, status: "On Track" },
-              { label: "Available", value: manufacturingStats.available, status: "Inactive" }
-            ]}
-            className="h-72"
-          />
+        {/* Status Breakdown (7 columns) */}
+        <div className="md:col-span-7">
+          <ProjectStatusBreakdownCard />
         </div>
       </div>
       
-      {/* Project Status Breakdown now part of Total Projects card */}
-      
-      {/* Current Production Status - Horizontal Card */}
+      {/* AI Insights */}
       <div className="mb-6">
-        <HighRiskProjectsCard projects={projects || []} />
+        <AIInsightsWidget />
       </div>
       
-      {/* Project List Table */}
-      <DataTable
-        columns={columns}
-        data={filteredProjects as ProjectWithRawData[]}
-        filterColumn="status"
-        filterOptions={statusOptions}
-        searchPlaceholder="Search projects..."
-        frozenColumns={['location', 'projectNumber', 'name', 'pmOwner', 'progress', 'status']} // Freeze these columns on the left
-        enableSorting={locationFilter !== ''} // Enable sorting on all columns when a location is filtered
-      />
-      
-      {/* Filters Info */}
-      {Object.values(dateFilters).some(v => v !== '') && (
-        <div className="mt-4 bg-gray-900 p-3 rounded-lg flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            <Calendar className="h-4 w-4" />
-            <span>
-              Date filters applied. Showing {filteredProjects.length} out of {projects?.length || 0} projects.
-            </span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={resetFilters}>
-            Clear Filters
-          </Button>
-        </div>
-      )}
+      {/* Projects DataTable */}
+      <div className="mb-6">
+        <DataTable 
+          columns={columns} 
+          data={filteredProjects}
+          filterColumn="status"
+          filterOptions={statusOptions}
+          searchPlaceholder="Search projects..."
+          frozenColumns={['location', 'projectNumber']}
+          enableSorting={!locationFilter}
+        />
+      </div>
     </div>
   );
-};
-
-export default ProjectStatus;
+}
