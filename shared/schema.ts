@@ -181,6 +181,19 @@ export const usersRelations = relations(users, ({ one, many }) => ({
 }));
 
 // User Preferences Table
+// Department enum for user department assignments
+export const userDepartmentEnum = pgEnum("user_department", [
+  "engineering",
+  "manufacturing",
+  "finance",
+  "project_management",
+  "quality_control",
+  "it",
+  "sales",
+  "executive",
+  "other"
+]);
+
 export const userPreferences = pgTable("user_preferences", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull().unique(),
@@ -191,6 +204,12 @@ export const userPreferences = pgTable("user_preferences", {
   defaultView: text("default_view").default("dashboard"),
   showCompletedProjects: boolean("show_completed_projects").default(true),
   dateFormat: text("date_format").default("MM/DD/YYYY"),
+  department: userDepartmentEnum("department"),
+  // Notification preferences for different types
+  notifyBillingUpdates: boolean("notify_billing_updates").default(true),
+  notifyProjectUpdates: boolean("notify_project_updates").default(true),
+  notifyManufacturingUpdates: boolean("notify_manufacturing_updates").default(true),
+  notifySystemUpdates: boolean("notify_system_updates").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

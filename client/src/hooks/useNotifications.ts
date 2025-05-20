@@ -37,9 +37,7 @@ export function useNotifications() {
   // Mark a notification as read
   const markAsRead = useMutation({
     mutationFn: (id: number) => 
-      apiRequest(`/api/notifications/${id}/read`, {
-        method: 'PUT',
-      }),
+      apiRequest('PUT', `/api/notifications/${id}/read`),
     onSuccess: () => {
       // Invalidate both notifications and the count
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
@@ -50,9 +48,7 @@ export function useNotifications() {
   // Mark all notifications as read
   const markAllAsRead = useMutation({
     mutationFn: () => 
-      apiRequest('/api/notifications/read-all', {
-        method: 'PUT',
-      }),
+      apiRequest('PUT', '/api/notifications/read-all'),
     onSuccess: () => {
       // Invalidate both notifications and the count
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
@@ -63,9 +59,7 @@ export function useNotifications() {
   // Delete a notification
   const deleteNotification = useMutation({
     mutationFn: (id: number) => 
-      apiRequest(`/api/notifications/${id}`, {
-        method: 'DELETE',
-      }),
+      apiRequest('DELETE', `/api/notifications/${id}`),
     onSuccess: () => {
       // Invalidate both notifications and the count
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
