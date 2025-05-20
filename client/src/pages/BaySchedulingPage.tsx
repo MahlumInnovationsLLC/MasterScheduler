@@ -66,7 +66,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 })();
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { addDays, addWeeks, addMonths, format } from 'date-fns';
-import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown, Upload, Shuffle, X, Save } from 'lucide-react';
+import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown, Upload, Shuffle, X, Save, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, calculateBayUtilization } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -1176,7 +1176,7 @@ const BaySchedulingPage = () => {
                 onClick={() => isSandboxMode ? exitSandboxMode(false) : enterSandboxMode()}
                 className="flex items-center gap-1"
               >
-                {!isSandboxMode && <span className="h-4 w-4">▶️</span>}
+                {!isSandboxMode && <Play className="h-4 w-4 mr-1" />}
                 {isSandboxMode ? "Exit Sandbox Mode" : "Enter Sandbox Mode"}
               </Button>
             </div>
