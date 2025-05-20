@@ -139,6 +139,7 @@ interface ResizableBayScheduleProps {
   onBayDelete?: (id: number) => Promise<any>;
   dateRange: { start: Date, end: Date };
   viewMode: 'day' | 'week' | 'month' | 'quarter';
+  enableFinancialImpact?: boolean;
 }
 
 interface ScheduleBar {

@@ -74,6 +74,8 @@ import type { QueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -115,6 +117,8 @@ const BaySchedulingPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   // Track which schedule is being processed for more precise loading indicators
   const [processingScheduleId, setProcessingScheduleId] = useState<number | null>(null);
+  // State for financial impact analysis toggle
+  const [showFinancialImpact, setShowFinancialImpact] = useState<boolean>(true);
   
   // Force a refresh of manufacturing schedules when page loads
   // This ensures capacity sharing calculations are correctly applied
@@ -1125,8 +1129,48 @@ const BaySchedulingPage = () => {
       </div>
       
       <div className="rounded-md border border-gray-800 bg-darkCard">
-        <div className="p-4 border-b border-gray-800">
+        <div className="p-4 border-b border-gray-800 flex justify-between items-center">
           <h2 className="text-lg font-semibold">Manufacturing Schedule</h2>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex border border-border rounded-md overflow-hidden">
+              <Button 
+                size="sm" 
+                variant={viewMode === 'day' ? 'default' : 'ghost'} 
+                className="rounded-none"
+                onClick={() => setViewMode('day')}
+              >
+                Day
+              </Button>
+              <Button 
+                size="sm" 
+                variant={viewMode === 'week' ? 'default' : 'ghost'} 
+                className="rounded-none"
+                onClick={() => setViewMode('week')}
+              >
+                Week
+              </Button>
+              <Button 
+                size="sm" 
+                variant={viewMode === 'month' ? 'default' : 'ghost'} 
+                className="rounded-none"
+                onClick={() => setViewMode('month')}
+              >
+                Month
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Switch 
+                id="financial-impact-toggle"
+                checked={showFinancialImpact}
+                onCheckedChange={setShowFinancialImpact}
+              />
+              <Label htmlFor="financial-impact-toggle" className="text-sm cursor-pointer">
+                Financial Impact Analysis
+              </Label>
+            </div>
+          </div>
         </div>
         <div className="p-4 overflow-x-auto">
           {/* Row Position Testing Tool removed as requested */}
@@ -1146,6 +1190,7 @@ const BaySchedulingPage = () => {
             onBayDelete={(id) => deleteBayMutation.mutateAsync(id)}
             dateRange={dateRange}
             viewMode={viewMode}
+            enableFinancialImpact={showFinancialImpact}
           />
         </div>
       </div>
