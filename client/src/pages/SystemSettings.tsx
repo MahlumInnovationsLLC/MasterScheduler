@@ -794,6 +794,118 @@ const SystemSettings = () => {
                                         />
                                         <Label htmlFor="approved">User is approved</Label>
                                       </div>
+                                      
+                                      <div className="space-y-2">
+                                        <Label htmlFor="department">Department</Label>
+                                        <Select 
+                                          value={editingUser.preferences?.department || ''}
+                                          onValueChange={value => setEditingUser({
+                                            ...editingUser, 
+                                            preferences: {
+                                              ...editingUser.preferences || {},
+                                              department: value
+                                            }
+                                          })}
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Select department" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="engineering">Engineering</SelectItem>
+                                            <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                                            <SelectItem value="finance">Finance</SelectItem>
+                                            <SelectItem value="project_management">Project Management</SelectItem>
+                                            <SelectItem value="quality_control">Quality Control</SelectItem>
+                                            <SelectItem value="it">IT</SelectItem>
+                                            <SelectItem value="sales">Sales</SelectItem>
+                                            <SelectItem value="executive">Executive</SelectItem>
+                                            <SelectItem value="other">Other</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      
+                                      <div className="space-y-4 mt-6">
+                                        <h4 className="font-medium text-sm">Notification Preferences</h4>
+                                        <div className="space-y-2 border border-gray-700 rounded-md p-4">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <Label className="text-sm font-medium" htmlFor="notifyBilling">Billing Updates</Label>
+                                              <p className="text-xs text-muted-foreground">Receive updates about billing milestones and financial changes</p>
+                                            </div>
+                                            <Switch 
+                                              id="notifyBilling" 
+                                              checked={editingUser.preferences?.notifyBillingUpdates !== false}
+                                              onCheckedChange={checked => setEditingUser({
+                                                ...editingUser, 
+                                                preferences: {
+                                                  ...editingUser.preferences || {},
+                                                  notifyBillingUpdates: checked
+                                                }
+                                              })}
+                                            />
+                                          </div>
+                                          
+                                          <Separator className="my-2" />
+                                          
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <Label className="text-sm font-medium" htmlFor="notifyProject">Project Updates</Label>
+                                              <p className="text-xs text-muted-foreground">Receive updates about project status changes and deadlines</p>
+                                            </div>
+                                            <Switch 
+                                              id="notifyProject" 
+                                              checked={editingUser.preferences?.notifyProjectUpdates !== false}
+                                              onCheckedChange={checked => setEditingUser({
+                                                ...editingUser, 
+                                                preferences: {
+                                                  ...editingUser.preferences || {},
+                                                  notifyProjectUpdates: checked
+                                                }
+                                              })}
+                                            />
+                                          </div>
+                                          
+                                          <Separator className="my-2" />
+                                          
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <Label className="text-sm font-medium" htmlFor="notifyManufacturing">Manufacturing Updates</Label>
+                                              <p className="text-xs text-muted-foreground">Receive updates about manufacturing schedules and bay assignments</p>
+                                            </div>
+                                            <Switch 
+                                              id="notifyManufacturing" 
+                                              checked={editingUser.preferences?.notifyManufacturingUpdates !== false}
+                                              onCheckedChange={checked => setEditingUser({
+                                                ...editingUser, 
+                                                preferences: {
+                                                  ...editingUser.preferences || {},
+                                                  notifyManufacturingUpdates: checked
+                                                }
+                                              })}
+                                            />
+                                          </div>
+                                          
+                                          <Separator className="my-2" />
+                                          
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <Label className="text-sm font-medium" htmlFor="notifySystem">System Updates</Label>
+                                              <p className="text-xs text-muted-foreground">Receive important system notifications and announcements</p>
+                                            </div>
+                                            <Switch 
+                                              id="notifySystem" 
+                                              checked={editingUser.preferences?.notifySystemUpdates !== false}
+                                              onCheckedChange={checked => setEditingUser({
+                                                ...editingUser, 
+                                                preferences: {
+                                                  ...editingUser.preferences || {},
+                                                  notifySystemUpdates: checked
+                                                }
+                                              })}
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
                                     </div>
                                   )}
                                   
