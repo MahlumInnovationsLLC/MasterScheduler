@@ -3499,7 +3499,7 @@ export default function ResizableBaySchedule({
                                 {/* Top phases (PRODUCTION, IT, NTC, QC) - fixed height at top */}
                                 <div className="top-phases flex w-full h-[32px] overflow-hidden absolute top-0 left-0 z-20">
                                   {/* ALWAYS add spacer equal to fab+paint width to ensure phases don't start prematurely */}
-                                  <div className="spacer" style={{ width: `${bar.fabWidth + bar.paintWidth}px` }}></div>
+                                  <div className="spacer" style={{ width: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + 4}px` }}></div>
                                   
                                   {/* Production phase (starts after paint ends) */}
                                   {bar.productionWidth && bar.productionWidth > 0 && (
@@ -3556,15 +3556,12 @@ export default function ResizableBaySchedule({
                                 {/* Project information display centered below the PROD section */}
                                 <div className="project-info absolute flex flex-col items-center justify-center z-30"
                                      style={{
-                                       left: `${bar.fabWidth + bar.paintWidth + (bar.productionWidth / 2) - 70}px`,
+                                       left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + ((bar.productionWidth || 0) / 2) - 100}px`,
                                        top: '33px',
-                                       width: '140px',
+                                       width: '200px',
                                      }}>
-                                  <div className="text-xs font-bold text-white bg-black bg-opacity-70 px-2 py-1 rounded-md text-center">
-                                    {bar.projectNumber}
-                                  </div>
-                                  <div className="text-[10px] text-white bg-black bg-opacity-50 px-1 mt-1 rounded-sm text-center max-w-[140px] truncate">
-                                    {bar.projectName}
+                                  <div className="text-xs font-bold text-white bg-black bg-opacity-90 px-2 py-1 rounded-md text-center whitespace-normal" style={{maxWidth: "200px"}}>
+                                    {bar.projectNumber} - {bar.projectName}
                                   </div>
                                 </div>
                                 
