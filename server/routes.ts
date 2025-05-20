@@ -895,21 +895,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Import date utility functions
             const { adjustToNextBusinessDay } = await import("../shared/utils/date-utils");
             
-            // TIMELINE CALIBRATION FIX: Match the frontend's date system
-            // The frontend uses a custom timeline with a 4-week offset (see ResizableBaySchedule.tsx:269)
-            // Frontend timeline starts at November 6, 2023 (line 258) with a 4-week calibration
+            // REAL-TIME DATE USAGE WITH NO CALIBRATION WHATSOEVER
+            // Use exact dates from the request with no adjustments
             
-            // CRITICAL FIX: Frontend shows Week 20 (May 19-25) visually as ending on May 26, 2025
-            // This calibration ensures backend dates match what the user sees in the UI
+            // Process the dates directly from the request without any modification
+            const endDateFromRequest = new Date(endDate);
+            const totalProjectDuration = differenceInDays(endDateFromRequest, startDate);
             
-            // Force set the end date to May 26, 2025 (Week 20) to match the UI timeline display
-            const visualEndDate = new Date('2025-05-26');
-            
-            // Use the visual end date for all calculations to ensure perfect alignment
-            const totalProjectDuration = differenceInDays(visualEndDate, startDate);
-            
-            console.log(`ENFORCING VISUAL ALIGNMENT: Setting end date to 2025-05-26 (Week 20) per UI screenshot`);
-            console.log(`Total project duration using visual alignment: ${totalProjectDuration} days`);
+            console.log(`USING EXACT DATES: startDate=${format(startDate, 'yyyy-MM-dd')}, endDate=${format(endDateFromRequest, 'yyyy-MM-dd')}`);
+            console.log(`Total project duration using real dates: ${totalProjectDuration} days`);
             
             // Calculate phase dates using exact percentages to match the visual representation
             const fabDuration = Math.ceil(totalProjectDuration * (fabPercent / 100));
@@ -919,13 +913,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const ntcDuration = Math.ceil(totalProjectDuration * (ntcPercent / 100));
             const qcDuration = Math.ceil(totalProjectDuration * (qcPercent / 100));
             
-            // Calculate exact phase end dates
+            // Calculate exact phase end dates using real dates (no adjustments)
             const fabEndDate = addDays(startDate, fabDuration);
             const paintEndDate = addDays(fabEndDate, paintDuration);
             const prodEndDate = addDays(paintEndDate, prodDuration);
             const itEndDate = addDays(prodEndDate, itDuration);
             const ntcEndDate = addDays(itEndDate, ntcDuration);
-            // QC end date is the visual end date
+            // QC end date is exactly the endDateFromRequest (no adjustments)
             
             // Now adjust for business days
             const fabStartAdjusted = adjustToNextBusinessDay(startDate) || startDate;
@@ -936,8 +930,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const qcStartAdjusted = adjustToNextBusinessDay(ntcEndDate) || ntcEndDate;
             
             // Calculate Executive Review date (80% through QC phase)
-            // Calculate from QC start date to visualEndDate (end of project)
-            const qcToEndDuration = differenceInDays(visualEndDate, qcStartAdjusted);
+            // Calculate from QC start date to end date (end of project)
+            const qcToEndDuration = differenceInDays(endDateFromRequest, qcStartAdjusted);
             const execReviewDaysFromQcStart = Math.ceil(qcToEndDuration * 0.8);
             const tempExecReviewStart = addDays(qcStartAdjusted, execReviewDaysFromQcStart);
             const execReviewAdjusted = adjustToNextBusinessDay(tempExecReviewStart) || tempExecReviewStart;
@@ -957,19 +951,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // ENHANCED: Mark this project as scheduled
               isScheduled: true,
               
-              // ENHANCED: Store original phase values to allow reverting if needed
+              // Store original phase values to allow reverting if needed
               lastScheduledDate: new Date().toISOString(),
               lastScheduledStartDate: format(startDate, 'yyyy-MM-dd'),
-              lastScheduledEndDate: format(visualEndDate, 'yyyy-MM-dd'),
+              lastScheduledEndDate: format(endDateFromRequest, 'yyyy-MM-dd'),
               
-              // Basic dates
+              // Basic dates - use EXACT dates from request with no adjustments
               startDate: format(startDate, 'yyyy-MM-dd'),
-              // CRITICAL FIX: Use the visual end date (May 26, 2025) from Week 20 in the UI
-              // This ensures perfect alignment between what user sees and what's stored
-              estimatedCompletionDate: format(visualEndDate, 'yyyy-MM-dd'),
-              // CRITICAL: Set shipDate to exactly May 26, 2025 to match Week 20 in the UI
-              // This ensures that the visual representation matches the backend data
-              shipDate: format(visualEndDate, 'yyyy-MM-dd'),
+              // Use the exact end date from the request
+              estimatedCompletionDate: format(endDateFromRequest, 'yyyy-MM-dd'),
+              // Set shipDate to match the exact end date from request
+              shipDate: format(endDateFromRequest, 'yyyy-MM-dd'),
               // Only update deliveryDate if it's not already set
               ...(
                 !project.deliveryDate 

@@ -235,38 +235,29 @@ const getBayRowCount = (bayId: number, bayName: string) => {
   return 1; // Always return 1 row for the simplified single-row layout
 };
 
-// CALENDAR CORRECTION: Fixed 4-week offset in date display
+// REAL-TIME DATE DISPLAY: No offsets or calibrations
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
   const slots: TimeSlot[] = [];
   
-  // OFFSET CORRECTION: Fix the 4-week offset by adjusting the starting date
-  // This ensures dates align with the UI week headers
-  let currentDate = new Date(2024, 0, 1); // January 1, 2024
+  // Use the actual date range provided with no adjustments
+  // This ensures what you see is exactly what you get
+  let currentDate = new Date(dateRange.start);
   
-  // Zero out time component
+  // Zero out time component for consistent day boundaries
   currentDate.setHours(0, 0, 0, 0);
   
-  // NEW CALIBRATION APPROACH
-  // Instead of trying to adjust the timeline, let's use specific reference dates
-  if (viewMode === 'week') {
-    // Explicitly set to 4 weeks earlier than what we see in the UI
-    // This ensures project 804666 scheduled for 5/5/2025 shows in the week of 5/5/2025 
-    // and not 6/2/2025 as seen in the screenshot
-    
-    // CRITICAL: Set specific reference date - 11/06/2023 is well before any of our schedules
-    // and allows us to build a consistent timeline
-    currentDate = new Date(2023, 10, 6); // November 6, 2023 (Monday)
-    
-    // The date is already a Monday, so no need for additional adjustment
-    console.log(`USING CALIBRATED REFERENCE DATE: ${format(currentDate, 'yyyy-MM-dd')}`);
-    console.log(`This should fix the 4-week offset seen in the UI`);
+  // If viewing by week, adjust to start on Monday
+  if (viewMode === 'week' && currentDate.getDay() !== 1) {
+    // Find the previous Monday
+    const daysToSubtract = currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1;
+    currentDate = addDays(currentDate, -daysToSubtract);
   }
   
-  // Keep the end date stable for grid consistency
-  const forcedEndDate = new Date(2030, 11, 31); // December 31, 2030
+  // Use the actual end date from the range with reasonable limit
+  const endDate = new Date(2030, 11, 31); // Far future end date for scrolling
   
-  console.log(`⏱️ DATE GRID CORRECTION: Using ${format(currentDate, 'yyyy-MM-dd')} to ${format(forcedEndDate, 'yyyy-MM-dd')}`);
-  console.log(`OFFSET FIX: Applied 4-week (-28 day) adjustment to correct date display`);
+  console.log(`⏱️ USING ACTUAL DATES: ${format(currentDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
+  console.log(`NO CALIBRATION: All dates shown are actual calendar dates with no offsets`);
   
   // Loop until we reach the forced 2030 end date
   while (currentDate <= forcedEndDate) {
