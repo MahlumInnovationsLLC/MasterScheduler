@@ -144,9 +144,13 @@ export function DataTable<TData, TValue>({
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
       <div className="p-4 border-b border-border flex justify-between items-center">
-        <h2 className="font-bold text-lg">
-          {table.getFilteredRowModel().rows.length} Results
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="font-bold text-lg">
+            {table.getFilteredRowModel().rows.length} Results
+          </h2>
+          {/* Extra slot for custom filter buttons - will be used by ProjectStatus page */}
+          <div id="custom-filter-buttons"></div>
+        </div>
         <div className="flex items-center gap-3">
           <div className="relative">
             <Input
