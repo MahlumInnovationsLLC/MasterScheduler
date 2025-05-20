@@ -941,10 +941,9 @@ export default function ResizableBaySchedule({
       // No offsets, no adjustments - use the actual date position
       const left = daysFromStart * pixelsPerDay;
       
-      console.log(`Schedule ${schedule.id} position fix:`, {
+      console.log(`Schedule ${schedule.id} position:`, {
         date: format(startDate, 'yyyy-MM-dd'),
-        daysFromJan2024: daysFromStart,
-        adjustedDays: fixedDaysFromStart,
+        daysFromStart: daysFromStart,
         pixelPosition: left
       });
       
@@ -3540,72 +3539,77 @@ export default function ResizableBaySchedule({
                               onDragStart={(e) => handleDragStart(e, bar.id)}
                               onDragEnd={handleDragEnd}
                             >
-                              {/* Department phases visualization - INTEGRATED DESIGN */}
-                              <div className="phases-container flex w-full h-full">
-                                {/* Fixed-connection phases that move as a single unit */}
-                                <div className="all-phases-container relative w-full h-full">
-                                  {/* FAB phase (starts from the left) - bottom */}
-                                  {bar.fabWidth && bar.fabWidth > 0 && (
-                                    <div className="fab-phase bg-blue-700 h-[24px] flex items-center justify-center absolute bottom-3 left-0" 
-                                         style={{ width: `${bar.fabWidth}px` }}>
-                                      <span className="text-xs font-bold text-white text-center">FAB</span>
-                                    </div>
-                                  )}
+                              {/* Department phases visualization - COMPLETELY INTEGRATED DESIGN */}
+                              <div className="phases-container w-full h-full">
+                                <div className="all-phases-container w-full h-full relative">
+                                  {/* Top row of phases (production through QC) */}
+                                  <div className="top-phases w-full h-[26px] absolute top-0 left-0">
+                                    {/* Production phase (starts after paint) */}
+                                    {bar.productionWidth && bar.productionWidth > 0 && (
+                                      <div className="production-phase bg-yellow-700 h-full absolute" 
+                                           style={{ 
+                                             width: `${bar.productionWidth}px`,
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px`
+                                           }}>
+                                        <span className="text-xs font-bold text-gray-800 h-full w-full flex items-center justify-center">PROD</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* IT phase */}
+                                    {bar.itWidth && bar.itWidth > 0 && (
+                                      <div className="it-phase bg-purple-700 h-full absolute" 
+                                           style={{ 
+                                             width: `${bar.itWidth}px`,
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0)}px`
+                                           }}>
+                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">IT</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* NTC phase */}
+                                    {bar.ntcWidth && bar.ntcWidth > 0 && (
+                                      <div className="ntc-phase bg-cyan-700 h-full absolute" 
+                                           style={{ 
+                                             width: `${bar.ntcWidth}px`,
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0)}px`
+                                           }}>
+                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">NTC</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* QC phase */}
+                                    {bar.qcWidth && bar.qcWidth > 0 && (
+                                      <div className="qc-phase bg-pink-700 h-full absolute" 
+                                           style={{ 
+                                             width: `${bar.qcWidth}px`,
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0)}px`
+                                           }}>
+                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">QC</span>
+                                      </div>
+                                    )}
+                                  </div>
                                   
-                                  {/* PAINT phase (follows FAB) - bottom */}
-                                  {bar.paintWidth && bar.paintWidth > 0 && (
-                                    <div className="paint-phase bg-green-700 h-[24px] flex items-center justify-center absolute bottom-3" 
-                                         style={{ 
-                                           width: `${bar.paintWidth}px`,
-                                           left: `${bar.fabWidth || 0}px`
-                                         }}>
-                                      <span className="text-xs font-bold text-white text-center">PAINT</span>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Production phase (top) */}
-                                  {bar.productionWidth && bar.productionWidth > 0 && (
-                                    <div className="production-phase bg-yellow-700 h-[26px] flex items-center justify-center absolute top-0" 
-                                         style={{ 
-                                           width: `${bar.productionWidth}px`,
-                                           left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px`
-                                         }}>
-                                      <span className="text-xs font-bold text-gray-800 text-center">PROD</span>
-                                    </div>
-                                  )}
-                                  
-                                  {/* IT phase (top) */}
-                                  {bar.itWidth && bar.itWidth > 0 && (
-                                    <div className="it-phase bg-purple-700 h-[26px] flex items-center justify-center absolute top-0" 
-                                         style={{ 
-                                           width: `${bar.itWidth}px`,
-                                           left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0)}px`
-                                         }}>
-                                      <span className="text-xs font-bold text-white text-center">IT</span>
-                                    </div>
-                                  )}
-                                  
-                                  {/* NTC phase (top) */}
-                                  {bar.ntcWidth && bar.ntcWidth > 0 && (
-                                    <div className="ntc-phase bg-cyan-700 h-[26px] flex items-center justify-center absolute top-0" 
-                                         style={{ 
-                                           width: `${bar.ntcWidth}px`,
-                                           left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0)}px`
-                                         }}>
-                                      <span className="text-xs font-bold text-white text-center">NTC</span>
-                                    </div>
-                                  )}
-                                  
-                                  {/* QC phase (top) */}
-                                  {bar.qcWidth && bar.qcWidth > 0 && (
-                                    <div className="qc-phase bg-pink-700 h-[26px] flex items-center justify-center absolute top-0" 
-                                         style={{ 
-                                           width: `${bar.qcWidth}px`,
-                                           left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0)}px`
-                                         }}>
-                                      <span className="text-xs font-bold text-white text-center">QC</span>
-                                    </div>
-                                  )}
+                                  {/* Bottom row of phases (FAB and PAINT) */}
+                                  <div className="bottom-phases w-full h-[24px] absolute bottom-3 left-0">
+                                    {/* FAB phase (starts from left) */}
+                                    {bar.fabWidth && bar.fabWidth > 0 && (
+                                      <div className="fab-phase bg-blue-700 h-full absolute left-0" 
+                                           style={{ width: `${bar.fabWidth}px` }}>
+                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">FAB</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* PAINT phase (follows FAB) */}
+                                    {bar.paintWidth && bar.paintWidth > 0 && (
+                                      <div className="paint-phase bg-green-700 h-full absolute" 
+                                           style={{ 
+                                             width: `${bar.paintWidth}px`,
+                                             left: `${bar.fabWidth || 0}px`
+                                           }}>
+                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">PAINT</span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                                 
                                 {/* Project information display centered below the PROD section */}
