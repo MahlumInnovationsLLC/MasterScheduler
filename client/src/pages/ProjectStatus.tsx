@@ -88,8 +88,8 @@ const formatColumnName = (column: string): string => {
 };
 
 const ProjectStatus = () => {
-  // State for showing all projects (including future projects)
-  const [showAllProjects, setShowAllProjects] = useState(false);
+  // State for archived projects visibility
+  const [showArchived, setShowArchived] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { data: projects, isLoading } = useQuery<Project[]>({
@@ -110,15 +110,48 @@ const ProjectStatus = () => {
   // Flag to track if initial auto-filtering has been applied
   const [hasAppliedInitialFilter, setHasAppliedInitialFilter] = useState(false);
   
-  // We're no longer auto-filtering by ship date
-  // Instead we'll highlight past-due items
-  
-  // Helper to get valid dates and handle null/invalid dates
-  const getValidDate = (dateStr: string | null | undefined) => {
-    if (!dateStr) return null;
-    const date = new Date(dateStr);
-    return isNaN(date.getTime()) ? null : date;
-  };
+  // Auto-filter projects by next ship date on initial load
+  useEffect(() => {
+    if (!projects || hasAppliedInitialFilter) return;
+    
+    // Helper to get valid dates and handle null/invalid dates
+    const getValidDate = (dateStr: string | null | undefined) => {
+      if (!dateStr) return null;
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? null : date;
+    };
+    
+    // Find upcoming ship dates (after today)
+    const now = new Date();
+    const upcomingProjects = projects.filter(p => {
+      const shipDate = getValidDate(p.shipDate);
+      return shipDate && shipDate >= now;
+    });
+    
+    // If we have upcoming projects with ship dates, auto-filter by ship date
+    if (upcomingProjects.length > 0) {
+      // Sort by earliest ship date
+      const earliestShipDate = upcomingProjects
+        .sort((a, b) => {
+          const dateA = getValidDate(a.shipDate);
+          const dateB = getValidDate(b.shipDate);
+          if (!dateA) return 1;
+          if (!dateB) return -1;
+          return dateA.getTime() - dateB.getTime();
+        })[0];
+      
+      if (earliestShipDate?.shipDate) {
+        // Set a ship date minimum filter to today
+        setDateFilters(prev => ({
+          ...prev,
+          shipDateMin: now.toISOString().split('T')[0]
+        }));
+      }
+    }
+    
+    // Mark that we've applied the initial filter
+    setHasAppliedInitialFilter(true);
+  }, [projects, hasAppliedInitialFilter]);
   
   // State for visible columns
   const [visibleColumns, setVisibleColumns] = useState<{ [key: string]: boolean }>({
@@ -300,16 +333,10 @@ const ProjectStatus = () => {
     
     // Cast projects to ProjectWithRawData[] to ensure rawData is available
     return (projects as ProjectWithRawData[]).filter((project: ProjectWithRawData) => {
-      // If we're not showing all projects, filter out future projects
-      if (!showAllProjects) {
-        // Find upcoming ship dates (after today)
-        const now = new Date();
-        const shipDate = project.shipDate ? new Date(project.shipDate) : null;
-        
-        // Hide projects with a future ship date unless specifically showing all projects
-        if (shipDate && shipDate > now) {
-          return false;
-        }
+      // First, exclude archived projects as they shouldn't appear in results by default
+      // Unless showArchived is true
+      if (project.status === 'archived' && !showArchived) {
+        return false;
       }
       
       // Check if any filter is active
@@ -354,10 +381,36 @@ const ProjectStatus = () => {
       
       return true;
     });
-  }, [projects, dateFilters, locationFilter, showAllProjects]);
+  }, [projects, dateFilters, locationFilter, showArchived]);
   
-  // Instead of moving buttons with DOM manipulation, we'll render the buttons in both places 
-  // but keep the original hidden and the target visible, sharing the same state
+  // Effect to move filter buttons into table header
+  useEffect(() => {
+    // Wait for the DOM to be ready
+    const moveFilterButtons = () => {
+      const source = document.getElementById('custom-filter-buttons-source');
+      const target = document.getElementById('custom-filter-buttons');
+      
+      if (source && target) {
+        // Clear previous content
+        target.innerHTML = '';
+        
+        // Clone the buttons to preserve event handlers
+        const buttons = source.cloneNode(true);
+        
+        // Make the buttons visible and enable pointer events
+        buttons.classList.remove('opacity-0');
+        buttons.classList.remove('pointer-events-none');
+        
+        // Move the content
+        target.appendChild(buttons);
+      }
+    };
+    
+    // Run after a short delay to ensure both elements exist
+    const timer = setTimeout(moveFilterButtons, 100);
+    
+    return () => clearTimeout(timer);
+  }, [locationFilter, showArchived]); // Re-run when filter state changes
 
   // Calculate upcoming milestones within the next 30 days
   const upcomingMilestones = React.useMemo(() => {
@@ -1486,15 +1539,15 @@ const ProjectStatus = () => {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* Show All Projects Toggle */}
+            {/* Show Archived Projects Toggle */}
             <Button 
-              variant={showAllProjects ? "default" : "outline"}
+              variant={showArchived ? "default" : "outline"}
               size="sm" 
               className="flex items-center gap-1"
-              onClick={() => setShowAllProjects(!showAllProjects)}
+              onClick={() => setShowArchived(!showArchived)}
             >
-              <Calendar className="h-4 w-4" />
-              {showAllProjects ? "Hide Future Projects" : "Show Future Projects"}
+              <Archive className="h-4 w-4" />
+              {showArchived ? "Hide Archived" : "Show Archived"}
             </Button>
             
             {/* Sort Button (Only enabled when location filtered) */}
