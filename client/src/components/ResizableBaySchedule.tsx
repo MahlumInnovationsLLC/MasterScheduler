@@ -3494,42 +3494,78 @@ export default function ResizableBaySchedule({
                               onDragStart={(e) => handleDragStart(e, bar.id)}
                               onDragEnd={handleDragEnd}
                             >
-                              {/* Department phases visualization */}
-                              <div className="phases-container flex h-full w-full absolute top-0 left-0 overflow-hidden rounded">
-                                {bar.fabWidth && bar.fabWidth > 0 && (
-                                  <div className="fab-phase bg-blue-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.fabWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">FAB</span>
-                                  </div>
-                                )}
-                                {bar.paintWidth && bar.paintWidth > 0 && (
-                                  <div className="paint-phase bg-green-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.paintWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">PAINT</span>
-                                  </div>
-                                )}
-                                {bar.productionWidth && bar.productionWidth > 0 && (
-                                  <div className="production-phase bg-yellow-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.productionWidth}px` }}>
-                                    <span className="text-xs font-bold text-gray-800 text-center">PROD</span>
-                                  </div>
-                                )}
-                                {bar.itWidth && bar.itWidth > 0 && (
-                                  <div className="it-phase bg-purple-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.itWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">IT</span>
-                                  </div>
-                                )}
-                                {bar.ntcWidth && bar.ntcWidth > 0 && (
-                                  <div className="ntc-phase bg-cyan-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.ntcWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">NTC</span>
-                                  </div>
-                                )}
-                                {bar.qcWidth && bar.qcWidth > 0 && (
-                                  <div className="qc-phase bg-pink-700 h-full flex items-center justify-center" 
-                                       style={{ width: `${bar.qcWidth}px` }}>
-                                    <span className="text-xs font-bold text-white text-center">QC</span>
+                              {/* Department phases visualization - REDESIGNED */}
+                              <div className="phases-container relative w-full h-full overflow-hidden rounded">
+                                {/* Top row - PRODUCTION, IT, NTC, QC phases */}
+                                <div className="top-phases flex h-[55%] w-full absolute top-0 left-0 overflow-hidden">
+                                  {/* If there's a paint phase, add spacer equal to fab+paint width */}
+                                  {bar.paintWidth && bar.paintWidth > 0 && bar.fabWidth && bar.fabWidth > 0 && (
+                                    <div className="spacer" style={{ width: `${bar.fabWidth + bar.paintWidth}px` }}></div>
+                                  )}
+                                  
+                                  {/* Production phase (starts after paint ends) */}
+                                  {bar.productionWidth && bar.productionWidth > 0 && (
+                                    <div className="production-phase bg-yellow-700 h-full flex items-center justify-center" 
+                                         style={{ width: `${bar.productionWidth}px` }}>
+                                      <span className="text-xs font-bold text-gray-800 text-center">PROD</span>
+                                    </div>
+                                  )}
+                                  
+                                  {/* IT phase */}
+                                  {bar.itWidth && bar.itWidth > 0 && (
+                                    <div className="it-phase bg-purple-700 h-full flex items-center justify-center" 
+                                         style={{ width: `${bar.itWidth}px` }}>
+                                      <span className="text-xs font-bold text-white text-center">IT</span>
+                                    </div>
+                                  )}
+                                  
+                                  {/* NTC phase */}
+                                  {bar.ntcWidth && bar.ntcWidth > 0 && (
+                                    <div className="ntc-phase bg-cyan-700 h-full flex items-center justify-center" 
+                                         style={{ width: `${bar.ntcWidth}px` }}>
+                                      <span className="text-xs font-bold text-white text-center">NTC</span>
+                                    </div>
+                                  )}
+                                  
+                                  {/* QC phase */}
+                                  {bar.qcWidth && bar.qcWidth > 0 && (
+                                    <div className="qc-phase bg-pink-700 h-full flex items-center justify-center" 
+                                         style={{ width: `${bar.qcWidth}px` }}>
+                                      <span className="text-xs font-bold text-white text-center">QC</span>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Bottom row - FAB and PAINT phases */}
+                                <div className="bottom-phases flex h-[55%] w-full absolute bottom-0 left-0 overflow-hidden">
+                                  {/* FAB phase (starts from the left) */}
+                                  {bar.fabWidth && bar.fabWidth > 0 && (
+                                    <div className="fab-phase bg-blue-700 h-full flex items-center justify-center" 
+                                         style={{ width: `${bar.fabWidth}px` }}>
+                                      <span className="text-xs font-bold text-white text-center">FAB</span>
+                                    </div>
+                                  )}
+                                  
+                                  {/* PAINT phase (follows FAB) */}
+                                  {bar.paintWidth && bar.paintWidth > 0 && (
+                                    <div className="paint-phase bg-green-700 h-full flex items-center justify-center" 
+                                         style={{ width: `${bar.paintWidth}px` }}>
+                                      <span className="text-xs font-bold text-white text-center">PAINT</span>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Connection line (vertical segment that connects PAINT to PROD) */}
+                                {bar.paintWidth && bar.paintWidth > 0 && bar.fabWidth && bar.fabWidth > 0 && (
+                                  <div className="connector-line" 
+                                       style={{ 
+                                         position: 'absolute',
+                                         left: `${bar.fabWidth + bar.paintWidth - 3}px`, 
+                                         top: '25%',
+                                         height: '75%',
+                                         width: '3px',
+                                         backgroundColor: '#16a34a' // Green color to match paint
+                                       }}>
                                   </div>
                                 )}
                               </div>
