@@ -3553,24 +3553,24 @@ export default function ResizableBaySchedule({
                                 {/* Connector line between PAINT and PROD */}
                                 <div className="phase-connector-container absolute" style={{
                                   left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) / 2}px`,
-                                  top: '0', 
+                                  bottom: '3px', // Position at bottom of project bar
                                   width: '40px',
-                                  height: '35px',
+                                  height: '40px',
                                   zIndex: 25,
                                   overflow: 'visible'
                                 }}>
-                                  {/* Vertical line from TOP MIDDLE of PAINT */}
+                                  {/* Vertical line from TOP of PAINT box */}
                                   <div className="connector-line-vertical absolute bg-red-500" style={{
                                     left: '0px',
-                                    top: '-8px',
+                                    top: '0px',
                                     width: '2px',
-                                    height: '23px'
+                                    height: '10px'
                                   }}></div>
                                   
                                   {/* Horizontal line to MIDDLE of PROD LEFT SIDE */}
                                   <div className="connector-line-horizontal absolute bg-red-500" style={{
                                     left: '0px',
-                                    top: '15px', // Middle height of the project bar
+                                    top: '10px',
                                     width: '20px',
                                     height: '2px'
                                   }}></div>
@@ -3578,7 +3578,7 @@ export default function ResizableBaySchedule({
                                   {/* Arrow pointing to PROD */}
                                   <div className="connector-arrow absolute" style={{
                                     left: '15px',
-                                    top: '11px',
+                                    top: '6px',
                                     width: '0',
                                     height: '0',
                                     borderTop: '5px solid transparent',
