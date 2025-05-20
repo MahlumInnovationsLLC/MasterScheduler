@@ -3553,16 +3553,16 @@ export default function ResizableBaySchedule({
                                 {/* Connector line between PAINT and PROD */}
                                 <div className="phase-connector-container absolute" style={{
                                   left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) - 10}px`,
-                                  top: '0', 
+                                  bottom: '15px', 
                                   width: '30px',
                                   height: '40px',
                                   zIndex: 25,
                                   overflow: 'visible'
                                 }}>
-                                  {/* Vertical line up from PAINT */}
+                                  {/* Vertical line DOWN from PAINT */}
                                   <div className="connector-line-vertical absolute bg-red-500" style={{
                                     left: '10px',
-                                    top: '-15px',
+                                    top: '0',
                                     width: '2px',
                                     height: '15px'
                                   }}></div>
@@ -3570,7 +3570,7 @@ export default function ResizableBaySchedule({
                                   {/* Horizontal line to PROD */}
                                   <div className="connector-line-horizontal absolute bg-red-500" style={{
                                     left: '10px',
-                                    top: '-15px',
+                                    top: '14px',
                                     width: '20px',
                                     height: '2px'
                                   }}></div>
@@ -3578,7 +3578,7 @@ export default function ResizableBaySchedule({
                                   {/* Arrow pointing to PROD */}
                                   <div className="connector-arrow absolute" style={{
                                     left: '25px',
-                                    top: '-19px',
+                                    top: '10px',
                                     width: '0',
                                     height: '0',
                                     borderTop: '5px solid transparent',
