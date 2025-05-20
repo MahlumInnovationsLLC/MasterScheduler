@@ -177,6 +177,12 @@
   min-height: 80px;
 }
 
+/* Force proper height on schedule bars to fill bay row */
+.schedule-bar {
+  min-height: 70px !important;
+  height: 70px !important;
+}
+
 .week-cell.even-week {
   background-color: rgba(30, 41, 59, 0.7);
 }
