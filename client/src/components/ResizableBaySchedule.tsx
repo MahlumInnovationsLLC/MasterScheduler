@@ -3586,8 +3586,8 @@ export default function ResizableBaySchedule({
                                   {/* Top row of phases (production through QC) */}
                                   <div className="top-phases w-full h-[26px] absolute top-0 left-0">
                                     {/* Production phase (positioned after FAB and PAINT) */}
-                                    {/* Force display for Row 1 projects or use standard conditional check */}
-                                    {(bar.row === 1 || (bar.productionWidth && bar.productionWidth > 0)) && (
+                                    {/* Force display for Row 1/2 projects or use standard conditional check */}
+                                    {(bar.row === 1 || bar.forceRenderPhases || (bar.productionWidth && bar.productionWidth > 0)) && (
                                       <div className="production-phase bg-yellow-700 h-full absolute" 
                                            style={{ 
                                              width: `${Math.max(bar.productionWidth || 30, 20)}px`, // Ensure minimum width, default if missing
@@ -3634,7 +3634,7 @@ export default function ResizableBaySchedule({
                                   {/* Bottom row of phases (FAB and PAINT) */}
                                   <div className="bottom-phases w-full h-[24px] absolute bottom-3 left-0">
                                     {/* FAB phase (starts from left) */}
-                                    {(bar.row === 1 || (bar.fabWidth && bar.fabWidth > 0)) && (
+                                    {(bar.row === 1 || bar.forceRenderPhases || (bar.fabWidth && bar.fabWidth > 0)) && (
                                       <div className="fab-phase bg-blue-700 h-full absolute left-0" 
                                            style={{ 
                                              width: `${Math.max(bar.fabWidth || 20, 10)}px` // Ensure minimum width, default if missing
