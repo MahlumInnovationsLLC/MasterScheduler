@@ -1138,49 +1138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (projectUpdate.deliveryDate || projectUpdate.shipDate) {
                 try {
                   const dateToSync = projectUpdate.deliveryDate || projectUpdate.shipDate;
-                  // Get all billing milestones for this project
-                  const billingMilestones = await storage.getProjectBillingMilestones(projectId);
-                  
-                  // Find all delivery milestones by common naming patterns
-                  const deliveryMilestones = billingMilestones.filter(
-                    milestone => milestone.isDeliveryMilestone || 
-                    (milestone.name && (
-                      milestone.name.toUpperCase().includes("DELIVERY") ||
-                      milestone.name.toUpperCase().includes("100%") ||
-                      milestone.name.includes("Final") ||
-                      milestone.name.includes("final") ||
-                      milestone.name.toUpperCase().includes("FINAL")
-                    ))
-                  );
-                  
-                  if (deliveryMilestones.length > 0) {
-                    console.log(`Found ${deliveryMilestones.length} delivery milestones for project ${projectId} to update from manufacturing schedule change to date: ${dateToSync}`);
-                    
-                    for (const milestone of deliveryMilestones) {
-                      // Store the current ship date as liveDate and mark as changed if it differs from lastAcceptedShipDate
-                      const shipDateChanged = milestone.lastAcceptedShipDate && 
-                                            new Date(dateToSync).getTime() !== new Date(milestone.lastAcceptedShipDate).getTime();
-                                            
-                      await storage.updateBillingMilestone(milestone.id, {
-                        ...milestone,
-                        liveDate: dateToSync,
-                        shipDateChanged: shipDateChanged,
-                        targetInvoiceDate: dateToSync
-                      });
-                    }
-                    
-                    // Add notification about delivery milestone updates
-                    await storage.createNotification({
-                      userId: null, // System notification
-                      title: "Delivery Milestones Updated",
-                      message: `${deliveryMilestones.length} delivery milestone(s) have been updated to match the new manufacturing schedule.`,
-                      type: "system",
-                      priority: "medium",
-                      link: `/billing-milestones?projectId=${projectId}`,
-                      isRead: false,
-                      expiresAt: addDays(new Date(), 7),
-                    });
-                  }
+                  await syncDeliveryMilestonesToShipDate(projectId, dateToSync);
                 } catch (milestoneError) {
                   console.error("Error updating delivery milestones after schedule change:", milestoneError);
                   // Don't fail the request if milestone updates fail
