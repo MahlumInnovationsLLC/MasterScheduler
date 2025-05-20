@@ -1746,25 +1746,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.put("/api/users/:id/role", isAdmin, async (req, res) => {
     try {
-      const { role, isApproved } = req.body;
+      const { role, isApproved, preferences } = req.body;
       if (!role || typeof isApproved !== 'boolean') {
         return res.status(400).json({ message: "Role and approval status are required" });
       }
       
+      // First update the user role and approval status
       const updatedUser = await storage.updateUserRole(req.params.id, role, isApproved);
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
+      }
+
+      // If preferences were provided, update them too
+      if (preferences) {
+        // Get existing preferences or create new ones if they don't exist
+        const existingPrefs = await storage.getUserPreferences(req.params.id);
+        
+        if (existingPrefs) {
+          // Update existing preferences
+          await storage.updateUserPreferences(req.params.id, preferences);
+        } else {
+          // Create new preferences
+          await storage.createUserPreferences({
+            userId: req.params.id,
+            ...preferences
+          });
+        }
       }
       
       // Create an audit log entry for role change
       const performedBy = req.user?.id || "system";
       await storage.createUserAuditLog(
         req.params.id,
-        "ROLE_CHANGE",
+        "USER_UPDATE",
         performedBy,
         { role: updatedUser.role, isApproved: updatedUser.isApproved },
-        { role, isApproved },
-        `Role changed to ${role} and approval status set to ${isApproved ? 'approved' : 'pending'}`
+        { role, isApproved, preferences },
+        `User updated: Role changed to ${role}, approval status set to ${isApproved ? 'approved' : 'pending'}, preferences updated`
       );
       
       res.json(updatedUser);

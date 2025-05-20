@@ -224,13 +224,14 @@ const SystemSettings = () => {
     enabled: !!user && user.role === 'admin',
   });
   
-  // Mutation for updating user roles
+  // Mutation for updating user roles and preferences
   const updateUserMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest(
-        `/api/users/${data.id}/role`, 
-        { method: 'PUT', body: { role: data.role, isApproved: data.isApproved } }
-      );
+      return await apiRequest('PUT', `/api/users/${data.id}/role`, {
+        role: data.role, 
+        isApproved: data.isApproved,
+        preferences: data.preferences || {}
+      });
     },
     onSuccess: () => {
       toast({
@@ -253,10 +254,7 @@ const SystemSettings = () => {
   // Mutation for creating allowed email patterns
   const createAllowedEmailMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest(
-        '/api/allowed-emails', 
-        { method: 'POST', body: data }
-      );
+      return await apiRequest('POST', '/api/allowed-emails', data);
     },
     onSuccess: () => {
       toast({
@@ -279,14 +277,11 @@ const SystemSettings = () => {
   // Mutation for updating allowed email patterns
   const updateAllowedEmailMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest(
-        `/api/allowed-emails/${data.id}`, 
-        { method: 'PUT', body: { 
-          emailPattern: data.emailPattern, 
-          autoApprove: data.autoApprove, 
-          defaultRole: data.defaultRole 
-        }}
-      );
+      return await apiRequest('PUT', `/api/allowed-emails/${data.id}`, { 
+        emailPattern: data.emailPattern, 
+        autoApprove: data.autoApprove, 
+        defaultRole: data.defaultRole 
+      });
     },
     onSuccess: () => {
       toast({
@@ -309,10 +304,7 @@ const SystemSettings = () => {
   // Mutation for deleting allowed email patterns
   const deleteAllowedEmailMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(
-        `/api/allowed-emails/${id}`, 
-        { method: 'DELETE' }
-      );
+      return await apiRequest('DELETE', `/api/allowed-emails/${id}`);
     },
     onSuccess: () => {
       toast({
@@ -413,7 +405,14 @@ const SystemSettings = () => {
     updateUserMutation.mutate({
       id: editingUser.id,
       role: editingUser.role,
-      isApproved: editingUser.isApproved
+      isApproved: editingUser.isApproved,
+      preferences: editingUser.preferences || {
+        department: editingUser.preferences?.department || '',
+        notifyBillingUpdates: editingUser.preferences?.notifyBillingUpdates !== false,
+        notifyProjectUpdates: editingUser.preferences?.notifyProjectUpdates !== false,
+        notifyManufacturingUpdates: editingUser.preferences?.notifyManufacturingUpdates !== false,
+        notifySystemUpdates: editingUser.preferences?.notifySystemUpdates !== false
+      }
     });
   };
   
