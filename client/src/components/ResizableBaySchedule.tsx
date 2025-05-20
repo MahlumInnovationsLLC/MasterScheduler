@@ -3472,7 +3472,7 @@ export default function ResizableBaySchedule({
                               className={`schedule-bar absolute p-1 text-white text-xs rounded cursor-grab z-20 row-${bar.row}-bar`}
                               style={{
                                 left: `${bar.left}px`,
-                                width: `${bar.width}px`,
+                                width: `${Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0))}px`, // Ensure width accommodates all phases
                                 height: '72px', // Exact height to match gray row
                                 backgroundColor: `${bar.color}25`, // Very light background for the full bar
                                 // Position at the top of the row
@@ -3495,9 +3495,9 @@ export default function ResizableBaySchedule({
                               onDragEnd={handleDragEnd}
                             >
                               {/* Department phases visualization - REDESIGNED */}
-                              <div className="phases-container relative w-full h-full overflow-hidden rounded">
+                              <div className="phases-container relative w-full h-full rounded">
                                 {/* Top phases (PRODUCTION, IT, NTC, QC) - fixed height at top */}
-                                <div className="top-phases flex w-full h-[26px] overflow-hidden absolute top-0 left-0 z-20">
+                                <div className="top-phases flex w-full h-[26px] absolute top-0 left-0 z-20">
                                   {/* ALWAYS add spacer equal to fab+paint width to ensure phases don't start prematurely */}
                                   <div className="spacer" style={{ width: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px` }}></div>
                                   
@@ -3569,9 +3569,8 @@ export default function ResizableBaySchedule({
                                     <div className="paint-phase bg-green-700 h-full flex items-center justify-center" 
                                          style={{ 
                                            width: `${bar.paintWidth}px`,
-                                           marginLeft: `${bar.fabWidth}px`,
                                            position: 'absolute',
-                                           left: '0'
+                                           left: `${bar.fabWidth || 0}px`
                                          }}>
                                       <span className="text-xs font-bold text-white text-center">PAINT</span>
                                     </div>
