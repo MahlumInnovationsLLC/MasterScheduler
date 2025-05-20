@@ -3473,10 +3473,10 @@ export default function ResizableBaySchedule({
                               style={{
                                 left: `${bar.left}px`,
                                 width: `${bar.width}px`,
-                                height: '70px', // Almost the full bay row height (80px - some padding)
+                                height: '72px', // Exact height to match gray row
                                 backgroundColor: `${bar.color}25`, // Very light background for the full bar
-                                // Position in the middle of the bay row
-                                top: '5px', // Just a small offset from the top of the row
+                                // Position at the top of the row
+                                top: '0', // Aligned with top of row
                                 // Set data attributes for department phase percentages 
                                 // Store important info for drag/resize operations
                               }}
@@ -3496,8 +3496,8 @@ export default function ResizableBaySchedule({
                             >
                               {/* Department phases visualization - REDESIGNED */}
                               <div className="phases-container relative w-full h-full overflow-hidden rounded">
-                                {/* Top phases (PRODUCTION, IT, NTC, QC) in top 30% of bar */}
-                                <div className="top-phases flex w-full h-[30%] overflow-hidden absolute top-0 left-0 z-20">
+                                {/* Top phases (PRODUCTION, IT, NTC, QC) - fixed height at top */}
+                                <div className="top-phases flex w-full h-[32px] overflow-hidden absolute top-0 left-0 z-20">
                                   {/* If there's a paint phase, add spacer equal to fab+paint width */}
                                   {bar.paintWidth && bar.paintWidth > 0 && bar.fabWidth && bar.fabWidth > 0 && (
                                     <div className="spacer" style={{ width: `${bar.fabWidth + bar.paintWidth}px` }}></div>
