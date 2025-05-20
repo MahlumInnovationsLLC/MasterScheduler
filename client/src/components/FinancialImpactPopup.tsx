@@ -103,13 +103,13 @@ export default function FinancialImpactPopup({
     // If there are no billing milestones or the milestone data hasn't loaded, return empty array
     if (!billingMilestones.length) return [];
 
-    // Get original end date as Date object
+    // Get original and new end dates as Date objects
     const origEndDate = parseISO(originalEndDate);
-    const newEndDate = parseISO(newEndDate);
+    const newEndDateObj = parseISO(newEndDate);
     
     // Determine if project was moved (extended or shortened)
     const daysDifference = Math.round(
-      (newEndDate.getTime() - origEndDate.getTime()) / (1000 * 60 * 60 * 24)
+      (newEndDateObj.getTime() - origEndDate.getTime()) / (1000 * 60 * 60 * 24)
     );
     
     // Only consider milestones that are not paid (upcoming or invoiced)
@@ -132,7 +132,7 @@ export default function FinancialImpactPopup({
       
       // Apply same percentage to new duration
       const newStartDateTime = parseISO(newStartDate).getTime();
-      const newEndDateTime = newEndDate.getTime();
+      const newEndDateTime = newEndDateObj.getTime();
       const newProjectDuration = newEndDateTime - newStartDateTime;
       const newMilestoneTime = newStartDateTime + (milestonePosition * newProjectDuration);
       const newMilestoneDate = new Date(newMilestoneTime);
@@ -217,6 +217,11 @@ export default function FinancialImpactPopup({
     
     // For demonstration purposes, estimate revenue impact based on delay
     // In a real system, this would be based on contract terms, etc.
+    
+    // Get dates as Date objects
+    const origEndDate = parseISO(originalEndDate);
+    const newEndDateObj = parseISO(newEndDate);
+    
     const daysDifference = Math.round(
       (parseISO(newEndDate).getTime() - parseISO(originalEndDate).getTime()) / (1000 * 60 * 60 * 24)
     );
