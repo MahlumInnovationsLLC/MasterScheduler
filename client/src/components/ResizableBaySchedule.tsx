@@ -3992,12 +3992,33 @@ export default function ResizableBaySchedule({
                 End Date
               </Label>
               <div className="col-span-3">
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={targetEndDate ? format(targetEndDate, 'yyyy-MM-dd') : ''}
-                  onChange={(e) => setTargetEndDate(e.target.value ? new Date(e.target.value) : null)}
-                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={targetEndDate ? format(targetEndDate, 'yyyy-MM-dd') : ''}
+                    onChange={(e) => setTargetEndDate(e.target.value ? new Date(e.target.value) : null)}
+                    className="flex-grow"
+                  />
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="whitespace-nowrap text-xs"
+                    onClick={() => {
+                      if (targetStartDate && scheduleDuration > 0) {
+                        // Calculate recommended end date based on duration in weeks
+                        const calculatedEndDate = addWeeks(targetStartDate, scheduleDuration);
+                        setTargetEndDate(calculatedEndDate);
+                        console.log('Applied recommended end date:', format(calculatedEndDate, 'yyyy-MM-dd'));
+                      }
+                    }}
+                  >
+                    Apply Recommendation
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use 'Apply Recommendation' to calculate forward from start date, or set your own end date manually.
+                </p>
               </div>
             </div>
           </div>
