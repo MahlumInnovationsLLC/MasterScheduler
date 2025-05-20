@@ -891,6 +891,18 @@ export default function ResizableBaySchedule({
     const bars = schedules.map((schedule) => {
       const project = projects.find((p) => p.id === schedule.projectId);
       
+      // Add debugging for Row 1 schedule issues
+      if (schedule.rowIndex === 1) {
+        console.log(`🔍 DEBUGGING ROW 1 SCHEDULE:`, JSON.stringify({
+          scheduleId: schedule.id,
+          projectId: schedule.projectId,
+          bayId: schedule.bayId,
+          startDate: schedule.startDate,
+          endDate: schedule.endDate,
+          rowIndex: schedule.rowIndex
+        }, null, 2));
+      }
+      
       if (!project) {
         console.warn(`Project not found for schedule: ${schedule.id}, projectId: ${schedule.projectId}`);
         return null;
