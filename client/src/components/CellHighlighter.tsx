@@ -44,11 +44,11 @@ export const CellHighlighter: React.FC<CellHighlighterProps> = ({
   const getBackgroundColor = () => {
     switch (highlightColor) {
       case 'yellow':
-        return 'bg-yellow-50';
+        return 'bg-yellow-300/30 dark:bg-yellow-300/20';
       case 'orange':
-        return 'bg-orange-50';
+        return 'bg-orange-300/30 dark:bg-orange-300/20';
       case 'red':
-        return 'bg-red-50';
+        return 'bg-red-300/30 dark:bg-red-300/20';
       default:
         return '';
     }
@@ -78,7 +78,7 @@ export const CellHighlighter: React.FC<CellHighlighterProps> = ({
       
       {/* The color picker button */}
       <button
-        className="absolute bottom-1 left-1 w-4 h-4 rounded border border-gray-300 opacity-0 group-hover:opacity-100 bg-white shadow-sm z-10 flex items-center justify-center"
+        className="absolute bottom-1 left-1 w-4 h-4 rounded border border-gray-300 dark:border-gray-600 opacity-0 group-hover:opacity-100 bg-white dark:bg-gray-800 shadow-sm z-10 flex items-center justify-center"
         onClick={showColorMenu}
         aria-label="Set highlight color"
       >
@@ -88,33 +88,33 @@ export const CellHighlighter: React.FC<CellHighlighterProps> = ({
             highlightColor === 'yellow' ? 'bg-yellow-400' : 
             highlightColor === 'orange' ? 'bg-orange-400' : 
             highlightColor === 'red' ? 'bg-red-400' : 
-            'bg-gray-200'
+            'bg-gray-200 dark:bg-gray-700 border border-gray-400 dark:border-gray-500'
           )}
         />
       </button>
       
       {/* The color menu */}
       {showMenu && (
-        <div className="absolute bottom-6 left-1 bg-white border border-gray-200 rounded shadow-md p-1 z-20 flex gap-1">
+        <div className="absolute bottom-6 left-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-md p-1 z-20 flex gap-1">
           <button 
-            className="w-6 h-6 rounded-sm bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
+            className="w-6 h-6 rounded-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center"
             onClick={() => handleHighlightChange('none')}
             aria-label="No highlight"
           >
-            <div className="w-4 h-4 bg-white border border-gray-300 rounded-sm" />
+            <div className="w-4 h-4 border border-gray-300 dark:border-gray-500 rounded-sm" />
           </button>
           <button 
-            className="w-6 h-6 rounded-sm bg-yellow-400 hover:bg-yellow-500"
+            className="w-6 h-6 rounded-sm bg-yellow-400 hover:bg-yellow-500 ring-1 ring-gray-300 dark:ring-gray-600"
             onClick={() => handleHighlightChange('yellow')}
             aria-label="Yellow highlight"
           />
           <button 
-            className="w-6 h-6 rounded-sm bg-orange-400 hover:bg-orange-500"
+            className="w-6 h-6 rounded-sm bg-orange-400 hover:bg-orange-500 ring-1 ring-gray-300 dark:ring-gray-600"
             onClick={() => handleHighlightChange('orange')}
             aria-label="Orange highlight"
           />
           <button 
-            className="w-6 h-6 rounded-sm bg-red-400 hover:bg-red-500"
+            className="w-6 h-6 rounded-sm bg-red-400 hover:bg-red-500 ring-1 ring-gray-300 dark:ring-gray-600"
             onClick={() => handleHighlightChange('red')}
             aria-label="Red highlight"
           />
