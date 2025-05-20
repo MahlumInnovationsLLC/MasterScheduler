@@ -1531,11 +1531,29 @@ export default function ResizableBaySchedule({
         }
       }
       
-      // Default duration is 4 weeks if not specified
-      const endDate = addWeeks(date, scheduleDuration);
+      // Get phase percentages from the project or use defaults
+      const fabPercent = project.fabPercentage ? Number(project.fabPercentage) : 27;
+      const paintPercent = project.paintPercentage ? Number(project.paintPercentage) : 7;
       
-      // Format dates for API
-      const formattedStartDate = format(date, 'yyyy-MM-dd');
+      // Calculate how many days before the PRODUCTION phase
+      // Default duration is 4 weeks if not specified
+      const totalDuration = scheduleDuration * 7; // Convert weeks to days
+      const fabAndPaintDays = Math.ceil(totalDuration * ((fabPercent + paintPercent) / 100));
+      
+      console.log(`Starting project from PRODUCTION phase - adjusting drop date:`);
+      console.log(`- Initial drop date: ${format(date, 'yyyy-MM-dd')}`);
+      console.log(`- Fab+Paint %: ${fabPercent + paintPercent}% = ${fabAndPaintDays} days`);
+      
+      // Adjust startDate backwards to account for fab and paint phases
+      // This makes the PRODUCTION phase start at the drop point
+      const adjustedStartDate = subDays(date, fabAndPaintDays);
+      console.log(`- Adjusted start date: ${format(adjustedStartDate, 'yyyy-MM-dd')} (backing up ${fabAndPaintDays} days for fab+paint)`);
+      
+      // End date stays as originally calculated from the drop point + duration
+      const endDate = addWeeks(date, scheduleDuration - (fabAndPaintDays / 7));
+      
+      // Format adjusted dates for API
+      const formattedStartDate = format(adjustedStartDate, 'yyyy-MM-dd');
       const formattedEndDate = format(endDate, 'yyyy-MM-dd');
       
       try {
