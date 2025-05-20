@@ -2136,24 +2136,39 @@ export default function ResizableBaySchedule({
       
       // Update the bar style based on resize direction
       if (resizeMode === 'start') {
-        // Determine the new left position, but don't allow it to go beyond the end
-        const newLeft = Math.min(initialLeft + deltaX, initialLeft + initialWidth - 40); // Keep a minimum width
-        const newWidth = initialWidth - (newLeft - initialLeft);
+        // CRITICAL FIX: When resizing from left (start), keep the right edge fixed
+        const rightEdgePosition = initialLeft + initialWidth; // This should remain constant
+
+        // Calculate new left position with constraints
+        const newLeft = Math.min(
+          Math.max(initialLeft + deltaX, 0), // Don't go below 0
+          rightEdgePosition - 40 // Don't make the bar too small
+        );
+        
+        // Calculate new width based on fixed right edge
+        const newWidth = rightEdgePosition - newLeft;
         
         // Convert to date range
         const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
         const daysOffset = Math.round((newLeft - initialLeft) / pixelsPerDay);
         const newStartDate = addDays(initialStartDate, daysOffset);
         
-        // Update the visual bar
-        element.style.left = `${newLeft - element.parentElement!.getBoundingClientRect().left}px`;
+        // Update the visual bar - adjust position relative to parent
+        const parentOffset = element.parentElement!.getBoundingClientRect().left;
+        element.style.left = `${newLeft - parentOffset}px`;
         element.style.width = `${newWidth}px`;
+        
+        // Log for debugging
+        console.log('Left resize: Fixed right edge at', rightEdgePosition, 'New left:', newLeft, 'New width:', newWidth);
         
         // Update department phase widths
         updateDepartmentPhaseWidths(element, newWidth);
         
       } else { // end resize
-        // Calculate the new width
+        // CRITICAL FIX: When resizing from right (end), keep the left edge fixed
+        // This means we only adjust the width, not the left position
+        
+        // Calculate the new width with minimum constraint
         const newWidth = Math.max(40, initialWidth + deltaX); // Ensure a minimum width
         
         // Convert to date range
@@ -2161,8 +2176,11 @@ export default function ResizableBaySchedule({
         const daysExtended = Math.round(deltaX / pixelsPerDay);
         const newEndDate = addDays(initialEndDate, daysExtended);
         
-        // Update the visual bar
+        // Update the visual bar - only change width, not left position
         element.style.width = `${newWidth}px`;
+        
+        // Log for debugging
+        console.log('Right resize: Fixed left edge at', initialLeft, 'New width:', newWidth);
         
         // Update department phase widths  
         updateDepartmentPhaseWidths(element, newWidth);
