@@ -227,11 +227,15 @@ const SystemSettings = () => {
   // Mutation for updating user roles and preferences
   const updateUserMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('PUT', `/api/users/${data.id}/role`, {
+      console.log("Mutation sending data:", data);
+      const response = await apiRequest('PUT', `/api/users/${data.id}/role`, {
         role: data.role, 
         isApproved: data.isApproved,
+        status: data.status || 'active',
         preferences: data.preferences || {}
       });
+      console.log("Response from server:", response);
+      return response;
     },
     onSuccess: () => {
       toast({
@@ -240,9 +244,11 @@ const SystemSettings = () => {
         variant: "default"
       });
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      // Close the dialog after successful update
       setEditingUser(null);
     },
     onError: (error: any) => {
+      console.error("Error in updateUserMutation:", error);
       toast({
         title: "Update Failed",
         description: `Error updating user: ${error.message}`,
