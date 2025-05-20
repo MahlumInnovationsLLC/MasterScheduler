@@ -3614,7 +3614,9 @@ export default function ResizableBaySchedule({
                                     {/* FAB phase (starts from left) */}
                                     {bar.fabWidth && bar.fabWidth > 0 && (
                                       <div className="fab-phase bg-blue-700 h-full absolute left-0" 
-                                           style={{ width: `${bar.fabWidth}px` }}>
+                                           style={{ 
+                                             width: `${Math.max(bar.fabWidth, 10)}px` // Ensure minimum width
+                                           }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">FAB</span>
                                       </div>
                                     )}
@@ -3623,7 +3625,7 @@ export default function ResizableBaySchedule({
                                     {bar.paintWidth && bar.paintWidth > 0 && (
                                       <div className="paint-phase bg-green-700 h-full absolute" 
                                            style={{ 
-                                             width: `${bar.paintWidth}px`,
+                                             width: `${Math.max(bar.paintWidth, 10)}px`, // Ensure minimum width
                                              left: `${bar.fabWidth || 0}px`
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">PAINT</span>
