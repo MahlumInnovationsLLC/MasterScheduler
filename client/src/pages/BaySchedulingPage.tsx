@@ -66,7 +66,7 @@ import React, { useState, useEffect } from 'react';
 })();
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { addDays, addWeeks, addMonths, format } from 'date-fns';
-import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown, Upload } from 'lucide-react';
+import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown, Upload, Shuffle, X, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, calculateBayUtilization } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -1018,7 +1018,7 @@ const BaySchedulingPage = () => {
           
           <div className="flex items-center gap-4">
             {/* Day/Week/Month view options removed as requested */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-4">
               <Switch 
                 id="financial-impact-toggle"
                 checked={showFinancialImpact}
@@ -1027,6 +1027,28 @@ const BaySchedulingPage = () => {
               <Label htmlFor="financial-impact-toggle" className="text-sm cursor-pointer">
                 Financial Impact Analysis
               </Label>
+            </div>
+            
+            {/* Sandbox Mode Toggle */}
+            <div className="flex items-center gap-2">
+              <Button 
+                variant={isSandboxMode ? "destructive" : "outline"}
+                size="sm"
+                onClick={() => setSandboxMode(!isSandboxMode)}
+                className="flex items-center gap-1"
+              >
+                {isSandboxMode ? (
+                  <>
+                    <X className="h-4 w-4" />
+                    Exit Sandbox
+                  </>
+                ) : (
+                  <>
+                    <Shuffle className="h-4 w-4" />
+                    Enter Sandbox Mode
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </div>
