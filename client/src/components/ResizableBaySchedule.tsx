@@ -720,6 +720,7 @@ export default function ResizableBaySchedule({
   const [targetStartDate, setTargetStartDate] = useState<Date | null>(null);
   const [targetEndDate, setTargetEndDate] = useState<Date | null>(null);
   const [scheduleDuration, setScheduleDuration] = useState(4); // in weeks
+  const [recommendedDuration, setRecommendedDuration] = useState(0); // Stores the recommended duration from calculator
   const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
   const [slotWidth, setSlotWidth] = useState(60); // Increased slot width for better visibility
   const [searchTerm, setSearchTerm] = useState('');
@@ -3889,20 +3890,52 @@ export default function ResizableBaySchedule({
                 {/* Check if we have both project and bay selected */}
                 {currentProject && targetBay && (
                   <div className="mb-2">
-                    <DurationCalculator 
-                      projectId={currentProject} 
-                      bayId={targetBay} 
-                      projects={projects}
-                      bays={bays}
-                      onDurationCalculated={(weeks, endDate) => {
-                        // Only update duration if it's a valid number
-                        if (weeks > 0) {
-                          setScheduleDuration(weeks);
-                          // Update end date if provided
-                          if (endDate) setTargetEndDate(endDate);
-                        }
-                      }}
-                    />
+                    <div className="mb-2 bg-blue-50 p-3 rounded-md border border-blue-200">
+                      <DurationCalculator 
+                        projectId={currentProject} 
+                        bayId={targetBay} 
+                        projects={projects}
+                        bays={bays}
+                        onDurationCalculated={(weeks, endDate) => {
+                          // Store recommended duration but don't automatically apply it
+                          if (weeks > 0) {
+                            // Set recommended duration in component state to be applied when button is clicked
+                            setRecommendedDuration(weeks);
+                          }
+                        }}
+                      />
+                      
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="w-full mt-2 bg-blue-600 text-white hover:bg-blue-700"
+                        onClick={() => {
+                          // Apply the recommended duration when this button is clicked
+                          if (recommendedDuration > 0 && targetStartDate) {
+                            // Set the duration field
+                            setScheduleDuration(recommendedDuration);
+                            
+                            // Calculate and set the end date based on the recommended duration
+                            const calculatedEndDate = addWeeks(targetStartDate, recommendedDuration);
+                            setTargetEndDate(calculatedEndDate);
+                            
+                            // Provide user feedback
+                            toast({
+                              title: "Recommendation Applied",
+                              description: `Schedule duration set to ${recommendedDuration} weeks, ending on ${format(calculatedEndDate, 'MMM d, yyyy')}`
+                            });
+                          } else {
+                            toast({
+                              title: "Cannot Apply Recommendation",
+                              description: "Please ensure you have selected a project, bay, and start date",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                      >
+                        Apply Recommendation
+                      </Button>
+                    </div>
                   </div>
                 )}
                 
