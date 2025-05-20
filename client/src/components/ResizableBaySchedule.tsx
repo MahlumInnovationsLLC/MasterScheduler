@@ -3743,9 +3743,11 @@ export default function ResizableBaySchedule({
                     setTargetStartDate(newStartDate);
                     
                     // Immediately update end date when start date changes
-                    if (newStartDate && scheduleDuration > 0) {
-                      const newEndDate = addWeeks(newStartDate, scheduleDuration);
-                      console.log('Auto-updating end date:', format(newEndDate, 'yyyy-MM-dd'));
+                    if (newStartDate) {
+                      // Always calculate the end date based on the duration or minimum of 13 weeks
+                      const duration = scheduleDuration > 0 ? scheduleDuration : 13;
+                      const newEndDate = addWeeks(newStartDate, duration);
+                      console.log('Auto-updating end date based on start date change:', format(newEndDate, 'yyyy-MM-dd'));
                       setTargetEndDate(newEndDate);
                     }
                   }}
