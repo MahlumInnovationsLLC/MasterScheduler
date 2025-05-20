@@ -1017,33 +1017,7 @@ const BaySchedulingPage = () => {
           <h2 className="text-lg font-semibold">Manufacturing Schedule</h2>
           
           <div className="flex items-center gap-4">
-            <div className="flex border border-border rounded-md overflow-hidden">
-              <Button 
-                size="sm" 
-                variant={viewMode === 'day' ? 'default' : 'ghost'} 
-                className="rounded-none"
-                onClick={() => setViewMode('day')}
-              >
-                Day
-              </Button>
-              <Button 
-                size="sm" 
-                variant={viewMode === 'week' ? 'default' : 'ghost'} 
-                className="rounded-none"
-                onClick={() => setViewMode('week')}
-              >
-                Week
-              </Button>
-              <Button 
-                size="sm" 
-                variant={viewMode === 'month' ? 'default' : 'ghost'} 
-                className="rounded-none"
-                onClick={() => setViewMode('month')}
-              >
-                Month
-              </Button>
-            </div>
-            
+            {/* Day/Week/Month view options removed as requested */}
             <div className="flex items-center gap-2">
               <Switch 
                 id="financial-impact-toggle"
