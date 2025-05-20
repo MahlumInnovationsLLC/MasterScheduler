@@ -449,17 +449,31 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
   
-  async updateUserRole(id: string, role: string, isApproved: boolean): Promise<User | undefined> {
+  async updateUserRole(id: string, role: string, isApproved: boolean, status?: string): Promise<User | undefined> {
     try {
+      // Log the update attempt for debugging
+      console.log(`Updating user ${id} with role=${role}, isApproved=${isApproved}, status=${status || 'unchanged'}`);
+      
+      // Create the update object
+      const updateObj: any = {
+        role: role,
+        isApproved: isApproved,
+        updatedAt: new Date()
+      };
+      
+      // Only add status to the update if it was provided
+      if (status) {
+        updateObj.status = status;
+        console.log(`Including status=${status} in the update`);
+      }
+      
       const [updatedUser] = await db
         .update(users)
-        .set({
-          role: role,
-          isApproved: isApproved,
-          updatedAt: new Date()
-        })
+        .set(updateObj)
         .where(eq(users.id, id))
         .returning();
+        
+      console.log("User updated successfully:", updatedUser);
       return updatedUser;
     } catch (error) {
       console.error("Error updating user role:", error);

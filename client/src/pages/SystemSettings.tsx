@@ -402,9 +402,11 @@ const SystemSettings = () => {
   const handleUpdateUser = () => {
     if (!editingUser) return;
     
-    updateUserMutation.mutate({
+    // Log the data being sent for debugging
+    console.log("Updating user with data:", {
       id: editingUser.id,
       role: editingUser.role,
+      status: editingUser.status || 'active',
       isApproved: editingUser.isApproved,
       preferences: editingUser.preferences || {
         department: editingUser.preferences?.department || '',
@@ -413,10 +415,19 @@ const SystemSettings = () => {
         notifyManufacturingUpdates: editingUser.preferences?.notifyManufacturingUpdates !== false,
         notifySystemUpdates: editingUser.preferences?.notifySystemUpdates !== false
       }
-    }, {
-      onSuccess: () => {
-        // Close the dialog after successful update
-        setEditingUser(null);
+    });
+    
+    updateUserMutation.mutate({
+      id: editingUser.id,
+      role: editingUser.role,
+      status: editingUser.status || 'active',
+      isApproved: editingUser.isApproved,
+      preferences: editingUser.preferences || {
+        department: editingUser.preferences?.department || '',
+        notifyBillingUpdates: editingUser.preferences?.notifyBillingUpdates !== false,
+        notifyProjectUpdates: editingUser.preferences?.notifyProjectUpdates !== false,
+        notifyManufacturingUpdates: editingUser.preferences?.notifyManufacturingUpdates !== false,
+        notifySystemUpdates: editingUser.preferences?.notifySystemUpdates !== false
       }
     });
   };

@@ -1746,13 +1746,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.put("/api/users/:id/role", isAdmin, async (req, res) => {
     try {
-      const { role, isApproved, preferences } = req.body;
+      const { role, isApproved, status, preferences } = req.body;
       if (!role || typeof isApproved !== 'boolean') {
         return res.status(400).json({ message: "Role and approval status are required" });
       }
       
       // First update the user role and approval status
-      const updatedUser = await storage.updateUserRole(req.params.id, role, isApproved);
+      const updatedUser = await storage.updateUserRole(req.params.id, role, isApproved, status);
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
       }
