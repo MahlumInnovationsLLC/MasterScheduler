@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -45,6 +45,7 @@ interface DataTableProps<TData, TValue> {
   searchPlaceholder?: string;
   showPagination?: boolean;
   frozenColumns?: string[]; // Names of column IDs to freeze
+  enableSorting?: boolean; // Control whether sorting is enabled
 }
 
 export function DataTable<TData, TValue>({
@@ -55,13 +56,14 @@ export function DataTable<TData, TValue>({
   searchPlaceholder = "Search...",
   showPagination = true,
   frozenColumns = [],
+  enableSorting = true,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState<string>("");
 
   // Remove 'timeline' column if it exists
-  const filteredColumns = columns.filter(col => col.id !== 'timeline');
+  const filteredColumns = columnsWithSorting.filter(col => col.id !== 'timeline');
 
   const table = useReactTable({
     data,
@@ -115,6 +117,15 @@ export function DataTable<TData, TValue>({
       globalFilter,
     },
   });
+
+  // Modify the columns to conditionally enable sorting
+  const columnsWithSorting = React.useMemo(() => {
+    return columns.map(column => ({
+      ...column,
+      // Only enable sorting if the enableSorting prop is true or for the "location" column (always sortable)
+      enableSorting: column.id === 'location' || enableSorting,
+    }));
+  }, [columns, enableSorting]);
 
   // Define column widths
   const columnWidths = {
