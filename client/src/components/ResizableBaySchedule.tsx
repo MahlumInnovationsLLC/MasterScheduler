@@ -3577,10 +3577,11 @@ export default function ResizableBaySchedule({
                                   {/* Top row of phases (production through QC) */}
                                   <div className="top-phases w-full h-[26px] absolute top-0 left-0">
                                     {/* Production phase (positioned after FAB and PAINT) */}
-                                    {bar.productionWidth && bar.productionWidth > 0 && (
+                                    {/* Force display for Row 1 projects or use standard conditional check */}
+                                    {(bar.row === 1 || (bar.productionWidth && bar.productionWidth > 0)) && (
                                       <div className="production-phase bg-yellow-700 h-full absolute" 
                                            style={{ 
-                                             width: `${Math.max(bar.productionWidth, 20)}px`, // Ensure minimum width
+                                             width: `${Math.max(bar.productionWidth || 30, 20)}px`, // Ensure minimum width, default if missing
                                              left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px` // Position after FAB and PAINT
                                            }}>
                                         <span className="text-xs font-bold text-gray-800 h-full w-full flex items-center justify-center">PROD</span>
@@ -3588,33 +3589,33 @@ export default function ResizableBaySchedule({
                                     )}
                                     
                                     {/* IT phase */}
-                                    {bar.itWidth && bar.itWidth > 0 && (
+                                    {(bar.row === 1 || (bar.itWidth && bar.itWidth > 0)) && (
                                       <div className="it-phase bg-purple-700 h-full absolute" 
                                            style={{ 
-                                             width: `${Math.max(bar.itWidth, 10)}px`, // Ensure minimum width
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0)}px` // Position after PROD
+                                             width: `${Math.max(bar.itWidth || 10, 10)}px`, // Ensure minimum width, default if missing
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 30)}px` // Position after PROD
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">IT</span>
                                       </div>
                                     )}
                                     
                                     {/* NTC phase */}
-                                    {bar.ntcWidth && bar.ntcWidth > 0 && (
+                                    {(bar.row === 1 || (bar.ntcWidth && bar.ntcWidth > 0)) && (
                                       <div className="ntc-phase bg-cyan-700 h-full absolute" 
                                            style={{ 
-                                             width: `${Math.max(bar.ntcWidth, 10)}px`, // Ensure minimum width
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0)}px` // Position after PROD and IT
+                                             width: `${Math.max(bar.ntcWidth || 10, 10)}px`, // Ensure minimum width, default if missing
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 30) + (bar.itWidth || 10)}px` // Position after PROD and IT
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">NTC</span>
                                       </div>
                                     )}
                                     
                                     {/* QC phase */}
-                                    {bar.qcWidth && bar.qcWidth > 0 && (
+                                    {(bar.row === 1 || (bar.qcWidth && bar.qcWidth > 0)) && (
                                       <div className="qc-phase bg-pink-700 h-full absolute" 
                                            style={{ 
-                                             width: `${Math.max(bar.qcWidth, 10)}px`, // Ensure minimum width
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0)}px` // Position after all other phases
+                                             width: `${Math.max(bar.qcWidth || 10, 10)}px`, // Ensure minimum width, default if missing
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 30) + (bar.itWidth || 10) + (bar.ntcWidth || 10)}px` // Position after all other phases
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">QC</span>
                                       </div>
@@ -3624,10 +3625,10 @@ export default function ResizableBaySchedule({
                                   {/* Bottom row of phases (FAB and PAINT) */}
                                   <div className="bottom-phases w-full h-[24px] absolute bottom-3 left-0">
                                     {/* FAB phase (starts from left) */}
-                                    {bar.fabWidth && bar.fabWidth > 0 && (
+                                    {(bar.row === 1 || (bar.fabWidth && bar.fabWidth > 0)) && (
                                       <div className="fab-phase bg-blue-700 h-full absolute left-0" 
                                            style={{ 
-                                             width: `${Math.max(bar.fabWidth, 10)}px` // Ensure minimum width
+                                             width: `${Math.max(bar.fabWidth || 20, 10)}px` // Ensure minimum width, default if missing
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">FAB</span>
                                       </div>
