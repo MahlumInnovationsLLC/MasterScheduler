@@ -1380,6 +1380,7 @@ const ProjectStatus = () => {
         filterOptions={statusOptions}
         searchPlaceholder="Search projects..."
         frozenColumns={['location', 'projectNumber', 'name', 'pmOwner', 'progress', 'status']} // Freeze these columns on the left
+        enableSorting={locationFilter !== ''} // Enable sorting on all columns when a location is filtered
       />
       
       {/* Filters Info */}
