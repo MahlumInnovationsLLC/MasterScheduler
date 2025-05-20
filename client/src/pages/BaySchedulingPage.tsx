@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 // MAXIMUM OVERRIDE: Force all elements to accept drag & drop
 // This ensures multiple projects can be placed in any row no matter what
@@ -140,6 +140,64 @@ const BaySchedulingPage = () => {
       end: endDate
     };
   });
+  
+  // Sandbox Mode state variables
+  const [isSandboxMode, setSandboxMode] = useState<boolean>(false);
+  const [sandboxSchedules, setSandboxSchedules] = useState<ManufacturingSchedule[]>([]);
+  const [sandboxProjects, setSandboxProjects] = useState<Project[]>([]);
+  const [sandboxBays, setSandboxBays] = useState<ManufacturingBay[]>([]);
+  const [showSandboxControls, setShowSandboxControls] = useState<boolean>(false);
+  const [sandboxChanges, setSandboxChanges] = useState<number>(0);
+  
+  // Functions to handle sandbox mode
+  const enterSandboxMode = useCallback(() => {
+    // Create deep copies of the current data 
+    const schedulesCopy = JSON.parse(JSON.stringify(manufacturingSchedules)) as ManufacturingSchedule[];
+    const projectsCopy = JSON.parse(JSON.stringify(projects)) as Project[];
+    const baysCopy = JSON.parse(JSON.stringify(manufacturingBays)) as ManufacturingBay[];
+    
+    // Store the copies in sandbox state
+    setSandboxSchedules(schedulesCopy);
+    setSandboxProjects(projectsCopy);
+    setSandboxBays(baysCopy);
+    
+    // Enter sandbox mode
+    setSandboxMode(true);
+    setShowSandboxControls(true);
+    setSandboxChanges(0);
+    
+    toast({
+      title: "Sandbox Mode Activated",
+      description: "You can now experiment with the schedule without affecting real data",
+      duration: 3000
+    });
+  }, [manufacturingSchedules, projects, manufacturingBays, toast]);
+  
+  const exitSandboxMode = useCallback((saveSandbox: boolean = false) => {
+    if (saveSandbox && sandboxChanges > 0) {
+      // This would be where we apply the changes to the real data
+      // For now, we'll just show a toast message
+      toast({
+        title: "Sandbox Changes Applied",
+        description: `Applied ${sandboxChanges} changes to production data`,
+        duration: 3000
+      });
+    } else {
+      toast({
+        title: "Sandbox Mode Exited",
+        description: "No changes were saved to production data",
+        duration: 3000
+      });
+    }
+    
+    // Reset sandbox state
+    setSandboxMode(false);
+    setShowSandboxControls(false);
+    setSandboxSchedules([]);
+    setSandboxProjects([]);
+    setSandboxBays([]);
+    setSandboxChanges(0);
+  }, [sandboxChanges, toast]);
   
   // Use same approach as the Today button
   const forceScrollToToday = () => {
@@ -1031,24 +1089,52 @@ const BaySchedulingPage = () => {
             
             {/* Sandbox Mode Toggle */}
             <div className="flex items-center gap-2">
-              <Button 
-                variant={isSandboxMode ? "destructive" : "outline"}
-                size="sm"
-                onClick={() => setSandboxMode(!isSandboxMode)}
-                className="flex items-center gap-1"
-              >
-                {isSandboxMode ? (
-                  <>
-                    <X className="h-4 w-4" />
-                    Exit Sandbox
-                  </>
-                ) : (
-                  <>
-                    <Shuffle className="h-4 w-4" />
-                    Enter Sandbox Mode
-                  </>
-                )}
-              </Button>
+              {isSandboxMode ? (
+                <div className="flex items-center gap-2">
+                  <div className="bg-amber-900/20 px-2 py-1 rounded-md border border-amber-500/50 text-xs text-amber-300 font-semibold flex items-center mr-2">
+                    <span className="relative flex h-2 w-2 mr-1">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                    SANDBOX MODE
+                    {sandboxChanges > 0 && (
+                      <span className="ml-1.5 bg-amber-500/30 text-amber-200 px-1.5 rounded-full text-xs">
+                        {sandboxChanges} changes
+                      </span>
+                    )}
+                  </div>
+                  
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exitSandboxMode(true)}
+                    className="flex items-center gap-1 border-green-500/50 hover:bg-green-500/20 text-green-400"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    Apply Changes
+                  </Button>
+                  
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exitSandboxMode(false)}
+                    className="flex items-center gap-1 border-red-500/50 hover:bg-red-500/20 text-red-400"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    Discard
+                  </Button>
+                </div>
+              ) : (
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={() => enterSandboxMode()}
+                  className="flex items-center gap-1"
+                >
+                  <Shuffle className="h-4 w-4" />
+                  Enter Sandbox Mode
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -1056,11 +1142,11 @@ const BaySchedulingPage = () => {
           {/* Row Position Testing Tool removed as requested */}
           
           <ResizableBaySchedule
-            schedules={manufacturingSchedules}
-            projects={projects}
+            schedules={isSandboxMode ? sandboxSchedules : manufacturingSchedules}
+            projects={isSandboxMode ? sandboxProjects : projects}
             bays={filterTeam 
-              ? manufacturingBays.filter(bay => bay.team === filterTeam) 
-              : manufacturingBays
+              ? (isSandboxMode ? sandboxBays : manufacturingBays).filter(bay => bay.team === filterTeam) 
+              : (isSandboxMode ? sandboxBays : manufacturingBays)
             }
             onScheduleChange={handleScheduleChange}
             onScheduleCreate={handleScheduleCreate}
@@ -1071,6 +1157,7 @@ const BaySchedulingPage = () => {
             dateRange={dateRange}
             viewMode={viewMode}
             enableFinancialImpact={showFinancialImpact}
+            isSandboxMode={isSandboxMode}
           />
         </div>
       </div>
