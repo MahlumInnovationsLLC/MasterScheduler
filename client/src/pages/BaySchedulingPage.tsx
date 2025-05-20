@@ -146,7 +146,6 @@ const BaySchedulingPage = () => {
   const [sandboxSchedules, setSandboxSchedules] = useState<ManufacturingSchedule[]>([]);
   const [sandboxProjects, setSandboxProjects] = useState<Project[]>([]);
   const [sandboxBays, setSandboxBays] = useState<ManufacturingBay[]>([]);
-  const [showSandboxControls, setShowSandboxControls] = useState<boolean>(false);
   const [sandboxChanges, setSandboxChanges] = useState<number>(0);
   
   // Use same approach as the Today button
@@ -238,34 +237,31 @@ const BaySchedulingPage = () => {
     }
   }, [manufacturingBays, manufacturingSchedules]);
   
-  // Functions to handle sandbox mode - defined after data is loaded
-  const enterSandboxMode = () => {
-    // Create deep copies of the current data 
-    const schedulesCopy = JSON.parse(JSON.stringify(manufacturingSchedules)) as ManufacturingSchedule[];
-    const projectsCopy = JSON.parse(JSON.stringify(projects)) as Project[];
-    const baysCopy = JSON.parse(JSON.stringify(manufacturingBays)) as ManufacturingBay[];
+  // Sandbox mode functions
+  const enterSandboxMode = useCallback(() => {
+    // Make deep copies of the data
+    const schedulesCopy = JSON.parse(JSON.stringify(manufacturingSchedules));
+    const projectsCopy = JSON.parse(JSON.stringify(projects));
+    const baysCopy = JSON.parse(JSON.stringify(manufacturingBays));
     
-    // Store the copies in sandbox state
+    // Update state
     setSandboxSchedules(schedulesCopy);
     setSandboxProjects(projectsCopy);
     setSandboxBays(baysCopy);
-    
-    // Enter sandbox mode
     setSandboxMode(true);
-    setShowSandboxControls(true);
     setSandboxChanges(0);
     
+    // Notify user
     toast({
       title: "Sandbox Mode Activated",
       description: "You can now experiment with the schedule without affecting real data",
       duration: 3000
     });
-  };
+  }, [manufacturingSchedules, projects, manufacturingBays, toast]);
   
-  const exitSandboxMode = (saveSandbox: boolean = false) => {
+  const exitSandboxMode = useCallback((saveSandbox = false) => {
     if (saveSandbox && sandboxChanges > 0) {
-      // This would be where we apply the changes to the real data
-      // For now, we'll just show a toast message
+      // Show toast for saving changes (actual saving would go here)
       toast({
         title: "Sandbox Changes Applied",
         description: `Applied ${sandboxChanges} changes to production data`,
@@ -279,14 +275,13 @@ const BaySchedulingPage = () => {
       });
     }
     
-    // Reset sandbox state
+    // Reset state
     setSandboxMode(false);
-    setShowSandboxControls(false);
     setSandboxSchedules([]);
     setSandboxProjects([]);
     setSandboxBays([]);
     setSandboxChanges(0);
-  };
+  }, [sandboxChanges, toast]);
   
   // Create bay mutation
   const createBayMutation = useMutation({
