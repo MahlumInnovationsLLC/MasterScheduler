@@ -283,6 +283,7 @@ export const projects = pgTable("projects", {
   riskLevel: projectRiskLevelEnum("risk_level").default("medium"),
   hasBillingMilestones: boolean("has_billing_milestones").default(false),
   notes: text("notes"),
+  photosTaken: boolean("photos_taken").default(false), // New field for Photos Taken column
   
   // Store all raw data from Excel import
   rawData: jsonb("raw_data"), // JSON field to store all original Excel columns

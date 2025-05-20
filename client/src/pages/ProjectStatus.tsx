@@ -854,6 +854,67 @@ const ProjectStatus = () => {
     createColumn('executiveReviewDate', 'executiveReviewDate', 'Exec Review', 
       (value, project) => <EditableDateField projectId={project.id} field="executiveReviewDate" value={value} />,
       { size: 170 }),
+    // Add Photos Taken column with checkbox functionality
+    {
+      id: 'photosTaken',
+      header: 'Photos Taken',
+      accessorKey: 'photosTaken',
+      size: 120,
+      cell: ({ row }) => {
+        const project = row.original;
+        const [isChecked, setIsChecked] = useState(project.photosTaken === true);
+        
+        const handleToggle = async () => {
+          const newValue = !isChecked;
+          setIsChecked(newValue);
+          
+          try {
+            await apiRequest('PATCH', `/api/projects/${project.id}`, {
+              photosTaken: newValue
+            });
+            
+            // Update the cache
+            queryClient.setQueryData(['/api/projects'], (oldData: Project[] | undefined) => {
+              if (!oldData) return oldData;
+              return oldData.map(p => 
+                p.id === project.id ? { ...p, photosTaken: newValue } : p
+              );
+            });
+          } catch (error) {
+            console.error('Failed to update photos taken status:', error);
+            // Revert UI state on error
+            setIsChecked(!newValue);
+            toast({
+              title: 'Update Failed',
+              description: 'Could not update photos taken status.',
+              variant: 'destructive'
+            });
+          }
+        };
+        
+        return (
+          <div className="flex items-center justify-center">
+            {isChecked ? (
+              <div 
+                className="flex items-center cursor-pointer bg-green-100 text-green-800 px-2 py-1 rounded"
+                onClick={handleToggle}
+              >
+                <Check className="h-4 w-4 mr-1" />
+                <span>COMPLETE</span>
+              </div>
+            ) : (
+              <div 
+                className="flex items-center cursor-pointer bg-red-100 text-red-800 px-2 py-1 rounded"
+                onClick={handleToggle}
+              >
+                <X className="h-4 w-4 mr-1" />
+                <span>NOT DONE</span>
+              </div>
+            )}
+          </div>
+        );
+      }
+    },
     createColumn('shipDate', 'shipDate', 'Ship Date', 
       (value, project) => <EditableDateField projectId={project.id} field="shipDate" value={value} />,
       { size: 170 }),
