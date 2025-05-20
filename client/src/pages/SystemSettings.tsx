@@ -813,13 +813,14 @@ const SystemSettings = () => {
                                           value={editingUser.preferences?.department || ''}
                                           onValueChange={value => {
                                             console.log(`Changing department to: ${value}`);
-                                            setEditingUser({
-                                              ...editingUser, 
-                                              preferences: {
-                                                ...editingUser.preferences || {},
-                                                department: value
-                                              }
-                                            });
+                                            // Create a complete copy of editingUser to avoid reference issues
+                                            const updatedUser = JSON.parse(JSON.stringify(editingUser));
+                                            // Ensure preferences object exists
+                                            updatedUser.preferences = updatedUser.preferences || {};
+                                            // Set the department value
+                                            updatedUser.preferences.department = value;
+                                            // Update the state with the modified copy
+                                            setEditingUser(updatedUser);
                                           }}
                                         >
                                           <SelectTrigger>
@@ -929,18 +930,43 @@ const SystemSettings = () => {
                                       Cancel
                                     </Button>
                                     <Button 
+                                      type="button"
                                       onClick={() => {
-                                        handleUpdateUser();
-                                        // Force dialog to close after a small delay to ensure mutation starts
-                                        setTimeout(() => {
-                                          setEditingUser(null);
-                                          toast({
-                                            title: "User Updated",
-                                            description: "User settings have been updated successfully.",
-                                            variant: "default"
-                                          });
-                                          queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-                                        }, 300);
+                                        // First, force the dialog to close immediately
+                                        const userToUpdate = {...editingUser};
+                                        setEditingUser(null);
+                                        
+                                        // Show an immediate success message
+                                        toast({
+                                          title: "Saving...",
+                                          description: "Updating user settings and preferences",
+                                          variant: "default"
+                                        });
+                                        
+                                        // Now perform the update in the background
+                                        updateUserMutation.mutate({
+                                          id: userToUpdate.id,
+                                          role: userToUpdate.role,
+                                          status: userToUpdate.status || 'active',
+                                          isApproved: userToUpdate.isApproved,
+                                          preferences: userToUpdate.preferences || {}
+                                        }, {
+                                          onSuccess: () => {
+                                            toast({
+                                              title: "Success",
+                                              description: "User settings have been updated successfully.",
+                                              variant: "default"
+                                            });
+                                            queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+                                          },
+                                          onError: (error: any) => {
+                                            toast({
+                                              title: "Update Failed",
+                                              description: error.message || "Failed to update user settings",
+                                              variant: "destructive"
+                                            });
+                                          }
+                                        });
                                       }} 
                                       disabled={updateUserMutation.isPending}
                                     >
