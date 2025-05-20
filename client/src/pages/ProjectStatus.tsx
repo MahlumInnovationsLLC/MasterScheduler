@@ -86,6 +86,8 @@ const formatColumnName = (column: string): string => {
 };
 
 const ProjectStatus = () => {
+  // State for archived projects visibility
+  const [showArchived, setShowArchived] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { data: projects, isLoading } = useQuery<Project[]>({
@@ -330,7 +332,8 @@ const ProjectStatus = () => {
     // Cast projects to ProjectWithRawData[] to ensure rawData is available
     return (projects as ProjectWithRawData[]).filter((project: ProjectWithRawData) => {
       // First, exclude archived projects as they shouldn't appear in results by default
-      if (project.status === 'archived') {
+      // Unless showArchived is true
+      if (project.status === 'archived' && !showArchived) {
         return false;
       }
       
@@ -1504,6 +1507,17 @@ const ProjectStatus = () => {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+            
+            {/* Show Archived Projects Toggle */}
+            <Button 
+              variant={showArchived ? "default" : "outline"}
+              size="sm" 
+              className="flex items-center gap-1"
+              onClick={() => setShowArchived(!showArchived)}
+            >
+              <Archive className="h-4 w-4" />
+              {showArchived ? "Hide Archived" : "Show Archived"}
+            </Button>
             
             {/* Sort Button (Only enabled when location filtered) */}
             <Button 
