@@ -102,6 +102,7 @@ import BaySchedulingImport from '@/components/BaySchedulingImport';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import { TeamManagementButton } from '@/components/TeamManagementButton';
 import { TeamCapacityInfo } from '@/components/TeamCapacityInfo';
+import { SandboxModeBanner } from '@/components/SandboxModeBanner';
 // RowPositionTester removed as requested
 import { 
   ManufacturingBay, 
@@ -147,6 +148,7 @@ const BaySchedulingPage = () => {
   const [sandboxProjects, setSandboxProjects] = useState<Project[]>([]);
   const [sandboxBays, setSandboxBays] = useState<ManufacturingBay[]>([]);
   const [sandboxChanges, setSandboxChanges] = useState<number>(0);
+  const [isSavingSandbox, setIsSavingSandbox] = useState<boolean>(false);
   
   // Use same approach as the Today button
   const forceScrollToToday = () => {
@@ -259,21 +261,28 @@ const BaySchedulingPage = () => {
     });
   }, [manufacturingSchedules, projects, manufacturingBays, toast]);
   
+  // This function will be initialized after updateScheduleMutation is defined
+  // We're using a ref to avoid circular dependencies
+  const saveSandboxChangesRef = React.useRef<() => Promise<void>>();
+  
   const exitSandboxMode = useCallback((saveSandbox = false) => {
-    if (saveSandbox && sandboxChanges > 0) {
-      // Show toast for saving changes (actual saving would go here)
-      toast({
-        title: "Sandbox Changes Applied",
-        description: `Applied ${sandboxChanges} changes to production data`,
-        duration: 3000
-      });
-    } else {
-      toast({
-        title: "Sandbox Mode Exited",
-        description: "No changes were saved to production data",
-        duration: 3000
-      });
+    if (saveSandbox) {
+      if (saveSandboxChangesRef.current) {
+        saveSandboxChangesRef.current();
+      }
+      return;
     }
+    
+    if (sandboxChanges > 0) {
+      const confirmExit = confirm("You have unsaved changes. Are you sure you want to exit sandbox mode without saving?");
+      if (!confirmExit) return;
+    }
+    
+    toast({
+      title: "Sandbox Mode Exited",
+      description: "No changes were saved to production data",
+      duration: 3000
+    });
     
     // Reset state
     setSandboxMode(false);
