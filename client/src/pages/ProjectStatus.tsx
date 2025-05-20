@@ -88,8 +88,8 @@ const formatColumnName = (column: string): string => {
 };
 
 const ProjectStatus = () => {
-  // State for archived projects visibility
-  const [showArchived, setShowArchived] = useState(false);
+  // State for archived projects visibility - now TRUE by default to show all projects
+  const [showArchived, setShowArchived] = useState(true);
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { data: projects, isLoading } = useQuery<Project[]>({
@@ -333,8 +333,8 @@ const ProjectStatus = () => {
     
     // Cast projects to ProjectWithRawData[] to ensure rawData is available
     return (projects as ProjectWithRawData[]).filter((project: ProjectWithRawData) => {
-      // First, exclude archived projects as they shouldn't appear in results by default
-      // Unless showArchived is true
+      // Now we'll only filter out archived projects if showArchived is false
+      // This allows displaying all projects including archived ones when showArchived is true
       if (project.status === 'archived' && !showArchived) {
         return false;
       }
