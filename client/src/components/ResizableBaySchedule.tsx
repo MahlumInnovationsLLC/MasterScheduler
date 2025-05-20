@@ -3568,7 +3568,7 @@ export default function ResizableBaySchedule({
                                     {bar.productionWidth && bar.productionWidth > 0 && (
                                       <div className="production-phase bg-yellow-700 h-full absolute" 
                                            style={{ 
-                                             width: `${bar.productionWidth}px`,
+                                             width: `${Math.max(bar.productionWidth, 20)}px`, // Ensure minimum width
                                              left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px` // Position after FAB and PAINT
                                            }}>
                                         <span className="text-xs font-bold text-gray-800 h-full w-full flex items-center justify-center">PROD</span>
@@ -3579,7 +3579,7 @@ export default function ResizableBaySchedule({
                                     {bar.itWidth && bar.itWidth > 0 && (
                                       <div className="it-phase bg-purple-700 h-full absolute" 
                                            style={{ 
-                                             width: `${bar.itWidth}px`,
+                                             width: `${Math.max(bar.itWidth, 10)}px`, // Ensure minimum width
                                              left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0)}px` // Position after PROD
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">IT</span>
@@ -3590,7 +3590,7 @@ export default function ResizableBaySchedule({
                                     {bar.ntcWidth && bar.ntcWidth > 0 && (
                                       <div className="ntc-phase bg-cyan-700 h-full absolute" 
                                            style={{ 
-                                             width: `${bar.ntcWidth}px`,
+                                             width: `${Math.max(bar.ntcWidth, 10)}px`, // Ensure minimum width
                                              left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0)}px` // Position after PROD and IT
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">NTC</span>
@@ -3601,7 +3601,7 @@ export default function ResizableBaySchedule({
                                     {bar.qcWidth && bar.qcWidth > 0 && (
                                       <div className="qc-phase bg-pink-700 h-full absolute" 
                                            style={{ 
-                                             width: `${bar.qcWidth}px`,
+                                             width: `${Math.max(bar.qcWidth, 10)}px`, // Ensure minimum width
                                              left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0)}px` // Position after all other phases
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">QC</span>
