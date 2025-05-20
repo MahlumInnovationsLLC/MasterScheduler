@@ -1540,6 +1540,7 @@ const ProjectStatus = () => {
                     <DropdownMenuItem 
                       key={location} 
                       onClick={() => setLocationFilter(location || '')}
+                      data-location-filter={location || ''}
                     >
                       {location}
                     </DropdownMenuItem>
