@@ -80,6 +80,11 @@ interface ProjectRow {
   original: ProjectWithRawData;
 }
 
+// Utility function to format column names
+const formatColumnName = (column: string): string => {
+  return column.charAt(0).toUpperCase() + column.slice(1).replace(/([A-Z])/g, ' $1');
+};
+
 const ProjectStatus = () => {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -324,10 +329,15 @@ const ProjectStatus = () => {
     
     // Cast projects to ProjectWithRawData[] to ensure rawData is available
     return (projects as ProjectWithRawData[]).filter((project: ProjectWithRawData) => {
+      // First, exclude archived projects as they shouldn't appear in results by default
+      if (project.status === 'archived') {
+        return false;
+      }
+      
       // Check if any filter is active
       const hasActiveFilters = Object.values(dateFilters).some(val => val !== '') || locationFilter !== '';
       
-      // If no filters, return all projects
+      // If no filters, return all non-archived projects
       if (!hasActiveFilters) {
         setSortableColumns(false);
         return true;
