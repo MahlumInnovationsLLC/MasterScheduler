@@ -3634,14 +3634,15 @@ export default function ResizableBaySchedule({
                                 </div>
                                 
                                 {/* Project information display centered below the PROD section */}
-                                <div className="project-info absolute flex flex-col items-center justify-center z-50"
+                                <div className="project-info absolute flex flex-col items-center justify-center"
                                      style={{
                                        left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + ((bar.productionWidth || 0) / 2) - 150}px`,
                                        top: '28px',
                                        width: '300px',
-                                       pointerEvents: 'none' /* Allow clicks to pass through */
+                                       pointerEvents: 'none', /* Allow clicks to pass through */
+                                       zIndex: 9999 /* Extremely high z-index to ensure it's on top of everything */
                                      }}>
-                                  <div className="text-xs font-bold text-white bg-black bg-opacity-90 px-2 py-0.5 rounded-md text-center truncate shadow-md" style={{minWidth: "250px", maxWidth: "300px"}}>
+                                  <div className="text-xs font-bold text-white bg-black bg-opacity-90 px-2 py-0.5 rounded-md text-center truncate shadow-md" style={{minWidth: "250px", maxWidth: "300px", position: 'relative'}}>
                                     {bar.projectNumber} - {bar.projectName}
                                   </div>
                                 </div>
