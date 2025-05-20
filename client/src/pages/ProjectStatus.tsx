@@ -342,9 +342,10 @@ const ProjectStatus = () => {
       // Check if any filter is active
       const hasActiveFilters = Object.values(dateFilters).some(val => val !== '') || locationFilter !== '';
       
-      // If no filters, return all non-archived projects
+      // If no filters, return all projects (archived ones only if showArchived is true)
       if (!hasActiveFilters) {
-        setSortableColumns(false);
+        // Keep sorting enabled for all columns
+        setSortableColumns(true);
         return true;
       }
       
