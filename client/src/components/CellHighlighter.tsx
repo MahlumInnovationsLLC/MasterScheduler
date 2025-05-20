@@ -5,11 +5,10 @@ import { Check, X, AlertTriangle } from 'lucide-react';
 // Define highlight color options
 export type HighlightColor = 'none' | 'yellow' | 'orange' | 'red';
 
-export interface CellHighlighterProps {
-  value: string | number | React.ReactNode;
-  highlight?: boolean;
-  indicator?: string;
-  maxLength?: number;
+interface CellHighlighterProps {
+  rowId: number;
+  columnId: string;
+  children: React.ReactNode;
   className?: string;
 }
 
@@ -18,21 +17,25 @@ export interface CellHighlighterProps {
 const cellHighlightState = new Map<string, HighlightColor>();
 
 export const CellHighlighter: React.FC<CellHighlighterProps> = ({ 
-  value,
-  highlight = false,
-  indicator,
-  maxLength,
+  rowId, 
+  columnId, 
+  children, 
   className
 }) => {
-  const [showMenu, setShowMenu] = useState(false);
+  const cellId = `${rowId}-${columnId}`;
   const [highlightColor, setHighlightColor] = useState<HighlightColor>(
-    highlight ? 'yellow' : 'none'
+    cellHighlightState.get(cellId) || 'none'
   );
+  const [showMenu, setShowMenu] = useState(false);
 
-  // Truncate text if maxLength is provided
-  const displayValue = typeof value === 'string' && maxLength && value.length > maxLength 
-    ? value.substring(0, maxLength) + '...' 
-    : value;
+  // Update the global state when this component's state changes
+  useEffect(() => {
+    if (highlightColor === 'none') {
+      cellHighlightState.delete(cellId);
+    } else {
+      cellHighlightState.set(cellId, highlightColor);
+    }
+  }, [highlightColor, cellId]);
 
   const handleHighlightChange = (color: HighlightColor) => {
     setHighlightColor(color);
@@ -52,35 +55,18 @@ export const CellHighlighter: React.FC<CellHighlighterProps> = ({
     }
   };
 
-  // Display indicator based on highlight color or passed indicator
+  // Display indicator based on highlight color
   const getIndicator = () => {
-    if (indicator) {
-      switch (indicator.toLowerCase()) {
-        case 'warning':
-          return <div className="absolute bottom-1 left-1 text-yellow-500"><AlertTriangle size={14} /></div>;
-        case 'error':
-          return <div className="absolute bottom-1 left-1 text-red-500"><X size={14} /></div>;
-        case 'success':
-          return <div className="absolute bottom-1 left-1 text-green-500"><Check size={14} /></div>;
-        default:
-          return null;
-      }
+    switch (highlightColor) {
+      case 'yellow':
+        return <div className="absolute bottom-1 left-1 text-yellow-500"><AlertTriangle size={14} /></div>;
+      case 'orange':
+        return <div className="absolute bottom-1 left-1 text-orange-500"><AlertTriangle size={14} /></div>;
+      case 'red':
+        return <div className="absolute bottom-1 left-1 text-red-500"><X size={14} /></div>;
+      default:
+        return null;
     }
-    
-    if (highlightColor !== 'none') {
-      switch (highlightColor) {
-        case 'yellow':
-          return <div className="absolute bottom-1 left-1 text-yellow-500"><AlertTriangle size={14} /></div>;
-        case 'orange':
-          return <div className="absolute bottom-1 left-1 text-orange-500"><AlertTriangle size={14} /></div>;
-        case 'red':
-          return <div className="absolute bottom-1 left-1 text-red-500"><X size={14} /></div>;
-        default:
-          return null;
-      }
-    }
-    
-    return null;
   };
 
   // Functions to handle menu visibility
@@ -103,7 +89,7 @@ export const CellHighlighter: React.FC<CellHighlighterProps> = ({
       onMouseLeave={hideColorMenu}
     >
       {/* The cell content */}
-      <div className="py-1">{displayValue}</div>
+      {children}
       
       {/* Display icon based on highlight state */}
       {getIndicator()}
