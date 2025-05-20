@@ -3499,12 +3499,16 @@ export default function ResizableBaySchedule({
                                 {/* Top phases (PRODUCTION, IT, NTC, QC) - fixed height at top */}
                                 <div className="top-phases flex w-full h-[26px] overflow-hidden absolute top-0 left-0 z-20">
                                   {/* ALWAYS add spacer equal to fab+paint width to ensure phases don't start prematurely */}
-                                  <div className="spacer" style={{ width: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + 8}px` }}></div>
+                                  <div className="spacer" style={{ width: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px` }}></div>
                                   
                                   {/* Production phase (starts after paint ends) */}
                                   {bar.productionWidth && bar.productionWidth > 0 && (
                                     <div className="production-phase bg-yellow-700 h-full flex items-center justify-center" 
-                                         style={{ width: `${bar.productionWidth}px` }}>
+                                         style={{ 
+                                           width: `${bar.productionWidth}px`,
+                                           position: 'absolute',
+                                           left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px`
+                                         }}>
                                       <span className="text-xs font-bold text-gray-800 text-center">PROD</span>
                                     </div>
                                   )}
@@ -3512,7 +3516,11 @@ export default function ResizableBaySchedule({
                                   {/* IT phase */}
                                   {bar.itWidth && bar.itWidth > 0 && (
                                     <div className="it-phase bg-purple-700 h-full flex items-center justify-center" 
-                                         style={{ width: `${bar.itWidth}px` }}>
+                                         style={{ 
+                                           width: `${bar.itWidth}px`,
+                                           position: 'absolute',
+                                           left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0)}px`
+                                         }}>
                                       <span className="text-xs font-bold text-white text-center">IT</span>
                                     </div>
                                   )}
@@ -3520,7 +3528,11 @@ export default function ResizableBaySchedule({
                                   {/* NTC phase */}
                                   {bar.ntcWidth && bar.ntcWidth > 0 && (
                                     <div className="ntc-phase bg-cyan-700 h-full flex items-center justify-center" 
-                                         style={{ width: `${bar.ntcWidth}px` }}>
+                                         style={{ 
+                                           width: `${bar.ntcWidth}px`,
+                                           position: 'absolute',
+                                           left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0)}px`
+                                         }}>
                                       <span className="text-xs font-bold text-white text-center">NTC</span>
                                     </div>
                                   )}
@@ -3528,7 +3540,11 @@ export default function ResizableBaySchedule({
                                   {/* QC phase */}
                                   {bar.qcWidth && bar.qcWidth > 0 && (
                                     <div className="qc-phase bg-pink-700 h-full flex items-center justify-center" 
-                                         style={{ width: `${bar.qcWidth}px` }}>
+                                         style={{ 
+                                           width: `${bar.qcWidth}px`,
+                                           position: 'absolute',
+                                           left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0)}px`
+                                         }}>
                                       <span className="text-xs font-bold text-white text-center">QC</span>
                                     </div>
                                   )}
@@ -3539,7 +3555,11 @@ export default function ResizableBaySchedule({
                                   {/* FAB phase (starts from the left) */}
                                   {bar.fabWidth && bar.fabWidth > 0 && (
                                     <div className="fab-phase bg-blue-700 h-full flex items-center justify-center" 
-                                         style={{ width: `${bar.fabWidth}px` }}>
+                                         style={{ 
+                                           width: `${bar.fabWidth}px`,
+                                           position: 'absolute',
+                                           left: '0'
+                                         }}>
                                       <span className="text-xs font-bold text-white text-center">FAB</span>
                                     </div>
                                   )}
@@ -3547,7 +3567,12 @@ export default function ResizableBaySchedule({
                                   {/* PAINT phase (follows FAB) */}
                                   {bar.paintWidth && bar.paintWidth > 0 && (
                                     <div className="paint-phase bg-green-700 h-full flex items-center justify-center" 
-                                         style={{ width: `${bar.paintWidth}px` }}>
+                                         style={{ 
+                                           width: `${bar.paintWidth}px`,
+                                           marginLeft: `${bar.fabWidth}px`,
+                                           position: 'absolute',
+                                           left: '0'
+                                         }}>
                                       <span className="text-xs font-bold text-white text-center">PAINT</span>
                                     </div>
                                   )}
