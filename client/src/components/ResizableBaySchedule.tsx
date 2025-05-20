@@ -3555,22 +3555,22 @@ export default function ResizableBaySchedule({
                                   left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) - 10}px`,
                                   top: '0', 
                                   width: '22px',
-                                  height: '26px',
+                                  height: '35px',  // Made taller to accommodate longer arrow
                                   zIndex: 25,
                                   overflow: 'visible'
                                 }}>
-                                  {/* Vertical line up from PAINT */}
+                                  {/* Vertical line from PAINT */}
                                   <div className="connector-line-vertical absolute bg-red-500" style={{
                                     left: '10px',
                                     top: '0',
                                     width: '2px',
-                                    height: '8px'
+                                    height: '19px'  // Longer line to reach the middle of PROD
                                   }}></div>
                                   
                                   {/* Horizontal line to PROD */}
                                   <div className="connector-line-horizontal absolute bg-red-500" style={{
                                     left: '10px',
-                                    top: '0',
+                                    top: '18px',  // Positioned at the middle of the PROD phase
                                     width: '12px',
                                     height: '2px'
                                   }}></div>
@@ -3578,7 +3578,7 @@ export default function ResizableBaySchedule({
                                   {/* Arrow pointing to PROD */}
                                   <div className="connector-arrow absolute" style={{
                                     left: '17px',
-                                    top: '-4px',
+                                    top: '14px',  // Aligned with the horizontal line
                                     width: '0',
                                     height: '0',
                                     borderTop: '5px solid transparent',
