@@ -88,8 +88,8 @@ const formatColumnName = (column: string): string => {
 };
 
 const ProjectStatus = () => {
-  // State for archived projects visibility
-  const [showArchived, setShowArchived] = useState(false);
+  // State for showing all projects (including future projects)
+  const [showAllProjects, setShowAllProjects] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { data: projects, isLoading } = useQuery<Project[]>({
@@ -333,10 +333,16 @@ const ProjectStatus = () => {
     
     // Cast projects to ProjectWithRawData[] to ensure rawData is available
     return (projects as ProjectWithRawData[]).filter((project: ProjectWithRawData) => {
-      // First, exclude archived projects as they shouldn't appear in results by default
-      // Unless showArchived is true
-      if (project.status === 'archived' && !showArchived) {
-        return false;
+      // If we're not showing all projects, filter out future projects
+      if (!showAllProjects) {
+        // Find upcoming ship dates (after today)
+        const now = new Date();
+        const shipDate = project.shipDate ? new Date(project.shipDate) : null;
+        
+        // Hide projects with a future ship date unless specifically showing all projects
+        if (shipDate && shipDate > now) {
+          return false;
+        }
       }
       
       // Check if any filter is active
@@ -381,7 +387,7 @@ const ProjectStatus = () => {
       
       return true;
     });
-  }, [projects, dateFilters, locationFilter, showArchived]);
+  }, [projects, dateFilters, locationFilter, showAllProjects]);
   
   // Effect to move filter buttons into table header
   useEffect(() => {
@@ -410,7 +416,7 @@ const ProjectStatus = () => {
     const timer = setTimeout(moveFilterButtons, 100);
     
     return () => clearTimeout(timer);
-  }, [locationFilter, showArchived]); // Re-run when filter state changes
+  }, [locationFilter, showAllProjects]); // Re-run when filter state changes
 
   // Calculate upcoming milestones within the next 30 days
   const upcomingMilestones = React.useMemo(() => {
@@ -1539,15 +1545,15 @@ const ProjectStatus = () => {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* Show Archived Projects Toggle */}
+            {/* Show All Projects Toggle */}
             <Button 
-              variant={showArchived ? "default" : "outline"}
+              variant={showAllProjects ? "default" : "outline"}
               size="sm" 
               className="flex items-center gap-1"
-              onClick={() => setShowArchived(!showArchived)}
+              onClick={() => setShowAllProjects(!showAllProjects)}
             >
-              <Archive className="h-4 w-4" />
-              {showArchived ? "Hide Archived" : "Show Archived"}
+              <Calendar className="h-4 w-4" />
+              {showAllProjects ? "Hide Future Projects" : "Show Future Projects"}
             </Button>
             
             {/* Sort Button (Only enabled when location filtered) */}
