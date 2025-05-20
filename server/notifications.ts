@@ -13,8 +13,61 @@ export async function getNotifications(req: Request, res: Response) {
       limit: limit ? parseInt(limit as string) : undefined
     };
 
-    const notifications = await storage.getNotifications(userId, options);
-    res.json(notifications);
+    // Get all notifications first
+    const allNotifications = await storage.getNotifications(userId, options);
+    
+    // If userId is null or we're in admin mode, return all notifications
+    if (!userId || (req.user as any)?.role === 'admin') {
+      return res.json(allNotifications);
+    }
+    
+    // Get user preferences to filter notifications
+    const userPreferences = await storage.getUserPreferences(userId);
+    
+    // If no preferences exist, return all notifications
+    if (!userPreferences) {
+      return res.json(allNotifications);
+    }
+    
+    // Filter notifications based on user preferences and department
+    const filteredNotifications = allNotifications.filter(notification => {
+      // Check if this user's department should receive this notification type
+      const userDepartment = userPreferences.department || '';
+      
+      // Global/system notifications are always shown unless explicitly disabled
+      if (notification.type === 'system') {
+        return userPreferences.notifySystemUpdates !== false;
+      }
+      
+      // Billing notifications - finance department always gets these regardless of preferences
+      if (notification.type === 'billing') {
+        if (userDepartment === 'finance') {
+          return true; // Finance department always gets billing notifications
+        }
+        return userPreferences.notifyBillingUpdates !== false;
+      }
+      
+      // Manufacturing notifications - manufacturing department always gets these
+      if (notification.type === 'manufacturing') {
+        if (userDepartment === 'manufacturing' || userDepartment === 'quality_control') {
+          return true; // Manufacturing and QC departments always get manufacturing notifications
+        }
+        return userPreferences.notifyManufacturingUpdates !== false;
+      }
+      
+      // Project notifications - project_management department always gets these
+      if (notification.type === 'project') {
+        if (userDepartment === 'project_management') {
+          return true; // Project management department always gets project notifications
+        }
+        return userPreferences.notifyProjectUpdates !== false;
+      }
+      
+      // If the notification type doesn't match any of the above, show it
+      return true;
+    });
+    
+    res.json(filteredNotifications);
   } catch (error) {
     console.error('Failed to fetch notifications:', error);
     res.status(500).json({ message: 'Failed to fetch notifications' });
@@ -89,8 +142,63 @@ export async function getUnreadNotificationCount(req: Request, res: Response) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const count = await storage.getUnreadNotificationCount(userId);
-    res.json({ count });
+    // If admin, return total count
+    if ((req.user as any)?.role === 'admin') {
+      const count = await storage.getUnreadNotificationCount(userId);
+      return res.json({ count });
+    }
+    
+    // Get user preferences to filter notifications
+    const userPreferences = await storage.getUserPreferences(userId);
+    
+    // If no preferences exist, return all unread notifications count
+    if (!userPreferences) {
+      const count = await storage.getUnreadNotificationCount(userId);
+      return res.json({ count });
+    }
+    
+    // Get all notifications for this user
+    const notifications = await storage.getNotifications(userId, { unreadOnly: true });
+    
+    // Filter notifications based on user preferences and department
+    const filteredNotifications = notifications.filter(notification => {
+      // Check if this user's department should receive this notification type
+      const userDepartment = userPreferences.department || '';
+      
+      // Global/system notifications are always shown unless explicitly disabled
+      if (notification.type === 'system') {
+        return userPreferences.notifySystemUpdates !== false;
+      }
+      
+      // Billing notifications - finance department always gets these regardless of preferences
+      if (notification.type === 'billing') {
+        if (userDepartment === 'finance') {
+          return true; // Finance department always gets billing notifications
+        }
+        return userPreferences.notifyBillingUpdates !== false;
+      }
+      
+      // Manufacturing notifications - manufacturing department always gets these
+      if (notification.type === 'manufacturing') {
+        if (userDepartment === 'manufacturing' || userDepartment === 'quality_control') {
+          return true; // Manufacturing and QC departments always get manufacturing notifications
+        }
+        return userPreferences.notifyManufacturingUpdates !== false;
+      }
+      
+      // Project notifications - project_management department always gets these
+      if (notification.type === 'project') {
+        if (userDepartment === 'project_management') {
+          return true; // Project management department always gets project notifications
+        }
+        return userPreferences.notifyProjectUpdates !== false;
+      }
+      
+      // If the notification type doesn't match any of the above, show it
+      return true;
+    });
+    
+    res.json({ count: filteredNotifications.length });
   } catch (error) {
     console.error('Failed to get unread notification count:', error);
     res.status(500).json({ message: 'Failed to get unread notification count' });
