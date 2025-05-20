@@ -1314,15 +1314,20 @@ export class DatabaseStorage implements IStorage {
   
   async markAllNotificationsAsRead(userId: string): Promise<boolean> {
     try {
+      // Mark both user-specific notifications AND global notifications (userId = null) as read
       await db
         .update(notifications)
         .set({ isRead: true })
         .where(
           and(
-            eq(notifications.userId, userId),
+            or(
+              eq(notifications.userId, userId),
+              isNull(notifications.userId)
+            ),
             eq(notifications.isRead, false)
           )
         );
+      console.log(`Marked all notifications as read for user ${userId}`);
       return true;
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
