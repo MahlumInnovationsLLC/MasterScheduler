@@ -438,9 +438,6 @@ const Dashboard = () => {
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="md:col-span-3">
-          <ProjectStatusBreakdownCard projects={projects || []} />
-        </div>
-        <div className="md:col-span-3">
           <HighRiskProjectsCard projects={projects || []} />
         </div>
       </div>
