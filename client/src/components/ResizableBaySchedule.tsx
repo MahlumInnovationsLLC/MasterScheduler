@@ -259,8 +259,8 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
   console.log(`⏱️ USING ACTUAL DATES: ${format(currentDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
   console.log(`NO CALIBRATION: All dates shown are actual calendar dates with no offsets`);
   
-  // Loop until we reach the forced 2030 end date
-  while (currentDate <= forcedEndDate) {
+  // Loop until we reach the end date
+  while (currentDate <= endDate) {
     const isStartOfMonth = currentDate.getDate() === 1;
     const isStartOfWeek = currentDate.getDay() === 1; // Monday as start of week
     const isCurrentDateBusinessDay = isBusinessDay(currentDate);
@@ -934,18 +934,12 @@ export default function ResizableBaySchedule({
       // Instead of calculating based on dateRange.start, use our known starting position
       // This ensures the dates in UI match the database dates exactly
       
-      // Calculate days from our fixed Jan 1, 2024 reference point
-      const calendarStartDate = new Date(2024, 0, 1);
+      // DIRECT DATE POSITIONING: Use actual dates with no offset
+      // Calculate position from the current view's start date
+      const daysFromStart = differenceInDays(startDate, dateRange.start);
       
-      // Calculate position using the fixed reference date
-      const daysFromStart = differenceInDays(startDate, calendarStartDate);
-      
-      // Go back to a simpler approach that works
-      // Calculate position from start date with a fixed offset
-      // Based on what we've learned through testing
-      const daysOffset = viewMode === 'week' ? 28 : 0; // 4 weeks of offset for weekly view
-      const fixedDaysFromStart = daysFromStart + daysOffset;
-      const left = fixedDaysFromStart * pixelsPerDay;
+      // No offsets, no adjustments - use the actual date position
+      const left = daysFromStart * pixelsPerDay;
       
       console.log(`Schedule ${schedule.id} position fix:`, {
         date: format(startDate, 'yyyy-MM-dd'),
@@ -3546,101 +3540,70 @@ export default function ResizableBaySchedule({
                               onDragStart={(e) => handleDragStart(e, bar.id)}
                               onDragEnd={handleDragEnd}
                             >
-                              {/* Department phases visualization - REDESIGNED */}
-                              <div className="phases-container relative w-full h-full rounded">
-                                {/* Top phases (PRODUCTION, IT, NTC, QC) - fixed height at top */}
-                                <div className="top-phases flex w-full h-[26px] absolute top-0 left-0 z-20">
-                                  {/* ALWAYS add spacer equal to fab+paint width to ensure phases don't start prematurely */}
-                                  <div className="spacer" style={{ width: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px` }}></div>
+                              {/* Department phases visualization - INTEGRATED DESIGN */}
+                              <div className="phases-container flex w-full h-full">
+                                {/* Fixed-connection phases that move as a single unit */}
+                                <div className="all-phases-container relative w-full h-full">
+                                  {/* FAB phase (starts from the left) - bottom */}
+                                  {bar.fabWidth && bar.fabWidth > 0 && (
+                                    <div className="fab-phase bg-blue-700 h-[24px] flex items-center justify-center absolute bottom-3 left-0" 
+                                         style={{ width: `${bar.fabWidth}px` }}>
+                                      <span className="text-xs font-bold text-white text-center">FAB</span>
+                                    </div>
+                                  )}
                                   
-                                  {/* Production phase (starts after paint ends) */}
+                                  {/* PAINT phase (follows FAB) - bottom */}
+                                  {bar.paintWidth && bar.paintWidth > 0 && (
+                                    <div className="paint-phase bg-green-700 h-[24px] flex items-center justify-center absolute bottom-3" 
+                                         style={{ 
+                                           width: `${bar.paintWidth}px`,
+                                           left: `${bar.fabWidth || 0}px`
+                                         }}>
+                                      <span className="text-xs font-bold text-white text-center">PAINT</span>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Production phase (top) */}
                                   {bar.productionWidth && bar.productionWidth > 0 && (
-                                    <div className="production-phase bg-yellow-700 h-full flex items-center justify-center" 
+                                    <div className="production-phase bg-yellow-700 h-[26px] flex items-center justify-center absolute top-0" 
                                          style={{ 
                                            width: `${bar.productionWidth}px`,
-                                           position: 'absolute',
                                            left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px`
                                          }}>
                                       <span className="text-xs font-bold text-gray-800 text-center">PROD</span>
                                     </div>
                                   )}
                                   
-                                  {/* IT phase */}
+                                  {/* IT phase (top) */}
                                   {bar.itWidth && bar.itWidth > 0 && (
-                                    <div className="it-phase bg-purple-700 h-full flex items-center justify-center" 
+                                    <div className="it-phase bg-purple-700 h-[26px] flex items-center justify-center absolute top-0" 
                                          style={{ 
                                            width: `${bar.itWidth}px`,
-                                           position: 'absolute',
                                            left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0)}px`
                                          }}>
                                       <span className="text-xs font-bold text-white text-center">IT</span>
                                     </div>
                                   )}
                                   
-                                  {/* NTC phase */}
+                                  {/* NTC phase (top) */}
                                   {bar.ntcWidth && bar.ntcWidth > 0 && (
-                                    <div className="ntc-phase bg-cyan-700 h-full flex items-center justify-center" 
+                                    <div className="ntc-phase bg-cyan-700 h-[26px] flex items-center justify-center absolute top-0" 
                                          style={{ 
                                            width: `${bar.ntcWidth}px`,
-                                           position: 'absolute',
                                            left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0)}px`
                                          }}>
                                       <span className="text-xs font-bold text-white text-center">NTC</span>
                                     </div>
                                   )}
                                   
-                                  {/* QC phase */}
+                                  {/* QC phase (top) */}
                                   {bar.qcWidth && bar.qcWidth > 0 && (
-                                    <div className="qc-phase bg-pink-700 h-full flex items-center justify-center" 
+                                    <div className="qc-phase bg-pink-700 h-[26px] flex items-center justify-center absolute top-0" 
                                          style={{ 
                                            width: `${bar.qcWidth}px`,
-                                           position: 'absolute',
                                            left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0)}px`
                                          }}>
                                       <span className="text-xs font-bold text-white text-center">QC</span>
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                {/* Connector line between PAINT and PROD */}
-                                <div className="phase-connector-container absolute" style={{
-                                  left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) / 2}px`,
-                                  bottom: '3px', // Position at bottom of project bar
-                                  width: '40px',
-                                  height: '40px',
-                                  zIndex: 25,
-                                  overflow: 'visible'
-                                }}>
-                                  {/* Vertical line removed as requested */}
-                                  
-                                  {/* Horizontal line removed as requested */}
-                                  
-                                  {/* Arrow removed as requested */}
-                                </div>
-                                
-                                {/* Bottom FAB and PAINT phases - fixed height at bottom */}
-                                <div className="bottom-phases flex w-full h-[24px] absolute bottom-3 left-0 overflow-hidden z-20">
-                                  {/* FAB phase (starts from the left) */}
-                                  {bar.fabWidth && bar.fabWidth > 0 && (
-                                    <div className="fab-phase bg-blue-700 h-full flex items-center justify-center" 
-                                         style={{ 
-                                           width: `${bar.fabWidth}px`,
-                                           position: 'absolute',
-                                           left: '0'
-                                         }}>
-                                      <span className="text-xs font-bold text-white text-center">FAB</span>
-                                    </div>
-                                  )}
-                                  
-                                  {/* PAINT phase (follows FAB) */}
-                                  {bar.paintWidth && bar.paintWidth > 0 && (
-                                    <div className="paint-phase bg-green-700 h-full flex items-center justify-center" 
-                                         style={{ 
-                                           width: `${bar.paintWidth}px`,
-                                           position: 'absolute',
-                                           left: `${bar.fabWidth || 0}px`
-                                         }}>
-                                      <span className="text-xs font-bold text-white text-center">PAINT</span>
                                     </div>
                                   )}
                                 </div>
