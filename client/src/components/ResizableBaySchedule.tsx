@@ -451,7 +451,8 @@ export default function ResizableBaySchedule({
   onBayUpdate,
   onBayDelete,
   dateRange,
-  viewMode
+  viewMode,
+  enableFinancialImpact = true
 }: ResizableBayScheduleProps) {
   const { toast } = useToast();
   const apiRequest = useApiRequest();
@@ -1642,22 +1643,52 @@ export default function ResizableBaySchedule({
         bayId !== bar.bayId; // Bay change is always significant
         
       if (isSignificantChange) {
-        // Show financial impact popup before committing changes
-        setFinancialImpactData({
-          scheduleId: scheduleId,
-          projectId: bar.projectId,
-          bayId: bayId,
-          originalStartDate: originalStartDate,
-          originalEndDate: originalEndDate,
-          newStartDate: formattedStartDate,
-          newEndDate: formattedEndDate,
-          totalHours: bar.totalHours,
-          rowIndex: rowIndex
-        });
-        setShowFinancialImpact(true);
-        
-        // Note: Changes will be committed when user confirms in the popup
-        return;
+        if (enableFinancialImpact) {
+          // Show financial impact popup before committing changes if enabled
+          setFinancialImpactData({
+            scheduleId: scheduleId,
+            projectId: bar.projectId,
+            bayId: bayId,
+            originalStartDate: originalStartDate,
+            originalEndDate: originalEndDate,
+            newStartDate: formattedStartDate,
+            newEndDate: formattedEndDate,
+            totalHours: bar.totalHours,
+            rowIndex: rowIndex
+          });
+          setShowFinancialImpact(true);
+          
+          // Note: Changes will be committed when user confirms in the popup
+          return;
+        } else {
+          // When financial impact analysis is disabled, directly apply the changes
+          try {
+            // Update the schedule without showing financial impact
+            await onScheduleChange(
+              scheduleId,
+              bayId,
+              formattedStartDate,
+              formattedEndDate,
+              bar.totalHours,
+              rowIndex
+            );
+            
+            // Show success toast
+            toast({
+              title: "Schedule updated",
+              description: `${bar.projectName} moved to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
+            });
+            return;
+          } catch (error) {
+            console.error('Error updating schedule:', error);
+            toast({
+              title: 'Update failed',
+              description: 'There was an error updating the schedule.',
+              variant: 'destructive',
+            });
+            return;
+          }
+        }
       }
       
       // If no significant change, update directly
@@ -2167,22 +2198,51 @@ export default function ResizableBaySchedule({
         Math.abs(differenceInDays(newEndDate, initialEndDate)) > 0;
         
       if (isSignificantChange) {
-        // Show financial impact popup before committing changes
-        setFinancialImpactData({
-          scheduleId: bar.id,
-          projectId: bar.projectId,
-          bayId: bar.bayId,
-          originalStartDate: format(initialStartDate, 'yyyy-MM-dd'),
-          originalEndDate: format(initialEndDate, 'yyyy-MM-dd'),
-          newStartDate: formattedStartDate,
-          newEndDate: formattedEndDate,
-          totalHours: bar.totalHours,
-          rowIndex: bar.row
-        });
-        setShowFinancialImpact(true);
-        
-        // Note: Changes will be committed when user confirms in the popup
-        return;
+        if (enableFinancialImpact) {
+          // Show financial impact popup before committing changes when the feature is enabled
+          setFinancialImpactData({
+            scheduleId: bar.id,
+            projectId: bar.projectId,
+            bayId: bar.bayId,
+            originalStartDate: format(initialStartDate, 'yyyy-MM-dd'),
+            originalEndDate: format(initialEndDate, 'yyyy-MM-dd'),
+            newStartDate: formattedStartDate,
+            newEndDate: formattedEndDate,
+            totalHours: bar.totalHours,
+            rowIndex: bar.row
+          });
+          setShowFinancialImpact(true);
+          
+          // Note: Changes will be committed when user confirms in the popup
+          return;
+        } else {
+          // When financial impact analysis is disabled, directly apply the changes
+          try {
+            // Update the schedule without showing financial impact
+            await onScheduleChange(
+              bar.id,
+              bar.bayId,
+              formattedStartDate,
+              formattedEndDate,
+              bar.totalHours,
+              bar.row
+            );
+            
+            toast({
+              title: "Schedule updated",
+              description: "Project schedule has been updated.",
+            });
+            return;
+          } catch (error) {
+            console.error('Error updating schedule:', error);
+            toast({
+              title: 'Update failed',
+              description: 'There was an error updating the schedule.',
+              variant: 'destructive',
+            });
+            return;
+          }
+        }
       }
       
       try {
