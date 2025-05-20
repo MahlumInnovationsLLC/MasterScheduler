@@ -3473,10 +3473,10 @@ export default function ResizableBaySchedule({
                               style={{
                                 left: `${bar.left}px`,
                                 width: `${bar.width}px`,
-                                height: '80px', // Substantially increased height to match the gray row
+                                height: '22px', // Height that matches the gray grid row
                                 backgroundColor: `${bar.color}25`, // Very light background for the full bar
-                                // Position it higher to center in the row
-                                top: '-30px', // Significantly adjusted positioning
+                                // Use standard positioning
+                                top: '0px', // Standard positioning to align with row
                                 // Set data attributes for department phase percentages 
                                 // Store important info for drag/resize operations
                               }}
