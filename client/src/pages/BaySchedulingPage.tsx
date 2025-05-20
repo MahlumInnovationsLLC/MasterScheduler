@@ -308,73 +308,7 @@ const BaySchedulingPage = () => {
     setSandboxChanges(0);
   }, [sandboxChanges, toast]);
   
-  // Save sandbox changes to the real database
-  const saveSandboxChanges = useCallback(async () => {
-    if (sandboxChanges === 0) {
-      toast({
-        title: "No Changes",
-        description: "There are no changes to save",
-        duration: 3000
-      });
-      return;
-    }
-    
-    setIsSavingSandbox(true);
-    
-    try {
-      // Find all changed schedules by comparing sandbox to original
-      const updatedSchedules = sandboxSchedules.filter(sandboxSchedule => {
-        const originalSchedule = manufacturingSchedules.find(s => s.id === sandboxSchedule.id);
-        
-        // If we can't find a matching schedule, it's new
-        if (!originalSchedule) return true;
-        
-        // Check if any properties changed
-        return (
-          sandboxSchedule.bayId !== originalSchedule.bayId ||
-          sandboxSchedule.startDate !== originalSchedule.startDate ||
-          sandboxSchedule.endDate !== originalSchedule.endDate ||
-          sandboxSchedule.row !== originalSchedule.row
-        );
-      });
-      
-      console.log(`Applying ${updatedSchedules.length} schedule changes from sandbox`);
-      
-      // Process each schedule update sequentially to avoid race conditions
-      for (const schedule of updatedSchedules) {
-        await updateScheduleMutation.mutateAsync({
-          scheduleId: schedule.id,
-          bayId: schedule.bayId,
-          startDate: schedule.startDate,
-          endDate: schedule.endDate,
-          row: schedule.row || 0
-        });
-      }
-      
-      toast({
-        title: "Sandbox Changes Applied",
-        description: `Successfully applied ${updatedSchedules.length} changes to production data`,
-        duration: 3000
-      });
-      
-      // Reset state
-      setSandboxMode(false);
-      setSandboxSchedules([]);
-      setSandboxProjects([]);
-      setSandboxBays([]);
-      setSandboxChanges(0);
-    } catch (error) {
-      console.error("Error saving sandbox changes:", error);
-      toast({
-        title: "Error",
-        description: "Failed to apply sandbox changes to production data",
-        variant: "destructive",
-        duration: 5000
-      });
-    } finally {
-      setIsSavingSandbox(false);
-    }
-  }, [manufacturingSchedules, sandboxSchedules, sandboxChanges, toast, updateScheduleMutation]);
+  // We'll move saveSandboxChanges further down to fix the circular dependency issue
   
   // Create bay mutation
   const createBayMutation = useMutation({
@@ -1207,12 +1141,78 @@ const BaySchedulingPage = () => {
         </div>
       </div>
       
-      {/* SandboxModeBanner component positioned between Current & Upcoming Production and Manufacturing Schedule */}
+      {/* SandboxModeBanner positioned between Current & Upcoming Production and Manufacturing Schedule */}
+      {/* Implement save function inline here to avoid circular dependency with updateScheduleMutation */}
       <SandboxModeBanner 
         isActive={isSandboxMode}
-        onToggle={() => toggleSandboxMode()}
-        onSave={async () => saveSandboxChanges()}
-        onDiscard={() => discardSandboxChanges()}
+        onToggle={toggleSandboxMode}
+        onSave={async () => {
+          if (sandboxChanges === 0) {
+            toast({
+              title: "No Changes",
+              description: "There are no changes to save",
+              duration: 3000
+            });
+            return;
+          }
+          
+          setIsSavingSandbox(true);
+          
+          try {
+            // Find all changed schedules by comparing sandbox to original
+            const updatedSchedules = sandboxSchedules.filter(sandboxSchedule => {
+              const originalSchedule = manufacturingSchedules.find(s => s.id === sandboxSchedule.id);
+              
+              // If we can't find a matching schedule, it's new
+              if (!originalSchedule) return true;
+              
+              // Check if any properties changed
+              return (
+                sandboxSchedule.bayId !== originalSchedule.bayId ||
+                sandboxSchedule.startDate !== originalSchedule.startDate ||
+                sandboxSchedule.endDate !== originalSchedule.endDate ||
+                sandboxSchedule.row !== originalSchedule.row
+              );
+            });
+            
+            console.log(`Applying ${updatedSchedules.length} schedule changes from sandbox`);
+            
+            // Process each schedule update sequentially to avoid race conditions
+            for (const schedule of updatedSchedules) {
+              await updateScheduleMutation.mutateAsync({
+                scheduleId: schedule.id,
+                bayId: schedule.bayId,
+                startDate: schedule.startDate,
+                endDate: schedule.endDate,
+                row: schedule.row || 0
+              });
+            }
+            
+            toast({
+              title: "Sandbox Changes Applied",
+              description: `Successfully applied ${updatedSchedules.length} changes to production data`,
+              duration: 3000
+            });
+            
+            // Reset state
+            setSandboxMode(false);
+            setSandboxSchedules([]);
+            setSandboxProjects([]);
+            setSandboxBays([]);
+            setSandboxChanges(0);
+          } catch (error) {
+            console.error("Error saving sandbox changes:", error);
+            toast({
+              title: "Error",
+              description: "Failed to apply sandbox changes to production data",
+              variant: "destructive",
+              duration: 5000
+            });
+          } finally {
+            setIsSavingSandbox(false);
+          }
+        }}
+        onDiscard={discardSandboxChanges}
         hasChanges={sandboxChanges > 0}
       />
       
