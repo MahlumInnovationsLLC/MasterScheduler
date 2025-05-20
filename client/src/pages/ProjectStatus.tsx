@@ -1127,6 +1127,41 @@ const ProjectStatus = () => {
         </div>
         
         <div className="flex items-center gap-3">
+          {/* Location Filter Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant={locationFilter ? "default" : "outline"} 
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Building2 className="h-4 w-4" />
+                {locationFilter ? `Location: ${locationFilter}` : "Filter by Location"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => setLocationFilter('')}>
+                All Locations
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {projects && 
+                [...new Set(projects
+                  .map(p => p.location)
+                  .filter(Boolean)
+                )]
+                .sort()
+                .map(location => (
+                  <DropdownMenuItem 
+                    key={location} 
+                    onClick={() => setLocationFilter(location || '')}
+                  >
+                    {location}
+                  </DropdownMenuItem>
+                ))
+              }
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
           {/* Date Filter Dialog */}
           <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
             <DialogTrigger asChild>
