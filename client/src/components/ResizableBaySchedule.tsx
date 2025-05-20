@@ -891,47 +891,6 @@ export default function ResizableBaySchedule({
     const bars = schedules.map((schedule) => {
       const project = projects.find((p) => p.id === schedule.projectId);
       
-      // Force render phases for ALL schedules in Chavez bay (bayId 1) regardless of row
-      if (schedule.bayId === 1) {
-        schedule.forceRenderPhases = true;
-        
-        // Make sure all phases have default widths if none are calculated properly
-        schedule.forcedPhaseWidths = {
-          fabWidth: 40,         // Default FAB width
-          paintWidth: 20,       // Default PAINT width
-          productionWidth: 100, // Default PROD width
-          itWidth: 20,          // Default IT width
-          ntcWidth: 20,         // Default NTC width
-          qcWidth: 20           // Default QC width
-        };
-        
-        console.log(`🔍 FORCING PHASE RENDER FOR CHAVEZ BAY SCHEDULE:`, JSON.stringify({
-          scheduleId: schedule.id,
-          projectId: schedule.projectId,
-          bayId: schedule.bayId,
-          startDate: schedule.startDate,
-          endDate: schedule.endDate,
-          rowIndex: schedule.rowIndex,
-          forceRenderPhases: true,
-          forcedPhaseWidths: schedule.forcedPhaseWidths
-        }, null, 2));
-      }
-      
-      // Also force render for any schedule in row 1 or 2 of any bay for extra safety
-      if (schedule.rowIndex === 1 || schedule.rowIndex === 2) {
-        schedule.forceRenderPhases = true;
-        
-        // Make sure all phases have default widths if none are calculated properly
-        schedule.forcedPhaseWidths = {
-          fabWidth: 40,         // Default FAB width
-          paintWidth: 20,       // Default PAINT width
-          productionWidth: 100, // Default PROD width
-          itWidth: 20,          // Default IT width
-          ntcWidth: 20,         // Default NTC width
-          qcWidth: 20           // Default QC width
-        };
-      }
-      
       if (!project) {
         console.warn(`Project not found for schedule: ${schedule.id}, projectId: ${schedule.projectId}`);
         return null;
@@ -1021,26 +980,8 @@ export default function ResizableBaySchedule({
         qcPercentage: 7,
         
         // Default fab weeks
-        fabWeeks: 4,
-        
-        // Transfer the forced phase render flags from schedule to bar
-        forceRenderPhases: schedule.forceRenderPhases || false,
-        
-        // Transfer the forced phase widths if available
-        forcedPhaseWidths: schedule.forcedPhaseWidths || {
-          fabWidth: 40,
-          paintWidth: 20,
-          productionWidth: 100,
-          itWidth: 20,
-          ntcWidth: 20,
-          qcWidth: 20
-        }
+        fabWeeks: 4
       };
-      
-      // Special handling for row 1 and 2 directly on the bar object
-      if (bar.row === 1 || bar.row === 2) {
-        bar.forceRenderPhases = true;
-      }
       
       // Bar object is created but phase widths aren't calculated yet
       return bar;
@@ -3624,11 +3565,10 @@ export default function ResizableBaySchedule({
                                   {/* Top row of phases (production through QC) */}
                                   <div className="top-phases w-full h-[26px] absolute top-0 left-0">
                                     {/* Production phase (positioned after FAB and PAINT) */}
-                                    {/* Force display for Row 1/2 projects or use standard conditional check */}
-                                    {(bar.row === 1 || bar.forceRenderPhases || (bar.productionWidth && bar.productionWidth > 0)) && (
+                                    {bar.productionWidth && bar.productionWidth > 0 && (
                                       <div className="production-phase bg-yellow-700 h-full absolute" 
                                            style={{ 
-                                             width: `${Math.max(bar.forcedPhaseWidths?.productionWidth || bar.productionWidth || 100, 20)}px`, // Use forced width, calculated width, or default
+                                             width: `${bar.productionWidth}px`,
                                              left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px` // Position after FAB and PAINT
                                            }}>
                                         <span className="text-xs font-bold text-gray-800 h-full w-full flex items-center justify-center">PROD</span>
@@ -3636,33 +3576,33 @@ export default function ResizableBaySchedule({
                                     )}
                                     
                                     {/* IT phase */}
-                                    {(bar.row === 1 || bar.forceRenderPhases || (bar.itWidth && bar.itWidth > 0)) && (
+                                    {bar.itWidth && bar.itWidth > 0 && (
                                       <div className="it-phase bg-purple-700 h-full absolute" 
                                            style={{ 
-                                             width: `${Math.max(bar.forcedPhaseWidths?.itWidth || bar.itWidth || 20, 10)}px`, // Use forced width, calculated width, or default
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 30)}px` // Position after PROD
+                                             width: `${bar.itWidth}px`,
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0)}px` // Position after PROD
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">IT</span>
                                       </div>
                                     )}
                                     
                                     {/* NTC phase */}
-                                    {(bar.row === 1 || bar.forceRenderPhases || (bar.ntcWidth && bar.ntcWidth > 0)) && (
+                                    {bar.ntcWidth && bar.ntcWidth > 0 && (
                                       <div className="ntc-phase bg-cyan-700 h-full absolute" 
                                            style={{ 
-                                             width: `${Math.max(bar.forcedPhaseWidths?.ntcWidth || bar.ntcWidth || 20, 10)}px`, // Use forced width, calculated width, or default
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 30) + (bar.itWidth || 10)}px` // Position after PROD and IT
+                                             width: `${bar.ntcWidth}px`,
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0)}px` // Position after PROD and IT
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">NTC</span>
                                       </div>
                                     )}
                                     
                                     {/* QC phase */}
-                                    {(bar.row === 1 || bar.forceRenderPhases || (bar.qcWidth && bar.qcWidth > 0)) && (
+                                    {bar.qcWidth && bar.qcWidth > 0 && (
                                       <div className="qc-phase bg-pink-700 h-full absolute" 
                                            style={{ 
-                                             width: `${Math.max(bar.forcedPhaseWidths?.qcWidth || bar.qcWidth || 20, 10)}px`, // Use forced width, calculated width, or default
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 30) + (bar.itWidth || 10) + (bar.ntcWidth || 10)}px` // Position after all other phases
+                                             width: `${bar.qcWidth}px`,
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0)}px` // Position after all other phases
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">QC</span>
                                       </div>
@@ -3672,21 +3612,19 @@ export default function ResizableBaySchedule({
                                   {/* Bottom row of phases (FAB and PAINT) */}
                                   <div className="bottom-phases w-full h-[24px] absolute bottom-3 left-0">
                                     {/* FAB phase (starts from left) */}
-                                    {(bar.row === 1 || bar.forceRenderPhases || (bar.fabWidth && bar.fabWidth > 0)) && (
+                                    {bar.fabWidth && bar.fabWidth > 0 && (
                                       <div className="fab-phase bg-blue-700 h-full absolute left-0" 
-                                           style={{ 
-                                             width: `${Math.max(bar.forcedPhaseWidths?.fabWidth || bar.fabWidth || 40, 10)}px` // Use forced width, calculated width, or default
-                                           }}>
+                                           style={{ width: `${bar.fabWidth}px` }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">FAB</span>
                                       </div>
                                     )}
                                     
                                     {/* PAINT phase (follows FAB) */}
-                                    {(bar.row === 1 || bar.forceRenderPhases || (bar.paintWidth && bar.paintWidth > 0)) && (
+                                    {bar.paintWidth && bar.paintWidth > 0 && (
                                       <div className="paint-phase bg-green-700 h-full absolute" 
                                            style={{ 
-                                             width: `${Math.max(bar.forcedPhaseWidths?.paintWidth || bar.paintWidth || 20, 10)}px`, // Use forced width, calculated width, or default
-                                             left: `${bar.fabWidth || 20}px` // Position after FAB, default if missing
+                                             width: `${bar.paintWidth}px`,
+                                             left: `${bar.fabWidth || 0}px`
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">PAINT</span>
                                       </div>
@@ -3695,7 +3633,7 @@ export default function ResizableBaySchedule({
                                 </div>
                                 
                                 {/* Project information display centered below the PROD section */}
-                                <div className="project-info absolute flex flex-col items-center justify-center z-50"
+                                <div className="project-info absolute flex flex-col items-center justify-center z-30"
                                      style={{
                                        left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + ((bar.productionWidth || 0) / 2) - 150}px`,
                                        top: '28px',
@@ -3992,33 +3930,12 @@ export default function ResizableBaySchedule({
                 End Date
               </Label>
               <div className="col-span-3">
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={targetEndDate ? format(targetEndDate, 'yyyy-MM-dd') : ''}
-                    onChange={(e) => setTargetEndDate(e.target.value ? new Date(e.target.value) : null)}
-                    className="flex-grow"
-                  />
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    className="whitespace-nowrap text-xs"
-                    onClick={() => {
-                      if (targetStartDate && scheduleDuration > 0) {
-                        // Calculate recommended end date based on duration in weeks
-                        const calculatedEndDate = addWeeks(targetStartDate, scheduleDuration);
-                        setTargetEndDate(calculatedEndDate);
-                        console.log('Applied recommended end date:', format(calculatedEndDate, 'yyyy-MM-dd'));
-                      }
-                    }}
-                  >
-                    Apply Recommendation
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Use 'Apply Recommendation' to calculate forward from start date, or set your own end date manually.
-                </p>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={targetEndDate ? format(targetEndDate, 'yyyy-MM-dd') : ''}
+                  onChange={(e) => setTargetEndDate(e.target.value ? new Date(e.target.value) : null)}
+                />
               </div>
             </div>
           </div>
