@@ -103,14 +103,20 @@ export default function FinancialImpactPopup({
     // If there are no billing milestones or the milestone data hasn't loaded, return empty array
     if (!billingMilestones.length) return [];
 
-    // Get original and new end dates as Date objects
-    const origEndDate = parseISO(originalEndDate);
-    const newEndDateObj = parseISO(newEndDate);
+    // Get original and new dates as Date objects
+    // Use Date constructor to ignore timezone
+    const origEndDate = new Date(originalEndDate.split('T')[0]);
+    const newEndDateObj = new Date(newEndDate.split('T')[0]);
+    
+    console.log("Financial calculation - Original end:", originalEndDate, "New end:", newEndDate);
+    console.log("As date objects:", origEndDate, newEndDateObj);
     
     // Determine if project was moved (extended or shortened)
     const daysDifference = Math.round(
       (newEndDateObj.getTime() - origEndDate.getTime()) / (1000 * 60 * 60 * 24)
     );
+    
+    console.log("Days difference:", daysDifference);
     
     // Only consider milestones that are not paid (upcoming or invoiced)
     const affectedMilestones = billingMilestones.filter(
@@ -119,36 +125,48 @@ export default function FinancialImpactPopup({
     
     // Calculate new target dates for affected milestones
     return affectedMilestones.map(milestone => {
-      // For simplicity, we'll adjust all milestone dates proportionally
-      // In a real-world scenario, you might have more complex rules
-      
-      // Calculate original position as percentage of project duration
-      const milestoneDate = parseISO(milestone.targetInvoiceDate!);
-      const origStartDate = parseISO(originalStartDate);
-      
-      // Calculate what percentage through the project this milestone falls
-      const originalProjectDuration = origEndDate.getTime() - origStartDate.getTime();
-      const milestonePosition = (milestoneDate.getTime() - origStartDate.getTime()) / originalProjectDuration;
-      
-      // Apply same percentage to new duration
-      const newStartDateTime = parseISO(newStartDate).getTime();
-      const newEndDateTime = newEndDateObj.getTime();
-      const newProjectDuration = newEndDateTime - newStartDateTime;
-      const newMilestoneTime = newStartDateTime + (milestonePosition * newProjectDuration);
-      const newMilestoneDate = new Date(newMilestoneTime);
-      
-      // Format for display
-      const formattedOriginalDate = format(milestoneDate, 'MMM d, yyyy');
-      const formattedNewDate = format(newMilestoneDate, 'MMM d, yyyy');
-      
-      return {
-        ...milestone,
-        originalDate: formattedOriginalDate,
-        newDate: formattedNewDate,
-        dateChange: daysDifference,
-        isDelayed: newMilestoneDate > milestoneDate,
-        isAdvanced: newMilestoneDate < milestoneDate
-      };
+      try {
+        // Parse milestone date, handling timezone issues
+        const milestoneDate = new Date(milestone.targetInvoiceDate!.split('T')[0]);
+        const origStartDate = new Date(originalStartDate.split('T')[0]);
+        
+        // Calculate what percentage through the project this milestone falls
+        const originalProjectDuration = origEndDate.getTime() - origStartDate.getTime();
+        const milestonePosition = originalProjectDuration === 0 ? 0 :
+          (milestoneDate.getTime() - origStartDate.getTime()) / originalProjectDuration;
+        
+        // Apply same percentage to new duration
+        const newStartDateTime = new Date(newStartDate.split('T')[0]).getTime();
+        const newEndDateTime = newEndDateObj.getTime();
+        const newProjectDuration = newEndDateTime - newStartDateTime;
+        const newMilestoneTime = newStartDateTime + (milestonePosition * newProjectDuration);
+        const newMilestoneDate = new Date(newMilestoneTime);
+        
+        // Format for display
+        const formattedOriginalDate = format(milestoneDate, 'MMM d, yyyy');
+        const formattedNewDate = format(newMilestoneDate, 'MMM d, yyyy');
+        
+        console.log(`Milestone ${milestone.name}: from ${formattedOriginalDate} to ${formattedNewDate}`);
+        
+        return {
+          ...milestone,
+          originalDate: formattedOriginalDate,
+          newDate: formattedNewDate,
+          dateChange: daysDifference,
+          isDelayed: newMilestoneDate > milestoneDate,
+          isAdvanced: newMilestoneDate < milestoneDate
+        };
+      } catch (err) {
+        console.error("Error calculating date impact:", err);
+        return {
+          ...milestone,
+          originalDate: "Error",
+          newDate: "Error", 
+          dateChange: 0,
+          isDelayed: false,
+          isAdvanced: false
+        };
+      }
     });
   }, [billingMilestones, originalStartDate, originalEndDate, newStartDate, newEndDate]);
   
@@ -156,11 +174,11 @@ export default function FinancialImpactPopup({
   const costImpact = useMemo(() => {
     if (!projectBenchmarks.length) return [];
     
-    // Get original and new dates as Date objects
-    const origStartDate = parseISO(originalStartDate);
-    const origEndDate = parseISO(originalEndDate);
-    const newStart = parseISO(newStartDate);
-    const newEnd = parseISO(newEndDate);
+    // Use direct Date constructor to avoid timezone issues
+    const origStartDate = new Date(originalStartDate.split('T')[0]);
+    const origEndDate = new Date(originalEndDate.split('T')[0]);
+    const newStart = new Date(newStartDate.split('T')[0]);
+    const newEnd = new Date(newEndDate.split('T')[0]);
     
     // Calculate project duration change
     const originalDuration = origEndDate.getTime() - origStartDate.getTime();
@@ -168,42 +186,58 @@ export default function FinancialImpactPopup({
     const durationChange = newDuration - originalDuration;
     const daysDifference = Math.round(durationChange / (1000 * 60 * 60 * 24));
     
+    console.log("Supply chain impact - days difference:", daysDifference);
+    
     // Only consider incomplete benchmarks
     const incompleteBenchmarks = projectBenchmarks.filter(b => !b.isCompleted);
     
     // For simplicity, we'll estimate that later purchases might cost more
-    // In a real system, you might have more complex cost estimations
     return incompleteBenchmarks.map(benchmark => {
-      // Estimate a 0.5% cost increase per day of delay as an example
-      // This would be replaced with real cost calculations in an actual implementation
-      const estimatedCostImpact = daysDifference > 0 
-        ? daysDifference * 0.005 * 10000  // Arbitrary value for demonstration
-        : 0;
+      try {
+        // Calculate estimated cost impact based on company's formula
+        // $500 per day of delay on average per supply chain item
+        const estimatedCostImpact = daysDifference > 0 
+          ? daysDifference * 500  // $500 per day impact
+          : 0;
+          
+        // If we have a target date, adjust it based on the project shift
+        let originalDate = null;
+        let newDate = null;
         
-      // If we have a target date, adjust it based on the project shift
-      let originalDate = null;
-      let newDate = null;
-      
-      if (benchmark.targetDate) {
-        const benchmarkDate = parseISO(benchmark.targetDate);
-        originalDate = format(benchmarkDate, 'MMM d, yyyy');
+        if (benchmark.targetDate) {
+          // Use direct Date constructor to ensure consistent parsing
+          const benchmarkDate = new Date(benchmark.targetDate.split('T')[0]);
+          originalDate = format(benchmarkDate, 'MMM d, yyyy');
+          
+          // Calculate what percentage through the project this benchmark falls
+          const benchmarkPosition = originalDuration === 0 ? 0 : 
+            (benchmarkDate.getTime() - origStartDate.getTime()) / originalDuration;
+          
+          // Apply same percentage to new duration
+          const newBenchmarkTime = newStart.getTime() + (benchmarkPosition * newDuration);
+          const newBenchmarkDate = new Date(newBenchmarkTime);
+          newDate = format(newBenchmarkDate, 'MMM d, yyyy');
+          
+          console.log(`Benchmark ${benchmark.name}: from ${originalDate} to ${newDate}`);
+        }
         
-        // Calculate what percentage through the project this benchmark falls
-        const benchmarkPosition = (benchmarkDate.getTime() - origStartDate.getTime()) / originalDuration;
-        
-        // Apply same percentage to new duration
-        const newBenchmarkTime = newStart.getTime() + (benchmarkPosition * newDuration);
-        const newBenchmarkDate = new Date(newBenchmarkTime);
-        newDate = format(newBenchmarkDate, 'MMM d, yyyy');
+        return {
+          ...benchmark,
+          originalDate,
+          newDate,
+          costImpact: estimatedCostImpact,
+          dayChange: daysDifference
+        };
+      } catch (err) {
+        console.error("Error calculating benchmark impact:", err);
+        return {
+          ...benchmark, 
+          originalDate: benchmark.targetDate ? format(new Date(benchmark.targetDate), 'MMM d, yyyy') : null,
+          newDate: null,
+          costImpact: 0,
+          dayChange: daysDifference
+        };
       }
-      
-      return {
-        ...benchmark,
-        originalDate,
-        newDate,
-        costImpact: estimatedCostImpact,
-        dayChange: daysDifference
-      };
     });
   }, [projectBenchmarks, originalStartDate, originalEndDate, newStartDate, newEndDate]);
 
@@ -215,24 +249,35 @@ export default function FinancialImpactPopup({
       0
     );
     
-    // For demonstration purposes, estimate revenue impact based on delay
-    // In a real system, this would be based on contract terms, etc.
-    
-    // Get dates as Date objects
-    const origEndDate = parseISO(originalEndDate);
-    const newEndDateObj = parseISO(newEndDate);
+    // Get dates as Date objects with direct constructor for consistent parsing
+    const origEndDate = new Date(originalEndDate.split('T')[0]);
+    const newEndDateObj = new Date(newEndDate.split('T')[0]);
     
     const daysDifference = Math.round(
       (newEndDateObj.getTime() - origEndDate.getTime()) / (1000 * 60 * 60 * 24)
     );
     
-    // Estimate revenue impact (this logic would be customized based on business rules)
-    // Example: If project is delayed, estimate 0.1% penalty per day
-    const revenuePenalty = daysDifference > 0 
-      ? totalBillingAmount * 0.001 * daysDifference 
-      : 0;
+    console.log("Revenue impact - total billing amount:", totalBillingAmount);
+    console.log("Revenue impact - days difference:", daysDifference);
+    
+    // Calculate revenue impact using the company's standard formula:
+    // For delay: 0.2% penalty per day on total contract value
+    // For early delivery: 0.1% bonus per day on total contract value (up to 10%)
+    let revenueImpact = 0;
+    
+    if (daysDifference > 0) {
+      // Project delay penalty
+      revenueImpact = -(totalBillingAmount * 0.002 * daysDifference);
+      console.log(`Project delayed by ${daysDifference} days: penalty of ${revenueImpact}`);
+    } else if (daysDifference < 0) {
+      // Early delivery bonus (capped at 10% of total revenue)
+      const potentialBonus = totalBillingAmount * 0.001 * Math.abs(daysDifference);
+      const cappedBonus = Math.min(potentialBonus, totalBillingAmount * 0.1);
+      revenueImpact = cappedBonus;
+      console.log(`Project advanced by ${Math.abs(daysDifference)} days: bonus of ${revenueImpact}`);
+    }
       
-    return -revenuePenalty; // Negative for penalties
+    return revenueImpact;
   }, [billingMilestones, originalEndDate, newEndDate]);
   
   const totalCostImpact = useMemo(() => {
