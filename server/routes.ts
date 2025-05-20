@@ -66,6 +66,72 @@ import {
 import { getAIInsights } from "./routes/aiInsights";
 import supplyChainRoutes from "./routes/supply-chain";
 
+/**
+ * Helper function to synchronize delivery milestones with project ship date
+ * This ensures any delivery milestones are updated when a project's schedule changes
+ */
+async function syncDeliveryMilestonesToShipDate(projectId: number, shipDate: string): Promise<void> {
+  try {
+    console.log(`🔄 Synchronizing delivery milestones for project ${projectId} to ship date ${shipDate}`);
+    
+    // Get all billing milestones for this project
+    const billingMilestones = await storage.getProjectBillingMilestones(projectId);
+    
+    // Find all delivery milestones by common naming patterns
+    const deliveryMilestones = billingMilestones.filter(
+      milestone => 
+        milestone.isDeliveryMilestone || 
+        (milestone.name && (
+          milestone.name.toUpperCase().includes("DELIVERY") ||
+          milestone.name.toUpperCase().includes("100%") ||
+          milestone.name.includes("Final") ||
+          milestone.name.includes("final") ||
+          milestone.name.toUpperCase().includes("FINAL")
+        ))
+    );
+    
+    if (deliveryMilestones.length > 0) {
+      console.log(`Found ${deliveryMilestones.length} delivery milestones for project ${projectId} to update to date: ${shipDate}`);
+      
+      for (const milestone of deliveryMilestones) {
+        // Store the current ship date as liveDate and mark as changed if it differs from lastAcceptedShipDate
+        const shipDateChanged = milestone.lastAcceptedShipDate && 
+                              new Date(shipDate).getTime() !== new Date(milestone.lastAcceptedShipDate).getTime();
+        
+        console.log(`Updating delivery milestone ${milestone.id} (${milestone.name}) to date ${shipDate}`);
+        
+        const milestoneUpdate = {
+          targetInvoiceDate: shipDate,
+          liveDate: shipDate,
+          shipDateChanged: shipDateChanged
+        };
+        
+        await storage.updateBillingMilestone(milestone.id, milestoneUpdate);
+        console.log(`✅ Updated delivery milestone ${milestone.id} successfully`);
+      }
+      
+      // Add notification about delivery milestone updates
+      await storage.createNotification({
+        userId: null, // System notification
+        title: "Delivery Milestones Updated",
+        message: `${deliveryMilestones.length} delivery milestone(s) have been updated to match the new project ship date.`,
+        type: "system",
+        priority: "medium",
+        link: `/billing-milestones?projectId=${projectId}`,
+        isRead: false,
+        expiresAt: addDays(new Date(), 7),
+      });
+      
+      console.log(`Created notification for ${deliveryMilestones.length} updated delivery milestones`);
+    } else {
+      console.log(`No delivery milestones found for project ${projectId} to update`);
+    }
+  } catch (error) {
+    console.error(`Error synchronizing delivery milestones for project ${projectId}:`, error);
+    throw error; // Re-throw to be handled by the caller
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Special route to update project hours from 40 to 1000
   app.post("/api/admin/update-project-hours", isAdmin, async (req, res) => {
