@@ -110,47 +110,25 @@ const ProjectStatus = () => {
   // Flag to track if initial auto-filtering has been applied
   const [hasAppliedInitialFilter, setHasAppliedInitialFilter] = useState(false);
   
-  // Auto-filter projects by next ship date on initial load
+  // DISABLED auto-filtering - show ALL projects by default
   useEffect(() => {
     if (!projects || hasAppliedInitialFilter) return;
     
-    // Helper to get valid dates and handle null/invalid dates
-    const getValidDate = (dateStr: string | null | undefined) => {
-      if (!dateStr) return null;
-      const date = new Date(dateStr);
-      return isNaN(date.getTime()) ? null : date;
-    };
+    // Simply mark that we've processed the initial state
+    // without applying any filters - this ensures ALL projects are visible
+    console.log(`Initialized with ${projects.length} total projects - NO auto-filtering`);
+    setHasAppliedInitialFilter(true);
     
-    // Find upcoming ship dates (after today)
-    const now = new Date();
-    const upcomingProjects = projects.filter(p => {
-      const shipDate = getValidDate(p.shipDate);
-      return shipDate && shipDate >= now;
+    // Clear any existing date filters to ensure all projects are shown
+    setDateFilters({
+      shipDateMin: '',
+      shipDateMax: '',
+      contractDateMin: '',
+      contractDateMax: '',
+      estimatedCompletionDateMin: '',
+      estimatedCompletionDateMax: ''
     });
     
-    // If we have upcoming projects with ship dates, auto-filter by ship date
-    if (upcomingProjects.length > 0) {
-      // Sort by earliest ship date
-      const earliestShipDate = upcomingProjects
-        .sort((a, b) => {
-          const dateA = getValidDate(a.shipDate);
-          const dateB = getValidDate(b.shipDate);
-          if (!dateA) return 1;
-          if (!dateB) return -1;
-          return dateA.getTime() - dateB.getTime();
-        })[0];
-      
-      if (earliestShipDate?.shipDate) {
-        // Set a ship date minimum filter to today
-        setDateFilters(prev => ({
-          ...prev,
-          shipDateMin: now.toISOString().split('T')[0]
-        }));
-      }
-    }
-    
-    // Mark that we've applied the initial filter
-    setHasAppliedInitialFilter(true);
   }, [projects, hasAppliedInitialFilter]);
   
   // State for visible columns
