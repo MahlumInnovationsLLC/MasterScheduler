@@ -62,6 +62,15 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState<string>("");
 
+  // Modify the columns to conditionally enable sorting
+  const columnsWithSorting = React.useMemo(() => {
+    return columns.map(column => ({
+      ...column,
+      // Only enable sorting if the enableSorting prop is true or for the "location" column (always sortable)
+      enableSorting: column.id === 'location' || enableSorting,
+    }));
+  }, [columns, enableSorting]);
+
   // Remove 'timeline' column if it exists
   const filteredColumns = columnsWithSorting.filter(col => col.id !== 'timeline');
 
@@ -117,15 +126,6 @@ export function DataTable<TData, TValue>({
       globalFilter,
     },
   });
-
-  // Modify the columns to conditionally enable sorting
-  const columnsWithSorting = React.useMemo(() => {
-    return columns.map(column => ({
-      ...column,
-      // Only enable sorting if the enableSorting prop is true or for the "location" column (always sortable)
-      enableSorting: column.id === 'location' || enableSorting,
-    }));
-  }, [columns, enableSorting]);
 
   // Define column widths
   const columnWidths = {
