@@ -3620,21 +3620,9 @@ export default function ResizableBaySchedule({
                                   zIndex: 25,
                                   overflow: 'visible'
                                 }}>
-                                  {/* Vertical line from TOP of PAINT box */}
-                                  <div className="connector-line-vertical absolute bg-red-500" style={{
-                                    left: '0px',
-                                    top: '0px',
-                                    width: '2px',
-                                    height: '10px'
-                                  }}></div>
+                                  {/* Vertical line removed as requested */}
                                   
-                                  {/* Horizontal line to MIDDLE of PROD LEFT SIDE */}
-                                  <div className="connector-line-horizontal absolute bg-red-500" style={{
-                                    left: '0px',
-                                    top: '10px',
-                                    width: '20px',
-                                    height: '2px'
-                                  }}></div>
+                                  {/* Horizontal line removed as requested */}
                                   
                                   {/* Arrow removed as requested */}
                                 </div>
