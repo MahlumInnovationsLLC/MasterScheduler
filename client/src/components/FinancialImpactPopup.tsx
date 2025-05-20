@@ -223,7 +223,7 @@ export default function FinancialImpactPopup({
     const newEndDateObj = parseISO(newEndDate);
     
     const daysDifference = Math.round(
-      (parseISO(newEndDate).getTime() - parseISO(originalEndDate).getTime()) / (1000 * 60 * 60 * 24)
+      (newEndDateObj.getTime() - origEndDate.getTime()) / (1000 * 60 * 60 * 24)
     );
     
     // Estimate revenue impact (this logic would be customized based on business rules)
