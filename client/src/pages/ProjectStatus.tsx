@@ -392,10 +392,34 @@ const ProjectStatus = () => {
       
       if (source && target) {
         // Clear previous content
-        target.innerHTML = '';
+        while (target.firstChild) {
+          target.firstChild.remove();
+        }
         
-        // Clone the buttons to preserve event handlers
-        const buttons = source.cloneNode(true);
+        // Clone the buttons but not as a deep clone to preserve event handlers
+        const buttons = source.cloneNode(false);
+        
+        // Copy each child individually to preserve event handlers
+        Array.from(source.children).forEach(child => {
+          const clone = child.cloneNode(true);
+          buttons.appendChild(clone);
+          
+          // Restore event listeners for the Show Archived button
+          if (clone.textContent?.includes('Archived')) {
+            clone.addEventListener('click', () => setShowArchived(!showArchived));
+          }
+          
+          // Add event listeners for location filter items
+          if (clone.querySelector('[data-location-filter]')) {
+            const items = clone.querySelectorAll('[data-location-filter]');
+            items.forEach(item => {
+              item.addEventListener('click', (e) => {
+                const locationValue = (e.currentTarget as HTMLElement).dataset.locationFilter || '';
+                setLocationFilter(locationValue);
+              });
+            });
+          }
+        });
         
         // Make the buttons visible and enable pointer events
         buttons.classList.remove('opacity-0');
@@ -407,7 +431,7 @@ const ProjectStatus = () => {
     };
     
     // Run after a short delay to ensure both elements exist
-    const timer = setTimeout(moveFilterButtons, 100);
+    const timer = setTimeout(moveFilterButtons, 300);
     
     return () => clearTimeout(timer);
   }, [locationFilter, showArchived]); // Re-run when filter state changes
@@ -703,19 +727,28 @@ const ProjectStatus = () => {
       }
     },
     createColumn('projectNumber', 'projectNumber', 'Project', 
-      (value, project) => (
-        <div className="flex items-center">
-          <div className="ml-2">
-            <div className="text-sm font-medium text-white whitespace-normal">{value}</div>
-            <div 
-              className="text-xs text-gray-400 line-clamp-2 overflow-hidden" 
-              title={project.name} // Show full name on hover
-            >
-              {project.name}
+      (value, project) => {
+        // Check if ship date is past due
+        const isPastDue = project.shipDate ? new Date(project.shipDate) < new Date() : false;
+        
+        return (
+          <div className={`flex items-center ${isPastDue ? 'bg-red-900/30 rounded' : ''}`}>
+            <div className="ml-2 p-1">
+              <div className={`text-sm font-medium ${isPastDue ? 'text-red-500' : 'text-white'} whitespace-normal`}>
+                <Link to={`/projects/${project.id}`} className={`${isPastDue ? 'text-red-500 font-bold' : 'text-primary'} hover:underline`}>
+                  {value}
+                </Link>
+              </div>
+              <div 
+                className="text-xs text-gray-400 line-clamp-2 overflow-hidden" 
+                title={project.name} // Show full name on hover
+              >
+                {project.name}
+              </div>
             </div>
           </div>
-        </div>
-      ),
+        );
+      },
       { sortingFn: 'alphanumeric', size: 260 }),
     createColumn('pmOwner', 'pmOwner', 'PM Owner', 
       (value, project) => <EditableTextField projectId={project.id} field="pmOwner" value={value || ''} placeholder="Unassigned" />,
@@ -987,7 +1020,21 @@ const ProjectStatus = () => {
       }
     },
     createColumn('shipDate', 'shipDate', 'Ship Date', 
-      (value, project) => <EditableDateField projectId={project.id} field="shipDate" value={value} />,
+      (value, project) => {
+        // Check if ship date is past due
+        const isPastDue = value ? new Date(value) < new Date() : false;
+        
+        return (
+          <div className={isPastDue ? 'bg-red-900/30 rounded p-1' : ''}>
+            <EditableDateField 
+              projectId={project.id} 
+              field="shipDate" 
+              value={value} 
+              className={isPastDue ? 'text-red-500 font-semibold' : ''}
+            />
+          </div>
+        );
+      },
       { size: 170 }),
     createColumn('deliveryDate', 'deliveryDate', 'Delivery Date', 
       (value, project) => <EditableDateField projectId={project.id} field="deliveryDate" value={value} />,
