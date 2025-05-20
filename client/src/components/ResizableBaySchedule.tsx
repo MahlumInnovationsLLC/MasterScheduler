@@ -891,16 +891,25 @@ export default function ResizableBaySchedule({
     const bars = schedules.map((schedule) => {
       const project = projects.find((p) => p.id === schedule.projectId);
       
-      // Add debugging for Row 1 schedule issues
-      if (schedule.rowIndex === 1) {
-        console.log(`🔍 DEBUGGING ROW 1 SCHEDULE:`, JSON.stringify({
+      // Add debugging for Row 1 and 2 schedule issues and handle specific Chavez bay issues
+      if (schedule.rowIndex === 1 || schedule.rowIndex === 2) {
+        // Check if this is part of the Chavez/Davidson team bay (typically bay 1)
+        let isChavezBay = schedule.bayId === 1;
+        
+        console.log(`🔍 DEBUGGING ROW ${schedule.rowIndex} SCHEDULE:`, JSON.stringify({
           scheduleId: schedule.id,
           projectId: schedule.projectId,
           bayId: schedule.bayId,
           startDate: schedule.startDate,
           endDate: schedule.endDate,
-          rowIndex: schedule.rowIndex
+          rowIndex: schedule.rowIndex,
+          isChavezBay: isChavezBay
         }, null, 2));
+        
+        // For Chavez bay rows 1 and 2, we'll use a special flag to force phase rendering
+        if (isChavezBay) {
+          schedule.forceRenderPhases = true;
+        }
       }
       
       if (!project) {
@@ -3589,7 +3598,7 @@ export default function ResizableBaySchedule({
                                     )}
                                     
                                     {/* IT phase */}
-                                    {(bar.row === 1 || (bar.itWidth && bar.itWidth > 0)) && (
+                                    {(bar.row === 1 || bar.forceRenderPhases || (bar.itWidth && bar.itWidth > 0)) && (
                                       <div className="it-phase bg-purple-700 h-full absolute" 
                                            style={{ 
                                              width: `${Math.max(bar.itWidth || 10, 10)}px`, // Ensure minimum width, default if missing
@@ -3600,7 +3609,7 @@ export default function ResizableBaySchedule({
                                     )}
                                     
                                     {/* NTC phase */}
-                                    {(bar.row === 1 || (bar.ntcWidth && bar.ntcWidth > 0)) && (
+                                    {(bar.row === 1 || bar.forceRenderPhases || (bar.ntcWidth && bar.ntcWidth > 0)) && (
                                       <div className="ntc-phase bg-cyan-700 h-full absolute" 
                                            style={{ 
                                              width: `${Math.max(bar.ntcWidth || 10, 10)}px`, // Ensure minimum width, default if missing
@@ -3611,7 +3620,7 @@ export default function ResizableBaySchedule({
                                     )}
                                     
                                     {/* QC phase */}
-                                    {(bar.row === 1 || (bar.qcWidth && bar.qcWidth > 0)) && (
+                                    {(bar.row === 1 || bar.forceRenderPhases || (bar.qcWidth && bar.qcWidth > 0)) && (
                                       <div className="qc-phase bg-pink-700 h-full absolute" 
                                            style={{ 
                                              width: `${Math.max(bar.qcWidth || 10, 10)}px`, // Ensure minimum width, default if missing
@@ -3635,7 +3644,7 @@ export default function ResizableBaySchedule({
                                     )}
                                     
                                     {/* PAINT phase (follows FAB) */}
-                                    {(bar.row === 1 || (bar.paintWidth && bar.paintWidth > 0)) && (
+                                    {(bar.row === 1 || bar.forceRenderPhases || (bar.paintWidth && bar.paintWidth > 0)) && (
                                       <div className="paint-phase bg-green-700 h-full absolute" 
                                            style={{ 
                                              width: `${Math.max(bar.paintWidth || 10, 10)}px`, // Ensure minimum width, default if missing
@@ -3648,7 +3657,7 @@ export default function ResizableBaySchedule({
                                 </div>
                                 
                                 {/* Project information display centered below the PROD section */}
-                                <div className="project-info absolute flex flex-col items-center justify-center z-30"
+                                <div className="project-info absolute flex flex-col items-center justify-center z-50"
                                      style={{
                                        left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + ((bar.productionWidth || 0) / 2) - 150}px`,
                                        top: '28px',
