@@ -1759,19 +1759,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If preferences were provided, update them too
       if (preferences) {
+        console.log(`Processing preferences for user ${req.params.id}:`, preferences);
+        
         // Get existing preferences or create new ones if they don't exist
         const existingPrefs = await storage.getUserPreferences(req.params.id);
         
         if (existingPrefs) {
           // Update existing preferences
-          await storage.updateUserPreferences(req.params.id, preferences);
+          console.log("Updating existing preferences");
+          const updatedPrefs = await storage.updateUserPreferences(req.params.id, preferences);
+          console.log("Updated preferences:", updatedPrefs);
         } else {
           // Create new preferences
-          await storage.createUserPreferences({
+          console.log("Creating new preferences");
+          const newPrefs = await storage.createUserPreferences({
             userId: req.params.id,
             ...preferences
           });
+          console.log("Created preferences:", newPrefs);
         }
+      } else {
+        console.log("No preferences provided for update");
       }
       
       // Create an audit log entry for role change

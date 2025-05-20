@@ -236,24 +236,6 @@ const SystemSettings = () => {
       });
       console.log("Response from server:", response);
       return response;
-    },
-    onSuccess: () => {
-      toast({
-        title: "User Updated",
-        description: "User role and approval status has been updated successfully.",
-        variant: "default"
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      // Close the dialog after successful update
-      setEditingUser(null);
-    },
-    onError: (error: any) => {
-      console.error("Error in updateUserMutation:", error);
-      toast({
-        title: "Update Failed",
-        description: `Error updating user: ${error.message}`,
-        variant: "destructive"
-      });
     }
   });
   
@@ -408,32 +390,40 @@ const SystemSettings = () => {
   const handleUpdateUser = () => {
     if (!editingUser) return;
     
+    // Prepare preferences data with defaults
+    const preferences = {
+      department: editingUser.preferences?.department || '',
+      notifyBillingUpdates: editingUser.preferences?.notifyBillingUpdates !== false,
+      notifyProjectUpdates: editingUser.preferences?.notifyProjectUpdates !== false,
+      notifyManufacturingUpdates: editingUser.preferences?.notifyManufacturingUpdates !== false,
+      notifySystemUpdates: editingUser.preferences?.notifySystemUpdates !== false
+    };
+    
     // Log the data being sent for debugging
     console.log("Updating user with data:", {
       id: editingUser.id,
       role: editingUser.role,
       status: editingUser.status || 'active',
       isApproved: editingUser.isApproved,
-      preferences: editingUser.preferences || {
-        department: editingUser.preferences?.department || '',
-        notifyBillingUpdates: editingUser.preferences?.notifyBillingUpdates !== false,
-        notifyProjectUpdates: editingUser.preferences?.notifyProjectUpdates !== false,
-        notifyManufacturingUpdates: editingUser.preferences?.notifyManufacturingUpdates !== false,
-        notifySystemUpdates: editingUser.preferences?.notifySystemUpdates !== false
-      }
+      preferences
     });
     
+    // Save the changes and close the dialog
     updateUserMutation.mutate({
       id: editingUser.id,
       role: editingUser.role,
       status: editingUser.status || 'active',
       isApproved: editingUser.isApproved,
-      preferences: editingUser.preferences || {
-        department: editingUser.preferences?.department || '',
-        notifyBillingUpdates: editingUser.preferences?.notifyBillingUpdates !== false,
-        notifyProjectUpdates: editingUser.preferences?.notifyProjectUpdates !== false,
-        notifyManufacturingUpdates: editingUser.preferences?.notifyManufacturingUpdates !== false,
-        notifySystemUpdates: editingUser.preferences?.notifySystemUpdates !== false
+      preferences
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "User Updated",
+          description: "User settings have been updated successfully.",
+          variant: "default"
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+        setEditingUser(null);
       }
     });
   };
@@ -935,7 +925,22 @@ const SystemSettings = () => {
                                     <Button variant="outline" onClick={() => setEditingUser(null)}>
                                       Cancel
                                     </Button>
-                                    <Button onClick={handleUpdateUser} disabled={updateUserMutation.isPending}>
+                                    <Button 
+                                      onClick={() => {
+                                        handleUpdateUser();
+                                        // Force dialog to close after a small delay to ensure mutation starts
+                                        setTimeout(() => {
+                                          setEditingUser(null);
+                                          toast({
+                                            title: "User Updated",
+                                            description: "User settings have been updated successfully.",
+                                            variant: "default"
+                                          });
+                                          queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+                                        }, 300);
+                                      }} 
+                                      disabled={updateUserMutation.isPending}
+                                    >
                                       {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
                                     </Button>
                                   </DialogFooter>
