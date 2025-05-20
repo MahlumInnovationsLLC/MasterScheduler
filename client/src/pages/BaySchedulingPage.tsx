@@ -150,6 +150,9 @@ const BaySchedulingPage = () => {
   const [sandboxChanges, setSandboxChanges] = useState<number>(0);
   const [isSavingSandbox, setIsSavingSandbox] = useState<boolean>(false);
   
+  // Track if we've loaded data into sandbox mode
+  const [isSandboxInitialized, setIsSandboxInitialized] = useState<boolean>(false);
+  
   // Use same approach as the Today button
   const forceScrollToToday = () => {
     console.log("USING EMERGENCY SCROLLING METHOD");
@@ -239,40 +242,53 @@ const BaySchedulingPage = () => {
     }
   }, [manufacturingBays, manufacturingSchedules]);
   
-  // Sandbox mode functions
-  const enterSandboxMode = useCallback(() => {
-    // Make deep copies of the data
-    const schedulesCopy = JSON.parse(JSON.stringify(manufacturingSchedules));
-    const projectsCopy = JSON.parse(JSON.stringify(projects));
-    const baysCopy = JSON.parse(JSON.stringify(manufacturingBays));
-    
-    // Update state
-    setSandboxSchedules(schedulesCopy);
-    setSandboxProjects(projectsCopy);
-    setSandboxBays(baysCopy);
-    setSandboxMode(true);
-    setSandboxChanges(0);
-    
-    // Notify user
-    toast({
-      title: "Sandbox Mode Activated",
-      description: "You can now experiment with the schedule without affecting real data",
-      duration: 3000
-    });
-  }, [manufacturingSchedules, projects, manufacturingBays, toast]);
-  
-  // This function will be initialized after updateScheduleMutation is defined
-  // We're using a ref to avoid circular dependencies
-  const saveSandboxChangesRef = React.useRef<() => Promise<void>>();
-  
-  const exitSandboxMode = useCallback((saveSandbox = false) => {
-    if (saveSandbox) {
-      if (saveSandboxChangesRef.current) {
-        saveSandboxChangesRef.current();
+  // All sandbox mode functions
+  const toggleSandboxMode = useCallback(() => {
+    if (isSandboxMode) {
+      // If we're already in sandbox mode, ask about unsaved changes
+      if (sandboxChanges > 0) {
+        const confirmExit = confirm("You have unsaved changes. Are you sure you want to exit sandbox mode without saving?");
+        if (!confirmExit) return;
       }
-      return;
+      
+      // Exit sandbox mode
+      setSandboxMode(false);
+      setSandboxSchedules([]);
+      setSandboxProjects([]);
+      setSandboxBays([]);
+      setSandboxChanges(0);
+      
+      toast({
+        title: "Sandbox Mode Exited",
+        description: "No changes were saved to production data",
+        duration: 3000
+      });
+    } else {
+      // Enter sandbox mode - make deep copies of the data
+      const schedulesCopy = JSON.parse(JSON.stringify(manufacturingSchedules));
+      const projectsCopy = JSON.parse(JSON.stringify(projects));
+      const baysCopy = JSON.parse(JSON.stringify(manufacturingBays));
+      
+      // Update state
+      setSandboxSchedules(schedulesCopy);
+      setSandboxProjects(projectsCopy);
+      setSandboxBays(baysCopy);
+      setSandboxMode(true);
+      setSandboxChanges(0);
+      
+      // Notify user
+      toast({
+        title: "Sandbox Mode Activated",
+        description: "You can now experiment with the schedule without affecting real data",
+        duration: 3000
+      });
     }
-    
+  }, [isSandboxMode, sandboxChanges, manufacturingSchedules, projects, manufacturingBays, toast]);
+  
+
+  
+  // Discard sandbox changes without saving
+  const discardSandboxChanges = useCallback(() => {
     if (sandboxChanges > 0) {
       const confirmExit = confirm("You have unsaved changes. Are you sure you want to exit sandbox mode without saving?");
       if (!confirmExit) return;
@@ -291,6 +307,74 @@ const BaySchedulingPage = () => {
     setSandboxBays([]);
     setSandboxChanges(0);
   }, [sandboxChanges, toast]);
+  
+  // Save sandbox changes to the real database
+  const saveSandboxChanges = useCallback(async () => {
+    if (sandboxChanges === 0) {
+      toast({
+        title: "No Changes",
+        description: "There are no changes to save",
+        duration: 3000
+      });
+      return;
+    }
+    
+    setIsSavingSandbox(true);
+    
+    try {
+      // Find all changed schedules by comparing sandbox to original
+      const updatedSchedules = sandboxSchedules.filter(sandboxSchedule => {
+        const originalSchedule = manufacturingSchedules.find(s => s.id === sandboxSchedule.id);
+        
+        // If we can't find a matching schedule, it's new
+        if (!originalSchedule) return true;
+        
+        // Check if any properties changed
+        return (
+          sandboxSchedule.bayId !== originalSchedule.bayId ||
+          sandboxSchedule.startDate !== originalSchedule.startDate ||
+          sandboxSchedule.endDate !== originalSchedule.endDate ||
+          sandboxSchedule.row !== originalSchedule.row
+        );
+      });
+      
+      console.log(`Applying ${updatedSchedules.length} schedule changes from sandbox`);
+      
+      // Process each schedule update sequentially to avoid race conditions
+      for (const schedule of updatedSchedules) {
+        await updateScheduleMutation.mutateAsync({
+          scheduleId: schedule.id,
+          bayId: schedule.bayId,
+          startDate: schedule.startDate,
+          endDate: schedule.endDate,
+          row: schedule.row || 0
+        });
+      }
+      
+      toast({
+        title: "Sandbox Changes Applied",
+        description: `Successfully applied ${updatedSchedules.length} changes to production data`,
+        duration: 3000
+      });
+      
+      // Reset state
+      setSandboxMode(false);
+      setSandboxSchedules([]);
+      setSandboxProjects([]);
+      setSandboxBays([]);
+      setSandboxChanges(0);
+    } catch (error) {
+      console.error("Error saving sandbox changes:", error);
+      toast({
+        title: "Error",
+        description: "Failed to apply sandbox changes to production data",
+        variant: "destructive",
+        duration: 5000
+      });
+    } finally {
+      setIsSavingSandbox(false);
+    }
+  }, [manufacturingSchedules, sandboxSchedules, sandboxChanges, toast, updateScheduleMutation]);
   
   // Create bay mutation
   const createBayMutation = useMutation({
@@ -1123,42 +1207,14 @@ const BaySchedulingPage = () => {
         </div>
       </div>
       
-      {/* Sandbox Mode Banner - Positioned exactly as requested */}
-      {isSandboxMode && (
-        <div className="mb-4 p-3 bg-amber-900/30 border border-amber-500/50 rounded-md">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <span className="relative flex h-3 w-3 mr-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
-              </span>
-              <span className="font-semibold text-amber-300">SANDBOX MODE ACTIVE</span>
-              <span className="ml-3 text-amber-200/80 text-sm">
-                Changes made in sandbox mode won't affect the actual manufacturing schedule
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => exitSandboxMode(true)} 
-                className="text-xs px-3 py-1.5 bg-green-700/30 hover:bg-green-700/50 border border-green-500/50 text-green-300 rounded-md flex items-center"
-              >
-                Apply Changes
-              </button>
-              <button 
-                onClick={() => exitSandboxMode(false)} 
-                className="text-xs px-3 py-1.5 bg-red-700/30 hover:bg-red-700/50 border border-red-500/50 text-red-300 rounded-md flex items-center"
-              >
-                Discard
-              </button>
-            </div>
-          </div>
-          {sandboxChanges > 0 && (
-            <div className="mt-2 text-xs text-amber-200/70">
-              <span className="font-medium">{sandboxChanges} change{sandboxChanges !== 1 ? 's' : ''} pending</span>
-            </div>
-          )}
-        </div>
-      )}
+      {/* SandboxModeBanner component positioned between Current & Upcoming Production and Manufacturing Schedule */}
+      <SandboxModeBanner 
+        isActive={isSandboxMode}
+        onToggle={() => toggleSandboxMode()}
+        onSave={async () => saveSandboxChanges()}
+        onDiscard={() => discardSandboxChanges()}
+        hasChanges={sandboxChanges > 0}
+      />
       
       <div className="rounded-md border border-gray-800 bg-darkCard">
         <div className="p-4 border-b border-gray-800 flex justify-between items-center">
@@ -1182,7 +1238,7 @@ const BaySchedulingPage = () => {
               <Button 
                 variant={isSandboxMode ? "destructive" : "outline"}
                 size="sm"
-                onClick={() => isSandboxMode ? exitSandboxMode(false) : enterSandboxMode()}
+                onClick={() => toggleSandboxMode()}
                 className="flex items-center gap-1"
               >
                 {!isSandboxMode && <Play className="h-4 w-4 mr-1" />}
