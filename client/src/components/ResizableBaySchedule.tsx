@@ -3635,11 +3635,11 @@ export default function ResizableBaySchedule({
                                     )}
                                     
                                     {/* PAINT phase (follows FAB) */}
-                                    {bar.paintWidth && bar.paintWidth > 0 && (
+                                    {(bar.row === 1 || (bar.paintWidth && bar.paintWidth > 0)) && (
                                       <div className="paint-phase bg-green-700 h-full absolute" 
                                            style={{ 
-                                             width: `${Math.max(bar.paintWidth, 10)}px`, // Ensure minimum width
-                                             left: `${bar.fabWidth || 0}px`
+                                             width: `${Math.max(bar.paintWidth || 10, 10)}px`, // Ensure minimum width, default if missing
+                                             left: `${bar.fabWidth || 20}px` // Position after FAB, default if missing
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">PAINT</span>
                                       </div>
