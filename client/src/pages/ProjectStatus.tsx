@@ -27,7 +27,9 @@ import {
   Check,
   X,
   Pencil as PencilIcon,
-  PlusCircle
+  PlusCircle,
+  Archive,
+  Camera
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -379,7 +381,36 @@ const ProjectStatus = () => {
       
       return true;
     });
-  }, [projects, dateFilters, locationFilter]);
+  }, [projects, dateFilters, locationFilter, showArchived]);
+  
+  // Effect to move filter buttons into table header
+  useEffect(() => {
+    // Wait for the DOM to be ready
+    const moveFilterButtons = () => {
+      const source = document.getElementById('custom-filter-buttons-source');
+      const target = document.getElementById('custom-filter-buttons');
+      
+      if (source && target) {
+        // Clear previous content
+        target.innerHTML = '';
+        
+        // Clone the buttons to preserve event handlers
+        const buttons = source.cloneNode(true);
+        
+        // Make the buttons visible and enable pointer events
+        buttons.classList.remove('opacity-0');
+        buttons.classList.remove('pointer-events-none');
+        
+        // Move the content
+        target.appendChild(buttons);
+      }
+    };
+    
+    // Run after a short delay to ensure both elements exist
+    const timer = setTimeout(moveFilterButtons, 100);
+    
+    return () => clearTimeout(timer);
+  }, [locationFilter, showArchived]); // Re-run when filter state changes
 
   // Calculate upcoming milestones within the next 30 days
   const upcomingMilestones = React.useMemo(() => {
