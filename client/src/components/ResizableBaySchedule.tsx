@@ -1021,8 +1021,26 @@ export default function ResizableBaySchedule({
         qcPercentage: 7,
         
         // Default fab weeks
-        fabWeeks: 4
+        fabWeeks: 4,
+        
+        // Transfer the forced phase render flags from schedule to bar
+        forceRenderPhases: schedule.forceRenderPhases || false,
+        
+        // Transfer the forced phase widths if available
+        forcedPhaseWidths: schedule.forcedPhaseWidths || {
+          fabWidth: 40,
+          paintWidth: 20,
+          productionWidth: 100,
+          itWidth: 20,
+          ntcWidth: 20,
+          qcWidth: 20
+        }
       };
+      
+      // Special handling for row 1 and 2 directly on the bar object
+      if (bar.row === 1 || bar.row === 2) {
+        bar.forceRenderPhases = true;
+      }
       
       // Bar object is created but phase widths aren't calculated yet
       return bar;
