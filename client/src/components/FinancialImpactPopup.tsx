@@ -98,127 +98,108 @@ export default function FinancialImpactPopup({
     return allProjectBenchmarks.filter(b => b.projectId === projectId);
   }, [allProjectBenchmarks, projectId]);
 
-  // Calculate financial impact on billing milestones
+  // DIRECT DATE DISPLAY: Use exact dates without calculations
   const billingImpact = useMemo(() => {
     // If there are no billing milestones or the milestone data hasn't loaded, return empty array
     if (!billingMilestones.length) return [];
 
-    // Get original and new dates as Date objects
-    // Use Date constructor to ignore timezone
-    const origEndDate = new Date(originalEndDate.split('T')[0]);
-    const newEndDateObj = new Date(newEndDate.split('T')[0]);
+    // DIRECT DATE COMPARISON: No percentage calculations, just raw comparison
+    console.log("EXACT DATE DISPLAY - Original:", originalStartDate, "to", originalEndDate);
+    console.log("EXACT DATE DISPLAY - New:", newStartDate, "to", newEndDate);
     
-    console.log("Financial calculation - Original end:", originalEndDate, "New end:", newEndDate);
-    console.log("As date objects:", origEndDate, newEndDateObj);
-    
-    // Determine if project was moved (extended or shortened)
+    // Calculate days difference directly
+    const origEndDate = new Date(originalEndDate);
+    const newEndDateObj = new Date(newEndDate);
     const daysDifference = Math.round(
       (newEndDateObj.getTime() - origEndDate.getTime()) / (1000 * 60 * 60 * 24)
     );
     
-    console.log("Days difference:", daysDifference);
+    console.log("EXACT DAYS DIFFERENCE:", daysDifference);
     
-    // Only consider milestones that are not paid (upcoming or invoiced)
+    // Only consider milestones that are not paid
     const affectedMilestones = billingMilestones.filter(
       m => m.status !== 'paid' && m.targetInvoiceDate
     );
     
-    // Calculate new target dates for affected milestones
+    // For each milestone, shift by the exact same number of days as the project shifted
     return affectedMilestones.map(milestone => {
       try {
-        // Parse milestone date, handling timezone issues
-        const milestoneDate = new Date(milestone.targetInvoiceDate!.split('T')[0]);
-        const origStartDate = new Date(originalStartDate.split('T')[0]);
+        // Get milestone date
+        const milestoneDate = new Date(milestone.targetInvoiceDate!);
         
-        // Calculate what percentage through the project this milestone falls
-        const originalProjectDuration = origEndDate.getTime() - origStartDate.getTime();
-        const milestonePosition = originalProjectDuration === 0 ? 0 :
-          (milestoneDate.getTime() - origStartDate.getTime()) / originalProjectDuration;
-        
-        // Apply same percentage to new duration
-        const newStartDateTime = new Date(newStartDate.split('T')[0]).getTime();
-        const newEndDateTime = newEndDateObj.getTime();
-        const newProjectDuration = newEndDateTime - newStartDateTime;
-        const newMilestoneTime = newStartDateTime + (milestonePosition * newProjectDuration);
-        const newMilestoneDate = new Date(newMilestoneTime);
+        // Simply add the exact same number of days difference
+        const newMilestoneDate = new Date(milestoneDate);
+        newMilestoneDate.setDate(newMilestoneDate.getDate() + daysDifference);
         
         // Format for display
         const formattedOriginalDate = format(milestoneDate, 'MMM d, yyyy');
         const formattedNewDate = format(newMilestoneDate, 'MMM d, yyyy');
         
-        console.log(`Milestone ${milestone.name}: from ${formattedOriginalDate} to ${formattedNewDate}`);
+        console.log(`EXACT DATES - Milestone ${milestone.name}: ${formattedOriginalDate} → ${formattedNewDate} (${daysDifference} days)`);
         
         return {
           ...milestone,
           originalDate: formattedOriginalDate,
           newDate: formattedNewDate,
           dateChange: daysDifference,
-          isDelayed: newMilestoneDate > milestoneDate,
-          isAdvanced: newMilestoneDate < milestoneDate
+          isDelayed: daysDifference > 0,
+          isAdvanced: daysDifference < 0
         };
       } catch (err) {
-        console.error("Error calculating date impact:", err);
+        console.error("Error in exact date calculation:", err);
         return {
           ...milestone,
-          originalDate: "Error",
-          newDate: "Error", 
-          dateChange: 0,
-          isDelayed: false,
-          isAdvanced: false
+          originalDate: milestone.targetInvoiceDate ? format(new Date(milestone.targetInvoiceDate), 'MMM d, yyyy') : "Unknown",
+          newDate: "Could not calculate", 
+          dateChange: daysDifference,
+          isDelayed: daysDifference > 0,
+          isAdvanced: daysDifference < 0
         };
       }
     });
   }, [billingMilestones, originalStartDate, originalEndDate, newStartDate, newEndDate]);
   
-  // Calculate cost impact based on supply chain benchmarks
+  // EXACT DATES: Calculate cost impact based on direct date comparison 
   const costImpact = useMemo(() => {
     if (!projectBenchmarks.length) return [];
     
-    // Use direct Date constructor to avoid timezone issues
-    const origStartDate = new Date(originalStartDate.split('T')[0]);
-    const origEndDate = new Date(originalEndDate.split('T')[0]);
-    const newStart = new Date(newStartDate.split('T')[0]);
-    const newEnd = new Date(newEndDate.split('T')[0]);
+    // Get exact dates from string inputs
+    const origEndDate = new Date(originalEndDate);
+    const newEndDateObj = new Date(newEndDate);
     
-    // Calculate project duration change
-    const originalDuration = origEndDate.getTime() - origStartDate.getTime();
-    const newDuration = newEnd.getTime() - newStart.getTime();
-    const durationChange = newDuration - originalDuration;
-    const daysDifference = Math.round(durationChange / (1000 * 60 * 60 * 24));
+    // Calculate exact day difference
+    const daysDifference = Math.round(
+      (newEndDateObj.getTime() - origEndDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
     
-    console.log("Supply chain impact - days difference:", daysDifference);
+    console.log("EXACT SUPPLY CHAIN IMPACT - Days difference:", daysDifference);
     
     // Only consider incomplete benchmarks
     const incompleteBenchmarks = projectBenchmarks.filter(b => !b.isCompleted);
     
-    // For simplicity, we'll estimate that later purchases might cost more
+    // For each benchmark, apply exact day shift
     return incompleteBenchmarks.map(benchmark => {
       try {
-        // Calculate estimated cost impact based on company's formula
-        // $500 per day of delay on average per supply chain item
+        // Calculate cost impact: $1000 per day of delay 
         const estimatedCostImpact = daysDifference > 0 
-          ? daysDifference * 500  // $500 per day impact
+          ? daysDifference * 1000  // $1000 per day impact
           : 0;
           
-        // If we have a target date, adjust it based on the project shift
+        // If we have a target date, simply shift it by the same number of days
         let originalDate = null;
         let newDate = null;
         
         if (benchmark.targetDate) {
-          // Use direct Date constructor to ensure consistent parsing
-          const benchmarkDate = new Date(benchmark.targetDate.split('T')[0]);
+          // Direct date manipulation
+          const benchmarkDate = new Date(benchmark.targetDate);
           originalDate = format(benchmarkDate, 'MMM d, yyyy');
           
-          // Calculate what percentage through the project this benchmark falls
-          const benchmarkPosition = originalDuration === 0 ? 0 : 
-            (benchmarkDate.getTime() - origStartDate.getTime()) / originalDuration;
-          
-          // Apply same percentage to new duration
-          const newBenchmarkTime = newStart.getTime() + (benchmarkPosition * newDuration);
-          const newBenchmarkDate = new Date(newBenchmarkTime);
+          // Create new date and add exact number of days
+          const newBenchmarkDate = new Date(benchmarkDate);
+          newBenchmarkDate.setDate(newBenchmarkDate.getDate() + daysDifference);
           newDate = format(newBenchmarkDate, 'MMM d, yyyy');
           
-          console.log(`Benchmark ${benchmark.name}: from ${originalDate} to ${newDate}`);
+          console.log(`EXACT BENCHMARK ${benchmark.name}: ${originalDate} → ${newDate} (${daysDifference} days)`);
         }
         
         return {
@@ -229,11 +210,11 @@ export default function FinancialImpactPopup({
           dayChange: daysDifference
         };
       } catch (err) {
-        console.error("Error calculating benchmark impact:", err);
+        console.error("Error in exact benchmark calculation:", err);
         return {
           ...benchmark, 
-          originalDate: benchmark.targetDate ? format(new Date(benchmark.targetDate), 'MMM d, yyyy') : null,
-          newDate: null,
+          originalDate: benchmark.targetDate ? format(new Date(benchmark.targetDate), 'MMM d, yyyy') : "Unknown",
+          newDate: "Could not calculate",
           costImpact: 0,
           dayChange: daysDifference
         };
@@ -241,40 +222,42 @@ export default function FinancialImpactPopup({
     });
   }, [projectBenchmarks, originalStartDate, originalEndDate, newStartDate, newEndDate]);
 
-  // Calculate total financial impact
+  // EXACT REVENUE CALCULATION - Direct date comparison
   const totalRevenueImpact = useMemo(() => {
-    // Calculate the sum of all billing milestone amounts
+    // Calculate the total contract value
     const totalBillingAmount = billingMilestones.reduce(
       (total, milestone) => total + parseFloat(milestone.amount || '0'), 
       0
     );
     
-    // Get dates as Date objects with direct constructor for consistent parsing
-    const origEndDate = new Date(originalEndDate.split('T')[0]);
-    const newEndDateObj = new Date(newEndDate.split('T')[0]);
+    // Get exact dates as JavaScript Date objects
+    const origEndDate = new Date(originalEndDate);
+    const newEndDateObj = new Date(newEndDate);
     
+    // Calculate exact days difference
     const daysDifference = Math.round(
       (newEndDateObj.getTime() - origEndDate.getTime()) / (1000 * 60 * 60 * 24)
     );
     
-    console.log("Revenue impact - total billing amount:", totalBillingAmount);
-    console.log("Revenue impact - days difference:", daysDifference);
+    console.log("EXACT REVENUE IMPACT - Total contract value:", totalBillingAmount);
+    console.log("EXACT REVENUE IMPACT - Days difference:", daysDifference);
     
-    // Calculate revenue impact using the company's standard formula:
-    // For delay: 0.2% penalty per day on total contract value
-    // For early delivery: 0.1% bonus per day on total contract value (up to 10%)
+    // Standardized financial impact calculation:
+    // - Delay: Financial penalty of $5,000 per day
+    // - Early: Financial bonus of $2,500 per day
     let revenueImpact = 0;
     
     if (daysDifference > 0) {
-      // Project delay penalty
-      revenueImpact = -(totalBillingAmount * 0.002 * daysDifference);
-      console.log(`Project delayed by ${daysDifference} days: penalty of ${revenueImpact}`);
+      // Delay penalty - fixed amount per day
+      revenueImpact = -(5000 * daysDifference);
+      console.log(`Project delayed by ${daysDifference} days: Fixed penalty of ${revenueImpact}`);
     } else if (daysDifference < 0) {
-      // Early delivery bonus (capped at 10% of total revenue)
-      const potentialBonus = totalBillingAmount * 0.001 * Math.abs(daysDifference);
-      const cappedBonus = Math.min(potentialBonus, totalBillingAmount * 0.1);
+      // Early delivery bonus - fixed amount per day with cap
+      const potentialBonus = 2500 * Math.abs(daysDifference);
+      const maxBonus = totalBillingAmount * 0.1; // Cap at 10% of total contract
+      const cappedBonus = Math.min(potentialBonus, maxBonus);
       revenueImpact = cappedBonus;
-      console.log(`Project advanced by ${Math.abs(daysDifference)} days: bonus of ${revenueImpact}`);
+      console.log(`Project advanced by ${Math.abs(daysDifference)} days: Fixed bonus of ${revenueImpact}`);
     }
       
     return revenueImpact;
