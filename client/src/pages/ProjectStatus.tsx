@@ -218,6 +218,10 @@ const ProjectStatus = () => {
     shipDateMax: '',
   });
   
+  // Location filter state
+  const [locationFilter, setLocationFilter] = useState<string>('');
+  const [sortableColumns, setSortableColumns] = useState<boolean>(false);
+  
   // Filter dialog state
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
 
@@ -282,7 +286,7 @@ const ProjectStatus = () => {
     };
   }, [projects, manufacturingSchedules]);
 
-  // Apply date filters to projects
+  // Apply date filters and location filters to projects
   const filteredProjects = React.useMemo(() => {
     if (!projects) return [];
     
@@ -321,10 +325,24 @@ const ProjectStatus = () => {
     // Cast projects to ProjectWithRawData[] to ensure rawData is available
     return (projects as ProjectWithRawData[]).filter((project: ProjectWithRawData) => {
       // Check if any filter is active
-      const hasActiveFilters = Object.values(dateFilters).some(val => val !== '');
+      const hasActiveFilters = Object.values(dateFilters).some(val => val !== '') || locationFilter !== '';
       
       // If no filters, return all projects
-      if (!hasActiveFilters) return true;
+      if (!hasActiveFilters) {
+        setSortableColumns(false);
+        return true;
+      }
+      
+      // Location filtering
+      if (locationFilter && project.location) {
+        // Enable sorting when a location filter is applied
+        setSortableColumns(true);
+        
+        // If the project location doesn't match the filter, exclude it
+        if (project.location.toLowerCase() !== locationFilter.toLowerCase()) {
+          return false;
+        }
+      }
       
       // Start Date Filtering
       if (!isInDateRange(project.startDate, dateFilters.startDateMin, dateFilters.startDateMax)) {
@@ -348,7 +366,7 @@ const ProjectStatus = () => {
       
       return true;
     });
-  }, [projects, dateFilters]);
+  }, [projects, dateFilters, locationFilter]);
 
   // Calculate upcoming milestones within the next 30 days
   const upcomingMilestones = React.useMemo(() => {
