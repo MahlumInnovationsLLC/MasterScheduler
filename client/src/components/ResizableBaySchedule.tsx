@@ -3498,10 +3498,8 @@ export default function ResizableBaySchedule({
                               <div className="phases-container relative w-full h-full overflow-hidden rounded">
                                 {/* Top phases (PRODUCTION, IT, NTC, QC) - fixed height at top */}
                                 <div className="top-phases flex w-full h-[32px] overflow-hidden absolute top-0 left-0 z-20">
-                                  {/* If there's a paint phase, add spacer equal to fab+paint width */}
-                                  {bar.paintWidth && bar.paintWidth > 0 && bar.fabWidth && bar.fabWidth > 0 && (
-                                    <div className="spacer" style={{ width: `${bar.fabWidth + bar.paintWidth}px` }}></div>
-                                  )}
+                                  {/* ALWAYS add spacer equal to fab+paint width to ensure phases don't start prematurely */}
+                                  <div className="spacer" style={{ width: `${bar.fabWidth + bar.paintWidth}px` }}></div>
                                   
                                   {/* Production phase (starts after paint ends) */}
                                   {bar.productionWidth && bar.productionWidth > 0 && (
@@ -3553,6 +3551,21 @@ export default function ResizableBaySchedule({
                                       <span className="text-xs font-bold text-white text-center">PAINT</span>
                                     </div>
                                   )}
+                                </div>
+                                
+                                {/* Project information display centered below the PROD section */}
+                                <div className="project-info absolute flex flex-col items-center justify-center z-30"
+                                     style={{
+                                       left: `${bar.fabWidth + bar.paintWidth + (bar.productionWidth / 2) - 70}px`,
+                                       top: '33px',
+                                       width: '140px',
+                                     }}>
+                                  <div className="text-xs font-bold text-white bg-black bg-opacity-70 px-2 py-1 rounded-md text-center">
+                                    {bar.projectNumber}
+                                  </div>
+                                  <div className="text-[10px] text-white bg-black bg-opacity-50 px-1 mt-1 rounded-sm text-center max-w-[140px] truncate">
+                                    {bar.projectName}
+                                  </div>
                                 </div>
                                 
                                 {/* Connection line (vertical segment that connects PAINT to PROD) */}
