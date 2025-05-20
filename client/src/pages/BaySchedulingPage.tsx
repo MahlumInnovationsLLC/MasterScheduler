@@ -98,11 +98,11 @@ import { BayUtilizationCard } from '@/components/BayUtilizationCard';
 import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
+import { SandboxModeBanner } from '@/components/SandboxModeBanner';
 import BaySchedulingImport from '@/components/BaySchedulingImport';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import { TeamManagementButton } from '@/components/TeamManagementButton';
 import { TeamCapacityInfo } from '@/components/TeamCapacityInfo';
-import { SandboxModeBanner } from '@/components/SandboxModeBanner';
 // RowPositionTester removed as requested
 import { 
   ManufacturingBay, 
