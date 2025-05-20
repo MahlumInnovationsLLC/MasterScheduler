@@ -1141,10 +1141,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   // Get all billing milestones for this project
                   const billingMilestones = await storage.getProjectBillingMilestones(projectId);
                   
-                  // Find all delivery milestones (explicit flag or name contains "DELIVERY")
+                  // Find all delivery milestones by common naming patterns
                   const deliveryMilestones = billingMilestones.filter(
                     milestone => milestone.isDeliveryMilestone || 
-                    (milestone.name && milestone.name.toUpperCase().includes("DELIVERY"))
+                    (milestone.name && (
+                      milestone.name.toUpperCase().includes("DELIVERY") ||
+                      milestone.name.toUpperCase().includes("100%") ||
+                      milestone.name.includes("Final") ||
+                      milestone.name.includes("final") ||
+                      milestone.name.toUpperCase().includes("FINAL")
+                    ))
                   );
                   
                   if (deliveryMilestones.length > 0) {
