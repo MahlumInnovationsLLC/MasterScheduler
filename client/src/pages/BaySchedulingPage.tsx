@@ -1176,7 +1176,7 @@ const BaySchedulingPage = () => {
                 onClick={() => isSandboxMode ? exitSandboxMode(false) : enterSandboxMode()}
                 className="flex items-center gap-1"
               >
-                {!isSandboxMode && <span className="h-4 w-4">🔮</span>}
+                {!isSandboxMode && <span className="h-4 w-4">▶️</span>}
                 {isSandboxMode ? "Exit Sandbox Mode" : "Enter Sandbox Mode"}
               </Button>
             </div>
