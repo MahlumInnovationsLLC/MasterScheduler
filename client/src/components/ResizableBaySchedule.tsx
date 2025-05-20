@@ -140,6 +140,7 @@ interface ResizableBayScheduleProps {
   dateRange: { start: Date, end: Date };
   viewMode: 'day' | 'week' | 'month' | 'quarter';
   enableFinancialImpact?: boolean;
+  isSandboxMode?: boolean;
 }
 
 interface ScheduleBar {
