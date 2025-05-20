@@ -3550,6 +3550,18 @@ export default function ResizableBaySchedule({
                                   )}
                                 </div>
                                 
+                                {/* Connector line between PAINT and PROD */}
+                                <div className="phase-connector absolute" style={{
+                                  left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) - 4}px`,
+                                  top: '26px', // Position below top phases row
+                                  width: '8px',
+                                  height: '16px',
+                                  zIndex: 19
+                                }}>
+                                  <div className="connector-line h-full w-[2px] bg-white mx-auto"></div>
+                                  <div className="connector-arrow border-solid border-t-[4px] border-r-[4px] border-b-0 border-l-0 border-white transform rotate-45 absolute top-[12px] right-[1px]"></div>
+                                </div>
+                                
                                 {/* Bottom FAB and PAINT phases - fixed height at bottom */}
                                 <div className="bottom-phases flex w-full h-[24px] absolute bottom-3 left-0 overflow-hidden z-20">
                                   {/* FAB phase (starts from the left) */}
