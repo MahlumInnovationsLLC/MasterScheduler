@@ -1233,18 +1233,7 @@ const BaySchedulingPage = () => {
               </Label>
             </div>
             
-            {/* Sandbox Mode Toggle - Simplified */}
-            <div className="flex items-center gap-2">
-              <Button 
-                variant={isSandboxMode ? "destructive" : "outline"}
-                size="sm"
-                onClick={() => toggleSandboxMode()}
-                className="flex items-center gap-1"
-              >
-                {!isSandboxMode && <Play className="h-4 w-4 mr-1" />}
-                {isSandboxMode ? "Exit Sandbox Mode" : "Enter Sandbox Mode"}
-              </Button>
-            </div>
+            {/* Removed redundant Sandbox Mode Toggle button since we now have the SandboxModeBanner */}
           </div>
         </div>
         <div className="p-4 overflow-x-auto">
