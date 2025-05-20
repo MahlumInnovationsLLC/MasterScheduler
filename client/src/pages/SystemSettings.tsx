@@ -413,6 +413,11 @@ const SystemSettings = () => {
         notifyManufacturingUpdates: editingUser.preferences?.notifyManufacturingUpdates !== false,
         notifySystemUpdates: editingUser.preferences?.notifySystemUpdates !== false
       }
+    }, {
+      onSuccess: () => {
+        // Close the dialog after successful update
+        setEditingUser(null);
+      }
     });
   };
   
