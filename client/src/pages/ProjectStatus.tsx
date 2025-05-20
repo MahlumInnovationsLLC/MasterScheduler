@@ -6,6 +6,7 @@ import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
 import { format } from 'date-fns';
 import { calculateWeekdaysBetween } from '@/lib/utils';
+import { CellHighlighter } from '@/components/CellHighlighter';
 import { 
   Folders, 
   Flag, 
@@ -566,7 +567,12 @@ const ProjectStatus = () => {
       ...options,
       cell: ({ row }: { row: ProjectRow }) => {
         try {
-          return cellRenderer(row.original[accessorKey], row.original);
+          // Wrap the cell content with the CellHighlighter component
+          return (
+            <CellHighlighter rowId={row.original.id} columnId={id}>
+              {cellRenderer(row.original[accessorKey], row.original)}
+            </CellHighlighter>
+          );
         } catch (error) {
           console.error(`Error rendering cell for column ${id}:`, error);
           return <div className="text-red-500">Error</div>;
@@ -892,26 +898,29 @@ const ProjectStatus = () => {
           }
         };
         
+        // Wrap with CellHighlighter component
         return (
-          <div className="flex items-center justify-center">
-            {isChecked ? (
-              <div 
-                className="flex items-center cursor-pointer bg-green-100 text-green-800 px-2 py-1 rounded"
-                onClick={handleToggle}
-              >
-                <Check className="h-4 w-4 mr-1" />
-                <span>COMPLETE</span>
-              </div>
-            ) : (
-              <div 
-                className="flex items-center cursor-pointer bg-red-100 text-red-800 px-2 py-1 rounded"
-                onClick={handleToggle}
-              >
-                <X className="h-4 w-4 mr-1" />
-                <span>NOT DONE</span>
-              </div>
-            )}
-          </div>
+          <CellHighlighter rowId={project.id} columnId="photosTaken">
+            <div className="flex items-center justify-center">
+              {isChecked ? (
+                <div 
+                  className="flex items-center cursor-pointer bg-green-100 text-green-800 px-2 py-1 rounded"
+                  onClick={handleToggle}
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  <span>COMPLETE</span>
+                </div>
+              ) : (
+                <div 
+                  className="flex items-center cursor-pointer bg-red-100 text-red-800 px-2 py-1 rounded"
+                  onClick={handleToggle}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  <span>NOT DONE</span>
+                </div>
+              )}
+            </div>
+          </CellHighlighter>
         );
       }
     },
