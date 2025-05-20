@@ -14,7 +14,8 @@ import {
   endOfWeek,
   getDaysInMonth,
   isWithinInterval,
-  parseISO
+  parseISO,
+  subDays
 } from 'date-fns';
 import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom } from './ExactFitPhaseWidths';
 import DurationCalculator from './DurationCalculator';
@@ -1532,8 +1533,8 @@ export default function ResizableBaySchedule({
       }
       
       // Get phase percentages from the project or use defaults
-      const fabPercent = project.fabPercentage ? Number(project.fabPercentage) : 27;
-      const paintPercent = project.paintPercentage ? Number(project.paintPercentage) : 7;
+      const fabPercent = project && project.fabPercentage ? Number(project.fabPercentage) : 27;
+      const paintPercent = project && project.paintPercentage ? Number(project.paintPercentage) : 7;
       
       // Calculate how many days before the PRODUCTION phase
       // Default duration is 4 weeks if not specified
@@ -1569,7 +1570,7 @@ export default function ResizableBaySchedule({
         
         toast({
           title: "Schedule created",
-          description: `Added ${project.name} to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
+          description: `Added ${project?.name || 'Project'} to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
         });
       } catch (error) {
         console.error('Error creating schedule:', error);
