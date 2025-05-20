@@ -3636,17 +3636,7 @@ export default function ResizableBaySchedule({
                                     height: '2px'
                                   }}></div>
                                   
-                                  {/* Arrow pointing to PROD */}
-                                  <div className="connector-arrow absolute" style={{
-                                    left: '15px',
-                                    top: '6px',
-                                    width: '0',
-                                    height: '0',
-                                    borderTop: '5px solid transparent',
-                                    borderBottom: '5px solid transparent',
-                                    borderRight: '6px solid rgb(239, 68, 68)', // red-500
-                                    transform: 'rotate(180deg)'
-                                  }}></div>
+                                  {/* Arrow removed as requested */}
                                 </div>
                                 
                                 {/* Bottom FAB and PAINT phases - fixed height at bottom */}
