@@ -3497,7 +3497,7 @@ export default function ResizableBaySchedule({
                               {/* Department phases visualization - REDESIGNED */}
                               <div className="phases-container relative w-full h-full overflow-hidden rounded">
                                 {/* Top phases (PRODUCTION, IT, NTC, QC) - fixed height at top */}
-                                <div className="top-phases flex w-full h-[30px] overflow-hidden absolute top-0 left-0 z-20">
+                                <div className="top-phases flex w-full h-[26px] overflow-hidden absolute top-0 left-0 z-20">
                                   {/* ALWAYS add spacer equal to fab+paint width to ensure phases don't start prematurely */}
                                   <div className="spacer" style={{ width: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + 8}px` }}></div>
                                   
@@ -3535,7 +3535,7 @@ export default function ResizableBaySchedule({
                                 </div>
                                 
                                 {/* Bottom FAB and PAINT phases - fixed height at bottom */}
-                                <div className="bottom-phases flex w-full h-[28px] absolute bottom-2 left-0 overflow-hidden z-20">
+                                <div className="bottom-phases flex w-full h-[24px] absolute bottom-2 left-0 overflow-hidden z-20">
                                   {/* FAB phase (starts from the left) */}
                                   {bar.fabWidth && bar.fabWidth > 0 && (
                                     <div className="fab-phase bg-blue-700 h-full flex items-center justify-center" 
@@ -3556,11 +3556,11 @@ export default function ResizableBaySchedule({
                                 {/* Project information display centered below the PROD section */}
                                 <div className="project-info absolute flex flex-col items-center justify-center z-30"
                                      style={{
-                                       left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + ((bar.productionWidth || 0) / 2) - 120}px`,
-                                       top: '31px',
-                                       width: '240px',
+                                       left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + ((bar.productionWidth || 0) / 2) - 150}px`,
+                                       top: '28px',
+                                       width: '300px',
                                      }}>
-                                  <div className="text-xs font-bold text-white bg-black bg-opacity-90 px-2 py-1 rounded-md text-center truncate" style={{minWidth: "200px", maxWidth: "240px"}}>
+                                  <div className="text-xs font-bold text-white bg-black bg-opacity-90 px-2 py-0.5 rounded-md text-center truncate" style={{minWidth: "250px", maxWidth: "300px"}}>
                                     {bar.projectNumber} - {bar.projectName}
                                   </div>
                                 </div>
