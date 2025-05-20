@@ -1048,6 +1048,43 @@ const BaySchedulingPage = () => {
   
   return (
     <div className="px-4 py-4 md:py-6 md:px-6">
+      {/* Sandbox Mode Banner */}
+      {isSandboxMode && (
+        <div className="mb-4 p-3 bg-amber-900/30 border border-amber-500/50 rounded-md">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="relative flex h-3 w-3 mr-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+              </span>
+              <span className="font-semibold text-amber-300">SANDBOX MODE ACTIVE</span>
+              <span className="ml-3 text-amber-200/80 text-sm">
+                Changes made in sandbox mode won't affect the actual manufacturing schedule
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => exitSandboxMode(true)} 
+                className="text-xs px-3 py-1.5 bg-green-700/30 hover:bg-green-700/50 border border-green-500/50 text-green-300 rounded-md flex items-center"
+              >
+                Apply Changes
+              </button>
+              <button 
+                onClick={() => exitSandboxMode(false)} 
+                className="text-xs px-3 py-1.5 bg-red-700/30 hover:bg-red-700/50 border border-red-500/50 text-red-300 rounded-md flex items-center"
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+          {sandboxChanges > 0 && (
+            <div className="mt-2 text-xs text-amber-200/70">
+              <span className="font-medium">{sandboxChanges} change{sandboxChanges !== 1 ? 's' : ''} pending</span>
+            </div>
+          )}
+        </div>
+      )}
+      
       <div className="flex flex-col gap-1 mb-6">
         <div className="flex justify-between items-center">
           <div>
@@ -1132,54 +1169,17 @@ const BaySchedulingPage = () => {
               </Label>
             </div>
             
-            {/* Sandbox Mode Toggle */}
+            {/* Sandbox Mode Toggle - Simplified */}
             <div className="flex items-center gap-2">
-              {isSandboxMode ? (
-                <div className="flex items-center gap-2">
-                  <div className="bg-amber-900/20 px-2 py-1 rounded-md border border-amber-500/50 text-xs text-amber-300 font-semibold flex items-center mr-2">
-                    <span className="relative flex h-2 w-2 mr-1">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                    </span>
-                    SANDBOX MODE
-                    {sandboxChanges > 0 && (
-                      <span className="ml-1.5 bg-amber-500/30 text-amber-200 px-1.5 rounded-full text-xs">
-                        {sandboxChanges} changes
-                      </span>
-                    )}
-                  </div>
-                  
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={() => exitSandboxMode(true)}
-                    className="flex items-center gap-1 border-green-500/50 hover:bg-green-500/20 text-green-400"
-                  >
-                    <span className="h-3.5 w-3.5">💾</span>
-                    Apply Changes
-                  </Button>
-                  
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={() => exitSandboxMode(false)}
-                    className="flex items-center gap-1 border-red-500/50 hover:bg-red-500/20 text-red-400"
-                  >
-                    <span className="h-3.5 w-3.5">❌</span>
-                    Discard
-                  </Button>
-                </div>
-              ) : (
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={() => enterSandboxMode()}
-                  className="flex items-center gap-1"
-                >
-                  <span className="h-4 w-4">🔮</span>
-                  Enter Sandbox Mode
-                </Button>
-              )}
+              <Button 
+                variant={isSandboxMode ? "destructive" : "outline"}
+                size="sm"
+                onClick={() => isSandboxMode ? exitSandboxMode(false) : enterSandboxMode()}
+                className="flex items-center gap-1"
+              >
+                {!isSandboxMode && <span className="h-4 w-4">🔮</span>}
+                {isSandboxMode ? "Exit Sandbox Mode" : "Enter Sandbox Mode"}
+              </Button>
             </div>
           </div>
         </div>
