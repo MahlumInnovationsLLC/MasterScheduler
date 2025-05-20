@@ -1048,42 +1048,6 @@ const BaySchedulingPage = () => {
   
   return (
     <div className="px-4 py-4 md:py-6 md:px-6">
-      {/* Sandbox Mode Banner */}
-      {isSandboxMode && (
-        <div className="mb-4 p-3 bg-amber-900/30 border border-amber-500/50 rounded-md">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <span className="relative flex h-3 w-3 mr-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
-              </span>
-              <span className="font-semibold text-amber-300">SANDBOX MODE ACTIVE</span>
-              <span className="ml-3 text-amber-200/80 text-sm">
-                Changes made in sandbox mode won't affect the actual manufacturing schedule
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => exitSandboxMode(true)} 
-                className="text-xs px-3 py-1.5 bg-green-700/30 hover:bg-green-700/50 border border-green-500/50 text-green-300 rounded-md flex items-center"
-              >
-                Apply Changes
-              </button>
-              <button 
-                onClick={() => exitSandboxMode(false)} 
-                className="text-xs px-3 py-1.5 bg-red-700/30 hover:bg-red-700/50 border border-red-500/50 text-red-300 rounded-md flex items-center"
-              >
-                Discard
-              </button>
-            </div>
-          </div>
-          {sandboxChanges > 0 && (
-            <div className="mt-2 text-xs text-amber-200/70">
-              <span className="font-medium">{sandboxChanges} change{sandboxChanges !== 1 ? 's' : ''} pending</span>
-            </div>
-          )}
-        </div>
-      )}
       
       <div className="flex flex-col gap-1 mb-6">
         <div className="flex justify-between items-center">
@@ -1150,7 +1114,42 @@ const BaySchedulingPage = () => {
         </div>
       </div>
       
-
+      {/* Sandbox Mode Banner - Positioned exactly as requested */}
+      {isSandboxMode && (
+        <div className="mb-4 p-3 bg-amber-900/30 border border-amber-500/50 rounded-md">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="relative flex h-3 w-3 mr-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+              </span>
+              <span className="font-semibold text-amber-300">SANDBOX MODE ACTIVE</span>
+              <span className="ml-3 text-amber-200/80 text-sm">
+                Changes made in sandbox mode won't affect the actual manufacturing schedule
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => exitSandboxMode(true)} 
+                className="text-xs px-3 py-1.5 bg-green-700/30 hover:bg-green-700/50 border border-green-500/50 text-green-300 rounded-md flex items-center"
+              >
+                Apply Changes
+              </button>
+              <button 
+                onClick={() => exitSandboxMode(false)} 
+                className="text-xs px-3 py-1.5 bg-red-700/30 hover:bg-red-700/50 border border-red-500/50 text-red-300 rounded-md flex items-center"
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+          {sandboxChanges > 0 && (
+            <div className="mt-2 text-xs text-amber-200/70">
+              <span className="font-medium">{sandboxChanges} change{sandboxChanges !== 1 ? 's' : ''} pending</span>
+            </div>
+          )}
+        </div>
+      )}
       
       <div className="rounded-md border border-gray-800 bg-darkCard">
         <div className="p-4 border-b border-gray-800 flex justify-between items-center">
