@@ -650,6 +650,8 @@ export class DatabaseStorage implements IStorage {
   
   async updateUserPreferences(userId: string, preferences: Partial<InsertUserPreference>): Promise<UserPreference | undefined> {
     try {
+      console.log(`STORAGE: Updating preferences for user ${userId}:`, preferences);
+      
       const [updatedPreferences] = await db
         .update(userPreferences)
         .set({ 
@@ -658,6 +660,8 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(userPreferences.userId, userId))
         .returning();
+      
+      console.log("STORAGE: Updated preferences result:", updatedPreferences);
       return updatedPreferences;
     } catch (error) {
       console.error("Error updating user preferences:", error);

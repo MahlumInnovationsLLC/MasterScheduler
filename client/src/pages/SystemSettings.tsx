@@ -811,13 +811,16 @@ const SystemSettings = () => {
                                         <Label htmlFor="department">Department</Label>
                                         <Select 
                                           value={editingUser.preferences?.department || ''}
-                                          onValueChange={value => setEditingUser({
-                                            ...editingUser, 
-                                            preferences: {
-                                              ...editingUser.preferences || {},
-                                              department: value
-                                            }
-                                          })}
+                                          onValueChange={value => {
+                                            console.log(`Changing department to: ${value}`);
+                                            setEditingUser({
+                                              ...editingUser, 
+                                              preferences: {
+                                                ...editingUser.preferences || {},
+                                                department: value
+                                              }
+                                            });
+                                          }}
                                         >
                                           <SelectTrigger>
                                             <SelectValue placeholder="Select department" />
