@@ -3473,10 +3473,10 @@ export default function ResizableBaySchedule({
                               style={{
                                 left: `${bar.left}px`,
                                 width: `${bar.width}px`,
-                                height: '250%', // Make project bars much taller
-                                backgroundColor: `${bar.color}90`,
-                                // Adjust vertical positioning for row layout
-                                top: '-75%', // Shift up to center the taller bars
+                                height: '100%', // Standard height (same as row)
+                                backgroundColor: `${bar.color}25`, // Very light background for the full bar
+                                // Normal positioning
+                                top: '0', // Default position
                                 // Set data attributes for department phase percentages 
                                 // Store important info for drag/resize operations
                               }}
@@ -3496,8 +3496,8 @@ export default function ResizableBaySchedule({
                             >
                               {/* Department phases visualization - REDESIGNED */}
                               <div className="phases-container relative w-full h-full overflow-hidden rounded">
-                                {/* Top phases: PRODUCTION, IT, NTC, QC */}
-                                <div className="top-phases flex w-full h-[50%] overflow-hidden">
+                                {/* Top phases (PRODUCTION, IT, NTC, QC) in top 30% of bar */}
+                                <div className="top-phases flex w-full h-[30%] overflow-hidden absolute top-0 left-0 z-20">
                                   {/* If there's a paint phase, add spacer equal to fab+paint width */}
                                   {bar.paintWidth && bar.paintWidth > 0 && bar.fabWidth && bar.fabWidth > 0 && (
                                     <div className="spacer" style={{ width: `${bar.fabWidth + bar.paintWidth}px` }}></div>
@@ -3536,8 +3536,8 @@ export default function ResizableBaySchedule({
                                   )}
                                 </div>
                                 
-                                {/* Bottom FAB and PAINT phases */}
-                                <div className="bottom-phases flex w-full h-[50%] absolute bottom-0 left-0 overflow-hidden">
+                                {/* Bottom FAB and PAINT phases in bottom 30% of bar */}
+                                <div className="bottom-phases flex w-full h-[30%] absolute bottom-0 left-0 overflow-hidden z-20">
                                   {/* FAB phase (starts from the left) */}
                                   {bar.fabWidth && bar.fabWidth > 0 && (
                                     <div className="fab-phase bg-blue-700 h-full flex items-center justify-center" 
@@ -3561,8 +3561,8 @@ export default function ResizableBaySchedule({
                                        style={{ 
                                          position: 'absolute',
                                          left: `${bar.fabWidth + bar.paintWidth - 3}px`, 
-                                         top: '0%',
-                                         height: '100%',
+                                         top: '30%',
+                                         height: '40%',
                                          width: '3px',
                                          backgroundColor: '#16a34a', // Green color to match paint
                                          zIndex: 5
