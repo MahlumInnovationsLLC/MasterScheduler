@@ -17,8 +17,7 @@ import {
   MoveRight,
   ArrowUpCircle,
   Database,
-  Loader2,
-  UserMinus
+  Loader2
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import RolePermissionsManager from "@/components/RolePermissionsManager";
@@ -528,85 +527,6 @@ const SystemSettings = () => {
   const handleRejectUser = (userId: string) => {
     rejectUserMutation.mutate(userId);
   };
-  
-  // Update user mutation
-  const updateUserMutation = useMutation({
-    mutationFn: (userData: any) => {
-      return apiRequest(`/api/users/${userData.userId}/update`, 'PATCH', userData, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      setIsEditDialogOpen(false);
-      toast({
-        title: "User Updated",
-        description: "User details have been successfully updated.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: "Failed to update user: " + (error as Error).message,
-        variant: "destructive",
-      });
-    }
-  });
-  
-  // Permanently delete user mutation
-  const deleteUserMutation = useMutation({
-    mutationFn: (userId: string) => {
-      return apiRequest(`/api/users/${userId}/permanent-delete`, 'DELETE', {}, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      setIsDeleteDialogOpen(false);
-      toast({
-        title: "User Deleted",
-        description: "User has been permanently deleted from the system.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: "Failed to delete user: " + (error as Error).message,
-        variant: "destructive",
-      });
-    }
-  });
-  
-  // Edit user handler
-  const handleEditUserClick = (user: any) => {
-    setEditingUser(user);
-    setUserFormData({
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
-      email: user.email || '',
-      department: user.department || '',
-      role: user.role || 'viewer'
-    });
-    setIsEditDialogOpen(true);
-  };
-  
-  // Save user changes
-  const handleSaveUserChanges = () => {
-    if (editingUser) {
-      updateUserMutation.mutate({
-        userId: editingUser.id,
-        ...userFormData
-      });
-    }
-  };
-  
-  // Handle permanent delete user
-  const handleDeleteUserClick = (user: any) => {
-    setEditingUser(user);
-    setIsDeleteDialogOpen(true);
-  };
-  
-  const handlePermanentDeleteUser = () => {
-    if (editingUser) {
-      deleteUserMutation.mutate(editingUser.id);
-    }
-  };
 
   // Handle tab change
   const [currentTab, setCurrentTab] = useState('accessControl');
@@ -1057,39 +977,6 @@ const SystemSettings = () => {
                                   >
                                     <Edit className="h-4 w-4" />
                                   </Button>
-                                  
-                                  <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                                    <AlertDialogTrigger asChild>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="text-red-600 hover:text-red-700"
-                                        title="Permanently Delete User"
-                                        onClick={() => handleDeleteUserClick(user)}
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Permanently Delete User</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Are you sure you want to permanently delete this user? 
-                                          This action cannot be undone. The user will be completely removed 
-                                          from the system and only an audit trail notification will remain.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction 
-                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                          onClick={handlePermanentDeleteUser}
-                                        >
-                                          Permanently Delete
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -1722,86 +1609,4 @@ const SystemSettings = () => {
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Edit User Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>
-              Make changes to user information and department settings.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="firstName" className="text-right">
-                First Name
-              </Label>
-              <Input
-                id="firstName"
-                value={userFormData.firstName}
-                onChange={(e) => setUserFormData({...userFormData, firstName: e.target.value})}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="lastName" className="text-right">
-                Last Name
-              </Label>
-              <Input
-                id="lastName"
-                value={userFormData.lastName}
-                onChange={(e) => setUserFormData({...userFormData, lastName: e.target.value})}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                value={userFormData.email}
-                onChange={(e) => setUserFormData({...userFormData, email: e.target.value})}
-                className="col-span-3"
-                disabled
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="department" className="text-right">
-                Department
-              </Label>
-              <Input
-                id="department"
-                value={userFormData.department}
-                onChange={(e) => setUserFormData({...userFormData, department: e.target.value})}
-                className="col-span-3"
-                placeholder="Enter department"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="role" className="text-right">
-                Role
-              </Label>
-              <Select 
-                value={userFormData.role} 
-                onValueChange={(value) => setUserFormData({...userFormData, role: value})}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="viewer">Viewer</SelectItem>
-                  <SelectItem value="editor">Editor</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveUserChanges}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
 export default SystemSettings;
