@@ -35,9 +35,13 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
     setIsUpdating(true);
     try {
       // Handle both setting and clearing dates
-      const dateToSend = dateValue 
-        ? new Date(dateValue).toISOString().split('T')[0] // Just send the date portion (YYYY-MM-DD)
-        : null; // Send null to clear the date
+      let dateToSend = null;
+      
+      if (dateValue) {
+        // Fix timezone issues by using a direct string instead of Date conversion
+        // This preserves the exact date selected without timezone adjustments
+        dateToSend = dateValue; // The input date value is already in YYYY-MM-DD format
+      }
         
       const response = await apiRequest(
         "PATCH",
