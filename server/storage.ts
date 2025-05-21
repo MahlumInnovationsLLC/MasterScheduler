@@ -16,6 +16,7 @@ import {
   financialGoals,
   supplyChainBenchmarks,
   projectSupplyChainBenchmarks,
+  rolePermissions,
   type User,
   type InsertUser,
   type Project,
@@ -44,6 +45,8 @@ import {
   type InsertSalesDeal,
   type UserAuditLog,
   type InsertUserAuditLog,
+  type RolePermission,
+  type InsertRolePermission,
   type FinancialGoal,
   type InsertFinancialGoal,
   type SupplyChainBenchmark,
@@ -104,6 +107,15 @@ export interface IStorage {
   upsertUser(user: InsertUser): Promise<User>;
   updateUserRole(id: string, role: string, isApproved: boolean): Promise<User | undefined>;
   updateUserLastLogin(id: string): Promise<User | undefined>;
+  
+  // Role permissions methods
+  getRolePermissions(role?: string): Promise<RolePermission[]>;
+  getRolePermissionsByCategory(role: string, category: string): Promise<RolePermission[]>;
+  getRolePermission(id: number): Promise<RolePermission | undefined>;
+  createRolePermission(permission: InsertRolePermission): Promise<RolePermission>;
+  updateRolePermission(id: number, permission: Partial<RolePermission>): Promise<RolePermission | undefined>;
+  deleteRolePermission(id: number): Promise<boolean>;
+  bulkUpdateRolePermissions(role: string, permissions: Partial<InsertRolePermission>[]): Promise<number>;
   
   // User archiving and audit logs
   updateUserStatus(id: string, status: string, performedBy: string, details: string): Promise<User | undefined>;
