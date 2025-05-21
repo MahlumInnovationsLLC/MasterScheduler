@@ -460,9 +460,6 @@ export default function ResizableBaySchedule({
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [deleteRowDialogOpen, setDeleteRowDialogOpen] = useState(false);
-  // Add scroll position tracking for sticky header
-  const [scrollPosition, setScrollPosition] = useState({ x: 0, y: 0 });
-  
   // Team name inline editing states
   const [editingTeamId, setEditingTeamId] = useState<string>('');
   const [editingTeamName, setEditingTeamName] = useState<string>('');
@@ -2683,11 +2680,13 @@ export default function ResizableBaySchedule({
             return null;
           })()}
           
-          {/* Timeline header with sticky positioning */}
-          <div className="timeline-header sticky top-0 z-50 bg-gray-900 shadow-md flex" 
+          {/* Timeline header with fixed positioning that sticks to viewport */}
+          <div 
+            id="sticky-timeline-header"
+            className="timeline-header fixed top-[60px] left-0 right-0 z-50 bg-gray-900 shadow-md flex" 
             style={{ 
-              marginLeft: "0px",  // Removed the ml-32 class and set to 0px
               width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
+              height: '40px'
             }}>
             {slots.map((slot, index) => (
               <div
