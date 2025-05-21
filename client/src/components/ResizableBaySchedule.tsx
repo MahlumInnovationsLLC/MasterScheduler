@@ -3555,9 +3555,9 @@ export default function ResizableBaySchedule({
                               key={`schedule-bar-${bar.id}`}
                               className={`schedule-bar absolute p-1 text-white text-xs rounded cursor-grab z-20 row-${bar.row}-bar`}
                               style={{
-                                // CRITICAL FIX: Set the left position to account for FAB & PAINT appearing before PROD
-                                // This ensures PROD phase aligns exactly with the start date (bar.left position)
-                                left: `${bar.left - (bar.fabWidth || 0) - (bar.paintWidth || 0)}px`,
+                                // CRITICAL FIX: Don't offset the containing bar - we'll position the phases internally instead
+                                // This ensures the PROD phase will align exactly with the start date at bar.left
+                                left: `${bar.left}px`,
                                 width: `${Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0))}px`, // Ensure width accommodates all phases
                                 height: '72px', // Exact height to match gray row
                                 backgroundColor: `${bar.color}25`, // Very light background for the full bar
@@ -3590,7 +3590,7 @@ export default function ResizableBaySchedule({
                                       <div className="production-phase dept-prod-phase bg-yellow-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.productionWidth}px`,
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px` // Position after FAB and PAINT
+                                             left: `0px` // Start PROD exactly at the visual start date
                                            }}>
                                         <span className="text-xs font-bold text-gray-800 h-full w-full flex items-center justify-center">PROD</span>
                                       </div>
@@ -3632,20 +3632,23 @@ export default function ResizableBaySchedule({
                                   
                                   {/* Bottom row of phases (FAB and PAINT) */}
                                   <div className="bottom-phases w-full h-[24px] absolute bottom-3 left-0">
-                                    {/* FAB phase (starts from left) */}
+                                    {/* FAB phase (appears before PROD) */}
                                     {bar.fabWidth && bar.fabWidth > 0 && (
-                                      <div className="fab-phase dept-fab-phase bg-blue-700 h-full absolute left-0" 
-                                           style={{ width: `${bar.fabWidth}px` }}>
+                                      <div className="fab-phase dept-fab-phase bg-blue-700 h-full absolute" 
+                                           style={{ 
+                                             width: `${bar.fabWidth}px`,
+                                             right: `${bar.paintWidth || 0}px` // Position to left of PAINT
+                                           }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">FAB</span>
                                       </div>
                                     )}
                                     
-                                    {/* PAINT phase (follows FAB) */}
+                                    {/* PAINT phase (positioned right before PROD) */}
                                     {bar.paintWidth && bar.paintWidth > 0 && (
-                                      <div className="paint-phase dept-paint-phase bg-green-700 h-full absolute" 
+                                      <div className="paint-phase dept-paint-phase bg-green-600 h-full absolute" 
                                            style={{ 
                                              width: `${bar.paintWidth}px`,
-                                             left: `${bar.fabWidth || 0}px`
+                                             right: `0px` // Position directly before PROD starts
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">PAINT</span>
                                       </div>
