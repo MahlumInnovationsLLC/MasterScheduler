@@ -358,6 +358,16 @@ const SystemSettings = () => {
   // Handle tab change
   const [currentTab, setCurrentTab] = useState('accessControl');
 
+  // For system maintenance stats
+  const {
+    data: activeProjects = [],
+    isLoading: activeProjectsLoading,
+    error: activeProjectsError
+  } = useQuery({
+    queryKey: ['/api/projects'],
+    queryFn: getQueryFn({}),
+  });
+
   // For archive management
   const {
     data: archivedProjects = [],
@@ -366,6 +376,27 @@ const SystemSettings = () => {
   } = useQuery({
     queryKey: ['/api/projects/archived'],
     queryFn: getQueryFn({}),
+  });
+  
+  // Get system storage info
+  const {
+    data: storageInfo = { totalStorageUsed: 0 },
+    isLoading: storageInfoLoading,
+    error: storageInfoError
+  } = useQuery({
+    queryKey: ['/api/system/storage-info'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/system/storage-info');
+        if (!response.ok) {
+          return { totalStorageUsed: 0 };
+        }
+        return await response.json();
+      } catch (error) {
+        console.error("Error fetching storage info:", error);
+        return { totalStorageUsed: 0 };
+      }
+    },
   });
 
   const restoreProjectMutation = useMutation({

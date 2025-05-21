@@ -98,6 +98,11 @@ async function safeSingleQuery<T>(queryCallback: () => Promise<any>): Promise<T 
 }
 
 export interface IStorage {
+  // Database backup methods
+  createBackupRecord(data: { filename: string, size: number, createdAt: Date }): Promise<any>;
+  getLatestBackup(): Promise<{ filename: string, createdAt: Date } | null>;
+  getBackups(): Promise<any[]>;
+  createRestoreRecord(data: { filename: string, restoredAt: Date }): Promise<any>;
   // User methods
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
