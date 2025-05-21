@@ -243,6 +243,143 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Role Permissions Methods
+  async getRolePermissions(role?: string): Promise<RolePermission[]> {
+    try {
+      let query;
+      if (role) {
+        query = db.select().from(rolePermissions).where(eq(rolePermissions.role, role));
+      } else {
+        query = db.select().from(rolePermissions);
+      }
+      
+      const results = await query;
+      return results;
+    } catch (error) {
+      console.error("Error fetching role permissions:", error);
+      return [];
+    }
+  }
+  
+  async getRolePermissionsByCategory(role: string, category: string): Promise<RolePermission[]> {
+    try {
+      const results = await db.select()
+        .from(rolePermissions)
+        .where(and(
+          eq(rolePermissions.role, role),
+          eq(rolePermissions.category, category as any)
+        ));
+      
+      return results;
+    } catch (error) {
+      console.error(`Error fetching role permissions for ${role} in category ${category}:`, error);
+      return [];
+    }
+  }
+  
+  async getRolePermission(id: number): Promise<RolePermission | undefined> {
+    try {
+      const results = await db.select()
+        .from(rolePermissions)
+        .where(eq(rolePermissions.id, id))
+        .limit(1);
+      
+      return results[0];
+    } catch (error) {
+      console.error(`Error fetching role permission with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async createRolePermission(permission: InsertRolePermission): Promise<RolePermission> {
+    try {
+      const results = await db.insert(rolePermissions)
+        .values(permission)
+        .returning();
+      
+      return results[0];
+    } catch (error) {
+      console.error("Error creating role permission:", error);
+      throw error;
+    }
+  }
+  
+  async updateRolePermission(id: number, permission: Partial<RolePermission>): Promise<RolePermission | undefined> {
+    try {
+      const results = await db.update(rolePermissions)
+        .set(permission)
+        .where(eq(rolePermissions.id, id))
+        .returning();
+      
+      return results[0];
+    } catch (error) {
+      console.error(`Error updating role permission with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async deleteRolePermission(id: number): Promise<boolean> {
+    try {
+      const results = await db.delete(rolePermissions)
+        .where(eq(rolePermissions.id, id))
+        .returning();
+      
+      return results.length > 0;
+    } catch (error) {
+      console.error(`Error deleting role permission with ID ${id}:`, error);
+      return false;
+    }
+  }
+  
+  async bulkUpdateRolePermissions(role: string, permissions: Partial<InsertRolePermission>[]): Promise<number> {
+    try {
+      let updatedCount = 0;
+      
+      // Process each permission in the array
+      for (const permission of permissions) {
+        // We need both role and category/feature to find the right permission to update
+        if (!permission.category || !permission.feature) {
+          console.error("Missing category or feature for permission update");
+          continue;
+        }
+        
+        // Try to find existing permission
+        const existingPermissions = await db.select()
+          .from(rolePermissions)
+          .where(and(
+            eq(rolePermissions.role, role),
+            eq(rolePermissions.category, permission.category as any),
+            eq(rolePermissions.feature, permission.feature)
+          ));
+        
+        if (existingPermissions.length > 0) {
+          // Update existing permission
+          const updated = await db.update(rolePermissions)
+            .set(permission)
+            .where(eq(rolePermissions.id, existingPermissions[0].id))
+            .returning();
+            
+          if (updated.length > 0) updatedCount++;
+        } else {
+          // Create new permission with the role parameter
+          const created = await db.insert(rolePermissions)
+            .values({
+              ...permission,
+              role: role
+            } as InsertRolePermission)
+            .returning();
+            
+          if (created.length > 0) updatedCount++;
+        }
+      }
+      
+      return updatedCount;
+    } catch (error) {
+      console.error(`Error bulk updating role permissions for role ${role}:`, error);
+      throw error;
+    }
+  }
+  
   // Supply Chain Benchmark methods
   async getSupplyChainBenchmarks(): Promise<SupplyChainBenchmark[]> {
     return await safeQuery<SupplyChainBenchmark>(() =>
