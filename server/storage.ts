@@ -287,7 +287,7 @@ export class DatabaseStorage implements IStorage {
 
   async getLatestBackup() {
     try {
-      const backups = await this.db.select().from(schemaBackup.databaseBackups).orderBy(desc(schemaBackup.databaseBackups.createdAt)).limit(1);
+      const backups = await db.select().from(schemaBackup.databaseBackups).orderBy(desc(schemaBackup.databaseBackups.createdAt)).limit(1);
       return backups.length > 0 ? backups[0] : null;
     } catch (err) {
       console.error("Error getting latest backup:", err);
@@ -297,7 +297,7 @@ export class DatabaseStorage implements IStorage {
 
   async getBackups() {
     try {
-      return await this.db.select().from(schemaBackup.databaseBackups).orderBy(desc(schemaBackup.databaseBackups.createdAt));
+      return await db.select().from(schemaBackup.databaseBackups).orderBy(desc(schemaBackup.databaseBackups.createdAt));
     } catch (err) {
       console.error("Error getting backups:", err);
       return [];
@@ -306,7 +306,7 @@ export class DatabaseStorage implements IStorage {
 
   async createRestoreRecord(data: { filename: string, restoredAt: Date }) {
     try {
-      const result = await this.db.insert(schemaBackup.databaseRestores).values(data).returning();
+      const result = await db.insert(schemaBackup.databaseRestores).values(data).returning();
       return result[0];
     } catch (err) {
       console.error("Error creating restore record:", err);
