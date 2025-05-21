@@ -9,7 +9,19 @@
  * with FAB and PAINT phases appearing before (to the left of) that date.
  */
 
-import type { Project } from "@shared/schema";
+// Define interface for project with phase percentages
+interface ProjectWithPhases {
+  id?: number;
+  name?: string;
+  projectNumber?: string;
+  fabPercentage?: number | string;
+  paintPercentage?: number | string;
+  productionPercentage?: number | string;
+  itPercentage?: number | string;
+  ntcPercentage?: number | string;
+  qcPercentage?: number | string;
+  [key: string]: any;
+}
 
 /**
  * Calculates exact-fit phase widths from project percentages
@@ -17,7 +29,7 @@ import type { Project } from "@shared/schema";
  */
 export const calculateExactFitPhaseWidths = (
   totalWidth: number,
-  project: Project | null | undefined,
+  project: ProjectWithPhases | null | undefined,
   defaultNormalizeFactor: number = 1
 ) => {
   // Use project-specific phase percentages or fallback to company standard defaults
@@ -104,7 +116,7 @@ export const applyPhaseWidthsToDom = (
  */
 export const calculateProdAlignedPositions = (
   totalWidth: number,
-  project: Project | null | undefined
+  project: ProjectWithPhases | null | undefined
 ) => {
   // Calculate phase widths using standard percentages
   const phaseWidths = calculateExactFitPhaseWidths(totalWidth, project);
@@ -182,7 +194,7 @@ export const applyProdAlignedPositions = (
 export const updatePhaseWidthsWithExactFit = (
   barElement: HTMLElement, 
   totalWidth: number,
-  project: Project | null | undefined
+  project: ProjectWithPhases | null | undefined
 ) => {
   try {
     // Find all phase elements
