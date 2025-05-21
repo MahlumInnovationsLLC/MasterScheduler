@@ -12,12 +12,43 @@ interface EditableDateFieldProps {
   value: string | null;
 }
 
+// Utility to debug exactly what's happening with dates
+function debugDate(label: string, dateValue: string | null | undefined) {
+  if (!dateValue) {
+    console.log(`DEBUG DATE [${label}]: No date value provided`);
+    return;
+  }
+  
+  try {
+    // Original string representation
+    console.log(`DEBUG DATE [${label}]: Original string: "${dateValue}"`);
+    
+    // JS Date object representation
+    const dateObj = new Date(dateValue);
+    if (!isNaN(dateObj.getTime())) {
+      console.log(`DEBUG DATE [${label}]: JS Date object: ${dateObj.toString()}`);
+      console.log(`DEBUG DATE [${label}]: ISO string: ${dateObj.toISOString()}`);
+      console.log(`DEBUG DATE [${label}]: Local date string: ${dateObj.toLocaleDateString()}`);
+      
+      // Examine what would happen with +1 day
+      const adjustedDate = new Date(dateObj);
+      adjustedDate.setDate(adjustedDate.getDate() + 1);
+      console.log(`DEBUG DATE [${label}]: +1 day adjusted: ${adjustedDate.toISOString().split('T')[0]}`);
+    } else {
+      console.log(`DEBUG DATE [${label}]: Not a valid date`);
+    }
+  } catch (e) {
+    console.log(`DEBUG DATE [${label}]: Error analyzing date:`, e);
+  }
+}
+
 const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field, value }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   
-  // Fix the timezone issue - instead of using Date conversion which adds timezone offset,
-  // directly use the date string from the database if it's already in YYYY-MM-DD format
+  // ROBUST DATE HANDLING:
+  // 1. Log what's coming from the server for debugging
+  // 2. Simplify our approach to display dates correctly
   const [dateValue, setDateValue] = useState<string | undefined>(
     value ? (value.includes('T') ? new Date(value).toISOString().split('T')[0] : value) : undefined
   );
@@ -25,26 +56,40 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Reset date value when value changes - with timezone fix and adjustment
+  // Reset date value when value changes with enhanced logging for debugging
   useEffect(() => {
+    // Debug the incoming value for diagnostic purposes
+    debugDate(`Incoming from server (${field})`, value);
+    
     if (value) {
-      // Fix timezone issue by adding a day for display purposes
-      const dateObj = new Date(value);
-      if (!isNaN(dateObj.getTime())) {
-        // Add a day to compensate for the timezone shift
-        const adjustedDate = new Date(dateObj);
-        adjustedDate.setDate(adjustedDate.getDate() + 1);
-        // Format as YYYY-MM-DD
-        const formattedDate = adjustedDate.toISOString().split('T')[0];
-        setDateValue(formattedDate);
-      } else {
-        // If can't parse it as a date, use as-is
+      // Always treat values as YYYY-MM-DD and use them directly if possible
+      if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // It's already in YYYY-MM-DD format, use directly
+        console.log(`Date ${field} is already in YYYY-MM-DD format: ${value}, using directly`);
         setDateValue(value);
+      } else {
+        // It's in another format, create a date in the browser's timezone
+        // and extract YYYY-MM-DD for the form input
+        const dateObj = new Date(value);
+        if (!isNaN(dateObj.getTime())) {
+          // Create date with timezone adjustment
+          const year = dateObj.getFullYear();
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+          const day = String(dateObj.getDate()).padStart(2, '0');
+          const formattedDate = `${year}-${month}-${day}`;
+          
+          console.log(`Date ${field} converted from ${value} to ${formattedDate}`);
+          setDateValue(formattedDate);
+        } else {
+          console.log(`Date ${field} could not be parsed: ${value}, using as-is`);
+          setDateValue(value);
+        }
       }
     } else {
+      console.log(`Date ${field} is null/undefined`);
       setDateValue(undefined);
     }
-  }, [value]);
+  }, [value, field]);
 
   const handleSave = async () => {
     setIsUpdating(true);
