@@ -88,19 +88,10 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
       let dateToSend = null;
       
       if (dateValue) {
-        // CRITICAL FIX: When saving, ADD a day to fix the timezone issue
-        // This ensures the correct date gets stored in the database
-        const dateObj = new Date(dateValue);
-        if (!isNaN(dateObj.getTime())) {
-          // Add a day to ensure correct storage in the database
-          dateObj.setDate(dateObj.getDate() + 1);
-          // Format as YYYY-MM-DD
-          dateToSend = dateObj.toISOString().split('T')[0];
-          console.log(`DATE SAVE: Adding 1 day to selected ${dateValue}, saving as ${dateToSend}`);
-        } else {
-          // If can't parse, use as-is
-          dateToSend = dateValue;
-        }
+        // FINAL FIX: Save the exact date that was selected without adjustment
+        // This ensures exactly what the user sees is what gets stored
+        dateToSend = dateValue;
+        console.log(`DATE SAVE: Saving directly as selected: ${dateValue}`);
       }
         
       const response = await apiRequest(
