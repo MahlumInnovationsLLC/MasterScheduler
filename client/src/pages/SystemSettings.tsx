@@ -72,9 +72,6 @@ const SystemSettings = () => {
   
   // User role state (for permission management)
   const [isAdmin, setIsAdmin] = useState(true); // Default to true in development mode
-  const [isBackupLoading, setIsBackupLoading] = useState(false);
-  const [isRestoreLoading, setIsRestoreLoading] = useState(false);
-  const [latestBackup, setLatestBackup] = useState<{filename: string, createdAt: string} | null>(null);
   
   // User sorting state
   const [userSort, setUserSort] = useState<{column: string, direction: 'asc' | 'desc'}>({
@@ -99,9 +96,6 @@ const SystemSettings = () => {
   useEffect(() => {
     console.log('Development mode detected, enabling admin capabilities');
     setIsAdmin(true);
-    
-    // Fetch latest backup info
-    fetchLatestBackup();
   }, []);
   
   // Fetch latest backup information - with improved error handling
