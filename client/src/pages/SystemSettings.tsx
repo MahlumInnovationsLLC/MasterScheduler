@@ -61,10 +61,7 @@ import { queryClient, apiRequest, getQueryFn } from '../lib/queryClient';
 const SystemSettings = () => {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isDeletingMilestones, setIsDeletingMilestones] = useState(false);
-  const [isMovingProjects, setIsMovingProjects] = useState(false);
-  const [isRestoringProject, setIsRestoringProject] = useState(false);
-  const [isArchivingUser, setIsArchivingUser] = useState(false);
+  const [showNotificationForm, setShowNotificationForm] = useState(false);
   const [deleteResult, setDeleteResult] = useState<{
     success: boolean;
     message: string;
@@ -93,10 +90,9 @@ const SystemSettings = () => {
   });
 
   const handleDeleteAllProjects = async () => {
+    setIsDeleting(true);
+    
     try {
-      setIsDeleting(true);
-      setDeleteResult(null);
-      
       const response = await fetch('/api/reset-all-projects', {
         method: 'DELETE',
       });
@@ -121,1031 +117,348 @@ const SystemSettings = () => {
       });
       
       toast({
-        title: "Deletion Failed",
-        description: "Error deleting projects: " + (error as Error).message,
+        title: "Error",
+        description: "Failed to delete projects: " + (error as Error).message,
         variant: "destructive"
       });
     } finally {
       setIsDeleting(false);
     }
   };
-  
-  // Function to handle deletion of all billing milestones
-  const handleDeleteAllBillingMilestones = async () => {
-    try {
-      setIsDeletingMilestones(true);
-      
-      const response = await apiRequest("DELETE", "/api/billing-milestones/delete-all", {});
-      
-      if (response.ok) {
-        const result = await response.json();
-        
-        toast({
-          title: "Success!",
-          description: `All billing milestones have been deleted. ${result.count || 0} entries removed.`,
-          variant: "default",
-        });
-        
-        // Update the UI by invalidating the billing milestones query
-        queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
-      } else {
-        let errorMessage = "Failed to delete billing milestones. Please try again.";
-        
-        try {
-          const errorResponse = await response.json();
-          if (errorResponse.message) {
-            errorMessage = errorResponse.message;
-          }
-        } catch (e) {
-          // If response is not JSON, get text
-          const errorText = await response.text();
-          console.error("Error response (text):", errorText);
-        }
-        
-        toast({
-          title: "Operation Failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Operation Failed",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
+
+  const [newNotification, setNewNotification] = useState({
+    title: '',
+    message: '',
+    priority: 'normal',
+    type: 'system',
+  });
+
+  const createNotificationMutation = useMutation({
+    mutationFn: async (notification: any) => {
+      const response = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(notification),
       });
-      console.error("Error deleting billing milestones:", error);
-    } finally {
-      setIsDeletingMilestones(false);
+      
+      if (!response.ok) {
+        throw new Error('Failed to create notification');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Notification Created",
+        description: "Your notification has been successfully created and sent to all users.",
+        variant: "default"
+      });
+      setShowNotificationForm(false);
+      setNewNotification({
+        title: '',
+        message: '',
+        priority: 'normal',
+        type: 'system',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create notification: " + (error as Error).message,
+        variant: "destructive"
+      });
     }
+  });
+
+  const handleCreateNotification = (e: React.FormEvent) => {
+    e.preventDefault();
+    createNotificationMutation.mutate(newNotification);
   };
 
-  const { user, isLoading: authLoading } = useAuth();
-  const queryClient = useQueryClient();
-  const [editingUser, setEditingUser] = useState<any>(null);
-  const [editingAllowedEmail, setEditingAllowedEmail] = useState<any>(null);
+  // Email allowed domains management
   const [newEmailPattern, setNewEmailPattern] = useState({
     emailPattern: '',
-    autoApprove: false,
-    defaultRole: 'viewer'
+    autoApprove: true,
+    defaultRole: 'viewer',
   });
-  
-  // Define types
-  interface AllowedEmail {
-    id: number;
-    emailPattern: string;
-    autoApprove: boolean;
-    defaultRole: string;
-    createdAt: string;
-    updatedAt: string;
-  }
-  
-  interface User {
-    id: string;
-    username: string;
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    bio?: string;
-    profileImageUrl?: string;
-    role: 'admin' | 'editor' | 'viewer' | 'pending';
-    isApproved: boolean;
-    createdAt: string;
-    updatedAt: string;
-    lastLogin?: string;
-  }
-  
-  // Query for users
-  const { 
-    data: users = [] as User[], 
+
+  // Get users for user management
+  const {
+    data: users = [],
     isLoading: usersLoading,
-    error: usersError 
-  } = useQuery<User[]>({
+    error: usersError
+  } = useQuery<any[]>({
     queryKey: ['/api/users'],
-    enabled: !!user && user.role === 'admin',
+    queryFn: getQueryFn({}),
   });
-  
-  // Query for allowed emails
-  const { 
-    data: allowedEmails = [] as AllowedEmail[], 
+
+  // Get email patterns
+  const {
+    data: allowedEmails = [],
     isLoading: allowedEmailsLoading,
-    error: allowedEmailsError 
-  } = useQuery<AllowedEmail[]>({
+    error: allowedEmailsError
+  } = useQuery<any[]>({
     queryKey: ['/api/allowed-emails'],
-    enabled: !!user && user.role === 'admin',
+    queryFn: getQueryFn({}),
   });
-  
-  // Mutation for updating user roles and preferences
-  const updateUserMutation = useMutation({
-    mutationFn: async (data: any) => {
-      console.log("Mutation sending data:", data);
-      const response = await apiRequest('PUT', `/api/users/${data.id}/role`, {
-        role: data.role, 
-        isApproved: data.isApproved,
-        status: data.status || 'active',
-        preferences: data.preferences || {}
+
+  // Create email pattern mutation
+  const createEmailPatternMutation = useMutation({
+    mutationFn: async (emailPattern: any) => {
+      const response = await fetch('/api/allowed-emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailPattern),
       });
-      console.log("Response from server:", response);
-      return response;
-    }
-  });
-  
-  // Mutation for creating allowed email patterns
-  const createAllowedEmailMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return await apiRequest('POST', '/api/allowed-emails', data);
+      
+      if (!response.ok) {
+        throw new Error('Failed to create email pattern');
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Email Pattern Created",
-        description: "New email pattern has been added successfully.",
+        title: "Email Pattern Added",
+        description: "The email pattern has been successfully added to the allowed list.",
         variant: "default"
       });
-      setNewEmailPattern({ emailPattern: '', autoApprove: false, defaultRole: 'viewer' });
+      setNewEmailPattern({
+        emailPattern: '',
+        autoApprove: true,
+        defaultRole: 'viewer',
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/allowed-emails'] });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
-        title: "Creation Failed",
-        description: `Error creating email pattern: ${error.message}`,
+        title: "Error",
+        description: "Failed to add email pattern: " + (error as Error).message,
         variant: "destructive"
       });
     }
   });
-  
-  // Mutation for updating allowed email patterns
-  const updateAllowedEmailMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return await apiRequest('PUT', `/api/allowed-emails/${data.id}`, { 
-        emailPattern: data.emailPattern, 
-        autoApprove: data.autoApprove, 
-        defaultRole: data.defaultRole 
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Email Pattern Updated",
-        description: "Email pattern has been updated successfully.",
-        variant: "default"
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/allowed-emails'] });
-      setEditingAllowedEmail(null);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Update Failed",
-        description: `Error updating email pattern: ${error.message}`,
-        variant: "destructive"
-      });
-    }
-  });
-  
-  // Mutation for deleting allowed email patterns
-  const deleteAllowedEmailMutation = useMutation({
+
+  // Delete email pattern mutation
+  const deleteEmailPatternMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest('DELETE', `/api/allowed-emails/${id}`);
+      const response = await fetch(`/api/allowed-emails/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete email pattern');
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       toast({
         title: "Email Pattern Deleted",
-        description: "Email pattern has been deleted successfully.",
+        description: "The email pattern has been successfully removed from the allowed list.",
         variant: "default"
       });
       queryClient.invalidateQueries({ queryKey: ['/api/allowed-emails'] });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
-        title: "Deletion Failed",
-        description: `Error deleting email pattern: ${error.message}`,
+        title: "Error",
+        description: "Failed to delete email pattern: " + (error as Error).message,
         variant: "destructive"
       });
     }
   });
-  
-  // Mutation for archiving users
-  const archiveUserMutation = useMutation({
-    mutationFn: async (data: { userId: string, reason: string }) => {
-      return await apiRequest(
-        "PUT", 
-        `/api/users/${data.userId}/archive`,
-        { reason: data.reason }
-      );
+
+  // Update user role mutation
+  const updateUserRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string, role: string }) => {
+      const response = await fetch(`/api/users/${userId}/role`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update user role');
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       toast({
-        title: "User Archived",
-        description: "User has been archived successfully.",
+        title: "User Role Updated",
+        description: "The user's role has been successfully updated.",
         variant: "default"
       });
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/user-audit-logs'] });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
-        title: "Archive Failed",
-        description: `Error archiving user: ${error.message}`,
+        title: "Error",
+        description: "Failed to update user role: " + (error as Error).message,
         variant: "destructive"
       });
-    },
-    onSettled: () => {
-      setIsArchivingUser(false);
     }
   });
-  
-  // State for archive reason dialog
-  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
-  const [archiveReason, setArchiveReason] = useState("");
-  const [userToArchive, setUserToArchive] = useState<string | null>(null);
 
-  // Function to open the archive reason dialog
-  const handleArchiveUser = (userId: string) => {
-    setUserToArchive(userId);
-    setArchiveReason("");
-    setShowArchiveDialog(true);
-  };
-
-  // Function to submit the archive request with reason
-  const submitArchiveUser = () => {
-    if (!userToArchive) return;
-    
-    if (!archiveReason.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "A reason for archiving the user is required",
-        variant: "destructive"
+  // Approve user mutation
+  const approveUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch(`/api/users/${userId}/approve`, {
+        method: 'PATCH',
       });
-      return;
-    }
-    
-    setIsArchivingUser(true);
-    archiveUserMutation.mutate({ 
-      userId: userToArchive, 
-      reason: archiveReason 
-    });
-    setShowArchiveDialog(false);
-  };
-  
-  const handleCreateAllowedEmail = () => {
-    if (!newEmailPattern.emailPattern) {
-      toast({
-        title: "Validation Error",
-        description: "Email pattern is required",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    createAllowedEmailMutation.mutate(newEmailPattern);
-  };
-  
-  const handleUpdateUser = () => {
-    if (!editingUser) return;
-    
-    // Prepare preferences data with defaults
-    const preferences = {
-      department: editingUser.preferences?.department || '',
-      notifyBillingUpdates: editingUser.preferences?.notifyBillingUpdates !== false,
-      notifyProjectUpdates: editingUser.preferences?.notifyProjectUpdates !== false,
-      notifyManufacturingUpdates: editingUser.preferences?.notifyManufacturingUpdates !== false,
-      notifySystemUpdates: editingUser.preferences?.notifySystemUpdates !== false
-    };
-    
-    // Log the data being sent for debugging
-    console.log("Updating user with data:", {
-      id: editingUser.id,
-      role: editingUser.role,
-      status: editingUser.status || 'active',
-      isApproved: editingUser.isApproved,
-      preferences
-    });
-    
-    // Save the changes and close the dialog
-    updateUserMutation.mutate({
-      id: editingUser.id,
-      role: editingUser.role,
-      status: editingUser.status || 'active',
-      isApproved: editingUser.isApproved,
-      preferences
-    }, {
-      onSuccess: () => {
-        toast({
-          title: "User Updated",
-          description: "User settings have been updated successfully.",
-          variant: "default"
-        });
-        queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-        setEditingUser(null);
-      }
-    });
-  };
-  
-  const handleUpdateAllowedEmail = () => {
-    if (!editingAllowedEmail) return;
-    
-    updateAllowedEmailMutation.mutate({
-      id: editingAllowedEmail.id,
-      emailPattern: editingAllowedEmail.emailPattern,
-      autoApprove: editingAllowedEmail.autoApprove,
-      defaultRole: editingAllowedEmail.defaultRole
-    });
-  };
-  
-  // Function to handle moving all projects to unassigned
-  const handleMoveAllProjectsToUnassigned = async () => {
-    if (!window.confirm("⚠️ IMPORTANT: This will reset ALL bay assignments and move ALL projects to the Unassigned section.\n\nThis action cannot be undone. Continue?")) {
-      return;
-    }
-    
-    try {
-      setIsMovingProjects(true);
-      const response = await apiRequest("POST", "/api/manufacturing-schedules/clear-all", {});
       
-      if (response.ok) {
-        const result = await response.json();
-        
-        if (result.success) {
-          toast({
-            title: "Success!",
-            description: result.message || "Projects moved to Unassigned section.",
-            variant: "default",
-          });
-          
-          // Update the UI
-          queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-bays'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-        } else {
-          toast({
-            title: "Operation Failed",
-            description: result.message || "Failed to move projects to Unassigned section.",
-            variant: "destructive",
-          });
-        }
-      } else {
-        let errorMessage = "Failed to move projects to Unassigned section. Please try again.";
-        
-        try {
-          const errorResponse = await response.json();
-          if (errorResponse.message) {
-            errorMessage = errorResponse.message;
-          }
-        } catch (e) {
-          // If response is not JSON, get text
-          const errorText = await response.text();
-          console.error("Error response (text):", errorText);
-        }
-        
-        toast({
-          title: "Operation Failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
+      if (!response.ok) {
+        throw new Error('Failed to approve user');
       }
-    } catch (error) {
+      
+      return await response.json();
+    },
+    onSuccess: () => {
       toast({
-        title: "Operation Failed",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
+        title: "User Approved",
+        description: "The user has been successfully approved and can now access the system.",
+        variant: "default"
       });
-      console.error("Error clearing manufacturing schedules:", error);
-    } finally {
-      setIsMovingProjects(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to approve user: " + (error as Error).message,
+        variant: "destructive"
+      });
     }
+  });
+
+  const handleCreateEmailPattern = (e: React.FormEvent) => {
+    e.preventDefault();
+    createEmailPatternMutation.mutate(newEmailPattern);
   };
-  
-  // Query for archived projects
-  const { 
-    data: archivedProjects = [], 
+
+  const handleDeleteEmailPattern = (id: number) => {
+    deleteEmailPatternMutation.mutate(id);
+  };
+
+  const handleUpdateUserRole = (userId: string, role: string) => {
+    updateUserRoleMutation.mutate({ userId, role });
+  };
+
+  const handleApproveUser = (userId: string) => {
+    approveUserMutation.mutate(userId);
+  };
+
+  // Handle tab change
+  const [currentTab, setCurrentTab] = useState('accessControl');
+
+  // For archive management
+  const {
+    data: archivedProjects = [],
     isLoading: archivedProjectsLoading,
-    error: archivedProjectsError 
+    error: archivedProjectsError
   } = useQuery({
-    queryKey: ['/api/archived-projects'],
-    enabled: !!user && user.role === 'admin',
+    queryKey: ['/api/projects/archived'],
+    queryFn: getQueryFn({}),
   });
-  
-  // Function to handle restoring an archived project
-  const handleRestoreProject = async (projectId: number) => {
-    if (!window.confirm("Are you sure you want to restore this project? It will be moved back to active projects.")) {
-      return;
-    }
-    
-    try {
-      setIsRestoringProject(true);
-      const response = await apiRequest("PUT", `/api/projects/${projectId}/restore`, {});
-      
-      if (response.ok) {
-        toast({
-          title: "Success!",
-          description: "Project has been restored successfully.",
-          variant: "default",
-        });
-        
-        // Update the UI
-        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/archived-projects'] });
-      } else {
-        let errorMessage = "Failed to restore project. Please try again.";
-        
-        try {
-          const errorResponse = await response.json();
-          if (errorResponse.message) {
-            errorMessage = errorResponse.message;
-          }
-        } catch (e) {
-          const errorText = await response.text();
-          console.error("Error response (text):", errorText);
-        }
-        
-        toast({
-          title: "Operation Failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Operation Failed",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
+
+  const restoreProjectMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      const response = await fetch(`/api/projects/${projectId}/restore`, {
+        method: 'PATCH',
       });
-      console.error("Error restoring project:", error);
-    } finally {
-      setIsRestoringProject(false);
+      
+      if (!response.ok) {
+        throw new Error('Failed to restore project');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Project Restored",
+        description: "The project has been successfully restored from the archive.",
+        variant: "default"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects/archived'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to restore project: " + (error as Error).message,
+        variant: "destructive"
+      });
     }
+  });
+
+  const permanentDeleteProjectMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      const response = await fetch(`/api/projects/${projectId}/permanent-delete`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to permanently delete project');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Project Deleted",
+        description: "The project has been permanently deleted.",
+        variant: "default"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects/archived'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete project: " + (error as Error).message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleRestoreProject = (projectId: number) => {
+    restoreProjectMutation.mutate(projectId);
   };
-  
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return <Badge className="bg-red-950 text-white border border-red-600 hover:bg-red-900 font-medium">Admin</Badge>;
-      case 'editor':
-        return <Badge className="bg-blue-950 text-white border border-blue-600 hover:bg-blue-900 font-medium">Editor</Badge>;
-      case 'viewer':
-        return <Badge className="bg-green-950 text-white border border-green-600 hover:bg-green-900 font-medium">Viewer</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-950 text-white border border-yellow-600 hover:bg-yellow-900 font-medium">Pending</Badge>;
-      default:
-        return <Badge variant="outline" className="font-medium">{role}</Badge>;
-    }
+
+  const handlePermanentDeleteProject = (projectId: number) => {
+    permanentDeleteProjectMutation.mutate(projectId);
   };
 
   return (
-    <div className="container mx-auto py-6 max-w-6xl px-4 sm:px-6">
-      {/* Archive User Dialog */}
-      <Dialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Archive User</DialogTitle>
-            <DialogDescription>
-              Provide a reason for archiving this user. They will no longer be able to access the system.
-              This action is tracked for audit purposes.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="archiveReason">Reason for Archiving</Label>
-              <textarea
-                id="archiveReason"
-                className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                placeholder="Please provide a reason for archiving this user"
-                value={archiveReason}
-                onChange={(e) => setArchiveReason(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowArchiveDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={submitArchiveUser} 
-              disabled={isArchivingUser || !archiveReason.trim()}
-              className={!archiveReason.trim() ? "opacity-50 cursor-not-allowed" : ""}
-            >
-              {isArchivingUser ? (
-                <>
-                  <div className="animate-spin mr-2 h-4 w-4 border-b-2 border-white rounded-full" />
-                  Archiving...
-                </>
-              ) : (
-                "Archive User"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">System Settings</h1>
-      </div>
-      
-      {authLoading ? (
-        <div className="flex justify-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    <div className="container mx-auto py-6 space-y-8">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">System Settings</h1>
+          <p className="text-muted-foreground">
+            Configure system-wide settings, user access, and perform maintenance tasks.
+          </p>
         </div>
-      ) : !user || user.role !== 'admin' ? (
-        <Alert className="bg-destructive/20 border-destructive mb-6">
-          <AlertCircle className="h-5 w-5 text-destructive" />
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>
-            You need administrator privileges to access system settings.
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid grid-cols-5 w-[750px]">
-            <TabsTrigger value="users">User Management</TabsTrigger>
-            <TabsTrigger value="userHistory">User History</TabsTrigger>
-            <TabsTrigger value="access">Access Control</TabsTrigger>
-            <TabsTrigger value="system">Data Management</TabsTrigger>
-            <TabsTrigger value="archived">Archived Projects</TabsTrigger>
-          </TabsList>
-          
-          {/* User Management Tab */}
-          <TabsContent value="users" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>
-                  Manage users and their access permissions.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {usersLoading ? (
-                  <div className="flex justify-center p-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  </div>
-                ) : usersError ? (
-                  <Alert className="bg-destructive/20 border-destructive">
-                    <AlertCircle className="h-5 w-5 text-destructive" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>
-                      {(usersError as Error).message || "Failed to load users"}
-                    </AlertDescription>
-                  </Alert>
-                ) : users.length === 0 ? (
-                  <div className="text-center p-6 text-gray-500">
-                    No users found in the system.
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Last Login</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users.map((user: any) => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center space-x-2">
-                              {user.profileImageUrl ? (
-                                <img 
-                                  src={user.profileImageUrl} 
-                                  alt={user.username} 
-                                  className="h-8 w-8 rounded-full"
-                                />
-                              ) : (
-                                <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
-                                  {user.username?.charAt(0).toUpperCase() || '?'}
-                                </div>
-                              )}
-                              <div>
-                                <div className="font-semibold">{user.username}</div>
-                                <div className="text-xs text-gray-500">ID: {user.id}</div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>{user.email || 'N/A'}</TableCell>
-                          <TableCell>{getRoleBadge(user.role)}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col gap-1">
-                              {user.isApproved ? (
-                                <Badge variant="outline" className="bg-green-950 text-white border border-green-600 font-medium">
-                                  Approved
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="bg-yellow-950 text-white border border-yellow-600 font-medium">
-                                  Pending
-                                </Badge>
-                              )}
-                              {user.status && (
-                                <Badge 
-                                  variant="outline" 
-                                  className={`font-medium ${
-                                    user.status === 'active' 
-                                      ? 'bg-blue-950 text-white border border-blue-600' 
-                                      : user.status === 'inactive' 
-                                        ? 'bg-gray-950 text-white border border-gray-600' 
-                                        : 'bg-red-950 text-white border border-red-600'
-                                  }`}
-                                >
-                                  {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={() => setEditingUser(user)}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Edit User</DialogTitle>
-                                    <DialogDescription>
-                                      Modify role and approval status for {editingUser?.username}.
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  
-                                  {editingUser && (
-                                    <div className="space-y-4 py-4">
-                                      <div className="space-y-2">
-                                        <Label htmlFor="role">Role</Label>
-                                        <Select 
-                                          value={editingUser.role} 
-                                          onValueChange={value => setEditingUser({...editingUser, role: value})}
-                                        >
-                                          <SelectTrigger>
-                                            <SelectValue placeholder="Select role" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="admin">Administrator</SelectItem>
-                                            <SelectItem value="editor">Editor</SelectItem>
-                                            <SelectItem value="viewer">Viewer</SelectItem>
-                                            <SelectItem value="pending">Pending</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      
-                                      <div className="space-y-2">
-                                        <Label htmlFor="status">Status</Label>
-                                        <Select 
-                                          value={editingUser.status || 'active'} 
-                                          onValueChange={value => setEditingUser({...editingUser, status: value})}
-                                        >
-                                          <SelectTrigger>
-                                            <SelectValue placeholder="Select status" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="active">Active</SelectItem>
-                                            <SelectItem value="inactive">Inactive</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      
-                                      <div className="flex items-center space-x-2">
-                                        <Switch 
-                                          id="approved" 
-                                          checked={editingUser.isApproved}
-                                          onCheckedChange={checked => setEditingUser({...editingUser, isApproved: checked})}
-                                        />
-                                        <Label htmlFor="approved">User is approved</Label>
-                                      </div>
-                                      
-                                      <div className="space-y-2">
-                                        <Label htmlFor="department">Department</Label>
-                                        <Select 
-                                          value={editingUser.preferences?.department || ''}
-                                          onValueChange={value => {
-                                            console.log(`Changing department to: ${value}`);
-                                            // Create a complete copy of editingUser to avoid reference issues
-                                            const updatedUser = JSON.parse(JSON.stringify(editingUser));
-                                            // Ensure preferences object exists
-                                            updatedUser.preferences = updatedUser.preferences || {};
-                                            // Set the department value
-                                            updatedUser.preferences.department = value;
-                                            // Update the state with the modified copy
-                                            setEditingUser(updatedUser);
-                                          }}
-                                        >
-                                          <SelectTrigger>
-                                            <SelectValue placeholder="Select department" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="engineering">Engineering</SelectItem>
-                                            <SelectItem value="manufacturing">Manufacturing</SelectItem>
-                                            <SelectItem value="finance">Finance</SelectItem>
-                                            <SelectItem value="project_management">Project Management</SelectItem>
-                                            <SelectItem value="quality_control">Quality Control</SelectItem>
-                                            <SelectItem value="it">IT</SelectItem>
-                                            <SelectItem value="sales">Sales</SelectItem>
-                                            <SelectItem value="executive">Executive</SelectItem>
-                                            <SelectItem value="other">Other</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      
-                                      <div className="space-y-4 mt-6">
-                                        <h4 className="font-medium text-sm">Notification Preferences</h4>
-                                        <div className="space-y-2 border border-gray-700 rounded-md p-4">
-                                          <div className="flex items-center justify-between">
-                                            <div>
-                                              <Label className="text-sm font-medium" htmlFor="notifyBilling">Billing Updates</Label>
-                                              <p className="text-xs text-muted-foreground">Receive updates about billing milestones and financial changes</p>
-                                            </div>
-                                            <Switch 
-                                              id="notifyBilling" 
-                                              checked={editingUser.preferences?.notifyBillingUpdates !== false}
-                                              onCheckedChange={checked => setEditingUser({
-                                                ...editingUser, 
-                                                preferences: {
-                                                  ...editingUser.preferences || {},
-                                                  notifyBillingUpdates: checked
-                                                }
-                                              })}
-                                            />
-                                          </div>
-                                          
-                                          <Separator className="my-2" />
-                                          
-                                          <div className="flex items-center justify-between">
-                                            <div>
-                                              <Label className="text-sm font-medium" htmlFor="notifyProject">Project Updates</Label>
-                                              <p className="text-xs text-muted-foreground">Receive updates about project status changes and deadlines</p>
-                                            </div>
-                                            <Switch 
-                                              id="notifyProject" 
-                                              checked={editingUser.preferences?.notifyProjectUpdates !== false}
-                                              onCheckedChange={checked => setEditingUser({
-                                                ...editingUser, 
-                                                preferences: {
-                                                  ...editingUser.preferences || {},
-                                                  notifyProjectUpdates: checked
-                                                }
-                                              })}
-                                            />
-                                          </div>
-                                          
-                                          <Separator className="my-2" />
-                                          
-                                          <div className="flex items-center justify-between">
-                                            <div>
-                                              <Label className="text-sm font-medium" htmlFor="notifyManufacturing">Manufacturing Updates</Label>
-                                              <p className="text-xs text-muted-foreground">Receive updates about manufacturing schedules and bay assignments</p>
-                                            </div>
-                                            <Switch 
-                                              id="notifyManufacturing" 
-                                              checked={editingUser.preferences?.notifyManufacturingUpdates !== false}
-                                              onCheckedChange={checked => setEditingUser({
-                                                ...editingUser, 
-                                                preferences: {
-                                                  ...editingUser.preferences || {},
-                                                  notifyManufacturingUpdates: checked
-                                                }
-                                              })}
-                                            />
-                                          </div>
-                                          
-                                          <Separator className="my-2" />
-                                          
-                                          <div className="flex items-center justify-between">
-                                            <div>
-                                              <Label className="text-sm font-medium" htmlFor="notifySystem">System Updates</Label>
-                                              <p className="text-xs text-muted-foreground">Receive important system notifications and announcements</p>
-                                            </div>
-                                            <Switch 
-                                              id="notifySystem" 
-                                              checked={editingUser.preferences?.notifySystemUpdates !== false}
-                                              onCheckedChange={checked => setEditingUser({
-                                                ...editingUser, 
-                                                preferences: {
-                                                  ...editingUser.preferences || {},
-                                                  notifySystemUpdates: checked
-                                                }
-                                              })}
-                                            />
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  <DialogFooter>
-                                    <Button variant="outline" onClick={() => setEditingUser(null)}>
-                                      Cancel
-                                    </Button>
-                                    <Button 
-                                      type="button"
-                                      onClick={() => {
-                                        // First, force the dialog to close immediately
-                                        const userToUpdate = {...editingUser};
-                                        setEditingUser(null);
-                                        
-                                        // Show an immediate success message
-                                        toast({
-                                          title: "Saving...",
-                                          description: "Updating user settings and preferences",
-                                          variant: "default"
-                                        });
-                                        
-                                        // Now perform the update in the background
-                                        updateUserMutation.mutate({
-                                          id: userToUpdate.id,
-                                          role: userToUpdate.role,
-                                          status: userToUpdate.status || 'active',
-                                          isApproved: userToUpdate.isApproved,
-                                          preferences: userToUpdate.preferences || {}
-                                        }, {
-                                          onSuccess: () => {
-                                            toast({
-                                              title: "Success",
-                                              description: "User settings have been updated successfully.",
-                                              variant: "default"
-                                            });
-                                            queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-                                          },
-                                          onError: (error: any) => {
-                                            toast({
-                                              title: "Update Failed",
-                                              description: error.message || "Failed to update user settings",
-                                              variant: "destructive"
-                                            });
-                                          }
-                                        });
-                                      }} 
-                                      disabled={updateUserMutation.isPending}
-                                    >
-                                      {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
-                                    </Button>
-                                  </DialogFooter>
-                                </DialogContent>
-                              </Dialog>
-                              
-                              {/* Archive User Button */}
-                              <Button 
-                                variant="ghost"
-                                size="icon"
-                                className="text-red-500 hover:text-red-700"
-                                disabled={user.status === 'archived'}
-                                onClick={() => handleArchiveUser(user.id)}
-                              >
-                                <UserX className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+      </div>
 
-          {/* User History Tab */}
-          <TabsContent value="userHistory" className="space-y-6">
-            <Card>
+      <Tabs defaultValue="accessControl" className="w-full space-y-6" onValueChange={setCurrentTab}>
+        <TabsList className="grid grid-cols-4 w-full">
+          <TabsTrigger value="accessControl">Access Control</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="archiveManagement">Archive Management</TabsTrigger>
+          <TabsTrigger value="maintenance">System Maintenance</TabsTrigger>
+        </TabsList>
+
+        {/* Access Control Tab */}
+        <TabsContent value="accessControl" className="space-y-6">
+          <Card>
               <CardHeader>
-                <CardTitle>User Audit History</CardTitle>
-                <CardDescription>
-                  View a history of user management actions for auditing purposes.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {userAuditLogsLoading ? (
-                  <div className="flex justify-center p-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  </div>
-                ) : userAuditLogsError ? (
-                  <Alert className="bg-destructive/20 border-destructive">
-                    <AlertCircle className="h-5 w-5 text-destructive" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>
-                      {(userAuditLogsError as Error).message || "Failed to load user audit logs"}
-                    </AlertDescription>
-                  </Alert>
-                ) : userAuditLogs.length === 0 ? (
-                  <div className="text-center p-6 text-gray-500">
-                    No user audit logs found.
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date/Time</TableHead>
-                        <TableHead>Performed By</TableHead>
-                        <TableHead>Action</TableHead>
-                        <TableHead>Target User</TableHead>
-                        <TableHead>Changes / Reason</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {userAuditLogs.map((log: any) => {
-                        // Parse JSON data for detailed changes
-                        let previousData = null;
-                        let newData = null;
-                        
-                        try {
-                          if (log.previousData) {
-                            previousData = JSON.parse(log.previousData);
-                          }
-                        } catch (e) {
-                          console.error("Error parsing previousData:", e);
-                        }
-                        
-                        try {
-                          if (log.newData) {
-                            newData = JSON.parse(log.newData);
-                          }
-                        } catch (e) {
-                          console.error("Error parsing newData:", e);
-                        }
-                        
-                        // Format change details
-                        let changeDetails = [];
-                        if (previousData && newData) {
-                          if (previousData.status !== undefined && newData.status !== undefined) {
-                            changeDetails.push(`Status: ${previousData.status} → ${newData.status}`);
-                          }
-                          
-                          if (previousData.role !== undefined && newData.role !== undefined && 
-                              previousData.role !== newData.role) {
-                            changeDetails.push(`Role: ${previousData.role} → ${newData.role}`);
-                          }
-                          
-                          if (previousData.isApproved !== undefined && newData.isApproved !== undefined && 
-                              previousData.isApproved !== newData.isApproved) {
-                            changeDetails.push(`Approval: ${previousData.isApproved ? 'Approved' : 'Not Approved'} → ${newData.isApproved ? 'Approved' : 'Not Approved'}`);
-                          }
-                        }
-                        
-                        return (
-                          <TableRow key={log.id}>
-                            <TableCell>
-                              {new Date(log.timestamp).toLocaleString()}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center space-x-2">
-                                {log.performedBy}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge 
-                                variant="outline" 
-                                className={
-                                  log.action === 'STATUS_CHANGE' || log.action === 'archive'
-                                    ? 'bg-red-950 text-white border border-red-600'
-                                    : log.action === 'update'
-                                      ? 'bg-blue-950 text-white border border-blue-600'
-                                      : 'bg-green-950 text-white border border-green-600'
-                                }
-                              >
-                                {log.action === 'STATUS_CHANGE' ? 'Status Change' : 
-                                  log.action.charAt(0).toUpperCase() + log.action.slice(1)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{log.userId}</TableCell>
-                            <TableCell>
-                              <div className="max-w-xs">
-                                {changeDetails.length > 0 ? (
-                                  <div className="flex flex-col gap-1">
-                                    {changeDetails.map((detail, idx) => (
-                                      <div key={idx} className="text-xs">
-                                        {detail}
-                                      </div>
-                                    ))}
-                                    {log.details && (
-                                      <div className="text-xs mt-1 italic">
-                                        Reason: {log.details}
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  log.details || "No details provided"
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          {/* Access Control Tab */}
-          <TabsContent value="access" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Role Permissions Management</CardTitle>
+                <CardTitle>Role Permissions</CardTitle>
                 <CardDescription>
                   Customize what each role (Viewer, Editor, Admin) can access and modify in the system.
                 </CardDescription>
@@ -1191,600 +504,716 @@ const SystemSettings = () => {
                       Add patterns like 'user@example.com' for exact match or '*@example.com' for all emails from a domain.
                     </p>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <form onSubmit={handleCreateEmailPattern} className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="md:col-span-2">
                         <Label htmlFor="emailPattern">Email Pattern</Label>
                         <Input 
                           id="emailPattern" 
                           placeholder="*@company.com or user@example.com"
                           value={newEmailPattern.emailPattern}
-                          onChange={e => setNewEmailPattern({...newEmailPattern, emailPattern: e.target.value})}
+                          onChange={(e) => setNewEmailPattern({...newEmailPattern, emailPattern: e.target.value})}
+                          required
                         />
                       </div>
                       <div>
                         <Label htmlFor="defaultRole">Default Role</Label>
                         <Select 
-                          value={newEmailPattern.defaultRole} 
-                          onValueChange={value => setNewEmailPattern({...newEmailPattern, defaultRole: value})}
+                          value={newEmailPattern.defaultRole}
+                          onValueChange={(value) => setNewEmailPattern({...newEmailPattern, defaultRole: value})}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select role" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="admin">Administrator</SelectItem>
-                            <SelectItem value="editor">Editor</SelectItem>
                             <SelectItem value="viewer">Viewer</SelectItem>
-                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="editor">Editor</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="flex items-end">
-                        <div className="flex items-center space-x-2 h-10">
-                          <Switch 
-                            id="autoApprove" 
-                            checked={newEmailPattern.autoApprove}
-                            onCheckedChange={checked => setNewEmailPattern({...newEmailPattern, autoApprove: checked})}
-                          />
-                          <Label htmlFor="autoApprove">Auto-approve</Label>
-                        </div>
+                      <div>
+                        <Label htmlFor="autoApprove" className="block mb-5">Auto Approve</Label>
+                        <Switch 
+                          id="autoApprove"
+                          checked={newEmailPattern.autoApprove}
+                          onCheckedChange={(checked) => setNewEmailPattern({...newEmailPattern, autoApprove: checked})}
+                        />
                       </div>
-                    </div>
-                    
-                    <Button 
-                      className="mt-2"
-                      onClick={handleCreateAllowedEmail}
-                      disabled={createAllowedEmailMutation.isPending}
-                    >
-                      {createAllowedEmailMutation.isPending ? (
-                        <>
-                          <div className="animate-spin mr-2 h-4 w-4 border-2 border-b-transparent rounded-full"></div>
-                          Adding...
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="mr-2 h-4 w-4" />
-                          Add Email Pattern
-                        </>
-                      )}
-                    </Button>
+                      <div className="md:col-span-4 flex justify-end">
+                        <Button type="submit" disabled={createEmailPatternMutation.isPending}>
+                          {createEmailPatternMutation.isPending ? (
+                            <>
+                              <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
+                              Adding...
+                            </>
+                          ) : (
+                            <>Add Email Pattern</>
+                          )}
+                        </Button>
+                      </div>
+                    </form>
                   </div>
                   
-                  <div className="pt-4 border-t border-gray-700">
-                    <h3 className="text-lg font-medium mb-4">Allowed Email Patterns</h3>
-                    
+                  <Separator />
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Email Patterns</h3>
                     {allowedEmailsLoading ? (
-                      <div className="flex justify-center p-8">
+                      <div className="flex justify-center p-4">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                       </div>
                     ) : allowedEmailsError ? (
-                      <Alert className="bg-destructive/20 border-destructive">
-                        <AlertCircle className="h-5 w-5 text-destructive" />
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>
-                          {(allowedEmailsError as Error).message || "Failed to load email patterns"}
-                        </AlertDescription>
+                        <AlertDescription>Failed to load email patterns</AlertDescription>
                       </Alert>
                     ) : allowedEmails.length === 0 ? (
-                      <div className="text-center p-6 text-gray-500">
-                        No email patterns have been configured yet.
+                      <div className="text-center p-4 border rounded-md">
+                        <p className="text-muted-foreground">No email patterns configured yet.</p>
                       </div>
                     ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Pattern</TableHead>
-                            <TableHead>Default Role</TableHead>
-                            <TableHead>Auto-Approve</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {allowedEmails.map((pattern: any) => (
-                            <TableRow key={pattern.id}>
-                              <TableCell className="font-medium">
-                                {pattern.emailPattern}
-                              </TableCell>
-                              <TableCell>{getRoleBadge(pattern.defaultRole)}</TableCell>
-                              <TableCell>
-                                {pattern.autoApprove ? (
-                                  <Badge variant="outline" className="bg-green-950 text-white border border-green-600 font-medium">
-                                    <CheckCircle2 className="mr-1 h-3 w-3" />
-                                    Yes
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Email Pattern</TableHead>
+                              <TableHead>Default Role</TableHead>
+                              <TableHead>Auto Approve</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {allowedEmails.map((pattern) => (
+                              <TableRow key={pattern.id}>
+                                <TableCell>{pattern.emailPattern}</TableCell>
+                                <TableCell>
+                                  <Badge variant={pattern.defaultRole === 'admin' ? 'default' : pattern.defaultRole === 'editor' ? 'secondary' : 'outline'}>
+                                    {pattern.defaultRole.charAt(0).toUpperCase() + pattern.defaultRole.slice(1)}
                                   </Badge>
-                                ) : (
-                                  <Badge variant="outline" className="bg-gray-950 text-white border border-gray-600 font-medium">
-                                    <UserX className="mr-1 h-3 w-3" />
-                                    No
-                                  </Badge>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end space-x-2">
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => setEditingAllowedEmail(pattern)}
-                                      >
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                      <DialogHeader>
-                                        <DialogTitle>Edit Email Pattern</DialogTitle>
-                                        <DialogDescription>
-                                          Modify the email pattern settings.
-                                        </DialogDescription>
-                                      </DialogHeader>
-                                      
-                                      {editingAllowedEmail && (
-                                        <div className="space-y-4 py-4">
-                                          <div className="space-y-2">
-                                            <Label htmlFor="editEmailPattern">Email Pattern</Label>
-                                            <Input
-                                              id="editEmailPattern"
-                                              value={editingAllowedEmail.emailPattern}
-                                              onChange={e => setEditingAllowedEmail({
-                                                ...editingAllowedEmail,
-                                                emailPattern: e.target.value
-                                              })}
-                                            />
-                                          </div>
-                                          
-                                          <div className="space-y-2">
-                                            <Label htmlFor="editDefaultRole">Default Role</Label>
-                                            <Select
-                                              value={editingAllowedEmail.defaultRole}
-                                              onValueChange={value => setEditingAllowedEmail({
-                                                ...editingAllowedEmail,
-                                                defaultRole: value
-                                              })}
-                                            >
-                                              <SelectTrigger id="editDefaultRole">
-                                                <SelectValue placeholder="Select role" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="admin">Administrator</SelectItem>
-                                                <SelectItem value="editor">Editor</SelectItem>
-                                                <SelectItem value="viewer">Viewer</SelectItem>
-                                                <SelectItem value="pending">Pending</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                          
-                                          <div className="flex items-center space-x-2">
-                                            <Switch
-                                              id="editAutoApprove"
-                                              checked={editingAllowedEmail.autoApprove}
-                                              onCheckedChange={checked => setEditingAllowedEmail({
-                                                ...editingAllowedEmail,
-                                                autoApprove: checked
-                                              })}
-                                            />
-                                            <Label htmlFor="editAutoApprove">Auto-approve</Label>
-                                          </div>
-                                        </div>
-                                      )}
-                                      
-                                      <DialogFooter>
-                                        <Button variant="outline" onClick={() => setEditingAllowedEmail(null)}>
-                                          Cancel
-                                        </Button>
-                                        <Button
-                                          onClick={handleUpdateAllowedEmail}
-                                          disabled={updateAllowedEmailMutation.isPending}
-                                        >
-                                          {updateAllowedEmailMutation.isPending ? "Saving..." : "Save Changes"}
-                                        </Button>
-                                      </DialogFooter>
-                                    </DialogContent>
-                                  </Dialog>
-                                  
+                                </TableCell>
+                                <TableCell>
+                                  {pattern.autoApprove ? (
+                                    <Badge variant="success" className="bg-green-500">Yes</Badge>
+                                  ) : (
+                                    <Badge variant="outline">No</Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                      <Button variant="ghost" size="icon">
-                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/20">
+                                        <Trash2 className="h-4 w-4" />
                                       </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                       <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogTitle>Delete Email Pattern</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                          This will delete the email pattern '{pattern.emailPattern}'. This action cannot be undone.
+                                          Are you sure you want to delete the pattern '{pattern.emailPattern}'? 
+                                          This action cannot be undone.
                                         </AlertDialogDescription>
                                       </AlertDialogHeader>
                                       <AlertDialogFooter>
                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => deleteAllowedEmailMutation.mutate(pattern.id)}
+                                        <AlertDialogAction 
                                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                          onClick={() => handleDeleteEmailPattern(pattern.id)}
                                         >
-                                          {deleteAllowedEmailMutation.isPending ? "Deleting..." : "Delete"}
+                                          Delete
                                         </AlertDialogAction>
                                       </AlertDialogFooter>
                                     </AlertDialogContent>
                                   </AlertDialog>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>
+                  Manage user access and roles. Approve pending users or modify existing user permissions.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {usersLoading ? (
+                    <div className="flex justify-center p-4">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                  ) : usersError ? (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>Failed to load users</AlertDescription>
+                    </Alert>
+                  ) : users.length === 0 ? (
+                    <div className="text-center p-4 border rounded-md">
+                      <p className="text-muted-foreground">No users found.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>User</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Created</TableHead>
+                            <TableHead>Last Login</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {users.map((user) => (
+                            <TableRow key={user.id}>
+                              <TableCell>
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                                    {user.firstName ? user.firstName.charAt(0) : user.username?.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <div className="font-medium">{user.firstName} {user.lastName}</div>
+                                    <div className="text-sm text-muted-foreground">{user.email || user.username}</div>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Select 
+                                  defaultValue={user.role} 
+                                  onValueChange={(value) => handleUpdateUserRole(user.id, value)}
+                                  disabled={!isAdmin}
+                                >
+                                  <SelectTrigger className="w-[110px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="viewer">Viewer</SelectItem>
+                                    <SelectItem value="editor">Editor</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                {user.isApproved ? (
+                                  <Badge className="bg-green-500">Approved</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="border-amber-500 text-amber-500">Pending</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end space-x-1">
+                                  {!user.isApproved && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      className="text-green-600 hover:text-green-700 hover:bg-green-100"
+                                      onClick={() => handleApproveUser(user.id)}
+                                      disabled={!isAdmin || approveUserMutation.isPending}
+                                    >
+                                      <UserCheck className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  <Button variant="ghost" size="icon">
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
                                 </div>
                               </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
                       </Table>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
-          
-          {/* System Tab */}
-          <TabsContent value="system" className="space-y-6">
+
+          {/* Notifications Tab */}
+          <TabsContent value="notifications" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Data Management</CardTitle>
+                <CardTitle>System Notifications</CardTitle>
                 <CardDescription>
-                  Configure data settings and perform maintenance operations.
+                  Create and manage system-wide notifications for all users.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {/* Data Migration Section */}
-                  <div className="border border-primary/20 rounded-lg p-4 bg-primary/5">
-                    <h3 className="font-semibold text-lg mb-2 flex items-center">
-                      <CheckCircle2 className="mr-2 h-5 w-5 text-primary" />
-                      Data Migrations
-                    </h3>
-                    <p className="text-sm mb-4 text-gray-300">
-                      These actions update data in the system to match updated requirements.
-                    </p>
-                    
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">Update Default Project Hours</p>
-                        <p className="text-sm text-gray-400">
-                          Updates all projects and schedules with the old default of 40 hours to the new default of 1000 hours.
-                        </p>
-                      </div>
-                      
-                      <Button 
-                        variant="outline" 
-                        className="flex items-center border-primary text-primary hover:bg-primary/10"
-                        onClick={async () => {
-                          try {
-                            const response = await apiRequest('POST', '/api/admin/update-project-hours');
-                            const result = await response.json();
-                            
-                            toast({
-                              title: result.success ? "Hours Updated" : "Update Failed",
-                              description: result.message,
-                              variant: result.success ? "default" : "destructive"
-                            });
-                          } catch (error) {
-                            toast({
-                              title: "Update Failed",
-                              description: "Failed to update project hours: " + (error as Error).message,
-                              variant: "destructive"
-                            });
-                          }
-                        }}
-                      >
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Update Hours
-                      </Button>
-                    </div>
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={() => setShowNotificationForm(!showNotificationForm)}
+                      className="flex items-center space-x-2"
+                    >
+                      {showNotificationForm ? 'Cancel' : 'Create Notification'}
+                    </Button>
                   </div>
                   
-                  {/* Data Management Section */}
-                  <div className="border border-red-600/20 rounded-lg p-4 bg-red-500/5">
-                    <h3 className="font-semibold text-lg mb-2 flex items-center">
-                      <Trash2 className="mr-2 h-5 w-5 text-red-500" />
-                      Data Maintenance
-                    </h3>
-                    <p className="text-sm mb-4 text-gray-300">
-                      These actions perform permanent data deletion operations. Use with caution.
-                    </p>
-                    
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">Delete All Billing Milestones</p>
-                        <p className="text-sm text-gray-400">
-                          Permanently deletes all billing milestones from the system. This action cannot be undone.
-                        </p>
-                      </div>
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="destructive" 
-                            className="flex items-center"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete All Milestones
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete All Billing Milestones</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              <p>This action will permanently delete ALL billing milestones in the system and cannot be undone.</p>
-                              <div className="mt-4 bg-red-500/10 p-3 rounded border border-red-500/20">
-                                <ul className="list-disc pl-5 space-y-1 text-sm">
-                                  <li>All milestone data will be permanently lost</li>
-                                  <li>Projects will no longer have financial data associated</li>
-                                  <li>You will need to re-import or manually recreate billing milestones</li>
-                                </ul>
+                  {showNotificationForm && (
+                    <Card className="border border-primary/20 bg-primary/5">
+                      <CardHeader>
+                        <CardTitle>Create New Notification</CardTitle>
+                        <CardDescription>
+                          This notification will be sent to all users immediately.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={handleCreateNotification} className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="title">Title</Label>
+                              <Input 
+                                id="title" 
+                                value={newNotification.title}
+                                onChange={(e) => setNewNotification({...newNotification, title: e.target.value})}
+                                placeholder="Notification Title"
+                                required
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="priority">Priority</Label>
+                                <Select 
+                                  value={newNotification.priority}
+                                  onValueChange={(value) => setNewNotification({...newNotification, priority: value})}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select priority" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="low">Low</SelectItem>
+                                    <SelectItem value="normal">Normal</SelectItem>
+                                    <SelectItem value="high">High</SelectItem>
+                                    <SelectItem value="urgent">Urgent</SelectItem>
+                                  </SelectContent>
+                                </Select>
                               </div>
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={handleDeleteAllBillingMilestones}
-                              disabled={isDeletingMilestones}
-                              className="bg-red-500 text-white hover:bg-red-600"
-                            >
-                              {isDeletingMilestones ? "Deleting..." : "Yes, Delete All Milestones"}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="type">Type</Label>
+                                <Select 
+                                  value={newNotification.type}
+                                  onValueChange={(value) => setNewNotification({...newNotification, type: value})}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="system">System</SelectItem>
+                                    <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                                    <SelectItem value="project">Project</SelectItem>
+                                    <SelectItem value="billing">Billing</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="message">Message</Label>
+                            <textarea 
+                              id="message" 
+                              value={newNotification.message}
+                              onChange={(e) => setNewNotification({...newNotification, message: e.target.value})}
+                              placeholder="Notification message..."
+                              className="w-full h-24 px-3 py-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                              required
+                            />
+                          </div>
+                          
+                          <div className="flex justify-end space-x-2">
+                            <Button type="button" variant="outline" onClick={() => setShowNotificationForm(false)}>
+                              Cancel
+                            </Button>
+                            <Button type="submit" disabled={createNotificationMutation.isPending}>
+                              {createNotificationMutation.isPending ? (
+                                <>
+                                  <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
+                                  Sending...
+                                </>
+                              ) : (
+                                <>Send Notification</>
+                              )}
+                            </Button>
+                          </div>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  )}
                   
-                  {/* Manufacturing Management Section */}
-                  <div className="border border-yellow-600/20 rounded-lg p-4 bg-yellow-500/5">
-                    <h3 className="font-semibold text-lg mb-2 flex items-center">
-                      <RefreshCw className="mr-2 h-5 w-5 text-yellow-500" />
-                      Manufacturing Management
-                    </h3>
-                    <p className="text-sm mb-4 text-gray-300">
-                      Operations that affect the manufacturing scheduling system.
-                    </p>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">User Activity Logs</h3>
                     
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">Reset Bay Assignments</p>
-                        <p className="text-sm text-gray-400">
-                          Move all projects to the Unassigned section and clear all bay assignments.
-                        </p>
+                    {userAuditLogsLoading ? (
+                      <div className="flex justify-center p-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                       </div>
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" className="flex items-center border-yellow-500 text-yellow-500 hover:bg-yellow-500/10">
-                            <MoveRight className="mr-2 h-4 w-4" />
-                            Move All Projects to Unassigned
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will reset ALL bay assignments and move ALL projects to the Unassigned section.
-                              This action cannot be undone and will affect all production planning.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={handleMoveAllProjectsToUnassigned}
-                              disabled={isMovingProjects}
-                              className="bg-yellow-600 text-white hover:bg-yellow-700"
-                            >
-                              {isMovingProjects ? "Processing..." : "Yes, Move All Projects"}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                  
-                  {/* Danger Zone */}
-                  <div className="border border-destructive/20 rounded-lg p-4 bg-destructive/5">
-                    <h3 className="font-semibold text-lg mb-2 flex items-center">
-                      <AlertTriangle className="mr-2 h-5 w-5 text-destructive" />
-                      Danger Zone
-                    </h3>
-                    <p className="text-sm mb-4 text-gray-300">
-                      These actions are irreversible and will permanently delete data from the system.
-                    </p>
-                    
-                    <div className="flex justify-between items-center mb-6">
-                      <div>
-                        <p className="font-medium">Delete All Projects</p>
-                        <p className="text-sm text-gray-400">
-                          This will remove all projects and their associated data (tasks, billing milestones, manufacturing schedules).
-                        </p>
+                    ) : userAuditLogsError ? (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>Failed to load user audit logs</AlertDescription>
+                      </Alert>
+                    ) : userAuditLogs && userAuditLogs.length === 0 ? (
+                      <div className="text-center p-4 border rounded-md">
+                        <p className="text-muted-foreground">No user activity logs found.</p>
                       </div>
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive" className="flex items-center">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete All Projects
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete all projects 
-                              and all related data from the database.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={handleDeleteAllProjects}
-                              disabled={isDeleting}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              {isDeleting ? "Deleting..." : "Yes, Delete Everything"}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                    
-                    {/* Delete All Billing Milestones */}
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">Delete All Billing Milestones</p>
-                        <p className="text-sm text-gray-400">
-                          This will remove all billing milestones from the system. This is useful for clearing duplicate entries after imports.
-                        </p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>User</TableHead>
+                              <TableHead>Action</TableHead>
+                              <TableHead>Details</TableHead>
+                              <TableHead>Timestamp</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {userAuditLogs.map((log: any) => (
+                              <TableRow key={log.id}>
+                                <TableCell>{log.username || log.userId || 'System'}</TableCell>
+                                <TableCell>
+                                  <Badge variant={log.action === 'login' ? 'outline' : log.action === 'create' ? 'default' : log.action === 'update' ? 'secondary' : 'destructive'}>
+                                    {log.action}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>{log.details}</TableCell>
+                                <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
                       </div>
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive" className="flex items-center">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete All Milestones
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete ALL billing milestones 
-                              from the database. You will need to reimport them after this operation.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={handleDeleteAllBillingMilestones}
-                              disabled={isDeletingMilestones}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              {isDeletingMilestones ? "Deleting..." : "Yes, Delete All Milestones"}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                    )}
                   </div>
                 </div>
               </CardContent>
-              
-              {deleteResult && (
-                <CardFooter>
-                  <Alert className={`w-full ${deleteResult.success ? 'bg-success/20 border-success' : 'bg-destructive/20 border-destructive'}`}>
-                    {deleteResult.success ? (
-                      <CheckCircle2 className="h-5 w-5 text-success" />
-                    ) : (
-                      <AlertCircle className="h-5 w-5 text-destructive" />
-                    )}
-                    <AlertTitle>{deleteResult.success ? 'Success' : 'Error'}</AlertTitle>
-                    <AlertDescription>
-                      {deleteResult.message}
-                      {deleteResult.totalDeleted !== undefined && (
-                        <p className="mt-1">Total projects deleted: {deleteResult.totalDeleted}</p>
-                      )}
-                    </AlertDescription>
-                  </Alert>
-                </CardFooter>
-              )}
             </Card>
           </TabsContent>
-          
-          {/* Archived Projects Tab */}
-          <TabsContent value="archived" className="space-y-6">
+
+          {/* Archive Management Tab */}
+          <TabsContent value="archiveManagement" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Archived Projects</CardTitle>
+                <CardTitle>Archive Management</CardTitle>
                 <CardDescription>
-                  View and restore previously archived projects.
+                  Restore or permanently delete archived projects, milestones, and other items.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {archivedProjectsLoading ? (
-                  <div className="flex justify-center p-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Archived Projects</h3>
+                    
+                    {archivedProjectsLoading ? (
+                      <div className="flex justify-center p-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      </div>
+                    ) : archivedProjectsError ? (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>Failed to load archived projects</AlertDescription>
+                      </Alert>
+                    ) : archivedProjects && archivedProjects.length === 0 ? (
+                      <div className="text-center p-4 border rounded-md">
+                        <p className="text-muted-foreground">No archived projects found.</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Project</TableHead>
+                              <TableHead>Project Number</TableHead>
+                              <TableHead>Archived Date</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {archivedProjects && archivedProjects.map((project: any) => (
+                              <TableRow key={project.id}>
+                                <TableCell>{project.name}</TableCell>
+                                <TableCell>{project.projectNumber}</TableCell>
+                                <TableCell>{new Date(project.updatedAt).toLocaleDateString()}</TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end space-x-1">
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm" 
+                                          className="flex items-center space-x-1"
+                                        >
+                                          <ArchiveRestore className="h-4 w-4 mr-1" />
+                                          Restore
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Restore Project</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to restore project '{project.name}'? 
+                                            It will be moved back to active projects.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction 
+                                            onClick={() => handleRestoreProject(project.id)}
+                                          >
+                                            Restore
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                    
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="text-destructive hover:text-destructive hover:bg-destructive/20 flex items-center space-x-1"
+                                        >
+                                          <Trash2 className="h-4 w-4 mr-1" />
+                                          Delete
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Permanently Delete Project</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to permanently delete project '{project.name}'? 
+                                            This action cannot be undone and all associated data will be lost forever.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction 
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            onClick={() => handlePermanentDeleteProject(project.id)}
+                                          >
+                                            Permanently Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
                   </div>
-                ) : archivedProjectsError ? (
-                  <Alert className="bg-destructive/20 border-destructive">
-                    <AlertCircle className="h-5 w-5 text-destructive" />
-                    <AlertTitle>Error</AlertTitle>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* System Maintenance Tab */}
+          <TabsContent value="maintenance" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Database Maintenance</CardTitle>
+                <CardDescription>
+                  Perform database maintenance tasks. Warning: These actions can be destructive.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <Alert className="bg-amber-500/20 border-amber-500">
+                    <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    <AlertTitle>Warning: Destructive Actions</AlertTitle>
                     <AlertDescription>
-                      {(archivedProjectsError as Error).message || "Failed to load archived projects"}
+                      The operations in this section can permanently delete data. Proceed with caution.
                     </AlertDescription>
                   </Alert>
-                ) : archivedProjects.length === 0 ? (
-                  <div className="text-center p-6 space-y-2">
-                    <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <ArchiveRestore className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-medium">No Archived Projects</h3>
-                    <p className="text-sm text-gray-400">
-                      There are no archived projects in the system.
-                    </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card className="border border-destructive/40">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Reset All Projects</CardTitle>
+                        <CardDescription>
+                          Delete all projects and related data from the system.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-2">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="w-full">
+                              Reset All Projects
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete All Projects</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete ALL projects and related data from the system.
+                                This action cannot be undone. Are you absolutely sure?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={handleDeleteAllProjects}
+                              >
+                                {isDeleting ? (
+                                  <>
+                                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
+                                    Deleting...
+                                  </>
+                                ) : (
+                                  <>Delete All Projects</>
+                                )}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        
+                        {deleteResult && (
+                          <div className="mt-4">
+                            <Alert variant={deleteResult.success ? "default" : "destructive"}>
+                              {deleteResult.success ? (
+                                <CheckCircle2 className="h-4 w-4" />
+                              ) : (
+                                <AlertCircle className="h-4 w-4" />
+                              )}
+                              <AlertTitle>{deleteResult.success ? "Success" : "Error"}</AlertTitle>
+                              <AlertDescription>
+                                {deleteResult.message}
+                                {deleteResult.totalDeleted !== undefined && (
+                                  <div className="mt-2">
+                                    <Badge variant="outline">
+                                      {deleteResult.totalDeleted} projects deleted
+                                    </Badge>
+                                  </div>
+                                )}
+                              </AlertDescription>
+                            </Alert>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Database Backup</CardTitle>
+                        <CardDescription>
+                          Create a backup of the current database.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-2">
+                        <Button className="w-full" variant="outline">
+                          Backup Database
+                        </Button>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Database Restore</CardTitle>
+                        <CardDescription>
+                          Restore the database from a backup file.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-2">
+                        <Button className="w-full" variant="outline">
+                          Restore Database
+                        </Button>
+                      </CardContent>
+                    </Card>
                   </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Project Number</TableHead>
-                        <TableHead>Project Name</TableHead>
-                        <TableHead>Client</TableHead>
-                        <TableHead>Archived Date</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {archivedProjects.map((project: any) => (
-                        <TableRow key={project.id} className="hover:bg-primary/5">
-                          <TableCell className="font-medium">{project.projectNumber}</TableCell>
-                          <TableCell>{project.name}</TableCell>
-                          <TableCell>{project.client || 'N/A'}</TableCell>
-                          <TableCell>
-                            {project.archivedAt ? new Date(project.archivedAt).toLocaleString() : 'Unknown'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="hover:text-primary"
-                                >
-                                  <ArrowUpCircle className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Restore Project</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to restore "{project.name}" (#{project.projectNumber})?
-                                    This will move the project back to active status.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleRestoreProject(project.id)}
-                                    disabled={isRestoringProject}
-                                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                                  >
-                                    {isRestoringProject ? "Restoring..." : "Restore Project"}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>System Information</CardTitle>
+                <CardDescription>
+                  View system information and statistics.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Application Version</h3>
+                      <p className="text-lg font-semibold">v1.0.0</p>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Database Status</h3>
+                      <div className="flex items-center space-x-2">
+                        <div className="h-3 w-3 rounded-full bg-green-500"></div>
+                        <p className="text-lg font-semibold">Connected</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Last Backup</h3>
+                      <p className="text-lg font-semibold">Never</p>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-center">
+                          <h3 className="text-lg font-semibold">{users ? users.length : 0}</h3>
+                          <p className="text-sm text-muted-foreground">Total Users</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-center">
+                          <h3 className="text-lg font-semibold">0</h3>
+                          <p className="text-sm text-muted-foreground">Active Projects</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-center">
+                          <h3 className="text-lg font-semibold">{archivedProjects ? archivedProjects.length : 0}</h3>
+                          <p className="text-sm text-muted-foreground">Archived Projects</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-center">
+                          <h3 className="text-lg font-semibold">0</h3>
+                          <p className="text-sm text-muted-foreground">Storage Used (MB)</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
-      )}
-    </div>
-  );
+      </div>
+    );
 };
 
 export default SystemSettings;
