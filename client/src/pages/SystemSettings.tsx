@@ -104,7 +104,7 @@ const SystemSettings = () => {
     fetchLatestBackup();
   }, []);
   
-  // Fetch latest backup information
+  // Fetch latest backup information - with improved error handling
   const fetchLatestBackup = async () => {
     try {
       const response = await fetch('/api/system/latest-backup');
@@ -118,7 +118,9 @@ const SystemSettings = () => {
         }
       }
     } catch (error) {
+      // Silently log error but don't let it break other functionality
       console.error('Error fetching backup info:', error);
+      setLatestBackup(null);
     }
   };
   
@@ -605,7 +607,8 @@ const SystemSettings = () => {
     e.preventDefault();
     if (!editingUser) return;
     
-    fetch(`/api/users/${editingUser.id}`, {
+    // Using apiRequest for consistency with other API calls
+    apiRequest(`/api/users/${editingUser.id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -613,10 +616,8 @@ const SystemSettings = () => {
       body: JSON.stringify(editUserForm),
     })
       .then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to update user');
-        }
-        return response.json();
+        // Update user list
+        queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       })
       .then(() => {
         toast({
@@ -673,10 +674,12 @@ const SystemSettings = () => {
         }
         return await response.json();
       } catch (error) {
+        // Silently fail but with a fallback value
         console.error("Error fetching storage info:", error);
         return { totalStorageUsed: 0 };
       }
     },
+    retry: false // Don't retry if it fails
   });
 
   const restoreProjectMutation = useMutation({
