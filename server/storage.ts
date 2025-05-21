@@ -1896,26 +1896,53 @@ export class DatabaseStorage implements IStorage {
   // Delivered Projects methods
   async getDeliveredProjects(): Promise<any[]> {
     try {
-      // Get projects with delivery tracking that have actualDeliveryDate
+      // Get both:
+      // 1. Projects with delivery tracking that have actualDeliveryDate
+      // 2. Projects that have status='delivered' (from our new "DELIVERED" button)
       const result = await db.execute(sql`
-        SELECT 
-          p.id as "projectId",
-          p.project_number as "projectNumber",
-          p.name,
-          p.delivery_date as "deliveryDate",
-          dt.actual_delivery_date as "actualDeliveryDate",
-          dt.days_late as "daysLate",
-          dt.delay_responsibility as "delayResponsibility",
-          p.percent_complete as "percentComplete",
-          p.status
-        FROM 
-          projects p
-        JOIN 
-          delivery_tracking dt ON p.id = dt.project_id
-        WHERE 
-          dt.actual_delivery_date IS NOT NULL
-        ORDER BY 
-          dt.actual_delivery_date DESC
+        WITH delivered_projects AS (
+          -- Projects with tracking data
+          SELECT 
+            p.id as "projectId",
+            p.project_number as "projectNumber",
+            p.name,
+            p.delivery_date as "deliveryDate",
+            dt.actual_delivery_date as "actualDeliveryDate",
+            dt.days_late as "daysLate",
+            dt.delay_responsibility as "delayResponsibility",
+            p.percent_complete as "percentComplete",
+            p.status
+          FROM 
+            projects p
+          JOIN 
+            delivery_tracking dt ON p.id = dt.project_id
+          WHERE 
+            dt.actual_delivery_date IS NOT NULL
+          
+          UNION
+          
+          -- Projects marked as 'delivered' via the UI button
+          SELECT 
+            p.id as "projectId",
+            p.project_number as "projectNumber",
+            p.name,
+            p.delivery_date as "deliveryDate",
+            p.delivery_date as "actualDeliveryDate", -- Use delivery_date as actual delivery date
+            0 as "daysLate", -- Default to 0 days late
+            'not_applicable' as "delayResponsibility", -- Default delay responsibility
+            p.percent_complete as "percentComplete",
+            p.status
+          FROM 
+            projects p
+          LEFT JOIN
+            delivery_tracking dt ON p.id = dt.project_id
+          WHERE 
+            p.status = 'delivered'
+            AND dt.id IS NULL -- Only include if no delivery tracking record exists
+        )
+        
+        SELECT * FROM delivered_projects
+        ORDER BY "deliveryDate" DESC
       `);
       
       return result.rows as any[];
