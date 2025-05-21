@@ -66,6 +66,7 @@ import {
 } from "./notifications";
 import { getAIInsights } from "./routes/aiInsights";
 import supplyChainRoutes from "./routes/supply-chain";
+import systemRoutes from "./routes/system";
 
 /**
  * Helper function to synchronize delivery milestones with project ship date
