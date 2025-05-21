@@ -329,8 +329,55 @@ export const GlobalPermissionsHandler = () => {
     // CRITICAL FIX: Always force apply viewer mode if role is viewer
     // This ensures the CSS restrictions apply globally
     if (userRole === "viewer") {
+      // Add both classes to ensure our CSS selectors work properly
       document.body.classList.add("viewer-mode");
+      document.body.classList.add("role-viewer");
       console.log("🔒 VIEW ONLY MODE ACTIVE - User has Viewer role with restricted permissions");
+      
+      // Disable all interactive elements except sidebar links
+      const disableInteractiveElements = () => {
+        // Disable buttons that aren't in the sidebar
+        const buttons = document.querySelectorAll('button:not(.sidebar-button)');
+        buttons.forEach(button => {
+          if (!button.closest('.sidebar-item')) {
+            button.setAttribute('disabled', 'true');
+            button.classList.add('viewer-disabled');
+          }
+        });
+        
+        // Disable inputs
+        const inputs = document.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+          input.setAttribute('disabled', 'true');
+          input.classList.add('viewer-disabled');
+        });
+        
+        // Add disabled attribute to all form elements
+        const formElements = document.querySelectorAll('form *');
+        formElements.forEach(el => {
+          if (el instanceof HTMLElement) {
+            el.setAttribute('disabled', 'true');
+            el.classList.add('viewer-disabled');
+          }
+        });
+      };
+      
+      // Run immediately and set up a mutation observer to catch dynamically added elements
+      disableInteractiveElements();
+      
+      // Set up observer to disable newly added elements
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+          if (mutation.addedNodes.length) {
+            disableInteractiveElements();
+          }
+        });
+      });
+      
+      observer.observe(document.body, { 
+        childList: true,
+        subtree: true
+      });
       
       // Add a viewer badge to show the current mode
       let viewerBadge = document.getElementById('viewer-mode-badge');
@@ -356,14 +403,83 @@ export const GlobalPermissionsHandler = () => {
       }
     } else {
       document.body.classList.remove("viewer-mode");
+      document.body.classList.remove("role-viewer");
       const badge = document.getElementById('viewer-mode-badge');
       if (badge) badge.remove();
     }
     
+    // Store the observer reference so we can disconnect it later
+    let observerRef: MutationObserver | null = null;
+    
+    if (userRole === "viewer") {
+      // Set up observer to disable newly added elements
+      observerRef = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+          if (mutation.addedNodes.length) {
+            // Re-apply the disabling logic
+            const disableInteractiveElements = () => {
+              // Disable buttons that aren't in the sidebar
+              const buttons = document.querySelectorAll('button:not(.sidebar-button)');
+              buttons.forEach(button => {
+                if (!button.closest('.sidebar-item')) {
+                  button.setAttribute('disabled', 'true');
+                  button.classList.add('viewer-disabled');
+                }
+              });
+              
+              // Disable inputs
+              const inputs = document.querySelectorAll('input, select, textarea');
+              inputs.forEach(input => {
+                input.setAttribute('disabled', 'true');
+                input.classList.add('viewer-disabled');
+              });
+              
+              // Add disabled attribute to all form elements
+              const formElements = document.querySelectorAll('form *');
+              formElements.forEach(el => {
+                if (el instanceof HTMLElement) {
+                  el.setAttribute('disabled', 'true');
+                  el.classList.add('viewer-disabled');
+                }
+              });
+            };
+            
+            disableInteractiveElements();
+          }
+        });
+      });
+      
+      observerRef.observe(document.body, { 
+        childList: true,
+        subtree: true
+      });
+      
+      console.log("🔒 VIEW ONLY MODE MutationObserver active - watching for dynamic elements");
+    }
+    
     return () => {
+      // Clean up all viewer mode traces
       document.body.classList.remove("viewer-mode");
+      document.body.classList.remove("role-viewer");
+      
+      // Remove the badge if it exists
       const badge = document.getElementById('viewer-mode-badge');
       if (badge) badge.remove();
+      
+      // Disconnect the observer if it was created
+      if (observerRef) {
+        observerRef.disconnect();
+        console.log("🔓 VIEW ONLY MODE MutationObserver disconnected");
+      }
+      
+      // Remove viewer-disabled class from all elements
+      const disabledElements = document.querySelectorAll('.viewer-disabled');
+      disabledElements.forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.removeAttribute('disabled');
+          el.classList.remove('viewer-disabled');
+        }
+      });
     };
   }, [userRole, isAuthPage, isBaySchedulingPage, isSandboxMode]);
   
