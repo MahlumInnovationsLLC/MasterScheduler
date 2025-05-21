@@ -1132,6 +1132,22 @@ const ProjectStatus = () => {
               }}>
                 Archive Project
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => {
+                  // Confirmation before marking as delivered
+                  if (confirm(`Are you sure you want to mark this project as DELIVERED? This will:
+- Update the status to 'delivered'
+- Set delivery date to today
+- Move it to the Delivered Projects section`)) {
+                    markProjectAsDelivered(row.original.id);
+                  }
+                }}
+                className="text-green-500 hover:text-green-700 hover:bg-green-100"
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Mark as Delivered
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
