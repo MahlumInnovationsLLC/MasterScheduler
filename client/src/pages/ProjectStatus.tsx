@@ -497,51 +497,64 @@ const ProjectStatus = () => {
     }
   };
   
+  // States for the delivery dialog
+  const [projectBeingDelivered, setProjectBeingDelivered] = useState<number | null>(null);
+  const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
+  const [lateDeliveryReason, setLateDeliveryReason] = useState('');
+  const [delayResponsibility, setDelayResponsibility] = useState('not_applicable');
+  const [isLateDelivery, setIsLateDelivery] = useState(false);
+  
+  // Function to open the delivery dialog
+  const openDeliveryDialog = (projectId: number) => {
+    // Find the project to check if it's late
+    const project = projects?.find(p => p.id === projectId);
+    
+    // Check if it's potentially a late delivery by comparing with contract date
+    const isLate = project?.contractDate && new Date() > new Date(project.contractDate);
+    
+    setProjectBeingDelivered(projectId);
+    setIsLateDelivery(!!isLate);
+    setLateDeliveryReason('');
+    setDelayResponsibility('not_applicable');
+    setShowDeliveryDialog(true);
+  };
+  
   // Function to mark a project as delivered
-  const markProjectAsDelivered = async (projectId: number) => {
+  const markProjectAsDelivered = async (projectId: number, lateReason?: string, responsibility?: string) => {
     try {
-      // Get the current date for the delivery date
-      const today = new Date();
-      const deliveryDate = format(today, 'yyyy-MM-dd');
+      // Use our new API endpoint for marking projects as delivered
+      const data: any = {};
       
-      // Update the project status to 'delivered' and set delivery date
+      // Only include late delivery data if it's provided
+      if (lateReason) {
+        data.lateDeliveryReason = lateReason;
+      }
+      
+      if (responsibility && responsibility !== 'not_applicable') {
+        data.delayResponsibility = responsibility;
+      }
+      
       const response = await apiRequest(
-        "PATCH",
-        `/api/projects/${projectId}`,
-        { 
-          status: 'delivered',
-          deliveryDate: deliveryDate,
-          percentComplete: 100 // Set completion to 100%
-        }
+        "POST",
+        `/api/projects/${projectId}/mark-delivered`,
+        data
       );
       
       if (response.ok) {
         // Refresh projects list
         queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
         
         // Show success notification
         toast({
           title: "Project Delivered",
-          description: `Project has been marked as delivered on ${format(today, 'MMM d, yyyy')}`,
+          description: `Project has been successfully marked as delivered`,
           variant: "default"
         });
         
-        // Also create a notification about the delivery
-        try {
-          await apiRequest(
-            "POST",
-            "/api/notifications",
-            {
-              title: "Project Delivery",
-              message: `Project #${projectId} has been marked as delivered`,
-              type: "project",
-              priority: "medium",
-              link: `/project/${projectId}`
-            }
-          );
-        } catch (notifError) {
-          console.error("Failed to create notification:", notifError);
-        }
+        // Close dialog if it was open
+        setShowDeliveryDialog(false);
+        setProjectBeingDelivered(null);
         
         return true;
       } else {

@@ -377,6 +377,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
       
+  // Mark a project as delivered
+  app.post("/api/projects/:id/mark-delivered", hasEditRights, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { lateDeliveryReason, delayResponsibility } = req.body;
+      
+      // Get the current project
+      const project = await storage.getProject(id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Determine if delivery is on time by comparing delivery date to contract date
+      const deliveryDate = new Date();
+      const contractDate = project.contractDate ? new Date(project.contractDate) : null;
+      
+      let isDeliveredOnTime = true;
+      if (contractDate) {
+        isDeliveredOnTime = deliveryDate <= contractDate;
+      }
+      
+      // Update project data
+      const updateData: Partial<Project> = {
+        status: "delivered",
+        deliveryDate: deliveryDate.toISOString().split('T')[0],
+        is_delivered_on_time: isDeliveredOnTime,
+      };
+      
+      // Add reason for late delivery if provided
+      if (!isDeliveredOnTime) {
+        if (lateDeliveryReason) {
+          updateData.late_delivery_reason = lateDeliveryReason;
+        }
+        
+        if (delayResponsibility) {
+          updateData.delay_responsibility = delayResponsibility;
+        }
+      }
+      
+      // Update the project
+      const updatedProject = await storage.updateProject(id, updateData);
+      
+      // Create a notification for the delivery
+      const deliveryStatus = isDeliveredOnTime ? "on time" : "late";
+      await storage.createNotification({
+        title: `Project Delivered: ${project.name}`,
+        message: `Project #${project.projectNumber} has been marked as delivered ${deliveryStatus}.`,
+        type: "project",
+        priority: isDeliveredOnTime ? "low" : "medium",
+        relatedProjectId: id
+      });
+      
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error marking project as delivered:", error);
+      res.status(500).json({ message: "Error marking project as delivered" });
+    }
+  });
+  
+  // Mark a delivered project as active again (revert delivered status)
+  app.post("/api/projects/:id/revert-delivered", hasEditRights, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Get the current project
+      const project = await storage.getProject(id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Ensure the project is currently marked as delivered
+      if (project.status !== "delivered") {
+        return res.status(400).json({ message: "Project is not currently marked as delivered" });
+      }
+      
+      // Update project data to revert to active status
+      const updateData: Partial<Project> = {
+        status: "active",
+        is_delivered_on_time: null,
+        late_delivery_reason: null
+      };
+      
+      // Update the project
+      const updatedProject = await storage.updateProject(id, updateData);
+      
+      // Create a notification for the status change
+      await storage.createNotification({
+        title: `Delivery Status Reverted: ${project.name}`,
+        message: `Project #${project.projectNumber} has been reverted from delivered status to active.`,
+        type: "project",
+        priority: "medium",
+        relatedProjectId: id
+      });
+      
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error reverting delivered status:", error);
+      res.status(500).json({ message: "Error reverting delivered status" });
+    }
+  });
+  
+  // Get all delivered projects
+  app.get("/api/delivered-projects", async (req, res) => {
+    try {
+      // Get all projects with "delivered" status
+      const allProjects = await storage.getProjects();
+      const deliveredProjects = allProjects.filter(p => p.status === "delivered");
+      
+      // Calculate days late for each project
+      const enhancedProjects = deliveredProjects.map(project => {
+        let daysLate = 0;
+        
+        if (project.deliveryDate && project.contractDate) {
+          const deliveryDate = new Date(project.deliveryDate);
+          const contractDate = new Date(project.contractDate);
+          
+          // Calculate difference in days
+          const diffTime = deliveryDate.getTime() - contractDate.getTime();
+          daysLate = Math.ceil(diffTime / (1000 * 3600 * 24));
+        }
+        
+        return {
+          ...project,
+          daysLate
+        };
+      });
+      
+      res.json(enhancedProjects);
+    } catch (error) {
+      console.error("Error fetching delivered projects:", error);
+      res.status(500).json({ message: "Error fetching delivered projects" });
+    }
+  });
+  
   app.put("/api/projects/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
