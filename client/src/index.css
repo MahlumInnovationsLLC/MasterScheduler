@@ -8,22 +8,25 @@
 }
 
 /* Viewer Mode Restrictions - Applied globally when body has viewer-mode class */
-/* Only disable editing controls, not navigation links */
-body.viewer-mode button:not(.nav-button):not(.auth-button):not(.sandbox-button):not([class*="navigation"]),
-body.viewer-mode input:not([type="text"].auth-input):not([type="password"].auth-input):not(.sandbox-input),
-body.viewer-mode select:not(.auth-select):not(.sandbox-select),
-body.viewer-mode textarea:not(.auth-textarea):not(.sandbox-textarea),
+/* Strict view-only mode - disable ALL interactive elements by default */
+body.viewer-mode button,
+body.viewer-mode input,
+body.viewer-mode select,
+body.viewer-mode textarea,
+body.viewer-mode a[href]:not(.sidebar-item):not(.sidebar a),
+body.viewer-mode [role="button"],
 body.viewer-mode [role="switch"],
 body.viewer-mode [role="checkbox"],
 body.viewer-mode [role="radio"],
-body.viewer-mode [role="menuitem"]:not([class*="navigation"]),
+body.viewer-mode [role="menuitem"],
+body.viewer-mode [role="tab"],
 body.viewer-mode [type="checkbox"],
 body.viewer-mode [type="radio"],
-body.viewer-mode [type="button"]:not([class*="navigation"]),
+body.viewer-mode [type="button"],
 body.viewer-mode [type="submit"],
 body.viewer-mode [type="reset"],
-body.viewer-mode .dropdown-toggle:not([class*="navigation"]),
-body.viewer-mode .clickable:not([class*="navigation"]),
+body.viewer-mode .dropdown-toggle,
+body.viewer-mode .clickable,
 body.viewer-mode .editable-field,
 body.viewer-mode .edit-controls,
 body.viewer-mode .action-button,
@@ -34,35 +37,57 @@ body.viewer-mode [contenteditable="true"] {
   user-select: none !important;
 }
 
-/* Keep these elements clickable even in viewer mode */
-body.viewer-mode a[href],
+/* ONLY keep sidebar navigation clickable in viewer mode */
 body.viewer-mode .sidebar a,
-body.viewer-mode nav a,
-body.viewer-mode [role="tab"],
-body.viewer-mode .nav-link,
-body.viewer-mode .page-link,
-body.viewer-mode button.nav-button,
-body.viewer-mode [role="button"].nav-button,
-body.viewer-mode .view-mode-toggle {
+body.viewer-mode .sidebar [role="button"],
+body.viewer-mode .sidebar button,
+body.viewer-mode .sidebar-item,
+body.viewer-mode aside a,
+body.viewer-mode .view-mode-toggle,
+body.viewer-mode button.view-mode-toggle,
+body.viewer-mode [class*="sidebar"] a,
+body.viewer-mode [class*="sidebar"] button {
   pointer-events: auto !important;
   opacity: 1 !important;
   cursor: pointer !important;
 }
 
-/* Disable form submissions for viewers but keep navigation and dropdowns working */
-body.viewer-mode form:not(.auth-form):not(.sandbox-form):not([class*="navigation"]) {
+/* Also keep auth form elements clickable */
+body.viewer-mode .auth-form button,
+body.viewer-mode .auth-form input,
+body.viewer-mode .auth-form select,
+body.viewer-mode .auth-button,
+body.viewer-mode .auth-input,
+body.viewer-mode .auth-select {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+}
+
+/* Also keep sandbox mode clickable for Bay Scheduling */
+body.viewer-mode .sandbox-mode button,
+body.viewer-mode .sandbox-mode input,
+body.viewer-mode .sandbox-mode select,
+body.viewer-mode .sandbox-button,
+body.viewer-mode .sandbox-input,
+body.viewer-mode .sandbox-select {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+}
+
+/* Disable form submissions for viewers but keep auth forms working */
+body.viewer-mode form:not(.auth-form):not(.sandbox-form) {
   pointer-events: none !important;
 }
 
-/* Allow scrolling and navigation in viewer mode */
+/* Allow scrolling in viewer mode */
 body.viewer-mode .overflow-auto,
 body.viewer-mode .overflow-y-auto,
 body.viewer-mode .overflow-x-auto,
 body.viewer-mode [class*="scroll"],
 body.viewer-mode .main-content,
-body.viewer-mode main,
-body.viewer-mode .sidebar,
-body.viewer-mode nav {
+body.viewer-mode main {
   pointer-events: auto !important;
   overflow: auto !important;
 }
