@@ -3803,7 +3803,7 @@ export default function ResizableBaySchedule({
                 Bay
               </Label>
               <div className="col-span-3">
-                <ScrollArea className="h-48 border rounded-md p-2">
+                <ScrollArea className="h-72 border rounded-md p-2">
                   {/* Group bays by team */}
                   {(() => {
                     // Group bays by team name
