@@ -10,12 +10,18 @@ const router = Router();
 // Get storage info
 router.get('/storage-info', async (req, res) => {
   try {
-    // Calculate approximate storage used in MB
-    // In a real production environment, you would use a more accurate method
-    const totalStorageUsed = Math.round(Math.random() * 10) + 20; // 20-30 MB for demo purposes
+    // Get project counts from the database
+    const projectCount = await storage.getProjectCount();
+    const userCount = await storage.getUserCount();
+    
+    // Use database metrics for storage estimation
+    // Storage size is calculated based on a simple formula
+    const totalStorageUsed = Math.round((projectCount * 0.5) + (userCount * 0.2) + 10);
     
     res.json({
-      totalStorageUsed
+      totalStorageUsed,
+      projectCount,
+      userCount
     });
   } catch (error) {
     console.error('Error getting storage info:', error);

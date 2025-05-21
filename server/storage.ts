@@ -99,6 +99,10 @@ async function safeSingleQuery<T>(queryCallback: () => Promise<any>): Promise<T 
 }
 
 export interface IStorage {
+  // System info methods
+  getProjectCount(): Promise<number>;
+  getUserCount(): Promise<number>;
+  
   // Database backup methods
   createBackupRecord(data: { filename: string, size: number, createdAt: Date }): Promise<any>;
   getLatestBackup(): Promise<{ filename: string, createdAt: Date } | null>;
@@ -249,10 +253,31 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // System info methods
+  async getProjectCount(): Promise<number> {
+    try {
+      const result = await db.select({ count: count() }).from(projects);
+      return result[0]?.count || 0;
+    } catch (err) {
+      console.error("Error getting project count:", err);
+      return 0;
+    }
+  }
+  
+  async getUserCount(): Promise<number> {
+    try {
+      const result = await db.select({ count: count() }).from(users);
+      return result[0]?.count || 0;
+    } catch (err) {
+      console.error("Error getting user count:", err);
+      return 0;
+    }
+  }
+  
   // Database backup methods
   async createBackupRecord(data: { filename: string, size: number, createdAt: Date }) {
     try {
-      const result = await this.db.insert(schemaBackup.databaseBackups).values(data).returning();
+      const result = await db.insert(schemaBackup.databaseBackups).values(data).returning();
       return result[0];
     } catch (err) {
       console.error("Error creating backup record:", err);
