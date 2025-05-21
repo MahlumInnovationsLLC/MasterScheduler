@@ -86,10 +86,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check if we're on the login page - never return a mock user on auth page
       const isAuthPage = window.location.pathname === "/auth";
       
-      // For development mode, return mock user immediately ONLY if not on the auth page
+      // For development mode, we can simulate specific roles for testing
+      // Use search param role= to override the default role (admin)
       if (isDevelopment && !isAuthPage) {
-        console.log("🔧 Development mode: Using mock admin user (not on auth page)");
-        return DEV_MOCK_USER;
+        const searchParams = new URLSearchParams(window.location.search);
+        const roleOverride = searchParams.get('role');
+        
+        if (roleOverride === 'viewer') {
+          console.log("🔧 Development mode: Using mock VIEWER user for testing");
+          return {
+            ...DEV_MOCK_USER,
+            role: 'viewer' // Override role for testing viewer permissions
+          };
+        } else {
+          console.log("🔧 Development mode: Using mock admin user (not on auth page)");
+          return DEV_MOCK_USER;
+        }
       }
       
       // Normal authentication for production or auth page

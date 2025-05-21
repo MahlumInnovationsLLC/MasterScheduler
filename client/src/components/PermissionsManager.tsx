@@ -291,6 +291,21 @@ export const GlobalPermissionsHandler = () => {
     // Skip all restrictions for auth page or sandbox mode in Bay Scheduling
     const shouldSkipRestrictions = isAuthPage || (isBaySchedulingPage && isSandboxMode);
     
+    // In development mode, we need special handling to allow testing viewer mode
+    const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
+    
+    // Only bypass if it's development mode AND not viewer role AND not auth page
+    // This is critical to ensure we can test viewer mode in development
+    if (isDevelopment && !isAuthPage && userRole !== "viewer") {
+      console.log("Development mode detected, bypassing viewer restrictions (not viewer role)");
+      document.body.classList.remove("viewer-mode");
+      const badge = document.getElementById('viewer-mode-badge');
+      if (badge) badge.remove();
+      const existingStyle = document.getElementById('viewer-mode-styles');
+      if (existingStyle) existingStyle.remove();
+      return;
+    }
+    
     if (shouldSkipRestrictions) {
       document.body.classList.remove("viewer-mode");
       const badge = document.getElementById('viewer-mode-badge');
@@ -300,8 +315,11 @@ export const GlobalPermissionsHandler = () => {
       return;
     }
     
+    // CRITICAL FIX: Always force apply viewer mode if role is viewer
+    // This ensures the CSS restrictions apply globally
     if (userRole === "viewer") {
       document.body.classList.add("viewer-mode");
+      console.log("🔒 VIEW ONLY MODE ACTIVE - User has Viewer role with restricted permissions");
       
       // Add a viewer badge to show the current mode
       let viewerBadge = document.getElementById('viewer-mode-badge');
@@ -320,6 +338,7 @@ export const GlobalPermissionsHandler = () => {
           font-size: 12px;
           z-index: 9999;
           box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+          pointer-events: none;
         `;
         viewerBadge.textContent = 'View Only Mode';
         document.body.appendChild(viewerBadge);
@@ -337,11 +356,13 @@ export const GlobalPermissionsHandler = () => {
     };
   }, [userRole, isAuthPage, isBaySchedulingPage, isSandboxMode]);
   
-  // Use direct DOM methods instead of JSX to avoid React warnings
-  // Never apply viewer guard on auth page or in sandbox mode
+  // Apply the ViewerGuard component which contains the CSS rules
+  // for restricting interactions
   const shouldApplyViewerGuard = !canEdit && !isAuthPage && !(isBaySchedulingPage && isSandboxMode);
   
-  if (shouldApplyViewerGuard) {
+  // Critical fix: Apply ViewerGuard even in development mode for demo purposes
+  if (userRole === "viewer" && !isAuthPage && !(isBaySchedulingPage && isSandboxMode)) {
+    console.log("⚠️ Applying view-only restrictions for Viewer role");
     return <ViewerGuard />;
   }
   

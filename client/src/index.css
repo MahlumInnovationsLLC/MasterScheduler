@@ -7,6 +7,69 @@
   z-index: 9999 !important;
 }
 
+/* Viewer Mode Restrictions - Applied globally when body has viewer-mode class */
+body.viewer-mode button:not(.auth-button):not(.sandbox-button),
+body.viewer-mode input:not([type="text"].auth-input):not([type="password"].auth-input):not(.sandbox-input),
+body.viewer-mode select:not(.auth-select):not(.sandbox-select),
+body.viewer-mode textarea:not(.auth-textarea):not(.sandbox-textarea),
+body.viewer-mode [role="button"]:not(.auth-role-button):not(.sandbox-role-button),
+body.viewer-mode [role="switch"],
+body.viewer-mode [role="checkbox"],
+body.viewer-mode [role="radio"],
+body.viewer-mode [role="menuitem"],
+body.viewer-mode [role="tab"]:not(.auth-tab):not(.sandbox-tab),
+body.viewer-mode [type="checkbox"],
+body.viewer-mode [type="radio"],
+body.viewer-mode [type="button"],
+body.viewer-mode [type="submit"],
+body.viewer-mode [type="reset"],
+body.viewer-mode .dropdown-toggle,
+body.viewer-mode .clickable,
+body.viewer-mode a[href]:not(.auth-link):not(.sandbox-link) {
+  pointer-events: none !important;
+  opacity: 0.7 !important;
+  cursor: not-allowed !important;
+  user-select: none !important;
+}
+
+/* Disable form submissions for viewers */
+body.viewer-mode form:not(.auth-form):not(.sandbox-form) {
+  pointer-events: none !important;
+}
+
+/* Make sure editing controls are disabled for viewers */
+body.viewer-mode .editable-field,
+body.viewer-mode .edit-controls,
+body.viewer-mode .action-buttons,
+body.viewer-mode .dropdown-menu,
+body.viewer-mode .menu-item,
+body.viewer-mode [contenteditable="true"] {
+  pointer-events: none !important;
+  opacity: 0.7 !important;
+  user-select: none !important;
+}
+
+/* Override cursor for viewers */
+body.viewer-mode * {
+  cursor: default !important;
+}
+
+/* Allow scrolling but not clicking in scroll areas */
+body.viewer-mode .overflow-auto,
+body.viewer-mode .overflow-y-auto,
+body.viewer-mode .overflow-x-auto,
+body.viewer-mode [class*="scroll"] {
+  pointer-events: auto !important;
+}
+
+/* Ensure elements within scroll areas are still not clickable */
+body.viewer-mode .overflow-auto *:not(.overflow-auto):not(.overflow-y-auto):not(.overflow-x-auto):not([class*="scroll"]),
+body.viewer-mode .overflow-y-auto *:not(.overflow-auto):not(.overflow-y-auto):not(.overflow-x-auto):not([class*="scroll"]),
+body.viewer-mode .overflow-x-auto *:not(.overflow-auto):not(.overflow-y-auto):not(.overflow-x-auto):not([class*="scroll"]),
+body.viewer-mode [class*="scroll"] *:not(.overflow-auto):not(.overflow-y-auto):not(.overflow-x-auto):not([class*="scroll"]) {
+  pointer-events: none !important;
+}
+
 :root {
   --radius: 0.5rem;
 
