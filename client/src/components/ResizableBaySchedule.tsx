@@ -2636,7 +2636,7 @@ export default function ResizableBaySchedule({
           }}
         >
           
-          <div className="bay-schedule-container relative" style={{ maxWidth: "calc(100vw - 280px)" }} ref={timelineRef}>
+          <div className="bay-schedule-container relative" style={{ maxWidth: "calc(100vw - 74px)" }} ref={timelineRef}>
           {/* Today Line marker - positioned absolutely */}
           {(() => {
             // Use the current real date for TODAY marker
