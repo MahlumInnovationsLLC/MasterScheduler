@@ -3555,8 +3555,6 @@ export default function ResizableBaySchedule({
                               key={`schedule-bar-${bar.id}`}
                               className={`schedule-bar absolute p-1 text-white text-xs rounded cursor-grab z-20 row-${bar.row}-bar`}
                               style={{
-                                // CRITICAL FIX: Don't offset the containing bar - we'll position the phases internally instead
-                                // This ensures the PROD phase will align exactly with the start date at bar.left
                                 left: `${bar.left}px`,
                                 width: `${Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0))}px`, // Ensure width accommodates all phases
                                 height: '72px', // Exact height to match gray row
@@ -3585,12 +3583,12 @@ export default function ResizableBaySchedule({
                                 <div className="all-phases-container w-full h-full relative">
                                   {/* Top row of phases (production through QC) */}
                                   <div className="top-phases w-full h-[26px] absolute top-0 left-0">
-                                    {/* Production phase - CRITICAL FIX: positioned at 0px to start exactly where the timeline would show the start date */}
+                                    {/* Production phase (positioned after FAB and PAINT) */}
                                     {bar.productionWidth && bar.productionWidth > 0 && (
-                                      <div className="production-phase dept-prod-phase bg-yellow-700 h-full absolute" 
+                                      <div className="production-phase bg-yellow-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.productionWidth}px`,
-                                             left: `0px` // Start PROD exactly at the visual start date
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px` // Position after FAB and PAINT
                                            }}>
                                         <span className="text-xs font-bold text-gray-800 h-full w-full flex items-center justify-center">PROD</span>
                                       </div>
@@ -3598,7 +3596,7 @@ export default function ResizableBaySchedule({
                                     
                                     {/* IT phase */}
                                     {bar.itWidth && bar.itWidth > 0 && (
-                                      <div className="it-phase dept-it-phase bg-purple-700 h-full absolute" 
+                                      <div className="it-phase bg-purple-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.itWidth}px`,
                                              left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0)}px` // Position after PROD
@@ -3609,7 +3607,7 @@ export default function ResizableBaySchedule({
                                     
                                     {/* NTC phase */}
                                     {bar.ntcWidth && bar.ntcWidth > 0 && (
-                                      <div className="ntc-phase dept-ntc-phase bg-cyan-700 h-full absolute" 
+                                      <div className="ntc-phase bg-cyan-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.ntcWidth}px`,
                                              left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0)}px` // Position after PROD and IT
@@ -3620,7 +3618,7 @@ export default function ResizableBaySchedule({
                                     
                                     {/* QC phase */}
                                     {bar.qcWidth && bar.qcWidth > 0 && (
-                                      <div className="qc-phase dept-qc-phase bg-pink-700 h-full absolute" 
+                                      <div className="qc-phase bg-pink-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.qcWidth}px`,
                                              left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0)}px` // Position after all other phases
@@ -3632,23 +3630,20 @@ export default function ResizableBaySchedule({
                                   
                                   {/* Bottom row of phases (FAB and PAINT) */}
                                   <div className="bottom-phases w-full h-[24px] absolute bottom-3 left-0">
-                                    {/* FAB phase (appears before PROD) */}
+                                    {/* FAB phase (starts from left) */}
                                     {bar.fabWidth && bar.fabWidth > 0 && (
-                                      <div className="fab-phase dept-fab-phase bg-blue-700 h-full absolute" 
-                                           style={{ 
-                                             width: `${bar.fabWidth}px`,
-                                             right: `${bar.paintWidth || 0}px` // Position to left of PAINT
-                                           }}>
+                                      <div className="fab-phase bg-blue-700 h-full absolute left-0" 
+                                           style={{ width: `${bar.fabWidth}px` }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">FAB</span>
                                       </div>
                                     )}
                                     
-                                    {/* PAINT phase (positioned right before PROD) */}
+                                    {/* PAINT phase (follows FAB) */}
                                     {bar.paintWidth && bar.paintWidth > 0 && (
-                                      <div className="paint-phase dept-paint-phase bg-green-600 h-full absolute" 
+                                      <div className="paint-phase bg-green-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.paintWidth}px`,
-                                             right: `0px` // Position directly before PROD starts
+                                             left: `${bar.fabWidth || 0}px`
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">PAINT</span>
                                       </div>
@@ -3729,7 +3724,7 @@ export default function ResizableBaySchedule({
       
       {/* Add Schedule Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-xl w-[650px]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Schedule</DialogTitle>
             <DialogDescription>

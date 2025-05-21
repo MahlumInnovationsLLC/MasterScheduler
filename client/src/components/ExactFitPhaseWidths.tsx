@@ -4,24 +4,9 @@
  * Helper functions to ensure phase widths exactly match total bar width.
  * These utilities ensure that all phase widths sum up exactly to the total width,
  * with the last phase adjusted to fill any remaining pixels.
- * 
- * Also provides alignment functions to position the PROD phase exactly at the specified start date
- * with FAB and PAINT phases appearing before (to the left of) that date.
  */
 
-// Define interface for project with phase percentages
-interface ProjectWithPhases {
-  id?: number;
-  name?: string;
-  projectNumber?: string;
-  fabPercentage?: number | string;
-  paintPercentage?: number | string;
-  productionPercentage?: number | string;
-  itPercentage?: number | string;
-  ntcPercentage?: number | string;
-  qcPercentage?: number | string;
-  [key: string]: any;
-}
+import { Project } from "@shared/schema";
 
 /**
  * Calculates exact-fit phase widths from project percentages
@@ -29,7 +14,7 @@ interface ProjectWithPhases {
  */
 export const calculateExactFitPhaseWidths = (
   totalWidth: number,
-  project: ProjectWithPhases | null | undefined,
+  project: Project | null | undefined,
   defaultNormalizeFactor: number = 1
 ) => {
   // Use project-specific phase percentages or fallback to company standard defaults
@@ -110,91 +95,12 @@ export const applyPhaseWidthsToDom = (
 };
 
 /**
- * Calculates phase positions with PROD starting exactly at the specified start date
- * This function adjusts the entire bar's position so that PROD aligns with start date
- * and FAB/PAINT appear before (to the left of) the start date
- */
-export const calculateProdAlignedPositions = (
-  totalWidth: number,
-  project: ProjectWithPhases | null | undefined
-) => {
-  // Calculate phase widths using standard percentages
-  const phaseWidths = calculateExactFitPhaseWidths(totalWidth, project);
-  const { fabWidth, paintWidth } = phaseWidths;
-  
-  // The offset needed to position PROD exactly at the start date (0 position)
-  // is the negative of the combined FAB and PAINT widths
-  const barLeftOffset = -(fabWidth + paintWidth);
-  
-  return {
-    ...phaseWidths,
-    barLeftOffset,
-    prodStartPosition: 0, // PROD always starts at exactly 0 (the bar's actual start position)
-    barVisualWidth: totalWidth,  // The visual width stays the same
-    barActualWidth: totalWidth - barLeftOffset // The actual width needs to account for the left offset
-  };
-};
-
-/**
- * Applies phase positions with PROD starting exactly at the specified start date
- */
-export const applyProdAlignedPositions = (
-  phasePositions: ReturnType<typeof calculateProdAlignedPositions>,
-  barElement: HTMLElement,
-  elements: {
-    fabPhase: HTMLElement;
-    paintPhase: HTMLElement;
-    prodPhase: HTMLElement;
-    itPhase: HTMLElement;
-    ntcPhase: HTMLElement;
-    qcPhase: HTMLElement;
-  }
-) => {
-  const { 
-    fabWidth, paintWidth, prodWidth, itWidth, ntcWidth, qcWidth,
-    barLeftOffset, barVisualWidth 
-  } = phasePositions;
-  const { fabPhase, paintPhase, prodPhase, itPhase, ntcPhase, qcPhase } = elements;
-  
-  // Apply the left offset to the entire bar
-  // This positions the PROD phase exactly at the bar's visual start point
-  barElement.style.left = `${barLeftOffset}px`;
-  barElement.style.width = `${barVisualWidth}px`;
-  
-  // Set the phase widths (note that positions are now relative to the shifted bar)
-  fabPhase.style.left = '0px';  // FAB starts at the beginning of the shifted bar
-  fabPhase.style.width = `${fabWidth}px`;
-  
-  paintPhase.style.left = `${fabWidth}px`;
-  paintPhase.style.width = `${paintWidth}px`;
-  
-  // PROD starts exactly at the original position (where the visual bar appears to start)
-  prodPhase.style.left = `${fabWidth + paintWidth}px`;
-  prodPhase.style.width = `${prodWidth}px`;
-  
-  itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
-  itPhase.style.width = `${itWidth}px`;
-  
-  ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
-  ntcPhase.style.width = `${ntcWidth}px`;
-  
-  qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
-  qcPhase.style.width = `${qcWidth}px`;
-  
-  // Add debugging attributes
-  barElement.setAttribute('data-prod-aligned', 'true');
-  barElement.setAttribute('data-bar-offset', barLeftOffset.toString());
-  
-  return true;
-};
-
-/**
  * Combined function to calculate and apply phase widths in one step
  */
 export const updatePhaseWidthsWithExactFit = (
   barElement: HTMLElement, 
   totalWidth: number,
-  project: ProjectWithPhases | null | undefined
+  project: Project | null | undefined
 ) => {
   try {
     // Find all phase elements
@@ -210,20 +116,20 @@ export const updatePhaseWidthsWithExactFit = (
       return false;
     }
     
-    // Use PROD-aligned positioning to ensure PROD starts at the specified start date
-    const phasePositions = calculateProdAlignedPositions(totalWidth, project);
+    // Calculate the exact fit widths
+    const phaseWidths = calculateExactFitPhaseWidths(totalWidth, project);
     
-    // Apply the new prod-aligned positions
-    applyProdAlignedPositions(phasePositions, barElement, {
+    // Apply to DOM
+    applyPhaseWidthsToDom(phaseWidths, {
       fabPhase, paintPhase, prodPhase, itPhase, ntcPhase, qcPhase
     });
     
     // Add debugging attributes
-    barElement.setAttribute('data-phases-updated', 'exact-fit-prod-aligned');
+    barElement.setAttribute('data-phases-updated', 'exact-fit');
     barElement.setAttribute('data-phase-sum', 
-      (phasePositions.fabWidth + phasePositions.paintWidth + phasePositions.prodWidth + 
-       phasePositions.itWidth + phasePositions.ntcWidth + phasePositions.qcWidth).toString());
-    barElement.setAttribute('data-exact-match', phasePositions.exactMatch.toString());
+      (phaseWidths.fabWidth + phaseWidths.paintWidth + phaseWidths.prodWidth + 
+       phaseWidths.itWidth + phaseWidths.ntcWidth + phaseWidths.qcWidth).toString());
+    barElement.setAttribute('data-exact-match', phaseWidths.exactMatch.toString());
     
     return true;
   } catch (error) {
