@@ -125,9 +125,8 @@ function App() {
           <AuthProvider>
             <PermissionsProvider>
               <Toaster />
-              {/* GlobalPermissionsHandler applies view-only restrictions */}
+              <GlobalPermissionsHandler />
               <Router />
-              {/* Move permission handler inside Router so it's not applied to auth page */}
             </PermissionsProvider>
           </AuthProvider>
         </TooltipProvider>

@@ -122,7 +122,7 @@ export const ViewerGuard = () => {
     return null; // Return nothing if the user can edit
   }
   
-  // Add CSS rules to disable dragging for viewers
+  // Add CSS rules to disable dragging and interactions for viewers
   React.useEffect(() => {
     if (!canEdit) {
       // Create a style element
@@ -141,15 +141,91 @@ export const ViewerGuard = () => {
           pointer-events: none !important;
         }
         
-        /* Disable buttons and interactive controls */
-        button, input, select, .interactive, [role="button"] {
+        /* Disable all forms, inputs and interactive controls */
+        button:not(.auth-button):not(.sandbox-button), 
+        input:not(.auth-input):not(.sandbox-input), 
+        select, 
+        textarea,
+        .interactive, 
+        [role="button"],
+        [role="switch"],
+        [role="checkbox"],
+        [role="radio"],
+        [role="menuitem"],
+        [role="tab"],
+        [type="checkbox"],
+        [type="radio"],
+        [type="button"],
+        [type="submit"],
+        [type="reset"],
+        .btn,
+        .button,
+        .dropdown-toggle,
+        .clickable,
+        details summary,
+        a[href]:not(.auth-link):not(.sandbox-link),
+        label {
           pointer-events: none !important;
-          opacity: 0.7;
+          opacity: 0.7 !important;
+        }
+        
+        /* Disable form submissions */
+        form {
+          pointer-events: none !important;
+        }
+        
+        /* Make sure editing controls are disabled */
+        .editable-field,
+        .edit-controls,
+        .action-buttons,
+        .dropdown-menu,
+        .menu-item,
+        [contenteditable="true"] {
+          pointer-events: none !important;
+          opacity: 0.7 !important;
+        }
+        
+        /* Prevent context menus for viewers */
+        body.viewer-mode {
+          -webkit-user-select: text !important; /* Still allow text selection */
+          user-select: text !important;
         }
         
         /* Override cursor for viewers */
-        body.viewer-mode * {
+        body.viewer-mode *:not(a):not(button):not(input):not(select):not(textarea) {
           cursor: default !important;
+        }
+        
+        body.viewer-mode a,
+        body.viewer-mode button,
+        body.viewer-mode input,
+        body.viewer-mode select,
+        body.viewer-mode textarea,
+        body.viewer-mode [role="button"] {
+          cursor: not-allowed !important;
+        }
+        
+        /* Explicitly allow interaction on a few specific elements */
+        body.viewer-mode .viewer-interactive {
+          pointer-events: auto !important;
+          opacity: 1 !important;
+          cursor: pointer !important;
+        }
+        
+        /* Allow scrolling but not clicking */
+        body.viewer-mode .overflow-auto,
+        body.viewer-mode .overflow-y-auto,
+        body.viewer-mode .overflow-x-auto,
+        body.viewer-mode [class*="scroll"] {
+          pointer-events: auto !important;
+        }
+        
+        /* Ensure scroll areas can still be scrolled */
+        body.viewer-mode .overflow-auto *,
+        body.viewer-mode .overflow-y-auto *,
+        body.viewer-mode .overflow-x-auto *,
+        body.viewer-mode [class*="scroll"] * {
+          pointer-events: none !important;
         }
       `;
       
@@ -176,10 +252,46 @@ export const GlobalPermissionsHandler = () => {
   // Check if we're on the auth page - never restrict the auth page
   const isAuthPage = window.location.pathname === "/auth";
   
+  // Check if we're on the Bay Scheduling page where sandbox mode may be enabled
+  const isBaySchedulingPage = window.location.pathname === "/bay-scheduling";
+  
+  // Variable to track if sandbox mode is active in Bay Scheduling
+  const [isSandboxMode, setIsSandboxMode] = React.useState(false);
+
+  // Listen for sandbox mode activation in Bay Scheduling
+  React.useEffect(() => {
+    const checkForSandboxMode = () => {
+      // Check for custom attributes or classes that might indicate sandbox mode
+      const sandboxEnabled = 
+        document.body.classList.contains('allow-multiple-projects') ||
+        document.body.classList.contains('force-accept-drop') ||
+        document.body.classList.contains('unlimited-drops') ||
+        document.body.hasAttribute('data-sandbox-mode');
+      
+      setIsSandboxMode(sandboxEnabled);
+    };
+
+    // Initial check
+    checkForSandboxMode();
+
+    // Set up an observer to monitor for sandbox mode changes
+    const observer = new MutationObserver(checkForSandboxMode);
+    
+    // Watch for class and attribute changes on body
+    observer.observe(document.body, { 
+      attributes: true, 
+      attributeFilter: ['class', 'data-sandbox-mode']
+    });
+
+    return () => observer.disconnect();
+  }, []);
+  
   // Add a class to the body element based on user role
   React.useEffect(() => {
-    // Skip all restrictions if on auth page
-    if (isAuthPage) {
+    // Skip all restrictions for auth page or sandbox mode in Bay Scheduling
+    const shouldSkipRestrictions = isAuthPage || (isBaySchedulingPage && isSandboxMode);
+    
+    if (shouldSkipRestrictions) {
       document.body.classList.remove("viewer-mode");
       const badge = document.getElementById('viewer-mode-badge');
       if (badge) badge.remove();
@@ -192,22 +304,26 @@ export const GlobalPermissionsHandler = () => {
       document.body.classList.add("viewer-mode");
       
       // Add a viewer badge to show the current mode
-      const viewerBadge = document.createElement('div');
-      viewerBadge.id = 'viewer-mode-badge';
-      viewerBadge.style.cssText = `
-        position: fixed;
-        bottom: 10px;
-        right: 10px;
-        background-color: rgba(255, 59, 48, 0.9);
-        color: white;
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-        z-index: 9999;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      `;
-      viewerBadge.textContent = 'View Only Mode';
-      document.body.appendChild(viewerBadge);
+      let viewerBadge = document.getElementById('viewer-mode-badge');
+      
+      if (!viewerBadge) {
+        viewerBadge = document.createElement('div');
+        viewerBadge.id = 'viewer-mode-badge';
+        viewerBadge.style.cssText = `
+          position: fixed;
+          bottom: 10px;
+          right: 10px;
+          background-color: rgba(255, 59, 48, 0.9);
+          color: white;
+          padding: 5px 10px;
+          border-radius: 4px;
+          font-size: 12px;
+          z-index: 9999;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        `;
+        viewerBadge.textContent = 'View Only Mode';
+        document.body.appendChild(viewerBadge);
+      }
     } else {
       document.body.classList.remove("viewer-mode");
       const badge = document.getElementById('viewer-mode-badge');
@@ -219,11 +335,13 @@ export const GlobalPermissionsHandler = () => {
       const badge = document.getElementById('viewer-mode-badge');
       if (badge) badge.remove();
     };
-  }, [userRole, isAuthPage]);
+  }, [userRole, isAuthPage, isBaySchedulingPage, isSandboxMode]);
   
   // Use direct DOM methods instead of JSX to avoid React warnings
-  // Never apply viewer guard on auth page
-  if (!canEdit && !isAuthPage) {
+  // Never apply viewer guard on auth page or in sandbox mode
+  const shouldApplyViewerGuard = !canEdit && !isAuthPage && !(isBaySchedulingPage && isSandboxMode);
+  
+  if (shouldApplyViewerGuard) {
     return <ViewerGuard />;
   }
   
