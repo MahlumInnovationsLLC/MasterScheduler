@@ -36,6 +36,7 @@ import Sidebar from "@/components/Sidebar";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AdminRoute } from "@/lib/admin-route";
+import { ViewerRestrictedRoute } from "@/lib/viewer-restricted-route";
 // Import SidebarContext and SidebarProvider for managing sidebar state
 import { SidebarProvider, SidebarContext } from "@/context/SidebarContext";
 import { useContext } from "react";
@@ -96,7 +97,7 @@ function MainContent() {
             <ProtectedRoute path="/delivered-projects" component={DeliveredProjects} />
             <ProtectedRoute path="/billing" component={BillingMilestones} />
             <ProtectedRoute path="/manufacturing" component={ManufacturingBay} />
-            <ProtectedRoute path="/bay-scheduling" component={BaySchedulingPage} />
+            <ViewerRestrictedRoute path="/bay-scheduling" component={BaySchedulingPage} redirectPath="/" />
             <ProtectedRoute path="/delivery-tracking" component={OnTimeDelivery} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />
             <ProtectedRoute path="/sales-forecast" component={SalesForecast} />

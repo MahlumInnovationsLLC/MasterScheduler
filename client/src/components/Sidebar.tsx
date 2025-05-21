@@ -19,6 +19,7 @@ import {
   ShoppingCart
 } from 'lucide-react';
 import { SidebarContext } from '@/context/SidebarContext';
+import { usePermissions } from '@/components/PermissionsManager';
 
 // Custom Link component that adds sidebar-item class for view-only mode support
 const SidebarLink = ({ href, className, title, children }: { 
@@ -38,6 +39,8 @@ const Sidebar = () => {
   const [location] = useLocation();
   // Use the sidebar context instead of local state
   const { isCollapsed, toggleSidebar } = useContext(SidebarContext);
+  // Get user role to conditionally hide bay scheduling
+  const { userRole } = usePermissions();
 
   // Directly call toggleSidebar from context
   const handleToggle = () => {
@@ -131,14 +134,17 @@ const Sidebar = () => {
                 {!isCollapsed && <span>Sales Forecast</span>}
               </SidebarLink>
             </li>
-            <li>
-              <SidebarLink href="/bay-scheduling" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/bay-scheduling') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`} title="Bay Scheduling">
-                <GanttChart className={`text-xl ${isActive('/bay-scheduling') ? 'text-primary' : ''}`} />
-                {!isCollapsed && <span>Bay Scheduling</span>}
-              </SidebarLink>
-            </li>
+            {/* Hide Bay Scheduling from Viewer role users */}
+            {userRole !== "viewer" && (
+              <li>
+                <SidebarLink href="/bay-scheduling" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                  isActive('/bay-scheduling') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
+                }`} title="Bay Scheduling">
+                  <GanttChart className={`text-xl ${isActive('/bay-scheduling') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Bay Scheduling</span>}
+                </SidebarLink>
+              </li>
+            )}
             <li>
               <SidebarLink href="/billing" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/billing') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
