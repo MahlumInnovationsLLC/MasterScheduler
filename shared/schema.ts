@@ -128,6 +128,18 @@ export const userStatusEnum = pgEnum("user_status", [
   "archived",
 ]);
 
+// Define permission categories enum
+export const permissionCategoryEnum = pgEnum("permission_category", [
+  "projects",
+  "manufacturing",
+  "billing",
+  "users",
+  "settings",
+  "data",
+  "reports",
+  "import_export",
+]);
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
   username: varchar("username").unique().notNull(),
@@ -527,6 +539,34 @@ export const allowedEmails = pgTable("allowed_emails", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Role Permissions Table - For customizable role-based access control
+export const rolePermissions = pgTable("role_permissions", {
+  id: serial("id").primaryKey(),
+  // The role this permission applies to (admin, editor, viewer)
+  role: text("role").notNull(),
+  // The category of permission (projects, manufacturing, billing, etc.)
+  category: permissionCategoryEnum("category").notNull(),
+  // The specific feature within that category
+  feature: text("feature").notNull(),
+  // Whether this role can view this feature
+  canView: boolean("can_view").default(false),
+  // Whether this role can edit/modify this feature
+  canEdit: boolean("can_edit").default(false),
+  // Whether this role can create new items in this feature
+  canCreate: boolean("can_create").default(false),
+  // Whether this role can delete items in this feature
+  canDelete: boolean("can_delete").default(false),
+  // Whether this role can import data for this feature
+  canImport: boolean("can_import").default(false),
+  // Whether this role can export data for this feature
+  canExport: boolean("can_export").default(false),
+  // For special permissions that don't fit the standard CRUD model
+  specialPermissions: jsonb("special_permissions"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // On Time Delivery Tracking Table
 export const deliveryTracking = pgTable("delivery_tracking", {
   id: serial("id").primaryKey(),
@@ -771,12 +811,22 @@ export const insertUserAuditLogSchema = createInsertSchema(userAuditLogs).omit({
   timestamp: true,
 });
 
+// Insert schema for role permissions
+export const insertRolePermissionSchema = createInsertSchema(rolePermissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
 export type UserAuditLog = typeof userAuditLogs.$inferSelect;
 export type InsertUserAuditLog = z.infer<typeof insertUserAuditLogSchema>;
+
+export type RolePermission = typeof rolePermissions.$inferSelect;
+export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;
 
 export type SalesDeal = typeof salesDeals.$inferSelect;
 export type InsertSalesDeal = z.infer<typeof insertSalesDealSchema>;
