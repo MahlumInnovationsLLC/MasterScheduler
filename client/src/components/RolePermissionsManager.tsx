@@ -134,6 +134,7 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role, i
   useEffect(() => {
     if (fetchedPermissions) {
       const initializedPermissions = [...fetchedPermissions];
+      let hasCreatedDefaults = false;
       
       // Generate default permissions structure for any missing features
       moduleCategories.forEach(category => {
@@ -143,6 +144,7 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role, i
           );
           
           if (!existingPermission) {
+            hasCreatedDefaults = true;
             // For admin role, grant all permissions by default
             // For editor, grant view & edit but not delete by default
             // For viewer, grant only view by default
@@ -165,6 +167,12 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role, i
       });
       
       setPermissions(initializedPermissions);
+      
+      // If we had to create default permissions, mark as having unsaved changes
+      // so the save button will appear
+      if (hasCreatedDefaults) {
+        setUnsavedChanges(true);
+      }
     }
   }, [fetchedPermissions, role]);
 
