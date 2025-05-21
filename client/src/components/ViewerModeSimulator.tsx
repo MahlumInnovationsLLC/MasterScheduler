@@ -48,7 +48,58 @@ export const ViewerModeSimulator: React.FC = () => {
   // Apply viewer mode restrictions
   const enforceViewerMode = () => {
     document.body.classList.add('viewer-mode');
+    // Force the viewer role class for testing
+    document.body.classList.add('role-viewer');
+    
     console.log('🔒 SIMULATOR: VIEW-ONLY MODE ENABLED - Testing viewer restrictions');
+    
+    // Disable all interactive elements except sidebar links
+    const disableInteractiveElements = () => {
+      // Override any development mode bypasses
+      window.localStorage.setItem('simulateViewerRole', 'true');
+      
+      // Disable buttons that aren't in the sidebar
+      const buttons = document.querySelectorAll('button:not(.sidebar-button)');
+      buttons.forEach(button => {
+        if (!button.closest('.sidebar-item')) {
+          button.setAttribute('disabled', 'true');
+          button.classList.add('viewer-disabled');
+        }
+      });
+      
+      // Disable inputs
+      const inputs = document.querySelectorAll('input, select, textarea');
+      inputs.forEach(input => {
+        input.setAttribute('disabled', 'true');
+        input.classList.add('viewer-disabled');
+      });
+      
+      // Add disabled attribute to all form elements
+      const formElements = document.querySelectorAll('form *');
+      formElements.forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.setAttribute('disabled', 'true');
+          el.classList.add('viewer-disabled');
+        }
+      });
+    };
+    
+    // Run immediately and set up a mutation observer to catch dynamically added elements
+    disableInteractiveElements();
+    
+    // Set up observer to disable newly added elements
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach(mutation => {
+        if (mutation.addedNodes.length) {
+          disableInteractiveElements();
+        }
+      });
+    });
+    
+    observer.observe(document.body, { 
+      childList: true,
+      subtree: true
+    });
     
     // Add viewer mode badge
     let badge = document.getElementById('viewer-mode-badge');

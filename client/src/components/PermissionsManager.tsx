@@ -294,16 +294,27 @@ export const GlobalPermissionsHandler = () => {
     // In development mode, we need special handling to allow testing viewer mode
     const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
     
-    // Only bypass if it's development mode AND not viewer role AND not auth page
+    // Check for manually set viewer role simulation
+    const isSimulatingViewer = window.localStorage.getItem('simulateViewerRole') === 'true';
+    
+    // Only bypass if it's development mode AND not viewer role AND not simulating viewer AND not auth page
     // This is critical to ensure we can test viewer mode in development
-    if (isDevelopment && !isAuthPage && userRole !== "viewer") {
+    if (isDevelopment && !isAuthPage && userRole !== "viewer" && !isSimulatingViewer) {
       console.log("Development mode detected, bypassing viewer restrictions (not viewer role)");
       document.body.classList.remove("viewer-mode");
+      document.body.classList.remove("role-viewer");
       const badge = document.getElementById('viewer-mode-badge');
       if (badge) badge.remove();
       const existingStyle = document.getElementById('viewer-mode-styles');
       if (existingStyle) existingStyle.remove();
       return;
+    }
+    
+    // If simulating viewer mode in development, force apply viewer restrictions
+    if (isDevelopment && isSimulatingViewer) {
+      console.log("🔒 FORCING VIEW-ONLY MODE - Development simulation active");
+      document.body.classList.add("viewer-mode");
+      document.body.classList.add("role-viewer");
     }
     
     if (shouldSkipRestrictions) {

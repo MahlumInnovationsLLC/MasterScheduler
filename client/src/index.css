@@ -30,11 +30,37 @@ body.viewer-mode .clickable,
 body.viewer-mode .editable-field,
 body.viewer-mode .edit-controls,
 body.viewer-mode .action-button,
-body.viewer-mode [contenteditable="true"] {
+body.viewer-mode [contenteditable="true"],
+body.role-viewer button:not(.sidebar-item):not(.sidebar-button),
+body.role-viewer input:not(.auth-input),
+body.role-viewer select:not(.auth-select),
+body.role-viewer textarea,
+body.role-viewer a[href]:not(.sidebar-item):not(.sidebar a),
+body.role-viewer [role="button"]:not(.sidebar-item),
+body.role-viewer [role="switch"],
+body.role-viewer [role="checkbox"],
+body.role-viewer [role="radio"],
+body.role-viewer [role="menuitem"],
+body.role-viewer [role="tab"],
+body.role-viewer [type="checkbox"],
+body.role-viewer [type="radio"],
+body.role-viewer [type="button"]:not(.sidebar-button),
+body.role-viewer [type="submit"],
+body.role-viewer [type="reset"],
+body.role-viewer .dropdown-toggle,
+body.role-viewer .clickable:not(.sidebar-item),
+body.role-viewer .editable-field,
+body.role-viewer .edit-controls,
+body.role-viewer .action-button:not(.sidebar-button),
+body.role-viewer [contenteditable="true"],
+/* Double ensure with attribute selectors */
+body[class*="viewer-mode"] button:not([class*="sidebar"]),
+body[class*="role-viewer"] button:not([class*="sidebar"]) {
   pointer-events: none !important;
   opacity: 0.7 !important;
   cursor: not-allowed !important;
   user-select: none !important;
+  filter: grayscale(20%) !important;
 }
 
 /* ONLY keep sidebar navigation clickable in viewer mode */
