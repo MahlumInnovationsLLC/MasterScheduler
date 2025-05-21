@@ -2629,6 +2629,7 @@ export default function ResizableBaySchedule({
         
         <div 
           className="bay-schedule-viewport flex-grow overflow-auto" 
+          style={{ marginLeft: "-10px" }}
           ref={viewportRef}
           onScroll={(e) => {
             // Update scroll position for the sticky header
