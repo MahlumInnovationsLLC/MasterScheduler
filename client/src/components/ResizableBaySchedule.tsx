@@ -1655,60 +1655,13 @@ export default function ResizableBaySchedule({
           
           {/* Manufacturing Bays */}
           <div className="manufacturing-bays mt-2">
-            {/* Process each team and insert weekly headers after odd-indexed teams */}
-            {bayTeams.flatMap((team, teamIndex) => {
-              // Create array of elements to return for this team
-              const elements = [];
-              
-              // If this is an odd-indexed team (every other team) and not the first team
-              if (teamIndex % 2 === 1 && teamIndex > 0) {
-                // Add a weekly header row first
-                elements.push(
-                  <div 
-                    key={`weekly-header-${teamIndex}`}
-                    className="week-header-row mb-2 flex bg-gray-900"
-                    style={{
-                      width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
-                    }}
-                  >
-                    {slots.map((slot, index) => (
-                      <div
-                        key={`team-week-header-${teamIndex}-${index}`}
-                        className={`
-                          timeline-slot border-r flex-shrink-0
-                          ${slot.isStartOfMonth ? 'bg-gray-800 border-r-2 border-r-blue-500' : ''}
-                          ${slot.isStartOfWeek ? 'bg-gray-850 border-r border-r-gray-600' : ''}
-                          ${!slot.isBusinessDay ? 'bg-gray-850/70' : ''}
-                        `}
-                        style={{ width: `${slotWidth}px`, height: '30px' }}
-                      >
-                        <div className="text-xs text-center w-full flex flex-col justify-center h-full">
-                          {slot.isStartOfMonth && (
-                            <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
-                              {slot.monthName} {format(slot.date, 'yyyy')}
-                            </div>
-                          )}
-                          <div className="text-gray-400 mt-1 text-[10px] font-semibold">
-                            Week {Math.ceil(differenceInDays(slot.date, new Date(slot.date.getFullYear(), 0, 1)) / 7)}
-                          </div>
-                          <div className="text-gray-400 text-[10px]">
-                            {format(slot.date, 'MM/dd')}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              }
-              
-              // Add the team container to our elements array
-              elements.push(
-                <div 
-                  key={`team-${teamIndex}`} 
-                  className="team-container mb-5 relative"
-                  style={{
-                    minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
-                  }}>
+            {bayTeams.map((team, teamIndex) => (
+              <div 
+                key={`team-${teamIndex}`} 
+                className="team-container mb-5 relative"
+                style={{
+                  minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
+                }}>
                 <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex shadow-md" style={{ position: 'relative' }}>
                   <div 
                     className="flex items-center"
