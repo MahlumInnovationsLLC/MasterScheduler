@@ -269,6 +269,12 @@ export const projects = pgTable("projects", {
   shipDate: date("ship_date"),
   deliveryDate: date("delivery_date"),
   
+  // Delivery information
+  actualDeliveryDate: date("actual_delivery_date"),
+  lateDeliveryReason: text("late_delivery_reason"),
+  delayResponsibility: delayResponsibilityEnum("delay_responsibility").default('not_applicable'),
+  isDeliveredOnTime: boolean("is_delivered_on_time"),
+  
   // Project details
   percentComplete: decimal("percent_complete", { precision: 5, scale: 2 }).default("0").notNull(),
   totalHours: integer("total_hours").default(1000), // Total hours needed for manufacturing
