@@ -47,12 +47,26 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 // Check if we're in development mode
 const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
 
+// Use the role from the URL parameter in development mode
+function getDevelopmentUserRole(): string {
+  // Default to viewer if no role is specified
+  if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
+    const role = urlParams.get('role');
+    if (role && ['viewer', 'editor', 'admin', 'pending'].includes(role)) {
+      console.log(`Development mode: Using role from URL: ${role}`);
+      return role;
+    }
+  }
+  return 'viewer'; // Default to viewer for security
+}
+
 // Mock user for development environment
 const DEV_MOCK_USER: User = {
-  id: "dev-user-id",
-  username: "dev-admin",
+  id: "dev-user-id", 
+  username: "dev-user",
   email: "dev@example.com",
-  role: "admin",
+  role: getDevelopmentUserRole(),
   isApproved: true,
   firstName: "Development",
   lastName: "User"

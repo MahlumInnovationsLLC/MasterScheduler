@@ -33,6 +33,7 @@ import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
+import { AdminRoute } from "@/lib/admin-route";
 // Import SidebarContext and SidebarProvider for managing sidebar state
 import { SidebarProvider, SidebarContext } from "@/context/SidebarContext";
 import { useContext } from "react";
@@ -98,9 +99,9 @@ function MainContent() {
             <ProtectedRoute path="/export-reports" component={ExportReports} />
             <ProtectedRoute path="/import" component={ImportData} />
             <ProtectedRoute path="/supply-chain" component={SupplyChain} />
-            <ProtectedRoute path="/settings/system" component={SystemSettings} />
-            <ProtectedRoute path="/system-settings" component={SystemSettings} />
-            <ProtectedRoute path="/settings" component={SystemSettings} />
+            <AdminRoute path="/settings/system" component={SystemSettings} />
+            <AdminRoute path="/system-settings" component={SystemSettings} />
+            <AdminRoute path="/settings" component={SystemSettings} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
             <Route path="/auth" component={AuthPage} />
             <Route component={NotFound} />

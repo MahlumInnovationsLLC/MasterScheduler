@@ -66,8 +66,11 @@ const SystemSettings = () => {
     totalDeleted?: number;
   } | null>(null);
   
+  // Get user data from authentication context
+  const { user } = useAuth();
+  
   // User role state (for permission management)
-  const [isAdmin, setIsAdmin] = useState(true); // Default to true in development mode
+  const [isAdmin, setIsAdmin] = useState(false);
   
   // User sorting state
   const [userSort, setUserSort] = useState<{column: string, direction: 'asc' | 'desc'}>({
@@ -86,13 +89,16 @@ const SystemSettings = () => {
     department: ''
   });
   
-  // In a production environment, we would check the user's role here
-  // For now, since we're in development mode, we'll always have admin rights
-  // This ensures the permissions UI is editable during development
+  // Check the user's role to determine admin access
   useEffect(() => {
-    console.log('Development mode detected, enabling admin capabilities');
-    setIsAdmin(true);
-  }, []);
+    if (user && user.role === 'admin') {
+      console.log('Admin role detected, enabling admin capabilities');
+      setIsAdmin(true);
+    } else {
+      console.log(`User role ${user?.role} does not have admin capabilities`);
+      setIsAdmin(false);
+    }
+  }, [user]);
   
   // Backup functionality temporarily disabled
   

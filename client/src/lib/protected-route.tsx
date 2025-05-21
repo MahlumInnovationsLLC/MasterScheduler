@@ -7,33 +7,8 @@ interface ProtectedRouteProps {
   component: React.ComponentType<any>;
 }
 
-// Check if we're in development mode
-const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
-
-// Admin mock user for development mode
-const DEV_MOCK_USER = {
-  id: "dev-user-id",
-  username: "dev-admin",
-  email: "dev@example.com",
-  role: "admin",
-  isApproved: true,
-  firstName: "Development",
-  lastName: "User",
-  isAuthenticated: true
-};
-
 export function ProtectedRoute({ path, component: Component }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
-
-  // Skip authentication in development mode
-  if (isDevelopment) {
-    console.log("🔧 Development mode: Authentication bypassed");
-    return (
-      <Route path={path}>
-        {(params) => <Component params={params} devUser={DEV_MOCK_USER} />}
-      </Route>
-    );
-  }
 
   // Production mode - normal authentication flow
   if (isLoading) {
