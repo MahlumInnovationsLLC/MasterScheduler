@@ -15,7 +15,9 @@ import {
   RefreshCw,
   ArchiveRestore,
   MoveRight,
-  ArrowUpCircle
+  ArrowUpCircle,
+  Database,
+  Loader2
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import RolePermissionsManager from "@/components/RolePermissionsManager";
@@ -70,6 +72,9 @@ const SystemSettings = () => {
   
   // User role state (for permission management)
   const [isAdmin, setIsAdmin] = useState(true); // Default to true in development mode
+  const [isBackupLoading, setIsBackupLoading] = useState(false);
+  const [isRestoreLoading, setIsRestoreLoading] = useState(false);
+  const [latestBackup, setLatestBackup] = useState<{filename: string, createdAt: string} | null>(null);
   
   // In a production environment, we would check the user's role here
   // For now, since we're in development mode, we'll always have admin rights
@@ -77,7 +82,123 @@ const SystemSettings = () => {
   useEffect(() => {
     console.log('Development mode detected, enabling admin capabilities');
     setIsAdmin(true);
+    
+    // Fetch latest backup info
+    fetchLatestBackup();
   }, []);
+  
+  // Fetch latest backup information
+  const fetchLatestBackup = async () => {
+    try {
+      const response = await fetch('/api/system/latest-backup');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.hasBackup) {
+          setLatestBackup({
+            filename: data.filename,
+            createdAt: data.createdAt
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching backup info:', error);
+    }
+  };
+  
+  // Create database backup
+  const handleBackupDatabase = async () => {
+    setIsBackupLoading(true);
+    try {
+      const response = await fetch('/api/system/backup-database', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          toast({
+            title: "Success",
+            description: "Database backup created successfully",
+          });
+          // Refresh backup info
+          fetchLatestBackup();
+        } else {
+          toast({
+            title: "Error",
+            description: data.message || "Failed to create database backup",
+            variant: "destructive"
+          });
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to create database backup",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error creating backup:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create database backup",
+        variant: "destructive"
+      });
+    } finally {
+      setIsBackupLoading(false);
+    }
+  };
+  
+  // Restore database from backup
+  const handleRestoreDatabase = async (filename: string) => {
+    // Show confirmation dialog
+    if (!confirm("Are you sure you want to restore the database from backup? This will replace all current data.")) {
+      return;
+    }
+    
+    setIsRestoreLoading(true);
+    try {
+      const response = await fetch('/api/system/restore-database', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ filename })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          toast({
+            title: "Success",
+            description: "Database restored successfully",
+          });
+          // Refresh all data
+          queryClient.invalidateQueries();
+        } else {
+          toast({
+            title: "Error",
+            description: data.message || "Failed to restore database",
+            variant: "destructive"
+          });
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to restore database",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error restoring database:', error);
+      toast({
+        title: "Error",
+        description: "Failed to restore database",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRestoreLoading(false);
+    }
+  };
 
   // User audit logs query
   const {
