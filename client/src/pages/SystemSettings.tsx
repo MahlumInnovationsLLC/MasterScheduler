@@ -76,6 +76,17 @@ const SystemSettings = () => {
   const [isRestoreLoading, setIsRestoreLoading] = useState(false);
   const [latestBackup, setLatestBackup] = useState<{filename: string, createdAt: string} | null>(null);
   
+  // User edit dialog state
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editUserForm, setEditUserForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    role: '',
+    department: ''
+  });
+  
   // In a production environment, we would check the user's role here
   // For now, since we're in development mode, we'll always have admin rights
   // This ensures the permissions UI is editable during development
@@ -957,7 +968,12 @@ const SystemSettings = () => {
                                     </AlertDialogContent>
                                   </AlertDialog>
                                   
-                                  <Button variant="ghost" size="icon" title="Edit User">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    title="Edit User"
+                                    onClick={() => handleEditUserClick(user)}
+                                  >
                                     <Edit className="h-4 w-4" />
                                   </Button>
                                 </div>
