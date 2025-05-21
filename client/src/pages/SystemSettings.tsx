@@ -1343,18 +1343,34 @@ const SystemSettings = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {userAuditLogs.map((log: any) => (
-                              <TableRow key={log.id}>
-                                <TableCell>{log.username || log.userId || 'System'}</TableCell>
-                                <TableCell>
-                                  <Badge variant={log.action === 'login' ? 'outline' : log.action === 'create' ? 'default' : log.action === 'update' ? 'secondary' : 'destructive'}>
-                                    {log.action}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>{log.details}</TableCell>
-                                <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
-                              </TableRow>
-                            ))}
+                            {userAuditLogs.map((log: any) => {
+                              // Find username if we have a userId
+                              const user = users?.find(u => u.id === log.userId);
+                              const displayName = user ? `${user.firstName} ${user.lastName}` : (log.userId || 'System');
+                              
+                              // Determine badge color based on action type
+                              let badgeVariant: 'outline' | 'default' | 'secondary' | 'destructive' = 'outline';
+                              if (log.action === 'STATUS_CHANGE') {
+                                badgeVariant = 'destructive';
+                              } else if (log.action === 'USER_UPDATE') {
+                                badgeVariant = 'secondary';
+                              } else if (log.action === 'USER_CREATE') {
+                                badgeVariant = 'default';
+                              }
+                              
+                              return (
+                                <TableRow key={log.id}>
+                                  <TableCell>{displayName}</TableCell>
+                                  <TableCell>
+                                    <Badge variant={badgeVariant}>
+                                      {log.action}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>{log.details}</TableCell>
+                                  <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
+                                </TableRow>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </div>
