@@ -1,348 +1,445 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Shield, Save, RefreshCw, Info } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { apiRequest } from '@/lib/queryClient';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertCircle, CheckCircle2, Shield, Settings, Package, Clipboard, Users, BarChart3, FileText, Download, Upload } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { queryClient } from '@/lib/queryClient';
+import { Badge } from "@/components/ui/badge";
 
-// Permission categories and their corresponding features
-const permissionStructure = {
-  projects: {
-    label: 'Projects',
+interface RolePermission {
+  id?: number;
+  role: string;
+  category: string;
+  feature: string;
+  canView: boolean;
+  canEdit: boolean;
+  canCreate: boolean;
+  canDelete: boolean;
+  canImport: boolean;
+  canExport: boolean;
+  specialPermissions?: any;
+}
+
+interface RolePermissionsManagerProps {
+  role: string;
+}
+
+// Define the available module categories and their features
+const moduleCategories = [
+  {
+    id: 'projects',
+    name: 'Project Management',
+    icon: <Clipboard className="h-5 w-5" />,
     features: [
       { id: 'project_list', name: 'Project List' },
       { id: 'project_details', name: 'Project Details' },
-      { id: 'project_statuses', name: 'Project Statuses' },
-      { id: 'project_financial', name: 'Financial Data' },
-      { id: 'project_documents', name: 'Documents' },
+      { id: 'project_timeline', name: 'Project Timeline' },
+      { id: 'project_status', name: 'Project Status' },
+      { id: 'project_delivery', name: 'Project Delivery' },
     ]
   },
-  manufacturing: {
-    label: 'Manufacturing',
+  {
+    id: 'manufacturing',
+    name: 'Manufacturing',
+    icon: <Package className="h-5 w-5" />,
     features: [
-      { id: 'bay_schedule', name: 'Bay Schedule' },
-      { id: 'production_status', name: 'Production Status' },
-      { id: 'manufacturing_bays', name: 'Bay Management' },
-      { id: 'capacity_planning', name: 'Capacity Planning' },
+      { id: 'bay_scheduling', name: 'Bay Scheduling' },
+      { id: 'bay_management', name: 'Bay Management' },
+      { id: 'manufacturing_timeline', name: 'Manufacturing Timeline' },
+      { id: 'resource_allocation', name: 'Resource Allocation' },
     ]
   },
-  billing: {
-    label: 'Billing',
+  {
+    id: 'billing',
+    name: 'Billing & Finance',
+    icon: <FileText className="h-5 w-5" />,
     features: [
-      { id: 'billing_overview', name: 'Billing Overview' },
       { id: 'billing_milestones', name: 'Billing Milestones' },
-      { id: 'invoice_management', name: 'Invoice Management' },
+      { id: 'invoicing', name: 'Invoicing' },
       { id: 'payment_tracking', name: 'Payment Tracking' },
+      { id: 'financial_reports', name: 'Financial Reports' },
     ]
   },
-  users: {
-    label: 'Users',
+  {
+    id: 'users',
+    name: 'User Management',
+    icon: <Users className="h-5 w-5" />,
     features: [
-      { id: 'user_management', name: 'User Management' },
-      { id: 'user_roles', name: 'Role Management' },
-      { id: 'user_activity', name: 'User Activity' },
+      { id: 'user_list', name: 'User List' },
+      { id: 'user_roles', name: 'User Roles' },
+      { id: 'user_profile', name: 'User Profile' },
     ]
   },
-  data: {
-    label: 'Data',
+  {
+    id: 'reports',
+    name: 'Reports & Analytics',
+    icon: <BarChart3 className="h-5 w-5" />,
     features: [
-      { id: 'data_analytics', name: 'Analytics' },
-      { id: 'data_dashboards', name: 'Dashboards' },
-      { id: 'data_exports', name: 'Data Exports' },
+      { id: 'production_reports', name: 'Production Reports' },
+      { id: 'delivery_reports', name: 'Delivery Reports' },
+      { id: 'financial_analytics', name: 'Financial Analytics' },
+      { id: 'performance_metrics', name: 'Performance Metrics' },
     ]
   },
-  reports: {
-    label: 'Reports',
+  {
+    id: 'import_export',
+    name: 'Import & Export',
+    icon: <Download className="h-5 w-5" />,
     features: [
-      { id: 'reports_financial', name: 'Financial Reports' },
-      { id: 'reports_manufacturing', name: 'Manufacturing Reports' },
-      { id: 'reports_management', name: 'Management Reports' },
-      { id: 'reports_custom', name: 'Custom Reports' },
+      { id: 'excel_import', name: 'Excel Import' },
+      { id: 'data_export', name: 'Data Export' },
+      { id: 'batch_operations', name: 'Batch Operations' },
     ]
   },
-  settings: {
-    label: 'Settings',
+  {
+    id: 'settings',
+    name: 'System Settings',
+    icon: <Settings className="h-5 w-5" />,
     features: [
-      { id: 'system_settings', name: 'System Settings' },
-      { id: 'company_profile', name: 'Company Profile' },
-      { id: 'email_templates', name: 'Email Templates' },
-      { id: 'system_logs', name: 'System Logs' },
+      { id: 'general_settings', name: 'General Settings' },
+      { id: 'access_control', name: 'Access Control' },
+      { id: 'system_maintenance', name: 'System Maintenance' },
     ]
   },
-  import_export: {
-    label: 'Import/Export',
-    features: [
-      { id: 'import_projects', name: 'Import Projects' },
-      { id: 'import_manufacturing', name: 'Import Manufacturing Data' },
-      { id: 'import_billing', name: 'Import Billing Data' },
-      { id: 'export_all', name: 'Export All Data' },
-    ]
-  }
-};
-
-// Permission types that can be toggled
-const permissionTypes = [
-  { id: 'canView', name: 'View', description: 'Can view this feature' },
-  { id: 'canEdit', name: 'Edit', description: 'Can edit/modify data in this feature' },
-  { id: 'canCreate', name: 'Create', description: 'Can create new items in this feature' },
-  { id: 'canDelete', name: 'Delete', description: 'Can delete items from this feature' },
-  { id: 'canImport', name: 'Import', description: 'Can import data for this feature' },
-  { id: 'canExport', name: 'Export', description: 'Can export data from this feature' },
 ];
 
-// The roles available in the system
-const roleTypes = [
-  { id: 'viewer', name: 'Viewer', description: 'Basic read-only access' },
-  { id: 'editor', name: 'Editor', description: 'Can edit most data but not manage users or system settings' },
-  { id: 'admin', name: 'Admin', description: 'Full system access and control' },
-];
-
-interface RolePermissionsManagerProps {
-  role?: string;
-}
-
-const RolePermissionsManager = ({ role }: RolePermissionsManagerProps) => {
+const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role }) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [activeRole, setActiveRole] = useState(role || 'viewer');
-  const [activeCategory, setActiveCategory] = useState(Object.keys(permissionStructure)[0]);
-  const [permissions, setPermissions] = useState<Record<string, any>[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [permissions, setPermissions] = useState<RolePermission[]>([]);
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
-  // Fetch permissions for the active role
-  const { data: rolePermissions, isLoading: permissionsLoading } = useQuery({
-    queryKey: ['/api/role-permissions', activeRole],
+  // Fetch permissions for this role
+  const { data: fetchedPermissions, isLoading, error } = useQuery({
+    queryKey: ['/api/role-permissions', role],
     queryFn: async () => {
-      const response = await fetch(`/api/role-permissions?role=${activeRole}`);
+      const response = await fetch(`/api/role-permissions?role=${role}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch role permissions');
+        throw new Error('Failed to fetch permissions');
       }
       return response.json();
-    },
-    refetchOnWindowFocus: false,
+    }
   });
 
-  // Save updated permissions
-  const saveMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return apiRequest(`/api/role-permissions/bulk-update/${activeRole}`, {
-        method: 'POST',
-        body: JSON.stringify({ permissions: data }),
+  // Initialize default permissions if none exist for a category/feature
+  useEffect(() => {
+    if (fetchedPermissions) {
+      const initializedPermissions = [...fetchedPermissions];
+      
+      // Generate default permissions structure for any missing features
+      moduleCategories.forEach(category => {
+        category.features.forEach(feature => {
+          const existingPermission = fetchedPermissions.find(
+            p => p.category === category.id && p.feature === feature.id
+          );
+          
+          if (!existingPermission) {
+            // For admin role, grant all permissions by default
+            // For editor, grant view & edit but not delete by default
+            // For viewer, grant only view by default
+            const defaultPermission: RolePermission = {
+              role: role,
+              category: category.id,
+              feature: feature.id,
+              canView: true, // All roles can view by default
+              canEdit: role === 'admin' || role === 'editor',
+              canCreate: role === 'admin' || role === 'editor',
+              canDelete: role === 'admin',
+              canImport: role === 'admin',
+              canExport: true, // All roles can export by default
+              specialPermissions: {}
+            };
+            
+            initializedPermissions.push(defaultPermission);
+          }
+        });
       });
+      
+      setPermissions(initializedPermissions);
+    }
+  }, [fetchedPermissions, role]);
+
+  // Mutation for bulk updating permissions
+  const updatePermissionsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/role-permissions/bulk-update/${role}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ permissions }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update permissions');
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Permissions updated",
-        description: `Permissions for ${roleTypes.find(r => r.id === activeRole)?.name || activeRole} have been updated successfully.`,
-        variant: "default",
+        title: "Permissions Updated",
+        description: `${role.charAt(0).toUpperCase() + role.slice(1)} permissions have been updated successfully.`,
+        variant: "default"
       });
+      setUnsavedChanges(false);
       queryClient.invalidateQueries({ queryKey: ['/api/role-permissions'] });
-      setHasChanges(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
-        title: "Error updating permissions",
-        description: `Failed to update permissions: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: "destructive",
+        title: "Update Failed",
+        description: `Error updating permissions: ${error.message}`,
+        variant: "destructive"
       });
-    },
+    }
   });
 
-  // Initialize permissions from fetched data
-  useEffect(() => {
-    if (rolePermissions) {
-      setPermissions(rolePermissions);
-      setIsLoading(false);
-    }
-  }, [rolePermissions]);
-
-  // Handle the save action
-  const handleSavePermissions = () => {
-    saveMutation.mutate(permissions);
-  };
-
-  // Toggle a specific permission
-  const togglePermission = (categoryId: string, featureId: string, permissionType: string, value: boolean) => {
-    setPermissions(prev => {
-      // Find the existing permission if it exists
-      const existingIndex = prev.findIndex(p => 
-        p.role === activeRole && 
-        p.category === categoryId && 
-        p.feature === featureId
-      );
-
-      // Create updated permissions array
-      const updated = [...prev];
-      
-      if (existingIndex >= 0) {
-        // Update existing permission
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          [permissionType]: value
+  // Handle toggle change for a permission
+  const handleTogglePermission = (categoryId: string, featureId: string, permissionType: keyof RolePermission) => {
+    const updatedPermissions = permissions.map(p => {
+      if (p.category === categoryId && p.feature === featureId) {
+        return {
+          ...p,
+          [permissionType]: !p[permissionType as keyof RolePermission]
         };
-      } else {
-        // Create new permission
-        updated.push({
-          role: activeRole,
-          category: categoryId,
-          feature: featureId,
-          [permissionType]: value,
-        });
       }
-
-      setHasChanges(true);
-      return updated;
+      return p;
     });
+    
+    setPermissions(updatedPermissions);
+    setUnsavedChanges(true);
   };
 
-  // Check if a permission is enabled
-  const isPermissionEnabled = (categoryId: string, featureId: string, permissionType: string): boolean => {
-    const permission = permissions.find(p => 
-      p.role === activeRole && 
-      p.category === categoryId && 
-      p.feature === featureId
-    );
+  // Handle save permissions
+  const handleSavePermissions = () => {
+    updatePermissionsMutation.mutate();
+  };
 
-    // If no permission record exists or the specific permission is not set, default to false
-    return permission ? !!permission[permissionType] : false;
+  // Toggle category expansion
+  const toggleCategory = (categoryId: string) => {
+    if (expandedCategories.includes(categoryId)) {
+      setExpandedCategories(expandedCategories.filter(id => id !== categoryId));
+    } else {
+      setExpandedCategories([...expandedCategories, categoryId]);
+    }
+  };
+
+  // Get permission for a specific feature
+  const getPermission = (categoryId: string, featureId: string): RolePermission | undefined => {
+    return permissions.find(p => p.category === categoryId && p.feature === featureId);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert className="bg-destructive/20 border-destructive">
+        <AlertCircle className="h-5 w-5 text-destructive" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          {(error as Error).message || "Failed to load permissions"}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Get role label with proper formatting
+  const getRoleLabel = () => {
+    return role.charAt(0).toUpperCase() + role.slice(1);
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Shield className="h-5 w-5" /> Role Permissions
-        </CardTitle>
-        <CardDescription>
-          Customize access permissions for each role in the system
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {/* Role Selection Tabs */}
-        <Tabs value={activeRole} onValueChange={setActiveRole} className="mb-6">
-          <TabsList className="grid w-full grid-cols-3">
-            {roleTypes.map(role => (
-              <TabsTrigger 
-                key={role.id} 
-                value={role.id}
-                className="relative"
-              >
-                {role.name}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          
-          {roleTypes.map(role => (
-            <TabsContent key={role.id} value={role.id} className="pt-4">
-              <div className="text-sm text-muted-foreground mb-4">
-                {role.description}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Shield className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-medium">{getRoleLabel()} Role Permissions</h3>
+        </div>
+        <Badge 
+          variant={role === 'admin' ? "default" : role === 'editor' ? "secondary" : "outline"}
+          className="px-3 py-1"
+        >
+          {getRoleLabel()} Role
+        </Badge>
+      </div>
+      
+      <p className="text-sm text-gray-500">
+        Configure what {getRoleLabel()} users can access and modify in the system. Changes will apply to all users with this role.
+      </p>
+      
+      <Accordion type="multiple" className="w-full" value={expandedCategories}>
+        {moduleCategories.map((category) => (
+          <AccordionItem key={category.id} value={category.id}>
+            <AccordionTrigger onClick={() => toggleCategory(category.id)} className="hover:no-underline">
+              <div className="flex items-center space-x-2">
+                {category.icon}
+                <span>{category.name}</span>
               </div>
-            </TabsContent>
-          ))}
-        </Tabs>
-
-        {/* Category Selection Tabs */}
-        <Tabs value={activeCategory} onValueChange={setActiveCategory} className="mb-6">
-          <TabsList className="flex flex-wrap">
-            {Object.entries(permissionStructure).map(([id, category]) => (
-              <TabsTrigger 
-                key={id} 
-                value={id}
-                className="text-xs"
-              >
-                {category.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-
-        {isLoading || permissionsLoading ? (
-          <div className="flex justify-center py-6">
-            <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <>
-            {/* Permission Toggles Section */}
-            <div className="space-y-6">
-              {permissionStructure[activeCategory as keyof typeof permissionStructure].features.map(feature => (
-                <div key={feature.id} className="border rounded-md p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="font-medium">{feature.name}</div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-                    {permissionTypes.map(permission => (
-                      <div key={permission.id} className="flex items-center space-x-2">
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 py-2">
+                <div className="grid grid-cols-7 gap-2 text-xs font-medium text-gray-500 border-b pb-2">
+                  <div className="col-span-3">Feature</div>
+                  <div className="text-center">View</div>
+                  <div className="text-center">Edit</div>
+                  <div className="text-center">Create</div>
+                  <div className="text-center">Delete</div>
+                </div>
+                
+                {category.features.map((feature) => {
+                  const permission = getPermission(category.id, feature.id);
+                  
+                  return permission ? (
+                    <div key={feature.id} className="grid grid-cols-7 gap-2 items-center py-2 border-b border-gray-800">
+                      <div className="col-span-3">{feature.name}</div>
+                      
+                      {/* View Permission */}
+                      <div className="flex justify-center">
                         <Switch
-                          id={`${feature.id}-${permission.id}`}
-                          checked={isPermissionEnabled(activeCategory, feature.id, permission.id)}
-                          onCheckedChange={(checked) => togglePermission(activeCategory, feature.id, permission.id, checked)}
+                          checked={permission.canView}
+                          onCheckedChange={() => handleTogglePermission(category.id, feature.id, 'canView')}
                         />
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Label 
-                                htmlFor={`${feature.id}-${permission.id}`}
-                                className="text-sm cursor-pointer"
-                              >
-                                {permission.name}
-                              </Label>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{permission.description}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
                       </div>
-                    ))}
+                      
+                      {/* Edit Permission */}
+                      <div className="flex justify-center">
+                        <Switch
+                          checked={permission.canEdit}
+                          onCheckedChange={() => handleTogglePermission(category.id, feature.id, 'canEdit')}
+                          disabled={!permission.canView} // Can't edit if can't view
+                        />
+                      </div>
+                      
+                      {/* Create Permission */}
+                      <div className="flex justify-center">
+                        <Switch
+                          checked={permission.canCreate}
+                          onCheckedChange={() => handleTogglePermission(category.id, feature.id, 'canCreate')}
+                          disabled={!permission.canView} // Can't create if can't view
+                        />
+                      </div>
+                      
+                      {/* Delete Permission */}
+                      <div className="flex justify-center">
+                        <Switch
+                          checked={permission.canDelete}
+                          onCheckedChange={() => handleTogglePermission(category.id, feature.id, 'canDelete')}
+                          disabled={!permission.canEdit} // Can't delete if can't edit
+                        />
+                      </div>
+                    </div>
+                  ) : null;
+                })}
+                
+                <div className="py-2">
+                  <h4 className="text-sm font-medium mb-2">Advanced Permissions</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id={`${category.id}-import`}
+                          checked={permissions.some(p => p.category === category.id && p.canImport)}
+                          onCheckedChange={() => {
+                            // Toggle import permission for all features in this category
+                            const allFeatureIds = category.features.map(f => f.id);
+                            const currentValue = permissions.some(p => p.category === category.id && p.canImport);
+                            
+                            const updatedPermissions = permissions.map(p => {
+                              if (p.category === category.id && allFeatureIds.includes(p.feature)) {
+                                return { ...p, canImport: !currentValue };
+                              }
+                              return p;
+                            });
+                            
+                            setPermissions(updatedPermissions);
+                            setUnsavedChanges(true);
+                          }}
+                        />
+                        <Label htmlFor={`${category.id}-import`} className="flex items-center space-x-1">
+                          <Upload className="h-4 w-4" />
+                          <span>Import Data</span>
+                        </Label>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id={`${category.id}-export`}
+                          checked={permissions.some(p => p.category === category.id && p.canExport)}
+                          onCheckedChange={() => {
+                            // Toggle export permission for all features in this category
+                            const allFeatureIds = category.features.map(f => f.id);
+                            const currentValue = permissions.some(p => p.category === category.id && p.canExport);
+                            
+                            const updatedPermissions = permissions.map(p => {
+                              if (p.category === category.id && allFeatureIds.includes(p.feature)) {
+                                return { ...p, canExport: !currentValue };
+                              }
+                              return p;
+                            });
+                            
+                            setPermissions(updatedPermissions);
+                            setUnsavedChanges(true);
+                          }}
+                        />
+                        <Label htmlFor={`${category.id}-export`} className="flex items-center space-x-1">
+                          <Download className="h-4 w-4" />
+                          <span>Export Data</span>
+                        </Label>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Save Button */}
-            <div className="mt-6 flex justify-end">
-              <Button
-                onClick={handleSavePermissions}
-                disabled={!hasChanges || saveMutation.isPending}
-              >
-                {saveMutation.isPending ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Permissions
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {/* Information Text */}
-            <div className="mt-4 flex items-start gap-2 text-sm text-muted-foreground">
-              <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              <p>
-                Changes to permissions are applied instantly to all users with this role.
-                Note that the Admin role always has full access to all features regardless of these settings.
-              </p>
-            </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+      
+      <div className="flex justify-end pt-4">
+        <Button
+          onClick={handleSavePermissions}
+          disabled={!unsavedChanges || updatePermissionsMutation.isPending}
+          className="w-full sm:w-auto"
+        >
+          {updatePermissionsMutation.isPending ? (
+            <>
+              <div className="animate-spin mr-2 h-4 w-4 border-2 border-b-transparent rounded-full"></div>
+              Saving Changes...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              Save Permission Changes
+            </>
+          )}
+        </Button>
+      </div>
+      
+      {unsavedChanges && (
+        <Alert className="bg-amber-950/30 border-amber-700">
+          <AlertCircle className="h-5 w-5 text-amber-500" />
+          <AlertTitle>Unsaved Changes</AlertTitle>
+          <AlertDescription>
+            You have unsaved permission changes. Click "Save Permission Changes" to apply them.
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
   );
 };
 
