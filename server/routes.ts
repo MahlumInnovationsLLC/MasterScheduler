@@ -260,7 +260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PATCH endpoint for handling partial updates (especially dates)
-  app.patch("/api/projects/:id", isAuthenticated, async (req, res) => {
+  app.patch("/api/projects/:id", isAuthenticated, hasEditRights, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       console.log(`PATCH request received for project ID: ${id}`, req.body);
@@ -277,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process date fields specifically
       const dateFields = [
         'startDate', 'contractDate', 'estimatedCompletionDate', 'actualCompletionDate',
-        'chassisETA', 'fabricationStart', 'assemblyStart', 'wrapDate', 'ntcTestingDate',
+        'chassisETA', 'fabricationStart', 'paintStart', 'assemblyStart', 'wrapDate', 'ntcTestingDate',
         'qcStartDate', 'executiveReviewDate', 'shipDate', 'deliveryDate'
       ];
       
