@@ -287,19 +287,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // If the value is null, keep it null for clearing dates
           if (updateData[field] === null) {
             console.log(`Clearing date field ${field} to null`);
-          } 
-          // Otherwise, make sure it's properly formatted
+          }
+          // Otherwise, just use the exact string provided by the client
           else if (updateData[field]) {
-            try {
-              // Ensure we're storing dates in YYYY-MM-DD format
-              const date = new Date(updateData[field]);
-              if (!isNaN(date.getTime())) {
-                updateData[field] = date.toISOString().split('T')[0];
-                console.log(`Formatted date for ${field}: ${updateData[field]}`);
-              }
-            } catch (e) {
-              console.error(`Error formatting date for ${field}:`, e);
-            }
+            // Don't perform any date conversion that could cause timezone issues
+            // Just log that we're using the date as-is
+            console.log(`Using date for ${field} as provided: ${updateData[field]}`);
           }
         }
       });
