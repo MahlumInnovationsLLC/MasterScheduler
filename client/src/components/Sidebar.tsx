@@ -218,12 +218,12 @@ const Sidebar = () => {
               </SidebarLink>
             </li>
             <li>
-              <Link href="/system-settings" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+              <SidebarLink href="/system-settings" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
                 isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`} title="System Settings">
                 <Settings className={`text-xl ${isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>System Settings</span>}
-              </Link>
+              </SidebarLink>
             </li>
           </ul>
         </div>
