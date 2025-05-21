@@ -207,6 +207,7 @@ export const userDepartmentEnum = pgEnum("user_department", [
   "it",
   "sales",
   "executive",
+  "planning_analysis",
   "other"
 ]);
 

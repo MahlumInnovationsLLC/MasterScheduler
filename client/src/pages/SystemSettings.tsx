@@ -819,6 +819,7 @@ const SystemSettings = () => {
                     <SelectItem value="it">IT</SelectItem>
                     <SelectItem value="sales">Sales</SelectItem>
                     <SelectItem value="executive">Executive</SelectItem>
+                    <SelectItem value="planning_analysis">Planning & Analysis</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
