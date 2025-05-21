@@ -1775,23 +1775,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUser(userId, {
         firstName,
         lastName,
+        email,
         role
       });
       
       // Handle department update in user preferences
       if (department) {
-        // Get current user preferences
-        const prefs = await storage.getUserPreferences(userId);
-        
-        if (prefs) {
-          // Update existing preferences with new department
-          await storage.updateUserPreferences(userId, { department });
-        } else {
-          // Create new preferences record with department
-          await storage.createUserPreferences({
-            userId,
-            department
-          });
+        console.log("STORAGE: Updating preferences for user", userId, ":", { department });
+        try {
+          // Get current user preferences
+          const prefs = await storage.getUserPreferences(userId);
+          
+          if (prefs) {
+            // Update existing preferences with new department
+            await storage.updateUserPreferences(userId, { department });
+          } else {
+            // Create new preferences record with department
+            await storage.createUserPreferences({
+              userId,
+              department
+            });
+          }
+        } catch (prefError) {
+          console.error("Error updating user preferences:", prefError);
+          // Don't fail the whole request if just preferences update fails
         }
       }
       
