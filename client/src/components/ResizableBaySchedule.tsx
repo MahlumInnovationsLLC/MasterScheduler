@@ -2731,15 +2731,59 @@ export default function ResizableBaySchedule({
                 if (!teamName) return false;
                 return !teamName.match(/^Team \d+:?/);
               })
-              .map((team, teamIndex) => (
-              <div 
-                key={`team-${teamIndex}`} 
-                className="team-container mb-5 relative"
-                data-team-section={team[0]?.team ? `${team[0].team}::${team.map(bay => bay.id).join(',')}` : ''}
-                style={{
-                  minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
-                }}>
-                <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex shadow-md" style={{ position: 'relative' }}>
+              .map((team, teamIndex) => {
+                // Determine if we should show weekly header for this team
+                const showWeeklyHeader = teamIndex % 2 === 1 && teamIndex > 0;
+                
+                // Return components for this team
+                return (
+                  <div key={`team-section-${teamIndex}`}>
+                    {/* Weekly header row after every other team */}
+                    {showWeeklyHeader && (
+                      <div 
+                        className="week-header-row mb-1 flex"
+                        style={{
+                          width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
+                        }}
+                      >
+                        {slots.map((slot, index) => (
+                          <div
+                            key={`team-week-header-${teamIndex}-${index}`}
+                            className={`
+                              timeline-slot border-r flex-shrink-0
+                              ${slot.isStartOfMonth ? 'bg-gray-800 border-r-2 border-r-blue-500' : ''}
+                              ${slot.isStartOfWeek ? 'bg-gray-850 border-r border-r-gray-600' : ''}
+                              ${!slot.isBusinessDay ? 'bg-gray-850/70' : ''}
+                            `}
+                            style={{ width: `${slotWidth}px`, height: '30px' }}
+                          >
+                            <div className="text-xs text-center w-full flex flex-col justify-center h-full">
+                              {slot.isStartOfMonth && (
+                                <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
+                                  {slot.monthName} {format(slot.date, 'yyyy')}
+                                </div>
+                              )}
+                              <div className="text-gray-400 text-[10px] font-semibold">
+                                Week {Math.ceil(differenceInDays(slot.date, new Date(slot.date.getFullYear(), 0, 1)) / 7)}
+                              </div>
+                              <div className="text-gray-400 text-[10px]">
+                                {format(slot.date, 'MM/dd')}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Team container with header */}
+                    <div 
+                      className="team-container mb-5 relative"
+                      data-team-section={team[0]?.team ? `${team[0].team}::${team.map(bay => bay.id).join(',')}` : ''}
+                      style={{
+                        minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
+                      }}
+                    >
+                      <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex shadow-md" style={{ position: 'relative' }}>
                   <div 
                     className="flex items-center"
                     style={{
