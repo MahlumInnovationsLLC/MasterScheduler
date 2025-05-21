@@ -13,7 +13,11 @@ import {
   UserCheck, 
   UserX, 
   RefreshCw,
-  MoveRight
+  ArchiveRestore,
+  MoveRight,
+  ArrowUpCircle,
+  Database,
+  Loader2
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import RolePermissionsManager from "@/components/RolePermissionsManager";
@@ -1613,14 +1617,54 @@ const SystemSettings = () => {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <h3 className="text-sm font-medium text-muted-foreground">System Date</h3>
+                      <h3 className="text-sm font-medium text-muted-foreground">Last Backup</h3>
                       <p className="text-lg font-semibold">
-                        {new Date().toLocaleString()}
+                        {latestBackup ? new Date(latestBackup.createdAt).toLocaleString() : "Never"}
                       </p>
                     </div>
                   </div>
                   
                   <Separator className="my-6" />
+                  
+                  <div className="flex space-x-4 mb-6">
+                    <Button 
+                      onClick={handleBackupDatabase} 
+                      disabled={isBackupLoading}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isBackupLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Creating Backup...
+                        </>
+                      ) : (
+                        <>
+                          <Database className="h-4 w-4 mr-2" />
+                          Create Database Backup
+                        </>
+                      )}
+                    </Button>
+                    
+                    {latestBackup && (
+                      <Button 
+                        onClick={() => handleRestoreDatabase(latestBackup.filename)} 
+                        disabled={isRestoreLoading}
+                        variant="outline"
+                      >
+                        {isRestoreLoading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            Restoring...
+                          </>
+                        ) : (
+                          <>
+                            <ArchiveRestore className="h-4 w-4 mr-2" />
+                            Restore from Latest Backup
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card>
