@@ -1875,6 +1875,22 @@ export default function ResizableBaySchedule({
     }
     
     try {
+      // Check if the project is already scheduled anywhere
+      const existingSchedule = schedules.find(s => s.projectId === currentProject);
+      
+      if (existingSchedule) {
+        // Project is already scheduled - show error and don't allow duplicate
+        const existingBay = bays.find(b => b.id === existingSchedule.bayId);
+        const projectDetails = projects.find(p => p.id === currentProject);
+        
+        toast({
+          title: "Duplicate Project Schedule",
+          description: `Project ${projectDetails?.projectNumber} is already scheduled in ${existingBay?.name || 'Bay ' + existingSchedule.bayId}. Please remove the existing schedule before adding a new one.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Format dates for the API
       const formattedStartDate = format(targetStartDate, 'yyyy-MM-dd');
       const formattedEndDate = format(targetEndDate, 'yyyy-MM-dd');
@@ -3724,7 +3740,7 @@ export default function ResizableBaySchedule({
       
       {/* Add Schedule Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xl md:max-w-2xl w-[650px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Schedule</DialogTitle>
             <DialogDescription>
