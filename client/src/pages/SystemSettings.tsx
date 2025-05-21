@@ -1216,7 +1216,7 @@ const SystemSettings = () => {
                     <Card>
                       <CardContent className="pt-6">
                         <div className="text-center">
-                          <h3 className="text-lg font-semibold">0</h3>
+                          <h3 className="text-lg font-semibold">{activeProjects ? activeProjects.length : 0}</h3>
                           <p className="text-sm text-muted-foreground">Active Projects</p>
                         </div>
                       </CardContent>

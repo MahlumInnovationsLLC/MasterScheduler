@@ -56,6 +56,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or, inArray } from "drizzle-orm";
+import * as schemaBackup from "../shared/schema-backup";
 import { PgSelectBase } from "drizzle-orm/pg-core";
 
 /**
@@ -248,6 +249,45 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Database backup methods
+  async createBackupRecord(data: { filename: string, size: number, createdAt: Date }) {
+    try {
+      const result = await this.db.insert(schemaBackup.databaseBackups).values(data).returning();
+      return result[0];
+    } catch (err) {
+      console.error("Error creating backup record:", err);
+      throw err;
+    }
+  }
+
+  async getLatestBackup() {
+    try {
+      const backups = await this.db.select().from(schemaBackup.databaseBackups).orderBy(desc(schemaBackup.databaseBackups.createdAt)).limit(1);
+      return backups.length > 0 ? backups[0] : null;
+    } catch (err) {
+      console.error("Error getting latest backup:", err);
+      return null;
+    }
+  }
+
+  async getBackups() {
+    try {
+      return await this.db.select().from(schemaBackup.databaseBackups).orderBy(desc(schemaBackup.databaseBackups.createdAt));
+    } catch (err) {
+      console.error("Error getting backups:", err);
+      return [];
+    }
+  }
+
+  async createRestoreRecord(data: { filename: string, restoredAt: Date }) {
+    try {
+      const result = await this.db.insert(schemaBackup.databaseRestores).values(data).returning();
+      return result[0];
+    } catch (err) {
+      console.error("Error creating restore record:", err);
+      throw err;
+    }
+  }
   // Role Permissions Methods
   async getRolePermissions(role?: string): Promise<RolePermission[]> {
     try {
