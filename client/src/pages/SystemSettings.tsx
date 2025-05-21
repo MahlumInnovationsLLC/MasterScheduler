@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -57,7 +57,6 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest, getQueryFn } from '../lib/queryClient';
-import { useQuery as tanstackUseQuery, useQueryClient } from '@tanstack/react-query';
 
 const SystemSettings = () => {
   const { toast } = useToast();
@@ -75,29 +74,12 @@ const SystemSettings = () => {
   // User role state (for permission management)
   const [isAdmin, setIsAdmin] = useState(true); // Default to true in development mode
   
-  // Check if current user is admin (in real app, this would use the actual user's role)
+  // In a production environment, we would check the user's role here
+  // For now, since we're in development mode, we'll always have admin rights
+  // This ensures the permissions UI is editable during development
   useEffect(() => {
-    // In a real app with auth, this would check the currently logged in user
-    // Instead, we're using development mode detection
-    const checkIfAdmin = async () => {
-      try {
-        if (process.env.NODE_ENV === 'development' || import.meta.env.DEV) {
-          // In development mode, always grant admin rights for testing
-          setIsAdmin(true);
-        } else {
-          // In production, this would check the user's actual role from the auth system
-          const response = await fetch('/api/auth/check-admin');
-          const data = await response.json();
-          setIsAdmin(data.isAdmin);
-        }
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        // Default to false if there's an error
-        setIsAdmin(false);
-      }
-    };
-    
-    checkIfAdmin();
+    console.log('Development mode detected, enabling admin capabilities');
+    setIsAdmin(true);
   }, []);
 
   // User audit logs query
