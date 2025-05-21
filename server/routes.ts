@@ -1904,6 +1904,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Route to approve a user
+  app.patch("/api/users/:id/approve", isAdmin, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Update user to approved status
+      const updatedUser = await storage.updateUser(userId, {
+        isApproved: true,
+        status: "active",
+        updatedAt: new Date()
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "User approved successfully",
+        user: updatedUser
+      });
+    } catch (error) {
+      console.error("Error approving user:", error);
+      res.status(500).json({ message: "Error approving user" });
+    }
+  });
+  
+  // Route to reject a user
+  app.patch("/api/users/:id/reject", isAdmin, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Update user to rejected status
+      const updatedUser = await storage.updateUser(userId, {
+        isApproved: false,
+        status: "archived",
+        updatedAt: new Date()
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "User rejected successfully",
+        user: updatedUser
+      });
+    } catch (error) {
+      console.error("Error rejecting user:", error);
+      res.status(500).json({ message: "Error rejecting user" });
+    }
+  });
+  
   // Route to archive a user
   app.put("/api/users/:id/archive", isAdmin, async (req, res) => {
     try {
