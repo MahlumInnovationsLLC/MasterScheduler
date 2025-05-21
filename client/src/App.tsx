@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LoadingProvider } from "@/components/LoadingManager";
+import { PermissionsProvider, GlobalPermissionsHandler } from "@/components/PermissionsManager";
 import Dashboard from "@/pages/Dashboard";
 import ProjectStatus from "@/pages/ProjectStatus";
 import BillingMilestones from "@/pages/BillingMilestones";
@@ -118,8 +119,11 @@ function App() {
       <ThemeProvider>
         <TooltipProvider>
           <AuthProvider>
-            <Toaster />
-            <Router />
+            <PermissionsProvider>
+              <Toaster />
+              <GlobalPermissionsHandler />
+              <Router />
+            </PermissionsProvider>
           </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>
