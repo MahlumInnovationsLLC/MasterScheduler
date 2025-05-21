@@ -117,6 +117,7 @@ export interface IStorage {
   upsertUser(user: InsertUser): Promise<User>;
   updateUserRole(id: string, role: string, isApproved: boolean): Promise<User | undefined>;
   updateUserLastLogin(id: string): Promise<User | undefined>;
+  updateUser(id: string, userData: Partial<User>): Promise<User | undefined>;
   
   // Role permissions methods
   getRolePermissions(role?: string): Promise<RolePermission[]>;
@@ -713,6 +714,35 @@ export class DatabaseStorage implements IStorage {
       return updatedUser;
     } catch (error) {
       console.error("Error updating user last login:", error);
+      return undefined;
+    }
+  }
+  
+  async updateUser(id: string, userData: Partial<User>): Promise<User | undefined> {
+    try {
+      // Log the update attempt for debugging
+      console.log(`Updating user ${id} with data:`, userData);
+      
+      // Remove any fields that shouldn't be directly updated
+      const { id: _, createdAt, updatedAt, lastLogin, status, isApproved, ...safeUserData } = userData as any;
+      
+      // Add the updatedAt timestamp
+      const updateData = {
+        ...safeUserData,
+        updatedAt: new Date()
+      };
+      
+      console.log("Final update data:", updateData);
+      
+      const [updatedUser] = await db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, id))
+        .returning();
+      
+      return updatedUser;
+    } catch (error) {
+      console.error(`Error updating user ${id}:`, error);
       return undefined;
     }
   }

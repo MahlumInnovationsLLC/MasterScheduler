@@ -1745,6 +1745,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Add PATCH endpoint for updating user information including department
+  app.patch("/api/users/:id", isAdmin, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const { firstName, lastName, email, role, department } = req.body;
+      
+      console.log("Updating user:", userId, "with data:", req.body);
+      
+      // First update basic user info
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Update user basic information
+      await storage.updateUser(userId, {
+        firstName,
+        lastName,
+        role
+      });
+      
+      // Handle department update in user preferences
+      if (department) {
+        // Get current user preferences
+        const prefs = await storage.getUserPreferences(userId);
+        
+        if (prefs) {
+          // Update existing preferences with new department
+          await storage.updateUserPreferences(userId, { department });
+        } else {
+          // Create new preferences record with department
+          await storage.createUserPreferences({
+            userId,
+            department
+          });
+        }
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Error updating user" });
+    }
+  });
+  
   app.put("/api/users/:id/role", isAdmin, async (req, res) => {
     try {
       const { role, isApproved, status, preferences } = req.body;
