@@ -2425,7 +2425,7 @@ export default function ResizableBaySchedule({
         </div>
       </div>
       
-      <div className="flex flex-row h-full w-full">
+      <div className="flex flex-row h-full">
         {/* Unassigned Projects Sidebar - Collapsible with Drop Zone */}
         <div 
           className={`unassigned-projects-sidebar border-r border-gray-700 flex-shrink-0 bg-gray-900 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
@@ -2628,16 +2628,15 @@ export default function ResizableBaySchedule({
         </div>
         
         <div 
-          className="bay-schedule-viewport flex-grow overflow-auto w-full" 
+          className="bay-schedule-viewport flex-grow overflow-auto" 
           ref={viewportRef}
           onScroll={(e) => {
             // Update scroll position for the sticky header
             setScrollX(e.currentTarget.scrollLeft);
           }}
-          style={{ width: "100%" }}
         >
           
-          <div className="bay-schedule-container relative" ref={timelineRef}>
+          <div className="bay-schedule-container relative" style={{ maxWidth: "calc(100vw - 280px)" }} ref={timelineRef}>
           {/* Today Line marker - positioned absolutely */}
           {(() => {
             // Use the current real date for TODAY marker
