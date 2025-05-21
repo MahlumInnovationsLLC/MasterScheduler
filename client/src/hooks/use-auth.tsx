@@ -49,7 +49,7 @@ const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.
 
 // Use the role from the URL parameter in development mode
 function getDevelopmentUserRole(): string {
-  // Default to viewer if no role is specified
+  // Default to admin for development testing
   if (typeof window !== 'undefined') {
     const urlParams = new URLSearchParams(window.location.search);
     const role = urlParams.get('role');
@@ -58,7 +58,7 @@ function getDevelopmentUserRole(): string {
       return role;
     }
   }
-  return 'viewer'; // Default to viewer for security
+  return 'admin'; // Default to admin during development
 }
 
 // Mock user for development environment
