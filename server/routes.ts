@@ -1745,6 +1745,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Add endpoint to get user preferences
+  app.get("/api/users/:id/preferences", isAdmin, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const preferences = await storage.getUserPreferences(userId);
+      res.json(preferences || {});
+    } catch (error) {
+      console.error("Error fetching user preferences:", error);
+      res.status(500).json({ message: "Error fetching user preferences" });
+    }
+  });
+
   // Add PATCH endpoint for updating user information including department
   app.patch("/api/users/:id", isAdmin, async (req, res) => {
     try {
