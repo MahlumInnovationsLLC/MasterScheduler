@@ -87,7 +87,7 @@ const SystemSettings = () => {
     data: userAuditLogs = [],
     isLoading: userAuditLogsLoading,
     error: userAuditLogsError
-  } = tanstackUseQuery({
+  } = useQuery({
     queryKey: ['/api/user-audit-logs'],
     queryFn: getQueryFn({})
   });
@@ -220,7 +220,7 @@ const SystemSettings = () => {
     data: users = [] as User[], 
     isLoading: usersLoading,
     error: usersError 
-  } = tanstackUseQuery<User[]>({
+  } = useQuery<User[]>({
     queryKey: ['/api/users'],
     enabled: !!user && user.role === 'admin',
   });
@@ -230,7 +230,7 @@ const SystemSettings = () => {
     data: allowedEmails = [] as AllowedEmail[], 
     isLoading: allowedEmailsLoading,
     error: allowedEmailsError 
-  } = tanstackUseQuery<AllowedEmail[]>({
+  } = useQuery<AllowedEmail[]>({
     queryKey: ['/api/allowed-emails'],
     enabled: !!user && user.role === 'admin',
   });
@@ -518,7 +518,7 @@ const SystemSettings = () => {
     data: archivedProjects = [], 
     isLoading: archivedProjectsLoading,
     error: archivedProjectsError 
-  } = tanstackUseQuery({
+  } = useQuery({
     queryKey: ['/api/archived-projects'],
     enabled: !!user && user.role === 'admin',
   });
