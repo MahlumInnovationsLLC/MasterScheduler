@@ -610,48 +610,8 @@ const SystemSettings = () => {
   };
   
   // Update user mutation
-  const updateUserMutation = useMutation({
-    mutationFn: (userData: any) => {
-      return apiRequest(`/api/users/${userData.userId}/update`, 'PATCH', userData, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      setIsEditDialogOpen(false);
-      toast({
-        title: "User Updated",
-        description: "User details have been successfully updated.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: "Failed to update user: " + (error as Error).message,
-        variant: "destructive",
-      });
-    }
-  });
   
   // Permanently delete user mutation
-  const deleteUserMutation = useMutation({
-    mutationFn: (userId: string) => {
-      return apiRequest(`/api/users/${userId}/permanent-delete`, 'DELETE', {}, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      setIsDeleteDialogOpen(false);
-      toast({
-        title: "User Deleted",
-        description: "User has been permanently deleted from the system.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: "Failed to delete user: " + (error as Error).message,
-        variant: "destructive",
-      });
-    }
-  });
   
   // Edit user handler
   const handleEditUserClick = (user: any) => {
