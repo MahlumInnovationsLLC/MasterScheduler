@@ -1737,8 +1737,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User Management routes (admin only)
   app.get("/api/users", isAdmin, async (req, res) => {
     try {
+      // Get all users
       const users = await storage.getUsers();
-      res.json(users);
+      
+      // Get preferences for all users to combine with user data
+      const enhancedUsers = await Promise.all(users.map(async (user) => {
+        try {
+          const preferences = await storage.getUserPreferences(user.id);
+          // Add department from preferences to user object for frontend display
+          return {
+            ...user,
+            department: preferences?.department || null
+          };
+        } catch (err) {
+          console.error(`Error fetching preferences for user ${user.id}:`, err);
+          return user;
+        }
+      }));
+      
+      res.json(enhancedUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Error fetching users" });
