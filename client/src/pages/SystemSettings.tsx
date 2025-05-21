@@ -1134,6 +1134,338 @@ const SystemSettings = () => {
           <TabsContent value="access" className="space-y-6">
             <Card>
               <CardHeader>
+                <CardTitle>Role Permission Management</CardTitle>
+                <CardDescription>
+                  Configure permissions for each user role in the system. Changes will automatically apply to all users with that role.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Role permission configuration section */}
+                  <Tabs defaultValue="viewer" className="w-full">
+                    <TabsList className="grid grid-cols-3 w-[400px] mb-6">
+                      <TabsTrigger value="viewer">Viewer</TabsTrigger>
+                      <TabsTrigger value="editor">Editor</TabsTrigger>
+                      <TabsTrigger value="admin">Administrator</TabsTrigger>
+                    </TabsList>
+                    
+                    {/* Viewer Permissions */}
+                    <TabsContent value="viewer" className="border rounded-lg p-4 border-border">
+                      <h3 className="text-lg font-medium mb-4">Viewer Role Permissions</h3>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Configure what users with the Viewer role can access and do in the system.
+                      </p>
+                      
+                      <div className="space-y-6">
+                        {/* Module Access */}
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-primary">Module Access</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="viewer-dashboard">Dashboard</Label>
+                                <p className="text-xs text-gray-500">View main dashboard and metrics</p>
+                              </div>
+                              <Switch id="viewer-dashboard" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="viewer-projects">Projects</Label>
+                                <p className="text-xs text-gray-500">View project details and status</p>
+                              </div>
+                              <Switch id="viewer-projects" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="viewer-manufacturing">Manufacturing</Label>
+                                <p className="text-xs text-gray-500">View manufacturing schedules</p>
+                              </div>
+                              <Switch id="viewer-manufacturing" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="viewer-billing">Billing</Label>
+                                <p className="text-xs text-gray-500">View billing milestones</p>
+                              </div>
+                              <Switch id="viewer-billing" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="viewer-reports">Reports</Label>
+                                <p className="text-xs text-gray-500">Access to reporting features</p>
+                              </div>
+                              <Switch id="viewer-reports" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="viewer-calendar">Calendar</Label>
+                                <p className="text-xs text-gray-500">View scheduling calendar</p>
+                              </div>
+                              <Switch id="viewer-calendar" defaultChecked />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Action Permissions */}
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-primary">Action Permissions</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="viewer-export">Export Data</Label>
+                                <p className="text-xs text-gray-500">Export project and schedule data</p>
+                              </div>
+                              <Switch id="viewer-export" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="viewer-comment">Add Comments</Label>
+                                <p className="text-xs text-gray-500">Add comments to projects</p>
+                              </div>
+                              <Switch id="viewer-comment" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="viewer-notifications">Receive Notifications</Label>
+                                <p className="text-xs text-gray-500">Receive system notifications</p>
+                              </div>
+                              <Switch id="viewer-notifications" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="viewer-print">Print Reports</Label>
+                                <p className="text-xs text-gray-500">Generate and print reports</p>
+                              </div>
+                              <Switch id="viewer-print" defaultChecked />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-6 flex justify-end">
+                        <Button>Save Viewer Permissions</Button>
+                      </div>
+                    </TabsContent>
+                    
+                    {/* Editor Permissions */}
+                    <TabsContent value="editor" className="border rounded-lg p-4 border-border">
+                      <h3 className="text-lg font-medium mb-4">Editor Role Permissions</h3>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Configure what users with the Editor role can access and do in the system.
+                      </p>
+                      
+                      <div className="space-y-6">
+                        {/* Module Access */}
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-primary">Module Access</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="editor-dashboard">Dashboard</Label>
+                                <p className="text-xs text-gray-500">View and customize dashboard</p>
+                              </div>
+                              <Switch id="editor-dashboard" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="editor-projects">Projects</Label>
+                                <p className="text-xs text-gray-500">Edit project details and status</p>
+                              </div>
+                              <Switch id="editor-projects" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="editor-manufacturing">Manufacturing</Label>
+                                <p className="text-xs text-gray-500">Modify manufacturing schedules</p>
+                              </div>
+                              <Switch id="editor-manufacturing" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="editor-billing">Billing</Label>
+                                <p className="text-xs text-gray-500">Create and edit billing milestones</p>
+                              </div>
+                              <Switch id="editor-billing" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="editor-reports">Reports</Label>
+                                <p className="text-xs text-gray-500">Create and edit reports</p>
+                              </div>
+                              <Switch id="editor-reports" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="editor-calendar">Calendar</Label>
+                                <p className="text-xs text-gray-500">Modify scheduling calendar</p>
+                              </div>
+                              <Switch id="editor-calendar" defaultChecked />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Action Permissions */}
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-primary">Action Permissions</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="editor-export">Export Data</Label>
+                                <p className="text-xs text-gray-500">Export project and schedule data</p>
+                              </div>
+                              <Switch id="editor-export" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="editor-import">Import Data</Label>
+                                <p className="text-xs text-gray-500">Import projects and schedules</p>
+                              </div>
+                              <Switch id="editor-import" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="editor-create-project">Create Projects</Label>
+                                <p className="text-xs text-gray-500">Create new projects</p>
+                              </div>
+                              <Switch id="editor-create-project" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="editor-delete-project">Delete Projects</Label>
+                                <p className="text-xs text-gray-500">Delete existing projects</p>
+                              </div>
+                              <Switch id="editor-delete-project" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="editor-schedule">Modify Schedules</Label>
+                                <p className="text-xs text-gray-500">Change manufacturing schedules</p>
+                              </div>
+                              <Switch id="editor-schedule" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="editor-create-bay">Create Bays</Label>
+                                <p className="text-xs text-gray-500">Create new manufacturing bays</p>
+                              </div>
+                              <Switch id="editor-create-bay" defaultChecked />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-6 flex justify-end">
+                        <Button>Save Editor Permissions</Button>
+                      </div>
+                    </TabsContent>
+                    
+                    {/* Admin Permissions */}
+                    <TabsContent value="admin" className="border rounded-lg p-4 border-border">
+                      <h3 className="text-lg font-medium mb-4">Administrator Role Permissions</h3>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Configure what users with the Administrator role can access and do in the system.
+                      </p>
+                      
+                      <div className="space-y-6">
+                        {/* Module Access */}
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-primary">Module Access</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="admin-system-settings">System Settings</Label>
+                                <p className="text-xs text-gray-500">Access and modify system settings</p>
+                              </div>
+                              <Switch id="admin-system-settings" defaultChecked disabled />
+                              <p className="text-xs text-gray-500">Always enabled for admin</p>
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="admin-user-management">User Management</Label>
+                                <p className="text-xs text-gray-500">Manage user accounts</p>
+                              </div>
+                              <Switch id="admin-user-management" defaultChecked disabled />
+                              <p className="text-xs text-gray-500">Always enabled for admin</p>
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="admin-access-control">Access Control</Label>
+                                <p className="text-xs text-gray-500">Manage roles and permissions</p>
+                              </div>
+                              <Switch id="admin-access-control" defaultChecked disabled />
+                              <p className="text-xs text-gray-500">Always enabled for admin</p>
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="admin-data-import">Data Import/Export</Label>
+                                <p className="text-xs text-gray-500">Perform system-wide imports/exports</p>
+                              </div>
+                              <Switch id="admin-data-import" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="admin-system-utilities">System Utilities</Label>
+                                <p className="text-xs text-gray-500">Access system maintenance tools</p>
+                              </div>
+                              <Switch id="admin-system-utilities" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="admin-billing-management">Billing Management</Label>
+                                <p className="text-xs text-gray-500">Advanced billing system controls</p>
+                              </div>
+                              <Switch id="admin-billing-management" defaultChecked />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Action Permissions */}
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-primary">Action Permissions</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="admin-system-backup">System Backup</Label>
+                                <p className="text-xs text-gray-500">Create system backups</p>
+                              </div>
+                              <Switch id="admin-system-backup" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="admin-user-archive">Archive Users</Label>
+                                <p className="text-xs text-gray-500">Archive user accounts</p>
+                              </div>
+                              <Switch id="admin-user-archive" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="admin-global-settings">Global Settings</Label>
+                                <p className="text-xs text-gray-500">Modify global system parameters</p>
+                              </div>
+                              <Switch id="admin-global-settings" defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <Label htmlFor="admin-data-reset">Data Reset Operations</Label>
+                                <p className="text-xs text-gray-500">Perform system data reset</p>
+                              </div>
+                              <Switch id="admin-data-reset" defaultChecked />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-6 flex justify-end">
+                        <Button>Save Administrator Permissions</Button>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
                 <CardTitle>Email Access Control</CardTitle>
                 <CardDescription>
                   Configure email patterns for automatic user approval and default role assignment.
