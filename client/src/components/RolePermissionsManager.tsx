@@ -350,6 +350,8 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role, i
                         <Switch
                           checked={permission.canView}
                           onCheckedChange={() => handleTogglePermission(category.id, feature.id, 'canView')}
+                          disabled={isReadOnly}
+                          className={isReadOnly ? "opacity-60" : ""}
                         />
                       </div>
                       
@@ -358,7 +360,8 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role, i
                         <Switch
                           checked={permission.canEdit}
                           onCheckedChange={() => handleTogglePermission(category.id, feature.id, 'canEdit')}
-                          disabled={!permission.canView} // Can't edit if can't view
+                          disabled={isReadOnly || !permission.canView} // Can't edit if can't view
+                          className={isReadOnly ? "opacity-60" : ""}
                         />
                       </div>
                       
@@ -367,7 +370,8 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role, i
                         <Switch
                           checked={permission.canCreate}
                           onCheckedChange={() => handleTogglePermission(category.id, feature.id, 'canCreate')}
-                          disabled={!permission.canView} // Can't create if can't view
+                          disabled={isReadOnly || !permission.canView} // Can't create if can't view
+                          className={isReadOnly ? "opacity-60" : ""}
                         />
                       </div>
                       
@@ -376,7 +380,8 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role, i
                         <Switch
                           checked={permission.canDelete}
                           onCheckedChange={() => handleTogglePermission(category.id, feature.id, 'canDelete')}
-                          disabled={!permission.canEdit} // Can't delete if can't edit
+                          disabled={isReadOnly || !permission.canEdit} // Can't delete if can't edit
+                          className={isReadOnly ? "opacity-60" : ""}
                         />
                       </div>
                     </div>
@@ -392,6 +397,9 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role, i
                           id={`${category.id}-import`}
                           checked={permissions.some(p => p.category === category.id && p.canImport)}
                           onCheckedChange={() => {
+                            // Don't allow changes in read-only mode
+                            if (isReadOnly) return;
+                            
                             // Toggle import permission for all features in this category
                             const allFeatureIds = category.features.map(f => f.id);
                             const currentValue = permissions.some(p => p.category === category.id && p.canImport);
@@ -406,8 +414,10 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role, i
                             setPermissions(updatedPermissions);
                             setUnsavedChanges(true);
                           }}
+                          disabled={isReadOnly}
+                          className={isReadOnly ? "opacity-60" : ""}
                         />
-                        <Label htmlFor={`${category.id}-import`} className="flex items-center space-x-1">
+                        <Label htmlFor={`${category.id}-import`} className={`flex items-center space-x-1 ${isReadOnly ? "opacity-60" : ""}`}>
                           <Upload className="h-4 w-4" />
                           <span>Import Data</span>
                         </Label>
@@ -420,6 +430,9 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role, i
                           id={`${category.id}-export`}
                           checked={permissions.some(p => p.category === category.id && p.canExport)}
                           onCheckedChange={() => {
+                            // Don't allow changes in read-only mode
+                            if (isReadOnly) return;
+                            
                             // Toggle export permission for all features in this category
                             const allFeatureIds = category.features.map(f => f.id);
                             const currentValue = permissions.some(p => p.category === category.id && p.canExport);
@@ -434,8 +447,10 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role, i
                             setPermissions(updatedPermissions);
                             setUnsavedChanges(true);
                           }}
+                          disabled={isReadOnly}
+                          className={isReadOnly ? "opacity-60" : ""}
                         />
-                        <Label htmlFor={`${category.id}-export`} className="flex items-center space-x-1">
+                        <Label htmlFor={`${category.id}-export`} className={`flex items-center space-x-1 ${isReadOnly ? "opacity-60" : ""}`}>
                           <Download className="h-4 w-4" />
                           <span>Export Data</span>
                         </Label>

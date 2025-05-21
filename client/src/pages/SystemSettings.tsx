@@ -71,6 +71,34 @@ const SystemSettings = () => {
     message: string;
     totalDeleted?: number;
   } | null>(null);
+  
+  // User role state (for permission management)
+  const [isAdmin, setIsAdmin] = useState(true); // Default to true in development mode
+  
+  // Check if current user is admin (in real app, this would use the actual user's role)
+  useEffect(() => {
+    // In a real app with auth, this would check the currently logged in user
+    // Instead, we're using development mode detection
+    const checkIfAdmin = async () => {
+      try {
+        if (process.env.NODE_ENV === 'development' || import.meta.env.DEV) {
+          // In development mode, always grant admin rights for testing
+          setIsAdmin(true);
+        } else {
+          // In production, this would check the user's actual role from the auth system
+          const response = await fetch('/api/auth/check-admin');
+          const data = await response.json();
+          setIsAdmin(data.isAdmin);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        // Default to false if there's an error
+        setIsAdmin(false);
+      }
+    };
+    
+    checkIfAdmin();
+  }, []);
 
   // User audit logs query
   const {
@@ -1150,17 +1178,17 @@ const SystemSettings = () => {
                   
                   {/* Viewer Permissions Tab */}
                   <TabsContent value="viewer" className="pt-4">
-                    <RolePermissionsManager role="viewer" />
+                    <RolePermissionsManager role="viewer" isReadOnly={!isAdmin} />
                   </TabsContent>
                   
                   {/* Editor Permissions Tab */}
                   <TabsContent value="editor" className="pt-4">
-                    <RolePermissionsManager role="editor" />
+                    <RolePermissionsManager role="editor" isReadOnly={!isAdmin} />
                   </TabsContent>
                   
                   {/* Admin Permissions Tab */}
                   <TabsContent value="admin" className="pt-4">
-                    <RolePermissionsManager role="admin" />
+                    <RolePermissionsManager role="admin" isReadOnly={!isAdmin} />
                   </TabsContent>
                 </Tabs>
               </CardContent>
