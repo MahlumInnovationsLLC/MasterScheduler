@@ -83,13 +83,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<User | null, Error>({
     queryKey: ["/api/auth/user"],
     queryFn: async () => {
-      // For development mode, return mock user immediately
-      if (isDevelopment) {
-        console.log("🔧 Development mode: Using mock admin user");
+      // Check if we're on the login page - never return a mock user on auth page
+      const isAuthPage = window.location.pathname === "/auth";
+      
+      // For development mode, return mock user immediately ONLY if not on the auth page
+      if (isDevelopment && !isAuthPage) {
+        console.log("🔧 Development mode: Using mock admin user (not on auth page)");
         return DEV_MOCK_USER;
       }
       
-      // Normal authentication for production
+      // Normal authentication for production or auth page
       try {
         console.log("Fetching current user data...");
         const res = await fetch("/api/auth/user", {
