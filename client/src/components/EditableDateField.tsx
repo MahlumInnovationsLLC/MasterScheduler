@@ -46,39 +46,35 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   
-  // SIMPLE DATE HANDLING WITH FIXED +1 DAY ADJUSTMENT FOR DISPLAY
-  // We always add one day to properly show dates in the date field
+  // SIMPLE DATE HANDLING - FIXED TIMEZONE ISSUE
+  // We use the raw date value for display - no adjustments
   const [dateValue, setDateValue] = useState<string | undefined>(undefined);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Reset date value when value changes - with always +1 day adjustment
+  // Reset date value when value changes - direct display, no adjustment
   useEffect(() => {
     // Log some debug info
     debugDate(`Incoming from server (${field})`, value);
     
     if (value) {
-      // Create a date object
-      const dateObj = new Date(value);
-      
-      // If it's a valid date, add a day for display
-      if (!isNaN(dateObj.getTime())) {
-        // ALWAYS ADD ONE DAY - this is the critical fix
-        const adjustedDate = new Date(dateObj);
-        adjustedDate.setDate(adjustedDate.getDate() + 1);
-        
-        // Format as YYYY-MM-DD for the input
-        const year = adjustedDate.getFullYear();
-        const month = String(adjustedDate.getMonth() + 1).padStart(2, '0');
-        const day = String(adjustedDate.getDate()).padStart(2, '0');
-        const displayDate = `${year}-${month}-${day}`;
-        
-        console.log(`DATE DISPLAY: Added +1 day to ${value}, displaying as ${displayDate}`);
-        setDateValue(displayDate);
-      } else {
-        // Fallback for unparsable dates
+      // Just use the value directly if it's already in YYYY-MM-DD format
+      if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        console.log(`DATE DISPLAY: Using direct value: ${value}`);
         setDateValue(value);
+      } else {
+        // Create a date object if needed
+        const dateObj = new Date(value);
+        if (!isNaN(dateObj.getTime())) {
+          // Format as YYYY-MM-DD for the input
+          const displayDate = dateObj.toISOString().split('T')[0];
+          console.log(`DATE DISPLAY: Converted ${value} to ${displayDate}`);
+          setDateValue(displayDate);
+        } else {
+          // Fallback for unparsable dates
+          setDateValue(value);
+        }
       }
     } else {
       setDateValue(undefined);
@@ -92,15 +88,15 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
       let dateToSend = null;
       
       if (dateValue) {
-        // CRITICAL FIX: When saving, subtract a day to account for the +1 day we added for display
-        // This ensures what the user sees is what actually gets saved
+        // CRITICAL FIX: When saving, ADD a day to fix the timezone issue
+        // This ensures the correct date gets stored in the database
         const dateObj = new Date(dateValue);
         if (!isNaN(dateObj.getTime())) {
-          // Subtract a day to reverse our display adjustment
-          dateObj.setDate(dateObj.getDate() - 1);
+          // Add a day to ensure correct storage in the database
+          dateObj.setDate(dateObj.getDate() + 1);
           // Format as YYYY-MM-DD
           dateToSend = dateObj.toISOString().split('T')[0];
-          console.log(`DATE SAVE: Subtracting 1 day from displayed ${dateValue}, saving as ${dateToSend}`);
+          console.log(`DATE SAVE: Adding 1 day to selected ${dateValue}, saving as ${dateToSend}`);
         } else {
           // If can't parse, use as-is
           dateToSend = dateValue;
