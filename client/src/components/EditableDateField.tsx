@@ -15,17 +15,22 @@ interface EditableDateFieldProps {
 const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field, value }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Fix the timezone issue - instead of using Date conversion which adds timezone offset,
+  // directly use the date string from the database if it's already in YYYY-MM-DD format
   const [dateValue, setDateValue] = useState<string | undefined>(
-    value ? new Date(value).toISOString().split('T')[0] : undefined
+    value ? (value.includes('T') ? new Date(value).toISOString().split('T')[0] : value) : undefined
   );
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Reset date value when value changes
+  // Reset date value when value changes - also with timezone fix
   useEffect(() => {
     if (value) {
-      setDateValue(new Date(value).toISOString().split('T')[0]);
+      // If the value already includes a 'T' (ISO format), convert it 
+      // Otherwise use the value directly as it's likely already in YYYY-MM-DD format
+      setDateValue(value.includes('T') ? new Date(value).toISOString().split('T')[0] : value);
     } else {
       setDateValue(undefined);
     }
