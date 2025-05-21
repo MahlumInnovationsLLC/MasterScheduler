@@ -76,6 +76,12 @@ const SystemSettings = () => {
   const [isRestoreLoading, setIsRestoreLoading] = useState(false);
   const [latestBackup, setLatestBackup] = useState<{filename: string, createdAt: string} | null>(null);
   
+  // User sorting state
+  const [userSort, setUserSort] = useState<{column: string, direction: 'asc' | 'desc'}>({
+    column: 'lastName',
+    direction: 'asc'
+  });
+  
   // User edit dialog state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -1011,11 +1017,24 @@ const SystemSettings = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Created</TableHead>
-                            <TableHead>Last Login</TableHead>
+                            <TableHead onClick={() => handleSort('lastName')} className="cursor-pointer hover:bg-slate-100">
+                              User {userSort.column === 'lastName' && (userSort.direction === 'asc' ? '↑' : '↓')}
+                            </TableHead>
+                            <TableHead onClick={() => handleSort('role')} className="cursor-pointer hover:bg-slate-100">
+                              Role {userSort.column === 'role' && (userSort.direction === 'asc' ? '↑' : '↓')}
+                            </TableHead>
+                            <TableHead onClick={() => handleSort('department')} className="cursor-pointer hover:bg-slate-100">
+                              Department {userSort.column === 'department' && (userSort.direction === 'asc' ? '↑' : '↓')}
+                            </TableHead>
+                            <TableHead onClick={() => handleSort('isApproved')} className="cursor-pointer hover:bg-slate-100">
+                              Status {userSort.column === 'isApproved' && (userSort.direction === 'asc' ? '↑' : '↓')}
+                            </TableHead>
+                            <TableHead onClick={() => handleSort('createdAt')} className="cursor-pointer hover:bg-slate-100">
+                              Created {userSort.column === 'createdAt' && (userSort.direction === 'asc' ? '↑' : '↓')}
+                            </TableHead>
+                            <TableHead onClick={() => handleSort('lastLogin')} className="cursor-pointer hover:bg-slate-100">
+                              Last Login {userSort.column === 'lastLogin' && (userSort.direction === 'asc' ? '↑' : '↓')}
+                            </TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1048,6 +1067,9 @@ const SystemSettings = () => {
                                     <SelectItem value="admin">Admin</SelectItem>
                                   </SelectContent>
                                 </Select>
+                              </TableCell>
+                              <TableCell>
+                                {user.department || 'Not assigned'}
                               </TableCell>
                               <TableCell>
                                 {user.isApproved ? (
