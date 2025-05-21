@@ -173,8 +173,21 @@ export const ViewerGuard = () => {
 export const GlobalPermissionsHandler = () => {
   const { userRole, canEdit } = usePermissions();
   
+  // Check if we're on the auth page - never restrict the auth page
+  const isAuthPage = window.location.pathname === "/auth";
+  
   // Add a class to the body element based on user role
   React.useEffect(() => {
+    // Skip all restrictions if on auth page
+    if (isAuthPage) {
+      document.body.classList.remove("viewer-mode");
+      const badge = document.getElementById('viewer-mode-badge');
+      if (badge) badge.remove();
+      const existingStyle = document.getElementById('viewer-mode-styles');
+      if (existingStyle) existingStyle.remove();
+      return;
+    }
+    
     if (userRole === "viewer") {
       document.body.classList.add("viewer-mode");
       
@@ -206,10 +219,11 @@ export const GlobalPermissionsHandler = () => {
       const badge = document.getElementById('viewer-mode-badge');
       if (badge) badge.remove();
     };
-  }, [userRole]);
+  }, [userRole, isAuthPage]);
   
   // Use direct DOM methods instead of JSX to avoid React warnings
-  if (!canEdit) {
+  // Never apply viewer guard on auth page
+  if (!canEdit && !isAuthPage) {
     return <ViewerGuard />;
   }
   

@@ -53,12 +53,16 @@ function Router() {
   const isResetPasswordPage = location === "/reset-password" || location.startsWith("/reset-password?");
 
   // If we're on the auth page or reset password page, render without the app layout
+  // and without any permissions restrictions
   if (isAuthPage || isResetPasswordPage) {
+    // Don't apply any permissions restrictions to authentication routes
     return (
-      <Switch>
-        <Route path="/auth" component={AuthPage} />
-        <Route path="/reset-password" component={ResetPasswordPage} />
-      </Switch>
+      <div className="auth-routes">
+        <Switch>
+          <Route path="/auth" component={AuthPage} />
+          <Route path="/reset-password" component={ResetPasswordPage} />
+        </Switch>
+      </div>
     );
   }
   
@@ -121,8 +125,9 @@ function App() {
           <AuthProvider>
             <PermissionsProvider>
               <Toaster />
-              <GlobalPermissionsHandler />
+              {/* GlobalPermissionsHandler applies view-only restrictions */}
               <Router />
+              {/* Move permission handler inside Router so it's not applied to auth page */}
             </PermissionsProvider>
           </AuthProvider>
         </TooltipProvider>
