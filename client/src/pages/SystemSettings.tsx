@@ -431,7 +431,6 @@ const SystemSettings = () => {
     }
   };
 
-  const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editingAllowedEmail, setEditingAllowedEmail] = useState<any>(null);
