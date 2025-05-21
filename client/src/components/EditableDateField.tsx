@@ -32,24 +32,36 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
   }, [value]);
 
   const handleSave = async () => {
-    if (!dateValue) return;
-    
     setIsUpdating(true);
     try {
-      await apiRequest(
+      // Handle both setting and clearing dates
+      const dateToSend = dateValue 
+        ? new Date(dateValue).toISOString().split('T')[0] // Just send the date portion (YYYY-MM-DD)
+        : null; // Send null to clear the date
+        
+      const response = await apiRequest(
         "PATCH",
         `/api/projects/${projectId}`,
-        { [field]: new Date(dateValue).toISOString() }
+        { [field]: dateToSend }
       );
       
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      if (!response.ok) {
+        throw new Error('Failed to update date');
+      }
+      
+      // Wait for the invalidation to complete
+      await queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      
       toast({
         title: "Date Updated",
         description: "The date has been updated successfully",
         variant: "default"
       });
+      
+      // Set editing state to false after successful update
       setIsEditing(false);
     } catch (error) {
+      console.error("Date update error:", error);
       toast({
         title: "Update Failed",
         description: `Error updating date: ${(error as Error).message}`,
