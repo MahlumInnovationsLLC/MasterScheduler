@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, CheckCircle2, Shield, Settings, Package, Clipboard, Users, BarChart3, FileText, Download, Upload } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Shield, Settings, Package, Clipboard, Users, BarChart3, FileText, Download, Upload, Save } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from '@/lib/queryClient';
@@ -29,6 +29,7 @@ interface RolePermission {
 
 interface RolePermissionsManagerProps {
   role: string;
+  isReadOnly?: boolean; // Added to control read-only mode
 }
 
 // Define the available module categories and their features
@@ -110,11 +111,12 @@ const moduleCategories = [
   },
 ];
 
-const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role }) => {
+const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role, isReadOnly = false }) => {
   const { toast } = useToast();
   const [permissions, setPermissions] = useState<RolePermission[]>([]);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
 
   // Fetch permissions for this role
   const { data: fetchedPermissions, isLoading, error } = useQuery({
@@ -203,6 +205,9 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role })
 
   // Handle toggle change for a permission
   const handleTogglePermission = (categoryId: string, featureId: string, permissionType: keyof RolePermission) => {
+    // Don't allow changes in read-only mode
+    if (isReadOnly) return;
+    
     const updatedPermissions = permissions.map(p => {
       if (p.category === categoryId && p.feature === featureId) {
         return {
@@ -219,6 +224,9 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role })
 
   // Handle save permissions
   const handleSavePermissions = () => {
+    if (isReadOnly) return;
+    
+    setSaving(true);
     updatePermissionsMutation.mutate();
   };
 
@@ -268,17 +276,48 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role })
           <Shield className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-medium">{getRoleLabel()} Role Permissions</h3>
         </div>
-        <Badge 
-          variant={role === 'admin' ? "default" : role === 'editor' ? "secondary" : "outline"}
-          className="px-3 py-1"
-        >
-          {getRoleLabel()} Role
-        </Badge>
+        <div className="flex items-center space-x-2">
+          {isReadOnly && (
+            <Badge variant="outline" className="mr-2">
+              Read-Only Mode
+            </Badge>
+          )}
+          <Badge 
+            variant={role === 'admin' ? "default" : role === 'editor' ? "secondary" : "outline"}
+            className="px-3 py-1"
+          >
+            {getRoleLabel()} Role
+          </Badge>
+        </div>
       </div>
       
-      <p className="text-sm text-gray-500">
-        Configure what {getRoleLabel()} users can access and modify in the system. Changes will apply to all users with this role.
-      </p>
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-gray-500">
+          Configure what {getRoleLabel()} users can access and modify in the system. Changes will apply to all users with this role.
+        </p>
+        
+        {!isReadOnly && unsavedChanges && (
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={handleSavePermissions}
+            disabled={saving}
+            className="flex items-center gap-1"
+          >
+            {saving ? (
+              <>
+                <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full mr-1"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-1" />
+                Save Changes
+              </>
+            )}
+          </Button>
+        )}
+      </div>
       
       <Accordion type="multiple" className="w-full" value={expandedCategories}>
         {moduleCategories.map((category) => (
