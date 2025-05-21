@@ -458,6 +458,42 @@ const SystemSettings = () => {
       });
     }
   });
+  
+  // Reject user mutation (also handles revoking access for approved users)
+  const rejectUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch(`/api/users/${userId}/reject`, {
+        method: 'PATCH',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to reject user');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: (data, variables) => {
+      // Find the user to determine if they were approved or pending
+      const user = users.find(u => u.id === variables);
+      const wasApproved = user?.isApproved;
+      
+      toast({
+        title: wasApproved ? "Access Revoked" : "User Rejected",
+        description: wasApproved 
+          ? "User access has been successfully revoked." 
+          : "The user request has been rejected.",
+        variant: "default"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to reject user: " + (error as Error).message,
+        variant: "destructive"
+      });
+    }
+  });
 
   const handleCreateEmailPattern = (e: React.FormEvent) => {
     e.preventDefault();
@@ -867,19 +903,57 @@ const SystemSettings = () => {
                                 {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
                               </TableCell>
                               <TableCell className="text-right">
-                                <div className="flex justify-end space-x-1">
+                                <div className="flex justify-end space-x-2">
                                   {!user.isApproved && (
                                     <Button 
-                                      variant="ghost" 
-                                      size="icon"
-                                      className="text-green-600 hover:text-green-700 hover:bg-green-100"
+                                      variant="outline" 
+                                      size="sm"
+                                      className="text-green-600 hover:text-green-700 hover:bg-green-100 flex items-center"
                                       onClick={() => handleApproveUser(user.id)}
                                       disabled={!isAdmin || approveUserMutation.isPending}
                                     >
-                                      <UserCheck className="h-4 w-4" />
+                                      <UserCheck className="h-4 w-4 mr-1" />
+                                      Approve
                                     </Button>
                                   )}
-                                  <Button variant="ghost" size="icon">
+                                  
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-100 flex items-center"
+                                        disabled={!isAdmin}
+                                      >
+                                        <UserX className="h-4 w-4 mr-1" />
+                                        Reject
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                          {user.isApproved ? 'Revoke User Access' : 'Reject User'}
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to {user.isApproved ? 'revoke access for' : 'reject'} {user.firstName} {user.lastName}? 
+                                          {user.isApproved ? 
+                                            ' This will prevent them from accessing the system.' : 
+                                            ' Their account request will be denied.'}
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction 
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                          onClick={() => handleRejectUser(user.id)}
+                                        >
+                                          {user.isApproved ? 'Revoke Access' : 'Reject'}
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                  
+                                  <Button variant="ghost" size="icon" title="Edit User">
                                     <Edit className="h-4 w-4" />
                                   </Button>
                                 </div>
