@@ -101,6 +101,8 @@ export const notificationPriorityEnum = pgEnum("notification_priority", [
   "critical",
 ]);
 
+
+
 export const delayResponsibilityEnum = pgEnum("delay_responsibility", [
   "nomad_fault",
   "vendor_fault",
