@@ -614,20 +614,6 @@ const SystemSettings = () => {
   // Permanently delete user mutation
   
   // Edit user handler
-  const handleEditUserClick = (user: any) => {
-    setEditingUser(user);
-    setUserFormData({
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
-      email: user.email || '',
-      department: user.department || '',
-      role: user.role || 'viewer'
-    });
-    setIsEditDialogOpen(true);
-  };
-  
-  // Save user changes
-  const handleSaveUserChanges = () => {
     if (editingUser) {
       updateUserMutation.mutate({
         userId: editingUser.id,
@@ -671,26 +657,6 @@ const SystemSettings = () => {
   });
   
   // Permanently delete user mutation
-  const deleteUserMutation = useMutation({
-    mutationFn: (userId: string) => {
-      return apiRequest(`/api/users/${userId}/permanent-delete`, 'DELETE', {}, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      setIsDeleteDialogOpen(false);
-      toast({
-        title: "User Deleted",
-        description: "User has been permanently deleted from the system.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: "Failed to delete user: " + (error as Error).message,
-        variant: "destructive",
-      });
-    }
-  });
   
   // Edit user handler
   const handleEditUserClick = (user: any) => {
@@ -716,16 +682,6 @@ const SystemSettings = () => {
   };
   
   // Handle permanent delete user
-  const handleDeleteUserClick = (user: any) => {
-    setEditingUser(user);
-    setIsDeleteDialogOpen(true);
-  };
-  
-  const handlePermanentDeleteUser = () => {
-    if (editingUser) {
-      deleteUserMutation.mutate(editingUser.id);
-    }
-  };
 
   // Handle tab change
   const [currentTab, setCurrentTab] = useState('accessControl');
@@ -1734,10 +1690,7 @@ const SystemSettings = () => {
           </TabsContent>
         </Tabs>
       </div>
-    );
-};
-
-      {/* Edit User Dialog */}
+    
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -1922,5 +1875,7 @@ const SystemSettings = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+};
 
 export default SystemSettings;
