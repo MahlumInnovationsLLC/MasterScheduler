@@ -304,6 +304,12 @@ export function setupLocalAuth(app: Express) {
       const allUsers = await storage.getUsers();
       
       // Create user
+      console.log(`[REGISTRATION] Creating new user with auto-approval status: ${emailCheck.autoApprove}`);
+      
+      // Determine if user should be auto-approved
+      const shouldAutoApprove = allUsers.length === 0 || emailCheck.autoApprove === true;
+      console.log(`[REGISTRATION] Final auto-approval decision: ${shouldAutoApprove} (First user: ${allUsers.length === 0}, Email pattern match: ${emailCheck.autoApprove})`);
+      
       const newUser = await storage.createUser({
         id: randomUUID(),
         username: email.split('@')[0] || email, // Use email username part as username
@@ -312,7 +318,7 @@ export function setupLocalAuth(app: Express) {
         firstName: firstName || "",
         lastName: lastName || "",
         role: allUsers.length === 0 ? "admin" : (emailCheck.defaultRole || "pending"),
-        isApproved: allUsers.length === 0 ? true : (emailCheck.autoApprove || false),
+        isApproved: shouldAutoApprove,
         lastLogin: new Date(),
       });
       

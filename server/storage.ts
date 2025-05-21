@@ -1466,15 +1466,27 @@ export class DatabaseStorage implements IStorage {
   
   async checkIsEmailAllowed(email: string): Promise<{ allowed: boolean, autoApprove: boolean, defaultRole: string } | undefined> {
     try {
-      if (!email) return { allowed: false, autoApprove: false, defaultRole: "pending" };
+      console.log(`[EMAIL CHECK] Checking if email is allowed: ${email}`);
+      if (!email) {
+        console.log(`[EMAIL CHECK] Empty email provided, not allowed`);
+        return { allowed: false, autoApprove: false, defaultRole: "pending" };
+      }
       
       // Get all allowed email patterns
       const allowedEmailsList = await this.getAllowedEmails();
+      console.log(`[EMAIL CHECK] Found ${allowedEmailsList.length} email patterns`);
       
       // No patterns defined, allow anyone but set to pending
       if (allowedEmailsList.length === 0) {
+        console.log(`[EMAIL CHECK] No email patterns defined, allowing with pending status`);
         return { allowed: true, autoApprove: false, defaultRole: "pending" };
       }
+      
+      // Output all patterns for debugging
+      console.log(`[EMAIL CHECK] Available patterns:`);
+      allowedEmailsList.forEach(pattern => {
+        console.log(`  - Pattern: ${pattern.emailPattern}, Auto-approve: ${pattern.autoApprove}, Role: ${pattern.defaultRole}`);
+      });
       
       // Check each pattern for a match
       for (const pattern of allowedEmailsList) {
@@ -1482,19 +1494,30 @@ export class DatabaseStorage implements IStorage {
         const regexPattern = pattern.emailPattern.replace(/\*/g, '.*');
         const regex = new RegExp(`^${regexPattern}$`, 'i');
         
-        if (regex.test(email)) {
+        const matches = regex.test(email);
+        console.log(`[EMAIL CHECK] Checking pattern "${pattern.emailPattern}" against "${email}": ${matches ? 'MATCH' : 'no match'}`);
+        
+        if (matches) {
+          // Fix the issue with autoApprove
+          // Force pattern.autoApprove to be a boolean true/false value
+          const isAutoApproved = pattern.autoApprove === true;
+          const role = pattern.defaultRole || "viewer";
+          
+          console.log(`[EMAIL CHECK] Email ALLOWED with auto-approve: ${isAutoApproved}, role: ${role}`);
+          
           return { 
             allowed: true, 
-            autoApprove: pattern.autoApprove === null ? false : pattern.autoApprove,
-            defaultRole: pattern.defaultRole || "viewer"
+            autoApprove: isAutoApproved, // Fix: Use the boolean variable
+            defaultRole: role
           };
         }
       }
       
       // If no match found, return default behavior
+      console.log(`[EMAIL CHECK] No matching pattern found, email NOT allowed`);
       return { allowed: false, autoApprove: false, defaultRole: "pending" };
     } catch (error) {
-      console.error("Error checking allowed email:", error);
+      console.error("[EMAIL CHECK] Error checking allowed email:", error);
       return { allowed: false, autoApprove: false, defaultRole: "pending" };
     }
   }
