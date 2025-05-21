@@ -1922,6 +1922,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updatedAt: new Date()
       });
       
+      // Log the user approval in audit logs
+      await storage.createUserAuditLog(
+        userId,
+        "STATUS_CHANGE", 
+        req.user?.id || "system",
+        undefined,
+        undefined,
+        "User approved by admin"
+      );
+      
       res.json({ 
         success: true, 
         message: "User approved successfully",
@@ -1946,9 +1956,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update user to rejected status
       const updatedUser = await storage.updateUser(userId, {
         isApproved: false,
-        status: "inactive", // Using "inactive" status for rejected users (based on available enum values)
+        status: "inactive", // Using "inactive" status for rejected users
+        role: "pending", // Also set role to "pending" for rejected users
         updatedAt: new Date()
       });
+      
+      // Log the user rejection in audit logs
+      await storage.createUserAuditLog(
+        userId,
+        "STATUS_CHANGE", 
+        req.user?.id || "system",
+        undefined,
+        undefined,
+        "User rejected by admin"
+      );
       
       res.json({ 
         success: true, 
