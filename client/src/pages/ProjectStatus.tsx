@@ -68,7 +68,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { formatDate, getProjectStatusColor, getProjectScheduleState } from '@/lib/utils';
-import { Project } from '@shared/schema';
+import { Project, delayResponsibilityEnum } from '@shared/schema';
 
 // Extend Project type to ensure rawData is included
 interface ProjectWithRawData extends Project {
@@ -94,7 +94,7 @@ const ProjectStatus = () => {
   const [showArchived, setShowArchived] = useState(true);
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { data: projects, isLoading } = useQuery<Project[]>({
+  const { data: projects, isLoading, refetch: refetchProjects } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
   
@@ -111,6 +111,173 @@ const ProjectStatus = () => {
   });
   // Flag to track if initial auto-filtering has been applied
   const [hasAppliedInitialFilter, setHasAppliedInitialFilter] = useState(false);
+  
+  // Delivery dialog state
+  const [deliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [deliveryReason, setDeliveryReason] = useState('');
+  const [delayResponsibility, setDelayResponsibility] = useState<string>('');
+  const [isLateDelivery, setIsLateDelivery] = useState(false);
+  const [deliveryDate, setDeliveryDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  
+  // Generate responsibility options from enum
+  const responsibilityOptions = Object.values(delayResponsibilityEnum.enumValues);
+  
+  // Function to handle opening the delivery dialog
+  const openDeliveryDialog = (projectId: number) => {
+    if (!projects) return;
+    
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    setSelectedProjectId(projectId);
+    
+    // Default to today's date for delivery
+    setDeliveryDate(format(new Date(), 'yyyy-MM-dd'));
+    
+    // Check if delivery is late (comparing to contract date)
+    const contractDate = project.contractDate;
+    if (contractDate) {
+      const isLate = new Date(deliveryDate) > new Date(contractDate);
+      setIsLateDelivery(isLate);
+    } else {
+      setIsLateDelivery(false);
+    }
+    
+    setDeliveryReason('');
+    setDelayResponsibility('');
+    setDeliveryDialogOpen(true);
+  };
+  
+  // Function to handle submitting the delivery form
+  const handleMarkAsDelivered = async () => {
+    if (!selectedProjectId) return;
+    
+    try {
+      // Update project status to delivered
+      const updateData: any = {
+        status: 'completed',
+        deliveryDate: deliveryDate
+      };
+      
+      // If delivery is late, include delay information
+      if (isLateDelivery && deliveryReason) {
+        updateData.deliveryDelay = {
+          reason: deliveryReason,
+          responsibility: delayResponsibility || null
+        };
+      }
+      
+      await apiRequest('PATCH', `/api/projects/${selectedProjectId}`, updateData);
+      
+      // Refresh project list after marking as delivered
+      refetchProjects();
+      
+      // Close dialog and show success message
+      setDeliveryDialogOpen(false);
+      toast({
+        title: 'Project marked as delivered',
+        description: 'Project has been moved to Delivered Projects',
+      });
+      
+    } catch (error) {
+      console.error('Error marking project as delivered:', error);
+      toast({
+        title: 'Failed to mark project as delivered',
+        description: 'An error occurred. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+  
+  // Add the Delivery Dialog component
+  const DeliveryDialog = () => {
+    const selectedProject = projects?.find(p => p.id === selectedProjectId);
+    
+    return (
+      <Dialog open={deliveryDialogOpen} onOpenChange={setDeliveryDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Mark Project as Delivered</DialogTitle>
+            <DialogDescription>
+              {selectedProject ? (
+                <>Mark <strong>{selectedProject.name}</strong> (#{selectedProject.projectNumber}) as delivered</>
+              ) : 'Mark project as delivered'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="delivery-date" className="text-right">
+                Delivery Date
+              </Label>
+              <Input
+                id="delivery-date"
+                type="date"
+                value={deliveryDate}
+                onChange={(e) => setDeliveryDate(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            
+            {isLateDelivery && (
+              <>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="text-right col-span-4">
+                    <div className="text-amber-600 font-semibold flex items-center justify-end">
+                      <AlertTriangle className="h-4 w-4 mr-1" />
+                      Late Delivery Detected
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      This delivery is after the contracted delivery date
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="delay-reason" className="text-right">
+                    Delay Reason
+                  </Label>
+                  <Textarea
+                    id="delay-reason"
+                    value={deliveryReason}
+                    onChange={(e) => setDeliveryReason(e.target.value)}
+                    placeholder="Explain why the delivery was delayed"
+                    className="col-span-3"
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="delay-responsibility" className="text-right">
+                    Responsibility
+                  </Label>
+                  <select
+                    id="delay-responsibility"
+                    value={delayResponsibility}
+                    onChange={(e) => setDelayResponsibility(e.target.value)}
+                    className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">-- Select responsibility --</option>
+                    {responsibilityOptions.map(option => (
+                      <option key={option} value={option}>
+                        {option.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeliveryDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleMarkAsDelivered}>Mark as Delivered</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
   
   // DISABLED auto-filtering - show ALL projects by default
   useEffect(() => {
@@ -499,27 +666,8 @@ const ProjectStatus = () => {
     }
   };
   
-  // States for the delivery dialog
-  const [projectBeingDelivered, setProjectBeingDelivered] = useState<number | null>(null);
-  const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
-  const [lateDeliveryReason, setLateDeliveryReason] = useState('');
-  const [delayResponsibility, setDelayResponsibility] = useState('not_applicable');
-  const [isLateDelivery, setIsLateDelivery] = useState(false);
-  
-  // Function to open the delivery dialog
-  const openDeliveryDialog = (projectId: number) => {
-    // Find the project to check if it's late
-    const project = projects?.find(p => p.id === projectId);
-    
-    // Check if it's potentially a late delivery by comparing with contract date
-    const isLate = project?.contractDate && new Date() > new Date(project.contractDate);
-    
-    setProjectBeingDelivered(projectId);
-    setIsLateDelivery(!!isLate);
-    setLateDeliveryReason('');
-    setDelayResponsibility('not_applicable');
-    setShowDeliveryDialog(true);
-  };
+  // Remove comment that was causing issues
+  // Adding Mark as Delivered option in project context menu
   
   // Function to mark a project as delivered
   const markProjectAsDelivered = async (projectId: number, lateReason?: string, responsibility?: string) => {
@@ -1154,17 +1302,6 @@ const ProjectStatus = () => {
               >
                 <Check className="h-4 w-4 mr-2" />
                 Mark as Delivered
-              </DropdownMenuItem>
-                
-              <DropdownMenuItem 
-                onClick={() => {
-                  toast({
-                    title: "Archive functionality coming soon",
-                    description: "Project archiving will be available in a future update."
-                  });
-                }}
-              >
-                Archive Project
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
