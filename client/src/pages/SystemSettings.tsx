@@ -607,15 +607,22 @@ const SystemSettings = () => {
     e.preventDefault();
     if (!editingUser) return;
     
-    // Using apiRequest for consistency with other API calls
-    apiRequest(`/api/users/${editingUser.id}`, {
+    // Direct fetch call with proper method formatting
+    fetch(`/api/users/${editingUser.id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(editUserForm),
+      credentials: 'include',
     })
       .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to update user');
+        }
+        return response.json();
+      })
+      .then(() => {
         // Update user list
         queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       })
