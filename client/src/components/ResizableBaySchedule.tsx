@@ -460,12 +460,10 @@ export default function ResizableBaySchedule({
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [deleteRowDialogOpen, setDeleteRowDialogOpen] = useState(false);
+  
   // Team name inline editing states
   const [editingTeamId, setEditingTeamId] = useState<string>('');
   const [editingTeamName, setEditingTeamName] = useState<string>('');
-  
-  // Add state for tracking horizontal scroll position
-  const [scrollX, setScrollX] = useState(0);
   
   // State for team deletion confirmation
   const [teamDeleteConfirm, setTeamDeleteConfirm] = useState<{isOpen: boolean; teamName: string; bayIds: number[]}>({
@@ -2590,52 +2588,7 @@ export default function ResizableBaySchedule({
           )}
         </div>
         
-        {/* Add a sticky header container outside the scrollable area */}
-        <div className="sticky-header-container sticky top-0 z-50 bg-gray-900 shadow-md" style={{ height: '40px', overflow: 'hidden' }}>
-          <div className="timeline-header flex" 
-            style={{ 
-              width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
-              transform: `translateX(-${scrollX}px)`,
-            }}>
-            {slots.map((slot, index) => (
-              <div
-                key={`sticky-header-${index}`}
-                className={`
-                  timeline-slot border-r flex-shrink-0
-                  ${slot.isStartOfMonth ? 'bg-gray-800 border-r-2 border-r-blue-500' : ''}
-                  ${slot.isStartOfWeek ? 'bg-gray-850 border-r border-r-gray-600' : ''}
-                  ${!slot.isBusinessDay ? 'bg-gray-850/70' : ''}
-                `}
-                style={{ width: `${slotWidth}px`, height: '40px' }}
-              >
-                <div className="text-xs text-center w-full flex flex-col justify-center h-full">
-                  {slot.isStartOfMonth && (
-                    <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
-                      {slot.monthName} {format(slot.date, 'yyyy')}
-                    </div>
-                  )}
-                  {/* Always show week numbers - one cell = one week */}
-                  <div className="text-gray-400 mt-1 text-[10px] font-semibold">
-                    Week {Math.ceil(differenceInDays(slot.date, new Date(slot.date.getFullYear(), 0, 1)) / 7)}
-                  </div>
-                  <div className="text-gray-400 text-[10px]">
-                    {format(slot.date, 'MM/dd')}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        <div 
-          className="bay-schedule-viewport flex-grow overflow-auto" 
-          ref={viewportRef}
-          onScroll={(e) => {
-            // Update scroll position for the sticky header
-            setScrollX(e.currentTarget.scrollLeft);
-          }}
-        >
-          
+        <div className="bay-schedule-viewport flex-grow overflow-auto" ref={viewportRef}>
           <div className="bay-schedule-container relative" ref={timelineRef}>
           {/* Today Line marker - positioned absolutely */}
           {(() => {
@@ -2727,13 +2680,11 @@ export default function ResizableBaySchedule({
             return null;
           })()}
           
-          {/* Timeline header with sticky positioning - stays normal until scrolled past */}
-          <div 
-            id="sticky-timeline-header"
-            className="timeline-header sticky top-0 z-50 bg-gray-900 shadow-md flex" 
+          {/* Timeline Header */}
+          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex" 
             style={{ 
+              marginLeft: "0px",  // Removed the ml-32 class and set to 0px
               width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
-              height: '40px'
             }}>
             {slots.map((slot, index) => (
               <div
