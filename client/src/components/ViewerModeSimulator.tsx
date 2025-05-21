@@ -40,6 +40,9 @@ export const ViewerModeSimulator: React.FC = () => {
     }
     
     window.history.replaceState({}, '', url.toString());
+    
+    // Force reload to ensure all navigation controls get proper class assignments
+    window.location.reload();
   };
 
   // Apply viewer mode restrictions

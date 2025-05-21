@@ -8,66 +8,63 @@
 }
 
 /* Viewer Mode Restrictions - Applied globally when body has viewer-mode class */
-body.viewer-mode button:not(.auth-button):not(.sandbox-button),
+/* Only disable editing controls, not navigation links */
+body.viewer-mode button:not(.nav-button):not(.auth-button):not(.sandbox-button):not([class*="navigation"]),
 body.viewer-mode input:not([type="text"].auth-input):not([type="password"].auth-input):not(.sandbox-input),
 body.viewer-mode select:not(.auth-select):not(.sandbox-select),
 body.viewer-mode textarea:not(.auth-textarea):not(.sandbox-textarea),
-body.viewer-mode [role="button"]:not(.auth-role-button):not(.sandbox-role-button),
 body.viewer-mode [role="switch"],
 body.viewer-mode [role="checkbox"],
 body.viewer-mode [role="radio"],
-body.viewer-mode [role="menuitem"],
-body.viewer-mode [role="tab"]:not(.auth-tab):not(.sandbox-tab),
+body.viewer-mode [role="menuitem"]:not([class*="navigation"]),
 body.viewer-mode [type="checkbox"],
 body.viewer-mode [type="radio"],
-body.viewer-mode [type="button"],
+body.viewer-mode [type="button"]:not([class*="navigation"]),
 body.viewer-mode [type="submit"],
 body.viewer-mode [type="reset"],
-body.viewer-mode .dropdown-toggle,
-body.viewer-mode .clickable,
-body.viewer-mode a[href]:not(.auth-link):not(.sandbox-link) {
+body.viewer-mode .dropdown-toggle:not([class*="navigation"]),
+body.viewer-mode .clickable:not([class*="navigation"]),
+body.viewer-mode .editable-field,
+body.viewer-mode .edit-controls,
+body.viewer-mode .action-button,
+body.viewer-mode [contenteditable="true"] {
   pointer-events: none !important;
   opacity: 0.7 !important;
   cursor: not-allowed !important;
   user-select: none !important;
 }
 
-/* Disable form submissions for viewers */
-body.viewer-mode form:not(.auth-form):not(.sandbox-form) {
+/* Keep these elements clickable even in viewer mode */
+body.viewer-mode a[href],
+body.viewer-mode .sidebar a,
+body.viewer-mode nav a,
+body.viewer-mode [role="tab"],
+body.viewer-mode .nav-link,
+body.viewer-mode .page-link,
+body.viewer-mode button.nav-button,
+body.viewer-mode [role="button"].nav-button,
+body.viewer-mode .view-mode-toggle {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+}
+
+/* Disable form submissions for viewers but keep navigation and dropdowns working */
+body.viewer-mode form:not(.auth-form):not(.sandbox-form):not([class*="navigation"]) {
   pointer-events: none !important;
 }
 
-/* Make sure editing controls are disabled for viewers */
-body.viewer-mode .editable-field,
-body.viewer-mode .edit-controls,
-body.viewer-mode .action-buttons,
-body.viewer-mode .dropdown-menu,
-body.viewer-mode .menu-item,
-body.viewer-mode [contenteditable="true"] {
-  pointer-events: none !important;
-  opacity: 0.7 !important;
-  user-select: none !important;
-}
-
-/* Override cursor for viewers */
-body.viewer-mode * {
-  cursor: default !important;
-}
-
-/* Allow scrolling but not clicking in scroll areas */
+/* Allow scrolling and navigation in viewer mode */
 body.viewer-mode .overflow-auto,
 body.viewer-mode .overflow-y-auto,
 body.viewer-mode .overflow-x-auto,
-body.viewer-mode [class*="scroll"] {
+body.viewer-mode [class*="scroll"],
+body.viewer-mode .main-content,
+body.viewer-mode main,
+body.viewer-mode .sidebar,
+body.viewer-mode nav {
   pointer-events: auto !important;
-}
-
-/* Ensure elements within scroll areas are still not clickable */
-body.viewer-mode .overflow-auto *:not(.overflow-auto):not(.overflow-y-auto):not(.overflow-x-auto):not([class*="scroll"]),
-body.viewer-mode .overflow-y-auto *:not(.overflow-auto):not(.overflow-y-auto):not(.overflow-x-auto):not([class*="scroll"]),
-body.viewer-mode .overflow-x-auto *:not(.overflow-auto):not(.overflow-y-auto):not(.overflow-x-auto):not([class*="scroll"]),
-body.viewer-mode [class*="scroll"] *:not(.overflow-auto):not(.overflow-y-auto):not(.overflow-x-auto):not([class*="scroll"]) {
-  pointer-events: none !important;
+  overflow: auto !important;
 }
 
 :root {
