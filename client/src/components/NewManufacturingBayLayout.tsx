@@ -371,7 +371,7 @@ const ManufacturingBayLayout: React.FC<ManufacturingBayLayoutProps> = ({
                     <BayColumn bay={bay} />
                     
                     {/* Schedule slots */}
-                    <div className="flex-1 overflow-x-auto w-full" id={`bay-${bay.id}-timeline`}>
+                    <div className="flex-1 overflow-x-auto max-w-[calc(100vw-280px)]" id={`bay-${bay.id}-timeline`}>
                       <div className="flex relative">
                         {/* Today indicator line */}
                         <div 
