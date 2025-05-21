@@ -526,6 +526,54 @@ const SystemSettings = () => {
   const handleRejectUser = (userId: string) => {
     rejectUserMutation.mutate(userId);
   };
+  
+  // Handle edit user button click
+  const handleEditUserClick = (user: any) => {
+    setEditingUser(user);
+    setEditUserForm({
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      email: user.email || '',
+      role: user.role || 'viewer',
+      department: user.department || ''
+    });
+    setIsEditDialogOpen(true);
+  };
+  
+  // Handle user form submission
+  const handleEditUserSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    
+    fetch(`/api/users/${editingUser.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(editUserForm),
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to update user');
+        }
+        return response.json();
+      })
+      .then(() => {
+        toast({
+          title: "User Updated",
+          description: "User information has been successfully updated."
+        });
+        setIsEditDialogOpen(false);
+        queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      })
+      .catch(error => {
+        toast({
+          title: "Error",
+          description: "Failed to update user: " + error.message,
+          variant: "destructive"
+        });
+      });
+  };
 
   // Handle tab change
   const [currentTab, setCurrentTab] = useState('accessControl');
@@ -640,6 +688,101 @@ const SystemSettings = () => {
 
   return (
     <div className="container mx-auto py-6 px-6 md:px-8 space-y-8">
+      {/* Edit User Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update user information and department settings.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleEditUserSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="firstName" className="text-right">
+                  First Name
+                </Label>
+                <Input
+                  id="firstName"
+                  value={editUserForm.firstName}
+                  onChange={(e) => setEditUserForm({...editUserForm, firstName: e.target.value})}
+                  className="col-span-3"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="lastName" className="text-right">
+                  Last Name
+                </Label>
+                <Input
+                  id="lastName"
+                  value={editUserForm.lastName}
+                  onChange={(e) => setEditUserForm({...editUserForm, lastName: e.target.value})}
+                  className="col-span-3"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="email" className="text-right">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={editUserForm.email}
+                  onChange={(e) => setEditUserForm({...editUserForm, email: e.target.value})}
+                  className="col-span-3"
+                  disabled
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="role" className="text-right">
+                  Role
+                </Label>
+                <Select 
+                  value={editUserForm.role} 
+                  onValueChange={(value) => setEditUserForm({...editUserForm, role: value})}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="viewer">Viewer</SelectItem>
+                    <SelectItem value="editor">Editor</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="department" className="text-right">
+                  Department
+                </Label>
+                <Input
+                  id="department"
+                  value={editUserForm.department}
+                  onChange={(e) => setEditUserForm({...editUserForm, department: e.target.value})}
+                  className="col-span-3"
+                  placeholder="e.g. Engineering, Sales, Production"
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="secondary" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">System Settings</h1>
@@ -1503,5 +1646,7 @@ const SystemSettings = () => {
       </div>
     );
 };
+
+
 
 export default SystemSettings;
