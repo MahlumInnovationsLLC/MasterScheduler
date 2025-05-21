@@ -46,47 +46,41 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   
-  // ROBUST DATE HANDLING:
-  // 1. Log what's coming from the server for debugging
-  // 2. Simplify our approach to display dates correctly
-  const [dateValue, setDateValue] = useState<string | undefined>(
-    value ? (value.includes('T') ? new Date(value).toISOString().split('T')[0] : value) : undefined
-  );
+  // SIMPLE DATE HANDLING WITH FIXED +1 DAY ADJUSTMENT FOR DISPLAY
+  // We always add one day to properly show dates in the date field
+  const [dateValue, setDateValue] = useState<string | undefined>(undefined);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Reset date value when value changes with enhanced logging for debugging
+  // Reset date value when value changes - with always +1 day adjustment
   useEffect(() => {
-    // Debug the incoming value for diagnostic purposes
+    // Log some debug info
     debugDate(`Incoming from server (${field})`, value);
     
     if (value) {
-      // Always treat values as YYYY-MM-DD and use them directly if possible
-      if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        // It's already in YYYY-MM-DD format, use directly
-        console.log(`Date ${field} is already in YYYY-MM-DD format: ${value}, using directly`);
-        setDateValue(value);
+      // Create a date object
+      const dateObj = new Date(value);
+      
+      // If it's a valid date, add a day for display
+      if (!isNaN(dateObj.getTime())) {
+        // ALWAYS ADD ONE DAY - this is the critical fix
+        const adjustedDate = new Date(dateObj);
+        adjustedDate.setDate(adjustedDate.getDate() + 1);
+        
+        // Format as YYYY-MM-DD for the input
+        const year = adjustedDate.getFullYear();
+        const month = String(adjustedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(adjustedDate.getDate()).padStart(2, '0');
+        const displayDate = `${year}-${month}-${day}`;
+        
+        console.log(`DATE DISPLAY: Added +1 day to ${value}, displaying as ${displayDate}`);
+        setDateValue(displayDate);
       } else {
-        // It's in another format, create a date in the browser's timezone
-        // and extract YYYY-MM-DD for the form input
-        const dateObj = new Date(value);
-        if (!isNaN(dateObj.getTime())) {
-          // Create date with timezone adjustment
-          const year = dateObj.getFullYear();
-          const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-          const day = String(dateObj.getDate()).padStart(2, '0');
-          const formattedDate = `${year}-${month}-${day}`;
-          
-          console.log(`Date ${field} converted from ${value} to ${formattedDate}`);
-          setDateValue(formattedDate);
-        } else {
-          console.log(`Date ${field} could not be parsed: ${value}, using as-is`);
-          setDateValue(value);
-        }
+        // Fallback for unparsable dates
+        setDateValue(value);
       }
     } else {
-      console.log(`Date ${field} is null/undefined`);
       setDateValue(undefined);
     }
   }, [value, field]);
@@ -98,9 +92,19 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
       let dateToSend = null;
       
       if (dateValue) {
-        // Fix timezone issues by using a direct string instead of Date conversion
-        // This preserves the exact date selected without timezone adjustments
-        dateToSend = dateValue; // The input date value is already in YYYY-MM-DD format
+        // CRITICAL FIX: When saving, subtract a day to account for the +1 day we added for display
+        // This ensures what the user sees is what actually gets saved
+        const dateObj = new Date(dateValue);
+        if (!isNaN(dateObj.getTime())) {
+          // Subtract a day to reverse our display adjustment
+          dateObj.setDate(dateObj.getDate() - 1);
+          // Format as YYYY-MM-DD
+          dateToSend = dateObj.toISOString().split('T')[0];
+          console.log(`DATE SAVE: Subtracting 1 day from displayed ${dateValue}, saving as ${dateToSend}`);
+        } else {
+          // If can't parse, use as-is
+          dateToSend = dateValue;
+        }
       }
         
       const response = await apiRequest(
