@@ -1946,7 +1946,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update user to rejected status
       const updatedUser = await storage.updateUser(userId, {
         isApproved: false,
-        status: "archived",
+        status: "rejected", // Changed from "archived" to "rejected" to clearly mark rejected users
         updatedAt: new Date()
       });
       
