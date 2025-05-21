@@ -546,6 +546,60 @@ const SystemSettings = () => {
     setIsEditDialogOpen(true);
   };
   
+  // User sorting function
+  const handleSort = (column: string) => {
+    setUserSort(prev => ({
+      column,
+      direction: prev.column === column && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Get sorted users
+  const getSortedUsers = () => {
+    if (!users || users.length === 0) return [];
+    
+    return [...users].sort((a, b) => {
+      // Handle special cases based on column
+      if (userSort.column === 'lastName') {
+        const aValue = `${a.lastName || ''} ${a.firstName || ''}`.toLowerCase();
+        const bValue = `${b.lastName || ''} ${b.firstName || ''}`.toLowerCase();
+        return userSort.direction === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      if (userSort.column === 'department') {
+        const aValue = (a.department || 'zzz').toLowerCase(); // 'zzz' to sort empty values last
+        const bValue = (b.department || 'zzz').toLowerCase();
+        return userSort.direction === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      if (userSort.column === 'createdAt' || userSort.column === 'lastLogin') {
+        const aDate = a[userSort.column] ? new Date(a[userSort.column]) : new Date(0);
+        const bDate = b[userSort.column] ? new Date(b[userSort.column]) : new Date(0);
+        return userSort.direction === 'asc' 
+          ? aDate.getTime() - bDate.getTime()
+          : bDate.getTime() - aDate.getTime();
+      }
+      
+      if (userSort.column === 'isApproved') {
+        // Sort by approval status (boolean)
+        return userSort.direction === 'asc'
+          ? (a.isApproved === b.isApproved ? 0 : a.isApproved ? 1 : -1)
+          : (a.isApproved === b.isApproved ? 0 : a.isApproved ? -1 : 1);
+      }
+      
+      // Default sort for other columns
+      const aValue = (a[userSort.column] || '').toString().toLowerCase();
+      const bValue = (b[userSort.column] || '').toString().toLowerCase();
+      return userSort.direction === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    });
+  };
+
   // Handle user form submission
   const handleEditUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1039,7 +1093,7 @@ const SystemSettings = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {users.map((user) => (
+                          {getSortedUsers().map((user) => (
                             <TableRow key={user.id}>
                               <TableCell>
                                 <div className="flex items-center space-x-3">
