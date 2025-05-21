@@ -30,6 +30,7 @@ import {
   importDeliveryTracking
 } from "./import";
 import { importBayScheduling } from "./routes/baySchedulingImport";
+import rolePermissionsRouter from "./routes/rolePermissions";
 import {
   getProjectDeliveryTracking,
   getAllDeliveryTracking,
@@ -2436,6 +2437,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Supply Chain Routes
   app.use('/api', supplyChainRoutes);
+  
+  // Role Permissions Routes
+  app.use('/api/role-permissions', rolePermissionsRouter);
 
   const httpServer = createServer(app);
   return httpServer;
