@@ -25,12 +25,22 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Reset date value when value changes - also with timezone fix
+  // Reset date value when value changes - with timezone fix and adjustment
   useEffect(() => {
     if (value) {
-      // If the value already includes a 'T' (ISO format), convert it 
-      // Otherwise use the value directly as it's likely already in YYYY-MM-DD format
-      setDateValue(value.includes('T') ? new Date(value).toISOString().split('T')[0] : value);
+      // Fix timezone issue by adding a day for display purposes
+      const dateObj = new Date(value);
+      if (!isNaN(dateObj.getTime())) {
+        // Add a day to compensate for the timezone shift
+        const adjustedDate = new Date(dateObj);
+        adjustedDate.setDate(adjustedDate.getDate() + 1);
+        // Format as YYYY-MM-DD
+        const formattedDate = adjustedDate.toISOString().split('T')[0];
+        setDateValue(formattedDate);
+      } else {
+        // If can't parse it as a date, use as-is
+        setDateValue(value);
+      }
     } else {
       setDateValue(undefined);
     }
