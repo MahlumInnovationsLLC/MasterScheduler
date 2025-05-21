@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LoadingProvider } from "@/components/LoadingManager";
 import { PermissionsProvider, GlobalPermissionsHandler } from "@/components/PermissionsManager";
+import ViewerModeSimulator from "@/components/ViewerModeSimulator";
 import Dashboard from "@/pages/Dashboard";
 import ProjectStatus from "@/pages/ProjectStatus";
 import BillingMilestones from "@/pages/BillingMilestones";
@@ -126,7 +127,32 @@ function App() {
             <PermissionsProvider>
               <Toaster />
               <GlobalPermissionsHandler />
+              {/* Add Viewer Mode simulator for testing */}
+              <ViewerModeSimulator />
               <Router />
+              
+              {/* Custom styles for viewer mode exceptions */}
+              <style dangerouslySetInnerHTML={{
+                __html: `
+                  /* Auth elements need to be clickable even in viewer mode */
+                  body.viewer-mode .auth-form input,
+                  body.viewer-mode .auth-form button,
+                  body.viewer-mode .auth-form select {
+                    pointer-events: auto !important;
+                    opacity: 1 !important;
+                    cursor: pointer !important;
+                  }
+                  
+                  /* Bay Scheduling sandbox mode elements need to be clickable in viewer mode */
+                  body.viewer-mode .sandbox-mode button,
+                  body.viewer-mode .sandbox-mode input,
+                  body.viewer-mode .sandbox-mode select {
+                    pointer-events: auto !important;
+                    opacity: 1 !important;
+                    cursor: pointer !important;
+                  }
+                `
+              }} />
             </PermissionsProvider>
           </AuthProvider>
         </TooltipProvider>
