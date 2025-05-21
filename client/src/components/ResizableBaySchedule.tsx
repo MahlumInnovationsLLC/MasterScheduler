@@ -2680,10 +2680,10 @@ export default function ResizableBaySchedule({
             return null;
           })()}
           
-          {/* Timeline header with fixed positioning that sticks to viewport */}
+          {/* Timeline header with sticky positioning - stays normal until scrolled past */}
           <div 
             id="sticky-timeline-header"
-            className="timeline-header fixed top-[60px] left-0 right-0 z-50 bg-gray-900 shadow-md flex" 
+            className="timeline-header sticky top-0 z-50 bg-gray-900 shadow-md flex" 
             style={{ 
               width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
               height: '40px'
