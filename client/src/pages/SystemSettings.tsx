@@ -436,8 +436,8 @@ const SystemSettings = () => {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-8">
-      <div className="flex justify-between items-center">
+    <div className="container mx-auto py-6 px-6 md:px-8 space-y-8">
+      <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">System Settings</h1>
           <p className="text-muted-foreground">
