@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import MultiRowBayContent from './MultiRowBayContent';
+import { useAuth } from "@/hooks/use-auth";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   format, 
   addDays, 
