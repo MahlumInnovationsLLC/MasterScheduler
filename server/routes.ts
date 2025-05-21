@@ -2578,6 +2578,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Role Permissions Routes
   app.use('/api/role-permissions', rolePermissionsRouter);
+  
+  // System Routes
+  app.use('/api/system', systemRoutes);
 
   const httpServer = createServer(app);
   return httpServer;
