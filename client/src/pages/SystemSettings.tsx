@@ -803,13 +803,25 @@ const SystemSettings = () => {
                 <Label htmlFor="department" className="text-right">
                   Department
                 </Label>
-                <Input
-                  id="department"
-                  value={editUserForm.department}
-                  onChange={(e) => setEditUserForm({...editUserForm, department: e.target.value})}
-                  className="col-span-3"
-                  placeholder="e.g. Engineering, Sales, Production"
-                />
+                <Select 
+                  value={editUserForm.department || ''} 
+                  onValueChange={(value) => setEditUserForm({...editUserForm, department: value})}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="engineering">Engineering</SelectItem>
+                    <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                    <SelectItem value="finance">Finance</SelectItem>
+                    <SelectItem value="project_management">Project Management</SelectItem>
+                    <SelectItem value="quality_control">Quality Control</SelectItem>
+                    <SelectItem value="it">IT</SelectItem>
+                    <SelectItem value="sales">Sales</SelectItem>
+                    <SelectItem value="executive">Executive</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             
