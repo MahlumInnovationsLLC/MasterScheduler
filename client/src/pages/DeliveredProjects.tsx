@@ -57,7 +57,9 @@ const DeliveredProjects = () => {
       cell: ({ row }) => {
         return row.original.actualDeliveryDate ? 
           format(new Date(row.original.actualDeliveryDate), 'MMM d, yyyy') : 
-          'Not Delivered';
+          (row.original.status === 'delivered' ? 
+            format(new Date(), 'MMM d, yyyy') + ' (Auto)' : 
+            'Not Delivered');
       }
     },
     {
