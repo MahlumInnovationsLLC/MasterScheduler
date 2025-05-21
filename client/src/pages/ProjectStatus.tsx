@@ -497,6 +497,66 @@ const ProjectStatus = () => {
     }
   };
   
+  // Function to mark a project as delivered
+  const markProjectAsDelivered = async (projectId: number) => {
+    try {
+      // Get the current date for the delivery date
+      const today = new Date();
+      const deliveryDate = format(today, 'yyyy-MM-dd');
+      
+      // Update the project status to 'delivered' and set delivery date
+      const response = await apiRequest(
+        "PATCH",
+        `/api/projects/${projectId}`,
+        { 
+          status: 'delivered',
+          deliveryDate: deliveryDate,
+          percentComplete: 100 // Set completion to 100%
+        }
+      );
+      
+      if (response.ok) {
+        // Refresh projects list
+        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+        
+        // Show success notification
+        toast({
+          title: "Project Delivered",
+          description: `Project has been marked as delivered on ${format(today, 'MMM d, yyyy')}`,
+          variant: "default"
+        });
+        
+        // Also create a notification about the delivery
+        try {
+          await apiRequest(
+            "POST",
+            "/api/notifications",
+            {
+              title: "Project Delivery",
+              message: `Project #${projectId} has been marked as delivered`,
+              type: "project",
+              priority: "medium",
+              link: `/project/${projectId}`
+            }
+          );
+        } catch (notifError) {
+          console.error("Failed to create notification:", notifError);
+        }
+        
+        return true;
+      } else {
+        throw new Error(`Failed to mark project as delivered`);
+      }
+    } catch (error) {
+      toast({
+        title: "Delivery Status Update Failed",
+        description: `Error: ${(error as Error).message}`,
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+  
   // Component for editable notes field
   const EditableNotesField = ({
     projectId,
