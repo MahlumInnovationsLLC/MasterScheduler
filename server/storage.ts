@@ -724,7 +724,8 @@ export class DatabaseStorage implements IStorage {
       console.log(`Updating user ${id} with data:`, userData);
       
       // Remove any fields that shouldn't be directly updated
-      const { id: _, createdAt, updatedAt, lastLogin, status, isApproved, ...safeUserData } = userData as any;
+      // FIXED: Allow status and isApproved to be updated for proper user approval/rejection
+      const { id: _, createdAt, updatedAt, lastLogin, ...safeUserData } = userData as any;
       
       // Add the updatedAt timestamp
       const updateData = {
