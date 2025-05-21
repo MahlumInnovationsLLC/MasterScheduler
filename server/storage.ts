@@ -2217,6 +2217,169 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+
+  // Role Permissions Management
+  async getRolePermissions(role?: string): Promise<typeof rolePermissions.$inferSelect[]> {
+    try {
+      if (role) {
+        return await db
+          .select()
+          .from(rolePermissions)
+          .where(eq(rolePermissions.role, role))
+          .orderBy(rolePermissions.category, rolePermissions.feature);
+      } else {
+        return await db
+          .select()
+          .from(rolePermissions)
+          .orderBy(rolePermissions.role, rolePermissions.category, rolePermissions.feature);
+      }
+    } catch (error) {
+      console.error("Error fetching role permissions:", error);
+      return [];
+    }
+  }
+
+  async getRolePermissionsByCategory(role: string, category: string): Promise<typeof rolePermissions.$inferSelect[]> {
+    try {
+      return await db
+        .select()
+        .from(rolePermissions)
+        .where(and(
+          eq(rolePermissions.role, role),
+          eq(rolePermissions.category, category as any)
+        ))
+        .orderBy(rolePermissions.feature);
+    } catch (error) {
+      console.error(`Error fetching permissions for role ${role} in category ${category}:`, error);
+      return [];
+    }
+  }
+
+  async getRolePermission(id: number): Promise<typeof rolePermissions.$inferSelect | undefined> {
+    try {
+      const [permission] = await db
+        .select()
+        .from(rolePermissions)
+        .where(eq(rolePermissions.id, id));
+      return permission;
+    } catch (error) {
+      console.error(`Error fetching permission with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async createRolePermission(permission: typeof rolePermissions.$inferInsert): Promise<typeof rolePermissions.$inferSelect | undefined> {
+    try {
+      const [newPermission] = await db
+        .insert(rolePermissions)
+        .values(permission)
+        .returning();
+      return newPermission;
+    } catch (error) {
+      console.error("Error creating role permission:", error);
+      return undefined;
+    }
+  }
+
+  async updateRolePermission(id: number, data: Partial<typeof rolePermissions.$inferInsert>): Promise<typeof rolePermissions.$inferSelect | undefined> {
+    try {
+      const [updatedPermission] = await db
+        .update(rolePermissions)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(rolePermissions.id, id))
+        .returning();
+      return updatedPermission;
+    } catch (error) {
+      console.error(`Error updating permission with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async deleteRolePermission(id: number): Promise<boolean> {
+    try {
+      await db
+        .delete(rolePermissions)
+        .where(eq(rolePermissions.id, id));
+      return true;
+    } catch (error) {
+      console.error(`Error deleting permission with ID ${id}:`, error);
+      return false;
+    }
+  }
+
+  async bulkUpdateRolePermissions(role: string, permissions: Partial<typeof rolePermissions.$inferInsert>[]): Promise<number> {
+    try {
+      let updateCount = 0;
+      
+      // Use a transaction to ensure all updates complete or none do
+      await db.transaction(async (tx) => {
+        for (const permission of permissions) {
+          if (permission.id) {
+            // Update existing permission
+            await tx
+              .update(rolePermissions)
+              .set({ ...permission, updatedAt: new Date() })
+              .where(eq(rolePermissions.id, permission.id));
+            updateCount++;
+          } else if (permission.feature && permission.category) {
+            // Create new permission
+            await tx
+              .insert(rolePermissions)
+              .values({
+                ...permission,
+                role,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              });
+            updateCount++;
+          }
+        }
+      });
+      
+      return updateCount;
+    } catch (error) {
+      console.error(`Error bulk updating permissions for role ${role}:`, error);
+      return 0;
+    }
+  }
+
+  // Check if a user has a specific permission
+  async hasPermission(userId: string, category: string, feature: string, permission: 'view' | 'edit' | 'create' | 'delete' | 'import' | 'export'): Promise<boolean> {
+    try {
+      // Get the user's role
+      const user = await this.getUser(userId);
+      if (!user || !user.role) return false;
+      
+      // Admin users have all permissions by default
+      if (user.role === 'admin') return true;
+      
+      // Find the permission record for this role, category, and feature
+      const [permissionRecord] = await db
+        .select()
+        .from(rolePermissions)
+        .where(and(
+          eq(rolePermissions.role, user.role),
+          eq(rolePermissions.category, category as any),
+          eq(rolePermissions.feature, feature)
+        ));
+        
+      if (!permissionRecord) return false;
+      
+      // Check the requested permission
+      switch (permission) {
+        case 'view': return !!permissionRecord.canView;
+        case 'edit': return !!permissionRecord.canEdit;
+        case 'create': return !!permissionRecord.canCreate;
+        case 'delete': return !!permissionRecord.canDelete;
+        case 'import': return !!permissionRecord.canImport;
+        case 'export': return !!permissionRecord.canExport;
+        default: return false;
+      }
+    } catch (error) {
+      console.error(`Error checking permission for user ${userId}:`, error);
+      return false;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

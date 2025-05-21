@@ -142,6 +142,8 @@ export const permissionCategoryEnum = pgEnum("permission_category", [
   "import_export",
 ]);
 
+// Note: Role Permissions Table is defined further down in this file
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
   username: varchar("username").unique().notNull(),
