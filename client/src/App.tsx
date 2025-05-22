@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LoadingProvider } from "@/components/LoadingManager";
-import { PermissionsProvider, GlobalPermissionsHandler } from "@/components/PermissionsManager";
+import { PermissionsProvider, GlobalPermissionsHandler, usePermissions } from "@/components/PermissionsManager";
 import ViewerModeSimulator from "@/components/ViewerModeSimulator";
 import DetectDevUser from "@/components/DetectDevUser";
 import Dashboard from "@/pages/Dashboard";
@@ -68,6 +68,9 @@ function Router() {
       </div>
     );
   }
+  
+  // Get permissions context for the banner
+  const { userRole, canEdit } = usePermissions();
   
   return (
     <SidebarProvider>
