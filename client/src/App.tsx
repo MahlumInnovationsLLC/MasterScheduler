@@ -60,7 +60,12 @@ function Router() {
   if (isAuthPage || isResetPasswordPage) {
     // Don't apply any permissions restrictions to authentication routes
     return (
-      <div className="auth-routes">
+      <div className="auth-routes auth-page auth-page-force-interactive">
+        {/* Use our AuthUnlocker to ensure auth pages are always fully interactive */}
+        <React.Fragment>
+          {/* Critical: Import and use our special auth page unlocker */}
+          {React.createElement(require("@/pages/AuthUnlocker").default)}
+        </React.Fragment>
         <Switch>
           <Route path="/auth" component={AuthPage} />
           <Route path="/reset-password" component={ResetPasswordPage} />
@@ -138,13 +143,30 @@ function App() {
               {/* Custom styles for viewer mode exceptions */}
               <style dangerouslySetInnerHTML={{
                 __html: `
-                  /* Auth elements need to be clickable even in viewer mode */
-                  body.viewer-mode .auth-form input,
-                  body.viewer-mode .auth-form button,
-                  body.viewer-mode .auth-form select {
+                  /* AUTH PAGE CRITICAL OVERRIDE - All auth elements MUST be clickable regardless of role */
+                  body.viewer-mode .auth-routes *,
+                  body.viewer-mode .auth-routes input,
+                  body.viewer-mode .auth-routes button,
+                  body.viewer-mode .auth-routes select,
+                  body.viewer-mode .auth-routes a,
+                  body.viewer-mode .auth-page *,
+                  body.viewer-mode .auth-form *,
+                  body.viewer-mode [class*="login"] *,
+                  body.viewer-mode form input,
+                  body.viewer-mode form button,
+                  body.auth-page *,
+                  #email, 
+                  #password,
+                  input[type="email"],
+                  input[type="password"],
+                  .login-btn,
+                  form button[type="submit"] {
                     pointer-events: auto !important;
                     opacity: 1 !important;
                     cursor: pointer !important;
+                    user-select: auto !important;
+                    display: block !important;
+                    visibility: visible !important;
                   }
                   
                   /* Bay Scheduling sandbox mode elements need to be clickable in viewer mode */

@@ -58,7 +58,8 @@ body.viewer-mode [role="grid"] {
   overflow: auto !important;
 }
 
-/* CRITICAL: Auth page is ALWAYS fully interactive - never in viewer mode */
+/* CRITICAL: Auth page is ALWAYS fully interactive - never in viewer mode 
+   These rules have the highest priority in the stylesheet to override everything */
 body.auth-page button,
 body.auth-page input,
 body.auth-page select,
@@ -76,11 +77,26 @@ body.auth-page [type="button"],
 body.auth-page [type="submit"],
 body.auth-page [type="reset"],
 body.auth-page form,
-body.auth-page form * {
+body.auth-page form *,
+.auth-page .login-form,
+.auth-page .login-form *,
+body.auth-page-force-interactive *,
+[class*="login"] input,
+[class*="login"] button,
+form input,
+form button,
+.login-btn,
+#email,
+#password,
+input[type="email"],
+input[type="password"] {
   pointer-events: auto !important;
   opacity: 1 !important;
   cursor: pointer !important;
   user-select: auto !important;
+  -webkit-user-select: auto !important;
+  display: block !important;
+  visibility: visible !important;
 }
 
 /* Viewer Mode Restrictions - Applied globally when body has viewer-mode class */
