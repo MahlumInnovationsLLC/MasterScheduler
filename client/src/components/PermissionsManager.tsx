@@ -326,9 +326,9 @@ export const GlobalPermissionsHandler = () => {
       return;
     }
     
-    // CRITICAL FIX: Always force apply viewer mode if role is viewer
-    // This ensures the CSS restrictions apply globally
-    if (userRole === "viewer") {
+    // Determine which role to apply based on actual permissions
+    if (userRole === "viewer" || (isDevelopment && isSimulatingViewer)) {
+      // Only apply viewer mode if the user is actually a viewer or we're simulating it
       // Add both classes to ensure our CSS selectors work properly
       document.body.classList.add("viewer-mode");
       document.body.classList.add("role-viewer");
@@ -398,10 +398,29 @@ export const GlobalPermissionsHandler = () => {
           box-shadow: 0 2px 4px rgba(0,0,0,0.2);
           pointer-events: none;
         `;
-        viewerBadge.textContent = 'View Only Mode';
+        viewerBadge.textContent = isDevelopment && isSimulatingViewer ? 'View Only Mode (Simulated)' : 'View Only Mode';
         document.body.appendChild(viewerBadge);
       }
+    } else if (userRole === "admin" || userRole === "editor") {
+      // Ensure admins and editors get full permissions by removing any restrictions
+      console.log(`🔓 EDITING MODE ACTIVE - User has ${userRole} role with full permissions`);
+      document.body.classList.remove("viewer-mode");
+      document.body.classList.remove("role-viewer");
+      
+      // Remove viewer badge if it exists
+      const badge = document.getElementById('viewer-mode-badge');
+      if (badge) badge.remove();
+      
+      // Clean up any previously added restrictions
+      const disabledElements = document.querySelectorAll('.viewer-disabled');
+      disabledElements.forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.removeAttribute('disabled');
+          el.classList.remove('viewer-disabled');
+        }
+      });
     } else {
+      // Fallback for unknown roles - default to viewer mode for safety
       document.body.classList.remove("viewer-mode");
       document.body.classList.remove("role-viewer");
       const badge = document.getElementById('viewer-mode-badge');
