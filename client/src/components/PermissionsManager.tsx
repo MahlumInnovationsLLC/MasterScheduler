@@ -278,6 +278,10 @@ export const ViewerGuard = () => {
 export const GlobalPermissionsHandler = () => {
   const { userRole, canEdit } = usePermissions();
   
+  // CRITICAL PRODUCTION FIX: Check for admin role right away
+  // If admin role detected, NEVER apply any restrictions
+  const isAdmin = userRole === "admin";
+  
   // Check if we're on the auth page - never restrict the auth page
   const isAuthPage = window.location.pathname === "/auth";
   
@@ -286,6 +290,45 @@ export const GlobalPermissionsHandler = () => {
   
   // Variable to track if sandbox mode is active in Bay Scheduling
   const [isSandboxMode, setIsSandboxMode] = React.useState(false);
+  
+  // Force remove any view-only mode for admins
+  React.useEffect(() => {
+    if (isAdmin) {
+      console.log("Admin role detected, enabling admin capabilities");
+      document.body.classList.remove("viewer-mode");
+      document.body.classList.remove("role-viewer");
+      const badge = document.getElementById('viewer-mode-badge');
+      if (badge) badge.remove();
+      const existingStyle = document.getElementById('viewer-mode-styles');
+      if (existingStyle) existingStyle.remove();
+      
+      // Force enable any disabled inputs
+      const enableAllElements = () => {
+        const disabledElements = document.querySelectorAll('[disabled="true"], [disabled]');
+        disabledElements.forEach(el => {
+          if (el instanceof HTMLElement) {
+            el.removeAttribute('disabled');
+            el.classList.remove('viewer-disabled');
+          }
+        });
+        console.log("🔓 ADMIN MODE: Detected newly added disabled elements, enabling them");
+      };
+      
+      // Run immediately
+      enableAllElements();
+      
+      // Set up a mutation observer to catch dynamically added disabled elements
+      const observer = new MutationObserver(enableAllElements);
+      observer.observe(document.body, { 
+        childList: true, 
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['disabled']
+      });
+      
+      return () => observer.disconnect();
+    }
+  }, [isAdmin]);
 
   // Listen for sandbox mode activation in Bay Scheduling
   React.useEffect(() => {
@@ -332,7 +375,8 @@ export const GlobalPermissionsHandler = () => {
       return;
     }
     
-    // Only apply viewer mode if the user is actually a viewer role
+    // CRITICAL FIX: Only apply viewer mode if the user is EXPLICITLY a viewer role
+    // NEVER apply viewer mode to admin users under any circumstances
     if (userRole === "viewer") {
       // Add both classes to ensure our CSS selectors work properly
       document.body.classList.add("viewer-mode");
@@ -409,6 +453,7 @@ export const GlobalPermissionsHandler = () => {
     } else if (userRole === "admin" || userRole === "editor") {
       // CRITICAL PRIORITY: Ensure admins and editors get FULL permissions by removing ANY restrictions
       console.log(`🔓 EDITING MODE ACTIVE - User has ${userRole} role with full permissions`);
+      console.log("✅ PRODUCTION-SAFE ADMIN MODE: Full admin/editor capabilities enabled for admin role");
       
       // Force remove all view-only related classes
       document.body.classList.remove("viewer-mode");
