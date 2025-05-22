@@ -38,6 +38,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AdminRoute } from "@/lib/admin-route";
 import { ViewerRestrictedRoute } from "@/lib/viewer-restricted-route";
+import { UnrestrictedAuthRoute } from "@/lib/unrestricted-auth-route";
 // Import SidebarContext and SidebarProvider for managing sidebar state
 import { SidebarProvider, SidebarContext } from "@/context/SidebarContext";
 import { useContext } from "react";
@@ -62,8 +63,8 @@ function Router() {
     return (
       <div className="auth-routes">
         <Switch>
-          <Route path="/auth" component={AuthPage} />
-          <Route path="/reset-password" component={ResetPasswordPage} />
+          <UnrestrictedAuthRoute path="/auth" component={AuthPage} />
+          <UnrestrictedAuthRoute path="/reset-password" component={ResetPasswordPage} />
         </Switch>
       </div>
     );
@@ -111,7 +112,7 @@ function MainContent() {
             <AdminRoute path="/system-settings" component={SystemSettings} />
             <AdminRoute path="/settings" component={SystemSettings} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
-            <Route path="/auth" component={AuthPage} />
+            <UnrestrictedAuthRoute path="/auth" component={AuthPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
