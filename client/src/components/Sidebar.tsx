@@ -29,7 +29,7 @@ const SidebarLink = ({ href, className, title, children }: {
   children: React.ReactNode 
 }) => {
   return (
-    <Link href={href} className={`sidebar-item ${className}`} title={title}>
+    <Link href={href} className={`sidebar-item viewer-interactive sidebar-link ${className}`} title={title}>
       {children}
     </Link>
   );
@@ -64,7 +64,7 @@ const Sidebar = () => {
     <aside className={`sidebar bg-darkCard border-r border-gray-800 fixed h-screen overflow-y-auto transition-all duration-300 z-10 ${isCollapsed ? 'w-[50px]' : 'w-[260px]'}`} style={{ top: '64px' }}>
       {/* Toggle Button - positioned outside of scrolling area */}
       <button 
-        className="nav-button sidebar-button absolute top-1 right-2 bg-primary hover:bg-primary-dark text-white rounded-full p-2 shadow-lg z-20 border border-gray-700"
+        className="nav-button sidebar-button viewer-interactive absolute top-1 right-2 bg-primary hover:bg-primary-dark text-white rounded-full p-2 shadow-lg z-20 border border-gray-700"
         onClick={handleToggle}
         aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
