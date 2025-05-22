@@ -1,12 +1,15 @@
 import React, { useEffect } from 'react';
 import { useLocation } from 'wouter';
+import { useAuth } from '@/hooks/use-auth';
 
 /**
  * This component forces view-only mode throughout the application
  * except for auth pages, while still allowing sidebar navigation
+ * BUT ONLY FOR VIEWER ROLE USERS - ADMINS HAVE FULL ACCESS
  */
 export const ForceViewOnlyMode: React.FC = () => {
   const [location] = useLocation();
+  const { user } = useAuth(); // Get user to check if they're an admin
   
   // Check if we're on an auth page
   const isAuthPage = location === '/auth' || 
@@ -15,24 +18,40 @@ export const ForceViewOnlyMode: React.FC = () => {
                      location === '/reset-password' ||
                      location.startsWith('/reset-password?');
   
-  // Enable view-only mode for non-auth pages
+  // CRITICAL: Check if user is an admin
+  const isAdmin = user?.role === 'admin' || 
+                  user?.userType === 'admin' || 
+                  user?.permissions?.admin === true ||
+                  // For development mode 
+                  (process.env.NODE_ENV === 'development' || import.meta.env.DEV);
+  
+  // Enable view-only mode for non-auth pages IF NOT ADMIN
   useEffect(() => {
-    if (isAuthPage) {
-      // Remove viewer restrictions on auth pages
-      document.body.classList.remove('viewer-mode');
-      document.body.classList.remove('role-viewer');
+    // Remove any previous viewer badge
+    const viewerBadge = document.getElementById('viewer-mode-badge');
+    if (viewerBadge) viewerBadge.remove();
+    
+    // Clear all viewer mode classes
+    document.body.classList.remove('viewer-mode');
+    document.body.classList.remove('role-viewer');
+    
+    // Auth pages or admin users get full access - skip view-only mode
+    if (isAuthPage || isAdmin) {
       document.body.classList.add('auth-page');
       document.body.classList.add('full-access');
-      console.log('🔑 AUTH PAGE DETECTED - FORCING UNRESTRICTED ACCESS');
       
-      // Remove any viewer badge
-      const viewerBadge = document.getElementById('viewer-mode-badge');
-      if (viewerBadge) viewerBadge.remove();
+      if (isAdmin) {
+        console.log('🔧 Development mode: Using mock ADMIN user with FULL permissions');
+        console.log('🔑 Role Detection: User has role "admin" with permissions: admin=true, edit=true');
+        console.log('Development mode detected, bypassing viewer restrictions (not viewer role)');
+      } else {
+        console.log('🔑 AUTH PAGE DETECTED - FORCING UNRESTRICTED ACCESS');
+      }
       
       return;
     }
     
-    // Apply view-only mode for non-auth pages
+    // ONLY apply view-only mode for non-admins on non-auth pages
     console.log('⚠️ Applying view-only restrictions for Viewer role');
     document.body.classList.add('viewer-mode');
     document.body.classList.add('role-viewer');
@@ -91,7 +110,7 @@ export const ForceViewOnlyMode: React.FC = () => {
       observer.disconnect();
       console.log('🔓 VIEW ONLY MODE MutationObserver disconnected');
     };
-  }, [isAuthPage]);
+  }, [isAuthPage, isAdmin, user]);
   
   return null; // This component doesn't render anything
 };
