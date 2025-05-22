@@ -58,6 +58,31 @@ body.viewer-mode [role="grid"] {
   overflow: auto !important;
 }
 
+/* CRITICAL: Auth page is ALWAYS fully interactive - never in viewer mode */
+body.auth-page button,
+body.auth-page input,
+body.auth-page select,
+body.auth-page textarea,
+body.auth-page a[href],
+body.auth-page [role="button"],
+body.auth-page [role="switch"],
+body.auth-page [role="checkbox"],
+body.auth-page [role="radio"],
+body.auth-page [role="menuitem"],
+body.auth-page [role="tab"],
+body.auth-page [type="checkbox"],
+body.auth-page [type="radio"],
+body.auth-page [type="button"],
+body.auth-page [type="submit"],
+body.auth-page [type="reset"],
+body.auth-page form,
+body.auth-page form * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  user-select: auto !important;
+}
+
 /* Viewer Mode Restrictions - Applied globally when body has viewer-mode class */
 /* Strict view-only mode - disable ALL interactive elements by default */
 body.viewer-mode button:not(.viewer-interactive),
