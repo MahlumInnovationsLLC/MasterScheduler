@@ -6,13 +6,36 @@ import { usePermissions } from './PermissionsManager';
  * ViewerModeSimulator is a development tool that allows testing the view-only mode
  * It adds a floating toggle button to switch between viewer and editor roles
  * Only appears in development mode and can be toggled with ?viewerMode=true in URL
+ * NOTE: Disabled for dev-user environment but kept for other development environments
  */
 export const ViewerModeSimulator: React.FC = () => {
   const [isViewerMode, setIsViewerMode] = useState(false);
   const { userRole } = usePermissions();
+  
+  // Check if we're in the dev-user environment
+  const isDevUserEnvironment = () => {
+    // Check if the current user has dev-user in their name/profile
+    const devUserMatch = document.querySelector('.user-name')?.textContent?.toLowerCase().includes('dev-user') || 
+                         document.querySelector('.user-profile')?.textContent?.toLowerCase().includes('dev-user');
+    
+    // Alternatively check the URL for dev-user subdomain
+    const isDevUserDomain = window.location.hostname.includes('dev-user');
+    
+    return devUserMatch || isDevUserDomain;
+  };
 
-  // Initialize from URL parameter
+  // Initialize from URL parameter - but skip for dev-user
   useEffect(() => {
+    // Skip enforcing viewer mode in dev-user environment
+    if (isDevUserEnvironment()) {
+      console.log('🔓 DEV-USER environment detected - View Only Mode disabled');
+      // Clear any existing viewer mode
+      document.body.classList.remove('viewer-mode');
+      document.body.classList.remove('role-viewer');
+      window.localStorage.removeItem('simulateViewerRole');
+      return;
+    }
+    
     const params = new URLSearchParams(window.location.search);
     const viewerMode = params.get('viewerMode') === 'true';
     setIsViewerMode(viewerMode);
@@ -24,6 +47,30 @@ export const ViewerModeSimulator: React.FC = () => {
 
   // Toggle viewer mode
   const toggleViewerMode = () => {
+    // Prevent toggling in dev-user environment
+    if (isDevUserEnvironment()) {
+      console.log('🔓 Cannot enable View Only Mode in DEV-USER environment');
+      // Show a temporary alert
+      const alertDiv = document.createElement('div');
+      alertDiv.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 10px;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 10px 15px;
+        border-radius: 5px;
+        z-index: 9999;
+        font-size: 14px;
+        max-width: 300px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      `;
+      alertDiv.textContent = 'View Only Mode is disabled in dev-user environment';
+      document.body.appendChild(alertDiv);
+      setTimeout(() => alertDiv.remove(), 3000);
+      return;
+    }
+    
     const newMode = !isViewerMode;
     setIsViewerMode(newMode);
     
@@ -35,6 +82,7 @@ export const ViewerModeSimulator: React.FC = () => {
     } else {
       url.searchParams.delete('viewerMode');
       document.body.classList.remove('viewer-mode');
+      document.body.classList.remove('role-viewer');
       const badge = document.getElementById('viewer-mode-badge');
       if (badge) badge.remove();
     }

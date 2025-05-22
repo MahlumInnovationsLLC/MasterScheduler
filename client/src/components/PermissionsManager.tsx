@@ -40,11 +40,38 @@ export const PermissionsProvider = ({ children }: PermissionsProviderProps) => {
   // Check if we're in development mode
   const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
   
+  // Check if we're in the dev-user environment
+  const isDevUserEnvironment = () => {
+    // Check for dev-user in username or profile
+    const devUserMatch = document.querySelector('.user-name')?.textContent?.toLowerCase().includes('dev-user') || 
+                         document.querySelector('.user-profile')?.textContent?.toLowerCase().includes('dev-user');
+    
+    // Check hostname for dev-user
+    const isDevUserDomain = window.location.hostname.includes('dev-user');
+    
+    return devUserMatch || isDevUserDomain || document.body.classList.contains('dev-user-env');
+  };
+  
   // PRODUCTION CRITICAL FIX: Determine permissions based on role
   // Always give admin role full rights in production
-  const canAdmin = role === "admin";
-  const canEdit = role === "admin" || role === "editor";
+  // Force edit rights in dev-user environment regardless of role
+  const devUserEnvironment = isDevUserEnvironment();
+  
+  // In dev-user environment, everyone gets edit permissions regardless of role
+  const canAdmin = role === "admin" || devUserEnvironment;
+  const canEdit = role === "admin" || role === "editor" || devUserEnvironment;
   const canView = true; // Everyone can view
+  
+  // Log special environments
+  if (devUserEnvironment) {
+    console.log("🔓 DEV-USER ENVIRONMENT: Full edit permissions enabled regardless of role");
+    // Force remove any viewer mode classes
+    setTimeout(() => {
+      document.body.classList.remove('viewer-mode');
+      document.body.classList.remove('role-viewer');
+      window.localStorage.removeItem('simulateViewerRole');
+    }, 100);
+  }
   
   // If in production and role appears to be admin, force grant all permissions
   if (!isDevelopment && role === "admin") {
