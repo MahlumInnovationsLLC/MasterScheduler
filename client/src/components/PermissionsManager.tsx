@@ -154,45 +154,45 @@ export const ViewerGuard = () => {
         }
         
         /* Disable all forms, inputs and interactive controls */
-        button:not(.auth-button):not(.sandbox-button), 
-        input:not(.auth-input):not(.sandbox-input), 
-        select, 
-        textarea,
-        .interactive, 
-        [role="button"],
-        [role="switch"],
-        [role="checkbox"],
-        [role="radio"],
-        [role="menuitem"],
-        [role="tab"],
-        [type="checkbox"],
-        [type="radio"],
-        [type="button"],
-        [type="submit"],
-        [type="reset"],
-        .btn,
-        .button,
-        .dropdown-toggle,
-        .clickable,
-        details summary,
-        a[href]:not(.auth-link):not(.sandbox-link),
-        label {
+        button:not(.auth-button):not(.sandbox-button):not(.viewer-interactive), 
+        input:not(.auth-input):not(.sandbox-input):not(.viewer-interactive), 
+        select:not(.viewer-interactive), 
+        textarea:not(.viewer-interactive),
+        .interactive:not(.viewer-interactive), 
+        [role="button"]:not(.viewer-interactive),
+        [role="switch"]:not(.viewer-interactive),
+        [role="checkbox"]:not(.viewer-interactive),
+        [role="radio"]:not(.viewer-interactive),
+        [role="menuitem"]:not(.viewer-interactive),
+        [role="tab"]:not(.viewer-interactive),
+        [type="checkbox"]:not(.viewer-interactive),
+        [type="radio"]:not(.viewer-interactive),
+        [type="button"]:not(.viewer-interactive),
+        [type="submit"]:not(.viewer-interactive),
+        [type="reset"]:not(.viewer-interactive),
+        .btn:not(.viewer-interactive),
+        .button:not(.viewer-interactive),
+        .dropdown-toggle:not(.viewer-interactive),
+        .clickable:not(.viewer-interactive),
+        details summary:not(.viewer-interactive),
+        a[href]:not(.auth-link):not(.sandbox-link):not(.viewer-interactive):not(.sidebar-link),
+        label:not(.viewer-interactive) {
           pointer-events: none !important;
           opacity: 0.7 !important;
         }
         
-        /* Disable form submissions */
-        form {
+        /* Disable form submissions except for auth and essential forms */
+        form:not(.auth-form):not(.viewer-interactive) {
           pointer-events: none !important;
         }
         
         /* Make sure editing controls are disabled */
-        .editable-field,
-        .edit-controls,
-        .action-buttons,
-        .dropdown-menu,
-        .menu-item,
-        [contenteditable="true"] {
+        .editable-field:not(.viewer-interactive),
+        .edit-controls:not(.viewer-interactive),
+        .action-buttons:not(.viewer-interactive),
+        .dropdown-menu:not(.viewer-interactive),
+        .menu-item:not(.viewer-interactive),
+        [contenteditable="true"]:not(.viewer-interactive) {
           pointer-events: none !important;
           opacity: 0.7 !important;
         }
@@ -218,7 +218,16 @@ export const ViewerGuard = () => {
         }
         
         /* Explicitly allow interaction on a few specific elements */
-        body.viewer-mode .viewer-interactive {
+        body.viewer-mode .viewer-interactive,
+        body.viewer-mode [class*="viewer-interactive"],
+        body.viewer-mode .sidebar-link,
+        body.viewer-mode .dropdown-menu-content,
+        body.viewer-mode .dropdown-menu-item,
+        body.viewer-mode .user-menu,
+        body.viewer-mode .user-dropdown,
+        body.viewer-mode [class*="logout"],
+        body.viewer-mode [href*="logout"],
+        body.viewer-mode [onclick*="logout"] {
           pointer-events: auto !important;
           opacity: 1 !important;
           cursor: pointer !important;
