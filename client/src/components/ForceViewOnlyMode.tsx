@@ -11,6 +11,40 @@ export const ForceViewOnlyMode: React.FC = () => {
   const [location] = useLocation();
   const { user } = useAuth(); // Get user to check if they're an admin
   
+  // CRITICAL: Always disable view-only mode completely in development
+  if (process.env.NODE_ENV === 'development' || import.meta.env.DEV) {
+    console.log('🔓 DEVELOPMENT MODE DETECTED - ALL VIEW RESTRICTIONS DISABLED');
+    
+    // When in development, immediately run cleanup to remove all restrictions
+    React.useEffect(() => {
+      // Remove any existing view-only badges
+      const viewerBadge = document.getElementById('viewer-mode-badge');
+      if (viewerBadge) viewerBadge.remove();
+      
+      // Remove all view-only classes
+      document.body.classList.remove('viewer-mode');
+      document.body.classList.remove('role-viewer');
+      
+      // Add full access classes
+      document.body.classList.add('full-access');
+      document.body.classList.add('dev-mode');
+      document.body.classList.add('admin-access');
+      
+      // Set a global flag to disable any programmatic restrictions
+      (window as any).__DEV_MODE_NO_RESTRICTIONS = true;
+      (window as any).__MOCK_ADMIN_USER = true;
+      
+      console.log('🔓 DEV MODE: All view-only restrictions permanently disabled');
+      
+      return () => {
+        console.log('🔓 DEV MODE: Restriction removal persisted');
+      };
+    }, []);
+    
+    // Don't run any further code in dev mode - everything is unlocked
+    return null;
+  }
+  
   // Check if we're on an auth page
   const isAuthPage = location === '/auth' || 
                      location === '/login' || 
@@ -23,9 +57,7 @@ export const ForceViewOnlyMode: React.FC = () => {
                   user?.userType === 'admin' || 
                   user?.permissions?.admin === true ||
                   // Special case for when the mock admin user is active
-                  (window as any).__MOCK_ADMIN_USER === true ||
-                  // For development mode - ALWAYS TRUE in dev environment
-                  (process.env.NODE_ENV === 'development' || import.meta.env.DEV);
+                  (window as any).__MOCK_ADMIN_USER === true;
                   
   // Debug output to help troubleshoot admin detection
   console.log(`🔑 Role Detection: User has role "${user?.role}" with permissions: admin=${!!user?.permissions?.admin}, edit=${!!user?.permissions?.edit}`);
