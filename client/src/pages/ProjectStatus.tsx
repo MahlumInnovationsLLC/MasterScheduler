@@ -911,8 +911,11 @@ const ProjectStatus = () => {
 
   // Define all available columns
   const allColumns = [
-    // STATIC COLUMNS (non-scrollable area)
-    // Location column (first column to ensure it appears at the far left)
+    //////////////////////////////////////////
+    // STATIC COLUMNS (non-scrollable area) //
+    //////////////////////////////////////////
+    
+    // 1. Location column (first column)
     {
       id: 'location',
       accessorKey: 'location',
@@ -929,7 +932,8 @@ const ProjectStatus = () => {
         );
       }
     },
-    // Actions column with three dots dropdown menu between Location and Project
+    
+    // 2. Actions column with three dots dropdown menu (second column)
     {
       id: 'actions',
       header: 'Actions',
@@ -974,7 +978,8 @@ const ProjectStatus = () => {
         );
       }
     },
-    // Project column (third in the static area)
+    
+    // 3. Project column (third in the static area)
     createColumn('projectNumber', 'projectNumber', 'Project', 
       (value, project) => {
         // Check if ship date is past due
@@ -999,24 +1004,32 @@ const ProjectStatus = () => {
         );
       },
       { sortingFn: 'alphanumeric', size: 260 }),
-      
-    // SCROLLABLE COLUMNS - Date fields first as requested
-    // Place all date-related columns on the left side of the scrollable area in this order:
-    // Fabrication Start, Assembly Start, Wrap Date, NTC Testing, NTC Testing Days, QC Start, QC Days, 
-    // Exec Review, Photos Taken, Ship Date, Delivery Date
+    
+    ///////////////////////////////////////////////////////////////
+    // SCROLLABLE COLUMNS - Date fields first as requested       //
+    ///////////////////////////////////////////////////////////////
+    
+    // 4. Fabrication Start
     createColumn('fabricationStart', 'fabricationStart', 'Fabrication Start', 
       (value, project) => <EditableDateField projectId={project.id} field="fabricationStart" value={value} />,
       { size: 170 }),
+    
+    // 5. Assembly Start
     createColumn('assemblyStart', 'assemblyStart', 'Assembly Start', 
       (value, project) => <EditableDateField projectId={project.id} field="assemblyStart" value={value} />,
       { size: 170 }),
+    
+    // 6. Wrap Date
     createColumn('wrapDate', 'wrapDate', 'Wrap Date', 
       (value, project) => <EditableDateField projectId={project.id} field="wrapDate" value={value} />,
       { size: 170 }),
+    
+    // 7. NTC Testing
     createColumn('ntcTestingDate', 'ntcTestingDate', 'NTC Testing', 
       (value, project) => <EditableDateField projectId={project.id} field="ntcTestingDate" value={value} />,
       { size: 170 }),
-    // NTC Testing Days column
+    
+    // 8. NTC Testing Days
     {
       id: 'ntcTestingDays',
       header: 'NTC Testing Days',
@@ -1046,10 +1059,13 @@ const ProjectStatus = () => {
       },
       size: 100
     },
+    
+    // 9. QC Start
     createColumn('qcStartDate', 'qcStartDate', 'QC Start', 
       (value, project) => <EditableDateField projectId={project.id} field="qcStartDate" value={value} />,
       { size: 170 }),
-    // QC Days
+    
+    // 10. QC Days
     {
       id: 'qcDays',
       header: 'QC Days',
@@ -1083,10 +1099,13 @@ const ProjectStatus = () => {
       },
       size: 100
     },
+    
+    // 11. Exec Review
     createColumn('executiveReviewDate', 'executiveReviewDate', 'Exec Review', 
       (value, project) => <EditableDateField projectId={project.id} field="executiveReviewDate" value={value} />,
       { size: 170 }),
-    // Photos Taken column
+    
+    // 12. Photos Taken
     {
       id: 'photosTaken',
       header: 'Photos Taken',
@@ -1149,6 +1168,8 @@ const ProjectStatus = () => {
         );
       }
     },
+    
+    // 13. Ship Date
     createColumn('shipDate', 'shipDate', 'Ship Date', 
       (value, project) => {
         // Check if ship date is past due
@@ -1166,14 +1187,22 @@ const ProjectStatus = () => {
         );
       },
       { size: 170 }),
+    
+    // 14. Delivery Date
     createColumn('deliveryDate', 'deliveryDate', 'Delivery Date', 
       (value, project) => <EditableDateField projectId={project.id} field="deliveryDate" value={value} />,
       { size: 170 }),
-      
-    // Other columns (after date-related columns)
+    
+    /////////////////////////////////
+    // Other columns after dates   //
+    /////////////////////////////////
+    
+    // 15. PM Owner
     createColumn('pmOwner', 'pmOwner', 'PM Owner', 
       (value, project) => <EditableTextField projectId={project.id} field="pmOwner" value={value || ''} placeholder="Unassigned" />,
       { size: 150 }),
+    
+    // 16. Timeline
     {
       id: 'timeline',
       accessorKey: 'startDate',
