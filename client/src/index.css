@@ -2,6 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Critical auth page fixes to ensure login button and register tab work */
+.auth-routes button,
+.auth-routes [role="tab"],
+.auth-routes [role="tablist"],
+.auth-routes [type="submit"],
+.auth-routes .login-btn,
+form[class*="login"] button,
+form[class*="register"] button,
+[class*="auth"] button,
+button[variant="link"] {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  user-select: auto !important;
+  visibility: visible !important;
+  z-index: 9999 !important;
+}
+
+/* Ensure special focus handling for auth page inputs */
+.auth-routes input:focus,
+[class*="auth"] input:focus,
+[id="email"]:focus,
+[id="password"]:focus,
+[id="register-email"]:focus,
+[id="register-password"]:focus {
+  outline: 2px solid #2563eb !important;
+  outline-offset: 0 !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5) !important;
+  z-index: 9999 !important;
+}
+
+/* Force enable all auth page tab elements */
+[role="tablist"],
+[role="tab"],
+.TabsList,
+.TabsTrigger {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  user-select: auto !important;
+  visibility: visible !important;
+  z-index: 9999 !important;
+}
+
 /* Fix for dropdown menus appearing behind dialogs */
 [data-radix-popper-content-wrapper] {
   z-index: 9999 !important;
