@@ -36,6 +36,7 @@ import SalesDealEdit from "@/pages/SalesDealEdit";
 import SupplyChain from "@/pages/SupplyChain";
 import AuthPage from "@/pages/auth-page";
 import GuaranteedAuthPage from "@/pages/guaranteed-auth-page";
+import SimpleLogin from "@/pages/simple-login";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import NotFound from "@/pages/not-found";
 import Header from "@/components/Header";
@@ -75,8 +76,13 @@ function Router() {
     return (
       <div className="auth-routes no-restrictions">
         <Switch>
-          {/* Add our guaranteed auth page that definitely works */}
+          {/* New simple login that works regardless of restrictions */}
+          <Route path="/simple-login" component={SimpleLogin} />
+          
+          {/* Our guaranteed auth page */}
           <Route path="/login" component={GuaranteedAuthPage} />
+          
+          {/* Original auth routes */}
           <Route path="/auth" component={AuthPage} />
           <Route path="/reset-password" component={ResetPasswordPage} />
         </Switch>
