@@ -14,6 +14,44 @@ export default function AuthPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { user, isLoading, loginMutation, registerMutation } = useAuth();
+  
+  // Use the AuthPageUnlocker to completely disable view-only mode for this page
+  useEffect(() => {
+    // Force add interactive classes to all buttons and form elements
+    const makeAllElementsInteractive = () => {
+      // Target all interactive elements on the auth page
+      document.querySelectorAll('button, input, [role="tab"], [role="tablist"], a, form, [type="submit"]').forEach(el => {
+        el.classList.add('viewer-interactive');
+        el.classList.add('auth-interactive');
+        
+        // Remove any disabled attributes (except those that should be disabled, like during form submission)
+        if (el.hasAttribute('disabled') && !el.hasAttribute('data-loading')) {
+          el.removeAttribute('disabled');
+        }
+      });
+      
+      // Add auth-form class to all forms
+      document.querySelectorAll('form').forEach(form => {
+        form.classList.add('auth-form');
+      });
+      
+      // Force the body to have auth-page class
+      document.body.classList.add('auth-page');
+      document.body.classList.add('no-restrictions');
+      
+      // Remove any viewer mode classes
+      document.body.classList.remove('viewer-mode');
+      document.body.classList.remove('role-viewer');
+    };
+    
+    // Run immediately
+    makeAllElementsInteractive();
+    
+    // Then run on a short delay to catch any dynamically added elements
+    const intervalId = setInterval(makeAllElementsInteractive, 500);
+    
+    return () => clearInterval(intervalId);
+  }, []);
 
   const [loginData, setLoginData] = useState({
     email: "",
@@ -108,7 +146,9 @@ export default function AuthPage() {
   };
   
   return (
-    <div className="flex min-h-screen bg-muted">
+    <div className="flex min-h-screen bg-muted auth-page">
+      {/* Include the AuthPageUnlocker component to ensure auth page is never restricted */}
+      <AuthPageUnlocker />
       <div className="flex flex-col justify-center flex-1 px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
         <div className="w-full max-w-sm mx-auto lg:w-96">
           <div className="mb-8">
