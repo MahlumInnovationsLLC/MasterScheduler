@@ -10,6 +10,8 @@ import { PermissionsProvider, GlobalPermissionsHandler } from "@/components/Perm
 import ViewerModeSimulator from "@/components/ViewerModeSimulator";
 import DetectDevUser from "@/components/DetectDevUser";
 import AuthPageUnrestrictor from "@/components/AuthPageUnrestrictor";
+import AuthFix from "@/pages/AuthFix";
+import EmergencyAuthPageFix from "@/components/EmergencyAuthPageFix";
 import Dashboard from "@/pages/Dashboard";
 import ProjectStatus from "@/pages/ProjectStatus";
 import BillingMilestones from "@/pages/BillingMilestones";
@@ -137,7 +139,9 @@ function App() {
             <PermissionsProvider>
               <Toaster />
               <GlobalPermissionsHandler />
-              {/* CRITICAL: Auth page unrestrictor to ensure login/register always works */}
+              {/* HIGHEST PRIORITY FIXES: Auth page must be interactive regardless of settings */}
+              <EmergencyAuthPageFix />
+              <AuthFix />
               <AuthPageUnrestrictor />
               {/* Add Viewer Mode simulator for testing */}
               <ViewerModeSimulator />

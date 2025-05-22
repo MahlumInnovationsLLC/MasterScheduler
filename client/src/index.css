@@ -58,7 +58,67 @@ body.viewer-mode [role="grid"] {
   overflow: auto !important;
 }
 
-/* CRITICAL: Auth page is ALWAYS fully interactive - never in viewer mode */
+/* EMERGENCY FIX - AUTH PAGE OVERRIDE SYSTEM
+   This is a critical fix to ensure the auth page works regardless of any other settings */
+
+/* GLOBAL RULE - AUTH URL DETECTION */
+html:has(a[href*="auth"]) *,
+body:has([href*="/auth"]) *,
+body:has([action*="/auth"]) * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  user-select: auto !important;
+}
+
+/* AUTH PAGE UNIVERSAL OVERRIDE - STRONGEST POSSIBLE OVERRIDES */
+html[data-current-url*="auth"] *,
+body[data-current-url*="auth"] *,
+html:has(form[action*="login"]) *,
+html:has(form[action*="auth"]) *,
+body:has(form[action*="login"]) *,
+body:has(form[action*="auth"]) * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  user-select: auto !important;
+  filter: none !important;
+  touch-action: auto !important;
+  cursor: auto !important;
+}
+
+/* SPECIFIC FORM ELEMENTS ON AUTH PAGE */
+input[type="email"],
+input[type="password"],
+input[type="text"],
+button[type="submit"],
+a.login-link,
+a.forgot-password,
+form *,
+.auth-form *,
+[class*="login"] *,
+[class*="auth"] * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  user-select: auto !important;
+  filter: none !important;
+  cursor: auto !important;
+  touch-action: auto !important;
+}
+
+/* CURSOR FIXES */
+a, button, [role="button"], [type="submit"], .login, .submit {
+  cursor: pointer !important;
+}
+
+/* PATH BASED DETECTION - HIGHEST SPECIFICITY */
+html:has(head:has(title:contains("Login"))) *,
+html:has(head:has(title:contains("Auth"))) *,
+html:has(head:has(link[href*="auth"])) * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  user-select: auto !important;
+}
+
+/* AUTH ROUTE CLASS OVERRIDES */
 .auth-routes,
 .auth-routes *,
 .auth-page,
@@ -80,35 +140,7 @@ div.no-restrictions *,
   touch-action: auto !important;
 }
 
-/* Make clickable elements have the right cursor */
-.auth-routes button,
-.auth-routes a,
-.auth-routes [role="button"],
-.auth-page button,
-.auth-page a,
-.auth-page [role="button"],
-body.auth-page button,
-body.auth-page a,
-body.auth-page [role="button"],
-.full-access button,
-.full-access a,
-.full-access [role="button"] {
-  cursor: pointer !important;
-}
-
-/* Override ANY viewer mode restrictions for auth page */
-body.viewer-mode.auth-page,
-body.viewer-mode.auth-page *,
-body.role-viewer.auth-page,
-body.role-viewer.auth-page * {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  filter: none !important;
-  user-select: auto !important;
-  touch-action: auto !important;
-}
-
-/* Direct override for inputs and buttons */
+/* AUTH INTERACTIVE ELEMENTS */
 body.auth-page button,
 body.auth-page input,
 body.auth-page select,
