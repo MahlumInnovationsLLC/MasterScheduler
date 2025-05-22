@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import SandboxModeEnhancer from '@/components/SandboxModeEnhancer';
+import SandboxTimelineOverride from '@/components/SandboxTimelineOverride';
 
 // MAXIMUM OVERRIDE: Force all elements to accept drag & drop
 // This ensures multiple projects can be placed in any row no matter what
@@ -1078,6 +1079,8 @@ const BaySchedulingPage = () => {
     <div className="px-4 py-4 md:py-6 md:px-6">
       {/* Add the sandbox mode enhancer to fix drag and resize issues */}
       {isSandboxMode && <SandboxModeEnhancer isSandboxMode={isSandboxMode} />}
+      {/* Add the timeline override to allow dragging projects to any date */}
+      {isSandboxMode && <SandboxTimelineOverride isSandboxMode={isSandboxMode} dateRange={dateRange} />}
       
       <div className="flex flex-col gap-1 mb-6">
         <div className="flex justify-between items-center">
