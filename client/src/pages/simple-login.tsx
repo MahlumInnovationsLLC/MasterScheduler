@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
+import ForceLogoutButton from '@/components/ForceLogoutButton';
 
 /**
  * SimpleLogin - A minimal login component that works regardless of any restrictions
@@ -222,7 +223,7 @@ export default function SimpleLogin() {
           </form>
           
           {process.env.NODE_ENV === 'development' && (
-            <div className="mt-6">
+            <div className="mt-6 space-y-4">
               <button
                 onClick={handleDevLogin}
                 disabled={loading}
@@ -231,6 +232,14 @@ export default function SimpleLogin() {
               >
                 {loading ? 'Signing in...' : 'Dev Auto-Login'}
               </button>
+              
+              <div className="flex justify-center">
+                <ForceLogoutButton />
+              </div>
+              
+              <div className="text-xs text-center text-gray-500 mt-2">
+                Use "Force Logout" to truly log out in development mode
+              </div>
             </div>
           )}
         </div>
