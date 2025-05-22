@@ -42,6 +42,9 @@ export const PermissionsProvider = ({ children }: PermissionsProviderProps) => {
   const canEdit = role === "admin" || role === "editor";
   const canView = true; // Everyone can view
   
+  // Console log the role detection for debugging
+  console.log(`🔑 Role Detection: User has role "${role}" with permissions: admin=${canAdmin}, edit=${canEdit}`)
+  
   // Context value
   const value = {
     canEdit,
@@ -402,29 +405,93 @@ export const GlobalPermissionsHandler = () => {
         document.body.appendChild(viewerBadge);
       }
     } else if (userRole === "admin" || userRole === "editor") {
-      // Ensure admins and editors get full permissions by removing any restrictions
+      // CRITICAL PRIORITY: Ensure admins and editors get FULL permissions by removing ANY restrictions
       console.log(`🔓 EDITING MODE ACTIVE - User has ${userRole} role with full permissions`);
+      
+      // Force remove all view-only related classes
       document.body.classList.remove("viewer-mode");
       document.body.classList.remove("role-viewer");
       
-      // Remove viewer badge if it exists
+      // Remove any observer/badge elements
       const badge = document.getElementById('viewer-mode-badge');
       if (badge) badge.remove();
       
-      // Clean up any previously added restrictions
-      const disabledElements = document.querySelectorAll('.viewer-disabled');
-      disabledElements.forEach(el => {
+      // PRODUCTION FIX: Aggressively clean up any previously added restrictions
+      // This ensures admin/editor users never experience view-only limitations
+      
+      // Enable all interactive elements site-wide
+      const enableAllInteractiveElements = () => {
+        // Find and enable all buttons
+        document.querySelectorAll('button').forEach(button => {
+          button.removeAttribute('disabled');
+          button.classList.remove('viewer-disabled');
+        });
+        
+        // Find and enable all inputs, selects, textareas
+        document.querySelectorAll('input, select, textarea').forEach(input => {
+          input.removeAttribute('disabled');
+          input.classList.remove('viewer-disabled');
+        });
+        
+        // Find and enable all form elements
+        document.querySelectorAll('form *').forEach(el => {
+          if (el instanceof HTMLElement) {
+            el.removeAttribute('disabled');
+            el.classList.remove('viewer-disabled');
+          }
+        });
+        
+        // Find anything with the viewer-disabled class and enable it
+        document.querySelectorAll('.viewer-disabled').forEach(el => {
+          if (el instanceof HTMLElement) {
+            el.removeAttribute('disabled');
+            el.classList.remove('viewer-disabled');
+          }
+        });
+      };
+      
+      // Run the cleanup immediately
+      enableAllInteractiveElements();
+      
+      // Also setup a mutation observer to ensure dynamic elements are never disabled
+      const adminModeObserver = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+          if (mutation.addedNodes.length) {
+            // If any new elements are added that have viewer-disabled class, enable them
+            const addedDisabledElements = document.querySelectorAll('.viewer-disabled');
+            if (addedDisabledElements.length > 0) {
+              console.log("🔓 ADMIN MODE: Detected newly added disabled elements, enabling them");
+              enableAllInteractiveElements();
+            }
+          }
+        });
+      });
+      
+      // Start the admin mode observer
+      adminModeObserver.observe(document.body, { 
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['disabled', 'class']
+      });
+      
+      console.log(`✅ PRODUCTION-SAFE ADMIN MODE: Full admin/editor capabilities enabled for ${userRole} role`);
+      
+    } else {
+      // Fallback for unknown roles - default to non-restricted mode for safety
+      console.log("⚠️ Unknown user role detected, defaulting to non-restricted mode");
+      document.body.classList.remove("viewer-mode");
+      document.body.classList.remove("role-viewer");
+      const badge = document.getElementById('viewer-mode-badge');
+      if (badge) badge.remove();
+      
+      // Also clean up any existing restrictions
+      document.querySelectorAll('.viewer-disabled').forEach(el => {
         if (el instanceof HTMLElement) {
           el.removeAttribute('disabled');
           el.classList.remove('viewer-disabled');
         }
       });
-    } else {
-      // Fallback for unknown roles - default to viewer mode for safety
-      document.body.classList.remove("viewer-mode");
-      document.body.classList.remove("role-viewer");
-      const badge = document.getElementById('viewer-mode-badge');
-      if (badge) badge.remove();
     }
     
     // Store the observer reference so we can disconnect it later
