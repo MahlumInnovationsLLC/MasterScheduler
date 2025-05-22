@@ -37,48 +37,12 @@ export const PermissionsProvider = ({ children }: PermissionsProviderProps) => {
   const { user } = useAuth();
   const role = user?.role || "viewer"; // Default to viewer for maximum security
   
-  // Check if we're in development mode
-  const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
-  
-  // Check if we're in the dev-user environment
-  const isDevUserEnvironment = () => {
-    // Check for dev-user in username or profile
-    const devUserMatch = document.querySelector('.user-name')?.textContent?.toLowerCase().includes('dev-user') || 
-                         document.querySelector('.user-profile')?.textContent?.toLowerCase().includes('dev-user');
-    
-    // Check hostname for dev-user
-    const isDevUserDomain = window.location.hostname.includes('dev-user');
-    
-    return devUserMatch || isDevUserDomain || document.body.classList.contains('dev-user-env');
-  };
-  
-  // PRODUCTION CRITICAL FIX: Determine permissions based on role
-  // Always give admin role full rights in production
-  // Force edit rights in dev-user environment regardless of role
-  const devUserEnvironment = isDevUserEnvironment();
-  
-  // In dev-user environment, everyone gets edit permissions regardless of role
-  const canAdmin = role === "admin" || devUserEnvironment;
-  const canEdit = role === "admin" || role === "editor" || devUserEnvironment;
+  // Determine permissions based on role
+  const canAdmin = role === "admin";
+  const canEdit = role === "admin" || role === "editor";
   const canView = true; // Everyone can view
   
-  // Log special environments
-  if (devUserEnvironment) {
-    console.log("🔓 DEV-USER ENVIRONMENT: Full edit permissions enabled regardless of role");
-    // Force remove any viewer mode classes
-    setTimeout(() => {
-      document.body.classList.remove('viewer-mode');
-      document.body.classList.remove('role-viewer');
-      window.localStorage.removeItem('simulateViewerRole');
-    }, 100);
-  }
-  
-  // If in production and role appears to be admin, force grant all permissions
-  if (!isDevelopment && role === "admin") {
-    console.log("⚠️ PRODUCTION SAFEGUARD: Admin user detected, forcing full permissions");
-  }
-  
-  // Console log the role detection for debugging
+  // Log permissions
   console.log(`🔑 Role Detection: User has role "${role}" with permissions: admin=${canAdmin}, edit=${canEdit}`)
   
   // Context value
@@ -439,7 +403,7 @@ export const GlobalPermissionsHandler = () => {
           box-shadow: 0 2px 4px rgba(0,0,0,0.2);
           pointer-events: none;
         `;
-        viewerBadge.textContent = isDevelopment && isSimulatingViewer ? 'View Only Mode (Simulated)' : 'View Only Mode';
+        viewerBadge.textContent = 'View Only Mode';
         document.body.appendChild(viewerBadge);
       }
     } else if (userRole === "admin" || userRole === "editor") {
