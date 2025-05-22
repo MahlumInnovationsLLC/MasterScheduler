@@ -9,6 +9,8 @@ import { LoadingProvider } from "@/components/LoadingManager";
 import { PermissionsProvider, GlobalPermissionsHandler } from "@/components/PermissionsManager";
 import ViewerModeSimulator from "@/components/ViewerModeSimulator";
 import DetectDevUser from "@/components/DetectDevUser";
+import ForceViewOnlyMode from "@/components/ForceViewOnlyMode";
+import EnforceViewOnly from "@/components/EnforceViewOnly";
 import AuthPageUnrestrictor from "@/components/AuthPageUnrestrictor";
 import AuthFix from "@/pages/AuthFix";
 import EmergencyAuthPageFix from "@/components/EmergencyAuthPageFix";
@@ -158,8 +160,11 @@ function App() {
               <AuthPageUnrestrictor />
               {/* Add Viewer Mode simulator for testing */}
               <ViewerModeSimulator />
-              {/* Detect DEV-USER environment and disable view-only restrictions */}
-              <DetectDevUser />
+              {/* Enable strict view-only mode for all pages except auth */}
+              <EnforceViewOnly />
+              {/* Previous components for view-only mode disabled */}
+              {/* <ForceViewOnlyMode /> */}
+              {/* <DetectDevUser /> */}
               <Router />
               
               {/* Custom styles for viewer mode exceptions */}

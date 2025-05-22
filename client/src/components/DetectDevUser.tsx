@@ -10,25 +10,31 @@ import { useEffect } from 'react';
 export const DetectDevUser = () => {
   // Function to detect dev-user environment
   const checkForDevUser = () => {
-    // Force-detect dev-user from URL or username display
-    const avatarText = document.querySelector('.user-avatar')?.textContent?.toLowerCase() || '';
-    const profileText = document.querySelector('div[class*="user"]')?.textContent?.toLowerCase() || '';
-    const userElement = document.querySelector('img[alt*="user"]') || document.querySelector('div[class*="user"]');
-    const headerText = document.querySelector('header')?.textContent?.toLowerCase() || '';
+    // Check if view-only mode should be enabled regardless of dev environment
+    // Check URL params for a force-viewer flag
+    const params = new URLSearchParams(window.location.search);
+    const forceViewOnly = params.get('forceViewOnly') === 'true';
     
-    // Additional ways to detect the dev-user environment
-    const devDetected = 
-      // Check for "dev-user" in various elements
-      avatarText.includes('dev') || 
-      profileText.includes('dev') ||
-      headerText.includes('dev-user') ||
-      document.querySelector('div.user-avatar')?.textContent?.trim() === 'D' ||
-      // Force detection for the current page
-      true; // IMPORTANT: Forcing detection for all environments to ensure it works
+    if (forceViewOnly) {
+      console.log("🔒 FORCING VIEW-ONLY MODE - User requested view-only restrictions");
+      return false; // Don't disable view-only mode
+    }
     
-    console.log("🔍 DEV DETECTION - Checking for dev-user in environment");
+    // Skip detection if we're on an auth page
+    if (window.location.pathname === '/auth' || 
+        window.location.pathname === '/login' || 
+        window.location.pathname === '/simple-login' ||
+        window.location.pathname === '/reset-password') {
+      return false; // Don't interfere with auth pages
+    }
     
-    if (devDetected) {
+    // For this specific case, we want to force view-only mode ON rather than OFF
+    // This is the opposite of the normal behavior
+    const enableViewOnly = true;
+    
+    console.log("🔍 DEV DETECTION - Checking for dev-user environment");
+    
+    if (!enableViewOnly) {
       console.log("🔓 DEV-USER ENVIRONMENT DETECTED - Disabling View Only Mode");
       
       // Force disable view-only mode
