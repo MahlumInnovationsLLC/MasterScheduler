@@ -2455,57 +2455,60 @@ export default function ResizableBaySchedule({
           </div>
           
           {sidebarOpen && (
-            <div className="flex flex-col flex-grow overflow-hidden">
-              {/* Drop Zone for unassigning projects - fixed height, doesn't scroll */}
-              <div 
-                className="unassigned-drop-container min-h-[80px] rounded-md border-2 border-dashed border-gray-700 mb-4 p-2 flex-shrink-0" 
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.currentTarget.classList.add('drop-zone-active');
-                }}
-                onDragLeave={(e) => {
+            <div 
+              className="flex flex-col flex-grow overflow-hidden"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.currentTarget.classList.add('drop-zone-active');
+              }}
+              onDragLeave={(e) => {
+                // Only remove the highlight if we're not dragging over a child element
+                if (!e.currentTarget.contains(e.relatedTarget)) {
                   e.currentTarget.classList.remove('drop-zone-active');
-                }}
-                onDrop={async (e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.currentTarget.classList.remove('drop-zone-active');
+                }
+              }}
+              onDrop={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.currentTarget.classList.remove('drop-zone-active');
+                
+                document.body.classList.remove('global-drag-active');
+                
+                try {
+                  const dataString = e.dataTransfer.getData('text/plain');
+                  console.log(`📦 UNASSIGNED DROP ANYWHERE: "${dataString}"`);
                   
-                  document.body.classList.remove('global-drag-active');
+                  const scheduleId = parseInt(dataString, 10);
                   
-                  try {
-                    const dataString = e.dataTransfer.getData('text/plain');
-                    console.log(`📦 UNASSIGNED DROP: "${dataString}"`);
+                  if (scheduleId > 0) {
+                    console.log(`🔄 Returning schedule ${scheduleId} to unassigned section`);
                     
-                    const scheduleId = parseInt(dataString, 10);
-                    
-                    if (scheduleId > 0) {
-                      console.log(`🔄 Returning schedule ${scheduleId} to unassigned section`);
+                    const schedule = schedules.find(s => s.id === scheduleId);
+                    if (schedule && onScheduleDelete) {
+                      await onScheduleDelete(scheduleId);
                       
-                      const schedule = schedules.find(s => s.id === scheduleId);
-                      if (schedule && onScheduleDelete) {
-                        await onScheduleDelete(scheduleId);
-                        
-                        // CRITICAL FIX: Update local state to reflect the deletion
-                        setScheduleBars(prevBars => prevBars.filter(bar => bar.id !== scheduleId));
-                        
-                        toast({
-                          title: "Project unassigned",
-                          description: "Project moved back to unassigned list",
-                        });
-                        
-                        // Force a rerender by updating a timestamp
-                        setForceUpdate(Date.now());
-                      }
+                      // CRITICAL FIX: Update local state to reflect the deletion
+                      setScheduleBars(prevBars => prevBars.filter(bar => bar.id !== scheduleId));
+                      
+                      toast({
+                        title: "Project unassigned",
+                        description: "Project moved back to unassigned list",
+                      });
+                      
+                      // Force a rerender by updating a timestamp
+                      setForceUpdate(Date.now());
                     }
-                  } catch (error) {
-                    console.error('Error processing drop on unassigned section:', error);
                   }
-                }}
-              >
+                } catch (error) {
+                  console.error('Error processing drop on unassigned section:', error);
+                }
+              }}
+            >
+              {/* Visual drop zone indicator - fixed height, doesn't scroll, but entire column is a drop zone */}
+              <div className="unassigned-drop-container min-h-[80px] rounded-md border-2 border-dashed border-gray-700 mb-4 p-2 flex-shrink-0">
                 <div className="text-sm text-gray-400 italic p-2 text-center flex items-center justify-center">
-                  Drop projects here to unassign them
+                  Drop projects anywhere in this column to unassign them
                 </div>
               </div>
               
