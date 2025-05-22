@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 /**
  * This component overrides time constraints in sandbox mode
@@ -7,145 +7,95 @@ import { useEffect } from 'react';
  */
 const SandboxTimelineOverride: React.FC<{
   isSandboxMode: boolean;
-}> = ({ isSandboxMode }) => {
-
+  dateRange: { start: Date, end: Date };
+}> = ({ isSandboxMode, dateRange }) => {
+  
   useEffect(() => {
     if (!isSandboxMode) return;
     
-    // Apply sandbox overrides when the component mounts
-    const applySandboxOverrides = () => {
-      console.log('🔧 Applying sandbox timeline overrides - allowing complete timeline freedom');
+    console.log('🔒 MAXIMUM DRAG-DROP OVERRIDE ACTIVE - Projects can now be placed anywhere without restrictions');
+    
+    // Override the drag and drop time constraints in sandbox mode
+    const patchTimeline = () => {
+      // Add a global variable to window that can be accessed in drag handlers
+      (window as any).sandboxTimelineOverrides = {
+        // Flag to indicate sandbox mode is active
+        active: true,
+        
+        // The date range from the parent component
+        dateRange: {
+          start: dateRange.start,
+          end: dateRange.end
+        },
+        
+        // Override function for date validation
+        // This always returns true in sandbox mode to bypass date validation
+        validateDatePosition: () => true,
+        
+        // Override for calculating dates from pixel positions
+        // This is used for drag & drop operations
+        calculateDateFromPixel: (pixelPosition: number, totalWidth: number) => {
+          const timeRange = dateRange.end.getTime() - dateRange.start.getTime();
+          const msPerPixel = timeRange / totalWidth;
+          const dateMs = dateRange.start.getTime() + (pixelPosition * msPerPixel);
+          return new Date(dateMs);
+        }
+      };
       
-      // Add a special class to body for CSS overrides
-      document.body.classList.add('sandbox-timeline-override');
+      // Find all timeline elements and prepare them
+      const timelineContainers = document.querySelectorAll('.timeline-container, .bay-row');
       
-      // Setup CSS overrides for sandbox mode
-      const styleElement = document.createElement('style');
-      styleElement.id = 'sandbox-timeline-overrides';
-      styleElement.textContent = `
-        /* Allow projects to be moved anywhere in the timeline without constraints */
-        body.sandbox-timeline-override .big-project-bar {
-          cursor: move !important;
-        }
+      timelineContainers.forEach(container => {
+        // Mark this container as sandbox-ready
+        container.classList.add('sandbox-timeline');
         
-        /* Make resize handles more visible */
-        body.sandbox-timeline-override .resize-handle-left,
-        body.sandbox-timeline-override .resize-handle-right {
-          width: 12px !important;
-          height: 100% !important;
-          background-color: rgba(0, 100, 255, 0.4) !important;
-          border-radius: 4px !important;
-          opacity: 0.7 !important;
-        }
-        
-        /* Brighten handles on hover */
-        body.sandbox-timeline-override .resize-handle-left:hover,
-        body.sandbox-timeline-override .resize-handle-right:hover {
-          background-color: rgba(0, 100, 255, 0.6) !important;
-          opacity: 1 !important;
-        }
-        
-        /* Highlight handle that's being dragged */
-        body.sandbox-timeline-override .resizing-active .resize-handle-left,
-        body.sandbox-timeline-override .resizing-active .resize-handle-right {
-          background-color: rgba(0, 100, 255, 0.8) !important;
-        }
-        
-        /* Add visual feedback for the project being resized */
-        body.sandbox-timeline-override .resizing-active {
-          outline: 2px solid #0066ff !important;
-          z-index: 1000 !important;
-        }
-        
-        /* Fix for dragging operations */
-        body.sandbox-timeline-override.dragging-active {
-          cursor: grabbing !important;
-        }
-      `;
-      
-      // Add the style element to the head
-      document.head.appendChild(styleElement);
-      
-      // Add a special attribute to the body for JavaScript detection
-      document.body.setAttribute('data-sandbox-timeline', 'true');
+        // Find any timeline cells and make sure they accept drops
+        const cells = container.querySelectorAll('.time-slot, .day-column, .cell');
+        cells.forEach(cell => {
+          cell.classList.add('sandbox-cell');
+          // Make sure pointer events are enabled
+          (cell as HTMLElement).style.pointerEvents = 'auto';
+        });
+      });
     };
     
-    // Apply overrides on mount
-    applySandboxOverrides();
+    // Run the patch initially
+    patchTimeline();
     
-    // Patch resize handlers through DOM manipulation
-    const patchResizeHandlers = () => {
-      // Find all resize handles
-      const leftHandles = document.querySelectorAll('.resize-handle-left');
-      const rightHandles = document.querySelectorAll('.resize-handle-right');
-      
-      // Add special class to all handles for visibility
-      leftHandles.forEach(handle => {
-        handle.classList.add('sandbox-enhanced-handle');
-      });
-      
-      rightHandles.forEach(handle => {
-        handle.classList.add('sandbox-enhanced-handle');
-      });
-      
-      console.log(`🔧 Enhanced ${leftHandles.length + rightHandles.length} resize handles for sandbox mode`);
-    };
-    
-    // Setup a mutation observer to detect when new project elements are added
-    const observer = new MutationObserver((mutations) => {
+    // Set up a MutationObserver to watch for new timeline elements
+    const observer = new MutationObserver(mutations => {
       mutations.forEach(mutation => {
         if (mutation.addedNodes.length > 0) {
-          // Check if any project bars were added
-          mutation.addedNodes.forEach(node => {
-            if (node instanceof HTMLElement) {
-              if (node.classList.contains('big-project-bar') || 
-                  node.querySelector('.big-project-bar')) {
-                // Patch the new elements
-                patchResizeHandlers();
-              }
-            }
-          });
+          // Check for new timeline elements and patch them
+          patchTimeline();
         }
       });
     });
     
-    // Start observing after a short delay to ensure the component is mounted
-    setTimeout(() => {
-      patchResizeHandlers();
-      
-      // Observe the schedule container for changes
-      const scheduleContainer = document.querySelector('.timeline-container');
-      if (scheduleContainer) {
-        observer.observe(scheduleContainer, { 
-          childList: true,
-          subtree: true
-        });
-        console.log('🔧 Sandbox observer active - watching for new project elements');
-      }
-    }, 1000);
+    // Start observing
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
     
     // Cleanup function
     return () => {
-      // Remove the style element
-      const styleElement = document.getElementById('sandbox-timeline-overrides');
-      if (styleElement) {
-        styleElement.remove();
-      }
+      // Remove our global overrides
+      delete (window as any).sandboxTimelineOverrides;
       
-      // Remove the special class from body
-      document.body.classList.remove('sandbox-timeline-override');
-      
-      // Remove the special attribute
-      document.body.removeAttribute('data-sandbox-timeline');
-      
-      // Disconnect the observer
+      // Stop observing DOM changes
       observer.disconnect();
       
-      console.log('🧹 Sandbox timeline overrides removed');
+      // Find and remove the sandbox-specific classes
+      document.querySelectorAll('.sandbox-timeline, .sandbox-cell').forEach(el => {
+        el.classList.remove('sandbox-timeline', 'sandbox-cell');
+      });
+      
+      console.log('🚫 Sandbox timeline overrides removed');
     };
-  }, [isSandboxMode]);
+  }, [isSandboxMode, dateRange]);
   
-  // This component doesn't render anything
+  // This component doesn't render any visible elements
   return null;
 };
 
