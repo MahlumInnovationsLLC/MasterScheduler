@@ -148,15 +148,29 @@ function App() {
                   body.viewer-mode *[class*="Auth"],
                   body.viewer-mode form input,
                   body.viewer-mode form button,
+                  body.viewer-mode form a,
                   body.viewer-mode [role="tablist"],
                   body.viewer-mode [role="tab"],
                   body.viewer-mode [tabindex="0"],
                   body.viewer-mode .login-btn,
-                  body.viewer-mode button[type="submit"] {
+                  body.viewer-mode button[type="submit"],
+                  body.viewer-mode button[variant="link"],
+                  body.viewer-mode a[href*="reset-password"],
+                  body.viewer-mode a:not(.sidebar-link) {
                     pointer-events: auto !important;
                     opacity: 1 !important;
                     cursor: pointer !important;
                     user-select: auto !important;
+                    visibility: visible !important;
+                  }
+                  
+                  /* Enhance focus styles for all interactive elements on auth pages */
+                  body.viewer-mode form input:focus,
+                  body.viewer-mode input:focus {
+                    outline: 2px solid #2563eb !important;
+                    outline-offset: 0 !important;
+                    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5) !important;
+                    z-index: 99 !important;
                   }
                   
                   /* Bay Scheduling sandbox mode elements need to be clickable in viewer mode */
