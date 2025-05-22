@@ -223,29 +223,46 @@ export const ViewerGuard = () => {
         body.viewer-mode .sidebar-link,
         body.viewer-mode .dropdown-menu-content,
         body.viewer-mode .dropdown-menu-item,
+        body.viewer-mode .dropdown-menu,
+        body.viewer-mode .dropdown-menu *,
+        body.viewer-mode [role="menu"],
+        body.viewer-mode [role="menu"] *,
         body.viewer-mode .user-menu,
         body.viewer-mode .user-dropdown,
         body.viewer-mode [class*="logout"],
         body.viewer-mode [href*="logout"],
+        body.viewer-mode [href*="api/auth/logout"],
         body.viewer-mode [onclick*="logout"] {
           pointer-events: auto !important;
           opacity: 1 !important;
           cursor: pointer !important;
         }
         
-        /* Allow scrolling but not clicking */
+        /* Allow scrolling in all scrollable areas */
         body.viewer-mode .overflow-auto,
         body.viewer-mode .overflow-y-auto,
         body.viewer-mode .overflow-x-auto,
-        body.viewer-mode [class*="scroll"] {
+        body.viewer-mode [class*="scroll"],
+        body.viewer-mode [class*="overflow"],
+        body.viewer-mode div[style*="overflow"],
+        body.viewer-mode .table-container,
+        body.viewer-mode .scrollable,
+        body.viewer-mode table,
+        body.viewer-mode [role="grid"],
+        body.viewer-mode [class*="Data"],
+        body.viewer-mode [class*="Table"] {
           pointer-events: auto !important;
+          overflow: auto !important;
         }
         
-        /* Ensure scroll areas can still be scrolled */
-        body.viewer-mode .overflow-auto *,
-        body.viewer-mode .overflow-y-auto *,
-        body.viewer-mode .overflow-x-auto *,
-        body.viewer-mode [class*="scroll"] * {
+        /* Keep inner content non-interactive except for specified elements */
+        body.viewer-mode .overflow-auto *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
+        body.viewer-mode .overflow-y-auto *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
+        body.viewer-mode .overflow-x-auto *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
+        body.viewer-mode [class*="scroll"] *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
+        body.viewer-mode [class*="overflow"] *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
+        body.viewer-mode div[style*="overflow"] *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
+        body.viewer-mode .table-container *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *) {
           pointer-events: none !important;
         }
       `;

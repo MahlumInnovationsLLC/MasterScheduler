@@ -7,6 +7,31 @@
   z-index: 9999 !important;
 }
 
+/* Ensure dropdowns and menus are interactive in viewer mode */
+body.viewer-mode [data-radix-popper-content-wrapper],
+body.viewer-mode .dropdown-menu-content,
+body.viewer-mode [role="menu"],
+body.viewer-mode [role="menuitem"],
+body.viewer-mode .dropdown-menu,
+body.viewer-mode .dropdown-menu * {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+}
+
+/* Make scrollable areas work properly in viewer mode */
+body.viewer-mode .overflow-auto,
+body.viewer-mode .overflow-y-auto,
+body.viewer-mode .overflow-x-auto,
+body.viewer-mode .scrollarea,
+body.viewer-mode .data-table-container,
+body.viewer-mode [data-radix-scroll-area-viewport],
+body.viewer-mode table,
+body.viewer-mode [role="grid"] {
+  pointer-events: auto !important;
+  overflow: auto !important;
+}
+
 /* Viewer Mode Restrictions - Applied globally when body has viewer-mode class */
 /* Strict view-only mode - disable ALL interactive elements by default */
 body.viewer-mode button:not(.viewer-interactive),
