@@ -52,13 +52,8 @@ export const EnforceViewOnly: React.FC = () => {
         return 'admin';
       }
       
-      // If this is a development environment, default to viewer
-      const isDev = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
-      if (isDev) {
-        // In development, use viewer role for testing
-        setUserRole('viewer');
-        return 'viewer';
-      }
+      // Don't force viewer role in development anymore
+      // Let the application detect the actual user role normally
       
       // Default to viewer role if nothing else is found
       setUserRole('viewer');
@@ -109,10 +104,8 @@ export const EnforceViewOnly: React.FC = () => {
       return;
     }
     
-    // For viewer role on non-auth pages, enforce strict view-only mode
-    console.log('🔒 MAXIMUM DRAG-DROP OVERRIDE ACTIVE - Projects can now be placed anywhere without restrictions');
-    console.log('⚠️ Applying view-only restrictions for Viewer role');
-    console.log('🔒 VIEW ONLY MODE ACTIVE - User has Viewer role with restricted permissions');
+    // For viewer role on non-auth pages, enforce view-only mode
+    console.log('Applying view-only restrictions for viewer role');
     
     // Add required classes
     document.body.classList.add('viewer-mode');

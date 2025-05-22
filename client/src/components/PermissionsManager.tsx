@@ -356,31 +356,8 @@ export const GlobalPermissionsHandler = () => {
     // Skip all restrictions for auth page or sandbox mode in Bay Scheduling
     const shouldSkipRestrictions = isAuthPage || (isBaySchedulingPage && isSandboxMode);
     
-    // In development mode, we need special handling to allow testing viewer mode
-    const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
-    
-    // Check for manually set viewer role simulation
-    const isSimulatingViewer = window.localStorage.getItem('simulateViewerRole') === 'true';
-    
-    // Only bypass if it's development mode AND not viewer role AND not simulating viewer AND not auth page
-    // This is critical to ensure we can test viewer mode in development
-    if (isDevelopment && !isAuthPage && userRole !== "viewer" && !isSimulatingViewer) {
-      console.log("Development mode detected, bypassing viewer restrictions (not viewer role)");
-      document.body.classList.remove("viewer-mode");
-      document.body.classList.remove("role-viewer");
-      const badge = document.getElementById('viewer-mode-badge');
-      if (badge) badge.remove();
-      const existingStyle = document.getElementById('viewer-mode-styles');
-      if (existingStyle) existingStyle.remove();
-      return;
-    }
-    
-    // If simulating viewer mode in development, force apply viewer restrictions
-    if (isDevelopment && isSimulatingViewer) {
-      console.log("🔒 FORCING VIEW-ONLY MODE - Development simulation active");
-      document.body.classList.add("viewer-mode");
-      document.body.classList.add("role-viewer");
-    }
+    // No special handling for development mode anymore
+    // Just respect the actual user role permissions
     
     if (shouldSkipRestrictions) {
       document.body.classList.remove("viewer-mode");
@@ -391,10 +368,8 @@ export const GlobalPermissionsHandler = () => {
       return;
     }
     
-    // CRITICAL PRODUCTION FIX: ONLY apply viewer mode if explicitly a viewer role
-    // We need to be extremely strict here to ensure admins ALWAYS get edit rights
-    if ((userRole === "viewer" && !isDevelopment) || (isDevelopment && isSimulatingViewer)) {
-      // Only apply viewer mode if the user is actually a viewer or we're simulating it
+    // Only apply viewer mode if the user is actually a viewer role
+    if (userRole === "viewer") {
       // Add both classes to ensure our CSS selectors work properly
       document.body.classList.add("viewer-mode");
       document.body.classList.add("role-viewer");

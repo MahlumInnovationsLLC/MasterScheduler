@@ -172,13 +172,8 @@ export const ViewerModeSimulator: React.FC = () => {
     }
   };
 
-  // Only show in development mode and not on auth page
-  const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
-  const isAuthPage = window.location.pathname === '/auth';
-  
-  if (!isDevelopment || isAuthPage) {
-    return null;
-  }
+  // Don't show the simulator anymore - completely disable it
+  return null;
 
   return (
     <div className="fixed top-20 right-4 z-50">
