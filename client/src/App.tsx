@@ -138,13 +138,25 @@ function App() {
               {/* Custom styles for viewer mode exceptions */}
               <style dangerouslySetInnerHTML={{
                 __html: `
-                  /* Auth elements need to be clickable even in viewer mode */
-                  body.viewer-mode .auth-form input,
-                  body.viewer-mode .auth-form button,
-                  body.viewer-mode .auth-form select {
+                  /* AUTH SPECIFIC CRITICAL RULES - All auth page elements must be clickable */
+                  body.viewer-mode .auth-routes *,
+                  body.viewer-mode *[class*="login"],
+                  body.viewer-mode *[class*="Login"],
+                  body.viewer-mode *[class*="register"],
+                  body.viewer-mode *[class*="Register"],
+                  body.viewer-mode *[class*="auth"],
+                  body.viewer-mode *[class*="Auth"],
+                  body.viewer-mode form input,
+                  body.viewer-mode form button,
+                  body.viewer-mode [role="tablist"],
+                  body.viewer-mode [role="tab"],
+                  body.viewer-mode [tabindex="0"],
+                  body.viewer-mode .login-btn,
+                  body.viewer-mode button[type="submit"] {
                     pointer-events: auto !important;
                     opacity: 1 !important;
                     cursor: pointer !important;
+                    user-select: auto !important;
                   }
                   
                   /* Bay Scheduling sandbox mode elements need to be clickable in viewer mode */
