@@ -32,6 +32,43 @@ export const ForceViewOnlyMode: React.FC = () => {
   
   // Enable view-only mode for non-auth pages IF NOT ADMIN
   useEffect(() => {
+    // For auth pages, IMMEDIATELY add special script to remove ALL restrictions
+    if (isAuthPage) {
+      console.log('AUTH FIX SCRIPT LOADED - Will enable all interactions on auth page');
+      console.log('AUTH PAGE FIX SCRIPT LOADED - Will completely remove all restrictions on auth page');
+      
+      // Immediately remove all view-only classes that might block login
+      document.body.classList.remove('viewer-mode');
+      document.body.classList.remove('role-viewer');
+      document.body.classList.add('auth-page');
+      document.body.classList.add('full-access');
+      
+      // CRITICAL FIX: Make ALL elements on auth page interactive
+      const enableAllInteractions = () => {
+        document.querySelectorAll('*').forEach(el => {
+          if (el instanceof HTMLElement) {
+            // Remove any disabled attributes
+            el.removeAttribute('disabled');
+            // Remove any pointer-events: none
+            el.style.pointerEvents = 'auto';
+            // Add special interactive class
+            el.classList.add('auth-interactive');
+          }
+        });
+      };
+      
+      // Run immediately and set up for dynamically added elements
+      enableAllInteractions();
+      
+      // Run enableAllInteractions every 500ms to ensure ALL form fields work
+      const authPageInterval = setInterval(enableAllInteractions, 500);
+      
+      // Clean up on unmount
+      return () => {
+        clearInterval(authPageInterval);
+      };
+    }
+    
     // Remove any previous viewer badge
     const viewerBadge = document.getElementById('viewer-mode-badge');
     if (viewerBadge) viewerBadge.remove();
@@ -45,11 +82,11 @@ export const ForceViewOnlyMode: React.FC = () => {
       document.body.classList.add('auth-page');
       document.body.classList.add('full-access');
       
-      if (isAdmin) {
+      if (isAdmin && !isAuthPage) {
         console.log('🔧 Development mode: Using mock ADMIN user with FULL permissions');
         console.log('🔑 Role Detection: User has role "admin" with permissions: admin=true, edit=true');
         console.log('Development mode detected, bypassing viewer restrictions (not viewer role)');
-      } else {
+      } else if (isAuthPage) {
         console.log('🔑 AUTH PAGE DETECTED - FORCING UNRESTRICTED ACCESS');
       }
       
