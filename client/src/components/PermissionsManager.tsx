@@ -634,7 +634,15 @@ export const GlobalPermissionsHandler = () => {
   
   // Apply the ViewerGuard component which contains the CSS rules
   // for restricting interactions
+  // CRITICAL AUTH FIX: ALWAYS exclude auth pages from viewer mode restrictions
   const shouldApplyViewerGuard = !canEdit && !isAuthPage && !(isBaySchedulingPage && isSandboxMode);
+  
+  // Extra safety check for auth page - 100% guarantee it will never be restricted
+  if (isAuthPage) {
+    console.log("🔑 AUTH PAGE DETECTED - FORCING UNRESTRICTED ACCESS");
+    document.body.classList.remove('viewer-mode');
+    document.body.classList.remove('role-viewer');
+  }
   
   // Critical fix: Apply ViewerGuard even in development mode for demo purposes
   if (userRole === "viewer" && !isAuthPage && !(isBaySchedulingPage && isSandboxMode)) {

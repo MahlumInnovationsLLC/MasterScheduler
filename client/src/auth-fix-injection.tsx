@@ -1,128 +1,108 @@
 import React, { useEffect } from 'react';
 
 /**
- * AuthFixInjection - A direct solution to ensure the auth page is fully clickable
+ * AuthFixInjection - Direct script injection to ensure auth page functionality
+ * This component injects JavaScript directly into the page that will guarantee
+ * the auth page works even with viewer mode restrictions
  */
 export default function AuthFixInjection() {
   useEffect(() => {
-    // Create a script element to inject direct DOM manipulations
+    // Create a script element to insert our fix
     const script = document.createElement('script');
     script.id = 'auth-page-fix-script';
-    script.innerHTML = `
-      // Self-contained authentication page fix script
-      // This runs completely independent of React
+    script.textContent = `
       (function() {
-        // Check if we're on the auth page
+        // Self-executing function that fixes auth page without relying on React
+        
+        // Helper function to check if we're on the auth page
         function isAuthPage() {
           return window.location.pathname === '/auth' || 
-                window.location.pathname.includes('/auth/') ||
-                window.location.pathname.includes('/reset-password');
+                 window.location.pathname.startsWith('/auth/') ||
+                 window.location.pathname === '/reset-password' ||
+                 window.location.pathname.startsWith('/reset-password');
         }
         
-        // Make all form elements interactive
-        function makeInteractive() {
+        // This is the critical fix function - it forces ALL form elements to be interactive
+        function forceEnableAuthPage() {
           if (!isAuthPage()) return;
           
-          // Force body classes
+          // Remove any view-only classes from body
           document.body.classList.remove('viewer-mode');
           document.body.classList.remove('role-viewer');
-          document.body.classList.add('auth-page');
-          document.body.classList.add('full-access');
           
-          // Find and fix all interactive elements
-          var elements = document.querySelectorAll('input, button, a, form, [role="button"]');
-          for (var i = 0; i < elements.length; i++) {
-            var el = elements[i];
-            
-            // Apply direct style overrides
-            el.style.pointerEvents = 'auto';
-            el.style.opacity = '1';
-            el.style.filter = 'none';
-            
-            // Set correct cursor
-            if (el.tagName === 'BUTTON' || el.tagName === 'A' || el.getAttribute('role') === 'button') {
-              el.style.cursor = 'pointer';
-            } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-              el.style.cursor = 'text';
-            } else {
-              el.style.cursor = 'auto';
-            }
-            
-            // Remove any disabled attributes
+          // Add override classes
+          document.body.classList.add('auth-page-override');
+          
+          // Find all form elements
+          const inputs = document.querySelectorAll('input');
+          const buttons = document.querySelectorAll('button');
+          const forms = document.querySelectorAll('form');
+          const links = document.querySelectorAll('a');
+          
+          // Force enable all inputs
+          inputs.forEach(function(input) {
+            input.style.pointerEvents = 'auto';
+            input.style.opacity = '1';
+            input.style.cursor = 'text';
+            input.removeAttribute('disabled');
+          });
+          
+          // Force enable all buttons
+          buttons.forEach(function(button) {
+            button.style.pointerEvents = 'auto';
+            button.style.opacity = '1';
+            button.style.cursor = 'pointer';
+            button.removeAttribute('disabled');
+          });
+          
+          // Force enable all forms
+          forms.forEach(function(form) {
+            form.style.pointerEvents = 'auto';
+            form.style.opacity = '1';
+          });
+          
+          // Force enable all links
+          links.forEach(function(link) {
+            link.style.pointerEvents = 'auto';
+            link.style.opacity = '1';
+            link.style.cursor = 'pointer';
+          });
+          
+          // Reset any custom viewer-mode restrictions
+          const restricted = document.querySelectorAll('.viewer-disabled');
+          restricted.forEach(function(el) {
+            el.classList.remove('viewer-disabled');
             el.removeAttribute('disabled');
-            
-            // Add marker classes
-            el.className += ' auth-element full-access';
-            
-            // Ensure click events work
-            if (el.tagName === 'BUTTON' || el.tagName === 'A' || el.getAttribute('role') === 'button') {
-              el.onclick = function(e) {
-                // Just let the event proceed normally
-                console.log('Element clicked', e.target);
-              };
+            if (el instanceof HTMLElement) {
+              el.style.pointerEvents = 'auto';
+              el.style.opacity = '1';
+              el.style.cursor = 'auto';
+              
+              if (el.tagName === 'BUTTON' || el.tagName === 'A') {
+                el.style.cursor = 'pointer';
+              }
+            }
+          });
+        }
+        
+        // Check right away if we're on auth page
+        if (isAuthPage()) {
+          forceEnableAuthPage();
+        }
+        
+        // Set up interval to continuously check and fix
+        setInterval(forceEnableAuthPage, 100);
+        
+        // Also observe URL changes to catch SPA navigation
+        let lastUrl = window.location.href;
+        new MutationObserver(function() {
+          if (window.location.href !== lastUrl) {
+            lastUrl = window.location.href;
+            if (isAuthPage()) {
+              forceEnableAuthPage();
             }
           }
-        }
-        
-        // Apply emergency styles
-        function applyEmergencyStyles() {
-          if (!document.getElementById('auth-emergency-styles')) {
-            var style = document.createElement('style');
-            style.id = 'auth-emergency-styles';
-            style.innerHTML = \`
-              /* Global overrides */
-              body.auth-page input, 
-              body.auth-page button, 
-              body.auth-page a, 
-              body.auth-page [role="button"], 
-              body.auth-page form, 
-              body.auth-page select, 
-              body.auth-page textarea {
-                pointer-events: auto !important;
-                opacity: 1 !important;
-                filter: none !important;
-              }
-              
-              /* Cursor fixes */
-              body.auth-page button, 
-              body.auth-page a, 
-              body.auth-page [role="button"], 
-              body.auth-page [type="submit"] {
-                cursor: pointer !important;
-              }
-              
-              body.auth-page input, 
-              body.auth-page textarea, 
-              body.auth-page select {
-                cursor: text !important;
-              }
-              
-              /* Override nested selectors */
-              body.viewer-mode button,
-              body.viewer-mode input,
-              body.viewer-mode a,
-              body.viewer-mode [role="button"],
-              body.role-viewer button,
-              body.role-viewer input,
-              body.role-viewer a,
-              body.role-viewer [role="button"] {
-                pointer-events: auto !important;
-                opacity: 1 !important;
-                filter: none !important;
-              }
-            \`;
-            document.head.appendChild(style);
-          }
-        }
-        
-        // Run immediately
-        makeInteractive();
-        applyEmergencyStyles();
-        
-        // Run at frequent intervals
-        setInterval(function() {
-          makeInteractive();
-        }, 100);
+        }).observe(document, {subtree: true, childList: true});
         
         // Directly patch click events
         document.addEventListener('click', function(e) {

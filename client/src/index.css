@@ -85,6 +85,50 @@ body:has(form[action*="auth"]) * {
   cursor: auto !important;
 }
 
+/* DIRECT SOLUTION FOR AUTH PAGE - NO RESTRICTIONS WHATSOEVER */
+body.auth-page-override * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: auto !important;
+  filter: none !important;
+  user-select: auto !important;
+}
+
+body.auth-page-override input {
+  cursor: text !important;
+}
+
+body.auth-page-override button,
+body.auth-page-override a,
+body.auth-page-override [role="button"] {
+  cursor: pointer !important;
+}
+
+/* AUTH PATH DIRECT DETECTION - MAXIMUM PRIORITY */
+body:has(nav:has(a[href="/auth"])) {
+  background: transparent !important;
+}
+
+/* DIRECT FORM INTERACTION OVERRIDE */
+form *,
+[role="form"] * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* PATH BASED DETECTION - MAXIMUM OVERRIDE */
+html:has(head:has(meta[content*="auth"])) *,
+body[data-location="/auth"] *,
+body[data-path="/auth"] *,
+body[data-page="auth"] * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  user-select: auto !important;
+  filter: none !important;
+  cursor: auto !important;
+}
+
 /* SPECIFIC FORM ELEMENTS ON AUTH PAGE */
 input[type="email"],
 input[type="password"],
