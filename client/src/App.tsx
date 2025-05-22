@@ -7,15 +7,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LoadingProvider } from "@/components/LoadingManager";
 import { PermissionsProvider, GlobalPermissionsHandler } from "@/components/PermissionsManager";
-import ViewerModeSimulator from "@/components/ViewerModeSimulator";
-import DetectDevUser from "@/components/DetectDevUser";
-import ForceViewOnlyMode from "@/components/ForceViewOnlyMode";
-import EnforceViewOnly from "@/components/EnforceViewOnly";
 import AuthPageUnrestrictor from "@/components/AuthPageUnrestrictor";
 import AuthFix from "@/pages/AuthFix";
 import EmergencyAuthPageFix from "@/components/EmergencyAuthPageFix";
 import AuthPageOverride from "@/pages/auth-page-override";
 import AuthFixInjection from "@/auth-fix-injection";
+import RemoveViewModeBadge from "@/components/RemoveViewModeBadge";
 import Dashboard from "@/pages/Dashboard";
 import ProjectStatus from "@/pages/ProjectStatus";
 import BillingMilestones from "@/pages/BillingMilestones";
@@ -158,13 +155,6 @@ function App() {
               <EmergencyAuthPageFix />
               <AuthFix />
               <AuthPageUnrestrictor />
-              {/* Add Viewer Mode simulator for testing */}
-              <ViewerModeSimulator />
-              {/* Enable strict view-only mode for all pages except auth */}
-              <EnforceViewOnly />
-              {/* Previous components for view-only mode disabled */}
-              {/* <ForceViewOnlyMode /> */}
-              {/* <DetectDevUser /> */}
               <Router />
               
               {/* Custom styles for viewer mode exceptions */}
