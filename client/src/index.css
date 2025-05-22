@@ -7,35 +7,237 @@
   z-index: 9999 !important;
 }
 
+/* Special handling for dev-user environment: disable view-only mode completely */
+body.dev-user-env button,
+body.dev-user-env input,
+body.dev-user-env select,
+body.dev-user-env textarea,
+body.dev-user-env a[href],
+body.dev-user-env [role="button"],
+body.dev-user-env [role="switch"],
+body.dev-user-env [role="checkbox"],
+body.dev-user-env [role="radio"],
+body.dev-user-env [role="menuitem"],
+body.dev-user-env [role="tab"],
+body.dev-user-env [type="checkbox"],
+body.dev-user-env [type="radio"],
+body.dev-user-env [type="button"],
+body.dev-user-env [type="submit"],
+body.dev-user-env [type="reset"],
+body.dev-user-env .dropdown-toggle,
+body.dev-user-env .clickable,
+body.dev-user-env .editable-field {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  user-select: auto !important;
+}
+
+/* Ensure dropdowns and menus are interactive in viewer mode */
+body.viewer-mode [data-radix-popper-content-wrapper],
+body.viewer-mode .dropdown-menu-content,
+body.viewer-mode [role="menu"],
+body.viewer-mode [role="menuitem"],
+body.viewer-mode .dropdown-menu,
+body.viewer-mode .dropdown-menu * {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+}
+
+/* Make scrollable areas work properly in viewer mode */
+body.viewer-mode .overflow-auto,
+body.viewer-mode .overflow-y-auto,
+body.viewer-mode .overflow-x-auto,
+body.viewer-mode .scrollarea,
+body.viewer-mode .data-table-container,
+body.viewer-mode [data-radix-scroll-area-viewport],
+body.viewer-mode table,
+body.viewer-mode [role="grid"] {
+  pointer-events: auto !important;
+  overflow: auto !important;
+}
+
+/* EMERGENCY FIX - AUTH PAGE OVERRIDE SYSTEM
+   This is a critical fix to ensure the auth page works regardless of any other settings */
+
+/* GLOBAL RULE - AUTH URL DETECTION */
+html:has(a[href*="auth"]) *,
+body:has([href*="/auth"]) *,
+body:has([action*="/auth"]) * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  user-select: auto !important;
+}
+
+/* AUTH PAGE UNIVERSAL OVERRIDE - STRONGEST POSSIBLE OVERRIDES */
+html[data-current-url*="auth"] *,
+body[data-current-url*="auth"] *,
+html:has(form[action*="login"]) *,
+html:has(form[action*="auth"]) *,
+body:has(form[action*="login"]) *,
+body:has(form[action*="auth"]) * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  user-select: auto !important;
+  filter: none !important;
+  touch-action: auto !important;
+  cursor: auto !important;
+}
+
+/* DIRECT SOLUTION FOR AUTH PAGE - NO RESTRICTIONS WHATSOEVER */
+body.auth-page-override * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: auto !important;
+  filter: none !important;
+  user-select: auto !important;
+}
+
+body.auth-page-override input {
+  cursor: text !important;
+}
+
+body.auth-page-override button,
+body.auth-page-override a,
+body.auth-page-override [role="button"] {
+  cursor: pointer !important;
+}
+
+/* AUTH PATH DIRECT DETECTION - MAXIMUM PRIORITY */
+body:has(nav:has(a[href="/auth"])) {
+  background: transparent !important;
+}
+
+/* DIRECT FORM INTERACTION OVERRIDE */
+form *,
+[role="form"] * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* PATH BASED DETECTION - MAXIMUM OVERRIDE */
+html:has(head:has(meta[content*="auth"])) *,
+body[data-location="/auth"] *,
+body[data-path="/auth"] *,
+body[data-page="auth"] * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  user-select: auto !important;
+  filter: none !important;
+  cursor: auto !important;
+}
+
+/* SPECIFIC FORM ELEMENTS ON AUTH PAGE */
+input[type="email"],
+input[type="password"],
+input[type="text"],
+button[type="submit"],
+a.login-link,
+a.forgot-password,
+form *,
+.auth-form *,
+[class*="login"] *,
+[class*="auth"] * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  user-select: auto !important;
+  filter: none !important;
+  cursor: auto !important;
+  touch-action: auto !important;
+}
+
+/* CURSOR FIXES */
+a, button, [role="button"], [type="submit"], .login, .submit {
+  cursor: pointer !important;
+}
+
+/* PATH BASED DETECTION - HIGHEST SPECIFICITY */
+html:has(head:has(title:contains("Login"))) *,
+html:has(head:has(title:contains("Auth"))) *,
+html:has(head:has(link[href*="auth"])) * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  user-select: auto !important;
+}
+
+/* AUTH ROUTE CLASS OVERRIDES */
+.auth-routes,
+.auth-routes *,
+.auth-page,
+.auth-page *,
+body.auth-page,
+body.auth-page *,
+div.auth-routes,
+div.auth-routes *,
+div.no-restrictions,
+div.no-restrictions *,
+[class*="auth-"],
+.full-access,
+.full-access * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: auto !important;
+  user-select: auto !important;
+  filter: none !important;
+  touch-action: auto !important;
+}
+
+/* AUTH INTERACTIVE ELEMENTS */
+body.auth-page button,
+body.auth-page input,
+body.auth-page select,
+body.auth-page textarea,
+body.auth-page a[href],
+body.auth-page [role="button"],
+body.auth-page [role="switch"],
+body.auth-page [role="checkbox"],
+body.auth-page [role="radio"],
+body.auth-page [role="menuitem"],
+body.auth-page [role="tab"],
+body.auth-page [type="checkbox"],
+body.auth-page [type="radio"],
+body.auth-page [type="button"],
+body.auth-page [type="submit"],
+body.auth-page [type="reset"],
+body.auth-page form,
+body.auth-page form * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  user-select: auto !important;
+}
+
 /* Viewer Mode Restrictions - Applied globally when body has viewer-mode class */
 /* Strict view-only mode - disable ALL interactive elements by default */
-body.viewer-mode button,
-body.viewer-mode input,
-body.viewer-mode select,
-body.viewer-mode textarea,
-body.viewer-mode a[href]:not(.sidebar-item):not(.sidebar a),
-body.viewer-mode [role="button"],
-body.viewer-mode [role="switch"],
-body.viewer-mode [role="checkbox"],
-body.viewer-mode [role="radio"],
-body.viewer-mode [role="menuitem"],
-body.viewer-mode [role="tab"],
-body.viewer-mode [type="checkbox"],
-body.viewer-mode [type="radio"],
-body.viewer-mode [type="button"],
-body.viewer-mode [type="submit"],
-body.viewer-mode [type="reset"],
-body.viewer-mode .dropdown-toggle,
-body.viewer-mode .clickable,
-body.viewer-mode .editable-field,
-body.viewer-mode .edit-controls,
-body.viewer-mode .action-button,
-body.viewer-mode [contenteditable="true"],
-body.role-viewer button:not(.sidebar-item):not(.sidebar-button),
-body.role-viewer input:not(.auth-input),
-body.role-viewer select:not(.auth-select),
-body.role-viewer textarea,
-body.role-viewer a[href]:not(.sidebar-item):not(.sidebar a),
+body.viewer-mode button:not(.viewer-interactive),
+body.viewer-mode input:not(.viewer-interactive),
+body.viewer-mode select:not(.viewer-interactive),
+body.viewer-mode textarea:not(.viewer-interactive),
+body.viewer-mode a[href]:not(.sidebar-item):not(.sidebar a):not(.viewer-interactive),
+body.viewer-mode [role="button"]:not(.viewer-interactive),
+body.viewer-mode [role="switch"]:not(.viewer-interactive),
+body.viewer-mode [role="checkbox"]:not(.viewer-interactive),
+body.viewer-mode [role="radio"]:not(.viewer-interactive),
+body.viewer-mode [role="menuitem"]:not(.viewer-interactive),
+body.viewer-mode [role="tab"]:not(.viewer-interactive),
+body.viewer-mode [type="checkbox"]:not(.viewer-interactive),
+body.viewer-mode [type="radio"]:not(.viewer-interactive),
+body.viewer-mode [type="button"]:not(.viewer-interactive),
+body.viewer-mode [type="submit"]:not(.viewer-interactive),
+body.viewer-mode [type="reset"]:not(.viewer-interactive),
+body.viewer-mode .dropdown-toggle:not(.viewer-interactive),
+body.viewer-mode .clickable:not(.viewer-interactive),
+body.viewer-mode .editable-field:not(.viewer-interactive),
+body.viewer-mode .edit-controls:not(.viewer-interactive),
+body.viewer-mode .action-button:not(.viewer-interactive),
+body.viewer-mode [contenteditable="true"]:not(.viewer-interactive),
+body.role-viewer button:not(.sidebar-item):not(.sidebar-button):not(.viewer-interactive),
+body.role-viewer input:not(.auth-input):not(.viewer-interactive),
+body.role-viewer select:not(.auth-select):not(.viewer-interactive),
+body.role-viewer textarea:not(.viewer-interactive),
+body.role-viewer a[href]:not(.sidebar-item):not(.sidebar a):not(.viewer-interactive),
 body.role-viewer [role="button"]:not(.sidebar-item),
 body.role-viewer [role="switch"],
 body.role-viewer [role="checkbox"],

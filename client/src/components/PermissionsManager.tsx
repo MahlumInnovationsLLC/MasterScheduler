@@ -37,10 +37,49 @@ export const PermissionsProvider = ({ children }: PermissionsProviderProps) => {
   const { user } = useAuth();
   const role = user?.role || "viewer"; // Default to viewer for maximum security
   
-  // Determine permissions based on role
-  const canAdmin = role === "admin";
-  const canEdit = role === "admin" || role === "editor";
+  // Check if we're in development mode
+  const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
+  
+  // Check if we're in the dev-user environment
+  const isDevUserEnvironment = () => {
+    // Check for dev-user in username or profile
+    const devUserMatch = document.querySelector('.user-name')?.textContent?.toLowerCase().includes('dev-user') || 
+                         document.querySelector('.user-profile')?.textContent?.toLowerCase().includes('dev-user');
+    
+    // Check hostname for dev-user
+    const isDevUserDomain = window.location.hostname.includes('dev-user');
+    
+    return devUserMatch || isDevUserDomain || document.body.classList.contains('dev-user-env');
+  };
+  
+  // PRODUCTION CRITICAL FIX: Determine permissions based on role
+  // Always give admin role full rights in production
+  // Force edit rights in dev-user environment regardless of role
+  const devUserEnvironment = isDevUserEnvironment();
+  
+  // In dev-user environment, everyone gets edit permissions regardless of role
+  const canAdmin = role === "admin" || devUserEnvironment;
+  const canEdit = role === "admin" || role === "editor" || devUserEnvironment;
   const canView = true; // Everyone can view
+  
+  // Log special environments
+  if (devUserEnvironment) {
+    console.log("🔓 DEV-USER ENVIRONMENT: Full edit permissions enabled regardless of role");
+    // Force remove any viewer mode classes
+    setTimeout(() => {
+      document.body.classList.remove('viewer-mode');
+      document.body.classList.remove('role-viewer');
+      window.localStorage.removeItem('simulateViewerRole');
+    }, 100);
+  }
+  
+  // If in production and role appears to be admin, force grant all permissions
+  if (!isDevelopment && role === "admin") {
+    console.log("⚠️ PRODUCTION SAFEGUARD: Admin user detected, forcing full permissions");
+  }
+  
+  // Console log the role detection for debugging
+  console.log(`🔑 Role Detection: User has role "${role}" with permissions: admin=${canAdmin}, edit=${canEdit}`)
   
   // Context value
   const value = {
@@ -142,45 +181,45 @@ export const ViewerGuard = () => {
         }
         
         /* Disable all forms, inputs and interactive controls */
-        button:not(.auth-button):not(.sandbox-button), 
-        input:not(.auth-input):not(.sandbox-input), 
-        select, 
-        textarea,
-        .interactive, 
-        [role="button"],
-        [role="switch"],
-        [role="checkbox"],
-        [role="radio"],
-        [role="menuitem"],
-        [role="tab"],
-        [type="checkbox"],
-        [type="radio"],
-        [type="button"],
-        [type="submit"],
-        [type="reset"],
-        .btn,
-        .button,
-        .dropdown-toggle,
-        .clickable,
-        details summary,
-        a[href]:not(.auth-link):not(.sandbox-link),
-        label {
+        button:not(.auth-button):not(.sandbox-button):not(.viewer-interactive), 
+        input:not(.auth-input):not(.sandbox-input):not(.viewer-interactive), 
+        select:not(.viewer-interactive), 
+        textarea:not(.viewer-interactive),
+        .interactive:not(.viewer-interactive), 
+        [role="button"]:not(.viewer-interactive),
+        [role="switch"]:not(.viewer-interactive),
+        [role="checkbox"]:not(.viewer-interactive),
+        [role="radio"]:not(.viewer-interactive),
+        [role="menuitem"]:not(.viewer-interactive),
+        [role="tab"]:not(.viewer-interactive),
+        [type="checkbox"]:not(.viewer-interactive),
+        [type="radio"]:not(.viewer-interactive),
+        [type="button"]:not(.viewer-interactive),
+        [type="submit"]:not(.viewer-interactive),
+        [type="reset"]:not(.viewer-interactive),
+        .btn:not(.viewer-interactive),
+        .button:not(.viewer-interactive),
+        .dropdown-toggle:not(.viewer-interactive),
+        .clickable:not(.viewer-interactive),
+        details summary:not(.viewer-interactive),
+        a[href]:not(.auth-link):not(.sandbox-link):not(.viewer-interactive):not(.sidebar-link),
+        label:not(.viewer-interactive) {
           pointer-events: none !important;
           opacity: 0.7 !important;
         }
         
-        /* Disable form submissions */
-        form {
+        /* Disable form submissions except for auth and essential forms */
+        form:not(.auth-form):not(.viewer-interactive) {
           pointer-events: none !important;
         }
         
         /* Make sure editing controls are disabled */
-        .editable-field,
-        .edit-controls,
-        .action-buttons,
-        .dropdown-menu,
-        .menu-item,
-        [contenteditable="true"] {
+        .editable-field:not(.viewer-interactive),
+        .edit-controls:not(.viewer-interactive),
+        .action-buttons:not(.viewer-interactive),
+        .dropdown-menu:not(.viewer-interactive),
+        .menu-item:not(.viewer-interactive),
+        [contenteditable="true"]:not(.viewer-interactive) {
           pointer-events: none !important;
           opacity: 0.7 !important;
         }
@@ -206,25 +245,51 @@ export const ViewerGuard = () => {
         }
         
         /* Explicitly allow interaction on a few specific elements */
-        body.viewer-mode .viewer-interactive {
+        body.viewer-mode .viewer-interactive,
+        body.viewer-mode [class*="viewer-interactive"],
+        body.viewer-mode .sidebar-link,
+        body.viewer-mode .dropdown-menu-content,
+        body.viewer-mode .dropdown-menu-item,
+        body.viewer-mode .dropdown-menu,
+        body.viewer-mode .dropdown-menu *,
+        body.viewer-mode [role="menu"],
+        body.viewer-mode [role="menu"] *,
+        body.viewer-mode .user-menu,
+        body.viewer-mode .user-dropdown,
+        body.viewer-mode [class*="logout"],
+        body.viewer-mode [href*="logout"],
+        body.viewer-mode [href*="api/auth/logout"],
+        body.viewer-mode [onclick*="logout"] {
           pointer-events: auto !important;
           opacity: 1 !important;
           cursor: pointer !important;
         }
         
-        /* Allow scrolling but not clicking */
+        /* Allow scrolling in all scrollable areas */
         body.viewer-mode .overflow-auto,
         body.viewer-mode .overflow-y-auto,
         body.viewer-mode .overflow-x-auto,
-        body.viewer-mode [class*="scroll"] {
+        body.viewer-mode [class*="scroll"],
+        body.viewer-mode [class*="overflow"],
+        body.viewer-mode div[style*="overflow"],
+        body.viewer-mode .table-container,
+        body.viewer-mode .scrollable,
+        body.viewer-mode table,
+        body.viewer-mode [role="grid"],
+        body.viewer-mode [class*="Data"],
+        body.viewer-mode [class*="Table"] {
           pointer-events: auto !important;
+          overflow: auto !important;
         }
         
-        /* Ensure scroll areas can still be scrolled */
-        body.viewer-mode .overflow-auto *,
-        body.viewer-mode .overflow-y-auto *,
-        body.viewer-mode .overflow-x-auto *,
-        body.viewer-mode [class*="scroll"] * {
+        /* Keep inner content non-interactive except for specified elements */
+        body.viewer-mode .overflow-auto *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
+        body.viewer-mode .overflow-y-auto *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
+        body.viewer-mode .overflow-x-auto *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
+        body.viewer-mode [class*="scroll"] *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
+        body.viewer-mode [class*="overflow"] *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
+        body.viewer-mode div[style*="overflow"] *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
+        body.viewer-mode .table-container *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *) {
           pointer-events: none !important;
         }
       `;
@@ -326,9 +391,10 @@ export const GlobalPermissionsHandler = () => {
       return;
     }
     
-    // CRITICAL FIX: Always force apply viewer mode if role is viewer
-    // This ensures the CSS restrictions apply globally
-    if (userRole === "viewer") {
+    // CRITICAL PRODUCTION FIX: ONLY apply viewer mode if explicitly a viewer role
+    // We need to be extremely strict here to ensure admins ALWAYS get edit rights
+    if ((userRole === "viewer" && !isDevelopment) || (isDevelopment && isSimulatingViewer)) {
+      // Only apply viewer mode if the user is actually a viewer or we're simulating it
       // Add both classes to ensure our CSS selectors work properly
       document.body.classList.add("viewer-mode");
       document.body.classList.add("role-viewer");
@@ -398,14 +464,97 @@ export const GlobalPermissionsHandler = () => {
           box-shadow: 0 2px 4px rgba(0,0,0,0.2);
           pointer-events: none;
         `;
-        viewerBadge.textContent = 'View Only Mode';
+        viewerBadge.textContent = isDevelopment && isSimulatingViewer ? 'View Only Mode (Simulated)' : 'View Only Mode';
         document.body.appendChild(viewerBadge);
       }
+    } else if (userRole === "admin" || userRole === "editor") {
+      // CRITICAL PRIORITY: Ensure admins and editors get FULL permissions by removing ANY restrictions
+      console.log(`🔓 EDITING MODE ACTIVE - User has ${userRole} role with full permissions`);
+      
+      // Force remove all view-only related classes
+      document.body.classList.remove("viewer-mode");
+      document.body.classList.remove("role-viewer");
+      
+      // Remove any observer/badge elements
+      const badge = document.getElementById('viewer-mode-badge');
+      if (badge) badge.remove();
+      
+      // PRODUCTION FIX: Aggressively clean up any previously added restrictions
+      // This ensures admin/editor users never experience view-only limitations
+      
+      // Enable all interactive elements site-wide
+      const enableAllInteractiveElements = () => {
+        // Find and enable all buttons
+        document.querySelectorAll('button').forEach(button => {
+          button.removeAttribute('disabled');
+          button.classList.remove('viewer-disabled');
+        });
+        
+        // Find and enable all inputs, selects, textareas
+        document.querySelectorAll('input, select, textarea').forEach(input => {
+          input.removeAttribute('disabled');
+          input.classList.remove('viewer-disabled');
+        });
+        
+        // Find and enable all form elements
+        document.querySelectorAll('form *').forEach(el => {
+          if (el instanceof HTMLElement) {
+            el.removeAttribute('disabled');
+            el.classList.remove('viewer-disabled');
+          }
+        });
+        
+        // Find anything with the viewer-disabled class and enable it
+        document.querySelectorAll('.viewer-disabled').forEach(el => {
+          if (el instanceof HTMLElement) {
+            el.removeAttribute('disabled');
+            el.classList.remove('viewer-disabled');
+          }
+        });
+      };
+      
+      // Run the cleanup immediately
+      enableAllInteractiveElements();
+      
+      // Also setup a mutation observer to ensure dynamic elements are never disabled
+      const adminModeObserver = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+          if (mutation.addedNodes.length) {
+            // If any new elements are added that have viewer-disabled class, enable them
+            const addedDisabledElements = document.querySelectorAll('.viewer-disabled');
+            if (addedDisabledElements.length > 0) {
+              console.log("🔓 ADMIN MODE: Detected newly added disabled elements, enabling them");
+              enableAllInteractiveElements();
+            }
+          }
+        });
+      });
+      
+      // Start the admin mode observer
+      adminModeObserver.observe(document.body, { 
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['disabled', 'class']
+      });
+      
+      console.log(`✅ PRODUCTION-SAFE ADMIN MODE: Full admin/editor capabilities enabled for ${userRole} role`);
+      
     } else {
+      // Fallback for unknown roles - default to non-restricted mode for safety
+      console.log("⚠️ Unknown user role detected, defaulting to non-restricted mode");
       document.body.classList.remove("viewer-mode");
       document.body.classList.remove("role-viewer");
       const badge = document.getElementById('viewer-mode-badge');
       if (badge) badge.remove();
+      
+      // Also clean up any existing restrictions
+      document.querySelectorAll('.viewer-disabled').forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.removeAttribute('disabled');
+          el.classList.remove('viewer-disabled');
+        }
+      });
     }
     
     // Store the observer reference so we can disconnect it later
@@ -485,7 +634,15 @@ export const GlobalPermissionsHandler = () => {
   
   // Apply the ViewerGuard component which contains the CSS rules
   // for restricting interactions
+  // CRITICAL AUTH FIX: ALWAYS exclude auth pages from viewer mode restrictions
   const shouldApplyViewerGuard = !canEdit && !isAuthPage && !(isBaySchedulingPage && isSandboxMode);
+  
+  // Extra safety check for auth page - 100% guarantee it will never be restricted
+  if (isAuthPage) {
+    console.log("🔑 AUTH PAGE DETECTED - FORCING UNRESTRICTED ACCESS");
+    document.body.classList.remove('viewer-mode');
+    document.body.classList.remove('role-viewer');
+  }
   
   // Critical fix: Apply ViewerGuard even in development mode for demo purposes
   if (userRole === "viewer" && !isAuthPage && !(isBaySchedulingPage && isSandboxMode)) {

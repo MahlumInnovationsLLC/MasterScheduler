@@ -3,9 +3,56 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <!-- CRITICAL AUTH PAGE FIX: Load before React to ensure auth page always works -->
+    <script>
+      // Direct fix for auth page - runs before React loads
+      (function() {
+        // Listen for page load and navigation
+        function fixAuthPage() {
+          if (window.location.pathname === '/auth' || window.location.pathname.startsWith('/auth/')) {
+            console.log("*** AUTH PAGE DETECTED - REMOVING ALL RESTRICTIONS ***");
+
+            // Create style to force ALL elements to be interactive
+            let styleEl = document.getElementById('auth-direct-fix');
+            if (!styleEl) {
+              styleEl = document.createElement('style');
+              styleEl.id = 'auth-direct-fix';
+              styleEl.textContent = `
+                body * {
+                  pointer-events: auto !important;
+                  opacity: 1 !important;
+                  filter: none !important;
+                }
+                input, button, a {
+                  pointer-events: auto !important;
+                  opacity: 1 !important;
+                  cursor: pointer !important;
+                }
+              `;
+              document.head.appendChild(styleEl);
+            }
+            
+            // Set direct attribute on body
+            document.body.setAttribute('data-page', 'auth');
+          }
+        }
+
+        // Run immediately and on navigation
+        document.addEventListener('DOMContentLoaded', fixAuthPage);
+        window.addEventListener('load', fixAuthPage);
+        window.addEventListener('popstate', fixAuthPage);
+        
+        // Set interval to continuously check
+        setInterval(fixAuthPage, 100);
+        
+        console.log("AUTH FIX SCRIPT LOADED - Will enable all interactions on auth page");
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <!-- AUTH PAGE FIX: Load our direct fix JS before React -->
+    <script src="/src/auth-page-fix.js"></script>
     <script type="module" src="/src/main.tsx"></script>
     <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
     <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
