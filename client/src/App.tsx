@@ -12,6 +12,8 @@ import DetectDevUser from "@/components/DetectDevUser";
 import AuthPageUnrestrictor from "@/components/AuthPageUnrestrictor";
 import AuthFix from "@/pages/AuthFix";
 import EmergencyAuthPageFix from "@/components/EmergencyAuthPageFix";
+import AuthPageOverride from "@/pages/auth-page-override";
+import AuthFixInjection from "@/auth-fix-injection";
 import Dashboard from "@/pages/Dashboard";
 import ProjectStatus from "@/pages/ProjectStatus";
 import BillingMilestones from "@/pages/BillingMilestones";
@@ -140,6 +142,8 @@ function App() {
               <Toaster />
               <GlobalPermissionsHandler />
               {/* HIGHEST PRIORITY FIXES: Auth page must be interactive regardless of settings */}
+              <AuthFixInjection />
+              <AuthPageOverride />
               <EmergencyAuthPageFix />
               <AuthFix />
               <AuthPageUnrestrictor />
