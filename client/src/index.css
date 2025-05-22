@@ -59,6 +59,56 @@ body.viewer-mode [role="grid"] {
 }
 
 /* CRITICAL: Auth page is ALWAYS fully interactive - never in viewer mode */
+.auth-routes,
+.auth-routes *,
+.auth-page,
+.auth-page *,
+body.auth-page,
+body.auth-page *,
+div.auth-routes,
+div.auth-routes *,
+div.no-restrictions,
+div.no-restrictions *,
+[class*="auth-"],
+.full-access,
+.full-access * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: auto !important;
+  user-select: auto !important;
+  filter: none !important;
+  touch-action: auto !important;
+}
+
+/* Make clickable elements have the right cursor */
+.auth-routes button,
+.auth-routes a,
+.auth-routes [role="button"],
+.auth-page button,
+.auth-page a,
+.auth-page [role="button"],
+body.auth-page button,
+body.auth-page a,
+body.auth-page [role="button"],
+.full-access button,
+.full-access a,
+.full-access [role="button"] {
+  cursor: pointer !important;
+}
+
+/* Override ANY viewer mode restrictions for auth page */
+body.viewer-mode.auth-page,
+body.viewer-mode.auth-page *,
+body.role-viewer.auth-page,
+body.role-viewer.auth-page * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  filter: none !important;
+  user-select: auto !important;
+  touch-action: auto !important;
+}
+
+/* Direct override for inputs and buttons */
 body.auth-page button,
 body.auth-page input,
 body.auth-page select,

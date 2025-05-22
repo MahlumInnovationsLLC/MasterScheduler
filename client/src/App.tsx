@@ -9,6 +9,7 @@ import { LoadingProvider } from "@/components/LoadingManager";
 import { PermissionsProvider, GlobalPermissionsHandler } from "@/components/PermissionsManager";
 import ViewerModeSimulator from "@/components/ViewerModeSimulator";
 import DetectDevUser from "@/components/DetectDevUser";
+import AuthPageUnrestrictor from "@/components/AuthPageUnrestrictor";
 import Dashboard from "@/pages/Dashboard";
 import ProjectStatus from "@/pages/ProjectStatus";
 import BillingMilestones from "@/pages/BillingMilestones";
@@ -59,12 +60,18 @@ function Router() {
   // If we're on the auth page or reset password page, render without the app layout
   // and without any permissions restrictions
   if (isAuthPage || isResetPasswordPage) {
+    // CRITICAL: Force body classes to be completely unrestricted for auth pages
+    document.body.classList.remove('viewer-mode');
+    document.body.classList.remove('role-viewer');
+    document.body.classList.add('auth-page');
+    document.body.classList.add('full-access');
+    
     // Don't apply any permissions restrictions to authentication routes
     return (
-      <div className="auth-routes">
+      <div className="auth-routes no-restrictions">
         <Switch>
-          <UnrestrictedAuthRoute path="/auth" component={AuthPage} />
-          <UnrestrictedAuthRoute path="/reset-password" component={ResetPasswordPage} />
+          <Route path="/auth" component={AuthPage} />
+          <Route path="/reset-password" component={ResetPasswordPage} />
         </Switch>
       </div>
     );
@@ -130,6 +137,8 @@ function App() {
             <PermissionsProvider>
               <Toaster />
               <GlobalPermissionsHandler />
+              {/* CRITICAL: Auth page unrestrictor to ensure login/register always works */}
+              <AuthPageUnrestrictor />
               {/* Add Viewer Mode simulator for testing */}
               <ViewerModeSimulator />
               {/* Detect DEV-USER environment and disable view-only restrictions */}
