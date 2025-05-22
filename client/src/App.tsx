@@ -131,6 +131,8 @@ function App() {
               <GlobalPermissionsHandler />
               {/* Add Viewer Mode simulator for testing */}
               <ViewerModeSimulator />
+              {/* Detect DEV-USER environment and disable view-only restrictions */}
+              <DetectDevUser />
               <Router />
               
               {/* Custom styles for viewer mode exceptions */}

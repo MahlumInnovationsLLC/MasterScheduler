@@ -7,6 +7,32 @@
   z-index: 9999 !important;
 }
 
+/* Special handling for dev-user environment: disable view-only mode completely */
+body.dev-user-env button,
+body.dev-user-env input,
+body.dev-user-env select,
+body.dev-user-env textarea,
+body.dev-user-env a[href],
+body.dev-user-env [role="button"],
+body.dev-user-env [role="switch"],
+body.dev-user-env [role="checkbox"],
+body.dev-user-env [role="radio"],
+body.dev-user-env [role="menuitem"],
+body.dev-user-env [role="tab"],
+body.dev-user-env [type="checkbox"],
+body.dev-user-env [type="radio"],
+body.dev-user-env [type="button"],
+body.dev-user-env [type="submit"],
+body.dev-user-env [type="reset"],
+body.dev-user-env .dropdown-toggle,
+body.dev-user-env .clickable,
+body.dev-user-env .editable-field {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  user-select: auto !important;
+}
+
 /* Ensure dropdowns and menus are interactive in viewer mode */
 body.viewer-mode [data-radix-popper-content-wrapper],
 body.viewer-mode .dropdown-menu-content,
