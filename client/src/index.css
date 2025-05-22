@@ -83,31 +83,60 @@ body.auth-page form * {
   user-select: auto !important;
 }
 
-/* The only change is to ensure auth page elements are fully interactive */
-
-/* All AUTH page elements are ALWAYS fully interactive */
-body[id="auth-page"] button,
-body[id="auth-page"] input,
-body[id="auth-page"] select,
-body[id="auth-page"] textarea,
-body[id="auth-page"] a[href],
-body[id="auth-page"] [role="button"],
-body[id="auth-page"] [role="switch"],
-body[id="auth-page"] [role="checkbox"],
-body[id="auth-page"] [role="radio"],
-body[id="auth-page"] [role="menuitem"],
-body[id="auth-page"] [role="tab"],
-body[id="auth-page"] [type="checkbox"],
-body[id="auth-page"] [type="radio"],
-body[id="auth-page"] [type="button"],
-body[id="auth-page"] [type="submit"],
-body[id="auth-page"] [type="reset"],
-body[id="auth-page"] form,
-body[id="auth-page"] * {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  cursor: pointer !important;
-  user-select: auto !important;
+/* Viewer Mode Restrictions - Applied globally when body has viewer-mode class */
+/* Strict view-only mode - disable ALL interactive elements by default */
+body.viewer-mode button:not(.viewer-interactive),
+body.viewer-mode input:not(.viewer-interactive),
+body.viewer-mode select:not(.viewer-interactive),
+body.viewer-mode textarea:not(.viewer-interactive),
+body.viewer-mode a[href]:not(.sidebar-item):not(.sidebar a):not(.viewer-interactive),
+body.viewer-mode [role="button"]:not(.viewer-interactive),
+body.viewer-mode [role="switch"]:not(.viewer-interactive),
+body.viewer-mode [role="checkbox"]:not(.viewer-interactive),
+body.viewer-mode [role="radio"]:not(.viewer-interactive),
+body.viewer-mode [role="menuitem"]:not(.viewer-interactive),
+body.viewer-mode [role="tab"]:not(.viewer-interactive),
+body.viewer-mode [type="checkbox"]:not(.viewer-interactive),
+body.viewer-mode [type="radio"]:not(.viewer-interactive),
+body.viewer-mode [type="button"]:not(.viewer-interactive),
+body.viewer-mode [type="submit"]:not(.viewer-interactive),
+body.viewer-mode [type="reset"]:not(.viewer-interactive),
+body.viewer-mode .dropdown-toggle:not(.viewer-interactive),
+body.viewer-mode .clickable:not(.viewer-interactive),
+body.viewer-mode .editable-field:not(.viewer-interactive),
+body.viewer-mode .edit-controls:not(.viewer-interactive),
+body.viewer-mode .action-button:not(.viewer-interactive),
+body.viewer-mode [contenteditable="true"]:not(.viewer-interactive),
+body.role-viewer button:not(.sidebar-item):not(.sidebar-button):not(.viewer-interactive),
+body.role-viewer input:not(.auth-input):not(.viewer-interactive),
+body.role-viewer select:not(.auth-select):not(.viewer-interactive),
+body.role-viewer textarea:not(.viewer-interactive),
+body.role-viewer a[href]:not(.sidebar-item):not(.sidebar a):not(.viewer-interactive),
+body.role-viewer [role="button"]:not(.sidebar-item),
+body.role-viewer [role="switch"],
+body.role-viewer [role="checkbox"],
+body.role-viewer [role="radio"],
+body.role-viewer [role="menuitem"],
+body.role-viewer [role="tab"],
+body.role-viewer [type="checkbox"],
+body.role-viewer [type="radio"],
+body.role-viewer [type="button"]:not(.sidebar-button),
+body.role-viewer [type="submit"],
+body.role-viewer [type="reset"],
+body.role-viewer .dropdown-toggle,
+body.role-viewer .clickable:not(.sidebar-item),
+body.role-viewer .editable-field,
+body.role-viewer .edit-controls,
+body.role-viewer .action-button:not(.sidebar-button),
+body.role-viewer [contenteditable="true"],
+/* Double ensure with attribute selectors */
+body[class*="viewer-mode"] button:not([class*="sidebar"]),
+body[class*="role-viewer"] button:not([class*="sidebar"]) {
+  pointer-events: none !important;
+  opacity: 0.7 !important;
+  cursor: not-allowed !important;
+  user-select: none !important;
+  filter: grayscale(20%) !important;
 }
 
 /* ONLY keep sidebar navigation clickable in viewer mode */
