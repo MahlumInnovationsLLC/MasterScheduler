@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -106,8 +106,50 @@ export default function AuthPage() {
     }
   };
   
+  // Add useEffect to ensure auth page is never restricted
+  useEffect(() => {
+    // Set an ID on the auth page for targeting with CSS
+    document.body.setAttribute('id', 'auth-page');
+    
+    // Remove any viewer mode related classes
+    document.body.classList.remove('viewer-mode');
+    document.body.classList.remove('role-viewer');
+    
+    // Add a class to specifically allow all interactions
+    document.body.classList.add('auth-page');
+    
+    // Make all inputs and buttons fully interactive
+    const makeElementsInteractive = () => {
+      document.querySelectorAll('input, button, select, a, [role="button"]').forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.classList.add('auth-element');
+          el.style.pointerEvents = 'auto';
+          el.style.opacity = '1';
+          el.style.cursor = 'pointer';
+          
+          // Remove any disabled attributes
+          el.removeAttribute('disabled');
+        }
+      });
+    };
+    
+    // Run immediately
+    makeElementsInteractive();
+    
+    // Also set up a MutationObserver to handle dynamically added elements
+    const observer = new MutationObserver(makeElementsInteractive);
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    // Clean up when component unmounts
+    return () => {
+      document.body.removeAttribute('id');
+      document.body.classList.remove('auth-page');
+      observer.disconnect();
+    };
+  }, []);
+
   return (
-    <div className="flex min-h-screen bg-muted">
+    <div id="auth-page" className="flex min-h-screen bg-muted auth-form">
       <div className="flex flex-col justify-center flex-1 px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
         <div className="w-full max-w-sm mx-auto lg:w-96">
           <div className="mb-8">
