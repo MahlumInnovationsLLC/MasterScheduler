@@ -83,12 +83,7 @@ body.auth-page form * {
   user-select: auto !important;
 }
 
-/* NEW APPROACH: Instead of disabling everything in viewer mode
-   we'll hide specific edit buttons/controls with the .editor-only class 
-   This ensures forms and interactive elements always work properly */
-.role-viewer .editor-only {
-  display: none !important;
-}
+/* The only change is to ensure auth page elements are fully interactive */
 
 /* All AUTH page elements are ALWAYS fully interactive */
 body[id="auth-page"] button,
