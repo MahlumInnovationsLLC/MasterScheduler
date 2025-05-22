@@ -937,7 +937,7 @@ const ProjectStatus = () => {
           <div className={`flex items-center ${isPastDue ? 'bg-red-900/30 rounded' : ''}`}>
             <div className="ml-2 p-1">
               <div className={`text-sm font-medium ${isPastDue ? 'text-red-500' : 'text-white'} whitespace-normal`}>
-                <Link to={`/projects/${project.id}`} className={`${isPastDue ? 'text-red-500 font-bold' : 'text-primary'} hover:underline`}>
+                <Link to={`/project/${project.id}`} className={`${isPastDue ? 'text-red-500 font-bold' : 'text-primary'} hover:underline`}>
                   {value}
                 </Link>
               </div>
@@ -1259,12 +1259,16 @@ const ProjectStatus = () => {
       header: 'Actions',
       cell: ({ row }: { row: ProjectRow }) => (
         <div className="text-right space-x-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/project/${row.original.id}`)}>
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/project/${row.original.id}/edit`)}>
-            <Edit className="h-4 w-4" />
-          </Button>
+          <Link to={`/project/${row.original.id}`}>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Eye className="h-4 w-4" />
+            </Button>
+          </Link>
+          <Link to={`/project/${row.original.id}/edit`}>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Edit className="h-4 w-4" />
+            </Button>
+          </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
