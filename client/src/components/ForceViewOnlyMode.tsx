@@ -22,8 +22,13 @@ export const ForceViewOnlyMode: React.FC = () => {
   const isAdmin = user?.role === 'admin' || 
                   user?.userType === 'admin' || 
                   user?.permissions?.admin === true ||
-                  // For development mode 
+                  // Special case for when the mock admin user is active
+                  (window as any).__MOCK_ADMIN_USER === true ||
+                  // For development mode - ALWAYS TRUE in dev environment
                   (process.env.NODE_ENV === 'development' || import.meta.env.DEV);
+                  
+  // Debug output to help troubleshoot admin detection
+  console.log(`🔑 Role Detection: User has role "${user?.role}" with permissions: admin=${!!user?.permissions?.admin}, edit=${!!user?.permissions?.edit}`);
   
   // Enable view-only mode for non-auth pages IF NOT ADMIN
   useEffect(() => {

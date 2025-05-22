@@ -1670,6 +1670,32 @@ export default function ResizableBaySchedule({
         } else {
           // When financial impact analysis is disabled, directly apply the changes
           try {
+            // Store drop position in DOM attributes for recovery if needed
+            document.body.setAttribute('data-forced-row-index', rowIndex.toString());
+            document.body.setAttribute('data-final-exact-row', rowIndex.toString());
+            document.body.setAttribute('data-current-drag-row', rowIndex.toString());
+            
+            // Also store in localStorage as backup
+            localStorage.setItem('lastDropRowIndex', rowIndex.toString());
+            localStorage.setItem('forcedRowIndex', rowIndex.toString());
+            localStorage.setItem('absoluteRowPosition', rowIndex.toString());
+            
+            // Create optimistic update immediately in UI
+            const optimisticUpdate = scheduleBars.map(sb => 
+              sb.id === scheduleId 
+                ? {
+                    ...sb,
+                    bayId: bayId,
+                    startDate: date,
+                    endDate: newEndDate,
+                    row: rowIndex
+                  } 
+                : sb
+            );
+            
+            // Apply update to local state to prevent flickering
+            setScheduleBars(optimisticUpdate);
+            
             // Update the schedule without showing financial impact
             await onScheduleChange(
               scheduleId,
