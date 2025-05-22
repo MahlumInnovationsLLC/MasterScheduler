@@ -1725,103 +1725,13 @@ const ProjectStatus = () => {
         />
         
         {/* Custom Filter Buttons - Will be moved to the results header using portal/DOM manipulation */}
-        <div className="absolute top-0 left-0 opacity-0 pointer-events-none">
+        {/* Filter buttons source div - HIDDEN 
+            These buttons are not displayed at the top of the results window
+            They are still available in the UI in other places as needed
+        */}
+        <div className="absolute top-0 left-0 opacity-0 pointer-events-none hidden">
           <div id="custom-filter-buttons-source" className="flex items-center gap-2">
-            {/* Location Filter */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant={locationFilter ? "default" : "outline"} 
-                  size="sm"
-                  className="flex items-center gap-1"
-                >
-                  <Building2 className="h-4 w-4" />
-                  {locationFilter ? `Location: ${locationFilter}` : "Filter by Location"}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setLocationFilter('')}>
-                  All Locations
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {projects && 
-                  [...new Set(projects
-                    .map(p => p.location)
-                    .filter(Boolean)
-                  )]
-                  .sort()
-                  .map(location => (
-                    <DropdownMenuItem 
-                      key={location} 
-                      onClick={() => setLocationFilter(location || '')}
-                      data-location-filter={location || ''}
-                    >
-                      {location}
-                    </DropdownMenuItem>
-                  ))
-                }
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            {/* Date Filter Dialog */}
-            <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="flex items-center gap-1">
-                  <Filter className="h-4 w-4" />
-                  Date Filter
-                </Button>
-              </DialogTrigger>
-            </Dialog>
-            
-            {/* Show/Hide Columns */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="flex items-center gap-1">
-                  <Eye className="h-4 w-4" />
-                  Columns
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                <DropdownMenuItem onClick={() => toggleAllColumns(true)}>
-                  Show All
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toggleAllColumns(false)}>
-                  Hide All
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {Object.keys(visibleColumns).map(column => (
-                  <DropdownMenuCheckboxItem
-                    key={column}
-                    checked={visibleColumns[column]}
-                    onCheckedChange={() => toggleColumnVisibility(column)}
-                  >
-                    {formatColumnName(column)}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            {/* Show Archived Projects Toggle */}
-            <Button 
-              variant={showArchived ? "default" : "outline"}
-              size="sm" 
-              className="flex items-center gap-1"
-              onClick={() => setShowArchived(!showArchived)}
-            >
-              <Archive className="h-4 w-4" />
-              {showArchived ? "Hide Archived" : "Show Archived"}
-            </Button>
-            
-            {/* Sort Button (Only enabled when location filtered) */}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex items-center gap-1"
-              disabled={locationFilter === ''}
-            >
-              <SortDesc className="h-4 w-4" />
-              Sort
-            </Button>
+            {/* Keeping the buttons in the DOM but hiding them completely */}
           </div>
         </div>
       </div>
