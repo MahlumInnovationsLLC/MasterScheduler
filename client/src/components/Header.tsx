@@ -69,48 +69,48 @@ const Header = () => {
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <div className="flex items-center gap-2 ml-3 cursor-pointer viewer-interactive">
+                  <div className="flex items-center gap-2 ml-3 cursor-pointer">
                     {typedUser?.profileImageUrl ? (
                       <img 
                         src={typedUser.profileImageUrl} 
                         alt={typedUser.username || "User"} 
-                        className="w-9 h-9 rounded-full object-cover viewer-interactive"
+                        className="w-9 h-9 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-r from-primary to-accent flex items-center justify-center viewer-interactive">
-                        <span className="text-white font-medium viewer-interactive">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-r from-primary to-accent flex items-center justify-center">
+                        <span className="text-white font-medium">
                           {getInitials(typedUser?.username)}
                         </span>
                       </div>
                     )}
-                    <div className="text-sm viewer-interactive">
-                      <div className="font-medium text-foreground viewer-interactive">{typedUser?.username || 'User'}</div>
-                      <div className="text-xs text-muted-foreground viewer-interactive">{typedUser?.role || 'User'}</div>
+                    <div className="text-sm">
+                      <div className="font-medium text-foreground">{typedUser?.username || 'User'}</div>
+                      <div className="text-xs text-muted-foreground">{typedUser?.role || 'User'}</div>
                     </div>
                   </div>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="viewer-interactive">
-                  <DropdownMenuLabel className="viewer-interactive">My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator className="viewer-interactive" />
-                  <Link href="/settings/user" className="viewer-interactive">
-                    <DropdownMenuItem className="cursor-pointer viewer-interactive">
-                      <User className="mr-2 h-4 w-4 viewer-interactive" />
-                      <span className="viewer-interactive">User Preferences</span>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <Link href="/settings/user">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>User Preferences</span>
                     </DropdownMenuItem>
                   </Link>
-                  <Link href="/settings/system" className="viewer-interactive">
-                    <DropdownMenuItem className="cursor-pointer viewer-interactive">
-                      <Settings className="mr-2 h-4 w-4 viewer-interactive" />
-                      <span className="viewer-interactive">System Settings</span>
+                  <Link href="/settings/system">
+                    <DropdownMenuItem className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>System Settings</span>
                     </DropdownMenuItem>
                   </Link>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
-                    className="cursor-pointer viewer-interactive"
+                    className="cursor-pointer"
                     onClick={() => window.location.href = '/api/auth/logout'}
                   >
-                    <LogOut className="mr-2 h-4 w-4 viewer-interactive" />
-                    <span className="viewer-interactive">Log out</span>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

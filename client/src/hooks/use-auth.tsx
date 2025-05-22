@@ -91,22 +91,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isDevelopment && !isAuthPage) {
         const searchParams = new URLSearchParams(window.location.search);
         const roleOverride = searchParams.get('role');
-        const viewerMode = searchParams.get('viewerMode') === 'true';
         
-        // Check for ViewerModeSimulator toggle or explicit role parameter
-        if (roleOverride === 'viewer' || viewerMode) {
+        if (roleOverride === 'viewer') {
           console.log("🔧 Development mode: Using mock VIEWER user for testing");
           return {
             ...DEV_MOCK_USER,
             role: 'viewer' // Override role for testing viewer permissions
           };
         } else {
-          // Force admin role to ensure proper permissions in development
-          console.log("🔧 Development mode: Using mock ADMIN user with FULL permissions");
-          return {
-            ...DEV_MOCK_USER,
-            role: 'admin' // Explicitly set role to admin
-          };
+          console.log("🔧 Development mode: Using mock admin user (not on auth page)");
+          return DEV_MOCK_USER;
         }
       }
       

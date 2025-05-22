@@ -8,12 +8,6 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { LoadingProvider } from "@/components/LoadingManager";
 import { PermissionsProvider, GlobalPermissionsHandler } from "@/components/PermissionsManager";
 import ViewerModeSimulator from "@/components/ViewerModeSimulator";
-import DetectDevUser from "@/components/DetectDevUser";
-import AuthPageUnrestrictor from "@/components/AuthPageUnrestrictor";
-import AuthFix from "@/pages/AuthFix";
-import EmergencyAuthPageFix from "@/components/EmergencyAuthPageFix";
-import AuthPageOverride from "@/pages/auth-page-override";
-import AuthFixInjection from "@/auth-fix-injection";
 import Dashboard from "@/pages/Dashboard";
 import ProjectStatus from "@/pages/ProjectStatus";
 import BillingMilestones from "@/pages/BillingMilestones";
@@ -35,8 +29,6 @@ import SalesForecast from "@/pages/SalesForecast";
 import SalesDealEdit from "@/pages/SalesDealEdit";
 import SupplyChain from "@/pages/SupplyChain";
 import AuthPage from "@/pages/auth-page";
-import GuaranteedAuthPage from "@/pages/guaranteed-auth-page";
-import SimpleLogin from "@/pages/simple-login";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import NotFound from "@/pages/not-found";
 import Header from "@/components/Header";
@@ -45,7 +37,6 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AdminRoute } from "@/lib/admin-route";
 import { ViewerRestrictedRoute } from "@/lib/viewer-restricted-route";
-import { UnrestrictedAuthRoute } from "@/lib/unrestricted-auth-route";
 // Import SidebarContext and SidebarProvider for managing sidebar state
 import { SidebarProvider, SidebarContext } from "@/context/SidebarContext";
 import { useContext } from "react";
@@ -66,23 +57,10 @@ function Router() {
   // If we're on the auth page or reset password page, render without the app layout
   // and without any permissions restrictions
   if (isAuthPage || isResetPasswordPage) {
-    // CRITICAL: Force body classes to be completely unrestricted for auth pages
-    document.body.classList.remove('viewer-mode');
-    document.body.classList.remove('role-viewer');
-    document.body.classList.add('auth-page');
-    document.body.classList.add('full-access');
-    
     // Don't apply any permissions restrictions to authentication routes
     return (
-      <div className="auth-routes no-restrictions">
+      <div className="auth-routes">
         <Switch>
-          {/* New simple login that works regardless of restrictions */}
-          <Route path="/simple-login" component={SimpleLogin} />
-          
-          {/* Our guaranteed auth page */}
-          <Route path="/login" component={GuaranteedAuthPage} />
-          
-          {/* Original auth routes */}
           <Route path="/auth" component={AuthPage} />
           <Route path="/reset-password" component={ResetPasswordPage} />
         </Switch>
@@ -132,7 +110,7 @@ function MainContent() {
             <AdminRoute path="/system-settings" component={SystemSettings} />
             <AdminRoute path="/settings" component={SystemSettings} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
-            <UnrestrictedAuthRoute path="/auth" component={AuthPage} />
+            <Route path="/auth" component={AuthPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
@@ -150,16 +128,8 @@ function App() {
             <PermissionsProvider>
               <Toaster />
               <GlobalPermissionsHandler />
-              {/* HIGHEST PRIORITY FIXES: Auth page must be interactive regardless of settings */}
-              <AuthFixInjection />
-              <AuthPageOverride />
-              <EmergencyAuthPageFix />
-              <AuthFix />
-              <AuthPageUnrestrictor />
               {/* Add Viewer Mode simulator for testing */}
               <ViewerModeSimulator />
-              {/* Detect DEV-USER environment and disable view-only restrictions */}
-              <DetectDevUser />
               <Router />
               
               {/* Custom styles for viewer mode exceptions */}
