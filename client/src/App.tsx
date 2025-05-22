@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LoadingProvider } from "@/components/LoadingManager";
-import { PermissionsProvider, GlobalPermissionsHandler, usePermissions } from "@/components/PermissionsManager";
+import { PermissionsProvider, GlobalPermissionsHandler } from "@/components/PermissionsManager";
 import ViewerModeSimulator from "@/components/ViewerModeSimulator";
 import DetectDevUser from "@/components/DetectDevUser";
 import Dashboard from "@/pages/Dashboard";
@@ -69,17 +69,8 @@ function Router() {
     );
   }
   
-  // Get permissions context for the banner
-  const { userRole, canEdit } = usePermissions();
-  
   return (
     <SidebarProvider>
-      {/* Add a Viewer Mode banner that appears only for viewer users */}
-      {userRole === 'viewer' && !canEdit && (
-        <div className="fixed top-0 left-0 right-0 bg-amber-600 text-white py-1 px-4 text-sm z-50 text-center font-medium">
-          View Only Mode - You have limited permissions. Contact an administrator for more access.
-        </div>
-      )}
       <MainContent />
     </SidebarProvider>
   );
@@ -147,39 +138,13 @@ function App() {
               {/* Custom styles for viewer mode exceptions */}
               <style dangerouslySetInnerHTML={{
                 __html: `
-                  /* AUTH SPECIFIC CRITICAL RULES - All auth page elements must be clickable */
-                  body.viewer-mode .auth-routes *,
-                  body.viewer-mode *[class*="login"],
-                  body.viewer-mode *[class*="Login"],
-                  body.viewer-mode *[class*="register"],
-                  body.viewer-mode *[class*="Register"],
-                  body.viewer-mode *[class*="auth"],
-                  body.viewer-mode *[class*="Auth"],
-                  body.viewer-mode form input,
-                  body.viewer-mode form button,
-                  body.viewer-mode form a,
-                  body.viewer-mode [role="tablist"],
-                  body.viewer-mode [role="tab"],
-                  body.viewer-mode [tabindex="0"],
-                  body.viewer-mode .login-btn,
-                  body.viewer-mode button[type="submit"],
-                  body.viewer-mode button[variant="link"],
-                  body.viewer-mode a[href*="reset-password"],
-                  body.viewer-mode a:not(.sidebar-link) {
+                  /* Auth elements need to be clickable even in viewer mode */
+                  body.viewer-mode .auth-form input,
+                  body.viewer-mode .auth-form button,
+                  body.viewer-mode .auth-form select {
                     pointer-events: auto !important;
                     opacity: 1 !important;
                     cursor: pointer !important;
-                    user-select: auto !important;
-                    visibility: visible !important;
-                  }
-                  
-                  /* Enhance focus styles for all interactive elements on auth pages */
-                  body.viewer-mode form input:focus,
-                  body.viewer-mode input:focus {
-                    outline: 2px solid #2563eb !important;
-                    outline-offset: 0 !important;
-                    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5) !important;
-                    z-index: 99 !important;
                   }
                   
                   /* Bay Scheduling sandbox mode elements need to be clickable in viewer mode */

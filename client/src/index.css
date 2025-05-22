@@ -2,77 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CRITICAL AUTH PAGE FIXES - Special overrides to fully unblock auth page */
-/* Complete override for the entire auth page */
-.auth-page *,
-[class*="auth"] *,
-form *,
-.TabsList *,
-.TabsTrigger *,
-.TabsContent *,
-button,
-input,
-a[href],
-[role="tab"],
-[role="tablist"],
-[role="tabpanel"],
-[type="submit"],
-[type="button"],
-[id="email"],
-[id="password"],
-[id="register-email"],
-[id="register-password"],
-[id="firstName"],
-[id="lastName"],
-.viewer-interactive,
-.auth-interactive {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  cursor: pointer !important;
-  user-select: auto !important;
-  visibility: visible !important;
-  z-index: 9999 !important;
-}
-
-/* Completely unblock the auth page path */
-body.auth-page,
-body.auth-page * {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-}
-
-/* Ensure special focus handling for auth page inputs */
-.auth-page input:focus,
-[class*="auth"] input:focus,
-[id="email"]:focus,
-[id="password"]:focus,
-[id="register-email"]:focus,
-[id="register-password"]:focus,
-[id="firstName"]:focus,
-[id="lastName"]:focus {
-  outline: 2px solid #2563eb !important;
-  outline-offset: 0 !important;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5) !important;
-  z-index: 9999 !important;
-}
-
-/* Force enable all auth page elements */
-.auth-page [role="tablist"],
-.auth-page [role="tab"],
-.auth-page .TabsList,
-.auth-page .TabsTrigger,
-.auth-page button,
-.auth-page a,
-.auth-page input,
-.auth-page form {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  cursor: pointer !important;
-  user-select: auto !important;
-  visibility: visible !important;
-  z-index: 9999 !important;
-}
-
 /* Fix for dropdown menus appearing behind dialogs */
 [data-radix-popper-content-wrapper] {
   z-index: 9999 !important;
@@ -129,8 +58,7 @@ body.viewer-mode [role="grid"] {
   overflow: auto !important;
 }
 
-/* CRITICAL: Auth page is ALWAYS fully interactive - never in viewer mode 
-   These rules have the highest priority in the stylesheet to override everything */
+/* CRITICAL: Auth page is ALWAYS fully interactive - never in viewer mode */
 body.auth-page button,
 body.auth-page input,
 body.auth-page select,
@@ -148,26 +76,11 @@ body.auth-page [type="button"],
 body.auth-page [type="submit"],
 body.auth-page [type="reset"],
 body.auth-page form,
-body.auth-page form *,
-.auth-page .login-form,
-.auth-page .login-form *,
-body.auth-page-force-interactive *,
-[class*="login"] input,
-[class*="login"] button,
-form input,
-form button,
-.login-btn,
-#email,
-#password,
-input[type="email"],
-input[type="password"] {
+body.auth-page form * {
   pointer-events: auto !important;
   opacity: 1 !important;
   cursor: pointer !important;
   user-select: auto !important;
-  -webkit-user-select: auto !important;
-  display: block !important;
-  visibility: visible !important;
 }
 
 /* Viewer Mode Restrictions - Applied globally when body has viewer-mode class */

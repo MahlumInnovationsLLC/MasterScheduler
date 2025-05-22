@@ -315,9 +315,7 @@ export const GlobalPermissionsHandler = () => {
   const { userRole, canEdit } = usePermissions();
   
   // Check if we're on the auth page - never restrict the auth page
-  const isAuthPage = window.location.pathname === "/auth" || 
-                    window.location.pathname.includes("/auth/") ||
-                    window.location.pathname.startsWith("/api/auth");
+  const isAuthPage = window.location.pathname === "/auth";
   
   // Check if we're on the Bay Scheduling page where sandbox mode may be enabled
   const isBaySchedulingPage = window.location.pathname === "/bay-scheduling";
