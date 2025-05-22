@@ -2741,6 +2741,42 @@ export default function ResizableBaySchedule({
                 style={{
                   minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
                 }}>
+                {/* Week header row for each team - exact match of the top header */}
+                <div 
+                  className="h-10 border-b border-gray-700 grid" 
+                  style={{ 
+                    gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
+                    width: "100%"
+                  }}
+                >
+                  {slots.map((slot, index) => (
+                    <div 
+                      key={`team-${team[0]?.id}-header-${index}`} 
+                      className={`
+                        border-r border-gray-700 flex flex-col justify-end pb-1
+                        ${slot.isStartOfMonth ? 'bg-gray-800 border-r-2 border-r-blue-500' : ''}
+                        ${slot.isStartOfWeek ? 'bg-gray-850 border-r border-r-gray-600' : ''}
+                        ${!slot.isBusinessDay ? 'bg-gray-850/70' : ''}
+                      `}
+                    >
+                      <div className="text-xs text-center w-full flex flex-col justify-center h-full">
+                        {slot.isStartOfMonth && (
+                          <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
+                            {slot.monthName} {format(slot.date, 'yyyy')}
+                          </div>
+                        )}
+                        {/* Always show week numbers - one cell = one week */}
+                        <div className="text-gray-400 mt-1 text-[10px] font-semibold">
+                          Week {Math.ceil(differenceInDays(slot.date, new Date(slot.date.getFullYear(), 0, 1)) / 7)}
+                        </div>
+                        <div className="text-gray-400 text-[10px]">
+                          {format(slot.date, 'MM/dd')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
                 <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex shadow-md" style={{ position: 'relative' }}>
                   <div 
                     className="flex items-center"
