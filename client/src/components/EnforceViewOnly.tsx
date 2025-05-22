@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 
 /**
@@ -7,9 +7,12 @@ import { useLocation } from 'wouter';
  * 
  * It overrides any detection logic and implements a simple "View Only" mode
  * that prevents interaction with editable elements.
+ * 
+ * IMPORTANT: Only applies restrictions to VIEWER role users, not admins.
  */
 export const EnforceViewOnly: React.FC = () => {
   const [location] = useLocation();
+  const [userRole, setUserRole] = useState<string | null>(null);
   
   // Check if current page is an auth page
   const isAuthPage = location === '/auth' || 
@@ -18,7 +21,60 @@ export const EnforceViewOnly: React.FC = () => {
                      location === '/reset-password' ||
                      location.startsWith('/reset-password?');
   
+  // Check user role - this function determines if the current user is a viewer
+  const checkUserRole = () => {
+    // For development testing, check for forced viewer mode
+    const params = new URLSearchParams(window.location.search);
+    const forceViewerRole = params.get('viewerRole') === 'true';
+    
+    if (forceViewerRole) {
+      setUserRole('viewer');
+      return 'viewer';
+    }
+    
+    // Try to get the user role from the permissions system
+    try {
+      // Look for role indicators in the DOM or localStorage
+      const storedRole = localStorage.getItem('userRole');
+      if (storedRole === 'admin' || storedRole === 'editor') {
+        setUserRole(storedRole);
+        return storedRole;
+      }
+      
+      // Check for admin indicators
+      const hasAdminIndicator = 
+        document.querySelector('.admin-badge') || 
+        document.querySelector('[data-role="admin"]') ||
+        document.body.classList.contains('role-admin');
+        
+      if (hasAdminIndicator) {
+        setUserRole('admin');
+        return 'admin';
+      }
+      
+      // If this is a development environment, default to viewer
+      const isDev = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
+      if (isDev) {
+        // In development, use viewer role for testing
+        setUserRole('viewer');
+        return 'viewer';
+      }
+      
+      // Default to viewer role if nothing else is found
+      setUserRole('viewer');
+      return 'viewer';
+    } catch (error) {
+      console.error('Error detecting user role:', error);
+      // Default to viewer role for safety
+      setUserRole('viewer');
+      return 'viewer';
+    }
+  };
+  
   useEffect(() => {
+    // Get user role
+    const role = checkUserRole();
+    
     // Exit early if on auth page - never restrict auth pages
     if (isAuthPage) {
       console.log('🔑 AUTH PAGE DETECTED - Removing all restrictions');
@@ -38,7 +94,22 @@ export const EnforceViewOnly: React.FC = () => {
       return;
     }
     
-    // For non-auth pages, enforce strict view-only mode
+    // Skip restriction for admin/editor roles
+    if (role === 'admin' || role === 'editor') {
+      console.log(`🔓 EDITING MODE ACTIVE: User has ${role} role with full permissions`);
+      
+      // Remove any view-only mode classes
+      document.body.classList.remove('viewer-mode');
+      document.body.classList.remove('role-viewer');
+      
+      // Remove any viewer badge
+      const viewerBadge = document.getElementById('view-only-badge');
+      if (viewerBadge) viewerBadge.remove();
+      
+      return;
+    }
+    
+    // For viewer role on non-auth pages, enforce strict view-only mode
     console.log('🔒 MAXIMUM DRAG-DROP OVERRIDE ACTIVE - Projects can now be placed anywhere without restrictions');
     console.log('⚠️ Applying view-only restrictions for Viewer role');
     console.log('🔒 VIEW ONLY MODE ACTIVE - User has Viewer role with restricted permissions');
