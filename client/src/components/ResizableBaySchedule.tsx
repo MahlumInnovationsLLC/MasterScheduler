@@ -2429,7 +2429,14 @@ export default function ResizableBaySchedule({
         {/* Unassigned Projects Sidebar - Collapsible with Drop Zone */}
         <div 
           className={`unassigned-projects-sidebar border-r border-gray-700 flex-shrink-0 bg-gray-900 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
-          style={{ transitionProperty: 'width, padding', height: 'calc(100vh - 64px)' }}
+          style={{ 
+            transitionProperty: 'width, padding', 
+            height: '100%', // Changed from fixed height to 100% to fill parent container
+            position: 'sticky', // Make it sticky so it stays in view while scrolling
+            top: '0',
+            left: '0',
+            zIndex: 30 // Ensure it stays above other elements
+          }}
         >
           <div className="flex items-center justify-between mb-4 flex-shrink-0">
             <h3 className={`font-bold text-white ${!sidebarOpen ? 'hidden' : 'block'}`}>Unassigned Projects</h3>
