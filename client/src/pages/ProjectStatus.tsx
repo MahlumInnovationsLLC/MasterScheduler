@@ -928,6 +928,51 @@ const ProjectStatus = () => {
         );
       }
     },
+    // Actions column with three dots dropdown menu between Location and Project
+    {
+      id: 'actions',
+      header: 'Actions',
+      size: 70,
+      cell: ({ row }: { row: ProjectRow }) => {
+        const project = row.original;
+        return (
+          <div className="text-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate(`/project/${project.id}`)}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Details
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`/project/${project.id}/edit`)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Project
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  navigate(`/project/${project.id}/task/new`);
+                }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Task
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  toast({
+                    title: "Archive functionality coming soon",
+                    description: "Project archiving will be available in a future update.",
+                  });
+                }}>
+                  <Archive className="h-4 w-4 mr-2" />
+                  Archive Project
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      }
+    },
     createColumn('projectNumber', 'projectNumber', 'Project', 
       (value, project) => {
         // Check if ship date is past due
@@ -952,6 +997,173 @@ const ProjectStatus = () => {
         );
       },
       { sortingFn: 'alphanumeric', size: 260 }),
+    // Move all date-related columns to left side of scrollable area
+    createColumn('fabricationStart', 'fabricationStart', 'Fabrication Start', 
+      (value, project) => <EditableDateField projectId={project.id} field="fabricationStart" value={value} />,
+      { size: 170 }),
+    createColumn('assemblyStart', 'assemblyStart', 'Assembly Start', 
+      (value, project) => <EditableDateField projectId={project.id} field="assemblyStart" value={value} />,
+      { size: 170 }),
+    createColumn('wrapDate', 'wrapDate', 'Wrap Date', 
+      (value, project) => <EditableDateField projectId={project.id} field="wrapDate" value={value} />,
+      { size: 170 }),
+    createColumn('ntcTestingDate', 'ntcTestingDate', 'NTC Testing', 
+      (value, project) => <EditableDateField projectId={project.id} field="ntcTestingDate" value={value} />,
+      { size: 170 }),
+    // NTC Testing Days column
+    {
+      id: 'ntcTestingDays',
+      header: 'NTC Testing Days',
+      cell: ({ row }: { row: ProjectRow }) => {
+        const project = row.original;
+        // Calculate weekdays between NTC Testing Date and QC Start Date
+        const ntcTestingDate = project.ntcTestingDate;
+        const qcStartDate = project.qcStartDate;
+        
+        // Calculate weekdays
+        const weekdays = calculateWeekdaysBetween(ntcTestingDate, qcStartDate);
+        
+        // If no calculation could be made
+        if (weekdays === null) return 'N/A';
+        
+        // Style based on weekday count
+        let style = '';
+        if (weekdays < 3) {
+          style = 'bg-red-200 text-red-800 px-2 py-1 rounded';
+        } else if (weekdays < 5) {
+          style = 'bg-yellow-200 text-yellow-800 px-2 py-1 rounded';
+        } else {
+          style = 'bg-green-200 text-green-800 px-2 py-1 rounded';
+        }
+        
+        return <div className={style}>{weekdays}</div>;
+      },
+      size: 100
+    },
+    createColumn('qcStartDate', 'qcStartDate', 'QC Start', 
+      (value, project) => <EditableDateField projectId={project.id} field="qcStartDate" value={value} />,
+      { size: 170 }),
+    // QC Days
+    {
+      id: 'qcDays',
+      header: 'QC Days',
+      cell: ({ row }: { row: ProjectRow }) => {
+        const project = row.original;
+        // Calculate weekdays between QC Start and Exec Review (or Ship Date if Exec Review isn't set)
+        const qcStartDate = project.qcStartDate;
+        const execReviewDate = project.executiveReviewDate;
+        const shipDate = project.shipDate;
+        
+        // Use Exec Review Date if available, otherwise fall back to Ship Date
+        const endDate = execReviewDate || shipDate;
+        
+        // Calculate weekdays
+        const weekdays = calculateWeekdaysBetween(qcStartDate, endDate);
+        
+        // If no calculation could be made
+        if (weekdays === null) return 'N/A';
+        
+        // Style based on weekday count
+        let style = '';
+        if (weekdays < 3) {
+          style = 'bg-red-200 text-red-800 px-2 py-1 rounded';
+        } else if (weekdays < 5) {
+          style = 'bg-yellow-200 text-yellow-800 px-2 py-1 rounded';
+        } else {
+          style = 'bg-green-200 text-green-800 px-2 py-1 rounded';
+        }
+        
+        return <div className={style}>{weekdays}</div>;
+      },
+      size: 100
+    },
+    createColumn('executiveReviewDate', 'executiveReviewDate', 'Exec Review', 
+      (value, project) => <EditableDateField projectId={project.id} field="executiveReviewDate" value={value} />,
+      { size: 170 }),
+    // Photos Taken column
+    {
+      id: 'photosTaken',
+      header: 'Photos Taken',
+      accessorKey: 'photosTaken',
+      size: 120,
+      cell: ({ row }: { row: ProjectRow }) => {
+        const project = row.original;
+        const [isChecked, setIsChecked] = useState(project.photosTaken === true);
+        
+        const handleToggle = async () => {
+          const newValue = !isChecked;
+          setIsChecked(newValue);
+          
+          try {
+            await apiRequest('PATCH', `/api/projects/${project.id}`, {
+              photosTaken: newValue
+            });
+            
+            // Update the cache
+            queryClient.setQueryData(['/api/projects'], (oldData: Project[] | undefined) => {
+              if (!oldData) return oldData;
+              return oldData.map(p => 
+                p.id === project.id ? { ...p, photosTaken: newValue } : p
+              );
+            });
+          } catch (error) {
+            console.error('Failed to update photos taken status:', error);
+            // Revert UI state on error
+            setIsChecked(!newValue);
+            toast({
+              title: 'Update Failed',
+              description: 'Could not update photos taken status.',
+              variant: 'destructive'
+            });
+          }
+        };
+        
+        return (
+          <CellHighlighter rowId={project.id} columnId="photosTaken">
+            <div className="flex items-center justify-center">
+              {isChecked ? (
+                <div 
+                  className="flex items-center cursor-pointer bg-green-100 text-green-800 px-2 py-1 rounded"
+                  onClick={handleToggle}
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  <span>COMPLETE</span>
+                </div>
+              ) : (
+                <div 
+                  className="flex items-center cursor-pointer bg-red-100 text-red-800 px-2 py-1 rounded"
+                  onClick={handleToggle}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  <span>NOT DONE</span>
+                </div>
+              )}
+            </div>
+          </CellHighlighter>
+        );
+      }
+    },
+    createColumn('shipDate', 'shipDate', 'Ship Date', 
+      (value, project) => {
+        // Check if ship date is past due
+        const isPastDue = value ? new Date(value) < new Date() : false;
+        
+        return (
+          <div className={isPastDue ? 'bg-red-900/30 rounded p-1' : ''}>
+            <EditableDateField 
+              projectId={project.id} 
+              field="shipDate" 
+              value={value} 
+              className={isPastDue ? 'text-red-500 font-semibold' : ''}
+            />
+          </div>
+        );
+      },
+      { size: 170 }),
+    createColumn('deliveryDate', 'deliveryDate', 'Delivery Date', 
+      (value, project) => <EditableDateField projectId={project.id} field="deliveryDate" value={value} />,
+      { size: 170 }),
+    // Original columns continued after the date columns
     createColumn('pmOwner', 'pmOwner', 'PM Owner', 
       (value, project) => <EditableTextField projectId={project.id} field="pmOwner" value={value || ''} placeholder="Unassigned" />,
       { size: 150 }),
