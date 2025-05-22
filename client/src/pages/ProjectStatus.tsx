@@ -911,7 +911,8 @@ const ProjectStatus = () => {
 
   // Define all available columns
   const allColumns = [
-    // Add the location column as first column to ensure it appears at the far left
+    // STATIC COLUMNS (non-scrollable area)
+    // Location column (first column to ensure it appears at the far left)
     {
       id: 'location',
       accessorKey: 'location',
@@ -973,6 +974,7 @@ const ProjectStatus = () => {
         );
       }
     },
+    // Project column (third in the static area)
     createColumn('projectNumber', 'projectNumber', 'Project', 
       (value, project) => {
         // Check if ship date is past due
@@ -997,7 +999,11 @@ const ProjectStatus = () => {
         );
       },
       { sortingFn: 'alphanumeric', size: 260 }),
-    // Move all date-related columns to left side of scrollable area
+      
+    // SCROLLABLE COLUMNS - Date fields first as requested
+    // Place all date-related columns on the left side of the scrollable area in this order:
+    // Fabrication Start, Assembly Start, Wrap Date, NTC Testing, NTC Testing Days, QC Start, QC Days, 
+    // Exec Review, Photos Taken, Ship Date, Delivery Date
     createColumn('fabricationStart', 'fabricationStart', 'Fabrication Start', 
       (value, project) => <EditableDateField projectId={project.id} field="fabricationStart" value={value} />,
       { size: 170 }),
@@ -1163,7 +1169,8 @@ const ProjectStatus = () => {
     createColumn('deliveryDate', 'deliveryDate', 'Delivery Date', 
       (value, project) => <EditableDateField projectId={project.id} field="deliveryDate" value={value} />,
       { size: 170 }),
-    // Original columns continued after the date columns
+      
+    // Other columns (after date-related columns)
     createColumn('pmOwner', 'pmOwner', 'PM Owner', 
       (value, project) => <EditableTextField projectId={project.id} field="pmOwner" value={value || ''} placeholder="Unassigned" />,
       { size: 150 }),
