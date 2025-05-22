@@ -71,6 +71,12 @@ function Router() {
   
   return (
     <SidebarProvider>
+      {/* Add a Viewer Mode banner that appears only for viewer users */}
+      {userRole === 'viewer' && !canEdit && (
+        <div className="fixed top-0 left-0 right-0 bg-amber-600 text-white py-1 px-4 text-sm z-50 text-center font-medium">
+          View Only Mode - You have limited permissions. Contact an administrator for more access.
+        </div>
+      )}
       <MainContent />
     </SidebarProvider>
   );

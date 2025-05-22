@@ -165,7 +165,7 @@ export default function AuthPage() {
                         <Button 
                           type="button" 
                           variant="link" 
-                          className="px-0 text-xs text-primary"
+                          className="px-0 text-xs text-primary viewer-interactive auth-element"
                           onClick={() => setLocation("/reset-password")}
                         >
                           Forgot password?
