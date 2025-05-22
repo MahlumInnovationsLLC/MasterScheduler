@@ -3,6 +3,7 @@ import SandboxModeEnhancer from '@/components/SandboxModeEnhancer';
 import SandboxTimelineOverride from '@/components/SandboxTimelineOverride';
 import SandboxDragAndDropFix from '@/components/SandboxDragAndDropFix';
 import SandboxPhaseRenderFix from '@/components/SandboxPhaseRenderFix';
+import DirectResizeHandleFix from '@/components/DirectResizeHandleFix';
 
 // MAXIMUM OVERRIDE: Force all elements to accept drag & drop
 // This ensures multiple projects can be placed in any row no matter what
@@ -1079,14 +1080,8 @@ const BaySchedulingPage = () => {
   
   return (
     <div className="px-4 py-4 md:py-6 md:px-6">
-      {/* Add the sandbox mode enhancer to fix drag and resize issues */}
-      {isSandboxMode && <SandboxModeEnhancer isSandboxMode={isSandboxMode} />}
-      {/* Add the timeline override to allow dragging projects to any date */}
-      {isSandboxMode && <SandboxTimelineOverride isSandboxMode={isSandboxMode} dateRange={dateRange} />}
-      {/* Direct fix for horizontal movement in drag and drop */}
-      {isSandboxMode && <SandboxDragAndDropFix isSandboxMode={isSandboxMode} />}
-      {/* Specific fix for phase rendering when resizing projects */}
-      {isSandboxMode && <SandboxPhaseRenderFix isSandboxMode={isSandboxMode} />}
+      {/* Add the direct fix for resize handles in sandbox mode */}
+      {isSandboxMode && <DirectResizeHandleFix isSandboxMode={isSandboxMode} />}
       
       <div className="flex flex-col gap-1 mb-6">
         <div className="flex justify-between items-center">
