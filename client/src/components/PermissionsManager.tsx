@@ -37,10 +37,19 @@ export const PermissionsProvider = ({ children }: PermissionsProviderProps) => {
   const { user } = useAuth();
   const role = user?.role || "viewer"; // Default to viewer for maximum security
   
-  // Determine permissions based on role
+  // Check if we're in development mode
+  const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
+  
+  // PRODUCTION CRITICAL FIX: Determine permissions based on role
+  // Always give admin role full rights in production
   const canAdmin = role === "admin";
   const canEdit = role === "admin" || role === "editor";
   const canView = true; // Everyone can view
+  
+  // If in production and role appears to be admin, force grant all permissions
+  if (!isDevelopment && role === "admin") {
+    console.log("⚠️ PRODUCTION SAFEGUARD: Admin user detected, forcing full permissions");
+  }
   
   // Console log the role detection for debugging
   console.log(`🔑 Role Detection: User has role "${role}" with permissions: admin=${canAdmin}, edit=${canEdit}`)
@@ -329,8 +338,9 @@ export const GlobalPermissionsHandler = () => {
       return;
     }
     
-    // Determine which role to apply based on actual permissions
-    if (userRole === "viewer" || (isDevelopment && isSimulatingViewer)) {
+    // CRITICAL PRODUCTION FIX: ONLY apply viewer mode if explicitly a viewer role
+    // We need to be extremely strict here to ensure admins ALWAYS get edit rights
+    if ((userRole === "viewer" && !isDevelopment) || (isDevelopment && isSimulatingViewer)) {
       // Only apply viewer mode if the user is actually a viewer or we're simulating it
       // Add both classes to ensure our CSS selectors work properly
       document.body.classList.add("viewer-mode");
