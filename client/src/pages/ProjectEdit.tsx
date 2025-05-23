@@ -1254,7 +1254,7 @@ function ProjectEdit() {
                         name="startDate"
                         render={({ field }) => (
                           <FormItem className="flex flex-col">
-                            <FormLabel>PO Dropped Date (Start Date)</FormLabel>
+                            <FormLabel>PO Dropped Date</FormLabel>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <FormControl>
@@ -1296,7 +1296,7 @@ function ProjectEdit() {
                               </PopoverContent>
                             </Popover>
                             <FormDescription>
-                              The date work begins (PO Dropped)
+                              The date when the PO was received (when work begins)
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -1312,7 +1312,7 @@ function ProjectEdit() {
                             <FormControl>
                               <Input 
                                 type="number" 
-                                placeholder="Number of days" 
+                                placeholder="365 days (default)" 
                                 {...field} 
                                 onChange={(e) => {
                                   const value = parseInt(e.target.value) || 365;
@@ -1350,7 +1350,7 @@ function ProjectEdit() {
                       name="startDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>PO Dropped Date (Start Date)</FormLabel>
+                          <FormLabel>PO Dropped Date</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -1365,7 +1365,7 @@ function ProjectEdit() {
                                   {field.value ? (
                                     formatDate(field.value)
                                   ) : (
-                                    <span>Auto-calculated from Contract Date</span>
+                                    <span>No date selected</span>
                                   )}
                                   <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                 </Button>
