@@ -181,12 +181,12 @@ function ProjectEdit() {
       // Debug log to see what's coming from the server
       console.log("DEBUG - Project data received:", project);
       console.log("DEBUG - Percentage fields:", {
-        fab: project.fab_percentage,
-        paint: project.paint_percentage,
-        production: project.production_percentage,
-        it: project.it_percentage,
-        ntc: project.ntc_percentage,
-        qc: project.qc_percentage
+        fab: project.fabPercentage,
+        paint: project.paintPercentage,
+        production: project.productionPercentage,
+        it: project.itPercentage,
+        ntc: project.ntcPercentage,
+        qc: project.qcPercentage
       });
       
       // Save the original ship date for comparison
@@ -214,13 +214,13 @@ function ProjectEdit() {
         // Manufacturing details
         totalHours: project.totalHours ? Number(project.totalHours) : 40,
         
-        // Department allocation percentages - use db field names (fab_percentage, paint_percentage, etc.)
-        fabricationPercent: project.fab_percentage !== undefined && project.fab_percentage !== null ? Number(project.fab_percentage) : 27,
-        paintPercent: project.paint_percentage !== undefined && project.paint_percentage !== null ? Number(project.paint_percentage) : 7,
-        assemblyPercent: project.production_percentage !== undefined && project.production_percentage !== null ? Number(project.production_percentage) : 45,
-        itPercent: project.it_percentage !== undefined && project.it_percentage !== null ? Number(project.it_percentage) : 7,
-        ntcTestingPercent: project.ntc_percentage !== undefined && project.ntc_percentage !== null ? Number(project.ntc_percentage) : 7,
-        qcPercent: project.qc_percentage !== undefined && project.qc_percentage !== null ? Number(project.qc_percentage) : 7,
+        // Department allocation percentages - use database field names
+        fabricationPercent: project.fabPercentage !== undefined && project.fabPercentage !== null ? Number(project.fabPercentage) : 27,
+        paintPercent: project.paintPercentage !== undefined && project.paintPercentage !== null ? Number(project.paintPercentage) : 7,
+        assemblyPercent: project.productionPercentage !== undefined && project.productionPercentage !== null ? Number(project.productionPercentage) : 45,
+        itPercent: project.itPercentage !== undefined && project.itPercentage !== null ? Number(project.itPercentage) : 7,
+        ntcTestingPercent: project.ntcPercentage !== undefined && project.ntcPercentage !== null ? Number(project.ntcPercentage) : 7,
+        qcPercent: project.qcPercentage !== undefined && project.qcPercentage !== null ? Number(project.qcPercentage) : 7,
         
         // New field with calculated days
         poDroppedToDeliveryDays: calculatedDays,
@@ -316,6 +316,14 @@ function ProjectEdit() {
           fixedData[key] = utcDate;
         }
       });
+      
+      // Map form field names to database field names for department percentages
+      fixedData.fabPercentage = fixedData.fabricationPercent;
+      fixedData.paintPercentage = fixedData.paintPercent;
+      fixedData.productionPercentage = fixedData.assemblyPercent;
+      fixedData.itPercentage = fixedData.itPercent;
+      fixedData.ntcPercentage = fixedData.ntcTestingPercent;
+      fixedData.qcPercentage = fixedData.qcPercent;
       
       const res = await apiRequest('PUT', `/api/projects/${projectId}`, fixedData);
       return await res.json();
