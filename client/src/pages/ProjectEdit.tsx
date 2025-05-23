@@ -1360,12 +1360,11 @@ function ProjectEdit() {
                                     "w-full pl-3 text-left font-normal",
                                     !field.value && "text-muted-foreground"
                                   )}
-                                  disabled // Make read-only since it's auto-calculated
                                 >
                                   {field.value ? (
                                     formatDate(field.value)
                                   ) : (
-                                    <span>No date selected</span>
+                                    <span>Pick a date</span>
                                   )}
                                   <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                 </Button>
@@ -1375,8 +1374,16 @@ function ProjectEdit() {
                               <Calendar
                                 mode="single"
                                 selected={field.value}
-                                onSelect={field.onChange}
-                                disabled
+                                onSelect={(date) => {
+                                  field.onChange(date);
+                                  
+                                  // Auto-calculate completion date when PO date changes
+                                  const aroDays = form.getValues('poDroppedToDeliveryDays');
+                                  if (date && aroDays) {
+                                    const newEndDate = addDays(date, aroDays);
+                                    form.setValue('estimatedCompletionDate', newEndDate);
+                                  }
+                                }}
                                 initialFocus
                               />
                             </PopoverContent>
