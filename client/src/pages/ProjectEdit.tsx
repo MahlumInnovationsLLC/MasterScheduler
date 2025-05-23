@@ -1249,6 +1249,9 @@ function ProjectEdit() {
                         render={({ field }) => (
                           <FormItem className="flex flex-col">
                             <FormLabel>PO Dropped Date</FormLabel>
+                            <FormDescription>
+                              The date when the Purchase Order was received
+                            </FormDescription>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <FormControl>
@@ -1275,11 +1278,16 @@ function ProjectEdit() {
                                   onSelect={(date) => {
                                     field.onChange(date);
                                     
-                                    // Auto-calculate end date based on ARO days when start date changes
+                                    // Auto-calculate estimated completion date when PO date changes
                                     const aroDays = form.getValues('poDroppedToDeliveryDays');
                                     if (date && aroDays) {
                                       const newEndDate = addDays(date, aroDays);
                                       form.setValue('estimatedCompletionDate', newEndDate);
+                                      
+                                      // Also update the Assembly Start Date if it's empty
+                                      if (!form.getValues('startDate')) {
+                                        form.setValue('startDate', date);
+                                      }
                                     }
                                   }}
                                   disabled={(date) =>
