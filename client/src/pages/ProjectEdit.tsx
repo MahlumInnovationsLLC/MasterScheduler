@@ -1315,7 +1315,7 @@ function ProjectEdit() {
                       
                       <div className="flex items-end">
                         <p className="text-xs text-gray-400">
-                          Start date and estimated completion date will auto-calculate based on the contract date and number of days.
+                          PO Dropped date and estimated completion date will auto-calculate based on the ARO days.
                         </p>
                       </div>
                     </div>
