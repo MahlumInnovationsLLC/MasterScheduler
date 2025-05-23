@@ -1722,6 +1722,7 @@ const ProjectStatus = () => {
           searchPlaceholder="Search projects..."
           frozenColumns={['location', 'projectNumber', 'name', 'pmOwner', 'progress', 'status']} // Freeze these columns on the left
           enableSorting={true} // Always enable sorting on all columns
+          initialSorting={[{ id: 'shipDate', desc: false }]} // Auto-sort by ship date (earliest first)
         />
         
         {/* Custom Filter Buttons - Will be moved to the results header using portal/DOM manipulation */}
