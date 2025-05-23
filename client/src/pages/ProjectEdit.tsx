@@ -161,19 +161,19 @@ function ProjectEdit() {
   });
 
   // Watch the PO Dropped Date and ARO days to calculate completion date
-  const startDate = form.watch('startDate');
+  const poDroppedDate = form.watch('poDroppedDate');
   const poDroppedToDeliveryDays = form.watch('poDroppedToDeliveryDays');
   
   // Auto-calculate estimated completion date when PO Dropped Date or ARO days change
   useEffect(() => {
     // Only calculate if both values exist
-    if (startDate && poDroppedToDeliveryDays) {
+    if (poDroppedDate && poDroppedToDeliveryDays) {
       // Estimated completion date is PO Dropped Date + ARO days
-      const estimatedDate = new Date(startDate);
+      const estimatedDate = new Date(poDroppedDate);
       estimatedDate.setDate(estimatedDate.getDate() + poDroppedToDeliveryDays);
       form.setValue('estimatedCompletionDate', estimatedDate);
     }
-  }, [startDate, poDroppedToDeliveryDays, form]);
+  }, [poDroppedDate, poDroppedToDeliveryDays, form]);
   
   // Update form when project data is loaded
   useEffect(() => {
@@ -216,6 +216,7 @@ function ProjectEdit() {
         
         // Dates
         contractDate: project.contractDate ? new Date(project.contractDate) : undefined,
+        poDroppedDate: project.poDroppedDate ? new Date(project.poDroppedDate) : project.startDate ? new Date(project.startDate) : undefined,
         startDate: project.startDate ? new Date(project.startDate) : undefined,
         estimatedCompletionDate: project.estimatedCompletionDate ? new Date(project.estimatedCompletionDate) : undefined,
         actualCompletionDate: project.actualCompletionDate ? new Date(project.actualCompletionDate) : undefined,
@@ -1244,7 +1245,7 @@ function ProjectEdit() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
-                        name="startDate"
+                        name="poDroppedDate"
                         render={({ field }) => (
                           <FormItem className="flex flex-col">
                             <FormLabel>PO Dropped Date</FormLabel>
