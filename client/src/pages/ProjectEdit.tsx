@@ -203,13 +203,13 @@ function ProjectEdit() {
         // Manufacturing details
         totalHours: project.totalHours ? Number(project.totalHours) : 40,
         
-        // Department allocation percentages
-        fabricationPercent: project.fabricationPercent ? Number(project.fabricationPercent) : 27,
-        paintPercent: project.paintPercent ? Number(project.paintPercent) : 7,
-        assemblyPercent: project.assemblyPercent ? Number(project.assemblyPercent) : 45,
-        itPercent: project.itPercent ? Number(project.itPercent) : 7,
-        ntcTestingPercent: project.ntcTestingPercent ? Number(project.ntcTestingPercent) : 7,
-        qcPercent: project.qcPercent ? Number(project.qcPercent) : 7,
+        // Department allocation percentages - always use database values (0 is a valid percentage)
+        fabricationPercent: project.fabricationPercent !== undefined && project.fabricationPercent !== null ? Number(project.fabricationPercent) : 27,
+        paintPercent: project.paintPercent !== undefined && project.paintPercent !== null ? Number(project.paintPercent) : 7,
+        assemblyPercent: project.assemblyPercent !== undefined && project.assemblyPercent !== null ? Number(project.assemblyPercent) : 45,
+        itPercent: project.itPercent !== undefined && project.itPercent !== null ? Number(project.itPercent) : 7,
+        ntcTestingPercent: project.ntcTestingPercent !== undefined && project.ntcTestingPercent !== null ? Number(project.ntcTestingPercent) : 7,
+        qcPercent: project.qcPercent !== undefined && project.qcPercent !== null ? Number(project.qcPercent) : 7,
         
         // New field with calculated days
         poDroppedToDeliveryDays: calculatedDays,
