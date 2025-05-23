@@ -203,13 +203,13 @@ function ProjectEdit() {
         // Manufacturing details
         totalHours: project.totalHours ? Number(project.totalHours) : 40,
         
-        // Department allocation percentages - always use database values (0 is a valid percentage)
-        fabricationPercent: project.fabricationPercent !== undefined && project.fabricationPercent !== null ? Number(project.fabricationPercent) : 27,
-        paintPercent: project.paintPercent !== undefined && project.paintPercent !== null ? Number(project.paintPercent) : 7,
-        assemblyPercent: project.assemblyPercent !== undefined && project.assemblyPercent !== null ? Number(project.assemblyPercent) : 45,
-        itPercent: project.itPercent !== undefined && project.itPercent !== null ? Number(project.itPercent) : 7,
-        ntcTestingPercent: project.ntcTestingPercent !== undefined && project.ntcTestingPercent !== null ? Number(project.ntcTestingPercent) : 7,
-        qcPercent: project.qcPercent !== undefined && project.qcPercent !== null ? Number(project.qcPercent) : 7,
+        // Department allocation percentages - use db field names (fab_percentage, paint_percentage, etc.)
+        fabricationPercent: project.fab_percentage !== undefined && project.fab_percentage !== null ? Number(project.fab_percentage) : 27,
+        paintPercent: project.paint_percentage !== undefined && project.paint_percentage !== null ? Number(project.paint_percentage) : 7,
+        assemblyPercent: project.production_percentage !== undefined && project.production_percentage !== null ? Number(project.production_percentage) : 45,
+        itPercent: project.it_percentage !== undefined && project.it_percentage !== null ? Number(project.it_percentage) : 7,
+        ntcTestingPercent: project.ntc_percentage !== undefined && project.ntc_percentage !== null ? Number(project.ntc_percentage) : 7,
+        qcPercent: project.qc_percentage !== undefined && project.qc_percentage !== null ? Number(project.qc_percentage) : 7,
         
         // New field with calculated days
         poDroppedToDeliveryDays: calculatedDays,
