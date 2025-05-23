@@ -178,6 +178,17 @@ function ProjectEdit() {
   // Update form when project data is loaded
   useEffect(() => {
     if (project) {
+      // Debug log to see what's coming from the server
+      console.log("DEBUG - Project data received:", project);
+      console.log("DEBUG - Percentage fields:", {
+        fab: project.fab_percentage,
+        paint: project.paint_percentage,
+        production: project.production_percentage,
+        it: project.it_percentage,
+        ntc: project.ntc_percentage,
+        qc: project.qc_percentage
+      });
+      
       // Save the original ship date for comparison
       if (project.shipDate) {
         setOriginalShipDate(new Date(project.shipDate));
