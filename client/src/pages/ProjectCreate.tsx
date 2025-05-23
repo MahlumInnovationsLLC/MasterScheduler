@@ -136,13 +136,13 @@ export default function ProjectCreate() {
       // Convert dates to ISO strings and numbers to strings to ensure proper serialization
       const formattedData = {
         ...data,
-        // Convert percentages to strings as required by the server validation
-        fabPercentage: data.fabPercentage?.toString(),
-        paintPercentage: data.paintPercentage?.toString(), 
-        productionPercentage: data.productionPercentage?.toString(),
-        itPercentage: data.itPercentage?.toString(),
-        ntcPercentage: data.ntcPercentage?.toString(),
-        qcPercentage: data.qcPercentage?.toString(),
+        // Convert percentages to strings as required by the server validation and ensure they're actually sent
+        fabPercentage: data.fabPercentage !== undefined ? data.fabPercentage.toString() : "27",
+        paintPercentage: data.paintPercentage !== undefined ? data.paintPercentage.toString() : "7", 
+        productionPercentage: data.productionPercentage !== undefined ? data.productionPercentage.toString() : "45",
+        itPercentage: data.itPercentage !== undefined ? data.itPercentage.toString() : "7",
+        ntcPercentage: data.ntcPercentage !== undefined ? data.ntcPercentage.toString() : "7",
+        qcPercentage: data.qcPercentage !== undefined ? data.qcPercentage.toString() : "7",
         // Keep totalHours as a number as required by the server validation
         totalHours: data.totalHours,
         
