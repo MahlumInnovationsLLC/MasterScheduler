@@ -38,8 +38,8 @@ const projectFormSchema = z.object({
   location: z.string().optional(),
   
   // Dates and Timeline
-  contractDate: z.date().optional(),
-  startDate: z.date(),
+  contractDate: z.date().optional(), // This is actually the END DATE of the contract
+  startDate: z.date(), // This is the PO Dropped date (when work begins)
   estimatedCompletionDate: z.date(),
   poDroppedToDeliveryDays: z.number().min(1).default(180), // ARO days (After Receipt of Order)
   chassisETA: z.date().optional(),
@@ -395,7 +395,7 @@ export default function ProjectCreate() {
                       name="startDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Start Date *</FormLabel>
+                          <FormLabel>PO Dropped Date (Start Date) *</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -443,7 +443,7 @@ export default function ProjectCreate() {
                       name="poDroppedToDeliveryDays"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>ARO Days</FormLabel>
+                          <FormLabel>PO Dropped to Delivery (Days)</FormLabel>
                           <FormControl>
                             <Input 
                               type="number" 
@@ -464,7 +464,7 @@ export default function ProjectCreate() {
                             />
                           </FormControl>
                           <FormDescription>
-                            Days from start to completion
+                            Days from PO Dropped to Delivery (ARO days)
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -476,7 +476,7 @@ export default function ProjectCreate() {
                       name="estimatedCompletionDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Estimated Completion *</FormLabel>
+                          <FormLabel>Est. Completion Date (Auto-calculated) *</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -507,7 +507,8 @@ export default function ProjectCreate() {
                                   const startDate = form.getValues('startDate');
                                   if (startDate && date) {
                                     const days = Math.round((date.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-                                    form.setValue('poDroppedToDeliveryDays', days);
+                                    // Ensure positive days value
+                                    form.setValue('poDroppedToDeliveryDays', days > 0 ? days : 1);
                                   }
                                 }}
                                 initialFocus
@@ -524,7 +525,7 @@ export default function ProjectCreate() {
                       name="contractDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Contract Date</FormLabel>
+                          <FormLabel>Contract End Date</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -553,6 +554,9 @@ export default function ProjectCreate() {
                               />
                             </PopoverContent>
                           </Popover>
+                          <FormDescription>
+                            The final contractual end date
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
