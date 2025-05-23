@@ -53,7 +53,7 @@ const projectSchema = z.object({
   team: z.string().optional(),
   
   // New field for auto-calculation of dates
-  poDroppedToDeliveryDays: z.number().min(1).optional(),
+  poDroppedToDeliveryDays: z.number().min(1).default(365),
   
   // Dates
   contractDate: z.date().optional(),
@@ -159,27 +159,20 @@ function ProjectEdit() {
     },
   });
 
-  // Calculate dates based on poDroppedToDeliveryDays
-  const calculateDates = (contractDate: Date | undefined, days: number | undefined) => {
-    if (!contractDate || !days) return;
-    
-    // Start date is the same as contract date
-    form.setValue('startDate', contractDate);
-    
-    // Estimated completion date is contract date + days
-    const estimatedDate = new Date(contractDate);
-    estimatedDate.setDate(estimatedDate.getDate() + (days || 30));
-    form.setValue('estimatedCompletionDate', estimatedDate);
-  };
-  
-  // Watch for changes in contractDate and poDroppedToDeliveryDays
-  const contractDate = form.watch('contractDate');
+  // Watch the PO Dropped Date and ARO days to calculate completion date
+  const startDate = form.watch('startDate');
   const poDroppedToDeliveryDays = form.watch('poDroppedToDeliveryDays');
   
-  // Auto-calculate dates when contract date or days change
+  // Auto-calculate estimated completion date when PO Dropped Date or ARO days change
   useEffect(() => {
-    calculateDates(contractDate, poDroppedToDeliveryDays);
-  }, [contractDate, poDroppedToDeliveryDays]);
+    // Only calculate if both values exist
+    if (startDate && poDroppedToDeliveryDays) {
+      // Estimated completion date is PO Dropped Date + ARO days
+      const estimatedDate = new Date(startDate);
+      estimatedDate.setDate(estimatedDate.getDate() + poDroppedToDeliveryDays);
+      form.setValue('estimatedCompletionDate', estimatedDate);
+    }
+  }, [startDate, poDroppedToDeliveryDays, form]);
   
   // Update form when project data is loaded
   useEffect(() => {
@@ -189,13 +182,12 @@ function ProjectEdit() {
         setOriginalShipDate(new Date(project.shipDate));
       }
       
-      // Calculate the number of days between contract date and delivery date if available
-      let calculatedDays = 30; // Default
-      if (project.contractDate && project.deliveryDate) {
-        const contractDate = new Date(project.contractDate);
-        const deliveryDate = new Date(project.deliveryDate);
-        const diffTime = Math.abs(deliveryDate.getTime() - contractDate.getTime());
-        calculatedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      // Set default ARO days to 365
+      let calculatedDays = 365; // Always default to 365 days
+      
+      // If the project already has a saved value for poDroppedToDeliveryDays, use that
+      if (project.poDroppedToDeliveryDays) {
+        calculatedDays = project.poDroppedToDeliveryDays;
       }
       
       form.reset({
