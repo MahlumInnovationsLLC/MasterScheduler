@@ -1254,7 +1254,7 @@ function ProjectEdit() {
                         name="contractDate"
                         render={({ field }) => (
                           <FormItem className="flex flex-col">
-                            <FormLabel>Contract Date (PO Dropped)</FormLabel>
+                            <FormLabel>Contract End Date</FormLabel>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <FormControl>
@@ -1286,6 +1286,9 @@ function ProjectEdit() {
                                 />
                               </PopoverContent>
                             </Popover>
+                            <FormDescription>
+                              The final contractual end date
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1302,7 +1305,7 @@ function ProjectEdit() {
                                 type="number" 
                                 placeholder="Number of days" 
                                 {...field} 
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 30)}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 365)}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1325,7 +1328,7 @@ function ProjectEdit() {
                       name="startDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Start Date (Auto-calculated)</FormLabel>
+                          <FormLabel>PO Dropped Date (Start Date)</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -1366,7 +1369,7 @@ function ProjectEdit() {
                       name="estimatedCompletionDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Est. Completion Date (Auto-calculated)</FormLabel>
+                          <FormLabel>Est. Completion Date (Auto-calculated) *</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -1381,7 +1384,7 @@ function ProjectEdit() {
                                   {field.value ? (
                                     formatDate(field.value)
                                   ) : (
-                                    <span>Auto-calculated from Contract Date + Days</span>
+                                    <span>Auto-calculated from PO Dropped Date + ARO Days</span>
                                   )}
                                   <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                 </Button>

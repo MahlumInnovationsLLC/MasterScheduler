@@ -41,7 +41,7 @@ const projectFormSchema = z.object({
   contractDate: z.date().optional(), // This is actually the END DATE of the contract
   startDate: z.date(), // This is the PO Dropped date (when work begins)
   estimatedCompletionDate: z.date(),
-  poDroppedToDeliveryDays: z.number().min(1).default(180), // ARO days (After Receipt of Order)
+  poDroppedToDeliveryDays: z.number().min(1).default(365), // ARO days (After Receipt of Order)
   chassisETA: z.date().optional(),
   
   // Status and risk
