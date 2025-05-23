@@ -246,15 +246,36 @@ export const ViewerGuard = () => {
           overflow: auto !important;
         }
         
-        /* Keep inner content non-interactive except for specified elements */
-        body.viewer-mode .overflow-auto *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
-        body.viewer-mode .overflow-y-auto *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
-        body.viewer-mode .overflow-x-auto *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
-        body.viewer-mode [class*="scroll"] *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
-        body.viewer-mode [class*="overflow"] *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
-        body.viewer-mode div[style*="overflow"] *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *),
-        body.viewer-mode .table-container *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *) {
+        /* Allow scrolling while keeping inner content non-interactive except for specified elements */
+        body.viewer-mode .overflow-auto *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *):not([aria-label="pagination"] *):not([class*="pagination"] *),
+        body.viewer-mode .overflow-y-auto *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *):not([aria-label="pagination"] *):not([class*="pagination"] *),
+        body.viewer-mode .overflow-x-auto *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *):not([aria-label="pagination"] *):not([class*="pagination"] *),
+        body.viewer-mode [class*="scroll"] *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *):not([aria-label="pagination"] *):not([class*="pagination"] *),
+        body.viewer-mode [class*="overflow"] *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *):not([aria-label="pagination"] *):not([class*="pagination"] *),
+        body.viewer-mode div[style*="overflow"] *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *):not([aria-label="pagination"] *):not([class*="pagination"] *),
+        body.viewer-mode .table-container *:not(.viewer-interactive):not(.sidebar-link):not(.dropdown-menu *):not([aria-label="pagination"] *):not([class*="pagination"] *) {
           pointer-events: none !important;
+        }
+        
+        /* Critical fix for pagination controls */
+        body.viewer-mode [aria-label="pagination"],
+        body.viewer-mode [aria-label="pagination"] *,
+        body.viewer-mode [data-testid="pagination"],
+        body.viewer-mode [data-testid="pagination"] *,
+        body.viewer-mode [class*="pagination"],
+        body.viewer-mode [class*="pagination"] *,
+        body.viewer-mode nav:has(button:has(span:contains("Previous"))),
+        body.viewer-mode nav:has(button:has(span:contains("Next"))),
+        body.viewer-mode button:has(span:contains("Previous")),
+        body.viewer-mode button:has(span:contains("Next")),
+        body.viewer-mode button[aria-label="Go to previous page"],
+        body.viewer-mode button[aria-label="Go to next page"],
+        body.viewer-mode ul.pagination,
+        body.viewer-mode ul.pagination li,
+        body.viewer-mode ul.pagination button {
+          pointer-events: auto !important;
+          opacity: 1 !important;
+          cursor: pointer !important;
         }
       `;
       
