@@ -265,7 +265,7 @@ body[class*="role-viewer"] button:not([class*="sidebar"]) {
   filter: grayscale(20%) !important;
 }
 
-/* ONLY keep sidebar navigation clickable in viewer mode */
+/* ONLY keep sidebar navigation and pagination buttons clickable in viewer mode */
 body.viewer-mode .sidebar a,
 body.viewer-mode .sidebar [role="button"],
 body.viewer-mode .sidebar button,
@@ -274,7 +274,39 @@ body.viewer-mode aside a,
 body.viewer-mode .view-mode-toggle,
 body.viewer-mode button.view-mode-toggle,
 body.viewer-mode [class*="sidebar"] a,
-body.viewer-mode [class*="sidebar"] button {
+body.viewer-mode [class*="sidebar"] button,
+body.viewer-mode [aria-label="pagination"],
+body.viewer-mode [aria-label="pagination"] *,
+body.viewer-mode [data-testid="pagination"] button,
+body.viewer-mode [class*="pagination"] button,
+body.viewer-mode [class*="pagination"] [role="button"],
+body.viewer-mode [class*="pagination"] li,
+body.viewer-mode [class*="pagination"] a,
+body.viewer-mode nav button,
+body.viewer-mode .pagination,
+body.viewer-mode .pagination *,
+body.viewer-mode button:has(span:contains("Previous")),
+body.viewer-mode button:has(span:contains("Next")),
+body.viewer-mode button[aria-label="Go to previous page"],
+body.viewer-mode button[aria-label="Go to next page"],
+body.viewer-mode ul.pagination li,
+body.viewer-mode ul.pagination button,
+body.role-viewer [aria-label="pagination"],
+body.role-viewer [aria-label="pagination"] *,
+body.role-viewer [data-testid="pagination"] button,
+body.role-viewer [class*="pagination"] button,
+body.role-viewer [class*="pagination"] [role="button"],
+body.role-viewer [class*="pagination"] li,
+body.role-viewer [class*="pagination"] a,
+body.role-viewer nav button,
+body.role-viewer .pagination,
+body.role-viewer .pagination *,
+body.role-viewer button:has(span:contains("Previous")),
+body.role-viewer button:has(span:contains("Next")),
+body.role-viewer button[aria-label="Go to previous page"],
+body.role-viewer button[aria-label="Go to next page"],
+body.role-viewer ul.pagination li,
+body.role-viewer ul.pagination button {
   pointer-events: auto !important;
   opacity: 1 !important;
   cursor: pointer !important;
@@ -315,9 +347,27 @@ body.viewer-mode .overflow-y-auto,
 body.viewer-mode .overflow-x-auto,
 body.viewer-mode [class*="scroll"],
 body.viewer-mode .main-content,
-body.viewer-mode main {
+body.viewer-mode [role="tabpanel"],
+body.viewer-mode [role="grid"],
+body.viewer-mode [class*="data-table"],
+body.viewer-mode [class*="project-list"],
+body.viewer-mode [class*="container"],
+body.viewer-mode main,
+body.role-viewer .overflow-auto,
+body.role-viewer .overflow-y-auto,
+body.role-viewer .overflow-x-auto,
+body.role-viewer [class*="scroll"],
+body.role-viewer .main-content,
+body.role-viewer [role="tabpanel"],
+body.role-viewer [role="grid"],
+body.role-viewer [class*="data-table"],
+body.role-viewer [class*="project-list"],
+body.role-viewer [class*="container"],
+body.role-viewer main {
   pointer-events: auto !important;
   overflow: auto !important;
+  touch-action: auto !important;
+  user-select: text !important;
 }
 
 :root {
