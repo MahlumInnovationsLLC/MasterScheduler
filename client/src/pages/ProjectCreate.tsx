@@ -130,9 +130,19 @@ export default function ProjectCreate() {
   // Mutation for creating a project
   const createProjectMutation = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
-      // Convert dates to ISO strings to ensure they're serialized properly
+      // Convert dates to ISO strings and numbers to strings to ensure proper serialization
       const formattedData = {
         ...data,
+        // Convert percentages to strings as required by the server validation
+        fabPercentage: data.fabPercentage?.toString(),
+        paintPercentage: data.paintPercentage?.toString(), 
+        productionPercentage: data.productionPercentage?.toString(),
+        itPercentage: data.itPercentage?.toString(),
+        ntcPercentage: data.ntcPercentage?.toString(),
+        qcPercentage: data.qcPercentage?.toString(),
+        totalHours: data.totalHours?.toString(),
+        
+        // Convert dates to ISO strings
         startDate: data.startDate instanceof Date ? data.startDate.toISOString() : data.startDate,
         estimatedCompletionDate: data.estimatedCompletionDate instanceof Date ? 
           data.estimatedCompletionDate.toISOString() : data.estimatedCompletionDate,
@@ -666,13 +676,15 @@ export default function ProjectCreate() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {Math.abs(totalPercentage - 100) > 0.01 && (
-                    <Alert variant="warning" className="mb-4">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Phase allocations don't add up to 100%</AlertTitle>
-                      <AlertDescription>
+                    <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
+                      <div className="flex items-center gap-2 mb-1">
+                        <AlertCircle className="h-4 w-4" />
+                        <div className="font-semibold">Phase allocations don't add up to 100%</div>
+                      </div>
+                      <div className="ml-6">
                         The current total is {totalPercentage}%. Please adjust the phase percentages to total 100%.
-                      </AlertDescription>
-                    </Alert>
+                      </div>
+                    </div>
                   )}
                   
                   <FormField
