@@ -27,7 +27,7 @@ import { FormDescription } from '@/components/ui/form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { cn, formatDate } from '@/lib/utils';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { 
@@ -1251,10 +1251,10 @@ function ProjectEdit() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
-                        name="contractDate"
+                        name="startDate"
                         render={({ field }) => (
                           <FormItem className="flex flex-col">
-                            <FormLabel>Contract End Date</FormLabel>
+                            <FormLabel>PO Dropped Date (Start Date)</FormLabel>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <FormControl>
@@ -1278,7 +1278,16 @@ function ProjectEdit() {
                                 <Calendar
                                   mode="single"
                                   selected={field.value}
-                                  onSelect={field.onChange}
+                                  onSelect={(date) => {
+                                    field.onChange(date);
+                                    
+                                    // Auto-calculate end date based on ARO days when start date changes
+                                    const aroDays = form.getValues('poDroppedToDeliveryDays');
+                                    if (date && aroDays) {
+                                      const newEndDate = addDays(date, aroDays);
+                                      form.setValue('estimatedCompletionDate', newEndDate);
+                                    }
+                                  }}
                                   disabled={(date) =>
                                     date < new Date("1900-01-01")
                                   }
@@ -1287,7 +1296,7 @@ function ProjectEdit() {
                               </PopoverContent>
                             </Popover>
                             <FormDescription>
-                              The final contractual end date
+                              The date work begins (PO Dropped)
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -1305,9 +1314,22 @@ function ProjectEdit() {
                                 type="number" 
                                 placeholder="Number of days" 
                                 {...field} 
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 365)}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value) || 365;
+                                  field.onChange(value);
+                                  
+                                  // Auto-calculate the estimated completion date
+                                  const startDate = form.getValues('startDate');
+                                  if (startDate && value) {
+                                    const newEndDate = addDays(startDate, value);
+                                    form.setValue('estimatedCompletionDate', newEndDate);
+                                  }
+                                }}
                               />
                             </FormControl>
+                            <FormDescription>
+                              Days from PO Dropped to Delivery (ARO days)
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
