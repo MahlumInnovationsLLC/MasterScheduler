@@ -619,7 +619,7 @@ const ProjectDetails = () => {
             </div>
             <div className="bg-dark rounded border border-gray-800 p-2">
               <div className="text-xs text-gray-400 mb-1">QC</div>
-              <div className="text-lg font-bold">{project.qcPercent || 7}%</div>
+              <div className="text-lg font-bold">{project.qcPercentage || 7}%</div>
             </div>
           </div>
         </div>
