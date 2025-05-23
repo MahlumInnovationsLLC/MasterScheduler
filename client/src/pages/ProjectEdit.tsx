@@ -57,7 +57,8 @@ const projectSchema = z.object({
   
   // Dates
   contractDate: z.date().optional(),
-  startDate: z.date().optional(),
+  startDate: z.date().optional(), // This is Assembly Start Date
+  poDroppedDate: z.date().optional(), // New field for PO Dropped Date
   estimatedCompletionDate: z.date().optional(),
   actualCompletionDate: z.date().optional(),
   chassisETA: z.date().optional(),
