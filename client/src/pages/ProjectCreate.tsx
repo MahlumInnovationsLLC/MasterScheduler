@@ -140,7 +140,8 @@ export default function ProjectCreate() {
         itPercentage: data.itPercentage?.toString(),
         ntcPercentage: data.ntcPercentage?.toString(),
         qcPercentage: data.qcPercentage?.toString(),
-        totalHours: data.totalHours?.toString(),
+        // Keep totalHours as a number as required by the server validation
+        totalHours: data.totalHours,
         
         // Convert dates to ISO strings
         startDate: data.startDate instanceof Date ? data.startDate.toISOString() : data.startDate,
