@@ -37,10 +37,11 @@ const projectFormSchema = z.object({
   team: z.string().optional(),
   location: z.string().optional(),
   
-  // Dates
+  // Dates and Timeline
   contractDate: z.date().optional(),
   startDate: z.date(),
   estimatedCompletionDate: z.date(),
+  poDroppedToDeliveryDays: z.number().min(1).default(180), // ARO days (After Receipt of Order)
   chassisETA: z.date().optional(),
   
   // Status and risk
@@ -91,13 +92,15 @@ export default function ProjectCreate() {
   
   // Get the current date for default values
   const today = new Date();
-  const twoMonthsLater = addMonths(today, 2);
+  const defaultARO = 180; // Default ARO days
+  const defaultEndDate = addDays(today, defaultARO);
   
   const defaultValues: Partial<ProjectFormValues> = {
     status: "active",
     riskLevel: "medium",
     startDate: today,
-    estimatedCompletionDate: twoMonthsLater,
+    estimatedCompletionDate: defaultEndDate,
+    poDroppedToDeliveryDays: defaultARO, // Default to 180 days ARO
     totalHours: 1000,
     fabPercentage: 27,
     paintPercentage: 7,
@@ -416,11 +419,53 @@ export default function ProjectCreate() {
                               <Calendar
                                 mode="single"
                                 selected={field.value}
-                                onSelect={field.onChange}
+                                onSelect={(date) => {
+                                  field.onChange(date);
+                                  
+                                  // Auto-calculate end date based on ARO days when start date changes
+                                  const aroDays = form.getValues('poDroppedToDeliveryDays');
+                                  if (date && aroDays) {
+                                    const newEndDate = addDays(date, aroDays);
+                                    form.setValue('estimatedCompletionDate', newEndDate);
+                                  }
+                                }}
                                 initialFocus
                               />
                             </PopoverContent>
                           </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="poDroppedToDeliveryDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>ARO Days</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              min={1}
+                              placeholder="Days from start to completion" 
+                              {...field}
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value);
+                                field.onChange(value);
+                                
+                                // Auto-calculate the estimated completion date
+                                const startDate = form.getValues('startDate');
+                                if (startDate && value) {
+                                  const newEndDate = addDays(startDate, value);
+                                  form.setValue('estimatedCompletionDate', newEndDate);
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Days from start to completion
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -455,7 +500,16 @@ export default function ProjectCreate() {
                               <Calendar
                                 mode="single"
                                 selected={field.value}
-                                onSelect={field.onChange}
+                                onSelect={(date) => {
+                                  field.onChange(date);
+                                  
+                                  // Auto-calculate ARO days when end date changes
+                                  const startDate = form.getValues('startDate');
+                                  if (startDate && date) {
+                                    const days = Math.round((date.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+                                    form.setValue('poDroppedToDeliveryDays', days);
+                                  }
+                                }}
                                 initialFocus
                               />
                             </PopoverContent>
