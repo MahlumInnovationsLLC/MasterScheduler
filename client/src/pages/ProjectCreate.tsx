@@ -130,20 +130,52 @@ export default function ProjectCreate() {
   // Mutation for creating a project
   const createProjectMutation = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
-      return await queryClient.fetchQuery({
-        queryKey: ['/api/projects'],
-        queryFn: ({ signal }) => fetch('/api/projects', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-          signal,
-        }).then(res => {
-          if (!res.ok) throw new Error('Failed to create project');
-          return res.json();
-        }),
+      // Convert dates to ISO strings to ensure they're serialized properly
+      const formattedData = {
+        ...data,
+        startDate: data.startDate instanceof Date ? data.startDate.toISOString() : data.startDate,
+        estimatedCompletionDate: data.estimatedCompletionDate instanceof Date ? 
+          data.estimatedCompletionDate.toISOString() : data.estimatedCompletionDate,
+        contractDate: data.contractDate instanceof Date ? 
+          data.contractDate.toISOString() : data.contractDate,
+        chassisETA: data.chassisETA instanceof Date ? 
+          data.chassisETA.toISOString() : data.chassisETA,
+        // Format all other dates too
+        fabricationStart: data.fabricationStart instanceof Date ? 
+          data.fabricationStart.toISOString() : data.fabricationStart,
+        assemblyStart: data.assemblyStart instanceof Date ? 
+          data.assemblyStart.toISOString() : data.assemblyStart,
+        wrapDate: data.wrapDate instanceof Date ? 
+          data.wrapDate.toISOString() : data.wrapDate,
+        ntcTestingDate: data.ntcTestingDate instanceof Date ? 
+          data.ntcTestingDate.toISOString() : data.ntcTestingDate,
+        qcStartDate: data.qcStartDate instanceof Date ? 
+          data.qcStartDate.toISOString() : data.qcStartDate,
+        executiveReviewDate: data.executiveReviewDate instanceof Date ? 
+          data.executiveReviewDate.toISOString() : data.executiveReviewDate,
+        shipDate: data.shipDate instanceof Date ? 
+          data.shipDate.toISOString() : data.shipDate,
+        deliveryDate: data.deliveryDate instanceof Date ? 
+          data.deliveryDate.toISOString() : data.deliveryDate,
+      };
+      
+      console.log("Submitting project data:", formattedData);
+      
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formattedData),
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Server error:", response.status, errorText);
+        throw new Error(`Failed to create project: ${response.status} ${errorText}`);
+      }
+      
+      return response.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
@@ -154,6 +186,7 @@ export default function ProjectCreate() {
       navigate(`/project/${data.id}`);
     },
     onError: (error: any) => {
+      console.error("Project creation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to create project. Please try again.",
@@ -807,7 +840,7 @@ export default function ProjectCreate() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <FormField
                       control={form.control}
                       name="pmOwner"
@@ -817,33 +850,6 @@ export default function ProjectCreate() {
                           <FormControl>
                             <Input placeholder="Project manager name" {...field} />
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="team"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Team</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select team" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Team Alpha">Team Alpha</SelectItem>
-                              <SelectItem value="Team Bravo">Team Bravo</SelectItem>
-                              <SelectItem value="Team Charlie">Team Charlie</SelectItem>
-                              <SelectItem value="Team Delta">Team Delta</SelectItem>
-                            </SelectContent>
-                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
