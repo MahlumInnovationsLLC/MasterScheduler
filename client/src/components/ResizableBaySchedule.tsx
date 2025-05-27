@@ -3817,17 +3817,17 @@ export default function ResizableBaySchedule({
                                 </button>
                               </div>
                               
-                              {/* Resize handles - ALWAYS on top */}
+                              {/* Resize handles - MAXIMUM z-index to be above ALL layers */}
                               <div 
-                                className="resize-handle resize-handle-left absolute top-0 left-0 w-2 h-full cursor-ew-resize pointer-events-auto bg-blue-900/30 hover:bg-blue-900/50"
-                                style={{ zIndex: 999999 }}
+                                className="resize-handle resize-handle-left absolute top-0 left-0 w-2 h-full cursor-ew-resize pointer-events-auto bg-blue-900/30 hover:bg-blue-900/80 hover:border hover:border-white hover:shadow-lg transition-all duration-150"
+                                style={{ zIndex: 2147483647 }}
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'start')}
                               ></div>
                               <div 
-                                className="resize-handle resize-handle-right absolute top-0 right-0 w-2 h-full cursor-ew-resize pointer-events-auto bg-blue-900/30 hover:bg-blue-900/50"
+                                className="resize-handle resize-handle-right absolute top-0 right-0 w-2 h-full cursor-ew-resize pointer-events-auto bg-blue-900/30 hover:bg-blue-900/80 hover:border hover:border-white hover:shadow-lg transition-all duration-150"
                                 style={{ 
-                                  zIndex: 999999,
-                                  right: '-2px'
+                                  zIndex: 2147483647,
+                                  right: '-3px'
                                 }}
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'end')}
                               ></div>
