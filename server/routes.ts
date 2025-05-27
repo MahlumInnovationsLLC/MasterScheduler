@@ -476,7 +476,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/delivered-projects", async (req, res) => {
     try {
       const deliveredProjects = await storage.getDeliveredProjects();
-      res.json(deliveredProjects);
+      
+      // Calculate daysLate for each project
+      const projectsWithDays = deliveredProjects.map(project => {
+        let daysLate = 0;
+        
+        if (project.deliveryDate && project.contractDate) {
+          const deliveryDate = new Date(project.deliveryDate);
+          const contractDate = new Date(project.contractDate);
+          
+          // Calculate difference in days
+          const diffTime = deliveryDate.getTime() - contractDate.getTime();
+          daysLate = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+        
+        return {
+          ...project,
+          daysLate
+        };
+      });
+      
+      res.json(projectsWithDays);
     } catch (error) {
       console.error("Error fetching delivered projects:", error);
       res.status(500).json({ message: "Error fetching delivered projects" });
