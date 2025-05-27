@@ -1184,6 +1184,68 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(billingMilestones);
     return result.count || 0;
   }
+
+  // Project Costs methods
+  async getProjectCosts(): Promise<ProjectCost[]> {
+    try {
+      return await db.select().from(projectCosts).orderBy(desc(projectCosts.updatedAt));
+    } catch (error) {
+      console.error("Error fetching project costs:", error);
+      return [];
+    }
+  }
+
+  async getProjectCost(projectId: number): Promise<ProjectCost | undefined> {
+    try {
+      const [cost] = await db.select().from(projectCosts).where(eq(projectCosts.projectId, projectId));
+      return cost;
+    } catch (error) {
+      console.error(`Error fetching project cost for project ${projectId}:`, error);
+      return undefined;
+    }
+  }
+
+  async createProjectCost(cost: InsertProjectCost): Promise<ProjectCost> {
+    try {
+      const [newCost] = await db.insert(projectCosts).values(cost).returning();
+      console.log("Project cost created successfully:", newCost.id);
+      return newCost;
+    } catch (error) {
+      console.error("Error creating project cost:", error);
+      throw error;
+    }
+  }
+
+  async updateProjectCost(projectId: number, cost: Partial<InsertProjectCost>): Promise<ProjectCost | undefined> {
+    try {
+      const [updatedCost] = await db
+        .update(projectCosts)
+        .set({ ...cost, updatedAt: new Date() })
+        .where(eq(projectCosts.projectId, projectId))
+        .returning();
+        
+      if (!updatedCost) {
+        console.error(`No project cost found for project ${projectId} for update`);
+        return undefined;
+      }
+      
+      console.log(`Project cost for project ${projectId} updated successfully`);
+      return updatedCost;
+    } catch (error) {
+      console.error(`Error updating project cost for project ${projectId}:`, error);
+      return undefined;
+    }
+  }
+
+  async deleteProjectCost(projectId: number): Promise<boolean> {
+    try {
+      await db.delete(projectCosts).where(eq(projectCosts.projectId, projectId));
+      return true;
+    } catch (error) {
+      console.error(`Error deleting project cost for project ${projectId}:`, error);
+      return false;
+    }
+  }
   
   // Manufacturing Bay methods
   async getManufacturingBays(): Promise<ManufacturingBay[]> {

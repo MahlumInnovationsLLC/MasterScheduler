@@ -17,7 +17,8 @@ import {
   insertManufacturingScheduleSchema,
   insertUserPreferencesSchema,
   insertNotificationSchema,
-  insertSalesDealSchema
+  insertSalesDealSchema,
+  insertProjectCostSchema
 } from "@shared/schema";
 
 import { exportReport } from "./routes/export";
@@ -2837,6 +2838,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting weekly financial goal:", error);
       res.status(500).json({ message: "Error deleting weekly financial goal" });
+    }
+  });
+
+  // Project Costs API routes
+  app.get("/api/projects/:projectId/costs", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const projectCost = await storage.getProjectCost(projectId);
+      res.json(projectCost);
+    } catch (error) {
+      console.error("Error fetching project costs:", error);
+      res.status(500).json({ message: "Error fetching project costs" });
+    }
+  });
+
+  app.post("/api/project-costs", hasEditRights, validateRequest(insertProjectCostSchema), async (req, res) => {
+    try {
+      const projectCost = await storage.createProjectCost(req.body);
+      res.status(201).json(projectCost);
+    } catch (error) {
+      console.error("Error creating project cost:", error);
+      res.status(500).json({ message: "Error creating project cost" });
+    }
+  });
+
+  app.put("/api/project-costs/:projectId", hasEditRights, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const projectCost = await storage.updateProjectCost(projectId, req.body);
+      if (!projectCost) {
+        return res.status(404).json({ message: "Project cost not found" });
+      }
+      res.json(projectCost);
+    } catch (error) {
+      console.error("Error updating project cost:", error);
+      res.status(500).json({ message: "Error updating project cost" });
+    }
+  });
+
+  app.delete("/api/project-costs/:projectId", hasEditRights, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const result = await storage.deleteProjectCost(projectId);
+      if (!result) {
+        return res.status(404).json({ message: "Project cost not found" });
+      }
+      res.json({ message: "Project cost deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting project cost:", error);
+      res.status(500).json({ message: "Error deleting project cost" });
     }
   });
 
