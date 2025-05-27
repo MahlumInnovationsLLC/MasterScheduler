@@ -2071,12 +2071,27 @@ export class DatabaseStorage implements IStorage {
 
   async updateDeliveredProjectResponsibility(projectId: number, responsibility: string): Promise<boolean> {
     try {
-      await db.update(projects)
+      console.log("🔥🔥🔥 STORAGE: Starting responsibility update for project", projectId, "with value:", responsibility);
+      
+      const result = await db.update(projects)
         .set({ delayResponsibility: responsibility as any })
         .where(eq(projects.id, projectId));
-      return true;
+      
+      console.log("🔥🔥🔥 STORAGE: Responsibility update result:", result);
+      console.log("🔥🔥🔥 STORAGE: Result type:", typeof result);
+      console.log("🔥🔥🔥 STORAGE: Result stringified:", JSON.stringify(result));
+      
+      // Check if the update actually affected any rows
+      if (result && result.changes && result.changes > 0) {
+        console.log("🎉 STORAGE: Successfully updated", result.changes, "rows for responsibility");
+        return true;
+      } else {
+        console.log("💥 STORAGE: No rows were updated for responsibility - this is the problem!");
+        console.log("💥 STORAGE: Result.changes:", result?.changes);
+        return false;
+      }
     } catch (error) {
-      console.error("Error updating delivered project responsibility:", error);
+      console.error("💥💥💥 STORAGE RESPONSIBILITY ERROR:", error);
       return false;
     }
   }
