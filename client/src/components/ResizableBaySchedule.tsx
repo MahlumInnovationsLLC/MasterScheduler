@@ -3824,8 +3824,13 @@ export default function ResizableBaySchedule({
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'start')}
                               ></div>
                               <div 
-                                className="resize-handle resize-handle-right absolute top-0 right-0 w-6 h-full cursor-ew-resize pointer-events-auto"
-                                style={{ zIndex: 99999, transform: 'translateX(50%)' }}
+                                className="resize-handle resize-handle-right absolute top-0 right-0 w-3 h-full cursor-ew-resize pointer-events-auto"
+                                style={{ 
+                                  zIndex: 999999, 
+                                  transform: 'translateX(50%)',
+                                  position: 'absolute',
+                                  right: '-1px'
+                                }}
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'end')}
                               ></div>
                             </div>
