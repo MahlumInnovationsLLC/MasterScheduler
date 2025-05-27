@@ -225,21 +225,66 @@ function ProjectEdit() {
         // New field with calculated days
         poDroppedToDeliveryDays: calculatedDays,
         
-        // Dates
-        contractDate: project.contractDate ? new Date(project.contractDate) : undefined,
-        poDroppedDate: project.poDroppedDate ? new Date(project.poDroppedDate) : project.startDate ? new Date(project.startDate) : undefined,
-        startDate: project.startDate ? new Date(project.startDate) : undefined,
-        estimatedCompletionDate: project.estimatedCompletionDate ? new Date(project.estimatedCompletionDate) : undefined,
-        actualCompletionDate: project.actualCompletionDate ? new Date(project.actualCompletionDate) : undefined,
-        chassisETA: project.chassisETA ? new Date(project.chassisETA) : undefined,
-        fabricationStart: project.fabricationStart ? new Date(project.fabricationStart) : undefined,
-        assemblyStart: project.assemblyStart ? new Date(project.assemblyStart) : undefined,
-        wrapDate: project.wrapDate ? new Date(project.wrapDate) : undefined,
-        ntcTestingDate: project.ntcTestingDate ? new Date(project.ntcTestingDate) : undefined,
-        qcStartDate: project.qcStartDate ? new Date(project.qcStartDate) : undefined,
-        executiveReviewDate: project.executiveReviewDate ? new Date(project.executiveReviewDate) : undefined,
-        shipDate: project.shipDate ? new Date(project.shipDate) : undefined,
-        deliveryDate: project.deliveryDate ? new Date(project.deliveryDate) : undefined,
+        // Dates - parse carefully to avoid timezone issues
+        contractDate: project.contractDate ? (() => {
+          const [year, month, day] = project.contractDate.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : undefined,
+        poDroppedDate: project.poDroppedDate ? (() => {
+          const [year, month, day] = project.poDroppedDate.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : project.startDate ? (() => {
+          const [year, month, day] = project.startDate.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : undefined,
+        startDate: project.startDate ? (() => {
+          const [year, month, day] = project.startDate.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : undefined,
+        estimatedCompletionDate: project.estimatedCompletionDate ? (() => {
+          const [year, month, day] = project.estimatedCompletionDate.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : undefined,
+        actualCompletionDate: project.actualCompletionDate ? (() => {
+          const [year, month, day] = project.actualCompletionDate.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : undefined,
+        chassisETA: project.chassisETA ? (() => {
+          const [year, month, day] = project.chassisETA.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : undefined,
+        fabricationStart: project.fabricationStart ? (() => {
+          const [year, month, day] = project.fabricationStart.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : undefined,
+        assemblyStart: project.assemblyStart ? (() => {
+          const [year, month, day] = project.assemblyStart.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : undefined,
+        wrapDate: project.wrapDate ? (() => {
+          const [year, month, day] = project.wrapDate.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : undefined,
+        ntcTestingDate: project.ntcTestingDate ? (() => {
+          const [year, month, day] = project.ntcTestingDate.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : undefined,
+        qcStartDate: project.qcStartDate ? (() => {
+          const [year, month, day] = project.qcStartDate.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : undefined,
+        executiveReviewDate: project.executiveReviewDate ? (() => {
+          const [year, month, day] = project.executiveReviewDate.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : undefined,
+        shipDate: project.shipDate ? (() => {
+          const [year, month, day] = project.shipDate.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : undefined,
+        deliveryDate: project.deliveryDate ? (() => {
+          const [year, month, day] = project.deliveryDate.split('-');
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        })() : undefined,
         
         // Project details
         percentComplete: project.percentComplete ? Number(project.percentComplete) : 0,
