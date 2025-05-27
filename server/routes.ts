@@ -136,6 +136,13 @@ async function syncDeliveryMilestonesToShipDate(projectId: number, shipDate: str
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // CRITICAL FIX: Ensure API routes are processed with proper JSON responses
+  app.use('/api', (req, res, next) => {
+    res.setHeader('Content-Type', 'application/json');
+    next();
+  });
+
   // Special route to update project hours from 40 to 1000
   app.post("/api/admin/update-project-hours", isAdmin, async (req, res) => {
     try {
