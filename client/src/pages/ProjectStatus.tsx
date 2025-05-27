@@ -154,31 +154,33 @@ const ProjectStatus = () => {
     if (!selectedProjectId) return;
     
     try {
-      // Update project status to delivered
-      const updateData: any = {
-        status: 'completed',
-        deliveryDate: deliveryDate
-      };
+      // Use the proper API endpoint for marking projects as delivered
+      const data: any = {};
       
-      // If delivery is late, include delay information
+      // Include late delivery data if provided
       if (isLateDelivery && deliveryReason) {
-        updateData.deliveryDelay = {
-          reason: deliveryReason,
-          responsibility: delayResponsibility || null
-        };
+        data.lateDeliveryReason = deliveryReason;
+        if (delayResponsibility) {
+          data.delayResponsibility = delayResponsibility;
+        }
       }
       
-      await apiRequest('PATCH', `/api/projects/${selectedProjectId}`, updateData);
+      const response = await apiRequest('POST', `/api/projects/${selectedProjectId}/mark-delivered`, data);
       
-      // Refresh project list after marking as delivered
-      refetchProjects();
-      
-      // Close dialog and show success message
-      setDeliveryDialogOpen(false);
-      toast({
-        title: 'Project marked as delivered',
-        description: 'Project has been moved to Delivered Projects',
-      });
+      if (response.ok) {
+        // Refresh both projects and delivered projects lists
+        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+        
+        // Close dialog and show success message
+        setDeliveryDialogOpen(false);
+        toast({
+          title: 'Project marked as delivered',
+          description: 'Project has been moved to Delivered Projects',
+        });
+      } else {
+        throw new Error('Failed to mark project as delivered');
+      }
       
     } catch (error) {
       console.error('Error marking project as delivered:', error);
@@ -701,10 +703,6 @@ const ProjectStatus = () => {
           description: `Project has been successfully marked as delivered`,
           variant: "default"
         });
-        
-        // Close dialog if it was open
-        setShowDeliveryDialog(false);
-        setProjectBeingDelivered(null);
         
         return true;
       } else {
