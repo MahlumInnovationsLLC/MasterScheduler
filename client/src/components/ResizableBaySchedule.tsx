@@ -2175,9 +2175,12 @@ export default function ResizableBaySchedule({
     e.preventDefault();
     e.stopPropagation();
     
-    // Save current values to be restored if needed
-    const element = e.currentTarget.closest('.schedule-bar') as HTMLElement;
-    if (!element) return;
+    // Find the project bar element by its data attribute since handles are now outside containers
+    const element = document.querySelector(`[data-schedule-id="${bar.id}"]`) as HTMLElement;
+    if (!element) {
+      console.error('Could not find project bar element for resize');
+      return;
+    }
     
     // Track initial position and size
     const initialRect = element.getBoundingClientRect();
