@@ -21,6 +21,7 @@ type DeliveredProject = {
   actualDeliveryDate: string | null;
   daysLate: number;
   reason: string | null;
+  lateDeliveryReason: string | null;
   delayResponsibility: 'not_applicable' | 'client_fault' | 'nomad_fault' | 'vendor_fault';
   percentComplete: string;
   status: string;
@@ -144,11 +145,12 @@ const DeliveredProjects = () => {
       }
     },
     {
-      accessorKey: 'reason',
+      accessorKey: 'lateDeliveryReason',
       header: 'Reason',
       cell: ({ row }) => {
         const projectId = row.original.id;
         const isEditing = editingReason === projectId;
+        const reason = row.original.lateDeliveryReason || row.original.reason;
         
         if (isEditing) {
           return (
@@ -189,13 +191,13 @@ const DeliveredProjects = () => {
         return (
           <div className="flex items-center gap-2 group">
             <span className="text-sm">
-              {row.original.reason || '-'}
+              {reason || '-'}
             </span>
             <Button
               size="sm"
               variant="ghost"
               className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
-              onClick={() => handleReasonEdit(projectId, row.original.reason)}
+              onClick={() => handleReasonEdit(projectId, reason)}
             >
               <Edit2 className="h-3 w-3" />
             </Button>
