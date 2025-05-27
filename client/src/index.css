@@ -1945,7 +1945,7 @@ body.role-viewer main {
 .resize-handle-right {
   background-color: rgba(0, 0, 0, 0.8) !important;
   border: 3px solid rgba(255, 255, 255, 0.95) !important;
-  z-index: 999998 !important; /* High z-index but below popups */
+  z-index: 500 !important; /* Lower z-index below popups */
   opacity: 0.4 !important; /* Make them slightly visible by default */
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
 }
@@ -1953,7 +1953,7 @@ body.role-viewer main {
 .resize-handle-left {
   background-color: rgba(0, 0, 0, 0.8) !important;
   border: 3px solid rgba(255, 255, 255, 0.95) !important;
-  z-index: 999998 !important; /* High z-index but below popups */
+  z-index: 500 !important; /* Lower z-index below popups */
   opacity: 0.4 !important; /* Make them slightly visible by default */
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
 }
@@ -1984,7 +1984,7 @@ body.resizing-mode .resize-handle {
 .tooltip-content,
 .modal,
 .popup {
-  z-index: 999999 !important; /* Above resize handles */
+  z-index: 600 !important; /* Above resize handles */
 }
 
 .dark .resize-handle:hover {

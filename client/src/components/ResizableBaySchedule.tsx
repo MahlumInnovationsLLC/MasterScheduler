@@ -2134,7 +2134,7 @@ export default function ResizableBaySchedule({
     return { left, width };
   };
   
-  // Function to update department phase widths dynamically 
+  // Function to update department phase widths and positions dynamically 
   const updateDepartmentPhaseWidths = (barElement: HTMLElement, totalWidth: number) => {
     const bar = barElement;
     
@@ -2154,7 +2154,10 @@ export default function ResizableBaySchedule({
     const ntcWidth = Math.round(totalWidth * (ntcPercent / 100));
     const qcWidth = Math.round(totalWidth * (qcPercent / 100));
     
-    // Find and update the phase elements
+    // Calculate cumulative positions for each phase
+    let currentPosition = 0;
+    
+    // Find and update the phase elements with both width and position
     const fabPhase = bar.querySelector('.fab-phase') as HTMLElement;
     const paintPhase = bar.querySelector('.paint-phase') as HTMLElement;
     const prodPhase = bar.querySelector('.production-phase') as HTMLElement;
@@ -2162,12 +2165,46 @@ export default function ResizableBaySchedule({
     const ntcPhase = bar.querySelector('.ntc-phase') as HTMLElement;
     const qcPhase = bar.querySelector('.qc-phase') as HTMLElement;
     
-    if (fabPhase) fabPhase.style.width = `${fabWidth}px`;
-    if (paintPhase) paintPhase.style.width = `${paintWidth}px`;
-    if (prodPhase) prodPhase.style.width = `${prodWidth}px`;
-    if (itPhase) itPhase.style.width = `${itWidth}px`;
-    if (ntcPhase) ntcPhase.style.width = `${ntcWidth}px`;
-    if (qcPhase) qcPhase.style.width = `${qcWidth}px`;
+    // Update FAB phase
+    if (fabPhase) {
+      fabPhase.style.width = `${fabWidth}px`;
+      fabPhase.style.left = `${currentPosition}px`;
+      currentPosition += fabWidth;
+    }
+    
+    // Update PAINT phase
+    if (paintPhase) {
+      paintPhase.style.width = `${paintWidth}px`;
+      paintPhase.style.left = `${currentPosition}px`;
+      currentPosition += paintWidth;
+    }
+    
+    // Update PRODUCTION phase
+    if (prodPhase) {
+      prodPhase.style.width = `${prodWidth}px`;
+      prodPhase.style.left = `${currentPosition}px`;
+      currentPosition += prodWidth;
+    }
+    
+    // Update IT phase
+    if (itPhase) {
+      itPhase.style.width = `${itWidth}px`;
+      itPhase.style.left = `${currentPosition}px`;
+      currentPosition += itWidth;
+    }
+    
+    // Update NTC phase
+    if (ntcPhase) {
+      ntcPhase.style.width = `${ntcWidth}px`;
+      ntcPhase.style.left = `${currentPosition}px`;
+      currentPosition += ntcWidth;
+    }
+    
+    // Update QC phase
+    if (qcPhase) {
+      qcPhase.style.width = `${qcWidth}px`;
+      qcPhase.style.left = `${currentPosition}px`;
+    }
   };
   
   // Handle resizing the schedule bars
