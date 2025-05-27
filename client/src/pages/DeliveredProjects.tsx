@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/ui/data-table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -154,37 +155,50 @@ const DeliveredProjects = () => {
         
         if (isEditing) {
           return (
-            <div className="flex items-center gap-2">
-              <Input
-                value={reasonValue}
-                onChange={(e) => setReasonValue(e.target.value)}
-                className="h-8 text-xs"
-                placeholder="Enter reason..."
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleReasonSave(projectId);
-                  } else if (e.key === 'Escape') {
-                    handleReasonCancel();
-                  }
-                }}
-              />
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleReasonSave(projectId)}
-                disabled={updateReasonMutation.isPending}
-              >
-                <Check className="h-3 w-3" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleReasonCancel}
-                disabled={updateReasonMutation.isPending}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
+            <Dialog open={true} onOpenChange={() => handleReasonCancel()}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Edit Reason</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Reason for Delay:</label>
+                    <textarea
+                      value={reasonValue}
+                      onChange={(e) => setReasonValue(e.target.value)}
+                      className="w-full mt-1 p-2 border rounded-md text-sm"
+                      rows={3}
+                      placeholder="Enter the reason for the delay..."
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.ctrlKey) {
+                          handleReasonSave(projectId);
+                        } else if (e.key === 'Escape') {
+                          handleReasonCancel();
+                        }
+                      }}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleReasonCancel}
+                      disabled={updateReasonMutation.isPending}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleReasonSave(projectId)}
+                      disabled={updateReasonMutation.isPending}
+                    >
+                      {updateReasonMutation.isPending ? 'Saving...' : 'Save'}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           );
         }
         
