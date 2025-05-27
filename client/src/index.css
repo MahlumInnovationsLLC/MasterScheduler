@@ -1925,20 +1925,38 @@ body.role-viewer main {
 }
 
 .big-project-bar:hover .resize-handle {
-  opacity: 1;
-  background-color: rgba(0, 0, 0, 0.9) !important;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8) !important;
+  opacity: 1 !important;
+  background-color: rgba(0, 0, 0, 0.95) !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9) !important;
+  transform: scale(1.1) !important;
+  z-index: 999999 !important;
+}
+
+/* Force right handles to be extra visible */
+.resize-handle-right:hover {
+  opacity: 1 !important;
+  background-color: rgba(255, 0, 0, 0.8) !important; /* Red background on hover for visibility */
+  border: 4px solid rgba(255, 255, 255, 1) !important;
+  box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.5) !important;
+  transform: scale(1.2) !important;
+  z-index: 999999 !important;
 }
 
 /* Always ensure resize handles are visible on overlap */
 .resize-handle-right {
-  background-color: rgba(0, 0, 0, 0.7) !important;
-  border: 2px solid rgba(255, 255, 255, 0.9) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  border: 3px solid rgba(255, 255, 255, 0.95) !important;
+  z-index: 99999 !important; /* Even higher z-index for right handles */
+  opacity: 0.4 !important; /* Make them slightly visible by default */
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
 }
 
 .resize-handle-left {
-  background-color: rgba(0, 0, 0, 0.7) !important;
-  border: 2px solid rgba(255, 255, 255, 0.9) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  border: 3px solid rgba(255, 255, 255, 0.95) !important;
+  z-index: 99999 !important; /* Even higher z-index for left handles */
+  opacity: 0.4 !important; /* Make them slightly visible by default */
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
 }
 
 /* Always show handles when in resize operation */
