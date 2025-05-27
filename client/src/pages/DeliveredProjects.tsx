@@ -86,18 +86,22 @@ const DeliveredProjects = () => {
       accessorKey: 'contractDate',
       header: 'Contract Date',
       cell: ({ row }) => {
-        return row.original.contractDate ? 
-          format(new Date(row.original.contractDate), 'MMM d, yyyy') : 
-          '-';
+        if (!row.original.contractDate) return '-';
+        // Parse date as local time to avoid timezone shifts
+        const [year, month, day] = row.original.contractDate.split('-');
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        return format(date, 'MMM d, yyyy');
       }
     },
     {
       accessorKey: 'actualDeliveryDate',
       header: 'Actual Delivery Date',
       cell: ({ row }) => {
-        return row.original.actualDeliveryDate ? 
-          format(new Date(row.original.actualDeliveryDate), 'MMM d, yyyy') : 
-          'Not Delivered';
+        if (!row.original.actualDeliveryDate) return 'Not Delivered';
+        // Parse date as local time to avoid timezone shifts
+        const [year, month, day] = row.original.actualDeliveryDate.split('-');
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        return format(date, 'MMM d, yyyy');
       }
     },
     {
