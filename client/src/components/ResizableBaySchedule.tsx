@@ -3741,38 +3741,49 @@ export default function ResizableBaySchedule({
                                         );
                                       }
                                       
-                                      // Calculate current phase based on today's date and project timeline
-                                      const getCurrentPhase = (startDate: Date | string | null, shipDate: Date | string | null, today: Date): string => {
-                                        if (!startDate || !shipDate) {
-                                          return 'Not Started';
-                                        }
-                                        
-                                        const start = new Date(startDate);
-                                        const ship = new Date(shipDate);
+                                      // Calculate current phase based on EXACT visual timeline positions
+                                      const getCurrentPhaseFromVisualTimeline = (scheduleStartDate: Date, scheduleEndDate: Date, today: Date): string => {
+                                        const start = new Date(scheduleStartDate);
+                                        const end = new Date(scheduleEndDate);
                                         start.setHours(0, 0, 0, 0);
-                                        ship.setHours(0, 0, 0, 0);
+                                        end.setHours(0, 0, 0, 0);
                                         today.setHours(0, 0, 0, 0);
                                         
+                                        // Check if before schedule starts
                                         if (today < start) return 'Not Started';
-                                        if (today >= ship) return 'Shipped';
                                         
-                                        const totalDays = (ship.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+                                        // Check if after schedule ends
+                                        if (today >= end) return 'Shipped';
+                                        
+                                        // Calculate position within the schedule timeline
+                                        const totalDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
                                         const daysSinceStart = (today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
                                         const progressPercent = (daysSinceStart / totalDays) * 100;
                                         
-                                        // Phase percentages matching visual timeline
+                                        // Use EXACT phase percentages from visual timeline (matching bar.fabPercentage, etc.)
                                         let cumulativePercent = 0;
-                                        cumulativePercent += 27; if (progressPercent <= cumulativePercent) return 'FAB';
-                                        cumulativePercent += 7; if (progressPercent <= cumulativePercent) return 'Paint';
-                                        cumulativePercent += 60; if (progressPercent <= cumulativePercent) return 'Production';
-                                        cumulativePercent += 7; if (progressPercent <= cumulativePercent) return 'IT';
-                                        cumulativePercent += 7; if (progressPercent <= cumulativePercent) return 'NTC';
+                                        
+                                        cumulativePercent += bar.fabPercentage;
+                                        if (progressPercent < cumulativePercent) return 'FAB';
+                                        
+                                        cumulativePercent += bar.paintPercentage;
+                                        if (progressPercent < cumulativePercent) return 'Paint';
+                                        
+                                        cumulativePercent += bar.productionPercentage;
+                                        if (progressPercent < cumulativePercent) return 'Production';
+                                        
+                                        cumulativePercent += bar.itPercentage;
+                                        if (progressPercent < cumulativePercent) return 'IT';
+                                        
+                                        cumulativePercent += bar.ntcPercentage;
+                                        if (progressPercent < cumulativePercent) return 'NTC';
+                                        
                                         return 'QC';
                                       };
                                       
-                                      const currentPhase = getCurrentPhase(
-                                        project.startDate,
-                                        project.shipDate,
+                                      const currentPhase = getCurrentPhaseFromVisualTimeline(
+                                        bar.startDate,
+                                        bar.endDate,
                                         today
                                       );
                                       
