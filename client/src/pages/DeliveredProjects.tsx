@@ -187,10 +187,16 @@ const DeliveredProjects = () => {
           setIsUpdating(true);
           try {
             console.log("💾 DIRECT SAVE - Project:", projectId, "Reason:", reasonValue);
+            console.log("🔍 Making API request to:", `/api/delivered-projects/${projectId}/reason`);
+            console.log("🔍 Request payload:", { reason: reasonValue });
             
-            await apiRequest('PATCH', `/api/delivered-projects/${projectId}/reason`, { 
+            const response = await apiRequest('PATCH', `/api/delivered-projects/${projectId}/reason`, { 
               reason: reasonValue 
             });
+            
+            console.log("🎉 API Response received:", response);
+            console.log("🎉 Response type:", typeof response);
+            console.log("🎉 Response stringified:", JSON.stringify(response));
             
             queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
             toast({
@@ -199,10 +205,12 @@ const DeliveredProjects = () => {
             });
             setIsEditing(false);
           } catch (error) {
-            console.error("💥 Save failed:", error);
+            console.error("💥 Save failed with error:", error);
+            console.error("💥 Error type:", typeof error);
+            console.error("💥 Error stringified:", JSON.stringify(error));
             toast({
               title: "Error",
-              description: "Failed to update reason",
+              description: `Update failed: ${error?.message || 'Unknown error'}`,
               variant: "destructive"
             });
           } finally {
