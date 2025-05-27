@@ -289,27 +289,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (updateData[field] === null) {
             console.log(`Clearing date field ${field} to null`);
           }
-          // Otherwise, apply the timezone fix and store the correct date
+          // Store the date exactly as provided by the user - no timezone adjustments
           else if (updateData[field]) {
-            // TIMEZONE FIX: When saving dates from the client, adjust by -1 day
-            // This undoes the +1 day adjustment we make for display in the client
-            // This ensures the server stores the exact date chosen by the user
-            try {
-              // Parse the date
-              const dateToFix = new Date(updateData[field]);
-              if (!isNaN(dateToFix.getTime())) {
-                // Subtract a day to compensate for the client-side adjustment
-                dateToFix.setDate(dateToFix.getDate() - 1);
-                // Format as YYYY-MM-DD and store back
-                updateData[field] = dateToFix.toISOString().split('T')[0];
-                console.log(`TIMEZONE FIX: Adjusted date for ${field}: ${updateData[field]} (display date was ${req.body[field]})`);
-              } else {
-                // If can't parse, use as-is
-                console.log(`Using date for ${field} as provided (couldn't parse): ${updateData[field]}`);
-              }
-            } catch (e) {
-              console.log(`Using date for ${field} as provided (error fixing): ${updateData[field]}`);
-            }
+            console.log(`Storing date for ${field} exactly as provided: ${updateData[field]}`);
           }
         }
       });

@@ -33,13 +33,8 @@ export function formatDate(date: Date | string | undefined | null): string {
       return String(date) || 'N/A';
     }
     
-    // CRITICAL: Add +1 day adjustment to ALL date displays
-    // This fixes timezone issues across the application
-    const adjustedDate = new Date(dateObj);
-    adjustedDate.setDate(adjustedDate.getDate() + 1);
-    
-    // Format the date with the adjusted date
-    return format(adjustedDate, 'MMM dd, yyyy');
+    // Format the date without any adjustment - use exact date
+    return format(dateObj, 'MMM dd, yyyy');
   } catch (error) {
     console.error(`Error formatting date: ${date}`, error);
     return String(date) || 'N/A';
