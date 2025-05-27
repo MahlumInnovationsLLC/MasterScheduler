@@ -475,27 +475,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update delivered project reason
   app.patch("/api/delivered-projects/:id/reason", hasEditRights, async (req, res) => {
     try {
+      console.log("=== REASON UPDATE DEBUG START ===");
       const projectId = parseInt(req.params.id);
       const { reason } = req.body;
 
-      console.log("DEBUG - Updating reason:", { projectId, reason, body: req.body });
+      console.log("Request params:", req.params);
+      console.log("Request body:", JSON.stringify(req.body));
+      console.log("Parsed projectId:", projectId);
+      console.log("Extracted reason:", reason);
+      console.log("Reason type:", typeof reason);
 
-      if (!projectId || typeof reason !== 'string') {
-        console.log("DEBUG - Validation failed:", { projectId, reason, typeOf: typeof reason });
-        return res.status(400).json({ message: "Invalid project ID or reason" });
+      if (!projectId) {
+        console.log("ERROR: Invalid project ID");
+        return res.status(400).json({ message: "Invalid project ID" });
       }
 
-      console.log("DEBUG - About to call storage.updateDeliveredProjectReason");
+      if (typeof reason !== 'string') {
+        console.log("ERROR: Reason is not a string, type is:", typeof reason);
+        return res.status(400).json({ message: "Invalid reason format" });
+      }
+
+      console.log("Calling storage.updateDeliveredProjectReason with:", { projectId, reason });
       const success = await storage.updateDeliveredProjectReason(projectId, reason);
-      console.log("DEBUG - Storage result:", success);
+      console.log("Storage update result:", success);
       
       if (success) {
+        console.log("=== REASON UPDATE SUCCESS ===");
         res.json({ success: true, message: "Reason updated successfully" });
       } else {
+        console.log("=== REASON UPDATE FAILED ===");
         res.status(500).json({ message: "Failed to update reason" });
       }
     } catch (error) {
-      console.error("Error updating delivered project reason:", error);
+      console.error("=== REASON UPDATE ERROR ===", error);
       res.status(500).json({ message: "Error updating reason" });
     }
   });
