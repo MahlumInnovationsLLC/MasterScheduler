@@ -1929,7 +1929,7 @@ body.role-viewer main {
   background-color: rgba(0, 0, 0, 0.95) !important;
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9) !important;
   transform: scale(1.1) !important;
-  z-index: 999999 !important;
+  z-index: 500 !important;
 }
 
 /* Ensure right handles are always above project phases */
@@ -1938,7 +1938,7 @@ body.role-viewer main {
   background-color: rgba(0, 0, 0, 0.9) !important;
   border: 2px solid rgba(255, 255, 255, 1) !important;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5) !important;
-  z-index: 999999 !important;
+  z-index: 500 !important;
 }
 
 /* Always ensure resize handles are visible on overlap */
