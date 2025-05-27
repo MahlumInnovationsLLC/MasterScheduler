@@ -22,7 +22,7 @@ import {
 import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom } from './ExactFitPhaseWidths';
 import DurationCalculator from './DurationCalculator';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
-import { getCurrentPhase } from './HighRiskProjectsCard';
+// Function will be defined inside the component
 import { TeamManagementDialog } from './TeamManagementDialog';
 import FinancialImpactPopup from './FinancialImpactPopup';
 import { 
@@ -3741,7 +3741,35 @@ export default function ResizableBaySchedule({
                                         );
                                       }
                                       
-                                      // Use getCurrentPhase function to determine current phase
+                                      // Calculate current phase based on today's date and project timeline
+                                      const getCurrentPhase = (startDate: Date | string | null, shipDate: Date | string | null, today: Date): string => {
+                                        if (!startDate || !shipDate) {
+                                          return 'Not Started';
+                                        }
+                                        
+                                        const start = new Date(startDate);
+                                        const ship = new Date(shipDate);
+                                        start.setHours(0, 0, 0, 0);
+                                        ship.setHours(0, 0, 0, 0);
+                                        today.setHours(0, 0, 0, 0);
+                                        
+                                        if (today < start) return 'Not Started';
+                                        if (today >= ship) return 'Shipped';
+                                        
+                                        const totalDays = (ship.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+                                        const daysSinceStart = (today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+                                        const progressPercent = (daysSinceStart / totalDays) * 100;
+                                        
+                                        // Phase percentages matching visual timeline
+                                        let cumulativePercent = 0;
+                                        cumulativePercent += 27; if (progressPercent <= cumulativePercent) return 'FAB';
+                                        cumulativePercent += 7; if (progressPercent <= cumulativePercent) return 'Paint';
+                                        cumulativePercent += 60; if (progressPercent <= cumulativePercent) return 'Production';
+                                        cumulativePercent += 7; if (progressPercent <= cumulativePercent) return 'IT';
+                                        cumulativePercent += 7; if (progressPercent <= cumulativePercent) return 'NTC';
+                                        return 'QC';
+                                      };
+                                      
                                       const currentPhase = getCurrentPhase(
                                         project.startDate,
                                         project.shipDate,
