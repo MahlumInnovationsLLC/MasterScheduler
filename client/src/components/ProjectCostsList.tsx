@@ -223,6 +223,37 @@ export function ProjectCostsList({ projectId }: ProjectCostsListProps) {
     </div>;
   }
 
+  // Handle case where no project cost exists yet
+  if (!projectCost) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-12">
+          <DollarSign className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Cost Data Available</h3>
+          <p className="text-gray-600 mb-6">Start tracking project costs by adding cost information.</p>
+          <Button 
+            onClick={() => setShowCostForm(true)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Project Costs
+          </Button>
+        </div>
+
+        {showCostForm && (
+          <ProjectCostForm
+            projectId={projectId}
+            onClose={() => setShowCostForm(false)}
+            onSuccess={() => {
+              setShowCostForm(false);
+              queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/costs`] });
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header with Actions */}
