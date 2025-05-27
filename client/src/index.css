@@ -1945,7 +1945,7 @@ body.role-viewer main {
 .resize-handle-right {
   background-color: rgba(0, 0, 0, 0.8) !important;
   border: 3px solid rgba(255, 255, 255, 0.95) !important;
-  z-index: 99999 !important; /* Even higher z-index for right handles */
+  z-index: 999998 !important; /* High z-index but below popups */
   opacity: 0.4 !important; /* Make them slightly visible by default */
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
 }
@@ -1953,7 +1953,7 @@ body.role-viewer main {
 .resize-handle-left {
   background-color: rgba(0, 0, 0, 0.8) !important;
   border: 3px solid rgba(255, 255, 255, 0.95) !important;
-  z-index: 99999 !important; /* Even higher z-index for left handles */
+  z-index: 999998 !important; /* High z-index but below popups */
   opacity: 0.4 !important; /* Make them slightly visible by default */
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
 }
@@ -1962,6 +1962,29 @@ body.role-viewer main {
 .resizing-active .resize-handle,
 body.resizing-mode .resize-handle {
   opacity: 1 !important;
+}
+
+/* Ensure all popups and dialogs are above resize handles */
+[data-radix-popper-content-wrapper],
+[data-radix-dialog-overlay],
+[data-radix-dialog-content],
+[data-radix-popover-content],
+[data-radix-dropdown-menu-content],
+[data-radix-select-content],
+[data-radix-tooltip-content],
+[role="dialog"],
+[role="menu"],
+[role="listbox"],
+[role="tooltip"],
+.dialog-overlay,
+.dialog-content,
+.popover-content,
+.dropdown-menu-content,
+.select-content,
+.tooltip-content,
+.modal,
+.popup {
+  z-index: 999999 !important; /* Above resize handles */
 }
 
 .dark .resize-handle:hover {

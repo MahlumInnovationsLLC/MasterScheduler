@@ -2231,8 +2231,14 @@ export default function ResizableBaySchedule({
         // Log for debugging
         console.log('Left resize: Fixed right edge at', rightEdgePosition, 'New left:', newLeft, 'New width:', newWidth);
         
-        // Update department phase widths
+        // Update department phase widths in real-time
         updateDepartmentPhaseWidths(element, newWidth);
+        
+        // Also update the resize handles positions
+        const rightHandle = document.querySelector(`[data-schedule-id="${bar.id}"] + div + div`) as HTMLElement;
+        if (rightHandle) {
+          rightHandle.style.left = `${newLeft + newWidth + 4}px`;
+        }
         
       } else { // end resize
         // CRITICAL FIX: When resizing from right (end), keep the left edge fixed
@@ -2252,8 +2258,14 @@ export default function ResizableBaySchedule({
         // Log for debugging
         console.log('Right resize: Fixed left edge at', initialLeft, 'New width:', newWidth);
         
-        // Update department phase widths  
+        // Update department phase widths in real-time
         updateDepartmentPhaseWidths(element, newWidth);
+        
+        // Also update the right resize handle position
+        const rightHandle = document.querySelector(`[data-schedule-id="${bar.id}"] + div + div`) as HTMLElement;
+        if (rightHandle) {
+          rightHandle.style.left = `${initialLeft + newWidth + 4}px`;
+        }
       }
     };
     
