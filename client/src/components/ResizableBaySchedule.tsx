@@ -3741,23 +3741,41 @@ export default function ResizableBaySchedule({
                                         );
                                       }
                                       
-                                      // Calculate phase based on VISUAL position rather than database dates
+                                      // Calculate phase based on VISUAL position using EXACT same logic as TODAY line
                                       const getCurrentPhaseFromVisualPosition = (): string => {
-                                        const todayPosition = (() => {
-                                          const today = new Date();
-                                          today.setHours(0, 0, 0, 0);
+                                        const today = new Date();
+                                        today.setHours(0, 0, 0, 0);
+                                        
+                                        // Use EXACT same TODAY position calculation as the timeline
+                                        let todayPosition = null;
+                                        
+                                        // Find the Monday of the current week for slot matching
+                                        const mondayOfWeek = startOfWeek(today, { weekStartsOn: 1 });
+                                        
+                                        for (let i = 0; i < slots.length; i++) {
+                                          const slot = slots[i];
                                           
-                                          // Calculate TODAY line position using same logic as timeline
-                                          const mondayOfWeek = startOfWeek(today, { weekStartsOn: 1 });
-                                          const dayOfWeek = (today.getDay() + 6) % 7; // Monday-based
-                                          
-                                          // Find week position in timeline
-                                          const daysFromStart = differenceInDays(mondayOfWeek, dateRange.start);
-                                          const weekPosition = daysFromStart * (60 / 7); // 60px per day / 7 days
-                                          const dayOffset = (dayOfWeek / 7) * 60;
-                                          
-                                          return weekPosition + dayOffset;
-                                        })();
+                                          // Check if this slot is the Monday of our target week
+                                          if (slot.date.getFullYear() === mondayOfWeek.getFullYear() &&
+                                              slot.date.getMonth() === mondayOfWeek.getMonth() &&
+                                              slot.date.getDate() === mondayOfWeek.getDate()) {
+                                            
+                                            // Found the slot - now calculate position within the week
+                                            todayPosition = i * slotWidth; // Start of the week
+                                            
+                                            // Calculate actual day offset within the week (0 = Monday, 6 = Sunday)
+                                            const dayOfWeek = (today.getDay() + 6) % 7; // Convert from Sunday-based to Monday-based
+                                            const dayOffset = (dayOfWeek / 7) * slotWidth;
+                                            todayPosition += dayOffset;
+                                            
+                                            break;
+                                          }
+                                        }
+                                        
+                                        // If we couldn't find today's position, fallback
+                                        if (todayPosition === null) {
+                                          return 'Not Started';
+                                        }
                                         
                                         // Get bar's visual position and width
                                         const barLeft = bar.left;
