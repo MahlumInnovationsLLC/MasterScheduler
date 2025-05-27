@@ -2846,7 +2846,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const projectId = parseInt(req.params.projectId);
       const projectCost = await storage.getProjectCost(projectId);
-      res.json(projectCost);
+      // Return null if no cost record exists, frontend will handle this
+      res.json(projectCost || null);
     } catch (error) {
       console.error("Error fetching project costs:", error);
       res.status(500).json({ message: "Error fetching project costs" });

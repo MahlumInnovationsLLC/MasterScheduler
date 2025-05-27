@@ -92,6 +92,15 @@ export function ProjectCostsList({ projectId }: ProjectCostsListProps) {
   const { data: projectCost, isLoading, error } = useQuery({
     queryKey: [`/api/projects/${projectId}/costs`],
     enabled: !!projectId,
+    retry: 1,
+    onError: (error: any) => {
+      console.error('Error fetching project costs:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load project costs. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   // Create/update project cost mutation
