@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CRITICAL FIX: Allow dropping projects anywhere, even on top of existing project bars */
+body[data-drag-in-progress="true"] .schedule-bar:not(.dragging) {
+  pointer-events: none !important; /* Allow drops to pass through to grid cells below */
+  z-index: 5; /* Lower z-index when not being dragged */
+}
+
+body[data-drag-in-progress="true"] .drop-zone,
+body[data-drag-in-progress="true"] [data-bay-id] {
+  pointer-events: auto !important; /* Ensure drop zones work */
+  z-index: 15; /* Higher z-index for drop zones */
+}
+
+/* Enhanced drop zone visibility when dragging is active */
+.drop-target {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  border: 2px dashed #3b82f6 !important;
+  transition: all 0.2s ease;
+}
+
 /* Fix for dropdown menus appearing behind dialogs */
 [data-radix-popper-content-wrapper] {
   z-index: 9999 !important;
