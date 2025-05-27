@@ -1944,39 +1944,19 @@ body.role-viewer main {
 
 /* Always ensure resize handles are visible on overlap */
 .resize-handle-right {
-  background-color: rgba(30, 64, 175, 0.6) !important;
-  border: 2px solid rgba(255, 255, 255, 0.7) !important;
+  background-color: rgba(30, 64, 175, 0.9) !important;
+  border: 2px solid rgba(255, 255, 255, 0.9) !important;
   z-index: 500 !important; /* Lower z-index below popups */
-  opacity: 0.5 !important; /* Make them slightly more transparent */
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  opacity: 0.8 !important; /* Make them more visible by default */
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6) !important;
 }
 
 .resize-handle-left {
-  background-color: rgba(30, 64, 175, 0.6) !important;
-  border: 2px solid rgba(255, 255, 255, 0.7) !important;
+  background-color: rgba(30, 64, 175, 0.9) !important;
+  border: 2px solid rgba(255, 255, 255, 0.9) !important;
   z-index: 500 !important; /* Lower z-index below popups */
-  opacity: 0.5 !important; /* Make them slightly more transparent */
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-.resize-handle-left::before {
-  content: "‹";
-  color: white;
-  font-size: 14px;
-  font-weight: bold;
-}
-
-.resize-handle-right::before {
-  content: "›";
-  color: white;
-  font-size: 14px;
-  font-weight: bold;
+  opacity: 0.8 !important; /* Make them more visible by default */
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6) !important;
 }
 
 /* Always show handles when in resize operation */
