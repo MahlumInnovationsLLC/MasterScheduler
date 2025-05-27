@@ -115,6 +115,12 @@ const DeliveredProjects = () => {
       accessorKey: 'actualDeliveryDate',
       header: 'Delivery Date',
       cell: ({ row }) => {
+        // Debug: let's see what data we're getting
+        console.log('Delivery date data:', {
+          actualDeliveryDate: row.original.actualDeliveryDate,
+          allData: row.original
+        });
+        
         if (!row.original.actualDeliveryDate) return 'Not Delivered';
         // Parse date as local time to avoid timezone shifts
         const [year, month, day] = row.original.actualDeliveryDate.split('-');
