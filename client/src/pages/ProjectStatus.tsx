@@ -159,6 +159,9 @@ const ProjectStatus = () => {
         deliveryDate: deliveryDate  // Include the user-selected delivery date
       };
       
+      console.log("🚀 FRONTEND: Sending delivery request with data:", JSON.stringify(data, null, 2));
+      console.log("🚀 FRONTEND: Selected delivery date:", deliveryDate);
+      
       // Include late delivery data if provided
       if (isLateDelivery && deliveryReason) {
         data.lateDeliveryReason = deliveryReason;
@@ -166,6 +169,8 @@ const ProjectStatus = () => {
           data.delayResponsibility = delayResponsibility;
         }
       }
+      
+      console.log("🚀 FRONTEND: Final data being sent:", JSON.stringify(data, null, 2));
       
       const response = await apiRequest('POST', `/api/projects/${selectedProjectId}/mark-delivered`, data);
       

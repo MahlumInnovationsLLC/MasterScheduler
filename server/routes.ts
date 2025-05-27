@@ -373,6 +373,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const { lateDeliveryReason, delayResponsibility, deliveryDate } = req.body;
       
+      console.log("🚀 DELIVERY API: Received request for project", id);
+      console.log("🚀 DELIVERY API: Request body:", JSON.stringify(req.body, null, 2));
+      console.log("🚀 DELIVERY API: DeliveryDate received:", deliveryDate);
+      
       // Get the current project
       const project = await storage.getProject(id);
       if (!project) {
