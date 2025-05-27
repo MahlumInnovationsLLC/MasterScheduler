@@ -2028,9 +2028,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateDeliveredProjectReason(projectId: number, reason: string): Promise<boolean> {
     try {
-      await db.update(projects)
+      console.log("DEBUG - Storage: Updating reason for project", projectId, "with value:", reason);
+      const result = await db.update(projects)
         .set({ lateDeliveryReason: reason })
         .where(eq(projects.id, projectId));
+      console.log("DEBUG - Storage: Update result:", result);
       return true;
     } catch (error) {
       console.error("Error updating delivered project reason:", error);

@@ -478,11 +478,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectId = parseInt(req.params.id);
       const { reason } = req.body;
 
+      console.log("DEBUG - Updating reason:", { projectId, reason, body: req.body });
+
       if (!projectId || typeof reason !== 'string') {
+        console.log("DEBUG - Validation failed:", { projectId, reason, typeOf: typeof reason });
         return res.status(400).json({ message: "Invalid project ID or reason" });
       }
 
+      console.log("DEBUG - About to call storage.updateDeliveredProjectReason");
       const success = await storage.updateDeliveredProjectReason(projectId, reason);
+      console.log("DEBUG - Storage result:", success);
       
       if (success) {
         res.json({ success: true, message: "Reason updated successfully" });
