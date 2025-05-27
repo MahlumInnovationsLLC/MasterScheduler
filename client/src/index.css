@@ -1987,6 +1987,17 @@ body.resizing-mode .resize-handle {
   z-index: 999999 !important; /* Absolutely above everything */
 }
 
+/* Hide all resize handles when any dialog is open */
+[data-state="open"] ~ * .resize-handle,
+[data-radix-dialog-overlay] ~ * .resize-handle,
+body:has([data-radix-dialog-overlay]) .resize-handle,
+body:has([role="dialog"]) .resize-handle {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 .dark .resize-handle:hover {
   background-color: rgba(0, 0, 0, 1);
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
