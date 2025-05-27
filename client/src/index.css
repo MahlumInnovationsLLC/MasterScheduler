@@ -1964,7 +1964,7 @@ body.resizing-mode .resize-handle {
   opacity: 1 !important;
 }
 
-/* Ensure all popups and dialogs are above resize handles */
+/* Ensure all popups and dialogs are above everything */
 [data-radix-popper-content-wrapper],
 [data-radix-dialog-overlay],
 [data-radix-dialog-content],
@@ -1984,7 +1984,7 @@ body.resizing-mode .resize-handle {
 .tooltip-content,
 .modal,
 .popup {
-  z-index: 600 !important; /* Above resize handles */
+  z-index: 99999 !important; /* Way above everything */
 }
 
 .dark .resize-handle:hover {
