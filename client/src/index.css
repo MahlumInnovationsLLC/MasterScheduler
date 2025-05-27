@@ -1984,7 +1984,7 @@ body.resizing-mode .resize-handle {
 .tooltip-content,
 .modal,
 .popup {
-  z-index: 99999 !important; /* Way above everything */
+  z-index: 999999 !important; /* Absolutely above everything */
 }
 
 .dark .resize-handle:hover {
@@ -2146,7 +2146,7 @@ body.resizing-mode .resize-handle {
   transform: translateX(-50%);
   display: flex !important;
   gap: 8px;
-  z-index: 9999 !important; /* Extremely high z-index to ensure visibility */
+  z-index: 500 !important; /* Lower than popups */
   opacity: 1 !important; /* Force visibility */
   visibility: visible !important; /* Force visibility */
   pointer-events: auto !important; /* Ensure clickable */
