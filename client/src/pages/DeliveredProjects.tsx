@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowLeft, Download, Package, Truck, Search, Calendar, CheckCircle2, Edit2, Check, X, ChevronDown } from "lucide-react";
@@ -34,9 +34,16 @@ const DeliveredProjects = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Force clear cache and refetch on component mount
+  useEffect(() => {
+    queryClient.removeQueries({ queryKey: ['/api/delivered-projects'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+  }, [queryClient]);
+
   const { data: deliveredProjects, isLoading, refetch } = useQuery({
     queryKey: ['/api/delivered-projects'],
     staleTime: 0, // Always consider data stale
+    cacheTime: 0, // Don't cache data at all
     refetchOnMount: true, // Always refetch when component mounts
     refetchOnWindowFocus: true, // Refetch when window gains focus
   });
