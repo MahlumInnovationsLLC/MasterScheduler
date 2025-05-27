@@ -482,33 +482,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all delivered projects
   app.get("/api/delivered-projects", async (req, res) => {
     try {
-      // Get all projects with "delivered" status
-      const allProjects = await storage.getProjects();
-      const deliveredProjects = allProjects.filter(p => p.status === "delivered");
-      
-      // Calculate days late for each project
-      const enhancedProjects = deliveredProjects.map(project => {
-        let daysLate = 0;
-        
-        if (project.deliveryDate && project.contractDate) {
-          const deliveryDate = new Date(project.deliveryDate);
-          const contractDate = new Date(project.contractDate);
-          
-          // Calculate difference in days
-          const diffTime = deliveryDate.getTime() - contractDate.getTime();
-          daysLate = Math.ceil(diffTime / (1000 * 3600 * 24));
-        }
-        
-        return {
-          ...project,
-          daysLate
-        };
-      });
-      
-      res.json(enhancedProjects);
+      const deliveredProjects = await storage.getDeliveredProjects();
+      res.json(deliveredProjects);
     } catch (error) {
       console.error("Error fetching delivered projects:", error);
       res.status(500).json({ message: "Error fetching delivered projects" });
+    }
+  });
+
+  // Update delivered project reason
+  app.patch("/api/delivered-projects/:id/reason", hasEditRights, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const { reason } = req.body;
+
+      if (!projectId || typeof reason !== 'string') {
+        return res.status(400).json({ message: "Invalid project ID or reason" });
+      }
+
+      const success = await storage.updateDeliveredProjectReason(projectId, reason);
+      
+      if (success) {
+        res.json({ success: true, message: "Reason updated successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to update reason" });
+      }
+    } catch (error) {
+      console.error("Error updating delivered project reason:", error);
+      res.status(500).json({ message: "Error updating reason" });
     }
   });
   

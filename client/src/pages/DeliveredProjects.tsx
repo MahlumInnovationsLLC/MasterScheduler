@@ -1,21 +1,24 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowLeft, Download, Package, Truck, Search, Calendar, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Download, Package, Truck, Search, Calendar, CheckCircle2, Edit2, Check, X } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/ui/data-table";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 type DeliveredProject = {
-  id: number;
   projectId: number;
   projectNumber: string;
   name: string;
-  deliveryDate: string | null;
+  contractDate: string | null;
   actualDeliveryDate: string | null;
   daysLate: number;
+  reason: string | null;
   delayResponsibility: 'not_applicable' | 'client_fault' | 'nomad_fault' | 'vendor_fault';
   percentComplete: string;
   status: string;

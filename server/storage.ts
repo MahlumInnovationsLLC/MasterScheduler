@@ -1991,59 +1991,48 @@ export class DatabaseStorage implements IStorage {
   // Delivered Projects methods
   async getDeliveredProjects(): Promise<any[]> {
     try {
-      // Get both:
-      // 1. Projects with delivery tracking that have actualDeliveryDate
-      // 2. Projects that have status='delivered' (from our new "DELIVERED" button)
+      // Get projects that have actualDeliveryDate or are marked as 'delivered'
       const result = await db.execute(sql`
-        WITH delivered_projects AS (
-          -- Projects with tracking data
-          SELECT 
-            p.id as "projectId",
-            p.project_number as "projectNumber",
-            p.name,
-            p.delivery_date as "deliveryDate",
-            dt.actual_delivery_date as "actualDeliveryDate",
-            dt.days_late as "daysLate",
-            dt.delay_responsibility as "delayResponsibility",
-            p.percent_complete as "percentComplete",
-            p.status
-          FROM 
-            projects p
-          JOIN 
-            delivery_tracking dt ON p.id = dt.project_id
-          WHERE 
-            dt.actual_delivery_date IS NOT NULL
-          
-          UNION
-          
-          -- Projects marked as 'delivered' via the UI button
-          SELECT 
-            p.id as "projectId",
-            p.project_number as "projectNumber",
-            p.name,
-            p.delivery_date as "deliveryDate",
-            p.delivery_date as "actualDeliveryDate", -- Use delivery_date as actual delivery date
-            0 as "daysLate", -- Default to 0 days late
-            'not_applicable' as "delayResponsibility", -- Default delay responsibility
-            p.percent_complete as "percentComplete",
-            p.status
-          FROM 
-            projects p
-          LEFT JOIN
-            delivery_tracking dt ON p.id = dt.project_id
-          WHERE 
-            p.status = 'delivered'
-            AND dt.id IS NULL -- Only include if no delivery tracking record exists
-        )
-        
-        SELECT * FROM delivered_projects
-        ORDER BY "deliveryDate" DESC
+        SELECT 
+          p.id as "projectId",
+          p.project_number as "projectNumber",
+          p.name,
+          p.contract_date as "contractDate",
+          p.actual_delivery_date as "actualDeliveryDate",
+          p.late_delivery_reason as "reason",
+          p.delay_responsibility as "delayResponsibility",
+          p.percent_complete as "percentComplete",
+          p.status,
+          -- Calculate days late: positive means late, negative means early, 0 means on time
+          CASE 
+            WHEN p.actual_delivery_date IS NOT NULL AND p.contract_date IS NOT NULL 
+            THEN EXTRACT(epoch FROM (p.actual_delivery_date - p.contract_date)) / 86400
+            ELSE 0
+          END as "daysLate"
+        FROM 
+          projects p
+        WHERE 
+          (p.actual_delivery_date IS NOT NULL OR p.status = 'delivered')
+        ORDER BY 
+          COALESCE(p.actual_delivery_date, p.delivery_date, p.estimated_completion_date) DESC
       `);
       
       return result.rows as any[];
     } catch (error) {
       console.error("Error fetching delivered projects:", error);
       return [];
+    }
+  }
+
+  async updateDeliveredProjectReason(projectId: number, reason: string): Promise<boolean> {
+    try {
+      await db.update(projects)
+        .set({ lateDeliveryReason: reason })
+        .where(eq(projects.id, projectId));
+      return true;
+    } catch (error) {
+      console.error("Error updating delivered project reason:", error);
+      return false;
     }
   }
   
