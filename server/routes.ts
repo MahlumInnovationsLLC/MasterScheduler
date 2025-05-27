@@ -485,25 +485,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectsWithDays = deliveredProjects.map(project => {
         let daysLate = 0;
         
-        console.log(`🔍 PROJECT ${project.projectNumber}:`);
-        console.log(`  - Contract Date: ${project.contractDate}`);
-        console.log(`  - Delivery Date: ${project.deliveryDate}`);
-        
         if (project.deliveryDate && project.contractDate) {
           const deliveryDate = new Date(project.deliveryDate);
           const contractDate = new Date(project.contractDate);
           
-          console.log(`  - Parsed Contract Date: ${contractDate}`);
-          console.log(`  - Parsed Delivery Date: ${deliveryDate}`);
-          
           // Calculate difference in days
           const diffTime = deliveryDate.getTime() - contractDate.getTime();
           daysLate = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          
-          console.log(`  - Diff Time: ${diffTime}`);
-          console.log(`  - Days Late: ${daysLate}`);
-        } else {
-          console.log(`  - Missing dates - cannot calculate days late`);
         }
         
         return {
@@ -511,11 +499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           daysLate
         };
       });
-      
-      console.log(`📊 FINAL RESPONSE for ${projectsWithDays.length} projects:`);
-      projectsWithDays.forEach(p => {
-        console.log(`  - ${p.projectNumber}: ${p.daysLate} days late`);
-      });
+
       
       res.json(projectsWithDays);
     } catch (error) {
