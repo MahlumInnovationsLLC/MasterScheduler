@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowLeft, Download, Package, Truck, Search, Calendar, CheckCircle2, Edit2, Check, X, ChevronDown } from "lucide-react";
@@ -40,17 +40,30 @@ const DeliveredProjects = () => {
 
   const updateReasonMutation = useMutation({
     mutationFn: async ({ projectId, reason }: { projectId: number; reason: string }) => {
-      return apiRequest('PATCH', `/api/delivered-projects/${projectId}/reason`, { reason });
+      console.log("🚀 Frontend: Starting reason update mutation");
+      console.log("🚀 Frontend: Project ID:", projectId, "Reason:", reason);
+      
+      // Try the API request with full error logging
+      try {
+        const response = await apiRequest('PATCH', `/api/delivered-projects/${projectId}/reason`, { reason });
+        console.log("🚀 Frontend: API response:", response);
+        return response;
+      } catch (error) {
+        console.error("🚨 Frontend: API request failed:", error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("✅ Frontend: Mutation succeeded with data:", data);
       queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
       toast({ title: "Success", description: "Reason updated successfully" });
       setEditingReason(null);
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("💥 Frontend: Mutation failed with error:", error);
       toast({ 
         title: "Error", 
-        description: "Failed to update reason",
+        description: "Failed to update reason - API routing issue detected",
         variant: "destructive"
       });
     }
@@ -78,11 +91,21 @@ const DeliveredProjects = () => {
     setReasonValue(currentReason || '');
   };
 
-  const handleReasonSave = (projectId: number) => {
-    updateReasonMutation.mutate({ projectId, reason: reasonValue });
+  const handleReasonSave = async (projectId: number, value?: string) => {
+    const finalReason = value || reasonValue;
+    console.log("💾 Saving reason:", finalReason, "for project:", projectId);
+    
+    // Prevent the mutation from triggering if already pending
+    if (updateReasonMutation.isPending) {
+      console.log("⏳ Save already in progress, skipping...");
+      return;
+    }
+    
+    updateReasonMutation.mutate({ projectId, reason: finalReason });
   };
 
   const handleReasonCancel = () => {
+    console.log("❌ Canceling reason edit");
     setEditingReason(null);
     setReasonValue('');
   };
@@ -156,25 +179,37 @@ const DeliveredProjects = () => {
         if (isEditing) {
           return (
             <Dialog open={true} onOpenChange={() => handleReasonCancel()}>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
                 <DialogHeader>
                   <DialogTitle>Edit Reason</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium">Reason for Delay:</label>
+                    <label className="text-sm font-medium text-white">Reason for Delay:</label>
                     <textarea
-                      value={reasonValue}
-                      onChange={(e) => setReasonValue(e.target.value)}
+                      key={`reason-${projectId}`}
+                      defaultValue={reasonValue}
                       className="w-full mt-1 p-2 border rounded-md text-sm bg-gray-800 text-white border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                       rows={3}
                       placeholder="Enter the reason for the delay..."
+                      onChange={(e) => {
+                        console.log("📝 Textarea value changed to:", e.target.value);
+                        setReasonValue(e.target.value);
+                      }}
                       onKeyDown={(e) => {
+                        e.stopPropagation();
                         if (e.key === 'Enter' && e.ctrlKey) {
-                          handleReasonSave(projectId);
+                          e.preventDefault();
+                          const textarea = e.target as HTMLTextAreaElement;
+                          handleReasonSave(projectId, textarea.value);
                         } else if (e.key === 'Escape') {
+                          e.preventDefault();
                           handleReasonCancel();
                         }
+                      }}
+                      onBlur={(e) => {
+                        console.log("🔄 Textarea blur, updating value:", e.target.value);
+                        setReasonValue(e.target.value);
                       }}
                       autoFocus
                     />
@@ -190,7 +225,13 @@ const DeliveredProjects = () => {
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => handleReasonSave(projectId)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const textarea = document.querySelector(`textarea[key="reason-${projectId}"]`) as HTMLTextAreaElement;
+                        const finalValue = textarea?.value || reasonValue;
+                        console.log("💾 Save button clicked, final value:", finalValue);
+                        handleReasonSave(projectId, finalValue);
+                      }}
                       disabled={updateReasonMutation.isPending}
                     >
                       {updateReasonMutation.isPending ? 'Saving...' : 'Save'}
