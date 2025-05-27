@@ -3715,19 +3715,19 @@ export default function ResizableBaySchedule({
                                 </div>
                                 
                                 {/* Project information display centered below the PROD section */}
-                                <div className="project-info absolute flex flex-col items-center justify-center"
+                                <div className="project-info absolute flex items-center justify-center"
                                      style={{
-                                       left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + ((bar.productionWidth || 0) / 2) - 150}px`,
+                                       left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + ((bar.productionWidth || 0) / 2) - 200}px`,
                                        top: '28px',
-                                       width: '300px',
+                                       width: '400px',
                                        pointerEvents: 'none', /* Allow clicks to pass through */
                                        zIndex: 9999 /* Extremely high z-index to ensure it's on top of everything */
                                      }}>
-                                  <div className="text-xs font-bold text-white bg-black bg-opacity-90 px-2 py-0.5 rounded-md text-center truncate shadow-md" style={{minWidth: "250px", maxWidth: "300px", position: 'relative'}}>
+                                  <div className="text-xs font-bold text-white bg-black bg-opacity-90 px-2 py-0.5 rounded-md text-center truncate shadow-md" style={{minWidth: "250px", maxWidth: "250px", position: 'relative'}}>
                                     {bar.projectNumber} - {bar.projectName}
                                   </div>
-                                  {/* Current Phase Status Badge */}
-                                  <div className="mt-1">
+                                  {/* Current Phase Status Badge - positioned to the RIGHT of project name */}
+                                  <div className="ml-2">
                                     {(() => {
                                       // Calculate current phase based on today's date and project timeline
                                       const today = new Date();
