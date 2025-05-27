@@ -6,12 +6,30 @@
 body[data-drag-in-progress="true"] .schedule-bar:not(.dragging) {
   pointer-events: none !important; /* Allow drops to pass through to grid cells below */
   z-index: 5; /* Lower z-index when not being dragged */
+  opacity: 0.6; /* Visual feedback that bars are disabled */
 }
 
 body[data-drag-in-progress="true"] .drop-zone,
-body[data-drag-in-progress="true"] [data-bay-id] {
+body[data-drag-in-progress="true"] [data-bay-id],
+body[data-drag-in-progress="true"] [onDrop],
+body[data-drag-in-progress="true"] .grid-cell {
   pointer-events: auto !important; /* Ensure drop zones work */
   z-index: 15; /* Higher z-index for drop zones */
+}
+
+/* FORCE all project bars to be non-interactive during drag */
+.global-drag-active .schedule-bar:not(.dragging) {
+  pointer-events: none !important;
+  user-select: none !important;
+  z-index: 1 !important;
+}
+
+/* FORCE all drop zones to be interactive during drag */
+.global-drag-active .drop-zone,
+.global-drag-active [data-bay-id],
+.global-drag-active .grid-cell {
+  pointer-events: auto !important;
+  z-index: 20 !important;
 }
 
 /* Enhanced drop zone visibility when dragging is active */
