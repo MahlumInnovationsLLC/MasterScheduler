@@ -30,6 +30,7 @@ import { AIInsightsModal } from '@/components/AIInsightsModal';
 import { ProjectHealthCard } from '@/components/ProjectHealthCard';
 import { MilestonesList } from '@/components/MilestonesList';
 import { BillingMilestonesList } from '@/components/BillingMilestonesList';
+import { ProjectCostsList } from '@/components/ProjectCostsList';
 import { ProjectPhaseInfo } from '@/components/ProjectPhaseInfo';
 import { 
   Dialog, 
@@ -708,7 +709,7 @@ const ProjectDetails = () => {
           </div>
           
           <Tabs defaultValue="tasks" className="w-full">
-            <TabsList className="bg-darkCard h-12 border-b border-gray-800 w-full grid grid-cols-2 rounded-none">
+            <TabsList className="bg-darkCard h-12 border-b border-gray-800 w-full grid grid-cols-3 rounded-none">
               <TabsTrigger 
                 value="tasks" 
                 className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:rounded-none rounded-none"
@@ -720,6 +721,12 @@ const ProjectDetails = () => {
                 className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:rounded-none rounded-none"
               >
                 Billing Milestones
+              </TabsTrigger>
+              <TabsTrigger 
+                value="costs" 
+                className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:rounded-none rounded-none"
+              >
+                Project Cost
               </TabsTrigger>
             </TabsList>
             
@@ -862,6 +869,10 @@ const ProjectDetails = () => {
             
             <TabsContent value="billing" className="border-0 m-0 p-0">
               <BillingMilestonesList projectId={projectId} />
+            </TabsContent>
+            
+            <TabsContent value="costs" className="border-0 m-0 p-0">
+              <ProjectCostsList projectId={projectId} />
             </TabsContent>
           </Tabs>
         </div>
