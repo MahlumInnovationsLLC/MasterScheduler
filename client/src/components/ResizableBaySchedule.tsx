@@ -3822,12 +3822,23 @@ export default function ResizableBaySchedule({
                                 </button>
                               </div>
                               
-                              {/* Resize handles - FORCE MAXIMUM z-index with inline styles */}
+                              {/* Removed resize handles from inside project container to fix z-index issues */}
+                            </div>
+                          );
+                        })}
+                        
+                        {/* RESIZE HANDLES - Rendered OUTSIDE project containers to fix z-index layering */}
+                        {scheduleBars.map((bar) => {
+                          return bar.bayId === bay.id && (
+                            <React.Fragment key={`handles-${bar.id}`}>
+                              {/* Left resize handle */}
                               <div 
-                                className="absolute top-0 left-0 cursor-ew-resize"
+                                className="absolute cursor-ew-resize"
                                 style={{ 
+                                  left: `${bar.left}px`,
+                                  top: '0px',
                                   width: '8px',
-                                  height: '100%',
+                                  height: '72px',
                                   backgroundColor: 'rgba(30, 58, 138, 0.4)',
                                   zIndex: 999999999,
                                   pointerEvents: 'auto',
@@ -3845,16 +3856,19 @@ export default function ResizableBaySchedule({
                                   e.target.style.boxShadow = 'none';
                                 }}
                               ></div>
+                              
+                              {/* Right resize handle */}
                               <div 
-                                className="absolute top-0 right-0 cursor-ew-resize"
+                                className="absolute cursor-ew-resize"
                                 style={{ 
+                                  left: `${bar.left + bar.width + 4}px`,
+                                  top: '0px',
                                   width: '8px',
-                                  height: '100%',
+                                  height: '72px',
                                   backgroundColor: 'rgba(30, 58, 138, 0.4)',
                                   zIndex: 999999999,
                                   pointerEvents: 'auto',
-                                  transition: 'all 0.15s ease',
-                                  right: '-4px'
+                                  transition: 'all 0.15s ease'
                                 }}
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'end')}
                                 onMouseEnter={(e) => {
@@ -3868,7 +3882,7 @@ export default function ResizableBaySchedule({
                                   e.target.style.boxShadow = 'none';
                                 }}
                               ></div>
-                            </div>
+                            </React.Fragment>
                           );
                         })}
                       </div>
