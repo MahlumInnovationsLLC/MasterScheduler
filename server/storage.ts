@@ -2019,7 +2019,23 @@ export class DatabaseStorage implements IStorage {
           COALESCE(p.delivery_date, p.estimated_completion_date) DESC
       `);
       
-      return result.rows as any[];
+      // Format the results to ensure field mapping consistency
+      const formattedResults = result.rows.map((row: any) => ({
+        id: row.projectId,
+        projectNumber: row.projectNumber,
+        name: row.name,
+        contractDate: row.contractDate,
+        deliveryDate: row.actualDeliveryDate,
+        actualDeliveryDate: row.actualDeliveryDate,
+        daysLate: Math.round(row.daysLate || 0),
+        reason: row.lateDeliveryReason || row.reason,
+        lateDeliveryReason: row.lateDeliveryReason,
+        delayResponsibility: row.delayResponsibility,
+        percentComplete: row.percentComplete,
+        status: row.status
+      }));
+      
+      return formattedResults;
     } catch (error) {
       console.error("Error fetching delivered projects:", error);
       return [];
