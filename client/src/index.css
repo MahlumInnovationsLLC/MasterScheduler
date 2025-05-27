@@ -10,11 +10,19 @@ body[data-drag-in-progress="true"] .schedule-bar:not(.dragging),
   opacity: 0.6 !important; /* Visual feedback that bars are disabled */
 }
 
-/* ULTIMATE FIX: Force disable ALL project bars during ANY drag operation */
+/* ULTIMATE FIX: COMPLETELY HIDE ALL project bars during ANY drag operation */
 body.global-drag-active .schedule-bar:not(.dragging) {
+  display: none !important; /* Completely remove from layout */
+  visibility: hidden !important; /* Double ensure they're hidden */
   pointer-events: none !important;
-  z-index: 1 !important;
-  opacity: 0.5 !important;
+  z-index: -999 !important;
+}
+
+/* Alternative: Make them completely transparent and unclickable */
+body[data-drag-in-progress="true"] .schedule-bar:not(.dragging) {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -999 !important;
 }
 
 body[data-drag-in-progress="true"] .drop-zone,
