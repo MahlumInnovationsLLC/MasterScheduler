@@ -155,7 +155,9 @@ const ProjectStatus = () => {
     
     try {
       // Use the proper API endpoint for marking projects as delivered
-      const data: any = {};
+      const data: any = {
+        deliveryDate: deliveryDate  // Include the user-selected delivery date
+      };
       
       // Include late delivery data if provided
       if (isLateDelivery && deliveryReason) {

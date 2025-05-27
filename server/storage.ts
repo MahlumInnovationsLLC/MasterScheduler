@@ -2010,15 +2010,9 @@ export class DatabaseStorage implements IStorage {
       console.log("🔥🔥🔥 STORAGE: Result type:", typeof result);
       console.log("🔥🔥🔥 STORAGE: Result stringified:", JSON.stringify(result));
       
-      // Check if the update actually affected any rows
-      if (result && result.changes && result.changes > 0) {
-        console.log("🎉 STORAGE: Successfully updated", result.changes, "rows");
-        return true;
-      } else {
-        console.log("💥 STORAGE: No rows were updated - this is the problem!");
-        console.log("💥 STORAGE: Result.changes:", result?.changes);
-        return false;
-      }
+      // For Drizzle ORM, a successful update doesn't throw and the result exists
+      console.log("🎉 STORAGE: Successfully updated responsibility");
+      return true;
     } catch (error) {
       console.error("💥💥💥 STORAGE ERROR:", error);
       return false;

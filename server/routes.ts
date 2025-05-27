@@ -371,7 +371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/projects/:id/mark-delivered", hasEditRights, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { lateDeliveryReason, delayResponsibility } = req.body;
+      const { lateDeliveryReason, delayResponsibility, deliveryDate } = req.body;
       
       // Get the current project
       const project = await storage.getProject(id);
@@ -379,19 +379,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      // Determine if delivery is on time by comparing delivery date to contract date
-      const deliveryDate = new Date();
+      // Use user-provided delivery date or today as fallback
+      const actualDeliveryDate = deliveryDate ? new Date(deliveryDate) : new Date();
       const contractDate = project.contractDate ? new Date(project.contractDate) : null;
       
       let isDeliveredOnTime = true;
       if (contractDate) {
-        isDeliveredOnTime = deliveryDate <= contractDate;
+        isDeliveredOnTime = actualDeliveryDate <= contractDate;
       }
       
       // Update project data
       const updateData: Partial<Project> = {
         status: "delivered",
-        deliveryDate: deliveryDate.toISOString().split('T')[0],
+        deliveryDate: actualDeliveryDate.toISOString().split('T')[0],
         is_delivered_on_time: isDeliveredOnTime,
       };
       
