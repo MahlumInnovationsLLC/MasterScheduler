@@ -167,9 +167,11 @@ const SortableProjectCard = ({
     }
   };
 
-  // Helper to format dates in a friendly format
+  // Helper to format dates in a friendly format - fixed timezone issue
   const formatDateDisplay = (dateString: string) => {
-    const date = new Date(dateString);
+    // Parse date as local time to avoid timezone shifts
+    const [year, month, day] = dateString.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     return format(date, 'MMM d');
   };
 
