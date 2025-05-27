@@ -3705,7 +3705,8 @@ export default function ResizableBaySchedule({
                                       <div className="production-phase bg-yellow-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.productionWidth}px`,
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px` // Position after FAB and PAINT
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px`, // Position after FAB and PAINT
+                                             zIndex: 10
                                            }}>
                                         <span className="text-xs font-bold text-gray-800 h-full w-full flex items-center justify-center">PROD</span>
                                       </div>
@@ -3716,7 +3717,8 @@ export default function ResizableBaySchedule({
                                       <div className="it-phase bg-purple-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.itWidth}px`,
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0)}px` // Position after PROD
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0)}px`, // Position after PROD
+                                             zIndex: 10
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">IT</span>
                                       </div>
@@ -3727,7 +3729,8 @@ export default function ResizableBaySchedule({
                                       <div className="ntc-phase bg-cyan-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.ntcWidth}px`,
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0)}px` // Position after PROD and IT
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0)}px`, // Position after PROD and IT
+                                             zIndex: 10
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">NTC</span>
                                       </div>
@@ -3738,7 +3741,8 @@ export default function ResizableBaySchedule({
                                       <div className="qc-phase bg-pink-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.qcWidth}px`,
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0)}px` // Position after all other phases
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0)}px`, // Position after all other phases
+                                             zIndex: 10
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">QC</span>
                                       </div>
@@ -3750,7 +3754,7 @@ export default function ResizableBaySchedule({
                                     {/* FAB phase (starts from left) */}
                                     {bar.fabWidth && bar.fabWidth > 0 && (
                                       <div className="fab-phase bg-blue-700 h-full absolute left-0" 
-                                           style={{ width: `${bar.fabWidth}px` }}>
+                                           style={{ width: `${bar.fabWidth}px`, zIndex: 10 }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">FAB</span>
                                       </div>
                                     )}
@@ -3760,7 +3764,8 @@ export default function ResizableBaySchedule({
                                       <div className="paint-phase bg-green-700 h-full absolute" 
                                            style={{ 
                                              width: `${bar.paintWidth}px`,
-                                             left: `${bar.fabWidth || 0}px`
+                                             left: `${bar.fabWidth || 0}px`,
+                                             zIndex: 10
                                            }}>
                                         <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">PAINT</span>
                                       </div>
