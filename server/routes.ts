@@ -474,6 +474,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Get all delivered projects
   app.get("/api/delivered-projects", async (req, res) => {
+    // Force no cache
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     try {
       const deliveredProjects = await storage.getDeliveredProjects();
       
