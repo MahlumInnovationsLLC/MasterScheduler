@@ -173,73 +173,88 @@ const DeliveredProjects = () => {
       header: 'Reason',
       cell: ({ row }) => {
         const projectId = row.original.id;
-        const isEditing = editingReason === projectId;
+        const cellId = `reason-${projectId}`;
         const reason = row.original.lateDeliveryReason || row.original.reason;
+        
+        // Local state for this specific cell - NO GLOBAL STATE BULLSHIT
+        const [isEditing, setIsEditing] = useState(false);
+        const [reasonValue, setReasonValue] = useState(reason || '');
+        const [isUpdating, setIsUpdating] = useState(false);
+        
+        const handleSave = async () => {
+          if (isUpdating) return;
+          
+          setIsUpdating(true);
+          try {
+            console.log("💾 DIRECT SAVE - Project:", projectId, "Reason:", reasonValue);
+            
+            await apiRequest('PATCH', `/api/delivered-projects/${projectId}/reason`, { 
+              reason: reasonValue 
+            });
+            
+            queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+            toast({
+              title: "Success",
+              description: "Reason updated successfully"
+            });
+            setIsEditing(false);
+          } catch (error) {
+            console.error("💥 Save failed:", error);
+            toast({
+              title: "Error",
+              description: "Failed to update reason",
+              variant: "destructive"
+            });
+          } finally {
+            setIsUpdating(false);
+          }
+        };
+        
+        const handleCancel = () => {
+          setReasonValue(reason || '');
+          setIsEditing(false);
+        };
         
         if (isEditing) {
           return (
-            <Dialog open={true} onOpenChange={() => handleReasonCancel()}>
-              <DialogContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
-                <DialogHeader>
-                  <DialogTitle>Edit Reason</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-white">Reason for Delay:</label>
-                    <textarea
-                      key={`reason-${projectId}`}
-                      defaultValue={reasonValue}
-                      className="w-full mt-1 p-2 border rounded-md text-sm bg-gray-800 text-white border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      rows={3}
-                      placeholder="Enter the reason for the delay..."
-                      onChange={(e) => {
-                        console.log("📝 Textarea value changed to:", e.target.value);
-                        setReasonValue(e.target.value);
-                      }}
-                      onKeyDown={(e) => {
-                        e.stopPropagation();
-                        if (e.key === 'Enter' && e.ctrlKey) {
-                          e.preventDefault();
-                          const textarea = e.target as HTMLTextAreaElement;
-                          handleReasonSave(projectId, textarea.value);
-                        } else if (e.key === 'Escape') {
-                          e.preventDefault();
-                          handleReasonCancel();
-                        }
-                      }}
-                      onBlur={(e) => {
-                        console.log("🔄 Textarea blur, updating value:", e.target.value);
-                        setReasonValue(e.target.value);
-                      }}
-                      autoFocus
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleReasonCancel}
-                      disabled={updateReasonMutation.isPending}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        const textarea = document.querySelector(`textarea[key="reason-${projectId}"]`) as HTMLTextAreaElement;
-                        const finalValue = textarea?.value || reasonValue;
-                        console.log("💾 Save button clicked, final value:", finalValue);
-                        handleReasonSave(projectId, finalValue);
-                      }}
-                      disabled={updateReasonMutation.isPending}
-                    >
-                      {updateReasonMutation.isPending ? 'Saving...' : 'Save'}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <div className="min-w-48">
+              <textarea
+                value={reasonValue}
+                onChange={(e) => setReasonValue(e.target.value)}
+                className="w-full p-2 border rounded text-sm bg-gray-800 text-white border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
+                rows={3}
+                placeholder="Enter reason for delay..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.ctrlKey) {
+                    e.preventDefault();
+                    handleSave();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleCancel();
+                  }
+                }}
+                autoFocus
+              />
+              <div className="flex gap-1 mt-1">
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={isUpdating}
+                  className="h-6 text-xs"
+                >
+                  {isUpdating ? 'Saving...' : 'Save'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isUpdating}
+                  className="h-6 text-xs"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
           );
         }
         
@@ -252,7 +267,7 @@ const DeliveredProjects = () => {
               size="sm"
               variant="ghost"
               className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
-              onClick={() => handleReasonEdit(projectId, reason)}
+              onClick={() => setIsEditing(true)}
             >
               <Edit2 className="h-3 w-3" />
             </Button>
