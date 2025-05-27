@@ -3861,7 +3861,7 @@ export default function ResizableBaySchedule({
                               <div 
                                 className="absolute cursor-ew-resize"
                                 style={{ 
-                                  left: `${bar.left + bar.width + 4}px`,
+                                  left: `${bar.left + Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0)) + 4}px`,
                                   top: '0px',
                                   width: '8px',
                                   height: '72px',
