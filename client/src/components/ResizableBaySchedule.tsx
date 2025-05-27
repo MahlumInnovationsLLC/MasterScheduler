@@ -1207,10 +1207,16 @@ export default function ResizableBaySchedule({
     // Set global state
     setDraggingSchedule(scheduleId);
     
-    // Add enhanced visual feedback
+    // CRITICAL FIX: Add enhanced visual feedback AND disable other project bars
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.classList.add('dragging');
       document.body.classList.add('dragging-active');
+      
+      // CRITICAL: Set the global drag state to hide all OTHER project bars
+      document.body.setAttribute('data-drag-in-progress', 'true');
+      document.body.classList.add('global-drag-active');
+      
+      console.log(`🚀 EXISTING PROJECT DRAG: ${bar.projectNumber} - ALL OTHER PROJECT BARS NOW HIDDEN`);
       
       // Create a custom drag image that looks like the actual bar
       const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
