@@ -242,12 +242,9 @@ export function ProjectCostsList({ projectId }: ProjectCostsListProps) {
 
         {showCostForm && (
           <ProjectCostForm
+            open={showCostForm}
+            onOpenChange={setShowCostForm}
             projectId={projectId}
-            onClose={() => setShowCostForm(false)}
-            onSuccess={() => {
-              setShowCostForm(false);
-              queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/costs`] });
-            }}
           />
         )}
       </div>
@@ -656,6 +653,16 @@ export function ProjectCostsList({ projectId }: ProjectCostsListProps) {
         projectId={projectId}
         projectCost={projectCost}
       />
+
+      {showCostForm && (
+        <ProjectCostForm
+          open={showCostForm}
+          onOpenChange={setShowCostForm}
+          projectId={projectId}
+          defaultValues={projectCost}
+          isEdit={!!projectCost}
+        />
+      )}
     </div>
   );
 }
