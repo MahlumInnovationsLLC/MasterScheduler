@@ -34,8 +34,11 @@ const DeliveredProjects = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const { data: deliveredProjects, isLoading } = useQuery({
+  const { data: deliveredProjects, isLoading, refetch } = useQuery({
     queryKey: ['/api/delivered-projects'],
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 
   const updateReasonMutation = useMutation({
