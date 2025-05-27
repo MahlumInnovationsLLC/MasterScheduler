@@ -205,7 +205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Project routes
   app.get("/api/projects", async (req, res) => {
     try {
-      const projects = await storage.getProjects();
+      const projects = await storage.getActiveProjects();
       
       // Calculate QC Days for each project based on qcStartDate and shipDate
       const projectsWithQcDays = projects.map(project => {

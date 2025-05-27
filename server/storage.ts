@@ -549,7 +549,7 @@ export class DatabaseStorage implements IStorage {
     return await safeQuery<Project>(() =>
       db.select()
         .from(projects)
-        .where(eq(projects.status, 'active'))
+        .where(ne(projects.status, 'delivered'))
     );
   }
   
@@ -2014,7 +2014,7 @@ export class DatabaseStorage implements IStorage {
         FROM 
           projects p
         WHERE 
-          (p.delivery_date IS NOT NULL OR p.status = 'delivered')
+          p.status = 'delivered'
         ORDER BY 
           COALESCE(p.delivery_date, p.estimated_completion_date) DESC
       `);
