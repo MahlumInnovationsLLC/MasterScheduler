@@ -3849,68 +3849,26 @@ export default function ResizableBaySchedule({
                             <React.Fragment key={`handles-${bar.id}`}>
                               {/* Left resize handle */}
                               <div 
-                                className="absolute cursor-ew-resize resize-handle"
+                                className="absolute cursor-ew-resize resize-handle resize-handle-left"
                                 style={{ 
                                   left: `${bar.left}px`,
                                   top: '0px',
                                   width: '8px',
-                                  height: '72px',
-                                  backgroundColor: 'rgba(15, 23, 42, 0.7)',
-                                  zIndex: 1000,
-                                  pointerEvents: 'auto',
-                                  transition: 'all 0.2s ease',
-                                  border: '1px solid rgba(148, 163, 184, 0.5)'
+                                  height: '72px'
                                 }}
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'start')}
-                                onMouseEnter={(e) => {
-                                  const target = e.target as HTMLElement;
-                                  target.style.backgroundColor = '#1e40af';
-                                  target.style.border = '3px solid white';
-                                  target.style.boxShadow = '0 0 20px rgba(59, 130, 246, 1)';
-                                  target.style.transform = 'scaleX(2)';
-                                  target.style.zIndex = '50000';
-                                }}
-                                onMouseLeave={(e) => {
-                                  const target = e.target as HTMLElement;
-                                  target.style.backgroundColor = 'rgba(15, 23, 42, 0.7)';
-                                  target.style.border = '1px solid rgba(148, 163, 184, 0.5)';
-                                  target.style.boxShadow = 'none';
-                                  target.style.transform = 'scaleX(1)';
-                                  target.style.zIndex = '1000';
-                                }}
                               ></div>
                               
                               {/* Right resize handle */}
                               <div 
-                                className="absolute cursor-ew-resize resize-handle"
+                                className="absolute cursor-ew-resize resize-handle resize-handle-right"
                                 style={{ 
                                   left: `${bar.left + Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0)) + 4}px`,
                                   top: '0px',
                                   width: '8px',
-                                  height: '72px',
-                                  backgroundColor: 'rgba(15, 23, 42, 0.7)',
-                                  zIndex: 1000,
-                                  pointerEvents: 'auto',
-                                  transition: 'all 0.2s ease',
-                                  border: '1px solid rgba(148, 163, 184, 0.5)'
+                                  height: '72px'
                                 }}
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'end')}
-                                onMouseEnter={(e) => {
-                                  const target = e.target as HTMLElement;
-                                  target.style.backgroundColor = '#1e40af';
-                                  target.style.border = '3px solid white';
-                                  target.style.boxShadow = '0 0 20px rgba(59, 130, 246, 1)';
-                                  target.style.transform = 'scaleX(2)';
-                                  target.style.zIndex = '50000';
-                                }}
-                                onMouseLeave={(e) => {
-                                  const target = e.target as HTMLElement;
-                                  target.style.backgroundColor = 'rgba(15, 23, 42, 0.7)';
-                                  target.style.border = '1px solid rgba(148, 163, 184, 0.5)';
-                                  target.style.boxShadow = 'none';
-                                  target.style.transform = 'scaleX(1)';
-                                  target.style.zIndex = '1000';
-                                }}
                               ></div>
                             </React.Fragment>
                           );
