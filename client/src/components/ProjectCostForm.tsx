@@ -210,21 +210,43 @@ export function ProjectCostForm({
                   control={form.control}
                   name="useOverallCostOnly"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">
-                          Use Overall Cost Only
-                        </FormLabel>
-                        <FormDescription>
-                          Track total project cost without section breakdown
-                        </FormDescription>
+                    <FormItem>
+                      <div className="flex items-center space-x-4">
+                        <FormControl>
+                          <input
+                            type="radio"
+                            checked={field.value}
+                            onChange={() => field.onChange(true)}
+                            className="h-4 w-4 text-blue-600"
+                          />
+                        </FormControl>
+                        <div>
+                          <FormLabel className="text-base font-medium">
+                            Overall Cost Only
+                          </FormLabel>
+                          <FormDescription>
+                            Track total project cost without section breakdown
+                          </FormDescription>
+                        </div>
                       </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
+                      <div className="flex items-center space-x-4 mt-4">
+                        <FormControl>
+                          <input
+                            type="radio"
+                            checked={!field.value}
+                            onChange={() => field.onChange(false)}
+                            className="h-4 w-4 text-blue-600"
+                          />
+                        </FormControl>
+                        <div>
+                          <FormLabel className="text-base font-medium">
+                            Section Breakdown
+                          </FormLabel>
+                          <FormDescription>
+                            Track costs by individual manufacturing sections
+                          </FormDescription>
+                        </div>
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -322,9 +344,6 @@ export function ProjectCostForm({
                                   />
                                 </div>
                               </FormControl>
-                              <FormDescription className="text-xs">
-                                {section.description}
-                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
