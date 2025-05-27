@@ -12,7 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 type DeliveredProject = {
-  projectId: number;
+  id: number;
   projectNumber: string;
   name: string;
   contractDate: string | null;
@@ -36,11 +36,7 @@ const DeliveredProjects = () => {
 
   const updateReasonMutation = useMutation({
     mutationFn: async ({ projectId, reason }: { projectId: number; reason: string }) => {
-      return apiRequest(`/api/delivered-projects/${projectId}/reason`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason })
-      });
+      return apiRequest(`/api/delivered-projects/${projectId}/reason`, 'PATCH', { reason });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
@@ -76,7 +72,7 @@ const DeliveredProjects = () => {
       header: 'Project Number',
       cell: ({ row }) => (
         <div className="font-medium text-blue-400 hover:underline">
-          <Link href={`/project/${row.original.projectId}`}>
+          <Link href={`/project/${row.original.id}`}>
             {row.original.projectNumber}
           </Link>
         </div>
@@ -125,7 +121,7 @@ const DeliveredProjects = () => {
       accessorKey: 'reason',
       header: 'Reason',
       cell: ({ row }) => {
-        const projectId = row.original.projectId;
+        const projectId = row.original.id;
         const isEditing = editingReason === projectId;
         
         if (isEditing) {
