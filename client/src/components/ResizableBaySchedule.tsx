@@ -3686,8 +3686,14 @@ export default function ResizableBaySchedule({
                               data-ntc-percentage={bar.ntcPercentage}
                               data-qc-percentage={bar.qcPercentage}
                               draggable
-                              onDragStart={(e) => handleDragStart(e, bar.id)}
-                              onDragEnd={handleDragEnd}
+                              onDragStart={(e) => {
+                                setIsDragging(true);
+                                handleDragStart(e, bar.id);
+                              }}
+                              onDragEnd={() => {
+                                setIsDragging(false);
+                                stopAutoScroll();
+                              }}
                             >
                               {/* Department phases visualization - COMPLETELY INTEGRATED DESIGN */}
                               <div className="phases-container w-full h-full">
