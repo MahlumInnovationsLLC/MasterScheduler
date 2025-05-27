@@ -1258,117 +1258,11 @@ function ProjectEdit() {
                   <CardTitle>Timeline & Schedule</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Auto-calculation settings */}
-                  <div className="bg-gray-900 p-4 rounded-lg mb-4">
-                    <h3 className="text-md font-medium mb-2">Automatic Date Calculation</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="poDroppedDate"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel>PO Dropped Date</FormLabel>
-                            <FormDescription>
-                              The date when the Purchase Order was received
-                            </FormDescription>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant="outline"
-                                    className={cn(
-                                      "w-full pl-3 text-left font-normal",
-                                      !field.value && "text-muted-foreground"
-                                    )}
-                                  >
-                                    {field.value ? (
-                                      formatDate(field.value)
-                                    ) : (
-                                      <span>Pick a date</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={(date) => {
-                                    field.onChange(date);
-                                    
-                                    // Auto-calculate estimated completion date when PO date changes
-                                    const aroDays = form.getValues('poDroppedToDeliveryDays');
-                                    if (date && aroDays) {
-                                      const newEndDate = addDays(date, aroDays);
-                                      form.setValue('estimatedCompletionDate', newEndDate);
-                                      
-                                      // Also update the Assembly Start Date if it's empty
-                                      if (!form.getValues('startDate')) {
-                                        form.setValue('startDate', date);
-                                      }
-                                    }
-                                  }}
-                                  disabled={(date) =>
-                                    date < new Date("1900-01-01")
-                                  }
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            <FormDescription>
-                              The date when the PO was received (when work begins)
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="poDroppedToDeliveryDays"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>PO Dropped to Delivery (Days)</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="365 days (default)" 
-                                {...field} 
-                                onChange={(e) => {
-                                  const value = parseInt(e.target.value) || 365;
-                                  field.onChange(value);
-                                  
-                                  // Auto-calculate the estimated completion date
-                                  const startDate = form.getValues('startDate');
-                                  if (startDate && value) {
-                                    const newEndDate = addDays(startDate, value);
-                                    form.setValue('estimatedCompletionDate', newEndDate);
-                                  }
-                                }}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Days from PO Dropped to Delivery (ARO days)
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <div className="flex items-end">
-                        <p className="text-xs text-gray-400">
-                          PO Dropped date and estimated completion date will auto-calculate based on the ARO days.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Main project dates */}
+                  {/* Essential project dates only */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
-                      name="startDate"
+                      name="poDroppedDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
                           <FormLabel>PO Dropped Date</FormLabel>
@@ -1383,7 +1277,7 @@ function ProjectEdit() {
                                   )}
                                 >
                                   {field.value ? (
-                                    formatDate(field.value)
+                                    format(field.value, 'MMM d, yyyy')
                                   ) : (
                                     <span>Pick a date</span>
                                   )}
@@ -1394,21 +1288,26 @@ function ProjectEdit() {
                             <PopoverContent className="w-auto p-0" align="start">
                               <Calendar
                                 mode="single"
-                                selected={field.value}
+                                selected={field.value ? new Date(field.value) : undefined}
                                 onSelect={(date) => {
-                                  field.onChange(date);
-                                  
-                                  // Auto-calculate completion date when PO date changes
-                                  const aroDays = form.getValues('poDroppedToDeliveryDays');
-                                  if (date && aroDays) {
-                                    const newEndDate = addDays(date, aroDays);
-                                    form.setValue('estimatedCompletionDate', newEndDate);
+                                  if (date) {
+                                    // Fix timezone issue by creating date at noon UTC
+                                    const fixedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+                                    field.onChange(fixedDate);
+                                  } else {
+                                    field.onChange(null);
                                   }
                                 }}
+                                disabled={(date) =>
+                                  date < new Date("1900-01-01")
+                                }
                                 initialFocus
                               />
                             </PopoverContent>
                           </Popover>
+                          <FormDescription>
+                            The date when the Purchase Order was received
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1416,10 +1315,10 @@ function ProjectEdit() {
                     
                     <FormField
                       control={form.control}
-                      name="estimatedCompletionDate"
+                      name="contractDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Est. Completion Date (Auto-calculated) *</FormLabel>
+                          <FormLabel>Contract Date *</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -1429,12 +1328,11 @@ function ProjectEdit() {
                                     "w-full pl-3 text-left font-normal",
                                     !field.value && "text-muted-foreground"
                                   )}
-                                  disabled // Make read-only since it's auto-calculated
                                 >
                                   {field.value ? (
-                                    formatDate(field.value)
+                                    format(field.value, 'MMM d, yyyy')
                                   ) : (
-                                    <span>Auto-calculated from PO Dropped Date + ARO Days</span>
+                                    <span>Pick a date</span>
                                   )}
                                   <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                 </Button>
@@ -1443,8 +1341,16 @@ function ProjectEdit() {
                             <PopoverContent className="w-auto p-0" align="start">
                               <Calendar
                                 mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
+                                selected={field.value ? new Date(field.value) : undefined}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    // Fix timezone issue by creating date at noon UTC
+                                    const fixedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+                                    field.onChange(fixedDate);
+                                  } else {
+                                    field.onChange(null);
+                                  }
+                                }}
                                 disabled={(date) =>
                                   date < new Date("1900-01-01")
                                 }
@@ -1452,6 +1358,9 @@ function ProjectEdit() {
                               />
                             </PopoverContent>
                           </Popover>
+                          <FormDescription>
+                            The contract delivery date (must be manually entered)
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
