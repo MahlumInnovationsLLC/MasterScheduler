@@ -3,10 +3,18 @@
 @tailwind utilities;
 
 /* CRITICAL FIX: Allow dropping projects anywhere, even on top of existing project bars */
-body[data-drag-in-progress="true"] .schedule-bar:not(.dragging) {
+body[data-drag-in-progress="true"] .schedule-bar:not(.dragging),
+.global-drag-active .schedule-bar:not(.dragging) {
   pointer-events: none !important; /* Allow drops to pass through to grid cells below */
-  z-index: 5; /* Lower z-index when not being dragged */
-  opacity: 0.6; /* Visual feedback that bars are disabled */
+  z-index: 5 !important; /* Lower z-index when not being dragged */
+  opacity: 0.6 !important; /* Visual feedback that bars are disabled */
+}
+
+/* ULTIMATE FIX: Force disable ALL project bars during ANY drag operation */
+body.global-drag-active .schedule-bar:not(.dragging) {
+  pointer-events: none !important;
+  z-index: 1 !important;
+  opacity: 0.5 !important;
 }
 
 body[data-drag-in-progress="true"] .drop-zone,
