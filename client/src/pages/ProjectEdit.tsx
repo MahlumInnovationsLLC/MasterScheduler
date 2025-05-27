@@ -298,22 +298,18 @@ function ProjectEdit() {
   // Mutations for updating and deleting projects
   const updateMutation = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
-      // Fix for date timezone issues - ensure all dates are set to noon UTC
-      // This prevents the "saving as previous day" issue due to timezone conversion
+      // Convert dates to simple YYYY-MM-DD format to prevent timezone issues
       const fixedData = { ...data };
       
-      // Process all date fields to ensure consistent UTC handling
+      // Process all date fields to send as simple date strings
       Object.keys(fixedData).forEach(key => {
         if (fixedData[key] instanceof Date) {
-          // Create a new date at noon UTC which prevents timezone issues
-          const date = new Date(fixedData[key]);
-          const utcDate = new Date(Date.UTC(
-            date.getFullYear(), 
-            date.getMonth(), 
-            date.getDate(), 
-            12, 0, 0
-          ));
-          fixedData[key] = utcDate;
+          // Convert to YYYY-MM-DD format without timezone conversion
+          const date = fixedData[key] as Date;
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          fixedData[key] = `${year}-${month}-${day}`;
         }
       });
       
