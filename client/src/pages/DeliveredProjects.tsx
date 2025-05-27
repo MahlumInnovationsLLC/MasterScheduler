@@ -17,6 +17,7 @@ type DeliveredProject = {
   projectNumber: string;
   name: string;
   contractDate: string | null;
+  deliveryDate: string | null;
   actualDeliveryDate: string | null;
   daysLate: number;
   reason: string | null;
@@ -112,18 +113,15 @@ const DeliveredProjects = () => {
       }
     },
     {
-      accessorKey: 'actualDeliveryDate',
+      accessorKey: 'deliveryDate',
       header: 'Delivery Date',
       cell: ({ row }) => {
-        // Debug: let's see what data we're getting
-        console.log('Delivery date data:', {
-          actualDeliveryDate: row.original.actualDeliveryDate,
-          allData: row.original
-        });
+        // Check both possible field names for delivery date
+        const deliveryDate = row.original.deliveryDate || row.original.actualDeliveryDate;
         
-        if (!row.original.actualDeliveryDate) return 'Not Delivered';
+        if (!deliveryDate) return 'Not Delivered';
         // Parse date as local time to avoid timezone shifts
-        const [year, month, day] = row.original.actualDeliveryDate.split('-');
+        const [year, month, day] = deliveryDate.split('-');
         const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         return format(date, 'MMM d, yyyy');
       }
