@@ -1944,19 +1944,19 @@ body.role-viewer main {
 
 /* Always ensure resize handles are visible on overlap */
 .resize-handle-right {
-  background-color: rgba(0, 0, 0, 0.8) !important;
-  border: 3px solid rgba(255, 255, 255, 0.95) !important;
+  background-color: rgba(30, 64, 175, 0.9) !important;
+  border: 2px solid rgba(255, 255, 255, 0.9) !important;
   z-index: 500 !important; /* Lower z-index below popups */
-  opacity: 0.4 !important; /* Make them slightly visible by default */
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
+  opacity: 0.8 !important; /* Make them more visible by default */
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6) !important;
 }
 
 .resize-handle-left {
-  background-color: rgba(0, 0, 0, 0.8) !important;
-  border: 3px solid rgba(255, 255, 255, 0.95) !important;
+  background-color: rgba(30, 64, 175, 0.9) !important;
+  border: 2px solid rgba(255, 255, 255, 0.9) !important;
   z-index: 500 !important; /* Lower z-index below popups */
-  opacity: 0.4 !important; /* Make them slightly visible by default */
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
+  opacity: 0.8 !important; /* Make them more visible by default */
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6) !important;
 }
 
 /* Always show handles when in resize operation */
