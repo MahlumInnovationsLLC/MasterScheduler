@@ -25,9 +25,50 @@ type DeliveredProject = {
 };
 
 const DeliveredProjects = () => {
+  const [editingReason, setEditingReason] = useState<number | null>(null);
+  const [reasonValue, setReasonValue] = useState<string>('');
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   const { data: deliveredProjects, isLoading } = useQuery({
     queryKey: ['/api/delivered-projects'],
   });
+
+  const updateReasonMutation = useMutation({
+    mutationFn: async ({ projectId, reason }: { projectId: number; reason: string }) => {
+      return apiRequest(`/api/delivered-projects/${projectId}/reason`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason })
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+      toast({ title: "Success", description: "Reason updated successfully" });
+      setEditingReason(null);
+    },
+    onError: () => {
+      toast({ 
+        title: "Error", 
+        description: "Failed to update reason",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleReasonEdit = (projectId: number, currentReason: string | null) => {
+    setEditingReason(projectId);
+    setReasonValue(currentReason || '');
+  };
+
+  const handleReasonSave = (projectId: number) => {
+    updateReasonMutation.mutate({ projectId, reason: reasonValue });
+  };
+
+  const handleReasonCancel = () => {
+    setEditingReason(null);
+    setReasonValue('');
+  };
 
   const columns: ColumnDef<DeliveredProject>[] = [
     {
@@ -46,40 +87,98 @@ const DeliveredProjects = () => {
       header: 'Project Name',
     },
     {
-      accessorKey: 'deliveryDate',
-      header: 'Scheduled Delivery',
+      accessorKey: 'contractDate',
+      header: 'Contract Date',
       cell: ({ row }) => {
-        return row.original.deliveryDate ? 
-          format(new Date(row.original.deliveryDate), 'MMM d, yyyy') : 
+        return row.original.contractDate ? 
+          format(new Date(row.original.contractDate), 'MMM d, yyyy') : 
           '-';
       }
     },
     {
       accessorKey: 'actualDeliveryDate',
-      header: 'Actual Delivery',
+      header: 'Actual Delivery Date',
       cell: ({ row }) => {
         return row.original.actualDeliveryDate ? 
           format(new Date(row.original.actualDeliveryDate), 'MMM d, yyyy') : 
-          (row.original.status === 'delivered' ? 
-            format(new Date(), 'MMM d, yyyy') + ' (Auto)' : 
-            'Not Delivered');
+          'Not Delivered';
       }
     },
     {
       accessorKey: 'daysLate',
       header: 'Days Late',
       cell: ({ row }) => {
-        const daysLate = row.original.daysLate;
+        const daysLate = Math.round(row.original.daysLate);
         
         if (daysLate === 0) {
           return <span className="text-green-400 flex items-center">
             <CheckCircle2 className="h-4 w-4 mr-1" /> On Time
           </span>;
         } else if (daysLate > 0) {
-          return <span className="text-red-400">{daysLate} days</span>;
+          return <span className="text-red-400">{daysLate} days late</span>;
         } else {
           return <span className="text-green-400">{Math.abs(daysLate)} days early</span>;
         }
+      }
+    },
+    {
+      accessorKey: 'reason',
+      header: 'Reason',
+      cell: ({ row }) => {
+        const projectId = row.original.projectId;
+        const isEditing = editingReason === projectId;
+        
+        if (isEditing) {
+          return (
+            <div className="flex items-center gap-2">
+              <Input
+                value={reasonValue}
+                onChange={(e) => setReasonValue(e.target.value)}
+                className="h-8 text-xs"
+                placeholder="Enter reason..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleReasonSave(projectId);
+                  } else if (e.key === 'Escape') {
+                    handleReasonCancel();
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleReasonSave(projectId)}
+                disabled={updateReasonMutation.isPending}
+              >
+                <Check className="h-3 w-3" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleReasonCancel}
+                disabled={updateReasonMutation.isPending}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          );
+        }
+        
+        return (
+          <div className="flex items-center gap-2 group">
+            <span className="text-sm">
+              {row.original.reason || '-'}
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
+              onClick={() => handleReasonEdit(projectId, row.original.reason)}
+            >
+              <Edit2 className="h-3 w-3" />
+            </Button>
+          </div>
+        );
       }
     },
     {
