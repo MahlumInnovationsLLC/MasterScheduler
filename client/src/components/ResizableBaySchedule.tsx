@@ -22,6 +22,7 @@ import {
 import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom } from './ExactFitPhaseWidths';
 import DurationCalculator from './DurationCalculator';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
+import { getCurrentPhase } from './HighRiskProjectsCard';
 import { TeamManagementDialog } from './TeamManagementDialog';
 import FinancialImpactPopup from './FinancialImpactPopup';
 import { 
@@ -2607,29 +2608,21 @@ export default function ResizableBaySchedule({
             // Use the current real date for TODAY marker
             const today = new Date(); // Current date
             
-            // STEP 1: Find the Monday of the current week for slot matching
-            const mondayOfWeek = startOfWeek(today, { weekStartsOn: 1 }); // Get Monday of current week
-            
-            console.log(`Looking for TODAY line position (${format(today, 'yyyy-MM-dd')}) in week of ${format(mondayOfWeek, 'yyyy-MM-dd')}`);
+            console.log(`Calculating TODAY line position for: ${format(today, 'yyyy-MM-dd')}`);
                 
-            // STEP 2: Find this exact date in our slots array by matching the Monday
-            // We'll use simple date components matching instead of date-fns functions
+            // Find the current date in our slots array
             for (let i = 0; i < slots.length; i++) {
               const slot = slots[i];
               
-              // Check if this slot is the Monday of our target week
-              if (slot.date.getFullYear() === mondayOfWeek.getFullYear() &&
-                  slot.date.getMonth() === mondayOfWeek.getMonth() &&
-                  slot.date.getDate() === mondayOfWeek.getDate()) {
+              // Check if this slot matches today's date exactly
+              if (slot.date.getFullYear() === today.getFullYear() &&
+                  slot.date.getMonth() === today.getMonth() &&
+                  slot.date.getDate() === today.getDate()) {
                 
-                // Found the slot - now calculate position
-                let todayPosition = i * slotWidth; // Start of the week
+                // Found the exact slot for today
+                let todayPosition = i * slotWidth;
                 
-                // Add offset for Friday (day 4 in a week starting on Monday)
-                const fridayOffset = 4/7 * slotWidth; // Friday is day 4 (0-indexed from Monday)
-                todayPosition += fridayOffset;
-                
-                console.log(`Found TODAY's week at slot ${i} (${format(slot.date, 'yyyy-MM-dd')}), position: ${todayPosition}px`);
+                console.log(`Found TODAY at slot ${i} (${format(slot.date, 'yyyy-MM-dd')}), position: ${todayPosition}px`);
                 
                 // Only show if today is within visible range
                 if (todayPosition >= 0) {
@@ -2653,42 +2646,51 @@ export default function ResizableBaySchedule({
               }
             }
             
-            // Fallback if the exact slot wasn't found - calculate dynamically based on current date
-            console.warn('TODAY slot not found in slots array, using dynamic fallback calculation');
-            
-            // Calculate the week number for the current date relative to the start of the view
-            const startOfYear = new Date(dateRange.start.getFullYear(), 0, 1);
-            const dayOfYear = differenceInDays(today, startOfYear);
-            const weekOfYear = Math.floor(dayOfYear / 7);
-            
-            // Calculate the day of week (0 = Monday, 6 = Sunday in our system)
-            const dayOfWeek = (today.getDay() + 6) % 7; // Convert from Sunday-based to Monday-based
-            
-            // Calculate position: week number * slot width + day offset
-            const todayPosition = (weekOfYear * slotWidth) + ((dayOfWeek/7) * slotWidth);
-            
-            // Only show if today is within visible range
-            if (todayPosition >= 0) {
-              return (
-                <div 
-                  className="today-line absolute top-0 bottom-0 z-20 pointer-events-none" 
-                  style={{ 
-                    left: `${todayPosition + 32}px`, // +32 to account for the left sidebar
-                    width: '2px',
-                    backgroundColor: 'rgba(239, 68, 68, 0.8)', // Red with 80% opacity
-                    boxShadow: '0 0 8px rgba(239, 68, 68, 0.6)' // Red glow effect
-                  }}
-                >
-                  {/* TODAY label at the top */}
-                  <div 
-                    className="today-label absolute top-0 -translate-x-1/2 bg-red-600 text-white text-xs px-2 py-1 rounded" 
-                    style={{ left: '1px' }}
-                  >
-                    TODAY
-                  </div>
-                </div>
-              );
+            // If we're in week view mode, calculate position within the week
+            if (viewMode === 'week') {
+              // Find the Monday of the current week for slot matching
+              const mondayOfWeek = startOfWeek(today, { weekStartsOn: 1 });
+              
+              for (let i = 0; i < slots.length; i++) {
+                const slot = slots[i];
+                
+                // Check if this slot is the Monday of our target week
+                if (slot.date.getFullYear() === mondayOfWeek.getFullYear() &&
+                    slot.date.getMonth() === mondayOfWeek.getMonth() &&
+                    slot.date.getDate() === mondayOfWeek.getDate()) {
+                  
+                  // Found the slot - now calculate position within the week
+                  let todayPosition = i * slotWidth; // Start of the week
+                  
+                  // Calculate actual day offset within the week (0 = Monday, 6 = Sunday)
+                  const dayOfWeek = (today.getDay() + 6) % 7; // Convert from Sunday-based to Monday-based
+                  const dayOffset = (dayOfWeek / 7) * slotWidth;
+                  todayPosition += dayOffset;
+                  
+                  console.log(`Found TODAY's week at slot ${i}, day ${dayOfWeek}, position: ${todayPosition}px`);
+                  
+                  // Only show if today is within visible range
+                  if (todayPosition >= 0) {
+                    return (
+                      <div 
+                        className="today-marker absolute top-0 bottom-0 w-[2px] bg-red-500 z-10" 
+                        style={{ 
+                          left: `${todayPosition}px`,
+                          height: '100%'
+                        }}
+                      >
+                        <div className="bg-red-500 text-white text-xs py-1 px-2 rounded absolute top-0 -translate-x-1/2">
+                          TODAY
+                        </div>
+                      </div>
+                    );
+                  }
+                  
+                  break;
+                }
+              }
             }
+            
             return null;
           })()}
           
@@ -3723,6 +3725,49 @@ export default function ResizableBaySchedule({
                                      }}>
                                   <div className="text-xs font-bold text-white bg-black bg-opacity-90 px-2 py-0.5 rounded-md text-center truncate shadow-md" style={{minWidth: "250px", maxWidth: "300px", position: 'relative'}}>
                                     {bar.projectNumber} - {bar.projectName}
+                                  </div>
+                                  {/* Current Phase Status Badge */}
+                                  <div className="mt-1">
+                                    {(() => {
+                                      // Calculate current phase based on today's date and project timeline
+                                      const today = new Date();
+                                      const project = projects.find(p => p.id === bar.projectId);
+                                      
+                                      if (!project || !project.startDate || !project.shipDate) {
+                                        return (
+                                          <div className="bg-gray-500 text-white text-xs px-2 py-0.5 rounded-full">
+                                            No Timeline
+                                          </div>
+                                        );
+                                      }
+                                      
+                                      // Use getCurrentPhase function to determine current phase
+                                      const currentPhase = getCurrentPhase(
+                                        project.startDate,
+                                        project.shipDate,
+                                        today
+                                      );
+                                      
+                                      // Define phase colors and labels
+                                      const phaseConfig = {
+                                        'Not Started': { bg: 'bg-gray-500', text: 'Not Started' },
+                                        'FAB': { bg: 'bg-blue-600', text: '✓ FAB' },
+                                        'Paint': { bg: 'bg-green-600', text: '✓ Paint' },
+                                        'Production': { bg: 'bg-yellow-600', text: '✓ Production' },
+                                        'IT': { bg: 'bg-purple-600', text: '✓ IT' },
+                                        'NTC': { bg: 'bg-cyan-600', text: '✓ NTC' },
+                                        'QC': { bg: 'bg-pink-600', text: '✓ QC' },
+                                        'Shipped': { bg: 'bg-green-700', text: '✓ Shipped' }
+                                      };
+                                      
+                                      const config = phaseConfig[currentPhase] || phaseConfig['Not Started'];
+                                      
+                                      return (
+                                        <div className={`${config.bg} text-white text-xs px-2 py-0.5 rounded-full font-medium`}>
+                                          {config.text}
+                                        </div>
+                                      );
+                                    })()}
                                   </div>
                                 </div>
                                 
