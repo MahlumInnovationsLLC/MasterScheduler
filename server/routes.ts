@@ -482,6 +482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update delivered project reason
   app.patch("/api/delivered-projects/:id/reason", hasEditRights, async (req, res) => {
     try {
+      console.log("🔥🔥🔥 REASON UPDATE API ROUTE HIT!!! 🔥🔥🔥");
       console.log("=== REASON UPDATE DEBUG START ===");
       const projectId = parseInt(req.params.id);
       const { reason } = req.body;
@@ -502,19 +503,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid reason format" });
       }
 
-      console.log("Calling storage.updateDeliveredProjectReason with:", { projectId, reason });
+      console.log("🔥 About to call storage.updateDeliveredProjectReason with:", { projectId, reason });
       const success = await storage.updateDeliveredProjectReason(projectId, reason);
-      console.log("Storage update result:", success);
+      console.log("🔥 Storage update result:", success);
       
       if (success) {
-        console.log("=== REASON UPDATE SUCCESS ===");
+        console.log("🔥🔥🔥 REASON UPDATE SUCCESS!!! 🔥🔥🔥");
         return res.status(200).json({ success: true, message: "Reason updated successfully" });
       } else {
-        console.log("=== REASON UPDATE FAILED ===");
+        console.log("💥💥💥 REASON UPDATE FAILED!!! 💥💥💥");
         return res.status(500).json({ message: "Failed to update reason" });
       }
     } catch (error) {
-      console.error("=== REASON UPDATE ERROR ===", error);
+      console.error("💥💥💥 REASON UPDATE ERROR!!! 💥💥💥", error);
       return res.status(500).json({ message: "Error updating reason" });
     }
   });

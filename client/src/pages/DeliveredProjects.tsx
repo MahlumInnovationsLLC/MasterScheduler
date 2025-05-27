@@ -166,7 +166,7 @@ const DeliveredProjects = () => {
                     <textarea
                       value={reasonValue}
                       onChange={(e) => setReasonValue(e.target.value)}
-                      className="w-full mt-1 p-2 border rounded-md text-sm"
+                      className="w-full mt-1 p-2 border rounded-md text-sm bg-gray-800 text-white border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                       rows={3}
                       placeholder="Enter the reason for the delay..."
                       onKeyDown={(e) => {
