@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowLeft, Download, Package, Truck, Search, Calendar, CheckCircle2, Edit2, Check, X } from "lucide-react";
+import { ArrowLeft, Download, Package, Truck, Search, Calendar, CheckCircle2, Edit2, Check, X, ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/ui/data-table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -47,6 +48,23 @@ const DeliveredProjects = () => {
       toast({ 
         title: "Error", 
         description: "Failed to update reason",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const updateResponsibilityMutation = useMutation({
+    mutationFn: async ({ projectId, responsibility }: { projectId: number; responsibility: string }) => {
+      return apiRequest(`/api/delivered-projects/${projectId}/responsibility`, 'PATCH', { responsibility });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+      toast({ title: "Success", description: "Responsibility updated successfully" });
+    },
+    onError: () => {
+      toast({ 
+        title: "Error", 
+        description: "Failed to update responsibility",
         variant: "destructive"
       });
     }
@@ -95,7 +113,7 @@ const DeliveredProjects = () => {
     },
     {
       accessorKey: 'actualDeliveryDate',
-      header: 'Actual Delivery Date',
+      header: 'Delivery Date',
       cell: ({ row }) => {
         if (!row.original.actualDeliveryDate) return 'Not Delivered';
         // Parse date as local time to avoid timezone shifts
@@ -186,16 +204,49 @@ const DeliveredProjects = () => {
       header: 'Responsibility',
       cell: ({ row }) => {
         const responsibility = row.original.delayResponsibility;
+        const projectId = row.original.id;
         
-        if (responsibility === 'not_applicable') {
-          return <span className="px-2 py-1 rounded-full text-xs bg-green-900 text-green-400">N/A</span>;
-        } else if (responsibility === 'client_fault') {
-          return <span className="px-2 py-1 rounded-full text-xs bg-blue-900 text-blue-400">Client</span>;
-        } else if (responsibility === 'nomad_fault') {
-          return <span className="px-2 py-1 rounded-full text-xs bg-red-900 text-red-400">Nomad</span>;
-        } else {
-          return <span className="px-2 py-1 rounded-full text-xs bg-yellow-900 text-yellow-400">Vendor</span>;
-        }
+        const getResponsibilityBadge = (value: string | null) => {
+          if (value === 'not_applicable') {
+            return <span className="px-2 py-1 rounded-full text-xs bg-green-900 text-green-400">N/A</span>;
+          } else if (value === 'client_fault') {
+            return <span className="px-2 py-1 rounded-full text-xs bg-blue-900 text-blue-400">Client Fault</span>;
+          } else if (value === 'nomad_fault') {
+            return <span className="px-2 py-1 rounded-full text-xs bg-red-900 text-red-400">Nomad Fault</span>;
+          } else if (value === 'vendor_fault') {
+            return <span className="px-2 py-1 rounded-full text-xs bg-yellow-900 text-yellow-400">Vendor Fault</span>;
+          } else {
+            return <span className="px-2 py-1 rounded-full text-xs bg-gray-900 text-gray-400">-</span>;
+          }
+        };
+        
+        return (
+          <Select
+            value={responsibility || ''}
+            onValueChange={(value) => {
+              updateResponsibilityMutation.mutate({ projectId, responsibility: value });
+            }}
+            disabled={updateResponsibilityMutation.isPending}
+          >
+            <SelectTrigger className="w-auto h-auto p-0 border-none bg-transparent hover:bg-gray-800">
+              {getResponsibilityBadge(responsibility)}
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="not_applicable">
+                <span className="px-2 py-1 rounded-full text-xs bg-green-900 text-green-400">N/A</span>
+              </SelectItem>
+              <SelectItem value="client_fault">
+                <span className="px-2 py-1 rounded-full text-xs bg-blue-900 text-blue-400">Client Fault</span>
+              </SelectItem>
+              <SelectItem value="nomad_fault">
+                <span className="px-2 py-1 rounded-full text-xs bg-red-900 text-red-400">Nomad Fault</span>
+              </SelectItem>
+              <SelectItem value="vendor_fault">
+                <span className="px-2 py-1 rounded-full text-xs bg-yellow-900 text-yellow-400">Vendor Fault</span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        );
       }
     },
     {

@@ -494,6 +494,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error updating reason" });
     }
   });
+
+  // Update delivered project responsibility
+  app.patch("/api/delivered-projects/:id/responsibility", hasEditRights, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const { responsibility } = req.body;
+
+      if (!projectId || typeof responsibility !== 'string') {
+        return res.status(400).json({ message: "Invalid project ID or responsibility" });
+      }
+
+      const success = await storage.updateDeliveredProjectResponsibility(projectId, responsibility);
+      
+      if (success) {
+        res.json({ success: true, message: "Responsibility updated successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to update responsibility" });
+      }
+    } catch (error) {
+      console.error("Error updating delivered project responsibility:", error);
+      res.status(500).json({ message: "Error updating responsibility" });
+    }
+  });
   
   app.put("/api/projects/:id", isAuthenticated, async (req, res) => {
     try {

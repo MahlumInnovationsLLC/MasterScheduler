@@ -2035,6 +2035,18 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
+
+  async updateDeliveredProjectResponsibility(projectId: number, responsibility: string): Promise<boolean> {
+    try {
+      await db.update(projects)
+        .set({ delayResponsibility: responsibility as any })
+        .where(eq(projects.id, projectId));
+      return true;
+    } catch (error) {
+      console.error("Error updating delivered project responsibility:", error);
+      return false;
+    }
+  }
   
   // Delivery Tracking methods
   async getDeliveryTrackings(): Promise<DeliveryTracking[]> {
