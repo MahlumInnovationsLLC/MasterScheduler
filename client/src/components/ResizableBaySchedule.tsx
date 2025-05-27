@@ -3741,44 +3741,48 @@ export default function ResizableBaySchedule({
                                         );
                                       }
                                       
-                                      // Calculate current phase based on EXACT visual timeline positions
-                                      const getCurrentPhaseFromVisualTimeline = (scheduleStartDate: Date, scheduleEndDate: Date, today: Date): string => {
-                                        const start = new Date(scheduleStartDate);
-                                        const end = new Date(scheduleEndDate);
-                                        start.setHours(0, 0, 0, 0);
-                                        end.setHours(0, 0, 0, 0);
-                                        today.setHours(0, 0, 0, 0);
+                                      // Calculate phase based on VISUAL position rather than database dates
+                                      const getCurrentPhaseFromVisualPosition = (): string => {
+                                        const todayPosition = (() => {
+                                          const today = new Date();
+                                          today.setHours(0, 0, 0, 0);
+                                          
+                                          // Calculate TODAY line position using same logic as timeline
+                                          const mondayOfWeek = startOfWeek(today, { weekStartsOn: 1 });
+                                          const dayOfWeek = (today.getDay() + 6) % 7; // Monday-based
+                                          
+                                          // Find week position in timeline
+                                          const daysFromStart = differenceInDays(mondayOfWeek, dateRange.start);
+                                          const weekPosition = daysFromStart * (60 / 7); // 60px per day / 7 days
+                                          const dayOffset = (dayOfWeek / 7) * 60;
+                                          
+                                          return weekPosition + dayOffset;
+                                        })();
                                         
-                                        // Debug logging to understand date alignment
-                                        console.log(`Phase calculation for project ${bar.projectNumber}:`, {
-                                          scheduleStart: start.toISOString().split('T')[0],
-                                          scheduleEnd: end.toISOString().split('T')[0],
-                                          today: today.toISOString().split('T')[0],
-                                          projectShipDate: project?.shipDate ? new Date(project.shipDate).toISOString().split('T')[0] : 'N/A'
+                                        // Get bar's visual position and width
+                                        const barLeft = bar.left;
+                                        const barRight = bar.left + bar.width;
+                                        
+                                        console.log(`Visual phase calculation for ${bar.projectNumber}:`, {
+                                          todayPosition: todayPosition.toFixed(2),
+                                          barLeft: barLeft.toFixed(2),
+                                          barRight: barRight.toFixed(2),
+                                          barWidth: bar.width.toFixed(2)
                                         });
                                         
-                                        // Check if before schedule starts
-                                        if (today < start) return 'Not Started';
+                                        // Check if TODAY line is before the bar starts
+                                        if (todayPosition < barLeft) return 'Not Started';
                                         
-                                        // CRITICAL FIX: Use project ship date if available, otherwise use schedule end date
-                                        const actualEndDate = project?.shipDate ? new Date(project.shipDate) : end;
-                                        actualEndDate.setHours(0, 0, 0, 0);
+                                        // Check if TODAY line is after the bar ends
+                                        if (todayPosition >= barRight) return 'Shipped';
                                         
-                                        // Check if after project ships
-                                        if (today >= actualEndDate) return 'Shipped';
+                                        // Calculate position within the visual bar (0 to 100%)
+                                        const positionInBar = (todayPosition - barLeft) / bar.width;
+                                        const progressPercent = positionInBar * 100;
                                         
-                                        // Calculate position within the ACTUAL project timeline (start to ship date)
-                                        const totalDays = (actualEndDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
-                                        const daysSinceStart = (today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
-                                        const progressPercent = (daysSinceStart / totalDays) * 100;
+                                        console.log(`Visual progress: ${progressPercent.toFixed(2)}% through bar`);
                                         
-                                        console.log(`Phase calculation details:`, {
-                                          totalDays,
-                                          daysSinceStart,
-                                          progressPercent: progressPercent.toFixed(2) + '%'
-                                        });
-                                        
-                                        // Use EXACT phase percentages from visual timeline (matching bar.fabPercentage, etc.)
+                                        // Use EXACT phase percentages from visual timeline
                                         let cumulativePercent = 0;
                                         
                                         cumulativePercent += bar.fabPercentage;
@@ -3799,11 +3803,7 @@ export default function ResizableBaySchedule({
                                         return 'QC';
                                       };
                                       
-                                      const currentPhase = getCurrentPhaseFromVisualTimeline(
-                                        bar.startDate,
-                                        bar.endDate,
-                                        today
-                                      );
+                                      const currentPhase = getCurrentPhaseFromVisualPosition();
                                       
                                       // Define phase colors and labels
                                       const phaseConfig = {
