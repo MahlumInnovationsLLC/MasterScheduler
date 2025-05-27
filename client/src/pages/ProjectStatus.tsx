@@ -1749,6 +1749,9 @@ const ProjectStatus = () => {
           </Button>
         </div>
       )}
+      
+      {/* Delivery Dialog */}
+      <DeliveryDialog />
     </div>
   );
 };
