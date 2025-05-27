@@ -38,7 +38,7 @@ const DeliveredProjects = () => {
 
   const updateReasonMutation = useMutation({
     mutationFn: async ({ projectId, reason }: { projectId: number; reason: string }) => {
-      return apiRequest(`/api/delivered-projects/${projectId}/reason`, 'PATCH', { reason });
+      return apiRequest('PATCH', `/api/delivered-projects/${projectId}/reason`, { reason });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
@@ -56,7 +56,7 @@ const DeliveredProjects = () => {
 
   const updateResponsibilityMutation = useMutation({
     mutationFn: async ({ projectId, responsibility }: { projectId: number; responsibility: string }) => {
-      return apiRequest(`/api/delivered-projects/${projectId}/responsibility`, 'PATCH', { responsibility });
+      return apiRequest('PATCH', `/api/delivered-projects/${projectId}/responsibility`, { responsibility });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
