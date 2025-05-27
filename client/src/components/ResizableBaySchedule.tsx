@@ -3749,16 +3749,34 @@ export default function ResizableBaySchedule({
                                         end.setHours(0, 0, 0, 0);
                                         today.setHours(0, 0, 0, 0);
                                         
+                                        // Debug logging to understand date alignment
+                                        console.log(`Phase calculation for project ${bar.projectNumber}:`, {
+                                          scheduleStart: start.toISOString().split('T')[0],
+                                          scheduleEnd: end.toISOString().split('T')[0],
+                                          today: today.toISOString().split('T')[0],
+                                          projectShipDate: project?.shipDate ? new Date(project.shipDate).toISOString().split('T')[0] : 'N/A'
+                                        });
+                                        
                                         // Check if before schedule starts
                                         if (today < start) return 'Not Started';
                                         
-                                        // Check if after schedule ends
-                                        if (today >= end) return 'Shipped';
+                                        // CRITICAL FIX: Use project ship date if available, otherwise use schedule end date
+                                        const actualEndDate = project?.shipDate ? new Date(project.shipDate) : end;
+                                        actualEndDate.setHours(0, 0, 0, 0);
                                         
-                                        // Calculate position within the schedule timeline
-                                        const totalDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+                                        // Check if after project ships
+                                        if (today >= actualEndDate) return 'Shipped';
+                                        
+                                        // Calculate position within the ACTUAL project timeline (start to ship date)
+                                        const totalDays = (actualEndDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
                                         const daysSinceStart = (today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
                                         const progressPercent = (daysSinceStart / totalDays) * 100;
+                                        
+                                        console.log(`Phase calculation details:`, {
+                                          totalDays,
+                                          daysSinceStart,
+                                          progressPercent: progressPercent.toFixed(2) + '%'
+                                        });
                                         
                                         // Use EXACT phase percentages from visual timeline (matching bar.fabPercentage, etc.)
                                         let cumulativePercent = 0;
