@@ -1998,23 +1998,23 @@ export class DatabaseStorage implements IStorage {
           p.project_number as "projectNumber",
           p.name,
           p.contract_date as "contractDate",
-          COALESCE(p.actual_delivery_date, p.delivery_date) as "actualDeliveryDate",
+          p.delivery_date as "actualDeliveryDate",
           p.late_delivery_reason as "reason",
           p.delay_responsibility as "delayResponsibility",
           p.percent_complete as "percentComplete",
           p.status,
           -- Calculate days late: positive means late, negative means early, 0 means on time
           CASE 
-            WHEN COALESCE(p.actual_delivery_date, p.delivery_date) IS NOT NULL AND p.contract_date IS NOT NULL 
-            THEN EXTRACT(epoch FROM (COALESCE(p.actual_delivery_date, p.delivery_date) - p.contract_date)) / 86400
+            WHEN p.delivery_date IS NOT NULL AND p.contract_date IS NOT NULL 
+            THEN EXTRACT(epoch FROM (p.delivery_date - p.contract_date)) / 86400
             ELSE 0
           END as "daysLate"
         FROM 
           projects p
         WHERE 
-          (p.actual_delivery_date IS NOT NULL OR p.delivery_date IS NOT NULL OR p.status = 'delivered')
+          (p.delivery_date IS NOT NULL OR p.status = 'delivered')
         ORDER BY 
-          COALESCE(p.actual_delivery_date, p.delivery_date, p.estimated_completion_date) DESC
+          COALESCE(p.delivery_date, p.estimated_completion_date) DESC
       `);
       
       return result.rows as any[];
