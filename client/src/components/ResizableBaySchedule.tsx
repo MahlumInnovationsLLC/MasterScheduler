@@ -3822,6 +3822,63 @@ export default function ResizableBaySchedule({
                                       };
                                       
                                       const currentPhase = getCurrentPhaseFromVisualPosition();
+
+                                      // SYNC DATABASE DATES WITH VISUAL POSITION
+                                      // This ensures the database dates match what users see on screen
+                                      const syncDatabaseWithVisualPosition = () => {
+                                        // Convert the visual position back to actual dates
+                                        const visualStartDate = convertPixelToDate(bar.left);
+                                        const visualEndDate = convertPixelToDate(bar.left + bar.width);
+                                        
+                                        // Check if database dates are significantly different from visual position
+                                        const dbStartDate = new Date(bar.startDate);
+                                        const dbEndDate = new Date(bar.endDate);
+                                        
+                                        const startDaysDiff = Math.abs(differenceInDays(visualStartDate, dbStartDate));
+                                        const endDaysDiff = Math.abs(differenceInDays(visualEndDate, dbEndDate));
+                                        
+                                        // If dates are off by more than 3 days, sync them
+                                        if (startDaysDiff > 3 || endDaysDiff > 3) {
+                                          console.log(`🔄 SYNCING PROJECT ${bar.projectNumber}:`, {
+                                            visual: `${format(visualStartDate, 'yyyy-MM-dd')} to ${format(visualEndDate, 'yyyy-MM-dd')}`,
+                                            database: `${format(dbStartDate, 'yyyy-MM-dd')} to ${format(dbEndDate, 'yyyy-MM-dd')}`,
+                                            daysDiff: { start: startDaysDiff, end: endDaysDiff }
+                                          });
+                                          
+                                          // Update the database dates to match visual position
+                                          onScheduleChange(
+                                            bar.id,
+                                            bar.bayId,
+                                            format(visualStartDate, 'yyyy-MM-dd'),
+                                            format(visualEndDate, 'yyyy-MM-dd'),
+                                            bar.totalHours,
+                                            bar.row
+                                          ).catch(error => {
+                                            console.error('Failed to sync database dates:', error);
+                                          });
+                                        }
+                                      };
+
+                                      // Helper function to convert pixel position to date
+                                      const convertPixelToDate = (pixelPosition: number): Date => {
+                                        const slotIndex = Math.floor(pixelPosition / slotWidth);
+                                        const offsetWithinSlot = pixelPosition % slotWidth;
+                                        
+                                        if (slotIndex >= 0 && slotIndex < slots.length) {
+                                          const slotDate = new Date(slots[slotIndex].date);
+                                          const daysOffset = (offsetWithinSlot / slotWidth) * 7; // 7 days per week slot
+                                          return addDays(slotDate, Math.floor(daysOffset));
+                                        }
+                                        
+                                        // Fallback calculation
+                                        const daysFromStart = Math.floor(pixelPosition / (slotWidth / 7));
+                                        return addDays(dateRange.start, daysFromStart);
+                                      };
+
+                                      // Run sync check (but only occasionally to avoid performance issues)
+                                      if (Math.random() < 0.1) { // 10% chance to sync on each render
+                                        setTimeout(syncDatabaseWithVisualPosition, 100);
+                                      }
                                       
                                       // Define phase colors and labels
                                       const phaseConfig = {
