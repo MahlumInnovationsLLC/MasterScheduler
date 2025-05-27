@@ -3819,11 +3819,13 @@ export default function ResizableBaySchedule({
                               
                               {/* Resize handles */}
                               <div 
-                                className="resize-handle-start absolute top-0 left-0 w-2 h-full cursor-ew-resize bg-blue-900/30 hover:bg-blue-900/50"
+                                className="resize-handle resize-handle-left absolute top-0 left-0 w-6 h-full cursor-ew-resize pointer-events-auto"
+                                style={{ zIndex: 99999 }}
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'start')}
                               ></div>
                               <div 
-                                className="resize-handle-end absolute top-0 right-[-7px] w-2 h-full cursor-ew-resize bg-blue-900/30 hover:bg-blue-900/50"
+                                className="resize-handle resize-handle-right absolute top-0 right-0 w-6 h-full cursor-ew-resize pointer-events-auto"
+                                style={{ zIndex: 99999, transform: 'translateX(50%)' }}
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'end')}
                               ></div>
                             </div>
