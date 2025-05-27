@@ -3822,19 +3822,51 @@ export default function ResizableBaySchedule({
                                 </button>
                               </div>
                               
-                              {/* Resize handles - MAXIMUM z-index to be above ALL layers */}
+                              {/* Resize handles - FORCE MAXIMUM z-index with inline styles */}
                               <div 
-                                className="resize-handle resize-handle-left absolute top-0 left-0 w-2 h-full cursor-ew-resize pointer-events-auto bg-blue-900/30 hover:bg-blue-900/80 hover:border hover:border-white hover:shadow-lg transition-all duration-150"
-                                style={{ zIndex: 2147483647 }}
+                                className="absolute top-0 left-0 cursor-ew-resize"
+                                style={{ 
+                                  width: '8px',
+                                  height: '100%',
+                                  backgroundColor: 'rgba(30, 58, 138, 0.4)',
+                                  zIndex: 999999999,
+                                  pointerEvents: 'auto',
+                                  transition: 'all 0.15s ease'
+                                }}
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'start')}
+                                onMouseEnter={(e) => {
+                                  e.target.style.backgroundColor = 'rgba(30, 58, 138, 0.8)';
+                                  e.target.style.border = '1px solid white';
+                                  e.target.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.backgroundColor = 'rgba(30, 58, 138, 0.4)';
+                                  e.target.style.border = 'none';
+                                  e.target.style.boxShadow = 'none';
+                                }}
                               ></div>
                               <div 
-                                className="resize-handle resize-handle-right absolute top-0 right-0 w-2 h-full cursor-ew-resize pointer-events-auto bg-blue-900/30 hover:bg-blue-900/80 hover:border hover:border-white hover:shadow-lg transition-all duration-150"
+                                className="absolute top-0 right-0 cursor-ew-resize"
                                 style={{ 
-                                  zIndex: 2147483647,
-                                  right: '-3px'
+                                  width: '8px',
+                                  height: '100%',
+                                  backgroundColor: 'rgba(30, 58, 138, 0.4)',
+                                  zIndex: 999999999,
+                                  pointerEvents: 'auto',
+                                  transition: 'all 0.15s ease',
+                                  right: '-4px'
                                 }}
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'end')}
+                                onMouseEnter={(e) => {
+                                  e.target.style.backgroundColor = 'rgba(30, 58, 138, 0.8)';
+                                  e.target.style.border = '1px solid white';
+                                  e.target.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.backgroundColor = 'rgba(30, 58, 138, 0.4)';
+                                  e.target.style.border = 'none';
+                                  e.target.style.boxShadow = 'none';
+                                }}
                               ></div>
                             </div>
                           );
