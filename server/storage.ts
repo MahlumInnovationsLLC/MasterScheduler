@@ -2044,14 +2044,27 @@ export class DatabaseStorage implements IStorage {
 
   async updateDeliveredProjectReason(projectId: number, reason: string): Promise<boolean> {
     try {
-      console.log("DEBUG - Storage: Updating reason for project", projectId, "with value:", reason);
+      console.log("🔥🔥🔥 STORAGE: Starting reason update for project", projectId, "with value:", reason);
+      
       const result = await db.update(projects)
         .set({ lateDeliveryReason: reason })
         .where(eq(projects.id, projectId));
-      console.log("DEBUG - Storage: Update result:", result);
-      return true;
+      
+      console.log("🔥🔥🔥 STORAGE: Update result:", result);
+      console.log("🔥🔥🔥 STORAGE: Result type:", typeof result);
+      console.log("🔥🔥🔥 STORAGE: Result stringified:", JSON.stringify(result));
+      
+      // Check if the update actually affected any rows
+      if (result && result.changes && result.changes > 0) {
+        console.log("🎉 STORAGE: Successfully updated", result.changes, "rows");
+        return true;
+      } else {
+        console.log("💥 STORAGE: No rows were updated - this is the problem!");
+        console.log("💥 STORAGE: Result.changes:", result?.changes);
+        return false;
+      }
     } catch (error) {
-      console.error("Error updating delivered project reason:", error);
+      console.error("💥💥💥 STORAGE ERROR:", error);
       return false;
     }
   }
