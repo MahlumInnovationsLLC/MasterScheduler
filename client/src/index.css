@@ -1886,7 +1886,7 @@ body.role-viewer main {
   opacity: 0;
   transition: opacity 0.15s ease-in-out, background-color 0.15s ease-in-out;
   cursor: ew-resize !important;
-  z-index: 50; /* Higher z-index to be above other elements */
+  z-index: 9999 !important; /* Maximum z-index to always be on top */
   pointer-events: auto !important; /* Ensure it captures mouse events */
 }
 
@@ -1926,6 +1926,19 @@ body.role-viewer main {
 
 .big-project-bar:hover .resize-handle {
   opacity: 1;
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Always ensure resize handles are visible on overlap */
+.resize-handle-right {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  border: 2px solid rgba(255, 255, 255, 0.9) !important;
+}
+
+.resize-handle-left {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  border: 2px solid rgba(255, 255, 255, 0.9) !important;
 }
 
 /* Always show handles when in resize operation */
