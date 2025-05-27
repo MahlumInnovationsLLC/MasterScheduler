@@ -501,14 +501,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (success) {
         console.log("=== REASON UPDATE SUCCESS ===");
-        res.json({ success: true, message: "Reason updated successfully" });
+        return res.status(200).json({ success: true, message: "Reason updated successfully" });
       } else {
         console.log("=== REASON UPDATE FAILED ===");
-        res.status(500).json({ message: "Failed to update reason" });
+        return res.status(500).json({ message: "Failed to update reason" });
       }
     } catch (error) {
       console.error("=== REASON UPDATE ERROR ===", error);
-      res.status(500).json({ message: "Error updating reason" });
+      return res.status(500).json({ message: "Error updating reason" });
     }
   });
 
