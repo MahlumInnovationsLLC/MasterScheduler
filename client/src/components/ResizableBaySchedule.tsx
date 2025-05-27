@@ -3849,53 +3849,57 @@ export default function ResizableBaySchedule({
                             <React.Fragment key={`handles-${bar.id}`}>
                               {/* Left resize handle */}
                               <div 
-                                className="absolute cursor-ew-resize"
+                                className="absolute cursor-ew-resize resize-handle"
                                 style={{ 
                                   left: `${bar.left}px`,
                                   top: '0px',
                                   width: '8px',
                                   height: '72px',
                                   backgroundColor: 'rgba(30, 58, 138, 0.4)',
-                                  zIndex: 999999999,
+                                  zIndex: 500,
                                   pointerEvents: 'auto',
                                   transition: 'all 0.15s ease'
                                 }}
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'start')}
                                 onMouseEnter={(e) => {
-                                  e.target.style.backgroundColor = 'rgba(30, 58, 138, 0.8)';
-                                  e.target.style.border = '1px solid white';
-                                  e.target.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                                  e.target.style.backgroundColor = 'rgba(59, 130, 246, 1)';
+                                  e.target.style.border = '2px solid white';
+                                  e.target.style.boxShadow = '0 0 12px rgba(59, 130, 246, 0.8)';
+                                  e.target.style.transform = 'scaleX(1.2)';
                                 }}
                                 onMouseLeave={(e) => {
                                   e.target.style.backgroundColor = 'rgba(30, 58, 138, 0.4)';
                                   e.target.style.border = 'none';
                                   e.target.style.boxShadow = 'none';
+                                  e.target.style.transform = 'scaleX(1)';
                                 }}
                               ></div>
                               
                               {/* Right resize handle */}
                               <div 
-                                className="absolute cursor-ew-resize"
+                                className="absolute cursor-ew-resize resize-handle"
                                 style={{ 
                                   left: `${bar.left + Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0)) + 4}px`,
                                   top: '0px',
                                   width: '8px',
                                   height: '72px',
                                   backgroundColor: 'rgba(30, 58, 138, 0.4)',
-                                  zIndex: 999999999,
+                                  zIndex: 500,
                                   pointerEvents: 'auto',
                                   transition: 'all 0.15s ease'
                                 }}
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'end')}
                                 onMouseEnter={(e) => {
-                                  e.target.style.backgroundColor = 'rgba(30, 58, 138, 0.8)';
-                                  e.target.style.border = '1px solid white';
-                                  e.target.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                                  e.target.style.backgroundColor = 'rgba(59, 130, 246, 1)';
+                                  e.target.style.border = '2px solid white';
+                                  e.target.style.boxShadow = '0 0 12px rgba(59, 130, 246, 0.8)';
+                                  e.target.style.transform = 'scaleX(1.2)';
                                 }}
                                 onMouseLeave={(e) => {
                                   e.target.style.backgroundColor = 'rgba(30, 58, 138, 0.4)';
                                   e.target.style.border = 'none';
                                   e.target.style.boxShadow = 'none';
+                                  e.target.style.transform = 'scaleX(1)';
                                 }}
                               ></div>
                             </React.Fragment>
