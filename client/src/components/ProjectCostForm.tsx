@@ -30,7 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { DollarSign, Calculator } from 'lucide-react';
+import { DollarSign, Calculator, Upload, Download } from 'lucide-react';
 
 const COST_SECTIONS = [
   { key: 'X', label: 'Section X', description: 'General/Miscellaneous' },
@@ -92,6 +92,7 @@ export function ProjectCostForm({
 }: ProjectCostFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showImportTool, setShowImportTool] = React.useState(false);
 
   const form = useForm<ProjectCostFormData>({
     resolver: zodResolver(projectCostSchema),
@@ -178,6 +179,82 @@ export function ProjectCostForm({
     }).format(num || 0);
   };
 
+  // Template download function
+  const downloadTemplate = () => {
+    const csvContent = "data:text/csv;charset=utf-8," + 
+      "Section,Section Name,Cost\n" +
+      "X,Section X - General/Miscellaneous,0.00\n" +
+      "B,Section B - Basic Components,0.00\n" +
+      "A,Section A - Advanced Systems,0.00\n" +
+      "C,Section C - Control Systems,0.00\n" +
+      "D,Section D - Drive Systems,0.00\n" +
+      "E,Section E - Electrical,0.00\n" +
+      "F,Section F - Fabrication,0.00\n" +
+      "G,Section G - Gear Systems,0.00\n" +
+      "H,Section H - Hydraulics,0.00\n" +
+      "I,Section I - Installation,0.00\n" +
+      "J,Section J - Jigs & Fixtures,0.00\n" +
+      "T,Section T - Testing,0.00\n" +
+      "L,Section L - Labor,0.00\n" +
+      "N,Section N - Non-Standard,0.00\n" +
+      "Q,Section Q - Quality Control,0.00\n" +
+      "U,Section U - Utilities,0.00";
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "project_costs_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Template Downloaded",
+      description: "Project costs template has been downloaded successfully",
+    });
+  };
+
+  // Handle file import
+  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const csv = e.target?.result as string;
+        const lines = csv.split('\n');
+        const header = lines[0].split(',');
+        
+        // Skip header row
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',');
+          if (values.length >= 3) {
+            const section = values[0].trim();
+            const cost = values[2].trim();
+            
+            if (section && cost) {
+              form.setValue(`section${section}` as keyof ProjectCostFormData, cost);
+            }
+          }
+        }
+        
+        toast({
+          title: "Import Successful",
+          description: "Cost data has been imported from the file",
+        });
+        setShowImportTool(false);
+      } catch (error) {
+        toast({
+          title: "Import Error",
+          description: "Failed to parse the uploaded file",
+          variant: "destructive",
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const onSubmit = (data: ProjectCostFormData) => {
     saveMutation.mutate(data);
   };
@@ -253,107 +330,115 @@ export function ProjectCostForm({
               </CardContent>
             </Card>
 
-            <Tabs value={useOverallCostOnly ? "overall" : "sections"} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="overall" disabled={!useOverallCostOnly}>
-                  Overall Cost
-                </TabsTrigger>
-                <TabsTrigger value="sections" disabled={useOverallCostOnly}>
-                  Section Breakdown
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overall" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Overall Project Cost</CardTitle>
-                    <CardDescription>
-                      Enter the total project cost without section breakdown
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="overallCost"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Total Project Cost</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                              <Input
-                                {...field}
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                className="pl-10"
-                              />
-                            </div>
-                          </FormControl>
-                          <FormDescription>
-                            Enter the total project cost in USD
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="sections" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>Section Cost Breakdown</CardTitle>
-                        <CardDescription>
-                          Enter costs for each manufacturing section
-                        </CardDescription>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm text-gray-500">Calculated Total</div>
-                        <div className="text-lg font-semibold text-green-600">
-                          {formatCurrency(calculateSectionTotal())}
-                        </div>
+            {/* Cost Input Section */}
+            {useOverallCostOnly ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Overall Project Cost</CardTitle>
+                  <CardDescription>
+                    Enter the total project cost without section breakdown
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="overallCost"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Total Project Cost</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                            <Input
+                              {...field}
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              className="pl-10"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          Enter the total project cost in USD
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>Section Cost Breakdown</CardTitle>
+                      <CardDescription>
+                        Enter costs for each manufacturing section
+                      </CardDescription>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-gray-500">Calculated Total</div>
+                      <div className="text-lg font-semibold text-green-600">
+                        {formatCurrency(calculateSectionTotal())}
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {COST_SECTIONS.map((section) => (
-                        <FormField
-                          key={section.key}
-                          control={form.control}
-                          name={`section${section.key}` as keyof ProjectCostFormData}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="flex items-center gap-2">
-                                <Badge variant="outline">{section.key}</Badge>
-                                {section.label}
-                              </FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                                  <Input
-                                    {...field}
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    className="pl-10"
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-4 flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowImportTool(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Import from File
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={downloadTemplate}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download Template
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {COST_SECTIONS.map((section) => (
+                      <FormField
+                        key={section.key}
+                        control={form.control}
+                        name={`section${section.key}` as keyof ProjectCostFormData}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-2">
+                              <Badge variant="outline">{section.key}</Badge>
+                              {section.label}
+                            </FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <Input
+                                  {...field}
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  className="pl-10"
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Notes */}
             <Card>
@@ -399,6 +484,71 @@ export function ProjectCostForm({
           </form>
         </Form>
       </DialogContent>
+
+      {/* Import Tool Dialog */}
+      {showImportTool && (
+        <Dialog open={showImportTool} onOpenChange={setShowImportTool}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Import Cost Data</DialogTitle>
+              <DialogDescription>
+                Upload a CSV file with cost data for all sections
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-sm text-gray-600 mb-2">
+                  Choose a CSV file to upload
+                </p>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileImport}
+                  className="hidden"
+                  id="cost-file-input"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById('cost-file-input')?.click()}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Select File
+                </Button>
+              </div>
+              
+              <div className="text-xs text-gray-500">
+                <p className="font-medium mb-1">Expected CSV format:</p>
+                <p>Section, Section Name, Cost</p>
+                <p className="mt-2">
+                  Need a template? 
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="p-0 h-auto text-xs"
+                    onClick={downloadTemplate}
+                  >
+                    Download template file
+                  </Button>
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowImportTool(false)}
+              >
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 }
