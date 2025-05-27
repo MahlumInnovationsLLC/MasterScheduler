@@ -523,23 +523,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update delivered project responsibility
   app.patch("/api/delivered-projects/:id/responsibility", hasEditRights, async (req, res) => {
     try {
+      console.log("🔥🔥🔥 RESPONSIBILITY UPDATE API ROUTE HIT!!! 🔥🔥🔥");
+      console.log("=== RESPONSIBILITY UPDATE DEBUG START ===");
       const projectId = parseInt(req.params.id);
       const { responsibility } = req.body;
 
-      if (!projectId || typeof responsibility !== 'string') {
-        return res.status(400).json({ message: "Invalid project ID or responsibility" });
+      console.log("Request params:", req.params);
+      console.log("Request body:", JSON.stringify(req.body));
+      console.log("Parsed projectId:", projectId);
+      console.log("Extracted responsibility:", responsibility);
+      console.log("Responsibility type:", typeof responsibility);
+
+      if (!projectId) {
+        console.log("ERROR: Invalid project ID");
+        return res.status(400).json({ message: "Invalid project ID" });
       }
 
+      if (typeof responsibility !== 'string') {
+        console.log("ERROR: Responsibility is not a string, type is:", typeof responsibility);
+        return res.status(400).json({ message: "Invalid responsibility" });
+      }
+
+      console.log("🔥 About to call storage.updateDeliveredProjectResponsibility with:", { projectId, responsibility });
       const success = await storage.updateDeliveredProjectResponsibility(projectId, responsibility);
+      console.log("🔥 Storage update result:", success);
       
       if (success) {
-        res.json({ success: true, message: "Responsibility updated successfully" });
+        console.log("🔥🔥🔥 RESPONSIBILITY UPDATE SUCCESS!!! 🔥🔥🔥");
+        return res.status(200).json({ success: true, message: "Responsibility updated successfully" });
       } else {
-        res.status(500).json({ message: "Failed to update responsibility" });
+        console.log("💥💥💥 RESPONSIBILITY UPDATE FAILED!!! 💥💥💥");
+        return res.status(500).json({ message: "Failed to update responsibility" });
       }
     } catch (error) {
-      console.error("Error updating delivered project responsibility:", error);
-      res.status(500).json({ message: "Error updating responsibility" });
+      console.error("💥💥💥 RESPONSIBILITY UPDATE ERROR!!! 💥💥💥", error);
+      return res.status(500).json({ message: "Error updating responsibility" });
     }
   });
   
