@@ -65,22 +65,19 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
     return null;
   };
   
-  // For timeline START, use the project start date (it's the official one)
-  const startDate = project.startDate || null;
-  
-  // For timeline END, use the ship date (it's the official one)
-  const shipDate = project.shipDate || project.estimatedCompletionDate || null;
-  
-  // Get all other phase dates
+  // Get the correct dates to display in timeline
+  const contractDate = project.contractDate || null;
+  const poDroppedDate = project.poDroppedDate || project.startDate || null; // Timeline Start
   const fabricationStart = getPhaseDate('fabricationStart');
   const assemblyStart = getPhaseDate('assemblyStart');
-  const ntcTestingDate = getPhaseDate('ntcTestingDate');
-  const qcStartDate = getPhaseDate('qcStartDate');
-  const executiveReviewDate = getPhaseDate('executiveReviewDate');
-  const deliveryDate = getPhaseDate('deliveryDate');
+  const ntcTestingDate = project.ntcTestingDate || null;
+  const qcStartDate = project.qcStartDate || null;
+  const executiveReviewDate = project.executiveReviewDate || null;
+  const shipDate = project.shipDate || null;
+  const deliveryDate = project.deliveryDate || null;
   
   // Only display if we have at least one phase date
-  if (!startDate && !fabricationStart && !assemblyStart && !ntcTestingDate && 
+  if (!contractDate && !poDroppedDate && !fabricationStart && !assemblyStart && !ntcTestingDate && 
       !qcStartDate && !executiveReviewDate && !shipDate && !deliveryDate) {
     return null;
   }
@@ -89,12 +86,22 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
     <div className="mt-6 bg-darkCard/50 border border-gray-800 rounded-lg p-3">
       <div className="text-sm text-gray-400 mb-2">Project Timeline</div>
       <div className="flex flex-wrap gap-3">
-        {startDate && (
+        {contractDate && (
+          <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
+            <Clock className="h-4 w-4 text-blue-500" />
+            <div>
+              <div className="text-xs text-gray-400">CONTRACT DATE</div>
+              <div className="text-sm font-medium">{formatDate(contractDate)}</div>
+            </div>
+          </div>
+        )}
+        
+        {poDroppedDate && (
           <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
             <Calendar className="h-4 w-4 text-primary" />
             <div>
               <div className="text-xs text-gray-400">TIMELINE START</div>
-              <div className="text-sm font-medium">{formatDate(startDate)}</div>
+              <div className="text-sm font-medium">{formatDate(poDroppedDate)}</div>
             </div>
           </div>
         )}
