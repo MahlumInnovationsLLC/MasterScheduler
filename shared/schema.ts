@@ -74,6 +74,10 @@ export const billingStatusEnum = pgEnum("billing_status", [
   "delayed",
 ]);
 
+export const costSectionEnum = pgEnum("cost_section", [
+  "X", "B", "A", "C", "D", "E", "F", "G", "H", "I", "J", "T", "L", "N", "Q", "U"
+]);
+
 export const manufacturingStatusEnum = pgEnum("manufacturing_status", [
   "scheduled",
   "in_progress",
@@ -448,6 +452,44 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
   }),
 }));
 
+// Project Costs Table
+export const projectCosts = pgTable("project_costs", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .references(() => projects.id)
+    .notNull(),
+  
+  // Overall cost tracking
+  overallCost: decimal("overall_cost", { precision: 12, scale: 2 }),
+  useOverallCostOnly: boolean("use_overall_cost_only").default(false),
+  
+  // Section-specific costs
+  sectionX: decimal("section_x", { precision: 12, scale: 2 }).default("0"),
+  sectionB: decimal("section_b", { precision: 12, scale: 2 }).default("0"),
+  sectionA: decimal("section_a", { precision: 12, scale: 2 }).default("0"),
+  sectionC: decimal("section_c", { precision: 12, scale: 2 }).default("0"),
+  sectionD: decimal("section_d", { precision: 12, scale: 2 }).default("0"),
+  sectionE: decimal("section_e", { precision: 12, scale: 2 }).default("0"),
+  sectionF: decimal("section_f", { precision: 12, scale: 2 }).default("0"),
+  sectionG: decimal("section_g", { precision: 12, scale: 2 }).default("0"),
+  sectionH: decimal("section_h", { precision: 12, scale: 2 }).default("0"),
+  sectionI: decimal("section_i", { precision: 12, scale: 2 }).default("0"),
+  sectionJ: decimal("section_j", { precision: 12, scale: 2 }).default("0"),
+  sectionT: decimal("section_t", { precision: 12, scale: 2 }).default("0"),
+  sectionL: decimal("section_l", { precision: 12, scale: 2 }).default("0"),
+  sectionN: decimal("section_n", { precision: 12, scale: 2 }).default("0"),
+  sectionQ: decimal("section_q", { precision: 12, scale: 2 }).default("0"),
+  sectionU: decimal("section_u", { precision: 12, scale: 2 }).default("0"),
+  
+  // Additional metadata
+  notes: text("notes"),
+  lastUpdatedBy: varchar("last_updated_by").references(() => users.id),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Billing Milestones Table
 export const billingMilestones = pgTable("billing_milestones", {
   id: serial("id").primaryKey(),
@@ -477,6 +519,18 @@ export const billingMilestones = pgTable("billing_milestones", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Project Costs Relations
+export const projectCostsRelations = relations(projectCosts, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectCosts.projectId],
+    references: [projects.id],
+  }),
+  lastUpdatedByUser: one(users, {
+    fields: [projectCosts.lastUpdatedBy],
+    references: [users.id],
+  }),
+}));
 
 // Billing Milestones Relations
 export const billingMilestonesRelations = relations(billingMilestones, ({ one }) => ({
@@ -618,6 +672,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   tasks: many(tasks),
   projectMilestones: many(projectMilestones),
   billingMilestones: many(billingMilestones),
+  projectCosts: many(projectCosts),
   baySchedules: many(manufacturingSchedules),
   deliveryTracking: many(deliveryTracking),
 }));
@@ -985,6 +1040,16 @@ export const insertProjectSupplyChainBenchmarkSchema = createInsertSchema(projec
   createdAt: true,
   updatedAt: true,
 });
+
+// Create insert schema for project costs
+export const insertProjectCostSchema = createInsertSchema(projectCosts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type ProjectCost = typeof projectCosts.$inferSelect;
+export type InsertProjectCost = z.infer<typeof insertProjectCostSchema>;
 
 export type SupplyChainBenchmark = typeof supplyChainBenchmarks.$inferSelect;
 export type InsertSupplyChainBenchmark = z.infer<typeof insertSupplyChainBenchmarkSchema>;

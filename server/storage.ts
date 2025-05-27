@@ -3,6 +3,7 @@ import {
   projects,
   tasks,
   billingMilestones,
+  projectCosts,
   projectMilestones,
   manufacturingBays,
   manufacturingSchedules,
@@ -27,6 +28,8 @@ import {
   type InsertProjectMilestone,
   type BillingMilestone,
   type InsertBillingMilestone,
+  type ProjectCost,
+  type InsertProjectCost,
   type ManufacturingBay,
   type InsertManufacturingBay,
   type ManufacturingSchedule,
@@ -180,6 +183,13 @@ export interface IStorage {
   updateBillingMilestone(id: number, milestone: Partial<InsertBillingMilestone>): Promise<BillingMilestone | undefined>;
   deleteBillingMilestone(id: number): Promise<boolean>;
   deleteAllBillingMilestones(): Promise<number>;
+  
+  // Project Costs methods
+  getProjectCosts(): Promise<ProjectCost[]>;
+  getProjectCost(projectId: number): Promise<ProjectCost | undefined>;
+  createProjectCost(cost: InsertProjectCost): Promise<ProjectCost>;
+  updateProjectCost(projectId: number, cost: Partial<InsertProjectCost>): Promise<ProjectCost | undefined>;
+  deleteProjectCost(projectId: number): Promise<boolean>;
   
   // Manufacturing Bay methods
   getManufacturingBays(): Promise<ManufacturingBay[]>;
