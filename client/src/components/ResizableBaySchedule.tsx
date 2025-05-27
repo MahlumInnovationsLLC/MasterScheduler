@@ -503,7 +503,7 @@ export default function ResizableBaySchedule({
   }, [isDragging, startAutoScroll, stopAutoScroll]);
   
   // Global drag end handler
-  const handleDragEnd = useCallback(() => {
+  const handleDragEndGlobal = useCallback(() => {
     setIsDragging(false);
     stopAutoScroll();
   }, [stopAutoScroll]);
@@ -512,17 +512,17 @@ export default function ResizableBaySchedule({
   useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleDragMove);
-      document.addEventListener('dragend', handleDragEnd);
-      document.addEventListener('drop', handleDragEnd);
+      document.addEventListener('dragend', handleDragEndGlobal);
+      document.addEventListener('drop', handleDragEndGlobal);
       
       return () => {
         document.removeEventListener('mousemove', handleDragMove);
-        document.removeEventListener('dragend', handleDragEnd);
-        document.removeEventListener('drop', handleDragEnd);
+        document.removeEventListener('dragend', handleDragEndGlobal);
+        document.removeEventListener('drop', handleDragEndGlobal);
         stopAutoScroll();
       };
     }
-  }, [isDragging, handleDragMove, handleDragEnd, stopAutoScroll]);
+  }, [isDragging, handleDragMove, handleDragEndGlobal, stopAutoScroll]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newBayDialog, setNewBayDialog] = useState(false);
   const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
@@ -1386,20 +1386,7 @@ export default function ResizableBaySchedule({
     }
   };
   
-  // This function is now handled by the useCallback above
-    
-    // Remove highlights from all potential drop targets
-    document.querySelectorAll('.drop-target').forEach((el) => {
-      el.classList.remove('drop-target');
-    });
-    
-    // Remove highlights from bay rows and other drop areas
-    document.querySelectorAll('.row-target-highlight, .bay-highlight').forEach((el) => {
-      el.classList.remove('row-target-highlight', 'bay-highlight');
-    });
-    
-    console.log('Drag operation completed, all states cleared');
-  };
+  // Drag end cleanup is now handled by the useCallback above
   
   const handleDrop = async (e: React.DragEvent, bayId: number, slotIndex: number, rowIndex: number) => {
     e.preventDefault();
