@@ -58,7 +58,7 @@ import {
   type InsertProjectSupplyChainBenchmark,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or, inArray, ne } from "drizzle-orm";
 import * as schemaBackup from "../shared/schema-backup";
 import { PgSelectBase } from "drizzle-orm/pg-core";
 
@@ -1989,57 +1989,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Delivered Projects methods
-  async getDeliveredProjects(): Promise<any[]> {
-    try {
-      // Get projects that have delivery_date or are marked as 'delivered'
-      const result = await db.execute(sql`
-        SELECT 
-          p.id as "projectId",
-          p.project_number as "projectNumber",
-          p.name,
-          p.contract_date as "contractDate",
-          p.delivery_date as "actualDeliveryDate",
-          p.delivery_date as "deliveryDate",
-          p.late_delivery_reason as "reason",
-          p.late_delivery_reason as "lateDeliveryReason",
-          p.delay_responsibility as "delayResponsibility",
-          p.percent_complete as "percentComplete",
-          p.status,
-          -- Calculate days late: positive means late, negative means early, 0 means on time
-          CASE 
-            WHEN p.delivery_date IS NOT NULL AND p.contract_date IS NOT NULL 
-            THEN (p.delivery_date::date - p.contract_date::date)
-            ELSE 0
-          END as "daysLate"
-        FROM 
-          projects p
-        WHERE 
-          p.status = 'delivered'
-        ORDER BY 
-          COALESCE(p.delivery_date, p.estimated_completion_date) DESC
-      `);
-      
-      // Format the results to ensure field mapping consistency
-      const formattedResults = result.rows.map((row: any) => ({
-        id: row.projectId,
-        projectNumber: row.projectNumber,
-        name: row.name,
-        contractDate: row.contractDate,
-        deliveryDate: row.actualDeliveryDate,
-        actualDeliveryDate: row.actualDeliveryDate,
-        daysLate: Math.round(row.daysLate || 0),
-        reason: row.lateDeliveryReason || row.reason,
-        lateDeliveryReason: row.lateDeliveryReason,
-        delayResponsibility: row.delayResponsibility,
-        percentComplete: row.percentComplete,
-        status: row.status
-      }));
-      
-      return formattedResults;
-    } catch (error) {
-      console.error("Error fetching delivered projects:", error);
-      return [];
-    }
+  async getDeliveredProjects(): Promise<Project[]> {
+    return await safeQuery<Project>(() =>
+      db.select()
+        .from(projects)
+        .where(eq(projects.status, 'delivered'))
+        .orderBy(desc(projects.deliveryDate))
+    );
   }
 
   async updateDeliveredProjectReason(projectId: number, reason: string): Promise<boolean> {
