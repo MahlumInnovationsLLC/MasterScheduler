@@ -2006,7 +2006,7 @@ export class DatabaseStorage implements IStorage {
           -- Calculate days late: positive means late, negative means early, 0 means on time
           CASE 
             WHEN p.delivery_date IS NOT NULL AND p.contract_date IS NOT NULL 
-            THEN EXTRACT(epoch FROM (p.delivery_date - p.contract_date)) / 86400
+            THEN EXTRACT(epoch FROM (p.delivery_date::date - p.contract_date::date)) / 86400
             ELSE 0
           END as "daysLate"
         FROM 
