@@ -24,8 +24,17 @@ export function formatDate(date: Date | string | undefined | null): string {
   if (!date) return 'N/A';
   
   try {
-    // Try to create a valid date object
-    const dateObj = new Date(date);
+    let dateObj: Date;
+    
+    // Handle different date formats without timezone conversion
+    if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Parse YYYY-MM-DD format as local time to avoid timezone shifts
+      const [year, month, day] = date.split('-');
+      dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    } else {
+      // For other formats, use the existing logic
+      dateObj = new Date(date);
+    }
     
     // Check if date is valid
     if (isNaN(dateObj.getTime())) {
