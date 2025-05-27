@@ -320,150 +320,90 @@ function getDaysUntilDate(dateStr: string | null | undefined): number {
 
 // Helper function to determine the current manufacturing phase based on dates
 function getCurrentPhase(project: any, today: Date): string {
-  // Check if this is the project we're debugging (805304)
-  const isDebugProject = project.projectNumber === "805304";
-  
-  // Reset time portion of today for fair comparison
+  // Reset time portion for fair comparison
   today = new Date(today);
   today.setHours(0, 0, 0, 0);
   
-  // SPECIAL HANDLING FOR PROJECTS THAT DON'T HAVE PHASE DATES
-  // If we have startDate & endDate (from a schedule) but missing phase dates
-  if (project.startDate && project.endDate && 
-      (!project.fabricationStart || !project.assemblyStart || !project.wrapDate)) {
-    
+  // For projects with active schedules, use the visual positioning approach
+  // This ensures consistency with the bay schedule timeline
+  if (project.startDate && project.endDate) {
     const startDate = new Date(project.startDate);
-    startDate.setHours(0, 0, 0, 0);
-    
     const endDate = new Date(project.endDate);
+    startDate.setHours(0, 0, 0, 0);
     endDate.setHours(0, 0, 0, 0);
     
-    if (isDebugProject) {
-      console.log("==== CALCULATING PHASE BASED ON SCHEDULE DATES ====");
-      console.log("Schedule startDate:", startDate.toISOString().split('T')[0]);
-      console.log("Schedule endDate:", endDate.toISOString().split('T')[0]);
-      console.log("Today date:", today.toISOString().split('T')[0]);
-      console.log("Project has active schedule:", startDate <= today && today <= endDate);
-    }
+    // Use ship date if available, otherwise use schedule end date
+    const actualEndDate = project.shipDate ? new Date(project.shipDate) : endDate;
+    actualEndDate.setHours(0, 0, 0, 0);
     
-    // If today falls between startDate and endDate, the project is in production
-    if (startDate <= today && today <= endDate) {
-      // Get total duration of the project
-      const totalDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-      
-      // Calculate phase percentages (use real percentages from the project if available)
-      const fabPercent = project.fabPercentage ? parseFloat(project.fabPercentage) : 27;
-      const paintPercent = project.paintPercentage ? parseFloat(project.paintPercentage) : 7;
-      const prodPercent = project.productionPercentage ? parseFloat(project.productionPercentage) : 60;
-      const itPercent = project.itPercentage ? parseFloat(project.itPercentage) : 7;
-      const ntcPercent = project.ntcPercentage ? parseFloat(project.ntcPercentage) : 7;
-      const qcPercent = project.qcPercentage ? parseFloat(project.qcPercentage) : 7;
-      
-      // Calculate days for each phase
-      const fabDays = Math.round((fabPercent / 100) * totalDays);
-      const paintDays = Math.round((paintPercent / 100) * totalDays);
-      const prodDays = Math.round((prodPercent / 100) * totalDays);
-      const itDays = Math.round((itPercent / 100) * totalDays);
-      const ntcDays = Math.round((ntcPercent / 100) * totalDays);
-      
-      // Calculate phase transition dates
-      const fabEndDate = new Date(startDate);
-      fabEndDate.setDate(fabEndDate.getDate() + fabDays);
-      
-      const paintEndDate = new Date(fabEndDate);
-      paintEndDate.setDate(paintEndDate.getDate() + paintDays);
-      
-      const prodEndDate = new Date(paintEndDate);
-      prodEndDate.setDate(prodEndDate.getDate() + prodDays);
-      
-      const itEndDate = new Date(prodEndDate);
-      itEndDate.setDate(itEndDate.getDate() + itDays);
-      
-      const ntcEndDate = new Date(itEndDate);
-      ntcEndDate.setDate(ntcEndDate.getDate() + ntcDays);
-      
-      if (isDebugProject) {
-        console.log("Phase transition dates:");
-        console.log("  Fab end:", fabEndDate.toISOString().split('T')[0]);
-        console.log("  Paint end:", paintEndDate.toISOString().split('T')[0]);
-        console.log("  Production end:", prodEndDate.toISOString().split('T')[0]);
-        console.log("  IT end:", itEndDate.toISOString().split('T')[0]);
-        console.log("  NTC end:", ntcEndDate.toISOString().split('T')[0]);
-      }
-      
-      // Determine current phase based on today's position
-      if (today <= fabEndDate) {
-        return "Fabrication";
-      } else if (today <= paintEndDate) {
-        return "Paint";
-      } else if (today <= prodEndDate) {
-        return "Production";
-      } else if (today <= itEndDate) {
-        return "IT Integration";
-      } else if (today <= ntcEndDate) {
-        return "NTC Testing";
-      } else {
-        return "QC";
-      }
-    }
+    // Check if project hasn't started
+    if (today < startDate) return "Not Started";
+    
+    // Check if project has shipped
+    if (today >= actualEndDate) return "Shipped";
+    
+    // Calculate position within timeline (same logic as visual calculation)
+    const totalDays = (actualEndDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+    const daysSinceStart = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+    const progressPercent = (daysSinceStart / totalDays) * 100;
+    
+    // Use standard phase percentages (matching visual timeline)
+    const fabPercent = 27;
+    const paintPercent = 7;
+    const prodPercent = 60;
+    const itPercent = 7;
+    const ntcPercent = 7;
+    
+    let cumulativePercent = 0;
+    
+    cumulativePercent += fabPercent;
+    if (progressPercent < cumulativePercent) return "FAB";
+    
+    cumulativePercent += paintPercent;
+    if (progressPercent < cumulativePercent) return "Paint";
+    
+    cumulativePercent += prodPercent;
+    if (progressPercent < cumulativePercent) return "Production";
+    
+    cumulativePercent += itPercent;
+    if (progressPercent < cumulativePercent) return "IT";
+    
+    cumulativePercent += ntcPercent;
+    if (progressPercent < cumulativePercent) return "NTC";
+    
+    return "QC";
   }
   
-  // STANDARD PHASE DETECTION USING SPECIFIC DATES
-  // Get relevant dates
+  // Fallback to date-based calculation for projects without schedules
   const fabStart = project.fabricationStart ? new Date(project.fabricationStart) : null;
-  const paintStart = project.wrapDate ? new Date(project.wrapDate) : null; // Paint/Wrap phase
+  const paintStart = project.wrapDate ? new Date(project.wrapDate) : null;
   const assemblyStart = project.assemblyStart ? new Date(project.assemblyStart) : null;
   const ntcDate = project.ntcTestingDate ? new Date(project.ntcTestingDate) : null;
   const qcStart = project.qcStartDate ? new Date(project.qcStartDate) : null;
   const execReview = project.executiveReviewDate ? new Date(project.executiveReviewDate) : null;
   const shipDate = project.shipDate ? new Date(project.shipDate) : null;
   
-  // Normalize all dates
-  if (fabStart) fabStart.setHours(0, 0, 0, 0);
-  if (paintStart) paintStart.setHours(0, 0, 0, 0);
-  if (assemblyStart) assemblyStart.setHours(0, 0, 0, 0);
-  if (ntcDate) ntcDate.setHours(0, 0, 0, 0);
-  if (qcStart) qcStart.setHours(0, 0, 0, 0);
-  if (execReview) execReview.setHours(0, 0, 0, 0);
-  if (shipDate) shipDate.setHours(0, 0, 0, 0);
+  // Normalize dates
+  [fabStart, paintStart, assemblyStart, ntcDate, qcStart, execReview, shipDate].forEach(date => {
+    if (date) date.setHours(0, 0, 0, 0);
+  });
   
-  // DEBUG INFORMATION for project 805304
-  if (isDebugProject) {
-    console.log("==== DEBUG PROJECT 805304 PHASE CALCULATION ====");
-    console.log("Today date:", today.toISOString().split('T')[0]);
-    console.log("Fabrication start:", fabStart?.toISOString().split('T')[0] || "null");
-    console.log("Paint start:", paintStart?.toISOString().split('T')[0] || "null");
-    console.log("Assembly start:", assemblyStart?.toISOString().split('T')[0] || "null");
-    console.log("NTC Testing date:", ntcDate?.toISOString().split('T')[0] || "null");
-    console.log("QC start date:", qcStart?.toISOString().split('T')[0] || "null");
-    console.log("Executive Review date:", execReview?.toISOString().split('T')[0] || "null");
-    console.log("Ship date:", shipDate?.toISOString().split('T')[0] || "null");
-  }
-  
-  // CRITICAL: Determine phase transitions - the order matters!
-  // We need to check from the end of the timeline backwards
   let phase = "Pre-Production";
   
   if (shipDate && today >= shipDate) {
-    phase = "Shipping";
+    phase = "Shipped";
   } else if (execReview && today >= execReview) {
     phase = "Exec Review";
   } else if (qcStart && today >= qcStart) {
     phase = "QC";
   } else if (ntcDate && today >= ntcDate) {
-    phase = "NTC Testing";
+    phase = "NTC";
   } else if (assemblyStart && today >= assemblyStart) {
     phase = "Production";
   } else if (paintStart && today >= paintStart) {
     phase = "Paint";
   } else if (fabStart && today >= fabStart) {
-    phase = "Fabrication";
-  }
-  
-  // DEBUG INFORMATION for project 805304
-  if (isDebugProject) {
-    console.log("Calculated phase:", phase);
-    console.log("==== END DEBUG PROJECT 805304 ====");
+    phase = "FAB";
   }
   
   return phase;
