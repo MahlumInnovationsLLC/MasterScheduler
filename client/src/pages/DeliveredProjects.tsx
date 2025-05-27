@@ -71,22 +71,13 @@ const DeliveredProjects = () => {
 
   const updateResponsibilityMutation = useMutation({
     mutationFn: async ({ projectId, responsibility }: { projectId: number; responsibility: string }) => {
-      console.log("🔥🔥🔥 FRONTEND: Starting responsibility mutation");
-      console.log("🔥🔥🔥 FRONTEND: ProjectId:", projectId);
-      console.log("🔥🔥🔥 FRONTEND: Responsibility:", responsibility);
-      console.log("🔥🔥🔥 FRONTEND: About to call API endpoint:", `/api/delivered-projects/${projectId}/responsibility`);
-      
-      const result = await apiRequest('PATCH', `/api/delivered-projects/${projectId}/responsibility`, { responsibility });
-      console.log("🔥🔥🔥 FRONTEND: API result:", result);
-      return result;
+      return apiRequest('PATCH', `/api/delivered-projects/${projectId}/responsibility`, { responsibility });
     },
     onSuccess: () => {
-      console.log("🎉 FRONTEND: Responsibility update mutation SUCCESS!");
       queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
       toast({ title: "Success", description: "Responsibility updated successfully" });
     },
-    onError: (error) => {
-      console.error("💥💥💥 FRONTEND: Responsibility update mutation ERROR:", error);
+    onError: () => {
       toast({ 
         title: "Error", 
         description: "Failed to update responsibility",

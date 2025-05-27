@@ -267,101 +267,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ===== DELIVERED PROJECTS ROUTES (MUST BE BEFORE GENERAL PROJECTS ROUTES) =====
-  // Get all delivered projects
-  app.get("/api/delivered-projects", async (req, res) => {
-    try {
-      const deliveredProjects = await storage.getDeliveredProjects();
-      res.json(deliveredProjects);
-    } catch (error) {
-      console.error("Error fetching delivered projects:", error);
-      res.status(500).json({ message: "Error fetching delivered projects" });
-    }
-  });
-
-  // Update delivered project reason
-  app.patch("/api/delivered-projects/:id/reason", hasEditRights, async (req, res) => {
-    try {
-      console.log("🔥🔥🔥 REASON UPDATE API ROUTE HIT!!! 🔥🔥🔥");
-      console.log("=== REASON UPDATE DEBUG START ===");
-      const projectId = parseInt(req.params.id);
-      const { reason } = req.body;
-
-      console.log("Request params:", req.params);
-      console.log("Request body:", JSON.stringify(req.body));
-      console.log("Parsed projectId:", projectId);
-      console.log("Extracted reason:", reason);
-      console.log("Reason type:", typeof reason);
-
-      if (!projectId) {
-        console.log("ERROR: Invalid project ID");
-        return res.status(400).json({ message: "Invalid project ID" });
-      }
-
-      if (typeof reason !== 'string') {
-        console.log("ERROR: Reason is not a string, type is:", typeof reason);
-        return res.status(400).json({ message: "Invalid reason format" });
-      }
-
-      console.log("🔥 About to call storage.updateDeliveredProjectReason with:", { projectId, reason });
-      const success = await storage.updateDeliveredProjectReason(projectId, reason);
-      console.log("🔥 Storage update result:", success);
-      
-      if (success) {
-        console.log("🔥🔥🔥 REASON UPDATE SUCCESS!!! 🔥🔥🔥");
-        return res.status(200).json({ success: true, message: "Reason updated successfully" });
-      } else {
-        console.log("💥💥💥 REASON UPDATE FAILED!!! 💥💥💥");
-        return res.status(500).json({ message: "Failed to update reason" });
-      }
-    } catch (error) {
-      console.error("💥💥💥 REASON UPDATE ERROR!!! 💥💥💥", error);
-      return res.status(500).json({ message: "Error updating reason" });
-    }
-  });
-
-  // Update delivered project responsibility
-  app.patch("/api/delivered-projects/:id/responsibility", hasEditRights, async (req, res) => {
-    try {
-      console.log("🔥🔥🔥 RESPONSIBILITY UPDATE API ROUTE HIT!!! 🔥🔥🔥");
-      console.log("=== RESPONSIBILITY UPDATE DEBUG START ===");
-      const projectId = parseInt(req.params.id);
-      const { responsibility } = req.body;
-
-      console.log("Request params:", req.params);
-      console.log("Request body:", JSON.stringify(req.body));
-      console.log("Parsed projectId:", projectId);
-      console.log("Extracted responsibility:", responsibility);
-      console.log("Responsibility type:", typeof responsibility);
-
-      if (!projectId) {
-        console.log("ERROR: Invalid project ID");
-        return res.status(400).json({ message: "Invalid project ID" });
-      }
-
-      if (typeof responsibility !== 'string') {
-        console.log("ERROR: Responsibility is not a string, type is:", typeof responsibility);
-        return res.status(400).json({ message: "Invalid responsibility" });
-      }
-
-      console.log("🔥 About to call storage.updateDeliveredProjectResponsibility with:", { projectId, responsibility });
-      const success = await storage.updateDeliveredProjectResponsibility(projectId, responsibility);
-      console.log("🔥 Storage update result:", success);
-      
-      if (success) {
-        console.log("🔥🔥🔥 RESPONSIBILITY UPDATE SUCCESS!!! 🔥🔥🔥");
-        return res.status(200).json({ success: true, message: "Responsibility updated successfully" });
-      } else {
-        console.log("💥💥💥 RESPONSIBILITY UPDATE FAILED!!! 💥💥💥");
-        return res.status(500).json({ message: "Failed to update responsibility" });
-      }
-    } catch (error) {
-      console.error("💥💥💥 RESPONSIBILITY UPDATE ERROR!!! 💥💥💥", error);
-      return res.status(500).json({ message: "Error updating responsibility" });
-    }
-  });
-  // ===== END DELIVERED PROJECTS ROUTES =====
-
   // PATCH endpoint for handling partial updates (especially dates)
   app.patch("/api/projects/:id", isAuthenticated, hasEditRights, async (req, res) => {
     try {
@@ -562,7 +467,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error reverting delivered status" });
     }
   });
+  
+  // Get all delivered projects
+  app.get("/api/delivered-projects", async (req, res) => {
+    try {
+      const deliveredProjects = await storage.getDeliveredProjects();
+      res.json(deliveredProjects);
+    } catch (error) {
+      console.error("Error fetching delivered projects:", error);
+      res.status(500).json({ message: "Error fetching delivered projects" });
+    }
+  });
 
+  // Update delivered project reason
+  app.patch("/api/delivered-projects/:id/reason", hasEditRights, async (req, res) => {
+    try {
+      console.log("🔥🔥🔥 REASON UPDATE API ROUTE HIT!!! 🔥🔥🔥");
+      console.log("=== REASON UPDATE DEBUG START ===");
+      const projectId = parseInt(req.params.id);
+      const { reason } = req.body;
+
+      console.log("Request params:", req.params);
+      console.log("Request body:", JSON.stringify(req.body));
+      console.log("Parsed projectId:", projectId);
+      console.log("Extracted reason:", reason);
+      console.log("Reason type:", typeof reason);
+
+      if (!projectId) {
+        console.log("ERROR: Invalid project ID");
+        return res.status(400).json({ message: "Invalid project ID" });
+      }
+
+      if (typeof reason !== 'string') {
+        console.log("ERROR: Reason is not a string, type is:", typeof reason);
+        return res.status(400).json({ message: "Invalid reason format" });
+      }
+
+      console.log("🔥 About to call storage.updateDeliveredProjectReason with:", { projectId, reason });
+      const success = await storage.updateDeliveredProjectReason(projectId, reason);
+      console.log("🔥 Storage update result:", success);
+      
+      if (success) {
+        console.log("🔥🔥🔥 REASON UPDATE SUCCESS!!! 🔥🔥🔥");
+        return res.status(200).json({ success: true, message: "Reason updated successfully" });
+      } else {
+        console.log("💥💥💥 REASON UPDATE FAILED!!! 💥💥💥");
+        return res.status(500).json({ message: "Failed to update reason" });
+      }
+    } catch (error) {
+      console.error("💥💥💥 REASON UPDATE ERROR!!! 💥💥💥", error);
+      return res.status(500).json({ message: "Error updating reason" });
+    }
+  });
+
+  // Update delivered project responsibility
+  app.patch("/api/delivered-projects/:id/responsibility", hasEditRights, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const { responsibility } = req.body;
+
+      if (!projectId || typeof responsibility !== 'string') {
+        return res.status(400).json({ message: "Invalid project ID or responsibility" });
+      }
+
+      const success = await storage.updateDeliveredProjectResponsibility(projectId, responsibility);
+      
+      if (success) {
+        res.json({ success: true, message: "Responsibility updated successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to update responsibility" });
+      }
+    } catch (error) {
+      console.error("Error updating delivered project responsibility:", error);
+      res.status(500).json({ message: "Error updating responsibility" });
+    }
+  });
   
   app.put("/api/projects/:id", isAuthenticated, async (req, res) => {
     try {
