@@ -3855,23 +3855,28 @@ export default function ResizableBaySchedule({
                                   top: '0px',
                                   width: '8px',
                                   height: '72px',
-                                  backgroundColor: 'rgba(30, 58, 138, 0.4)',
-                                  zIndex: 500,
+                                  backgroundColor: 'rgba(15, 23, 42, 0.7)',
+                                  zIndex: 1000,
                                   pointerEvents: 'auto',
-                                  transition: 'all 0.15s ease'
+                                  transition: 'all 0.2s ease',
+                                  border: '1px solid rgba(148, 163, 184, 0.5)'
                                 }}
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'start')}
                                 onMouseEnter={(e) => {
-                                  e.target.style.backgroundColor = 'rgba(59, 130, 246, 1)';
-                                  e.target.style.border = '2px solid white';
-                                  e.target.style.boxShadow = '0 0 12px rgba(59, 130, 246, 0.8)';
-                                  e.target.style.transform = 'scaleX(1.2)';
+                                  const target = e.target as HTMLElement;
+                                  target.style.backgroundColor = '#1e40af';
+                                  target.style.border = '3px solid white';
+                                  target.style.boxShadow = '0 0 20px rgba(59, 130, 246, 1)';
+                                  target.style.transform = 'scaleX(2)';
+                                  target.style.zIndex = '50000';
                                 }}
                                 onMouseLeave={(e) => {
-                                  e.target.style.backgroundColor = 'rgba(30, 58, 138, 0.4)';
-                                  e.target.style.border = 'none';
-                                  e.target.style.boxShadow = 'none';
-                                  e.target.style.transform = 'scaleX(1)';
+                                  const target = e.target as HTMLElement;
+                                  target.style.backgroundColor = 'rgba(15, 23, 42, 0.7)';
+                                  target.style.border = '1px solid rgba(148, 163, 184, 0.5)';
+                                  target.style.boxShadow = 'none';
+                                  target.style.transform = 'scaleX(1)';
+                                  target.style.zIndex = '1000';
                                 }}
                               ></div>
                               
@@ -3883,23 +3888,28 @@ export default function ResizableBaySchedule({
                                   top: '0px',
                                   width: '8px',
                                   height: '72px',
-                                  backgroundColor: 'rgba(30, 58, 138, 0.4)',
-                                  zIndex: 500,
+                                  backgroundColor: 'rgba(15, 23, 42, 0.7)',
+                                  zIndex: 1000,
                                   pointerEvents: 'auto',
-                                  transition: 'all 0.15s ease'
+                                  transition: 'all 0.2s ease',
+                                  border: '1px solid rgba(148, 163, 184, 0.5)'
                                 }}
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'end')}
                                 onMouseEnter={(e) => {
-                                  e.target.style.backgroundColor = 'rgba(59, 130, 246, 1)';
-                                  e.target.style.border = '2px solid white';
-                                  e.target.style.boxShadow = '0 0 12px rgba(59, 130, 246, 0.8)';
-                                  e.target.style.transform = 'scaleX(1.2)';
+                                  const target = e.target as HTMLElement;
+                                  target.style.backgroundColor = '#1e40af';
+                                  target.style.border = '3px solid white';
+                                  target.style.boxShadow = '0 0 20px rgba(59, 130, 246, 1)';
+                                  target.style.transform = 'scaleX(2)';
+                                  target.style.zIndex = '50000';
                                 }}
                                 onMouseLeave={(e) => {
-                                  e.target.style.backgroundColor = 'rgba(30, 58, 138, 0.4)';
-                                  e.target.style.border = 'none';
-                                  e.target.style.boxShadow = 'none';
-                                  e.target.style.transform = 'scaleX(1)';
+                                  const target = e.target as HTMLElement;
+                                  target.style.backgroundColor = 'rgba(15, 23, 42, 0.7)';
+                                  target.style.border = '1px solid rgba(148, 163, 184, 0.5)';
+                                  target.style.boxShadow = 'none';
+                                  target.style.transform = 'scaleX(1)';
+                                  target.style.zIndex = '1000';
                                 }}
                               ></div>
                             </React.Fragment>
