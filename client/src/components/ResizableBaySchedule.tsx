@@ -457,6 +457,72 @@ export default function ResizableBaySchedule({
   const [scheduleBars, setScheduleBars] = useState<ScheduleBar[]>([]);
   const [draggingSchedule, setDraggingSchedule] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{ bayId: number, rowIndex: number } | null>(null);
+  
+  // Auto-scroll state for drag operations
+  const autoScrollRef = useRef<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  
+  // Auto-scroll functionality for drag operations
+  const startAutoScroll = useCallback((direction: 'up' | 'down') => {
+    if (autoScrollRef.current) return; // Already scrolling
+    
+    const SCROLL_SPEED = 8; // pixels per frame
+    const scroll = () => {
+      const scrollAmount = direction === 'up' ? -SCROLL_SPEED : SCROLL_SPEED;
+      window.scrollBy(0, scrollAmount);
+      autoScrollRef.current = requestAnimationFrame(scroll);
+    };
+    
+    autoScrollRef.current = requestAnimationFrame(scroll);
+  }, []);
+  
+  const stopAutoScroll = useCallback(() => {
+    if (autoScrollRef.current) {
+      cancelAnimationFrame(autoScrollRef.current);
+      autoScrollRef.current = null;
+    }
+  }, []);
+  
+  // Handle global mouse movement during drag for auto-scrolling
+  const handleDragMove = useCallback((e: MouseEvent) => {
+    if (!isDragging) return;
+    
+    const SCROLL_ZONE = 100; // pixels from edge to trigger scroll
+    const viewportHeight = window.innerHeight;
+    
+    if (e.clientY < SCROLL_ZONE) {
+      // Near top edge - scroll up
+      startAutoScroll('up');
+    } else if (e.clientY > viewportHeight - SCROLL_ZONE) {
+      // Near bottom edge - scroll down
+      startAutoScroll('down');
+    } else {
+      // In safe zone - stop scrolling
+      stopAutoScroll();
+    }
+  }, [isDragging, startAutoScroll, stopAutoScroll]);
+  
+  // Global drag end handler
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+    stopAutoScroll();
+  }, [stopAutoScroll]);
+  
+  // Set up global event listeners for drag operations
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleDragMove);
+      document.addEventListener('dragend', handleDragEnd);
+      document.addEventListener('drop', handleDragEnd);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('dragend', handleDragEnd);
+        document.removeEventListener('drop', handleDragEnd);
+        stopAutoScroll();
+      };
+    }
+  }, [isDragging, handleDragMove, handleDragEnd, stopAutoScroll]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newBayDialog, setNewBayDialog] = useState(false);
   const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
@@ -1320,18 +1386,7 @@ export default function ResizableBaySchedule({
     }
   };
   
-  const handleDragEnd = (e: React.DragEvent) => {
-    // Reset all dragging state
-    setDraggingSchedule(null);
-    setDropTarget(null);
-    
-    // Remove any visual feedback
-    if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.classList.remove('dragging');
-    }
-    
-    // Clear global states
-    document.body.classList.remove('dragging-active');
+  // This function is now handled by the useCallback above
     
     // Remove highlights from all potential drop targets
     document.querySelectorAll('.drop-target').forEach((el) => {
