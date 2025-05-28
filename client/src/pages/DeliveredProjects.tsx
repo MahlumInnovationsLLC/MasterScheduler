@@ -29,6 +29,7 @@ type DeliveredProject = {
   delayResponsibility: 'not_applicable' | 'client_fault' | 'nomad_fault' | 'vendor_fault';
   percentComplete: string;
   status: string;
+  contractExtensions: number;
 };
 
 const DeliveredProjects = () => {
@@ -45,7 +46,8 @@ const DeliveredProjects = () => {
     reason: '',
     lateDeliveryReason: '',
     delayResponsibility: 'not_applicable' as 'not_applicable' | 'client_fault' | 'nomad_fault' | 'vendor_fault',
-    percentComplete: '100'
+    percentComplete: '100',
+    contractExtensions: 0
   });
   const [importFile, setImportFile] = useState<File | null>(null);
   const { toast } = useToast();
@@ -242,12 +244,13 @@ const DeliveredProjects = () => {
       'Reason',
       'Late Delivery Reason',
       'Delay Responsibility (not_applicable|client_fault|nomad_fault|vendor_fault)',
-      'Percent Complete'
+      'Percent Complete',
+      'Contract Extensions (number)'
     ];
     
     const csvContent = csvHeaders.join(',') + '\n' +
-      '804508,Sample Project Name,2024-01-15,2024-02-20,5,Equipment delay,Vendor supplied parts late,vendor_fault,100\n' +
-      '804509,Another Project,2024-02-01,2024-02-28,0,,On time delivery,not_applicable,100';
+      '804508,Sample Project Name,2024-01-15,2024-02-20,5,Equipment delay,Vendor supplied parts late,vendor_fault,100,2\n' +
+      '804509,Another Project,2024-02-01,2024-02-28,0,,On time delivery,not_applicable,100,0';
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -490,6 +493,24 @@ const DeliveredProjects = () => {
       }
     },
     {
+      accessorKey: 'contractExtensions',
+      header: 'Contract Extensions',
+      cell: ({ row }) => {
+        const extensions = row.original.contractExtensions || 0;
+        return (
+          <div className="text-center">
+            <span className={`px-2 py-1 rounded-full text-xs ${
+              extensions === 0 ? 'bg-green-900 text-green-400' :
+              extensions === 1 ? 'bg-yellow-900 text-yellow-400' :
+              'bg-red-900 text-red-400'
+            }`}>
+              {extensions}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
       accessorKey: 'status',
       header: 'Status',
       cell: ({ row }) => {
@@ -645,22 +666,33 @@ const DeliveredProjects = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="delayResponsibility">Delay Responsibility</Label>
-                <Select
-                  value={manualEntryForm.delayResponsibility}
-                  onValueChange={(value: any) => setManualEntryForm(prev => ({ ...prev, delayResponsibility: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="not_applicable">Not Applicable</SelectItem>
-                    <SelectItem value="client_fault">Client Fault</SelectItem>
-                    <SelectItem value="nomad_fault">Nomad Fault</SelectItem>
-                    <SelectItem value="vendor_fault">Vendor Fault</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="contractExtensions">Contract Extensions</Label>
+                <Input
+                  id="contractExtensions"
+                  type="number"
+                  value={manualEntryForm.contractExtensions}
+                  onChange={(e) => setManualEntryForm(prev => ({ ...prev, contractExtensions: parseInt(e.target.value) || 0 }))}
+                  min="0"
+                />
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="delayResponsibility">Delay Responsibility</Label>
+              <Select
+                value={manualEntryForm.delayResponsibility}
+                onValueChange={(value: any) => setManualEntryForm(prev => ({ ...prev, delayResponsibility: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="not_applicable">Not Applicable</SelectItem>
+                  <SelectItem value="client_fault">Client Fault</SelectItem>
+                  <SelectItem value="nomad_fault">Nomad Fault</SelectItem>
+                  <SelectItem value="vendor_fault">Vendor Fault</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
