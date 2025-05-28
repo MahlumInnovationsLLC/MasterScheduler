@@ -48,6 +48,7 @@ import {
   Calendar, 
   Clock, 
   Target,
+  FileText,
   AlertTriangle,
   CheckCircle,
   Activity,
@@ -109,6 +110,7 @@ type DeliveredProject = {
   delayResponsibility: 'not_applicable' | 'client_fault' | 'nomad_fault' | 'vendor_fault';
   percentComplete: string;
   status: string;
+  contractExtensions: number;
 };
 
 // Color schemes for charts
@@ -296,7 +298,7 @@ const OnTimeDeliveryPage: React.FC = () => {
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           {/* Key Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
@@ -342,6 +344,21 @@ const OnTimeDeliveryPage: React.FC = () => {
               <CardContent>
                 <div className="text-2xl font-bold text-amber-600">{analytics.summary.avgDaysLate}</div>
                 <p className="text-xs text-muted-foreground">For late projects only</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Contract Extensions</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {deliveredProjects?.reduce((sum, project) => sum + (project.contractExtensions || 0), 0) || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {deliveredProjects?.filter(p => (p.contractExtensions || 0) > 0).length || 0} projects with extensions
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -564,6 +581,7 @@ const OnTimeDeliveryPage: React.FC = () => {
                       <TableHead>Delivery Date</TableHead>
                       <TableHead>Performance</TableHead>
                       <TableHead>Responsibility</TableHead>
+                      <TableHead>Extensions</TableHead>
                       <TableHead>Reason</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -582,6 +600,11 @@ const OnTimeDeliveryPage: React.FC = () => {
                         <TableCell>{formatDate(project.deliveryDate || project.actualDeliveryDate)}</TableCell>
                         <TableCell>{getDaysLateBadge(project.daysLate)}</TableCell>
                         <TableCell>{getResponsibilityBadge(project.delayResponsibility)}</TableCell>
+                        <TableCell>
+                          <Badge variant={project.contractExtensions > 0 ? "destructive" : "secondary"}>
+                            {project.contractExtensions || 0}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="max-w-48 truncate">
                           {project.lateDeliveryReason || project.reason || "N/A"}
                         </TableCell>
