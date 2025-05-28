@@ -696,19 +696,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const result = [];
             let current = '';
             let inQuotes = false;
+            let i = 0;
             
-            for (let j = 0; j < line.length; j++) {
-              const char = line[j];
+            while (i < line.length) {
+              const char = line[i];
+              
               if (char === '"') {
-                inQuotes = !inQuotes;
+                // Handle escaped quotes (double quotes)
+                if (inQuotes && line[i + 1] === '"') {
+                  current += '"';
+                  i += 2;
+                } else {
+                  inQuotes = !inQuotes;
+                  i++;
+                }
               } else if (char === ',' && !inQuotes) {
-                result.push(current.trim());
+                result.push(current.trim().replace(/^"|"$/g, ''));
                 current = '';
+                i++;
               } else {
                 current += char;
+                i++;
               }
             }
-            result.push(current.trim());
+            
+            result.push(current.trim().replace(/^"|"$/g, ''));
             return result;
           }
           

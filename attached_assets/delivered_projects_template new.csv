@@ -1,0 +1,12 @@
+Project Number,Project Name,Contract Date (YYYY-MM-DD),Delivery Date (YYYY-MM-DD),Days Late (number),Late Delivery Reason,Delay Responsibility (not_applicable|client_fault|nomad_fault|vendor_fault),Percent Complete,Contract Extensions (number)
+804205,804205_NV_LVMPD_IC14As0,1/31/2024,2/8/2024,8,Late Chassis Arrival,Vendor,100,0
+804404,804404_MD_FEMA_MCOV_14,3/20/2024,8/13/2024,146,Chassis arrival late & vibration/wheel issues,Vendor,100,1
+804614,804614_NY_DHSES RAMER_TCT-C_02,10/1/2024,12/4/2024,64,Impacted by Colts / wrong roof type spec'd in sales,Nomad,100,1
+804653,804653_AL_ADS_USACE_IC34As4_03,1/17/2025,5/28/2025,131,Production Delays,Nomad,100,0
+804666,804666_OK_OKC-PD_IC32As0,2/6/2025,5/28/2025,111,Production Delays,Nomad,100,0
+804814,804814_MD_VA_MVCs_Sprinter_06,3/25/2025,5/28/2025,64,"OEM Part delays, ENG on ADA Lift",Nomad,100,0
+804815,804815_MD_VA_MVC_Sprinter_07,3/25/2025,5/20/2025,56,"OEM Part delays, ENG on ADA Lift",Nomad,100,0
+804816,804816_MD_VA_MVCs_Sprinter_08,3/25/2025,5/28/2025,64,"OEM Part delays, ENG on ADA Lift",Nomad,100,0
+804884,804884_TX_TexasA&M-CC_Sprinter,4/17/2025,5/14/2025,27,Failed to start on time due to schedule conflicts from past projects,Nomad,100,0
+805387,805387_OK_Verizon_Upfit,3/30/2025,5/20/2025,51,"ENG Delays, Bumper Damaged by Nomad",Nomad,100,0
+,,,,,,,,
