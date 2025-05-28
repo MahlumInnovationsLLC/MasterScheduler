@@ -1837,12 +1837,39 @@ export class DatabaseStorage implements IStorage {
           throw new Error(`Failed to create archive record for project ${projectId}`);
         }
         
-        // 4. Delete the original project
+        // 4. Delete related data first to handle foreign key constraints
+        
+        // Delete billing milestones
+        await tx
+          .delete(billingMilestones)
+          .where(eq(billingMilestones.projectId, projectId));
+        
+        // Delete tasks
+        await tx
+          .delete(tasks)
+          .where(eq(tasks.projectId, projectId));
+        
+        // Delete project milestones
+        await tx
+          .delete(projectMilestones)
+          .where(eq(projectMilestones.projectId, projectId));
+        
+        // Delete project costs
+        await tx
+          .delete(projectCosts)
+          .where(eq(projectCosts.projectId, projectId));
+        
+        // Delete manufacturing schedules
+        await tx
+          .delete(manufacturingSchedules)
+          .where(eq(manufacturingSchedules.projectId, projectId));
+        
+        // 5. Now delete the original project
         await tx
           .delete(projects)
           .where(eq(projects.id, projectId));
           
-        // 5. Create a notification about the archived project
+        // 6. Create a notification about the archived project
         await tx
           .insert(notifications)
           .values({
