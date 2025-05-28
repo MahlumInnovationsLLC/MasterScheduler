@@ -36,6 +36,12 @@ const Dashboard = () => {
   });
   
   const [filteredProjects, setFilteredProjects] = useState([]);
+  const [selectedMonthData, setSelectedMonthData] = useState<{
+    month: number;
+    year: number;
+    amount: number;
+    milestones: any[];
+  } | null>(null);
   
   // Show the top 5 projects that are ready to ship next
   useEffect(() => {
@@ -441,7 +447,10 @@ const Dashboard = () => {
 
         <BillingStatusCard
           title="Revenue Forecast"
-          value={formatCurrency(billingStats?.forecast?.values.reduce((sum, val) => sum + val, 0) || 0)}
+          value={selectedMonthData ? 
+            formatCurrency(selectedMonthData.amount) : 
+            formatCurrency(billingStats?.forecast?.values.reduce((sum, val) => sum + val, 0) || 0)
+          }
           type="forecast"
           chart={billingStats?.forecast ? {
             labels: billingStats.forecast.labels,
@@ -449,6 +458,24 @@ const Dashboard = () => {
           } : {
             labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
             values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+          }}
+          onMonthSelect={(year, month) => {
+            // Filter billing milestones for the selected month and update the display
+            const selectedMonthMilestones = (billingMilestones || []).filter(milestone => {
+              const milestoneDate = new Date(milestone.dueDate);
+              return milestoneDate.getFullYear() === year && milestoneDate.getMonth() === month;
+            });
+            
+            const monthlyAmount = selectedMonthMilestones.reduce((sum, milestone) => sum + milestone.amount, 0);
+            
+            setSelectedMonthData({
+              month,
+              year,
+              amount: monthlyAmount,
+              milestones: selectedMonthMilestones
+            });
+            
+            console.log(`Month ${month + 1}/${year}: $${monthlyAmount} from ${selectedMonthMilestones.length} milestones`);
           }}
         />
 
