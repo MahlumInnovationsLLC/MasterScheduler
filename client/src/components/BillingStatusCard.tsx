@@ -611,8 +611,8 @@ export function BillingStatusCard({
             {/* Bar Chart */}
             <div className={`grid grid-cols-12 gap-1 ${isFullWidthForecast ? 'h-32' : 'h-16'}`}>
               {chart.values.map((val, idx) => {
-                // Debug log to see actual values
-                console.log(`Bar ${idx} (${chart.labels[idx]}): $${val}`);
+                // Debug log to see actual values and selection state
+                console.log(`Bar ${idx} (${chart.labels[idx]}): $${val}, Selected: ${selectedMonthIndex}, IsSelected: ${selectedMonthIndex === idx}`);
                 
                 // Calculate max value for scaling - use all values, not just positive ones
                 const maxValue = Math.max(...chart.values);

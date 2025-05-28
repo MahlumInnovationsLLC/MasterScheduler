@@ -449,7 +449,7 @@ const Dashboard = () => {
           title="Revenue Forecast"
           value={selectedMonthData ? 
             formatCurrency(selectedMonthData.amount) : 
-            formatCurrency(billingStats?.forecast?.values.reduce((sum, val) => sum + val, 0) || 0)
+            formatCurrency(billingStats?.forecast?.values[0] || 0)
           }
           type="forecast"
           chart={billingStats?.forecast ? {
