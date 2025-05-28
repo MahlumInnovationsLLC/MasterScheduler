@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -61,6 +61,18 @@ export function DataTable<TData, TValue>({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState<string>("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus-preserving global filter handler
+  const handleGlobalFilterChange = useCallback((value: string) => {
+    setGlobalFilter(value);
+    // Preserve focus after state update
+    setTimeout(() => {
+      if (searchInputRef.current && document.activeElement !== searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
+    }, 0);
+  }, []);
 
   // Modify the columns to always enable sorting for all columns
   const columnsWithSorting = React.useMemo(() => {
@@ -154,9 +166,10 @@ export function DataTable<TData, TValue>({
         <div className="flex items-center gap-3">
           <div className="relative">
             <Input
+              ref={searchInputRef}
               placeholder={searchPlaceholder}
               value={globalFilter ?? ""}
-              onChange={(e) => setGlobalFilter(e.target.value)}
+              onChange={(e) => handleGlobalFilterChange(e.target.value)}
               className="bg-input border-none rounded-lg px-4 py-2 pl-9 text-sm focus:ring-1 focus:ring-primary"
             />
             <div className="absolute left-3 top-2.5 text-muted-foreground">
