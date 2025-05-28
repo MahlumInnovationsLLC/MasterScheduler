@@ -773,9 +773,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
 
-          // Check for duplicate project number
-          const existingProjects = await storage.getProjects();
-          const existingProject = existingProjects.find(p => p.projectNumber === projectData.projectNumber);
+          // Check for duplicate project number (only among delivered projects)
+          const existingDeliveredProjects = await storage.getDeliveredProjects();
+          const existingProject = existingDeliveredProjects.find(p => p.projectNumber === projectData.projectNumber);
           
           if (existingProject) {
             const errorMsg = `Row ${i + 2}: Project ${projectData.projectNumber} already exists - skipping duplicate`;
