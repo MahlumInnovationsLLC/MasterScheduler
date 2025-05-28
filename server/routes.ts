@@ -510,7 +510,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get delivered projects analytics
   app.get("/api/delivered-projects/analytics", async (req, res) => {
     try {
-      const deliveredProjects = await storage.getDeliveredProjects();
+      const deliveredProjects = await storage.getProjects();
+      console.log("📊 Found projects for analytics:", deliveredProjects.length);
       
       // Calculate comprehensive analytics
       const analytics = {
@@ -547,8 +548,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       deliveredProjects.forEach(project => {
         let daysLate = 0;
         
-        if (project.deliveryDate && project.contractDate) {
-          const deliveryDate = new Date(project.deliveryDate);
+        // Use either deliveryDate or actualDeliveryDate
+        const actualDeliveryDate = project.deliveryDate || project.actualDeliveryDate;
+        if (actualDeliveryDate && project.contractDate) {
+          const deliveryDate = new Date(actualDeliveryDate);
           const contractDate = new Date(project.contractDate);
           
           // Calculate difference in days
@@ -585,9 +588,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           analytics.daysLateDistribution.longTerm++;
         }
 
-        // Monthly trends
-        if (project.deliveryDate) {
-          const deliveryDate = new Date(project.deliveryDate);
+        // Monthly trends - use the same actualDeliveryDate
+        if (actualDeliveryDate) {
+          const deliveryDate = new Date(actualDeliveryDate);
           const monthKey = `${deliveryDate.getFullYear()}-${String(deliveryDate.getMonth() + 1).padStart(2, '0')}`;
           
           if (!monthlyData[monthKey]) {

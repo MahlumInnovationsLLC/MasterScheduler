@@ -193,13 +193,13 @@ const OnTimeDeliveryPage: React.FC = () => {
 
   // Prepare chart data
   const prepareResponsibilityPieData = () => {
-    if (!analytics) return [];
+    if (!analytics || !analytics.responsibilityBreakdown) return [];
     
     return [
-      { name: "Nomad Fault", value: analytics.responsibilityBreakdown.nomad_fault, color: RESPONSIBILITY_COLORS.nomad_fault },
-      { name: "Vendor Fault", value: analytics.responsibilityBreakdown.vendor_fault, color: RESPONSIBILITY_COLORS.vendor_fault },
-      { name: "Client Fault", value: analytics.responsibilityBreakdown.client_fault, color: RESPONSIBILITY_COLORS.client_fault },
-      { name: "Not Applicable", value: analytics.responsibilityBreakdown.not_applicable, color: RESPONSIBILITY_COLORS.not_applicable },
+      { name: "Nomad Fault", value: analytics.responsibilityBreakdown.nomad_fault || 0, color: RESPONSIBILITY_COLORS.nomad_fault },
+      { name: "Vendor Fault", value: analytics.responsibilityBreakdown.vendor_fault || 0, color: RESPONSIBILITY_COLORS.vendor_fault },
+      { name: "Client Fault", value: analytics.responsibilityBreakdown.client_fault || 0, color: RESPONSIBILITY_COLORS.client_fault },
+      { name: "Not Applicable", value: analytics.responsibilityBreakdown.not_applicable || 0, color: RESPONSIBILITY_COLORS.not_applicable },
     ].filter(item => item.value > 0);
   };
 
@@ -229,6 +229,21 @@ const OnTimeDeliveryPage: React.FC = () => {
   };
 
   if (isLoadingAnalytics || isLoadingProjects) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading delivery analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Debug logging
+  console.log("🔍 Analytics data:", analytics);
+  console.log("🔍 Loading state:", isLoadingAnalytics);
+  
+  if (isLoadingAnalytics) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
         <div className="text-center">
