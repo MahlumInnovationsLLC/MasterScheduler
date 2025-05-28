@@ -2007,13 +2007,13 @@ export class DatabaseStorage implements IStorage {
       console.log("🔥🔥🔥 STORAGE: Result type:", typeof result);
       console.log("🔥🔥🔥 STORAGE: Result stringified:", JSON.stringify(result));
       
-      // Check if the update actually affected any rows
-      if (result && result.changes && result.changes > 0) {
-        console.log("🎉 STORAGE: Successfully updated", result.changes, "rows for responsibility");
+      // Check if the update actually affected any rows (PostgreSQL uses rowCount, not changes)
+      if (result && result.rowCount && result.rowCount > 0) {
+        console.log("🎉 STORAGE: Successfully updated", result.rowCount, "rows for responsibility");
         return true;
       } else {
         console.log("💥 STORAGE: No rows were updated for responsibility - this is the problem!");
-        console.log("💥 STORAGE: Result.changes:", result?.changes);
+        console.log("💥 STORAGE: Result.rowCount:", result?.rowCount);
         return false;
       }
     } catch (error) {
