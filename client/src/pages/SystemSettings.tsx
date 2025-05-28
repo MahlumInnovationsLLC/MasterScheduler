@@ -1423,6 +1423,8 @@ const SystemSettings = () => {
                               <TableHead>Project</TableHead>
                               <TableHead>Project Number</TableHead>
                               <TableHead>Archived Date</TableHead>
+                              <TableHead>Archive Reason</TableHead>
+                              <TableHead>Archived By</TableHead>
                               <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -1431,7 +1433,9 @@ const SystemSettings = () => {
                               <TableRow key={project.id}>
                                 <TableCell>{project.name}</TableCell>
                                 <TableCell>{project.projectNumber}</TableCell>
-                                <TableCell>{new Date(project.updatedAt).toLocaleDateString()}</TableCell>
+                                <TableCell>{new Date(project.archivedAt || project.updatedAt).toLocaleDateString()}</TableCell>
+                                <TableCell>{project.archiveReason || 'No reason provided'}</TableCell>
+                                <TableCell>{project.archivedBy || 'Unknown'}</TableCell>
                                 <TableCell className="text-right">
                                   <div className="flex justify-end space-x-1">
                                     <AlertDialog>
