@@ -119,6 +119,11 @@ const ProjectStatus = () => {
   const [delayResponsibility, setDelayResponsibility] = useState<string>('');
   const [isLateDelivery, setIsLateDelivery] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+
+  // Archive dialog state
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [selectedArchiveProjectId, setSelectedArchiveProjectId] = useState<number | null>(null);
+  const [archiveReason, setArchiveReason] = useState('');
   
   // Generate responsibility options from enum
   const responsibilityOptions = Object.values(delayResponsibilityEnum.enumValues);
@@ -147,6 +152,50 @@ const ProjectStatus = () => {
     setDeliveryReason('');
     setDelayResponsibility('');
     setDeliveryDialogOpen(true);
+  };
+
+  // Function to handle opening the archive dialog
+  const openArchiveDialog = (projectId: number) => {
+    setSelectedArchiveProjectId(projectId);
+    setArchiveReason('');
+    setArchiveDialogOpen(true);
+  };
+
+  // Function to handle archiving a project
+  const handleArchiveProject = async () => {
+    if (!selectedArchiveProjectId) return;
+
+    try {
+      const data = {
+        reason: archiveReason || undefined
+      };
+
+      const response = await apiRequest('POST', `/api/projects/${selectedArchiveProjectId}/archive`, data);
+      
+      if (response.ok) {
+        // Refresh projects list
+        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/archived-projects'] });
+        
+        // Close dialog and show success message
+        setArchiveDialogOpen(false);
+        const project = projects?.find(p => p.id === selectedArchiveProjectId);
+        toast({
+          title: 'Project archived successfully',
+          description: `${project?.projectNumber} has been moved to archived projects`,
+        });
+      } else {
+        throw new Error('Failed to archive project');
+      }
+      
+    } catch (error) {
+      console.error('Error archiving project:', error);
+      toast({
+        title: 'Failed to archive project',
+        description: 'An error occurred. Please try again.',
+        variant: 'destructive'
+      });
+    }
   };
   
   // Function to handle submitting the delivery form
@@ -282,6 +331,79 @@ const ProjectStatus = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeliveryDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleMarkAsDelivered}>Mark as Delivered</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  // Add the Archive Dialog component
+  const ArchiveDialog = () => {
+    const selectedProject = projects?.find(p => p.id === selectedArchiveProjectId);
+    
+    return (
+      <Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+        <DialogContent className="bg-darkBg border-gray-800 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">
+              Archive Project
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              This will archive the project and remove it from the active projects list. 
+              Archived projects can still be viewed in System Settings but cannot be modified.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="flex items-start">
+              <Archive className="h-10 w-10 text-destructive mr-4 flex-shrink-0" />
+              <div>
+                <p className="text-white font-medium">
+                  Are you sure you want to archive{' '}
+                  <span className="font-bold">
+                    {selectedProject?.projectNumber}: {selectedProject?.name}
+                  </span>?
+                </p>
+                <p className="text-gray-400 text-sm mt-1">
+                  This action will move the project to the archive, along with all associated tasks, 
+                  billing milestones, and manufacturing schedules.
+                </p>
+              </div>
+            </div>
+            
+            <div className="bg-gray-900 p-3 rounded-md">
+              <Label htmlFor="archiveReason" className="text-sm font-medium mb-2 block">
+                Reason for archiving (optional)
+              </Label>
+              <Input
+                id="archiveReason"
+                value={archiveReason}
+                onChange={(e) => setArchiveReason(e.target.value)}
+                placeholder="e.g., Project completed, Contract terminated, etc."
+                className="bg-darkInput border-gray-700 focus:border-primary text-white"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter className="sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setArchiveDialogOpen(false)}
+              className="border-gray-700 hover:bg-gray-800 hover:text-white"
+            >
+              Cancel
+            </Button>
+            
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleArchiveProject}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              <Archive className="h-4 w-4 mr-2" />
+              Archive Project
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1293,15 +1415,8 @@ const ProjectStatus = () => {
               }}>
                 Add Task
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                toast({
-                  title: "Archive functionality coming soon",
-                  description: "Project archiving will be available in a future update.",
-                });
-                // In the future this will archive projects to a separate database
-                // Implementation will move the project to the archived table in the database
-                // and remove it from the active projects view
-              }}>
+              <DropdownMenuItem onClick={() => openArchiveDialog(row.original.id)}>
+                <Archive className="h-4 w-4 mr-2" />
                 Archive Project
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -1759,6 +1874,7 @@ const ProjectStatus = () => {
       
       {/* Delivery Dialog */}
       <DeliveryDialog />
+      <ArchiveDialog />
     </div>
   );
 };
