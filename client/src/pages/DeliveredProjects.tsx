@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FocusPreservingInput, FocusPreservingTextarea, FocusPreservingNativeTextarea } from "@/components/FocusPreservingInput";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -468,7 +469,7 @@ const DeliveredProjects = () => {
         if (isEditing) {
           return (
             <div className="min-w-48">
-              <textarea
+              <FocusPreservingNativeTextarea
                 value={reasonValue}
                 onChange={(e) => setReasonValue(e.target.value)}
                 className="w-full p-2 border rounded text-sm bg-gray-800 text-white border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
