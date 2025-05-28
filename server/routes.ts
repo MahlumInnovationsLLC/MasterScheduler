@@ -515,14 +515,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Add reason for late delivery if provided
-      if (!isDeliveredOnTime) {
-        if (lateDeliveryReason) {
-          updateData.late_delivery_reason = lateDeliveryReason;
-        }
-        
-        if (delayResponsibility) {
-          updateData.delay_responsibility = delayResponsibility;
-        }
+      if (lateDeliveryReason) {
+        updateData.lateDeliveryReason = lateDeliveryReason;
+      }
+      
+      if (delayResponsibility) {
+        updateData.delayResponsibility = delayResponsibility;
       }
       
       // Update the project

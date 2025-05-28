@@ -137,13 +137,14 @@ const ProjectStatus = () => {
     
     setSelectedProjectId(projectId);
     
-    // Default to today's date for delivery
-    setDeliveryDate(format(new Date(), 'yyyy-MM-dd'));
+    // Use existing delivery/ship date if available, otherwise default to today
+    const existingDate = project.deliveryDate || project.shipDate || format(new Date(), 'yyyy-MM-dd');
+    setDeliveryDate(existingDate);
     
     // Check if delivery is late (comparing to contract date)
     const contractDate = project.contractDate;
     if (contractDate) {
-      const isLate = new Date(deliveryDate) > new Date(contractDate);
+      const isLate = new Date(existingDate) > new Date(contractDate);
       setIsLateDelivery(isLate);
     } else {
       setIsLateDelivery(false);
@@ -214,9 +215,9 @@ const ProjectStatus = () => {
       // Include late delivery data if provided
       if (isLateDelivery && deliveryReason) {
         data.lateDeliveryReason = deliveryReason;
-        if (delayResponsibility) {
-          data.delayResponsibility = delayResponsibility;
-        }
+      }
+      if (isLateDelivery && delayResponsibility && delayResponsibility !== 'not_applicable') {
+        data.delayResponsibility = delayResponsibility;
       }
       
       console.log("🚀 FRONTEND: Final data being sent:", JSON.stringify(data, null, 2));
@@ -224,12 +225,17 @@ const ProjectStatus = () => {
       const response = await apiRequest('POST', `/api/projects/${selectedProjectId}/mark-delivered`, data);
       
       if (response.ok) {
-        // Refresh both projects and delivered projects lists
-        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
-        
-        // Close dialog and show success message
+        // Reset dialog state first
         setDeliveryDialogOpen(false);
+        setDeliveryReason('');
+        setDelayResponsibility('');
+        
+        // Add a small delay before refreshing to prevent focus issues
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+        }, 100);
+        
         toast({
           title: 'Project marked as delivered',
           description: 'Project has been moved to Delivered Projects',
