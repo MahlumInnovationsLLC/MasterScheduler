@@ -638,7 +638,7 @@ export function BillingStatusCard({
                             : 'bg-primary'
                       }`}
                       style={{ 
-                        height: `${val > 0 ? Math.max(5, (val / Math.max(...chart.values, 1)) * 100) : 0}%` 
+                        height: `${val > 0 ? Math.max(8, (val / Math.max(...chart.values, 1)) * 95) : 2}%` 
                       }}
                     ></div>
                     
