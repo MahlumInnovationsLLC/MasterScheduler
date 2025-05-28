@@ -11,7 +11,6 @@ import { eq } from "drizzle-orm";
 import {
   insertProjectSchema,
   insertTaskSchema,
-  insertProjectMilestoneSchema,
   insertBillingMilestoneSchema,
   insertManufacturingBaySchema,
   insertManufacturingScheduleSchema,
@@ -747,82 +746,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       res.status(500).json({ message: "Error deleting task" });
     }
-  });
-
-  // Project Milestone routes
-  app.get("/api/projects/:projectId/milestones", async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.projectId);
-      const milestones = await storage.getProjectMilestones(projectId);
-      res.json(milestones);
-    } catch (error) {
-      console.error("Error fetching project milestones:", error);
-      res.status(500).json({ message: "Error fetching project milestones" });
-    }
-  });
-
-  app.get("/api/project-milestones/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const milestone = await storage.getProjectMilestone(id);
-      if (!milestone) {
-        return res.status(404).json({ message: "Project milestone not found" });
-      }
-      res.json(milestone);
-    } catch (error) {
-      console.error("Error fetching project milestone:", error);
-      res.status(500).json({ message: "Error fetching project milestone" });
-    }
-  });
-
-  app.post("/api/project-milestones", isAuthenticated, validateRequest(insertProjectMilestoneSchema), async (req, res) => {
-    try {
-      const milestone = await storage.createProjectMilestone(req.body);
-      res.status(201).json(milestone);
-    } catch (error) {
-      console.error("Error creating project milestone:", error);
-      res.status(500).json({ message: "Error creating project milestone" });
-    }
-  });
-
-  app.put("/api/project-milestones/:id", isAuthenticated, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const milestone = await storage.updateProjectMilestone(id, req.body);
-      if (!milestone) {
-        return res.status(404).json({ message: "Project milestone not found" });
-      }
-      res.json(milestone);
-    } catch (error) {
-      console.error("Error updating project milestone:", error);
-      res.status(500).json({ message: "Error updating project milestone" });
-    }
-  });
-
-  app.put("/api/project-milestones/:id/complete", isAuthenticated, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const milestone = await storage.completeProjectMilestone(id);
-      if (!milestone) {
-        return res.status(404).json({ message: "Project milestone not found" });
-      }
-      res.json(milestone);
-    } catch (error) {
-      console.error("Error completing project milestone:", error);
-      res.status(500).json({ message: "Error completing project milestone" });
-    }
-  });
-
-  app.delete("/api/project-milestones/:id", isAuthenticated, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const result = await storage.deleteProjectMilestone(id);
-      res.json({ success: result });
-    } catch (error) {
-      console.error("Error deleting project milestone:", error);
-      res.status(500).json({ message: "Error deleting project milestone" });
-    }
-  });
 
   // Billing Milestone routes
   app.get("/api/billing-milestones", async (req, res) => {
