@@ -1863,11 +1863,6 @@ export class DatabaseStorage implements IStorage {
           .delete(tasks)
           .where(eq(tasks.projectId, projectId));
         
-        // Delete project milestones
-        await tx
-          .delete(projectMilestones)
-          .where(eq(projectMilestones.projectId, projectId));
-        
         // Delete project costs
         await tx
           .delete(projectCosts)
