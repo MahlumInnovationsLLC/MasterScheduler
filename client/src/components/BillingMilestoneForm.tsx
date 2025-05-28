@@ -118,13 +118,14 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
         title: "Success",
         description: "Billing milestone created successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      // DISABLED TO PREVENT FOCUS LOSS - Data will refresh on page reload
+      // queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+      // queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       
       // If projectId is set, also invalidate project-specific queries
-      if (projectId) {
-        queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
-      }
+      // if (projectId) {
+      //   queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
+      // }
       
       onOpenChange(false);
       form.reset();
@@ -152,13 +153,14 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
         title: "Success",
         description: "Billing milestone updated successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      // DISABLED TO PREVENT FOCUS LOSS - Data will refresh on page reload
+      // queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+      // queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       
       // If projectId is set, also invalidate project-specific queries
-      if (projectId) {
-        queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
-      }
+      // if (projectId) {
+      //   queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
+      // }
       
       onOpenChange(false);
     },

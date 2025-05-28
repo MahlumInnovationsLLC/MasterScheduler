@@ -85,8 +85,8 @@ export function AIInsightsWidget({ projects }: AIInsightsWidgetProps) {
   // Set up periodic refresh every 2 minutes (120000ms)
   useEffect(() => {
     const refreshInterval = setInterval(() => {
-      // Invalidate queries to force refresh
-      queryClient.invalidateQueries({ queryKey: ['/api/ai/insights'] });
+      // DISABLED TO PREVENT FOCUS LOSS - Data will refresh on page reload
+      // queryClient.invalidateQueries({ queryKey: ['/api/ai/insights'] });
       setLastRefreshTime(new Date());
     }, 120000);
     
@@ -121,8 +121,8 @@ export function AIInsightsWidget({ projects }: AIInsightsWidgetProps) {
   
   // Function to manually refresh insights
   const handleRefresh = () => {
-    // Invalidate queries to force refresh
-    queryClient.invalidateQueries({ queryKey: ['/api/ai/insights'] });
+    // DISABLED TO PREVENT FOCUS LOSS - Data will refresh on page reload
+    // queryClient.invalidateQueries({ queryKey: ['/api/ai/insights'] });
     setLastRefreshTime(new Date());
     // Also refetch if modal is open
     if (isOpen) {
