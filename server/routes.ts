@@ -677,23 +677,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           const projectData = {
-            projectNumber: values[0],
-            name: values[1],
-            contractDate: values[2] || null,
-            deliveryDate: values[3],
-            daysLate: parseInt(values[4]) || 0,
-            reason: values[5] || null,
-            lateDeliveryReason: values[6] || null,
-            delayResponsibility: values[7] || 'not_applicable',
-            percentComplete: values[8] || '100',
-            contractExtensions: parseInt(values[9]) || 0
+            projectNumber: values[0]?.trim() || '',
+            name: values[1]?.trim() || '',
+            contractDate: values[2]?.trim() || null,
+            deliveryDate: values[3]?.trim() || null,
+            daysLate: !isNaN(parseInt(values[4])) ? parseInt(values[4]) : 0,
+            reason: values[5]?.trim() || null,
+            lateDeliveryReason: values[6]?.trim() || null,
+            delayResponsibility: (values[7]?.trim() as any) || 'not_applicable',
+            percentComplete: values[8]?.trim() || '100',
+            contractExtensions: !isNaN(parseInt(values[9])) ? parseInt(values[9]) : 0
           };
+
+          // Validate required fields
+          if (!projectData.projectNumber) {
+            errors.push(`Row ${i + 2}: Project Number is required`);
+            continue;
+          }
+          if (!projectData.name) {
+            errors.push(`Row ${i + 2}: Project Name is required`);
+            continue;
+          }
+          if (!projectData.deliveryDate) {
+            errors.push(`Row ${i + 2}: Delivery Date is required`);
+            continue;
+          }
 
           // Create the project
           await storage.createProject({
             projectNumber: projectData.projectNumber,
             name: projectData.name,
-            contractDate: projectData.contractDate,
+            contractDate: projectData.contractDate || null,
             deliveryDate: projectData.deliveryDate,
             status: 'delivered',
             percentComplete: projectData.percentComplete,
@@ -738,8 +752,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ 
         count: successCount,
+        totalRows: dataLines.length,
         errors: errors.length > 0 ? errors : undefined,
-        message: `Successfully imported ${successCount} projects${errors.length > 0 ? ` with ${errors.length} errors` : ''}`
+        message: successCount > 0 ? 
+          `Successfully imported ${successCount} projects${errors.length > 0 ? ` (${errors.length} errors)` : ''}` :
+          `Import failed - ${errors.length} validation errors found`
       });
     } catch (error) {
       console.error("Error importing delivered projects:", error);

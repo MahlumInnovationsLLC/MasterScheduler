@@ -111,17 +111,30 @@ const DeliveredProjects = () => {
       }).then(res => res.json());
     },
     onSuccess: (data) => {
-      toast({
-        title: "Success",
-        description: `Successfully imported ${data.count || 0} delivered projects`
-      });
-      setShowImport(false);
-      setImportFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      if (data.count > 0) {
+        toast({
+          title: "Success",
+          description: `Successfully imported ${data.count} delivered projects${data.errors ? ` (${data.errors.length} errors)` : ''}`
+        });
+      } else {
+        toast({
+          title: "Import Failed",
+          description: data.errors && data.errors.length > 0 
+            ? `No projects imported. First error: ${data.errors[0]}`
+            : "No valid data found to import",
+          variant: "destructive"
+        });
       }
-      queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects/analytics'] });
+      
+      if (data.count > 0) {
+        setShowImport(false);
+        setImportFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects/analytics'] });
+      }
     },
     onError: (error: any) => {
       toast({
