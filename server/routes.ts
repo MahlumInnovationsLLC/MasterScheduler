@@ -623,6 +623,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update delivered project reason
+  app.patch("/api/delivered-projects/:id/reason", isAuthenticated, hasEditRights, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const { reason } = req.body;
+      
+      console.log("🔥🔥🔥 ROUTE: Updating reason for project", projectId, "with value:", reason);
+      
+      const success = await storage.updateDeliveredProjectReason(projectId, reason);
+      
+      if (success) {
+        console.log("✅ ROUTE: Reason update successful");
+        res.json({ success: true });
+      } else {
+        console.log("💥 ROUTE: Reason update failed");
+        res.status(500).json({ message: "Failed to update reason" });
+      }
+    } catch (error) {
+      console.error("💥💥💥 ROUTE ERROR:", error);
+      res.status(500).json({ message: "Error updating delivered project reason" });
+    }
+  });
+
+  // Update delivered project responsibility  
+  app.patch("/api/delivered-projects/:id/responsibility", isAuthenticated, hasEditRights, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const { responsibility } = req.body;
+      
+      console.log("🔥🔥🔥 ROUTE: Updating responsibility for project", projectId, "with value:", responsibility);
+      
+      const success = await storage.updateDeliveredProjectResponsibility(projectId, responsibility);
+      
+      if (success) {
+        console.log("✅ ROUTE: Responsibility update successful");
+        res.json({ success: true });
+      } else {
+        console.log("💥 ROUTE: Responsibility update failed");
+        res.status(500).json({ message: "Failed to update responsibility" });
+      }
+    } catch (error) {
+      console.error("💥💥💥 ROUTE ERROR:", error);
+      res.status(500).json({ message: "Error updating delivered project responsibility" });
+    }
+  });
+
   // Get delivered projects analytics
   app.get("/api/delivered-projects/analytics", async (req, res) => {
     // Force no cache
