@@ -133,10 +133,16 @@ const OnTimeDeliveryPage: React.FC = () => {
   const [selectedResponsibility, setSelectedResponsibility] = useState<string>("all");
 
   // Fetch delivered projects analytics
-  const { data: analytics, isLoading: isLoadingAnalytics } = useQuery<DeliveredProjectsAnalytics>({
+  const { data: analytics, isLoading: isLoadingAnalytics } = useQuery({
     queryKey: ["/api/delivered-projects/analytics"],
     staleTime: 0,
     cacheTime: 0,
+    onSuccess: (data: any) => {
+      console.log("🎯 Analytics data received:", data);
+    },
+    onError: (error: any) => {
+      console.error("❌ Analytics error:", error);
+    }
   });
 
   // Fetch delivered projects list
@@ -233,7 +239,7 @@ const OnTimeDeliveryPage: React.FC = () => {
     );
   }
 
-  if (!analytics || analytics.summary.totalProjects === 0) {
+  if (!analytics || !analytics.summary || analytics.summary.totalProjects === 0) {
     return (
       <div className="container p-6 mx-auto">
         <div className="flex items-center justify-between mb-6">
