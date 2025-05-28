@@ -669,7 +669,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (let i = 0; i < dataLines.length; i++) {
         try {
-          const values = dataLines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+          // Parse CSV with proper comma handling for quoted fields
+          const values = parseCSVLine(dataLines[i]);
+          
+          // Helper function to properly parse CSV lines with commas in quoted fields
+          function parseCSVLine(line: string): string[] {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let j = 0; j < line.length; j++) {
+              const char = line[j];
+              if (char === '"') {
+                inQuotes = !inQuotes;
+              } else if (char === ',' && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+              } else {
+                current += char;
+              }
+            }
+            result.push(current.trim());
+            return result;
+          }
           
           if (values.length < headers.length) {
             errors.push(`Row ${i + 2}: Insufficient data columns`);
@@ -684,9 +706,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             daysLate: parseDaysLate(values[4]),
             lateDeliveryReason: values[5]?.trim() || null,
             delayResponsibility: (values[6]?.trim() as any) || 'not_applicable',
-            percentComplete: values[7]?.trim() || '100',
+            percentComplete: parsePercentComplete(values[7]),
             contractExtensions: !isNaN(parseInt(values[8])) ? parseInt(values[8]) : 0
           };
+
+          // Helper function to parse percent complete, handling text values
+          function parsePercentComplete(value: string): string {
+            if (!value || value.trim() === '') return '100';
+            const trimmed = value.trim();
+            // If it's a text value like "Nomad", return 100% (delivered projects are complete)
+            if (isNaN(parseInt(trimmed))) return '100';
+            return trimmed;
+          }
 
           // Helper function to parse days late, handling text values
           function parseDaysLate(value: string): number {
