@@ -13,7 +13,8 @@ import {
   UserCheck, 
   UserX, 
   RefreshCw,
-  MoveRight
+  MoveRight,
+  ArchiveRestore
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import RolePermissionsManager from "@/components/RolePermissionsManager";
@@ -640,7 +641,7 @@ const SystemSettings = () => {
     isLoading: archivedProjectsLoading,
     error: archivedProjectsError
   } = useQuery({
-    queryKey: ['/api/projects/archived'],
+    queryKey: ['/api/archived-projects'],
     queryFn: getQueryFn({}),
   });
   
