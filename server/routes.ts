@@ -510,14 +510,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get delivered projects analytics
   app.get("/api/delivered-projects/analytics", async (req, res) => {
     try {
-      const allProjects = await storage.getProjects();
+      // Use the same data source as the Delivered Projects module
+      const deliveredProjects = await storage.getDeliveredProjects();
       
-      // Filter for only delivered projects (those with actual delivery dates)
-      const deliveredProjects = allProjects.filter(project => 
-        project.deliveryDate || project.actualDeliveryDate
-      );
-      
-      console.log("📊 Found all projects:", allProjects.length);
       console.log("📊 Found delivered projects:", deliveredProjects.length);
       
       // Simple analytics calculation
@@ -527,11 +522,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       deliveredProjects.forEach(project => {
         let daysLate = 0;
-        const actualDeliveryDate = project.deliveryDate || project.actualDeliveryDate;
-        if (actualDeliveryDate && project.contractDate) {
-          const deliveryDate = new Date(actualDeliveryDate);
+        
+        // Use the same calculation logic as the Delivered Projects module
+        if (project.deliveryDate && project.contractDate) {
+          const deliveryDate = new Date(project.deliveryDate);
           const contractDate = new Date(project.contractDate);
-          daysLate = Math.ceil((deliveryDate.getTime() - contractDate.getTime()) / (1000 * 60 * 60 * 24));
+          const diffTime = deliveryDate.getTime() - contractDate.getTime();
+          daysLate = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         }
         
         if (daysLate <= 0) {
