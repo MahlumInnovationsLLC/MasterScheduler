@@ -1806,6 +1806,11 @@ export class DatabaseStorage implements IStorage {
           .delete(salesDeals)
           .where(eq(salesDeals.convertedProjectId, projectId));
         
+        // Delete project supply chain benchmarks
+        await tx
+          .delete(projectSupplyChainBenchmarks)
+          .where(eq(projectSupplyChainBenchmarks.projectId, projectId));
+        
         // 5. Now delete the original project
         await tx
           .delete(projects)
