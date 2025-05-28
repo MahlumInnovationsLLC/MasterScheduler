@@ -576,6 +576,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching analytics" });
     }
   });
+
+  // Delete all billing milestones (admin only)
+  app.delete("/api/billing-milestones/all", async (req, res) => {
+    try {
       const user = req.user as any;
       if (!user || (user.role !== 'admin' && !req.isDevMode)) {
         return res.status(403).json({ message: "Only administrators can perform this action" });
