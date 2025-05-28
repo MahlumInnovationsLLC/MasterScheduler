@@ -1026,6 +1026,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get billing milestones
+  app.get("/api/billing-milestones", async (req, res) => {
+    try {
+      const milestones = await storage.getBillingMilestones();
+      res.json(milestones);
+    } catch (error) {
+      console.error("Error fetching billing milestones:", error);
+      res.status(500).json({ message: "Error fetching billing milestones" });
+    }
+  });
+
   // Delete all billing milestones (admin only)
   app.delete("/api/billing-milestones/all", async (req, res) => {
     try {
