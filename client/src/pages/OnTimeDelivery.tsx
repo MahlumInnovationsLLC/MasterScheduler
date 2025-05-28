@@ -136,20 +136,14 @@ const OnTimeDeliveryPage: React.FC = () => {
   const { data: analytics, isLoading: isLoadingAnalytics } = useQuery({
     queryKey: ["/api/delivered-projects/analytics"],
     staleTime: 0,
-    cacheTime: 0,
-    onSuccess: (data: any) => {
-      console.log("🎯 Analytics data received:", data);
-    },
-    onError: (error: any) => {
-      console.error("❌ Analytics error:", error);
-    }
+    gcTime: 0,
   });
 
   // Fetch delivered projects list
   const { data: deliveredProjects, isLoading: isLoadingProjects } = useQuery<DeliveredProject[]>({
     queryKey: ["/api/delivered-projects"],
     staleTime: 0,
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   // Filter projects based on selected responsibility

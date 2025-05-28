@@ -509,11 +509,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get delivered projects analytics
   app.get("/api/delivered-projects/analytics", async (req, res) => {
+    // Force no cache
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
     try {
-      // Use the same data source as the Delivered Projects module
+      // Use the same data source as the Delivered Projects module - only projects with status = 'delivered'
       const deliveredProjects = await storage.getDeliveredProjects();
       
-      console.log("📊 Found delivered projects:", deliveredProjects.length);
+      console.log("📊 Found delivered projects (status = 'delivered'):", deliveredProjects.length);
       
       // Simple analytics calculation
       let onTimeCount = 0;
