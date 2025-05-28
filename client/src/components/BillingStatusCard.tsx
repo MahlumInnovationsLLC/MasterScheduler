@@ -611,6 +611,12 @@ export function BillingStatusCard({
             {/* Bar Chart */}
             <div className={`grid grid-cols-12 gap-1 ${isFullWidthForecast ? 'h-32' : 'h-16'}`}>
               {chart.values.map((val, idx) => {
+                // Debug log to see actual values
+                console.log(`Bar ${idx} (${chart.labels[idx]}): $${val}`);
+                
+                // Calculate max value for scaling
+                const maxValue = Math.max(...chart.values.filter(v => v > 0));
+                console.log(`Max value for scaling: $${maxValue}`);
                 // Find goal for this month's column
                 const today = new Date();
                 const targetDate = addMonths(new Date(today.getFullYear(), today.getMonth(), 1), idx);
@@ -630,15 +636,15 @@ export function BillingStatusCard({
                 return (
                   <div key={idx} className={`bg-primary bg-opacity-20 relative rounded-sm ${isSelected ? 'ring-2 ring-green-500' : ''}`}>
                     <div 
-                      className={`absolute bottom-0 w-full rounded-sm ${
+                      className={`absolute bottom-0 w-full rounded-sm z-10 ${
                         isSelected 
-                          ? 'bg-green-500' 
+                          ? 'bg-green-500 shadow-lg' 
                           : isExceedingGoal 
                             ? 'bg-green-400' 
-                            : 'bg-primary'
+                            : 'bg-blue-500'
                       }`}
                       style={{ 
-                        height: `${val > 0 ? Math.max(8, (val / Math.max(...chart.values, 1)) * 95) : 2}%` 
+                        height: `${val > 0 ? Math.max(10, (val / maxValue) * 90) : 5}%` 
                       }}
                     ></div>
                     
