@@ -520,6 +520,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("📊 Found all projects:", allProjects.length);
       console.log("📊 Found delivered projects:", deliveredProjects.length);
       
+      // Simple analytics calculation
+      let onTimeCount = 0;
+      let lateCount = 0;
+      let totalDaysLate = 0;
+      
+      deliveredProjects.forEach(project => {
+        let daysLate = 0;
+        const actualDeliveryDate = project.deliveryDate || project.actualDeliveryDate;
+        if (actualDeliveryDate && project.contractDate) {
+          const deliveryDate = new Date(actualDeliveryDate);
+          const contractDate = new Date(project.contractDate);
+          daysLate = Math.ceil((deliveryDate.getTime() - contractDate.getTime()) / (1000 * 60 * 60 * 24));
+        }
+        
+        if (daysLate <= 0) {
+          onTimeCount++;
+        } else {
+          lateCount++;
+          totalDaysLate += daysLate;
+        }
+      });
+      
+      const analytics = {
+        summary: {
+          totalProjects: deliveredProjects.length,
+          onTimeCount,
+          lateCount,
+          onTimePercentage: deliveredProjects.length > 0 ? Math.round((onTimeCount / deliveredProjects.length) * 100) : 0,
+          avgDaysLate: lateCount > 0 ? Math.round((totalDaysLate / lateCount) * 10) / 10 : 0,
+          totalDaysLate
+        },
+        responsibilityBreakdown: {
+          nomad_fault: 0,
+          vendor_fault: 0,
+          client_fault: 0,
+          not_applicable: deliveredProjects.length
+        },
+        monthlyTrends: [],
+        daysLateDistribution: {
+          onTime: onTimeCount,
+          week1: 0,
+          week2: 0,
+          month1: 0,
+          month2: 0,
+          longTerm: 0
+        },
+        yearlyComparison: []
+      };
+      
+      console.log("📊 Returning analytics:", analytics);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error in analytics endpoint:", error);
+      res.status(500).json({ message: "Error fetching analytics" });
+    }
+  });
+      
       // Calculate comprehensive analytics
       const analytics = {
         summary: {
@@ -662,10 +719,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }))
         .sort((a, b) => a.year.localeCompare(b.year));
 
+      console.log("📊 Returning analytics:", JSON.stringify(analytics, null, 2));
       res.json(analytics);
     } catch (error) {
       console.error("Error fetching delivered projects analytics:", error);
-      res.status(500).json({ message: "Error fetching analytics" });
+      console.error("Error stack:", error.stack);
+      res.status(500).json({ message: "Error fetching analytics", error: error.message });
     }
   });
 
