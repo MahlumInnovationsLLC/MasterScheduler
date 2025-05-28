@@ -5,6 +5,7 @@ import { z } from "zod";
 import { ZodError } from "zod";
 import crypto from "crypto";
 import passport from "passport";
+import multer from "multer";
 import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -67,6 +68,21 @@ import {
 import { getAIInsights } from "./routes/aiInsights";
 import supplyChainRoutes from "./routes/supply-chain";
 import systemRoutes from "./routes/system";
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'));
+    }
+  }
+});
 
 /**
  * Helper function to synchronize delivery milestones with project ship date
@@ -576,6 +592,155 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error in analytics endpoint:", error);
       res.status(500).json({ message: "Error fetching analytics" });
+    }
+  });
+
+  // Manual entry for delivered projects
+  app.post("/api/delivered-projects/manual", async (req, res) => {
+    try {
+      const data = req.body;
+      
+      // Create a new project with delivered status
+      const newProject = await storage.createProject({
+        projectNumber: data.projectNumber,
+        name: data.name,
+        contractDate: data.contractDate || null,
+        deliveryDate: data.deliveryDate,
+        status: 'delivered',
+        percentComplete: data.percentComplete || '100',
+        reason: data.reason || null,
+        lateDeliveryReason: data.lateDeliveryReason || null,
+        delayResponsibility: data.delayResponsibility || 'not_applicable',
+        // Set required fields with defaults
+        description: null,
+        pmOwnerId: null,
+        pmOwner: null,
+        team: null,
+        location: null,
+        startDate: data.deliveryDate, // Use delivery date as start date
+        endDate: data.deliveryDate,
+        qcStartDate: null,
+        shipDate: null,
+        billableHours: 0,
+        estimatedHours: 0,
+        actualHours: 0,
+        materialCost: 0,
+        laborCost: 0,
+        isDeliveredOnTime: data.daysLate === 0,
+        daysLate: data.daysLate || 0
+      });
+
+      // Create notification
+      await storage.createNotification({
+        title: `New Delivered Project Added: ${data.name}`,
+        message: `Project #${data.projectNumber} has been manually added to delivered projects.`,
+        type: "project",
+        priority: "medium",
+        relatedProjectId: newProject.id
+      });
+
+      res.json(newProject);
+    } catch (error) {
+      console.error("Error creating delivered project:", error);
+      res.status(500).json({ message: "Error creating delivered project" });
+    }
+  });
+
+  // Import delivered projects from CSV
+  app.post("/api/delivered-projects/import", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const fileContent = req.file.buffer.toString('utf-8');
+      const lines = fileContent.split('\n').filter(line => line.trim());
+      
+      if (lines.length < 2) {
+        return res.status(400).json({ message: "CSV file must have headers and at least one data row" });
+      }
+
+      const headers = lines[0].split(',').map(h => h.trim());
+      const dataLines = lines.slice(1);
+      
+      let successCount = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < dataLines.length; i++) {
+        try {
+          const values = dataLines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+          
+          if (values.length < headers.length) {
+            errors.push(`Row ${i + 2}: Insufficient data columns`);
+            continue;
+          }
+
+          const projectData = {
+            projectNumber: values[0],
+            name: values[1],
+            contractDate: values[2] || null,
+            deliveryDate: values[3],
+            daysLate: parseInt(values[4]) || 0,
+            reason: values[5] || null,
+            lateDeliveryReason: values[6] || null,
+            delayResponsibility: values[7] || 'not_applicable',
+            percentComplete: values[8] || '100'
+          };
+
+          // Create the project
+          await storage.createProject({
+            projectNumber: projectData.projectNumber,
+            name: projectData.name,
+            contractDate: projectData.contractDate,
+            deliveryDate: projectData.deliveryDate,
+            status: 'delivered',
+            percentComplete: projectData.percentComplete,
+            reason: projectData.reason,
+            lateDeliveryReason: projectData.lateDeliveryReason,
+            delayResponsibility: projectData.delayResponsibility as any,
+            // Set required fields with defaults
+            description: null,
+            pmOwnerId: null,
+            pmOwner: null,
+            team: null,
+            location: null,
+            startDate: projectData.deliveryDate,
+            endDate: projectData.deliveryDate,
+            qcStartDate: null,
+            shipDate: null,
+            billableHours: 0,
+            estimatedHours: 0,
+            actualHours: 0,
+            materialCost: 0,
+            laborCost: 0,
+            isDeliveredOnTime: projectData.daysLate === 0,
+            daysLate: projectData.daysLate
+          });
+
+          successCount++;
+        } catch (error) {
+          errors.push(`Row ${i + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+      // Create notification for import
+      if (successCount > 0) {
+        await storage.createNotification({
+          title: `Delivered Projects Import Completed`,
+          message: `Successfully imported ${successCount} delivered projects${errors.length > 0 ? ` with ${errors.length} errors` : ''}.`,
+          type: "system",
+          priority: "medium"
+        });
+      }
+
+      res.json({ 
+        count: successCount,
+        errors: errors.length > 0 ? errors : undefined,
+        message: `Successfully imported ${successCount} projects${errors.length > 0 ? ` with ${errors.length} errors` : ''}`
+      });
+    } catch (error) {
+      console.error("Error importing delivered projects:", error);
+      res.status(500).json({ message: "Error importing delivered projects" });
     }
   });
 

@@ -69,10 +69,7 @@ const DeliveredProjects = () => {
   // Manual entry mutation
   const manualEntryMutation = useMutation({
     mutationFn: async (data: typeof manualEntryForm) => {
-      return await apiRequest('/api/delivered-projects/manual', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return await apiRequest('POST', '/api/delivered-projects/manual', data);
     },
     onSuccess: () => {
       toast({
