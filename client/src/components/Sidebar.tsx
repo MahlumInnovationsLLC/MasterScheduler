@@ -154,10 +154,10 @@ const Sidebar = () => {
               </SidebarLink>
             </li>
             <li>
-              <SidebarLink href="/delivery-tracking" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/delivery-tracking') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
+              <SidebarLink href="/on-time-delivery" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                isActive('/on-time-delivery') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
               }`} title="On Time Delivery">
-                <Clock className={`text-xl ${isActive('/delivery-tracking') ? 'text-primary' : ''}`} />
+                <Clock className={`text-xl ${isActive('/on-time-delivery') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>On Time Delivery</span>}
               </SidebarLink>
             </li>

@@ -507,6 +507,158 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get delivered projects analytics
+  app.get("/api/delivered-projects/analytics", async (req, res) => {
+    try {
+      const deliveredProjects = await storage.getDeliveredProjects();
+      
+      // Calculate comprehensive analytics
+      const analytics = {
+        summary: {
+          totalProjects: deliveredProjects.length,
+          onTimeCount: 0,
+          lateCount: 0,
+          onTimePercentage: 0,
+          avgDaysLate: 0,
+          totalDaysLate: 0
+        },
+        responsibilityBreakdown: {
+          nomad_fault: 0,
+          vendor_fault: 0,
+          client_fault: 0,
+          not_applicable: 0
+        },
+        monthlyTrends: [] as any[],
+        daysLateDistribution: {
+          onTime: 0,          // 0 days or negative
+          week1: 0,           // 1-7 days
+          week2: 0,           // 8-14 days
+          month1: 0,          // 15-30 days
+          month2: 0,          // 31-60 days
+          longTerm: 0         // 60+ days
+        },
+        yearlyComparison: [] as any[]
+      };
+
+      // Track monthly data for trends
+      const monthlyData: { [key: string]: { total: number, onTime: number, late: number, totalDaysLate: number } } = {};
+      const yearlyData: { [key: string]: { total: number, onTime: number, late: number, totalDaysLate: number } } = {};
+
+      deliveredProjects.forEach(project => {
+        let daysLate = 0;
+        
+        if (project.deliveryDate && project.contractDate) {
+          const deliveryDate = new Date(project.deliveryDate);
+          const contractDate = new Date(project.contractDate);
+          
+          // Calculate difference in days
+          const diffTime = deliveryDate.getTime() - contractDate.getTime();
+          daysLate = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        // Summary calculations
+        if (daysLate <= 0) {
+          analytics.summary.onTimeCount++;
+        } else {
+          analytics.summary.lateCount++;
+          analytics.summary.totalDaysLate += daysLate;
+        }
+
+        // Responsibility breakdown
+        const responsibility = project.delayResponsibility || 'not_applicable';
+        if (responsibility in analytics.responsibilityBreakdown) {
+          analytics.responsibilityBreakdown[responsibility as keyof typeof analytics.responsibilityBreakdown]++;
+        }
+
+        // Days late distribution
+        if (daysLate <= 0) {
+          analytics.daysLateDistribution.onTime++;
+        } else if (daysLate <= 7) {
+          analytics.daysLateDistribution.week1++;
+        } else if (daysLate <= 14) {
+          analytics.daysLateDistribution.week2++;
+        } else if (daysLate <= 30) {
+          analytics.daysLateDistribution.month1++;
+        } else if (daysLate <= 60) {
+          analytics.daysLateDistribution.month2++;
+        } else {
+          analytics.daysLateDistribution.longTerm++;
+        }
+
+        // Monthly trends
+        if (project.deliveryDate) {
+          const deliveryDate = new Date(project.deliveryDate);
+          const monthKey = `${deliveryDate.getFullYear()}-${String(deliveryDate.getMonth() + 1).padStart(2, '0')}`;
+          
+          if (!monthlyData[monthKey]) {
+            monthlyData[monthKey] = { total: 0, onTime: 0, late: 0, totalDaysLate: 0 };
+          }
+          
+          monthlyData[monthKey].total++;
+          if (daysLate <= 0) {
+            monthlyData[monthKey].onTime++;
+          } else {
+            monthlyData[monthKey].late++;
+            monthlyData[monthKey].totalDaysLate += daysLate;
+          }
+
+          // Yearly comparison
+          const yearKey = deliveryDate.getFullYear().toString();
+          if (!yearlyData[yearKey]) {
+            yearlyData[yearKey] = { total: 0, onTime: 0, late: 0, totalDaysLate: 0 };
+          }
+          
+          yearlyData[yearKey].total++;
+          if (daysLate <= 0) {
+            yearlyData[yearKey].onTime++;
+          } else {
+            yearlyData[yearKey].late++;
+            yearlyData[yearKey].totalDaysLate += daysLate;
+          }
+        }
+      });
+
+      // Calculate final percentages and averages
+      analytics.summary.onTimePercentage = analytics.summary.totalProjects > 0 
+        ? Math.round((analytics.summary.onTimeCount / analytics.summary.totalProjects) * 100)
+        : 0;
+      
+      analytics.summary.avgDaysLate = analytics.summary.lateCount > 0 
+        ? Math.round((analytics.summary.totalDaysLate / analytics.summary.lateCount) * 10) / 10
+        : 0;
+
+      // Convert monthly data to array and sort
+      analytics.monthlyTrends = Object.entries(monthlyData)
+        .map(([month, data]) => ({
+          month,
+          total: data.total,
+          onTime: data.onTime,
+          late: data.late,
+          onTimePercentage: data.total > 0 ? Math.round((data.onTime / data.total) * 100) : 0,
+          avgDaysLate: data.late > 0 ? Math.round((data.totalDaysLate / data.late) * 10) / 10 : 0
+        }))
+        .sort((a, b) => a.month.localeCompare(b.month))
+        .slice(-12); // Last 12 months
+
+      // Convert yearly data to array
+      analytics.yearlyComparison = Object.entries(yearlyData)
+        .map(([year, data]) => ({
+          year,
+          total: data.total,
+          onTime: data.onTime,
+          late: data.late,
+          onTimePercentage: data.total > 0 ? Math.round((data.onTime / data.total) * 100) : 0,
+          avgDaysLate: data.late > 0 ? Math.round((data.totalDaysLate / data.late) * 10) / 10 : 0
+        }))
+        .sort((a, b) => a.year.localeCompare(b.year));
+
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching delivered projects analytics:", error);
+      res.status(500).json({ message: "Error fetching analytics" });
+    }
+  });
+
   // Update delivered project reason
   app.patch("/api/delivered-projects/:id/reason", hasEditRights, async (req, res) => {
     try {
