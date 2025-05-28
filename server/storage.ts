@@ -1805,6 +1805,14 @@ export class DatabaseStorage implements IStorage {
           executiveReviewDate: project.executiveReviewDate,
           shipDate: project.shipDate,
           deliveryDate: project.deliveryDate,
+          totalHours: project.totalHours,
+          fabPercentage: project.fabPercentage,
+          paintPercentage: project.paintPercentage,
+          productionPercentage: project.productionPercentage,
+          itPercentage: project.itPercentage,
+          ntcPercentage: project.ntcPercentage,
+          qcPercentage: project.qcPercentage,
+          fabWeeks: project.fabWeeks,
           percentComplete: project.percentComplete,
           dpasRating: project.dpasRating,
           stretchShortenGears: project.stretchShortenGears,
@@ -1818,6 +1826,7 @@ export class DatabaseStorage implements IStorage {
           itDesignOrdersPercent: project.itDesignOrdersPercent,
           ntcDesignOrdersPercent: project.ntcDesignOrdersPercent,
           status: "archived",
+          riskLevel: project.riskLevel,
           hasBillingMilestones: project.hasBillingMilestones,
           notes: project.notes,
           rawData: project.rawData,
@@ -1838,6 +1847,11 @@ export class DatabaseStorage implements IStorage {
         }
         
         // 4. Delete related data first to handle foreign key constraints
+        
+        // Delete notifications related to this project
+        await tx
+          .delete(notifications)
+          .where(eq(notifications.relatedProjectId, projectId));
         
         // Delete billing milestones
         await tx
@@ -1863,6 +1877,16 @@ export class DatabaseStorage implements IStorage {
         await tx
           .delete(manufacturingSchedules)
           .where(eq(manufacturingSchedules.projectId, projectId));
+        
+        // Delete delivery tracking records
+        await tx
+          .delete(deliveryTracking)
+          .where(eq(deliveryTracking.projectId, projectId));
+        
+        // Delete sales deals that converted to this project
+        await tx
+          .delete(salesDeals)
+          .where(eq(salesDeals.convertedProjectId, projectId));
         
         // 5. Now delete the original project
         await tx
