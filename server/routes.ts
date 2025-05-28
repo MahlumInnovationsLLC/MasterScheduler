@@ -681,13 +681,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             name: values[1]?.trim() || '',
             contractDate: values[2]?.trim() || null,
             deliveryDate: values[3]?.trim() || null,
-            daysLate: !isNaN(parseInt(values[4])) ? parseInt(values[4]) : 0,
-            reason: values[5]?.trim() || null,
-            lateDeliveryReason: values[6]?.trim() || null,
-            delayResponsibility: (values[7]?.trim() as any) || 'not_applicable',
-            percentComplete: values[8]?.trim() || '100',
-            contractExtensions: !isNaN(parseInt(values[9])) ? parseInt(values[9]) : 0
+            daysLate: parseDaysLate(values[4]),
+            lateDeliveryReason: values[5]?.trim() || null,
+            delayResponsibility: (values[6]?.trim() as any) || 'not_applicable',
+            percentComplete: values[7]?.trim() || '100',
+            contractExtensions: !isNaN(parseInt(values[8])) ? parseInt(values[8]) : 0
           };
+
+          // Helper function to parse days late, handling text values
+          function parseDaysLate(value: string): number {
+            if (!value || value.trim() === '') return 0;
+            const trimmed = value.trim();
+            // If it's a text value like "Nomad", return 0 (handled as on-time)
+            if (isNaN(parseInt(trimmed))) return 0;
+            return parseInt(trimmed);
+          }
 
           // Validate required fields
           if (!projectData.projectNumber) {
@@ -711,7 +719,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             deliveryDate: projectData.deliveryDate,
             status: 'delivered',
             percentComplete: projectData.percentComplete,
-            reason: projectData.reason,
             lateDeliveryReason: projectData.lateDeliveryReason,
             delayResponsibility: projectData.delayResponsibility as any,
             contractExtensions: projectData.contractExtensions,
@@ -723,6 +730,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             location: null,
             startDate: projectData.deliveryDate,
             endDate: projectData.deliveryDate,
+            estimatedCompletionDate: null, // Now optional for delivered projects
             qcStartDate: null,
             shipDate: null,
             billableHours: 0,

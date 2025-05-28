@@ -270,11 +270,10 @@ const DeliveredProjects = () => {
   const downloadTemplate = () => {
     const csvHeaders = [
       'Project Number',
-      'Project Name', 
+      'Project Name',
       'Contract Date (YYYY-MM-DD)',
       'Delivery Date (YYYY-MM-DD)',
       'Days Late (number)',
-      'Reason',
       'Late Delivery Reason',
       'Delay Responsibility (not_applicable|client_fault|nomad_fault|vendor_fault)',
       'Percent Complete',
@@ -282,8 +281,8 @@ const DeliveredProjects = () => {
     ];
     
     const csvContent = csvHeaders.join(',') + '\n' +
-      '804508,Sample Project Name,2024-01-15,2024-02-20,5,Equipment delay,Vendor supplied parts late,vendor_fault,100,2\n' +
-      '804509,Another Project,2024-02-01,2024-02-28,0,,On time delivery,not_applicable,100,0';
+      '804508,Sample Project Name,2024-01-15,2024-02-20,5,Vendor supplied parts late,vendor_fault,100,2\n' +
+      '804509,Another Project,2024-02-01,2024-02-28,0,,not_applicable,100,0';
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);

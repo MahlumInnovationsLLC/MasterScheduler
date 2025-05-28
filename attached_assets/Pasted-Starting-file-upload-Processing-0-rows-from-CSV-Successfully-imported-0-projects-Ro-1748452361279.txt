@@ -1,0 +1,98 @@
+Starting file upload...
+📊 Processing 0 rows from CSV...
+✅ Successfully imported: 0 projects
+❌ Row 2: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 3: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 4: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 5: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 6: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 7: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 8: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 9: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 10: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 11: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 12: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 13: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 14: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 15: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 16: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 17: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 18: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 19: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 20: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 21: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 22: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 23: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 24: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 25: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 26: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 27: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 28: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 29: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 30: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 31: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 32: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 33: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 34: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 35: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 36: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 37: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 38: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 39: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 40: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 41: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 42: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 43: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 44: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 45: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 46: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 47: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 48: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 49: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 50: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 51: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 52: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 53: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 54: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 55: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 56: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 57: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 58: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 59: invalid input syntax for type numeric: "Nomad"
+❌ Row 60: invalid input syntax for type numeric: "Nomad"
+❌ Row 61: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 62: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 63: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 64: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 65: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 66: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 67: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 68: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 69: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 70: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 71: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 72: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 73: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 74: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 75: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 76: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 77: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 78: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 79: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 80: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 81: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 82: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 83: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 84: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 85: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 86: invalid input syntax for type numeric: "Nomad"
+❌ Row 87: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 88: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 89: invalid input syntax for type numeric: "Nomad"
+❌ Row 90: invalid input syntax for type numeric: "Nomad"
+❌ Row 91: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 92: null value in column "estimated_completion_date" of relation "projects" violates not-null constraint
+❌ Row 93: invalid input syntax for type numeric: "Nomad"
+❌ Row 94: invalid input syntax for type numeric: "Nomad"
+❌ Row 95: invalid input syntax for type date: ""
+💥 Import failed - no projects were imported due to validation errors.

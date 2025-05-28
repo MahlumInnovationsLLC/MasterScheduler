@@ -1,0 +1,95 @@
+Project Number,Project Name,Contract Date (YYYY-MM-DD),Delivery Date (YYYY-MM-DD),Days Late (number),Late Delivery Reason,Delay Responsibility (not_applicable|client_fault|nomad_fault|vendor_fault),Percent Complete,Contract Extensions (number)
+803991,803991_NM_RobertsTruckBernalilloCo_IC26As0_02,4/12/2023,9/13/2024,520,Late CSE Chassis Arrival,Client,100,0
+803990,803990_NM_RobertsTruckBernalilloCo_IC26As0_01,4/12/2023,7/30/2024,475,Late CSE Chassis Arrival,Client,100,0
+804289,804289_MT_LoganHealth_IC24As1_02,7/29/2023,5/13/2024,289,Late Chassis Arrival,Vendor,100,0
+803789,803789_MT_LoganHealth_IC24As1_01,7/29/2023,1/26/2024,181,Late Chassis Arrival,Vendor,100,0
+804190,804190_GA_Coweta Co_IC34As4,9/12/2023,3/22/2024,192,Sales sold an unavailable chassis with no availability in sight.  Customer was adamant about the original chassis - we jumped through many hoops trying to find something that would meet spec and they would agree upon which proved difficult based on their strongly desired requirement.,Nomad,100,0
+804325,804325_VA_ADS_WSMR_MOSS_IC20As1_02,9/26/2023,3/1/2024,157,Late arrival of HVACs,Vendor,100,3
+804092,804092_VA_ADS_WSMR_MOSS_IC20As1_01,9/26/2023,2/8/2024,135,Late arrival of HVACs,Vendor,100,3
+800024,800024-01_NH_Grafton Co_Upgrades,12/14/2023,3/7/2024,84,Vague requirments during sales resulted in additional definition for build,Nomad,100,0
+804376,804376_MD_VA_Mobile Medical_IC20As0_06,12/18/2023,1/20/2024,33,Late Chassis Arrival,Vendor,100,0
+803426,803426-01_CA_EdwardsAFB_IC26Reconfig,12/19/2023,6/26/2024,190,Engineering delays,Nomad,100,0
+804377,804377_MD_VA_Mobile Medical_IC20As0_07,12/22/2023,2/28/2024,68,Late Chassis Arrival,Vendor,100,0
+804589,804589_MT_NomadGCS_TCV Max Demo,12/31/2023,3/18/2024,78,Late arrival of HVACs,Vendor,100,0
+804378,804378_MD_VA_Mobile Medical_IC20As0_08,1/22/2024,3/8/2024,46,Late Chassis Arrival,Vendor,100,0
+804379,804379_MD_VA_Mobile Medical_IC20As0_09,1/29/2024,4/10/2024,72,Late Chassis Arrival,Vendor,100,0
+804205,804205_NV_LVMPD_IC14As0,1/31/2024,2/8/2024,8,Late Chassis Arrival,Vendor,100,0
+804237,804237_GA_EPA_IC14As2,2/11/2024,3/27/2024,45,Late Chassis Arrival,Vendor,100,0
+804166,804166_MT_LewisClarkSheriffsOffice_IC34As4,2/15/2024,5/21/2024,96,Late Chassis Arrival,Vendor,100,0
+804638,804638_ID_MoPoc_Van_13,2/19/2024,2/8/2024,-11,,On Time,100,0
+804636,804636_ID_MoPoc_Van_11,2/19/2024,2/8/2024,-11,,On Time,100,0
+804637,804637_ID_MoPoc_Van_12,2/19/2024,2/8/2024,-11,,On Time,100,0
+804634,804634_ID_MoPoc_Van_09,2/19/2024,2/2/2024,-17,,On Time,100,0
+804635,804635_ID_MoPoc_Van_10,2/19/2024,2/2/2024,-17,,On Time,100,0
+804380,804380_MD_VA_Mobile Medical_IC20As0_10,2/26/2024,4/17/2024,51,Failed to order AVL on time,Nomad,100,0
+804333,804333_DC_EPA_MAM_Sprinter_01,2/29/2024,8/30/2024,183,Third Party Equipment Install,Vendor,100,1
+804848,804848_DC_EPA_MAM_Sprinter_03,2/29/2024,8/30/2024,183,Third Party Equipment Install,Vendor,100,1
+804847,804847_DC_EPA_MAM_Sprinter_02,2/29/2024,8/2/2024,155,Third Party Equipment Install,Vendor,100,1
+804228,804228_MA_MAFireServices_D24As2,3/8/2024,6/3/2024,87,Engineering design issues,Nomad,100,1
+804388,804388_MD_FEMA_MCOV_13,3/20/2024,9/30/2024,194,Chassis arrival late & vibration/wheel issues,Vendor,100,2
+804404,804404_MD_FEMA_MCOV_14,3/20/2024,8/13/2024,146,Chassis arrival late & vibration/wheel issues,Vendor,100,1
+804178,804178_OK_ONEOK_TCVMAX_01,4/1/2024,6/14/2024,74,Client Mod,Client,100,0
+804501,804501_OK_ONEOK_TCVMAX_02,4/1/2024,6/14/2024,74,Client Mod,Client,100,0
+803749,803749_MT_FlatheadCounty_IC28As2,1/22/2025,6/19/2024,-217,,On Time,100,0
+803851,803851-01_NJ_Verizon_TCTHD_Upgrades,4/13/2024,2/1/2024,-72,,On Time,100,0
+804283,804283_VA_ADS_GuamSecurity_TCT ,4/29/2024,3/19/2024,-41,,On Time,100,0
+804692,804692_FL_PascoCSO_SOV_01,6/30/2024,6/26/2024,-4,,On Time,100,0
+804693,804693_FL_PascoCSO_SOV_02,6/30/2024,6/26/2024,-4,,On Time,100,0
+804300,804300_CA_YubaCountyProbation_IC26As0,7/25/2024,5/23/2024,-63,,On Time,100,0
+804786,804786_WV_FBI_MobileForensicLab_Sprinter_06,8/29/2024,8/29/2024,0,,On Time,100,0
+804784,804784_WV_FBI MFL_Sprinter_04,8/29/2024,7/26/2024,-34,,On Time,100,0
+804785,804785_WV_FBI MFL_Sprinter_05,8/29/2024,7/26/2024,-34,,On Time,100,0
+804433,804433_TX_Rohde&Schwarz_SOV,9/1/2024,8/30/2024,-2,,On Time,100,0
+803932,803932_SC_DSIT_TCT-HD,9/24/2024,9/22/2024,-2,,On Time,100,0
+804823,804823_DC_ATF_Sprinter_02,9/27/2024,9/6/2024,-21,,On Time,100,0
+803946,803946_SC_HorryCountyPD_IC18As0,10/22/2024,9/4/2024,-48,Chassis arrival late & vibration/wheel issues,Vendor,100,0
+804703,804703_DC_ATF_Sprinter_01,9/27/2024,8/27/2024,-31,,On Time,100,0
+804824,804824_DC_ATF_Sprinter_03,9/27/2024,10/2/2024,5,Nomad electrical error with van lights. Had to send to Spokane for reprogramming,Nomad,100,0
+804565,804565_MD_FEMA_MCOV_15,9/29/2024,10/4/2024,5,Chassis arrival late & vibration/wheel issues,Vendor,100,1
+804570,804570_MD_FEMA_MCOV_16,9/29/2024,10/22/2024,23,Chassis arrival late & vibration/wheel issues,Vendor,100,1
+804106,804106_AL_ADS_USACE_IC34As4_01,1/17/2025,10/22/2024,-87,,On Time,100,0
+804826,804826_DC_ATF_Sprinter_05,9/27/2024,10/23/2024,26,Client Mod,Client,100,1
+804825,804825_DC_ATF_Sprinter_04,9/27/2024,10/23/2024,26,Client Mod,Client,100,1
+804486,804486_TX_TMobile_D22_SatCOW_01,2/6/2024,10/25/2024,262,Under bid project duration (365 ARO),Nomad,100,0
+804571,804571_MD_FEMA_MCOV_17,9/29/2024,11/15/2024,47,Chassis arrival late & vibration/wheel issues,Vendor,100,1
+804905,804905_ID_MoPOC_Van_17,11/23/2024,11/22/2024,-1,,On Time,100,0
+803750,803750_TX_TMobile_SatCOLT_01,2/13/2024,12/3/2024,294,Under bid project duration (365 ARO),Nomad,100,0
+803533,803533_NY_DHSES RAMER_TCT-C_01,10/1/2024,12/4/2024,64,Impacted by Colts / wrong roof type spec'd in sales,Nomad,100,1
+804614,804614_NY_DHSES RAMER_TCT-C_02,10/1/2024,12/4/2024,64,Impacted by Colts / wrong roof type spec'd in sales,Nomad,100,1
+804904,804904_ID_MoPOC_Van_16,11/25/2024,12/5/2024,10,"Powered step retrofit. We did not purchase the correct step, then couldn't find a good alternative and ended up retrofitting the OEM step.",Nomad,100,0
+804903,804903_ID_MoPOC_Van_15,12/12/2024,12/13/2024,1,"Powered step retrofit. We did not purchase the correct step, then couldn't find a good alternative and ended up retrofitting the OEM step.",Nomad,100,0
+804664,804664_ID_MoPOC_Van_14,12/12/2024,12/11/2024,-1,,On Time,100,0
+804906,804906_ID_MoPOC_Van_18,12/29/2024,12/20/2024,-9,,On Time,100,0
+800812,800812_DC_DCWater_CCTV_1,1/31/2025,1/3/2025,-28,,On Time,100,0
+803913,803913_AL_GAN-REDSTONE_ECTM_01,1/25/2025,1/8/2025,-17,,On Time,100,0
+804469,804469_INT_USAF_48MXG_R30,9/25/2025,1/21/2025,-247,,On Time,100,0
+804082,804082_DC_DepartmentOfState_Moldova_IC20As0,2/16/2024,1/15/2025,334,Late Chassis Arrival,Vendor,100,4
+804572,804572_MD_FEMA_MCOV_18,9/29/2024,1/17/2025,110,Vibration/wheel issue,Vendor,100,2
+804538,804538_AL_GaN_MOSAIC_Backend_01,9/13/2024,1/17/2025,126,Production Delays ,Nomad,100,0
+804539,804539_AL_GaN_MOSAIC_Backend_02,10/18/2024,1/17/2025,91,Production Delays ,Nomad,100,0
+804485,804485_TX_TMobile_SatCOLT_03,2/13/2024,1/21/2025,343,Under bid project duration (365 ARO),Nomad,100,0
+804198,804198_AL_RedstoneTestCenter_TCV-MAX,1/24/2025,1/22/2025,-2,,On Time,100,0
+804215,804215_OK_VerizonMERIT_IC20As0,3/15/2025,2/5/2025,-38,,On Time,100,0
+804936,804936_VA_BlueHalo_PHEL_MobileSupport,3/21/2025,3/3/2025,-18,,On Time,100,0
+804088,804088_VA_BlueHalo_PHEL_CleanRoom,3/21/2025,3/3/2025,-18,,On Time,100,0
+804543,804543_AL_GaN_MOSAIC_Power,9/17/2024,3/17/2025,181,Production Delays ,Nomad,100,0
+804186,804186_AL_GaN_MOSAIC_C2,9/17/2024,3/17/2025,181,Production Delays ,Nomad,100,0
+804830,804830_TX_GDIT_Raven3_Defender,4/29/2025,3/25/2025,-35,,On Time,100,0
+804510,804510_TX_GDIT_TCVMAX,4/29/2025,3/25/2025,-35,,On Time,100,0
+804452,804452_FL_SeminoleTribe_TCV-Max,9/20/2025,3/28/2025,-176,,On Time,100,0
+804573,804573_MD_FEMA_MCOV_19,9/29/2024,4/17/2025,200,vibration/wheel issue,Vendor,100,2
+803863,803863_CA_EdwardsAFB_D20,8/30/2024,4/18/2025,231,Production Delays ,Nomad,100,5
+804810,804810_MD_VA_MVCs_Sprinter_02,3/25/2025,4/24/2025,30,Production Delays ,Nomad,100,0
+804811,804811_MD_VA_MVCs_Sprinter_03,3/25/2025,4/24/2025,30,Production Delays ,Nomad,100,0
+804812,804812_MD_VA_MVCs_Sprinter_04,3/25/2025,4/24/2025,30,Production Delays ,Nomad,100,0
+804708,804708_MD_VA_MVCs_Sprinter_01,3/25/2025,4/24/2025,30,Production Delays ,Nomad,100,0
+804652,804652_AL_ADS_USACE_IC34As4_02,1/17/2025,4/30/2025,103,"Production Delays, issue in route",Nomad,100,0
+804887,804887_CA_CityOfMonterey_Sprinter,5/23/2025,4/29/2025,-24,,On Time,100,0
+804884,804884_TX_TexasA&M-CC_Sprinter,4/17/2025,5/14/2025,27,Failed to start on time due to schedule conflicts from past projects,Nomad,100,0
+804815,804815_MD_VA_MVC_Sprinter_07,3/25/2025,5/20/2025,56,"OEM Part delays, ENG on ADA Lift",Nomad,100,0
+805387,805387_OK_Verizon_Upfit,3/30/2025,5/20/2025,51,"ENG Delays, Bumper Damaged by Nomad",Nomad,100,0
+804666,804666_OK_OKC-PD_IC32As0,2/6/2025,5/28/2025,111,Production Delays,Nomad,100,0
+804653,804653_AL_ADS_USACE_IC34As4_03,1/17/2025,5/28/2025,131,Production Delays,Nomad,100,0
+804814,804814_MD_VA_MVCs_Sprinter_06,3/25/2025,5/28/2025,64,"OEM Part delays, ENG on ADA Lift",Nomad,100,0
+804816,804816_MD_VA_MVCs_Sprinter_08,3/25/2025,5/28/2025,64,"OEM Part delays, ENG on ADA Lift",Nomad,100,0
+,,,,,,,,
