@@ -463,13 +463,42 @@ export function BillingStatusCard({
                 <span className="ml-2 text-sm text-gray-400">forecast</span>
               </div>
               
-              {/* Goal Comparison Toggle (YTD vs Month) */}
-              <Tabs defaultValue="month" className="h-8">
-                <TabsList className="h-6">
-                  <TabsTrigger value="month" className="text-xs px-2 h-6">Month</TabsTrigger>
-                  <TabsTrigger value="ytd" className="text-xs px-2 h-6">YTD</TabsTrigger>
-                </TabsList>
-              </Tabs>
+              {/* YTD and 12M Buttons */}
+              <div className="flex gap-2">
+                <Button 
+                  variant={selectedMonthIndex === -1 ? "default" : "outline"}
+                  size="sm"
+                  className={`
+                    h-7 px-3 text-xs
+                    ${selectedMonthIndex === -1 ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}
+                  `}
+                  onClick={() => {
+                    console.log('YTD selection: Changing to Year-To-Date');
+                    if (onMonthSelect) {
+                      onMonthSelect(new Date().getFullYear(), -1); // -1 indicates YTD
+                    }
+                  }}
+                >
+                  YTD
+                </Button>
+                
+                <Button 
+                  variant={selectedMonthIndex === -2 ? "default" : "outline"}
+                  size="sm"
+                  className={`
+                    h-7 px-3 text-xs
+                    ${selectedMonthIndex === -2 ? 'bg-purple-500 hover:bg-purple-600 text-white' : ''}
+                  `}
+                  onClick={() => {
+                    console.log('12-Month selection: Changing to Next 12 Months');
+                    if (onMonthSelect) {
+                      onMonthSelect(new Date().getFullYear(), -2); // -2 indicates 12-month view
+                    }
+                  }}
+                >
+                  12M
+                </Button>
+              </div>
             </div>
             
             {/* Goal Progress */}
@@ -530,44 +559,6 @@ export function BillingStatusCard({
           <div className={`mt-3 ${isFullWidthForecast ? 'px-2' : ''}`}>
             {/* Month Navigation Buttons */}
             <div className={`grid grid-cols-12 gap-1 mb-3 ${isFullWidthForecast ? 'flex flex-wrap justify-between' : ''}`}>
-              {/* YTD Button */}
-              <Button 
-                variant={selectedMonthIndex === -1 ? "default" : "outline"}
-                size={isFullWidthForecast ? "default" : "sm"}
-                className={`
-                  ${isFullWidthForecast ? 'flex-1 mx-1 min-w-[70px] mb-1' : 'h-7 p-1 col-span-2'} 
-                  text-xs
-                  ${selectedMonthIndex === -1 ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}
-                `}
-                onClick={() => {
-                  console.log('YTD selection: Changing to Year-To-Date');
-                  if (onMonthSelect) {
-                    onMonthSelect(new Date().getFullYear(), -1); // -1 indicates YTD
-                  }
-                }}
-              >
-                YTD
-              </Button>
-              
-              {/* 12-Month Button */}
-              <Button 
-                variant={selectedMonthIndex === -2 ? "default" : "outline"}
-                size={isFullWidthForecast ? "default" : "sm"}
-                className={`
-                  ${isFullWidthForecast ? 'flex-1 mx-1 min-w-[70px] mb-1' : 'h-7 p-1 col-span-2'} 
-                  text-xs
-                  ${selectedMonthIndex === -2 ? 'bg-purple-500 hover:bg-purple-600 text-white' : ''}
-                `}
-                onClick={() => {
-                  console.log('12-Month selection: Changing to Next 12 Months');
-                  if (onMonthSelect) {
-                    onMonthSelect(new Date().getFullYear(), -2); // -2 indicates 12-month view
-                  }
-                }}
-              >
-                12M
-              </Button>
-              
               {chart.labels.map((label, idx) => {
                 // Create a distinct visual style for the selected month
                 const isSelected = selectedMonthIndex === idx;
@@ -646,7 +637,9 @@ export function BillingStatusCard({
                             ? 'bg-green-400' 
                             : 'bg-primary'
                       }`}
-                      style={{ height: `${(val / Math.max(...chart.values, ...((goals || []).map(g => g.targetAmount) || []))) * 100}%` }}
+                      style={{ 
+                        height: `${val > 0 ? Math.max(5, (val / Math.max(...chart.values, 1)) * 100) : 0}%` 
+                      }}
                     ></div>
                     
                     {/* Goal marker line if this month has a goal */}
