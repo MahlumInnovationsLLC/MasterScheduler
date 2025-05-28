@@ -381,6 +381,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error updating project" });
     }
   });
+
+  // PUT endpoint for updating projects (used by project edit form)
+  app.put("/api/projects/:id", isAuthenticated, hasEditRights, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      console.log(`PUT request received for project ID: ${id}`, req.body);
+      
+      // Get the current project data
+      const currentProject = await storage.getProject(id);
+      if (!currentProject) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Get data from request
+      const updateData = req.body;
+      
+      // Process date fields specifically
+      const dateFields = [
+        'startDate', 'contractDate', 'estimatedCompletionDate', 'actualCompletionDate',
+        'chassisETA', 'fabricationStart', 'paintStart', 'assemblyStart', 'wrapDate', 'ntcTestingDate',
+        'qcStartDate', 'executiveReviewDate', 'shipDate', 'deliveryDate'
+      ];
+      
+      // Handle each date field correctly with timezone adjustment
+      dateFields.forEach(field => {
+        if (field in updateData) {
+          // If the value is null, keep it null for clearing dates
+          if (updateData[field] === null) {
+            console.log(`Clearing date field ${field} to null`);
+          }
+          // Store the date exactly as provided by the user - no timezone adjustments
+          else if (updateData[field]) {
+            console.log(`Storing date for ${field} exactly as provided: ${updateData[field]}`);
+          }
+        }
+      });
+      
+      // Check if shipDate or deliveryDate has changed
+      const shipDateChanged = 'shipDate' in updateData && 
+                             currentProject.shipDate !== updateData.shipDate;
+      
+      const deliveryDateChanged = 'deliveryDate' in updateData && 
+                                 currentProject.deliveryDate !== updateData.deliveryDate;
+      
+      // Calculate QC Days if both dates are present
+      if (('qcStartDate' in updateData || currentProject.qcStartDate) && 
+          ('shipDate' in updateData || currentProject.shipDate)) {
+        const qcStartDate = 'qcStartDate' in updateData ? updateData.qcStartDate : currentProject.qcStartDate;
+        const shipDate = 'shipDate' in updateData ? updateData.shipDate : currentProject.shipDate;
+        
+        if (qcStartDate && shipDate) {
+          const qcDaysCount = countWorkingDays(qcStartDate, shipDate);
+          updateData.qcDays = qcDaysCount;
+          console.log(`Calculated QC Days for project ${id}: ${qcDaysCount} working days`);
+        }
+      }
+      
+      // Update the project
+      const project = await storage.updateProject(id, updateData);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // If ship date or delivery date changed, check for delivery milestones to update
+      if (shipDateChanged || deliveryDateChanged) {
+        const dateToSync = updateData.deliveryDate || updateData.shipDate;
+        
+        try {
+          // Get all billing milestones for this project
+          const billingMilestones = await storage.getProjectBillingMilestones(id);
+          const deliveryMilestones = billingMilestones.filter(
+            milestone => milestone.name.toLowerCase().includes('delivery') || 
+                        milestone.description?.toLowerCase().includes('delivery')
+          );
+          
+          // Update any delivery-related milestones to match the new delivery date
+          if (deliveryMilestones.length > 0 && dateToSync) {
+            console.log(`Found ${deliveryMilestones.length} delivery milestones to update`);
+            
+            for (const milestone of deliveryMilestones) {
+              await storage.updateBillingMilestone(milestone.id, {
+                targetInvoiceDate: dateToSync,
+                shipDateChanged: true
+              });
+              console.log(`Updated delivery milestone ${milestone.id} to match date ${dateToSync}`);
+            }
+          }
+        } catch (syncError) {
+          console.error("Error syncing delivery milestones:", syncError);
+          // Don't fail the whole request if milestone sync fails
+        }
+      }
+      
+      // Return the updated project
+      res.json(project);
+    } catch (error) {
+      console.error("Error updating project:", error);
+      res.status(500).json({ message: "Error updating project" });
+    }
+  });
       
   // Mark a project as delivered
   app.post("/api/projects/:id/mark-delivered", hasEditRights, async (req, res) => {
