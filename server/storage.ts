@@ -1807,9 +1807,11 @@ export class DatabaseStorage implements IStorage {
           .where(eq(salesDeals.convertedProjectId, projectId));
         
         // Delete project supply chain benchmarks
-        await tx
+        console.log(`Deleting supply chain benchmarks for project ${projectId}`);
+        const deletedBenchmarks = await tx
           .delete(projectSupplyChainBenchmarks)
           .where(eq(projectSupplyChainBenchmarks.projectId, projectId));
+        console.log(`Deleted ${deletedBenchmarks.rowCount || 0} supply chain benchmark records`);
         
         // 5. Now delete the original project
         await tx
