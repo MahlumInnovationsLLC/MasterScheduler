@@ -50,6 +50,8 @@ const DeliveredProjects = () => {
     contractExtensions: 0
   });
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [importLogs, setImportLogs] = useState<string[]>([]);
+  const [importStatus, setImportStatus] = useState<'idle' | 'processing' | 'complete' | 'error'>('idle');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -102,46 +104,64 @@ const DeliveredProjects = () => {
     }
   });
 
-  // Import mutation
+  // Import mutation with real-time logging
   const importMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      return await fetch('/api/delivered-projects/import', {
+      setImportStatus('processing');
+      setImportLogs(['📁 Starting file upload...']);
+      
+      const response = await fetch('/api/delivered-projects/import', {
         method: 'POST',
         body: formData,
-      }).then(res => res.json());
+      });
+      
+      const data = await response.json();
+      
+      // Add processing logs
+      setImportLogs(prev => [
+        ...prev,
+        `📊 Processing ${data.totalRows || 0} rows from CSV...`,
+        `✅ Successfully imported: ${data.count || 0} projects`,
+        ...(data.errors ? data.errors.map((error: string) => `❌ ${error}`) : [])
+      ]);
+      
+      return data;
     },
     onSuccess: (data) => {
-      if (data.count > 0) {
-        toast({
-          title: "Success",
-          description: `Successfully imported ${data.count} delivered projects${data.errors ? ` (${data.errors.length} errors)` : ''}`
-        });
-      } else {
-        toast({
-          title: "Import Failed",
-          description: data.errors && data.errors.length > 0 
-            ? `No projects imported. First error: ${data.errors[0]}`
-            : "No valid data found to import",
-          variant: "destructive"
-        });
-      }
+      setImportStatus(data.count > 0 ? 'complete' : 'error');
       
       if (data.count > 0) {
-        setShowImport(false);
-        setImportFile(null);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
+        setImportLogs(prev => [
+          ...prev,
+          `🎉 Import completed! ${data.count} projects added to database.`
+        ]);
+        
+        // Auto-close after 3 seconds on success
+        setTimeout(() => {
+          setShowImport(false);
+          setImportFile(null);
+          setImportLogs([]);
+          setImportStatus('idle');
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }, 3000);
+        
         queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
         queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects/analytics'] });
+      } else {
+        setImportLogs(prev => [
+          ...prev,
+          `💥 Import failed - no projects were imported due to validation errors.`
+        ]);
       }
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to import delivered projects",
-        variant: "destructive"
-      });
+      setImportStatus('error');
+      setImportLogs(prev => [
+        ...prev,
+        `💥 Fatal error: ${error?.message || "Failed to import delivered projects"}`
+      ]);
     }
   });
 
@@ -795,20 +815,60 @@ const DeliveredProjects = () => {
                 </div>
               )}
 
+              {/* Real-time Import Logs */}
+              {importLogs.length > 0 && (
+                <div className="mt-4">
+                  <Label>Import Progress</Label>
+                  <div className="mt-2 p-4 bg-gray-900 rounded-lg border border-gray-700 max-h-60 overflow-y-auto">
+                    <div className="space-y-1 font-mono text-sm">
+                      {importLogs.map((log, index) => (
+                        <div 
+                          key={index} 
+                          className={`${
+                            log.includes('❌') ? 'text-red-400' :
+                            log.includes('✅') || log.includes('🎉') ? 'text-green-400' :
+                            log.includes('📊') || log.includes('📁') ? 'text-blue-400' :
+                            'text-gray-300'
+                          }`}
+                        >
+                          {log}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-end gap-2 pt-4">
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={() => setShowImport(false)}
+                  onClick={() => {
+                    setShowImport(false);
+                    setImportLogs([]);
+                    setImportStatus('idle');
+                    setImportFile(null);
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = '';
+                    }
+                  }}
                   disabled={importMutation.isPending}
                 >
-                  Cancel
+                  {importStatus === 'complete' ? 'Close' : 'Cancel'}
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={importMutation.isPending || !importFile}
+                  disabled={importMutation.isPending || !importFile || importStatus === 'complete'}
+                  className={
+                    importStatus === 'complete' ? 'bg-green-600 hover:bg-green-700' :
+                    importStatus === 'error' ? 'bg-red-600 hover:bg-red-700' :
+                    ''
+                  }
                 >
-                  {importMutation.isPending ? 'Importing...' : 'Import Projects'}
+                  {importMutation.isPending ? 'Processing...' : 
+                   importStatus === 'complete' ? '✅ Completed' :
+                   importStatus === 'error' ? '❌ Failed' :
+                   'Import Projects'}
                 </Button>
               </div>
             </form>
