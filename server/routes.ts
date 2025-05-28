@@ -510,8 +510,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get delivered projects analytics
   app.get("/api/delivered-projects/analytics", async (req, res) => {
     try {
-      const deliveredProjects = await storage.getProjects();
-      console.log("📊 Found projects for analytics:", deliveredProjects.length);
+      const allProjects = await storage.getProjects();
+      
+      // Filter for only delivered projects (those with actual delivery dates)
+      const deliveredProjects = allProjects.filter(project => 
+        project.deliveryDate || project.actualDeliveryDate
+      );
+      
+      console.log("📊 Found all projects:", allProjects.length);
+      console.log("📊 Found delivered projects:", deliveredProjects.length);
       
       // Calculate comprehensive analytics
       const analytics = {
