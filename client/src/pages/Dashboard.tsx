@@ -31,6 +31,10 @@ const Dashboard = () => {
     queryKey: ['/api/projects'],
   });
   
+  const { data: billingMilestones, isLoading: isLoadingBillingMilestones } = useQuery({
+    queryKey: ['/api/billing-milestones'],
+  });
+  
   const [filteredProjects, setFilteredProjects] = useState([]);
   
   // Show the top 5 projects that are ready to ship next
@@ -81,9 +85,7 @@ const Dashboard = () => {
     }
   }, [projects]);
 
-  const { data: billingMilestones, isLoading: isLoadingBilling } = useQuery({
-    queryKey: ['/api/billing-milestones'],
-  });
+
 
   const { data: manufacturingSchedules, isLoading: isLoadingManufacturing } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
@@ -150,7 +152,7 @@ const Dashboard = () => {
     };
   }, [projects, manufacturingSchedules]);
 
-  // Calculate billing stats
+  // Calculate billing stats with revenue forecast
   const billingStats = React.useMemo(() => {
     if (!billingMilestones || billingMilestones.length === 0) return null;
 
@@ -162,15 +164,42 @@ const Dashboard = () => {
     // Calculate total amounts
     const totalReceived = billingMilestones
       .filter(m => m.status === 'paid')
-      .reduce((sum, m) => sum + parseFloat(m.amount), 0);
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
       
     const totalPending = billingMilestones
       .filter(m => m.status === 'invoiced')
-      .reduce((sum, m) => sum + parseFloat(m.amount), 0);
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
       
     const totalOverdue = billingMilestones
       .filter(m => m.status === 'delayed')
-      .reduce((sum, m) => sum + parseFloat(m.amount), 0);
+      .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+
+    // Calculate forecast for next 12 months
+    const today = new Date();
+    const nextTwelveMonths = Array.from({ length: 12 }, (_, i) => {
+      const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
+      return date;
+    });
+
+    const monthNames = nextTwelveMonths.map(date => 
+      date.toLocaleDateString('default', { month: 'short' })
+    );
+
+    const forecastValues = nextTwelveMonths.map(month => {
+      const nextMonth = new Date(month);
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      
+      // Calculate revenue for milestones due in this month
+      const monthlyRevenue = billingMilestones
+        .filter(m => {
+          if (!m.targetInvoiceDate) return false;
+          const milestoneDate = new Date(m.targetInvoiceDate);
+          return milestoneDate >= month && milestoneDate < nextMonth;
+        })
+        .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
+      
+      return monthlyRevenue;
+    });
 
     return {
       milestones: {
@@ -183,6 +212,10 @@ const Dashboard = () => {
         received: totalReceived,
         pending: totalPending,
         overdue: totalOverdue
+      },
+      forecast: {
+        labels: monthNames,
+        values: forecastValues
       }
     };
   }, [billingMilestones]);
@@ -408,19 +441,14 @@ const Dashboard = () => {
 
         <BillingStatusCard
           title="Revenue Forecast"
-          value={formatCurrency((billingStats?.amounts.received || 0) + (billingStats?.amounts.pending || 0) + (billingStats?.amounts.overdue || 0))}
+          value={formatCurrency(billingStats?.forecast?.values.reduce((sum, val) => sum + val, 0) || 0)}
           type="forecast"
-          chart={{
-            labels: [
-              new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short' }),
-              new Date().toLocaleDateString('en-US', { month: 'short' }),
-              new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short' })
-            ],
-            values: [
-              billingStats?.milestones.completed || 0,
-              billingStats?.milestones.inProgress || 0,
-              billingStats?.milestones.upcoming || 0
-            ]
+          chart={billingStats?.forecast ? {
+            labels: billingStats.forecast.labels,
+            values: billingStats.forecast.values
+          } : {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
           }}
         />
 
