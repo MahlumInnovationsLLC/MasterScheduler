@@ -104,28 +104,68 @@ const DeliveredProjects = () => {
     }
   });
 
-  // Import mutation with real-time logging
+  // Import mutation with real-time Server-Sent Events
   const importMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      setImportStatus('processing');
-      setImportLogs(['📁 Starting file upload...']);
-      
-      const response = await fetch('/api/delivered-projects/import', {
-        method: 'POST',
-        body: formData,
+      return new Promise((resolve, reject) => {
+        setImportStatus('processing');
+        setImportLogs(['📁 Starting file upload...']);
+        
+        // Start the fetch request
+        fetch('/api/delivered-projects/import', {
+          method: 'POST',
+          body: formData,
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          
+          const processStream = () => {
+            reader?.read().then(({ done, value }) => {
+              if (done) {
+                resolve({ message: 'Import completed', count: 0 });
+                return;
+              }
+              
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n\n');
+              buffer = lines.pop() || '';
+              
+              lines.forEach(line => {
+                if (line.startsWith('data: ')) {
+                  try {
+                    const data = JSON.parse(line.substring(6));
+                    
+                    // Update logs with real-time progress
+                    setImportLogs(prev => [
+                      ...prev,
+                      `${data.message || 'Processing...'}`
+                    ]);
+                    
+                    if (data.type === 'complete') {
+                      resolve(data);
+                    } else if (data.type === 'error') {
+                      reject(new Error(data.message));
+                    }
+                  } catch (e) {
+                    console.warn('Failed to parse SSE data:', line);
+                  }
+                }
+              });
+              
+              processStream();
+            }).catch(reject);
+          };
+          
+          processStream();
+        })
+        .catch(reject);
       });
-      
-      const data = await response.json();
-      
-      // Add processing logs
-      setImportLogs(prev => [
-        ...prev,
-        `📊 Processing ${data.totalRows || 0} rows from CSV...`,
-        `✅ Successfully imported: ${data.count || 0} projects`,
-        ...(data.errors ? data.errors.map((error: string) => `❌ ${error}`) : [])
-      ]);
-      
-      return data;
     },
     onSuccess: (data) => {
       setImportStatus(data.count > 0 ? 'complete' : 'error');

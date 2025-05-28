@@ -647,7 +647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Import delivered projects from CSV
+  // Import delivered projects from CSV with real-time progress
   app.post("/api/delivered-projects/import", upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
@@ -661,11 +661,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "CSV file must have headers and at least one data row" });
       }
 
+      // Set up Server-Sent Events for real-time progress
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control'
+      });
+
+      const sendProgress = (data: any) => {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      };
+
       const headers = lines[0].split(',').map(h => h.trim());
       const dataLines = lines.slice(1);
       
       let successCount = 0;
       const errors: string[] = [];
+
+      sendProgress({ 
+        type: 'start', 
+        message: `Starting file upload. Processing 0 rows from CSV.`,
+        totalRows: dataLines.length 
+      });
 
       for (let i = 0; i < dataLines.length; i++) {
         try {
@@ -747,9 +766,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const existingProject = existingProjects.find(p => p.projectNumber === projectData.projectNumber);
           
           if (existingProject) {
-            errors.push(`Row ${i + 2}: Project ${projectData.projectNumber} already exists - skipping duplicate`);
+            const errorMsg = `Row ${i + 2}: Project ${projectData.projectNumber} already exists - skipping duplicate`;
+            errors.push(errorMsg);
+            sendProgress({ 
+              type: 'progress', 
+              message: errorMsg,
+              processedRows: i + 1,
+              totalRows: dataLines.length,
+              successCount,
+              errorCount: errors.length
+            });
             continue;
           }
+
+          sendProgress({ 
+            type: 'progress', 
+            message: `Processing project ${projectData.projectNumber}...`,
+            processedRows: i + 1,
+            totalRows: dataLines.length,
+            successCount,
+            errorCount: errors.length
+          });
 
           // Create the project
           await storage.createProject({
@@ -783,8 +820,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           successCount++;
+          sendProgress({ 
+            type: 'progress', 
+            message: `✓ Successfully imported project ${projectData.projectNumber}`,
+            processedRows: i + 1,
+            totalRows: dataLines.length,
+            successCount,
+            errorCount: errors.length
+          });
         } catch (error) {
-          errors.push(`Row ${i + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          const errorMsg = `Row ${i + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          errors.push(errorMsg);
+          sendProgress({ 
+            type: 'progress', 
+            message: `✗ Error: ${errorMsg}`,
+            processedRows: i + 1,
+            totalRows: dataLines.length,
+            successCount,
+            errorCount: errors.length
+          });
         }
       }
 
@@ -798,14 +852,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      res.json({ 
+      // Send final completion message
+      sendProgress({
+        type: 'complete',
+        message: `Import completed! Successfully imported ${successCount} projects.`,
         count: successCount,
         totalRows: dataLines.length,
-        errors: errors.length > 0 ? errors : undefined,
-        message: successCount > 0 ? 
-          `Successfully imported ${successCount} projects${errors.length > 0 ? ` (${errors.length} errors)` : ''}` :
-          `Import failed - ${errors.length} validation errors found`
+        errors,
+        successCount,
+        errorCount: errors.length
       });
+
+      res.end();
     } catch (error) {
       console.error("Error importing delivered projects:", error);
       res.status(500).json({ message: "Error importing delivered projects" });
