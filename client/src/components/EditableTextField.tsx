@@ -54,13 +54,19 @@ const EditableTextField: React.FC<EditableTextFieldProps> = ({
         { [field]: valueToSave }
       );
       
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      // Exit editing mode immediately to prevent focus issues
+      setIsEditing(false);
+      
+      // Delay cache invalidation to prevent stealing focus from other inputs
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      }, 500);
+      
       toast({
         title: "Updated Successfully",
         description: `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} has been updated`,
         variant: "default"
       });
-      setIsEditing(false);
     } catch (error) {
       toast({
         title: "Update Failed",

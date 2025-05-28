@@ -104,17 +104,19 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
         throw new Error('Failed to update date');
       }
       
-      // Wait for the invalidation to complete
-      await queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      // Exit editing mode immediately to prevent focus issues
+      setIsEditing(false);
+      
+      // Delay cache invalidation to prevent stealing focus from other inputs
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      }, 500);
       
       toast({
         title: "Date Updated",
         description: "The date has been updated successfully",
         variant: "default"
       });
-      
-      // Set editing state to false after successful update
-      setIsEditing(false);
     } catch (error) {
       console.error("Date update error:", error);
       toast({

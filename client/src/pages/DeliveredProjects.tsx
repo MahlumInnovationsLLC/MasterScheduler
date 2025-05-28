@@ -222,9 +222,13 @@ const DeliveredProjects = () => {
     },
     onSuccess: (data) => {
       console.log("✅ Frontend: Mutation succeeded with data:", data);
-      queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
-      toast({ title: "Success", description: "Reason updated successfully" });
+      // Reset editing state immediately to prevent focus issues
       setEditingReason(null);
+      // Delay data refresh to prevent input focus loss
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+      }, 300);
+      toast({ title: "Success", description: "Reason updated successfully" });
     },
     onError: (error) => {
       console.error("💥 Frontend: Mutation failed with error:", error);
@@ -241,7 +245,12 @@ const DeliveredProjects = () => {
       return apiRequest('PATCH', `/api/delivered-projects/${projectId}/responsibility`, { responsibility });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+      // Reset editing state immediately to prevent focus issues
+      setEditingResponsibility(null);
+      // Delay data refresh to prevent input focus loss
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+      }, 300);
       toast({ title: "Success", description: "Responsibility updated successfully" });
     },
     onError: () => {
