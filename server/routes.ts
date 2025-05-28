@@ -611,6 +611,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reason: data.reason || null,
         lateDeliveryReason: data.lateDeliveryReason || null,
         delayResponsibility: data.delayResponsibility || 'not_applicable',
+        contractExtensions: data.contractExtensions || 0,
         // Set required fields with defaults
         description: null,
         pmOwnerId: null,
@@ -684,7 +685,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             reason: values[5] || null,
             lateDeliveryReason: values[6] || null,
             delayResponsibility: values[7] || 'not_applicable',
-            percentComplete: values[8] || '100'
+            percentComplete: values[8] || '100',
+            contractExtensions: parseInt(values[9]) || 0
           };
 
           // Create the project
@@ -698,6 +700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             reason: projectData.reason,
             lateDeliveryReason: projectData.lateDeliveryReason,
             delayResponsibility: projectData.delayResponsibility as any,
+            contractExtensions: projectData.contractExtensions,
             // Set required fields with defaults
             description: null,
             pmOwnerId: null,

@@ -278,6 +278,7 @@ export const projects = pgTable("projects", {
   lateDeliveryReason: text("late_delivery_reason"),
   delayResponsibility: delayResponsibilityEnum("delay_responsibility").default('not_applicable'),
   isDeliveredOnTime: boolean("is_delivered_on_time"),
+  contractExtensions: integer("contract_extensions").default(0).notNull(),
   
   // Project details
   percentComplete: decimal("percent_complete", { precision: 5, scale: 2 }).default("0").notNull(),
