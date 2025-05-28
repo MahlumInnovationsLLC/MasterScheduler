@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowLeft, Download, Package, Truck, Search, Calendar, CheckCircle2, Edit2, Check, X, ChevronDown } from "lucide-react";
+import { ArrowLeft, Download, Package, Truck, Search, Calendar, CheckCircle2, Edit2, Check, X, ChevronDown, Plus, Upload, FileDown } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 
@@ -10,6 +10,9 @@ import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/ui/data-table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,8 +34,23 @@ type DeliveredProject = {
 const DeliveredProjects = () => {
   const [editingReason, setEditingReason] = useState<number | null>(null);
   const [reasonValue, setReasonValue] = useState<string>('');
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [manualEntryForm, setManualEntryForm] = useState({
+    projectNumber: '',
+    name: '',
+    contractDate: '',
+    deliveryDate: '',
+    daysLate: 0,
+    reason: '',
+    lateDeliveryReason: '',
+    delayResponsibility: 'not_applicable' as 'not_applicable' | 'client_fault' | 'nomad_fault' | 'vendor_fault',
+    percentComplete: '100'
+  });
+  const [importFile, setImportFile] = useState<File | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Force clear cache and refetch on component mount
   useEffect(() => {
@@ -43,9 +61,76 @@ const DeliveredProjects = () => {
   const { data: deliveredProjects, isLoading, refetch } = useQuery({
     queryKey: ['/api/delivered-projects'],
     staleTime: 0, // Always consider data stale
-    cacheTime: 0, // Don't cache data at all
+    gcTime: 0, // Don't cache data at all
     refetchOnMount: true, // Always refetch when component mounts
     refetchOnWindowFocus: true, // Refetch when window gains focus
+  });
+
+  // Manual entry mutation
+  const manualEntryMutation = useMutation({
+    mutationFn: async (data: typeof manualEntryForm) => {
+      return await apiRequest('/api/delivered-projects/manual', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Delivered project added successfully"
+      });
+      setShowManualEntry(false);
+      setManualEntryForm({
+        projectNumber: '',
+        name: '',
+        contractDate: '',
+        deliveryDate: '',
+        daysLate: 0,
+        reason: '',
+        lateDeliveryReason: '',
+        delayResponsibility: 'not_applicable',
+        percentComplete: '100'
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects/analytics'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to add delivered project",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Import mutation
+  const importMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      return await fetch('/api/delivered-projects/import', {
+        method: 'POST',
+        body: formData,
+      }).then(res => res.json());
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Success",
+        description: `Successfully imported ${data.count || 0} delivered projects`
+      });
+      setShowImport(false);
+      setImportFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects/analytics'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to import delivered projects",
+        variant: "destructive"
+      });
+    }
   });
 
   const updateReasonMutation = useMutation({
@@ -118,6 +203,70 @@ const DeliveredProjects = () => {
     console.log("❌ Canceling reason edit");
     setEditingReason(null);
     setReasonValue('');
+  };
+
+  // Manual entry handlers
+  const handleManualSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    manualEntryMutation.mutate(manualEntryForm);
+  };
+
+  // Import handlers
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImportFile(file);
+    }
+  };
+
+  const handleImportSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importFile) {
+      toast({
+        title: "Error",
+        description: "Please select a file to import",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', importFile);
+    importMutation.mutate(formData);
+  };
+
+  const downloadTemplate = () => {
+    const csvHeaders = [
+      'Project Number',
+      'Project Name', 
+      'Contract Date (YYYY-MM-DD)',
+      'Delivery Date (YYYY-MM-DD)',
+      'Days Late (number)',
+      'Reason',
+      'Late Delivery Reason',
+      'Delay Responsibility (not_applicable|client_fault|nomad_fault|vendor_fault)',
+      'Percent Complete'
+    ];
+    
+    const csvContent = csvHeaders.join(',') + '\n' +
+      '804508,Sample Project Name,2024-01-15,2024-02-20,5,Equipment delay,Vendor supplied parts late,vendor_fault,100\n' +
+      '804509,Another Project,2024-02-01,2024-02-28,0,,On time delivery,not_applicable,100';
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = 'delivered_projects_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    toast({
+      title: "Success",
+      description: "Template downloaded successfully"
+    });
   };
 
   const columns: ColumnDef<DeliveredProject>[] = [
@@ -384,6 +533,26 @@ const DeliveredProjects = () => {
             <Truck className="h-5 w-5 text-gray-400" />
             <h2 className="text-lg font-medium">Delivered Projects List</h2>
           </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowManualEntry(true)}
+              disabled={manualEntryMutation.isPending}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Project
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowImport(true)}
+              disabled={importMutation.isPending}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Import
+            </Button>
+          </div>
           <div className="relative w-64">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
             <Input
@@ -414,6 +583,196 @@ const DeliveredProjects = () => {
           </div>
         )}
       </div>
+
+      {/* Manual Entry Dialog */}
+      <Dialog open={showManualEntry} onOpenChange={setShowManualEntry}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add Delivered Project</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleManualSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="projectNumber">Project Number</Label>
+                <Input
+                  id="projectNumber"
+                  value={manualEntryForm.projectNumber}
+                  onChange={(e) => setManualEntryForm(prev => ({ ...prev, projectNumber: e.target.value }))}
+                  placeholder="e.g., 804507"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="name">Project Name</Label>
+                <Input
+                  id="name"
+                  value={manualEntryForm.name}
+                  onChange={(e) => setManualEntryForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Project name"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="contractDate">Contract Date</Label>
+                <Input
+                  id="contractDate"
+                  type="date"
+                  value={manualEntryForm.contractDate}
+                  onChange={(e) => setManualEntryForm(prev => ({ ...prev, contractDate: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="deliveryDate">Delivery Date</Label>
+                <Input
+                  id="deliveryDate"
+                  type="date"
+                  value={manualEntryForm.deliveryDate}
+                  onChange={(e) => setManualEntryForm(prev => ({ ...prev, deliveryDate: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="daysLate">Days Late</Label>
+                <Input
+                  id="daysLate"
+                  type="number"
+                  value={manualEntryForm.daysLate}
+                  onChange={(e) => setManualEntryForm(prev => ({ ...prev, daysLate: parseInt(e.target.value) || 0 }))}
+                  min="0"
+                />
+              </div>
+              <div>
+                <Label htmlFor="delayResponsibility">Delay Responsibility</Label>
+                <Select
+                  value={manualEntryForm.delayResponsibility}
+                  onValueChange={(value: any) => setManualEntryForm(prev => ({ ...prev, delayResponsibility: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="not_applicable">Not Applicable</SelectItem>
+                    <SelectItem value="client_fault">Client Fault</SelectItem>
+                    <SelectItem value="nomad_fault">Nomad Fault</SelectItem>
+                    <SelectItem value="vendor_fault">Vendor Fault</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="reason">Reason</Label>
+              <Textarea
+                id="reason"
+                value={manualEntryForm.reason}
+                onChange={(e) => setManualEntryForm(prev => ({ ...prev, reason: e.target.value }))}
+                placeholder="General reason or notes"
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="lateDeliveryReason">Late Delivery Reason</Label>
+              <Textarea
+                id="lateDeliveryReason"
+                value={manualEntryForm.lateDeliveryReason}
+                onChange={(e) => setManualEntryForm(prev => ({ ...prev, lateDeliveryReason: e.target.value }))}
+                placeholder="Specific reason for late delivery (if applicable)"
+                rows={2}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setShowManualEntry(false)}
+                disabled={manualEntryMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={manualEntryMutation.isPending}
+              >
+                {manualEntryMutation.isPending ? 'Adding...' : 'Add Project'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Dialog */}
+      <Dialog open={showImport} onOpenChange={setShowImport}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Import Delivered Projects</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center">
+              <div className="space-y-2">
+                <Upload className="h-8 w-8 mx-auto text-gray-400" />
+                <div>
+                  <p className="text-sm text-gray-400">Upload CSV file with delivered projects</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={downloadTemplate}
+                  >
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Download Template
+                  </Button>
+                </div>
+              </div>
+            </div>
+            
+            <form onSubmit={handleImportSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="file">Select CSV File</Label>
+                <Input
+                  id="file"
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  ref={fileInputRef}
+                  required
+                />
+              </div>
+              
+              {importFile && (
+                <div className="text-sm text-gray-400">
+                  Selected: {importFile.name}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setShowImport(false)}
+                  disabled={importMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={importMutation.isPending || !importFile}
+                >
+                  {importMutation.isPending ? 'Importing...' : 'Import Projects'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
