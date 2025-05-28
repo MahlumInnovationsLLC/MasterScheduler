@@ -224,10 +224,11 @@ const DeliveredProjects = () => {
       console.log("✅ Frontend: Mutation succeeded with data:", data);
       // Reset editing state immediately to prevent focus issues
       setEditingReason(null);
-      // Delay data refresh to prevent input focus loss
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
-      }, 300);
+      // COMPLETELY DISABLE CACHE INVALIDATION TO PREVENT FOCUS LOSS
+      // Data will refresh on page reload or manual refresh
+      // setTimeout(() => {
+      //   queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+      // }, 300);
       toast({ title: "Success", description: "Reason updated successfully" });
     },
     onError: (error) => {
@@ -247,10 +248,11 @@ const DeliveredProjects = () => {
     onSuccess: () => {
       // Reset editing state immediately to prevent focus issues
       setEditingResponsibility(null);
-      // Delay data refresh to prevent input focus loss
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
-      }, 300);
+      // COMPLETELY DISABLE CACHE INVALIDATION TO PREVENT FOCUS LOSS
+      // Data will refresh on page reload or manual refresh
+      // setTimeout(() => {
+      //   queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+      // }, 300);
       toast({ title: "Success", description: "Responsibility updated successfully" });
     },
     onError: () => {

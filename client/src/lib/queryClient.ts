@@ -85,7 +85,10 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+      staleTime: Infinity, // Never consider data stale
+      gcTime: Infinity, // Keep data in cache forever (TanStack Query v5)
       retry: false,
     },
     mutations: {
@@ -93,3 +96,11 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// Add debugging for cache invalidation
+const originalInvalidateQueries = queryClient.invalidateQueries.bind(queryClient);
+queryClient.invalidateQueries = (...args: any[]) => {
+  console.log('🔥 CACHE INVALIDATION TRIGGERED:', args[0]);
+  console.trace('🔍 Invalidation stack trace:');
+  return originalInvalidateQueries(...args);
+};

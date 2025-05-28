@@ -107,10 +107,11 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
       // Exit editing mode immediately to prevent focus issues
       setIsEditing(false);
       
-      // Delay cache invalidation to prevent stealing focus from other inputs
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-      }, 500);
+      // COMPLETELY DISABLE CACHE INVALIDATION TO PREVENT FOCUS LOSS
+      // Data will refresh on page reload or manual refresh
+      // setTimeout(() => {
+      //   queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      // }, 500);
       
       toast({
         title: "Date Updated",
