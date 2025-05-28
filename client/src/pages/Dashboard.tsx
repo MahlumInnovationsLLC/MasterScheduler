@@ -460,13 +460,51 @@ const Dashboard = () => {
             values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
           }}
           onMonthSelect={(year, month) => {
-            // Filter billing milestones for the selected month and update the display
+            // Handle special YTD and 12-month cases
+            if (month === -1) { // YTD button
+              const currentYear = new Date().getFullYear();
+              const ytdMilestones = (billingMilestones || []).filter(milestone => {
+                const milestoneDate = new Date(milestone.targetInvoiceDate);
+                return milestoneDate.getFullYear() === currentYear;
+              });
+              const ytdAmount = ytdMilestones.reduce((sum, milestone) => sum + parseFloat(milestone.amount), 0);
+              
+              setSelectedMonthData({
+                month: -1,
+                year: currentYear,
+                amount: ytdAmount,
+                milestones: ytdMilestones
+              });
+              console.log(`YTD ${currentYear}: $${ytdAmount} from ${ytdMilestones.length} milestones`);
+              return;
+            }
+            
+            if (month === -2) { // 12-month button
+              const next12Months = (billingMilestones || []).filter(milestone => {
+                const milestoneDate = new Date(milestone.targetInvoiceDate);
+                const today = new Date();
+                const twelveMonthsFromNow = new Date(today.getFullYear(), today.getMonth() + 12, today.getDate());
+                return milestoneDate >= today && milestoneDate <= twelveMonthsFromNow;
+              });
+              const twelveMonthAmount = next12Months.reduce((sum, milestone) => sum + parseFloat(milestone.amount), 0);
+              
+              setSelectedMonthData({
+                month: -2,
+                year: new Date().getFullYear(),
+                amount: twelveMonthAmount,
+                milestones: next12Months
+              });
+              console.log(`Next 12 months: $${twelveMonthAmount} from ${next12Months.length} milestones`);
+              return;
+            }
+            
+            // Regular month filtering
             const selectedMonthMilestones = (billingMilestones || []).filter(milestone => {
-              const milestoneDate = new Date(milestone.dueDate);
+              const milestoneDate = new Date(milestone.targetInvoiceDate);
               return milestoneDate.getFullYear() === year && milestoneDate.getMonth() === month;
             });
             
-            const monthlyAmount = selectedMonthMilestones.reduce((sum, milestone) => sum + milestone.amount, 0);
+            const monthlyAmount = selectedMonthMilestones.reduce((sum, milestone) => sum + parseFloat(milestone.amount), 0);
             
             setSelectedMonthData({
               month,
