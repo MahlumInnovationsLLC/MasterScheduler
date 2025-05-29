@@ -380,9 +380,14 @@ export default function ProjectCreate() {
                         <FormLabel>Description</FormLabel>
                         <FormControl>
                           <Textarea
+                            key="description-field"
                             placeholder="Enter project description"
                             className="min-h-[100px]"
-                            {...field}
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
                           />
                         </FormControl>
                         <FormMessage />
