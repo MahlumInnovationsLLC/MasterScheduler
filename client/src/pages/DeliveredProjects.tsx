@@ -244,9 +244,27 @@ const DeliveredProjects = () => {
 
   const updateResponsibilityMutation = useMutation({
     mutationFn: async ({ projectId, responsibility }: { projectId: number; responsibility: string }) => {
-      return apiRequest('PATCH', `/api/delivered-projects/${projectId}/responsibility`, { responsibility });
+      console.log("🔥 FRONTEND: Starting responsibility update mutation for project", projectId, "with value:", responsibility);
+      
+      const response = await apiRequest('PATCH', `/api/delivered-projects/${projectId}/responsibility`, { responsibility });
+      
+      console.log("🔥 FRONTEND: API response:", response);
+      console.log("🔥 FRONTEND: Response status:", response.status);
+      console.log("🔥 FRONTEND: Response ok:", response.ok);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("🔥 FRONTEND: API request failed with status:", response.status, "Error:", errorText);
+        throw new Error(`API request failed: ${response.status} - ${errorText}`);
+      }
+      
+      const result = await response.json();
+      console.log("🔥 FRONTEND: Success response data:", result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("🎉 FRONTEND: Mutation onSuccess called with data:", data);
+      
       // Reset editing state immediately to prevent focus issues
       setEditingResponsibility(null);
       
@@ -258,10 +276,14 @@ const DeliveredProjects = () => {
       
       toast({ title: "Success", description: "Responsibility updated successfully" });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("💥 FRONTEND: Mutation onError called with error:", error);
+      console.error("💥 FRONTEND: Error message:", error.message);
+      console.error("💥 FRONTEND: Error stack:", error.stack);
+      
       toast({ 
         title: "Error", 
-        description: "Failed to update responsibility",
+        description: `Failed to update responsibility: ${error.message}`,
         variant: "destructive"
       });
     }
