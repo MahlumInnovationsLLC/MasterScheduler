@@ -3677,15 +3677,22 @@ export default function ResizableBaySchedule({
                             console.log(`🔍 COMPLETE BAR DATA:`, JSON.stringify(bar, null, 2));
                           }
                           
-                          return bar.bayId === bay.id && (
+                          {(() => {
+                            // Find the project for this bar to check if it's a sales estimate
+                            const project = projects.find(p => p.id === bar.projectId);
+                            const isSalesEstimate = project?.isSalesEstimate;
+                            
+                            return bar.bayId === bay.id && (
                             <div
                               key={`schedule-bar-${bar.id}`}
-                              className={`schedule-bar absolute p-1 text-white text-xs rounded cursor-grab z-20 row-${bar.row}-bar`}
+                              className={`schedule-bar absolute p-1 text-white text-xs rounded cursor-grab z-20 row-${bar.row}-bar ${isSalesEstimate ? 'animate-pulse' : ''}`}
                               style={{
                                 left: `${bar.left}px`,
                                 width: `${Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0))}px`, // Ensure width accommodates all phases
                                 height: '72px', // Exact height to match gray row
-                                backgroundColor: `${bar.color}25`, // Very light background for the full bar
+                                backgroundColor: isSalesEstimate ? '#fbbf2460' : `${bar.color}25`, // Yellow background for sales estimates
+                                boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : 'none', // Yellow glow for sales estimates
+                                border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : 'none', // Yellow border for sales estimates
                                 // Position at the top of the row
                                 top: '0', // Aligned with top of row
                                 // Set data attributes for department phase percentages 
@@ -3822,7 +3829,14 @@ export default function ResizableBaySchedule({
                               {/* Project information overlay */}
                               <div className="project-info relative z-10 flex justify-between items-start h-full pointer-events-none">
                                 <div className="ml-1 mt-1">
-                                  <div className="font-bold truncate max-w-[120px]">{bar.projectNumber}</div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="font-bold truncate max-w-[120px]">{bar.projectNumber}</div>
+                                    {isSalesEstimate && (
+                                      <span className="px-1 py-0.5 text-xs font-semibold bg-yellow-500/30 text-yellow-200 border border-yellow-400/50 rounded animate-pulse">
+                                        Proposed
+                                      </span>
+                                    )}
+                                  </div>
                                   <div className="truncate max-w-[200px]">{bar.projectName}</div>
                                 </div>
                                 
@@ -3841,7 +3855,7 @@ export default function ResizableBaySchedule({
                               {/* Removed resize handles from inside project container to fix z-index issues */}
                             </div>
                           );
-                        })}
+                          })()}
                         
                         {/* RESIZE HANDLES - Rendered OUTSIDE project containers to fix z-index layering */}
                         {scheduleBars.map((bar) => {

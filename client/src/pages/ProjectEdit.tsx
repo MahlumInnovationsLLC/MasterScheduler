@@ -1694,6 +1694,27 @@ function ProjectEdit() {
                       </FormItem>
                     )}
                   />
+                  
+                  <FormField
+                    control={form.control}
+                    name="isSalesEstimate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 mt-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Sales Estimate Proposal</FormLabel>
+                          <FormDescription>
+                            Mark this project as a sales estimate proposal only
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

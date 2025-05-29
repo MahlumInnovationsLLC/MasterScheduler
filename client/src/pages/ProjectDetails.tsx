@@ -535,7 +535,16 @@ const ProjectDetails = () => {
                 {project.location || 'N/A'}
               </div>
               <div>
-                <h2 className="text-xl font-bold font-sans">{project.projectNumber}: {project.name}</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className={`text-xl font-bold font-sans ${project.isSalesEstimate ? 'text-yellow-400 drop-shadow-lg' : ''}`}>
+                    {project.projectNumber}: {project.name}
+                  </h2>
+                  {project.isSalesEstimate && (
+                    <span className="px-2 py-1 text-xs font-semibold bg-yellow-500/20 text-yellow-400 border border-yellow-400/30 rounded-full animate-pulse">
+                      Proposed
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-3 text-sm text-gray-400 mt-1">
                   <span className="flex items-center gap-1">
                     <User className="h-4 w-4" /> {project.pmOwner || 'Unassigned'}
