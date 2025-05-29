@@ -286,12 +286,17 @@ const OnTimeDeliveryPage: React.FC = () => {
       return { percentage: 0, total: 0, onTime: 0, late: 0, month: 'Current Month' };
     }
     const currentMonth = analytics.monthlyTrends[analytics.monthlyTrends.length - 1];
+    
+    // Fix the date parsing issue like we did for monthly trends
+    const [year, monthNum] = currentMonth.month.split('-');
+    const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+    
     return {
       percentage: currentMonth.onTimePercentage || 0,
       total: currentMonth.total || 0,
       onTime: currentMonth.onTime || 0,
       late: currentMonth.late || 0,
-      month: format(new Date(currentMonth.month + '-01'), 'MMMM yyyy')
+      month: format(date, 'MMMM yyyy')
     };
   };
 
@@ -307,8 +312,6 @@ const OnTimeDeliveryPage: React.FC = () => {
       const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
       const quarterNum = Math.ceil((date.getMonth() + 1) / 3);
       const key = `Q${quarterNum} ${year}`;
-      
-      console.log(`📅 Processing ${month.month} -> ${key} (onTime: ${month.onTime}, total: ${month.total})`);
       
       if (!quarterlyData.has(key)) {
         quarterlyData.set(key, {
@@ -327,7 +330,7 @@ const OnTimeDeliveryPage: React.FC = () => {
       quarterStats.totalDaysLate += month.totalDaysLate || 0;
     });
     
-    const result = Array.from(quarterlyData.values()).map(quarter => ({
+    return Array.from(quarterlyData.values()).map(quarter => ({
       ...quarter,
       onTimePercentage: quarter.total > 0 ? Math.round((quarter.onTime / quarter.total) * 100) : 0,
       avgDaysLate: quarter.late > 0 ? Math.round((quarter.totalDaysLate / quarter.late) * 10) / 10 : 0
@@ -338,9 +341,6 @@ const OnTimeDeliveryPage: React.FC = () => {
       if (aY !== bY) return parseInt(aY) - parseInt(bY);
       return parseInt(aQ.replace('Q', '')) - parseInt(bQ.replace('Q', ''));
     }).slice(-8); // Last 8 quarters
-    
-    console.log("📊 Final quarterly data:", result);
-    return result;
   };
 
   // Prepare chart data
@@ -644,27 +644,19 @@ const OnTimeDeliveryPage: React.FC = () => {
               <CardDescription>On-time delivery performance over time</CardDescription>
             </CardHeader>
             <CardContent>
-              {(() => {
-                const chartData = prepareMonthlyTrendsData();
-                console.log("🎯 Chart data being passed to LineChart:", chartData);
-                console.log("🎯 Number of data points:", chartData.length);
-                console.log("🎯 Last data point:", chartData[chartData.length - 1]);
-                return (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis yAxisId="left" />
-                      <YAxis yAxisId="right" orientation="right" domain={[0, 100]} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                      <Bar yAxisId="left" dataKey="On Time" stackId="a" fill="#22c55e" />
-                      <Bar yAxisId="left" dataKey="Late" stackId="a" fill="#ef4444" />
-                      <Line yAxisId="right" type="monotone" dataKey="On Time %" stroke="#3b82f6" strokeWidth={3} dot={{ fill: "#3b82f6" }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                );
-              })()}
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={prepareMonthlyTrendsData()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" domain={[0, 100]} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="On Time" stackId="a" fill="#22c55e" />
+                  <Bar yAxisId="left" dataKey="Late" stackId="a" fill="#ef4444" />
+                  <Line yAxisId="right" type="monotone" dataKey="On Time %" stroke="#3b82f6" strokeWidth={3} dot={{ fill: "#3b82f6" }} />
+                </LineChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
 
