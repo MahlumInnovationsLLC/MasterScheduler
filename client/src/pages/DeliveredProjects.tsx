@@ -35,6 +35,7 @@ type DeliveredProject = {
 
 const DeliveredProjects = () => {
   const [editingReason, setEditingReason] = useState<number | null>(null);
+  const [editingResponsibility, setEditingResponsibility] = useState<number | null>(null);
   const [reasonValue, setReasonValue] = useState<string>('');
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [showImport, setShowImport] = useState(false);
