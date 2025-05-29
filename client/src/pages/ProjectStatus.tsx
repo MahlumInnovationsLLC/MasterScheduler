@@ -363,10 +363,22 @@ const ProjectStatus = () => {
     );
   }, [deliveryDialogOpen, selectedProject, deliveryDate, isLateDelivery, deliveryReason, delayResponsibility, responsibilityOptions, handleDeliveryDateChange, handleDeliveryReasonChange, handleDelayResponsibilityChange, handleCloseDialog, handleMarkAsDelivered]);
 
-  // Add the Archive Dialog component
-  const ArchiveDialog = () => {
-    const selectedProject = projects?.find(p => p.id === selectedArchiveProjectId);
-    
+  // Create stable callback functions for archive dialog
+  const handleArchiveReasonChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setArchiveReason(e.target.value);
+  }, []);
+
+  const handleCloseArchiveDialog = useCallback(() => {
+    setArchiveDialogOpen(false);
+  }, []);
+
+  // Memoize the selected archive project to prevent unnecessary re-renders
+  const selectedArchiveProject = useMemo(() => {
+    return projects?.find(p => p.id === selectedArchiveProjectId) || null;
+  }, [projects, selectedArchiveProjectId]);
+
+  // Add the Archive Dialog component with stable props
+  const ArchiveDialog = useCallback(() => {
     return (
       <Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
         <DialogContent className="bg-darkBg border-gray-800 text-white max-w-md">
@@ -387,7 +399,7 @@ const ProjectStatus = () => {
                 <p className="text-white font-medium">
                   Are you sure you want to archive{' '}
                   <span className="font-bold">
-                    {selectedProject?.projectNumber}: {selectedProject?.name}
+                    {selectedArchiveProject?.projectNumber}: {selectedArchiveProject?.name}
                   </span>?
                 </p>
                 <p className="text-gray-400 text-sm mt-1">
@@ -404,7 +416,7 @@ const ProjectStatus = () => {
               <Input
                 id="archiveReason"
                 value={archiveReason}
-                onChange={(e) => setArchiveReason(e.target.value)}
+                onChange={handleArchiveReasonChange}
                 placeholder="e.g., Project completed, Contract terminated, etc."
                 className="bg-darkInput border-gray-700 focus:border-primary text-white"
               />
@@ -415,7 +427,7 @@ const ProjectStatus = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setArchiveDialogOpen(false)}
+              onClick={handleCloseArchiveDialog}
               className="border-gray-700 hover:bg-gray-800 hover:text-white"
             >
               Cancel
@@ -434,7 +446,7 @@ const ProjectStatus = () => {
         </DialogContent>
       </Dialog>
     );
-  };
+  }, [archiveDialogOpen, selectedArchiveProject, archiveReason, handleArchiveReasonChange, handleCloseArchiveDialog, handleArchiveProject]);
   
   // DISABLED auto-filtering - show ALL projects by default
   useEffect(() => {

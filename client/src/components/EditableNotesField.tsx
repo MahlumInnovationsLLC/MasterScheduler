@@ -27,13 +27,19 @@ const EditableNotesField: React.FC<EditableNotesFieldProps> = ({ projectId, valu
         { notes: noteValue }
       );
       
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      // Exit editing mode immediately to prevent focus issues
+      setIsEditing(false);
+      
+      // Re-enable cache invalidation with a delay to prevent focus issues
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      }, 100);
+      
       toast({
         title: "Notes Updated",
         description: "Notes have been updated successfully",
         variant: "default"
       });
-      setIsEditing(false);
     } catch (error) {
       toast({
         title: "Update Failed",
