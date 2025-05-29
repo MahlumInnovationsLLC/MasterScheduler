@@ -328,7 +328,13 @@ const OnTimeDeliveryPage: React.FC = () => {
       ...quarter,
       onTimePercentage: quarter.total > 0 ? Math.round((quarter.onTime / quarter.total) * 100) : 0,
       avgDaysLate: quarter.late > 0 ? Math.round((quarter.totalDaysLate / quarter.late) * 10) / 10 : 0
-    })).sort((a, b) => a.quarter.localeCompare(b.quarter)).slice(-8); // Last 8 quarters
+    })).sort((a, b) => {
+      // Sort chronologically: older quarters on the left, newer on the right
+      const [aQ, aY] = a.quarter.split(' ');
+      const [bQ, bY] = b.quarter.split(' ');
+      if (aY !== bY) return parseInt(aY) - parseInt(bY);
+      return parseInt(aQ.replace('Q', '')) - parseInt(bQ.replace('Q', ''));
+    }).slice(-8); // Last 8 quarters
   };
 
   // Prepare chart data

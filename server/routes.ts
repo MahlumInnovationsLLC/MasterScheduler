@@ -817,7 +817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Convert monthly trends to array and calculate percentages
       const monthlyTrends = Array.from(monthlyData.values())
         .sort((a, b) => a.month.localeCompare(b.month))
-        .slice(-12) // Last 12 months
+        .slice(-13) // Last 13 months to include current month
         .map(month => ({
           ...month,
           onTimePercentage: month.total > 0 ? Math.round((month.onTime / month.total) * 100) : 0,
