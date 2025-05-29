@@ -342,130 +342,30 @@ const ProjectDetails = () => {
 
   // Group tasks by milestone
   const milestones = React.useMemo(() => {
-    // Add demo tasks if there are none yet (for UI development purposes only)
-    const currentTasks = tasks.length > 0 ? tasks : [
-      // Project Kickoff Milestone Tasks
-      {
-        id: 1001,
-        name: 'Initial requirements gathering',
-        description: 'Document the initial project requirements',
-        dueDate: '2023-01-15T00:00:00.000Z',
-        completedDate: '2023-01-15T00:00:00.000Z',
-        isCompleted: true,
-        projectId: projectId,
-      },
-      {
-        id: 1002,
-        name: 'Project charter creation',
-        description: 'Create and distribute project charter',
-        dueDate: '2023-01-16T00:00:00.000Z',
-        completedDate: '2023-01-16T00:00:00.000Z',
-        isCompleted: true,
-        projectId: projectId,
-      },
-      {
-        id: 1003,
-        name: 'Kickoff meeting',
-        description: 'Hold project kickoff meeting with stakeholders',
-        dueDate: '2023-01-17T00:00:00.000Z',
-        completedDate: '2023-01-17T00:00:00.000Z',
-        isCompleted: true,
-        projectId: projectId,
-      },
-      
-      // Design Phase Tasks
-      {
-        id: 1004,
-        name: 'Design approval',
-        description: 'Get sign-off on final designs',
-        dueDate: '2023-02-10T00:00:00.000Z',
-        completedDate: '2023-02-11T00:00:00.000Z',
-        isCompleted: true,
-        projectId: projectId,
-      },
-      {
-        id: 1005,
-        name: 'Materials sourcing',
-        description: 'Source all required materials for production',
-        dueDate: '2023-02-12T00:00:00.000Z',
-        completedDate: '2023-02-12T00:00:00.000Z',
-        isCompleted: true,
-        projectId: projectId,
-      },
-      {
-        id: 1006,
-        name: 'Production schedule finalization',
-        description: 'Finalize production schedule with manufacturing team',
-        dueDate: '2023-02-14T00:00:00.000Z',
-        completedDate: '2023-02-14T00:00:00.000Z',
-        isCompleted: true,
-        projectId: projectId,
-      },
-      
-      // Production Phase Tasks
-      {
-        id: 1007,
-        name: 'Assembly start',
-        description: 'Begin assembly of components',
-        dueDate: '2023-03-05T00:00:00.000Z',
-        completedDate: '2023-03-05T00:00:00.000Z',
-        isCompleted: true,
-        projectId: projectId,
-      },
-      {
-        id: 1008,
-        name: 'Mid-production review',
-        description: 'Conduct mid-production review and quality check',
-        dueDate: '2023-04-10T00:00:00.000Z',
-        completedDate: null,
-        isCompleted: false,
-        projectId: projectId,
-      },
-      {
-        id: 1009,
-        name: 'QC inspection',
-        description: 'Quality control inspection before delivery',
-        dueDate: '2023-05-20T00:00:00.000Z',
-        completedDate: null,
-        isCompleted: false,
-        projectId: projectId,
-      }
-    ];
+    // Use actual tasks from the database - no mock data
+    const currentTasks = tasks || [];
     
-    // Simple grouping - in a real app you would likely have a milestone field on tasks
-    // or a separate milestones table with relationships
-    const milestoneGroups = [
-      {
+    // Return empty array when no tasks exist - user should add their own milestones
+    if (currentTasks.length === 0) {
+      return [];
+    }
+    
+    // Simple grouping for existing tasks
+    const milestoneGroups = [];
+    
+    // Group tasks by date ranges or add logic to properly group tasks by milestones
+    // For now, return all tasks as ungrouped
+    if (currentTasks.length > 0) {
+      milestoneGroups.push({
         id: 1,
-        name: 'Project Kickoff Milestone',
-        status: 'Completed',
-        date: '2023-01-15',
-        tasks: currentTasks.filter(t => new Date(t.dueDate) < new Date('2023-01-30')),
+        name: 'Project Tasks',
+        status: 'Active',
+        date: 'Current',
+        tasks: currentTasks,
         color: 'border-primary',
-        isCompleted: true
-      },
-      {
-        id: 2,
-        name: 'Design Phase Complete',
-        status: 'Completed',
-        date: '2023-02-15',
-        tasks: currentTasks.filter(t => 
-          new Date(t.dueDate) >= new Date('2023-01-30') && 
-          new Date(t.dueDate) < new Date('2023-03-01')
-        ),
-        color: 'border-accent',
-        isCompleted: true
-      },
-      {
-        id: 3,
-        name: 'Production Phase',
-        status: 'In Progress',
-        date: 'Currently Active',
-        tasks: currentTasks.filter(t => new Date(t.dueDate) >= new Date('2023-03-01')),
-        color: 'border-warning',
         isCompleted: false
-      }
-    ];
+      });
+    }
     
     return milestoneGroups;
   }, [tasks, projectId]);

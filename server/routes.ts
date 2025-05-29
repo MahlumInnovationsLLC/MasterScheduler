@@ -2259,6 +2259,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Task API routes
+  app.get("/api/projects/:projectId/tasks", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const tasks = await storage.getTasks(projectId);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      res.status(500).json({ message: "Error fetching tasks" });
+    }
+  });
+
+  app.post("/api/tasks", hasEditRights, async (req, res) => {
+    try {
+      const validatedData = insertTaskSchema.parse(req.body);
+      const newTask = await storage.createTask(validatedData);
+      res.status(201).json(newTask);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: "Invalid task data", errors: error.errors });
+      }
+      console.error("Error creating task:", error);
+      res.status(500).json({ message: "Error creating task" });
+    }
+  });
+
+  app.put("/api/tasks/:id", hasEditRights, async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.id);
+      const updatedTask = await storage.updateTask(taskId, req.body);
+      if (!updatedTask) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      res.json(updatedTask);
+    } catch (error) {
+      console.error("Error updating task:", error);
+      res.status(500).json({ message: "Error updating task" });
+    }
+  });
+
+  app.delete("/api/tasks/:id", hasEditRights, async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.id);
+      const success = await storage.deleteTask(taskId);
+      if (success) {
+        res.json({ message: "Task deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Task not found" });
+      }
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      res.status(500).json({ message: "Error deleting task" });
+    }
+  });
+
   // AI analysis routes
   app.get("/api/ai/project-health/:projectId", async (req, res) => {
     try {
