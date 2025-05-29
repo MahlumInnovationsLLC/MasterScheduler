@@ -155,59 +155,6 @@ const OnTimeDeliveryPage: React.FC = () => {
     gcTime: 0,
   });
 
-  // Filter projects based on selected responsibility
-  const filteredProjects = deliveredProjects?.filter(project => {
-    if (selectedResponsibility === "all") return true;
-    return project.delayResponsibility === selectedResponsibility;
-  }) || [];
-
-  // Enhanced data processing for charts
-  const processedData = useMemo(() => {
-    if (!analytics || !analytics.responsibilityBreakdown || !analytics.daysLateDistribution || !analytics.monthlyTrends) return null;
-
-    // Responsibility breakdown for pie chart
-    const responsibilityData = Object.entries(analytics.responsibilityBreakdown)
-      .filter(([_, count]) => count > 0)
-      .map(([key, count]) => ({
-        name: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        value: count,
-        percentage: Math.round((count / analytics.summary.totalProjects) * 100),
-        color: getResponsibilityColor(key)
-      }));
-
-    // Days late distribution for bar chart
-    const distributionData = [
-      { category: 'On Time', count: analytics.daysLateDistribution.onTime, color: '#22c55e', range: '0 days' },
-      { category: '1-7 Days', count: analytics.daysLateDistribution.week1, color: '#facc15', range: '1-7 days' },
-      { category: '8-14 Days', count: analytics.daysLateDistribution.week2, color: '#f97316', range: '8-14 days' },
-      { category: '15-30 Days', count: analytics.daysLateDistribution.month1, color: '#ef4444', range: '15-30 days' },
-      { category: '31-60 Days', count: analytics.daysLateDistribution.month2, color: '#dc2626', range: '31-60 days' },
-      { category: '60+ Days', count: analytics.daysLateDistribution.longTerm, color: '#991b1b', range: '60+ days' }
-    ];
-
-    // Monthly trends with trend calculation
-    const monthlyTrendsWithTrend = analytics.monthlyTrends.map((month: any, index: number) => {
-      const prevMonth = analytics.monthlyTrends[index - 1];
-      let trend = 0;
-      if (prevMonth && prevMonth.onTimePercentage !== undefined) {
-        trend = month.onTimePercentage - prevMonth.onTimePercentage;
-      }
-      
-      return {
-        ...month,
-        monthDisplay: format(new Date(month.month + '-01'), 'MMM yyyy'),
-        trend,
-        trendDirection: trend > 0 ? 'up' : trend < 0 ? 'down' : 'stable'
-      };
-    });
-
-    return {
-      responsibilityData,
-      distributionData,
-      monthlyTrendsWithTrend
-    };
-  }, [analytics]);
-
   // Helper functions
   const formatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return "N/A";
@@ -229,6 +176,67 @@ const OnTimeDeliveryPage: React.FC = () => {
       default: return "#9ca3af";
     }
   };
+
+  // Filter projects based on selected responsibility
+  const filteredProjects = deliveredProjects?.filter(project => {
+    if (selectedResponsibility === "all") return true;
+    return project.delayResponsibility === selectedResponsibility;
+  }) || [];
+
+  // Enhanced data processing for charts
+  const processedData = useMemo(() => {
+    if (!analytics) return null;
+
+    // Use real analytics data with proper type checking
+    const summary = analytics.summary || {};
+    const responsibilityBreakdown = analytics.responsibilityBreakdown || {};
+    const daysLateDistribution = analytics.daysLateDistribution || {};
+    const monthlyTrends = analytics.monthlyTrends || [];
+    const yearlyComparison = analytics.yearlyComparison || [];
+
+    // Responsibility breakdown for pie chart - only show categories with data
+    const responsibilityData = Object.entries(responsibilityBreakdown)
+      .filter(([_, count]) => count > 0)
+      .map(([key, count]) => ({
+        name: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        value: count as number,
+        percentage: summary.totalProjects > 0 ? Math.round(((count as number) / summary.totalProjects) * 100) : 0,
+        color: getResponsibilityColor(key)
+      }));
+
+    // Days late distribution for bar chart
+    const distributionData = [
+      { category: 'On Time', count: daysLateDistribution.onTime || 0, color: '#22c55e', range: '0 days' },
+      { category: '1-7 Days', count: daysLateDistribution.week1 || 0, color: '#facc15', range: '1-7 days' },
+      { category: '8-14 Days', count: daysLateDistribution.week2 || 0, color: '#f97316', range: '8-14 days' },
+      { category: '15-30 Days', count: daysLateDistribution.month1 || 0, color: '#ef4444', range: '15-30 days' },
+      { category: '31-60 Days', count: daysLateDistribution.month2 || 0, color: '#dc2626', range: '31-60 days' },
+      { category: '60+ Days', count: daysLateDistribution.longTerm || 0, color: '#991b1b', range: '60+ days' }
+    ];
+
+    // Process monthly trends
+    const monthlyTrendsWithTrend = monthlyTrends.map((month: any, index: number) => {
+      const prevMonth = monthlyTrends[index - 1];
+      let trend = 0;
+      if (prevMonth && prevMonth.onTimePercentage !== undefined) {
+        trend = month.onTimePercentage - prevMonth.onTimePercentage;
+      }
+      
+      return {
+        ...month,
+        monthDisplay: month.month ? format(new Date(month.month + '-01'), 'MMM yyyy') : 'Unknown',
+        trend,
+        trendDirection: trend > 0 ? 'up' : trend < 0 ? 'down' : 'stable'
+      };
+    });
+
+    return {
+      responsibilityData,
+      distributionData,
+      monthlyTrendsWithTrend,
+      yearlyComparison
+    };
+  }, [analytics]);
 
   const getResponsibilityBadge = (responsibility: string | null) => {
     switch (responsibility) {
