@@ -1962,9 +1962,12 @@ const ProjectStatus = () => {
                   type="date"
                   value={deliveryDate}
                   onChange={(e) => {
-                    console.log("🔥 FINAL FIX: Date change, value:", e.target.value);
+                    console.log("🔥 FOCUS DEBUG: Date change - value:", e.target.value, "activeElement:", document.activeElement?.id);
                     setDeliveryDate(e.target.value);
+                    console.log("🔥 FOCUS DEBUG: After setDeliveryDate - activeElement:", document.activeElement?.id);
                   }}
+                  onFocus={() => console.log("🔥 FOCUS DEBUG: Date input focused")}
+                  onBlur={() => console.log("🔥 FOCUS DEBUG: Date input blurred")}
                   className="col-span-3"
                 />
               </div>
@@ -1991,9 +1994,14 @@ const ProjectStatus = () => {
                       id="delay-reason"
                       value={deliveryReason}
                       onChange={(e) => {
-                        console.log("🔥 FINAL FIX: Reason change, value:", e.target.value);
+                        console.log("🔥 FOCUS DEBUG: Reason change - value:", e.target.value, "activeElement:", document.activeElement?.id);
                         setDeliveryReason(e.target.value);
+                        console.log("🔥 FOCUS DEBUG: After setDeliveryReason - activeElement:", document.activeElement?.id);
                       }}
+                      onFocus={() => console.log("🔥 FOCUS DEBUG: Reason textarea focused")}
+                      onBlur={() => console.log("🔥 FOCUS DEBUG: Reason textarea blurred")}
+                      onInput={(e) => console.log("🔥 FOCUS DEBUG: Reason input event - value:", e.currentTarget.value)}
+                      onKeyDown={(e) => console.log("🔥 FOCUS DEBUG: Reason keydown - key:", e.key, "activeElement:", document.activeElement?.id)}
                       placeholder="Explain why the delivery was delayed"
                       className="col-span-3"
                       rows={3}
@@ -2008,9 +2016,12 @@ const ProjectStatus = () => {
                       id="delay-responsibility"
                       value={delayResponsibility}
                       onChange={(e) => {
-                        console.log("🔥 FINAL FIX: Responsibility change, value:", e.target.value);
+                        console.log("🔥 FOCUS DEBUG: Responsibility change - value:", e.target.value, "activeElement:", document.activeElement?.id);
                         setDelayResponsibility(e.target.value);
+                        console.log("🔥 FOCUS DEBUG: After setDelayResponsibility - activeElement:", document.activeElement?.id);
                       }}
+                      onFocus={() => console.log("🔥 FOCUS DEBUG: Responsibility select focused")}
+                      onBlur={() => console.log("🔥 FOCUS DEBUG: Responsibility select blurred")}
                       className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <option value="">-- Select responsibility --</option>
