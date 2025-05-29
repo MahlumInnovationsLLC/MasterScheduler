@@ -498,10 +498,14 @@ const Dashboard = () => {
               return;
             }
             
-            // Regular month filtering
+            // Regular month filtering - use same logic as chart forecast
+            const startOfMonth = new Date(year, month, 1);
+            const startOfNextMonth = new Date(year, month + 1, 1);
+            
             const selectedMonthMilestones = (billingMilestones || []).filter(milestone => {
+              if (!milestone.targetInvoiceDate) return false;
               const milestoneDate = new Date(milestone.targetInvoiceDate);
-              return milestoneDate.getFullYear() === year && milestoneDate.getMonth() === month;
+              return milestoneDate >= startOfMonth && milestoneDate < startOfNextMonth;
             });
             
             const monthlyAmount = selectedMonthMilestones.reduce((sum, milestone) => sum + parseFloat(milestone.amount), 0);

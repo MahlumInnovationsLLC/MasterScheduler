@@ -579,9 +579,12 @@ export function BillingStatusCard({
                       // When changing months, we should also update the fiscal week display
                       // by resetting the selected week to the first week of the month
                       if (onMonthSelect) {
+                        // Pass the exact index and calculate the actual month/year
+                        const today = new Date();
+                        const targetDate = new Date(today.getFullYear(), today.getMonth() + idx, 1);
                         onMonthSelect(
-                          new Date().getFullYear() + Math.floor((new Date().getMonth() + idx) / 12),
-                          ((new Date().getMonth() + idx) % 12) + 1
+                          targetDate.getFullYear(),
+                          targetDate.getMonth()
                         );
                         
                         // If onWeekSelect is provided, also select the first week of this month
