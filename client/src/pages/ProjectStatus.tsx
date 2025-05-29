@@ -254,10 +254,30 @@ const ProjectStatus = () => {
     }
   };
   
-  // Add the Delivery Dialog component
-  const DeliveryDialog = () => {
-    const selectedProject = projects?.find(p => p.id === selectedProjectId);
-    
+  // Create stable callback functions to prevent re-renders
+  const handleDeliveryDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setDeliveryDate(e.target.value);
+  }, []);
+
+  const handleDeliveryReasonChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setDeliveryReason(e.target.value);
+  }, []);
+
+  const handleDelayResponsibilityChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setDelayResponsibility(e.target.value);
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setDeliveryDialogOpen(false);
+  }, []);
+
+  // Memoize the selected project to prevent unnecessary re-renders
+  const selectedProject = useMemo(() => {
+    return projects?.find(p => p.id === selectedProjectId) || null;
+  }, [projects, selectedProjectId]);
+
+  // Add the Delivery Dialog component with stable props
+  const DeliveryDialog = useCallback(() => {
     return (
       <Dialog open={deliveryDialogOpen} onOpenChange={setDeliveryDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
@@ -279,7 +299,7 @@ const ProjectStatus = () => {
                 id="delivery-date"
                 type="date"
                 value={deliveryDate}
-                onChange={(e) => setDeliveryDate(e.target.value)}
+                onChange={handleDeliveryDateChange}
                 className="col-span-3"
               />
             </div>
@@ -305,7 +325,7 @@ const ProjectStatus = () => {
                   <Textarea
                     id="delay-reason"
                     value={deliveryReason}
-                    onChange={(e) => setDeliveryReason(e.target.value)}
+                    onChange={handleDeliveryReasonChange}
                     placeholder="Explain why the delivery was delayed"
                     className="col-span-3"
                     rows={3}
@@ -319,7 +339,7 @@ const ProjectStatus = () => {
                   <select
                     id="delay-responsibility"
                     value={delayResponsibility}
-                    onChange={(e) => setDelayResponsibility(e.target.value)}
+                    onChange={handleDelayResponsibilityChange}
                     className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="">-- Select responsibility --</option>
@@ -335,13 +355,13 @@ const ProjectStatus = () => {
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeliveryDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={handleCloseDialog}>Cancel</Button>
             <Button onClick={handleMarkAsDelivered}>Mark as Delivered</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     );
-  };
+  }, [deliveryDialogOpen, selectedProject, deliveryDate, isLateDelivery, deliveryReason, delayResponsibility, responsibilityOptions, handleDeliveryDateChange, handleDeliveryReasonChange, handleDelayResponsibilityChange, handleCloseDialog, handleMarkAsDelivered]);
 
   // Add the Archive Dialog component
   const ArchiveDialog = () => {
