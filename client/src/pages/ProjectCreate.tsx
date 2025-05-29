@@ -79,6 +79,7 @@ const projectFormSchema = z.object({
   stretchShortenGears: z.string().optional(),
   lltsOrdered: z.boolean().default(false),
   notes: z.string().optional(),
+  isSalesEstimate: z.boolean().default(false),
 });
 
 type ProjectFormValues = z.infer<typeof projectFormSchema>;
@@ -109,6 +110,7 @@ export default function ProjectCreate() {
     ntcPercentage: 7,
     qcPercentage: 7,
     lltsOrdered: false,
+    isSalesEstimate: false,
   };
   
   // Form definition

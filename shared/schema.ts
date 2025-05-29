@@ -313,6 +313,7 @@ export const projects = pgTable("projects", {
   hasBillingMilestones: boolean("has_billing_milestones").default(false),
   notes: text("notes"),
   photosTaken: boolean("photos_taken").default(false), // New field for Photos Taken column
+  isSalesEstimate: boolean("is_sales_estimate").default(false), // Sales Estimate Proposal flag
   
   // Store all raw data from Excel import
   rawData: jsonb("raw_data"), // JSON field to store all original Excel columns
