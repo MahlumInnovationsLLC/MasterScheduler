@@ -172,12 +172,19 @@ export function DataTable<TData, TValue>({
         const currentPagination = { pageIndex, pageSize: 10 };
         const newPagination = updater(currentPagination);
         console.log("🔄 PAGINATION: Function updater - from", currentPagination, "to", newPagination);
+        // Prevent automatic reset to page 0 when data changes
+        if (newPagination.pageIndex === 0 && currentPagination.pageIndex > 0) {
+          console.log("🚫 PAGINATION: Blocked reset to page 0, keeping current page", currentPagination.pageIndex);
+          return;
+        }
         setPageIndex(newPagination.pageIndex);
       } else {
         console.log("🔄 PAGINATION: Direct updater - setting pageIndex to", updater.pageIndex);
         setPageIndex(updater.pageIndex);
       }
     },
+    // Prevent automatic pagination reset on data changes
+    autoResetPageIndex: false,
     state: {
       sorting,
       columnFilters,
