@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { format, addDays, addMonths } from 'date-fns';
@@ -84,6 +84,37 @@ const projectFormSchema = z.object({
 });
 
 type ProjectFormValues = z.infer<typeof projectFormSchema>;
+
+// Separate component for description field to prevent re-render issues
+const DescriptionField = React.memo(({ value, onChange, onBlur, name }: {
+  value: string;
+  onChange: (value: string) => void;
+  onBlur: () => void;
+  name: string;
+}) => {
+  const [localValue, setLocalValue] = useState(value);
+  
+  React.useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+  
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+    onChange(newValue);
+  }, [onChange]);
+  
+  return (
+    <Textarea
+      placeholder="Enter project description"
+      className="min-h-[100px]"
+      value={localValue}
+      onChange={handleChange}
+      onBlur={onBlur}
+      name={name}
+    />
+  );
+});
 
 export default function ProjectCreate() {
   const [, navigate] = useLocation();
@@ -375,34 +406,20 @@ export default function ProjectCreate() {
                   <FormField
                     control={form.control}
                     name="description"
-                    render={({ field }) => {
-                      const [localValue, setLocalValue] = React.useState(field.value || '');
-                      
-                      React.useEffect(() => {
-                        setLocalValue(field.value || '');
-                      }, [field.value]);
-                      
-                      return (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Enter project description"
-                              className="min-h-[100px]"
-                              value={localValue}
-                              onChange={(e) => {
-                                setLocalValue(e.target.value);
-                                field.onChange(e.target.value);
-                              }}
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              ref={field.ref}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <DescriptionField
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                   
                   <Separator className="my-4" />
