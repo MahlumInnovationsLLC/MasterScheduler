@@ -1065,17 +1065,20 @@ const ProjectStatus = () => {
       (value, project) => {
         // Check if ship date is past due
         const isPastDue = project.shipDate ? new Date(project.shipDate) < new Date() : false;
+        // Check if this is a sales estimate
+        const isSalesEstimate = project.isSalesEstimate;
         
         return (
-          <div className={`flex items-center ${isPastDue ? 'bg-red-900/30 rounded' : ''}`}>
+          <div className={`flex items-center ${isPastDue ? 'bg-red-900/30 rounded' : isSalesEstimate ? 'bg-yellow-500/10 rounded' : ''}`}>
             <div className="ml-2 p-1">
-              <div className={`text-sm font-medium ${isPastDue ? 'text-red-500' : 'text-white'} whitespace-normal`}>
-                <Link to={`/project/${project.id}`} className={`${isPastDue ? 'text-red-500 font-bold' : 'text-primary'} hover:underline`}>
+              <div className={`text-sm font-medium ${isPastDue ? 'text-red-500' : isSalesEstimate ? 'text-yellow-400' : 'text-white'} whitespace-normal`}>
+                <Link to={`/project/${project.id}`} className={`${isPastDue ? 'text-red-500 font-bold' : isSalesEstimate ? 'text-yellow-400 font-semibold' : 'text-primary'} hover:underline`}>
+                  {isSalesEstimate && <span className="text-xs bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded mr-2">PROPOSED</span>}
                   {value}
                 </Link>
               </div>
               <div 
-                className="text-xs text-gray-400 line-clamp-2 overflow-hidden" 
+                className={`text-xs ${isSalesEstimate ? 'text-yellow-400/70' : 'text-gray-400'} line-clamp-2 overflow-hidden`}
                 title={project.name} // Show full name on hover
               >
                 {project.name}
