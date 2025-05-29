@@ -22,6 +22,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { AlertTriangle, CalendarIcon, ChevronLeft, Loader2 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FormDescription } from '@/components/ui/form';
 import { z } from 'zod';
@@ -104,6 +105,7 @@ const projectSchema = z.object({
   category: z.string().optional(),
   hasBillingMilestones: z.boolean().default(false),
   notes: z.string().optional(),
+  isSalesEstimate: z.boolean().default(false),
 });
 
 type ProjectFormValues = z.infer<typeof projectSchema>;
@@ -157,6 +159,7 @@ function ProjectEdit() {
       priority: 'medium',
       category: '',
       notes: '',
+      isSalesEstimate: false,
     },
   });
 
@@ -308,6 +311,7 @@ function ProjectEdit() {
         category: project.category || '',
         hasBillingMilestones: project.hasBillingMilestones || false,
         notes: project.notes || '',
+        isSalesEstimate: project.isSalesEstimate || false,
       });
     }
   }, [project, form]);
