@@ -279,19 +279,42 @@ const ProjectStatus = () => {
     return projects?.find(p => p.id === selectedProjectId) || null;
   }, [projects, selectedProjectId]);
 
-  // Stable Delivery Dialog component to prevent focus loss
-  const StableDeliveryDialog = React.memo(function DeliveryDialogComponent() {
-    console.log("🔄 DELIVERY DIALOG: Component rendering with state:", {
-      deliveryDialogOpen,
-      deliveryDate,
-      isLateDelivery,
-      deliveryReason,
-      delayResponsibility,
-      selectedProject: selectedProject?.name
-    });
+  // Create a separate, stable component outside the main component function
+  const DeliveryDialogComponent = React.memo(function DeliveryDialogComponent({
+    isOpen,
+    onClose,
+    selectedProject,
+    deliveryDate,
+    onDeliveryDateChange,
+    isLateDelivery,
+    deliveryReason,
+    onDeliveryReasonChange,
+    delayResponsibility,
+    onDelayResponsibilityChange,
+    responsibilityOptions,
+    onSubmit
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    selectedProject: Project | null;
+    deliveryDate: string;
+    onDeliveryDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    isLateDelivery: boolean;
+    deliveryReason: string;
+    onDeliveryReasonChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+    delayResponsibility: string;
+    onDelayResponsibilityChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    responsibilityOptions: string[];
+    onSubmit: () => void;
+  }) {
+    console.log("🔄 DELIVERY DIALOG: Component rendering, isOpen:", isOpen, "project:", selectedProject?.name);
+    
+    if (!isOpen) {
+      return null; // Don't render anything when dialog is closed
+    }
     
     return (
-      <Dialog open={deliveryDialogOpen} onOpenChange={setDeliveryDialogOpen}>
+      <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Mark Project as Delivered</DialogTitle>
@@ -311,7 +334,7 @@ const ProjectStatus = () => {
                 id="delivery-date"
                 type="date"
                 value={deliveryDate}
-                onChange={handleDeliveryDateChange}
+                onChange={onDeliveryDateChange}
                 className="col-span-3"
               />
             </div>
@@ -337,7 +360,7 @@ const ProjectStatus = () => {
                   <Textarea
                     id="delay-reason"
                     value={deliveryReason}
-                    onChange={handleDeliveryReasonChange}
+                    onChange={onDeliveryReasonChange}
                     placeholder="Explain why the delivery was delayed"
                     className="col-span-3"
                     rows={3}
@@ -351,7 +374,7 @@ const ProjectStatus = () => {
                   <select
                     id="delay-responsibility"
                     value={delayResponsibility}
-                    onChange={handleDelayResponsibilityChange}
+                    onChange={onDelayResponsibilityChange}
                     className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="">-- Select responsibility --</option>
@@ -367,8 +390,8 @@ const ProjectStatus = () => {
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={handleCloseDialog}>Cancel</Button>
-            <Button onClick={handleMarkAsDelivered}>Mark as Delivered</Button>
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button onClick={onSubmit}>Mark as Delivered</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1926,7 +1949,20 @@ const ProjectStatus = () => {
       )}
       
       {/* Delivery Dialog */}
-      <StableDeliveryDialog />
+      <DeliveryDialogComponent
+        isOpen={deliveryDialogOpen}
+        onClose={handleCloseDialog}
+        selectedProject={selectedProject}
+        deliveryDate={deliveryDate}
+        onDeliveryDateChange={handleDeliveryDateChange}
+        isLateDelivery={isLateDelivery}
+        deliveryReason={deliveryReason}
+        onDeliveryReasonChange={handleDeliveryReasonChange}
+        delayResponsibility={delayResponsibility}
+        onDelayResponsibilityChange={handleDelayResponsibilityChange}
+        responsibilityOptions={responsibilityOptions}
+        onSubmit={handleMarkAsDelivered}
+      />
       <ArchiveDialog />
     </div>
   );
