@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Card,
@@ -26,10 +26,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { 
+  Area,
+  AreaChart,
   Bar, 
   BarChart, 
   CartesianGrid, 
   Cell, 
+  ComposedChart,
   Legend, 
   Line,
   LineChart,
@@ -40,7 +43,7 @@ import {
   XAxis, 
   YAxis 
 } from "recharts";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { 
   Loader2, 
   TrendingUp, 
@@ -52,7 +55,11 @@ import {
   AlertTriangle,
   CheckCircle,
   Activity,
-  BarChart3
+  BarChart3,
+  Zap,
+  Users,
+  ShieldAlert,
+  Award
 } from "lucide-react";
 
 // Types for delivered projects analytics
@@ -154,6 +161,53 @@ const OnTimeDeliveryPage: React.FC = () => {
     return project.delayResponsibility === selectedResponsibility;
   }) || [];
 
+  // Enhanced data processing for charts
+  const processedData = useMemo(() => {
+    if (!analytics || !analytics.responsibilityBreakdown || !analytics.daysLateDistribution || !analytics.monthlyTrends) return null;
+
+    // Responsibility breakdown for pie chart
+    const responsibilityData = Object.entries(analytics.responsibilityBreakdown)
+      .filter(([_, count]) => count > 0)
+      .map(([key, count]) => ({
+        name: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        value: count,
+        percentage: Math.round((count / analytics.summary.totalProjects) * 100),
+        color: getResponsibilityColor(key)
+      }));
+
+    // Days late distribution for bar chart
+    const distributionData = [
+      { category: 'On Time', count: analytics.daysLateDistribution.onTime, color: '#22c55e', range: '0 days' },
+      { category: '1-7 Days', count: analytics.daysLateDistribution.week1, color: '#facc15', range: '1-7 days' },
+      { category: '8-14 Days', count: analytics.daysLateDistribution.week2, color: '#f97316', range: '8-14 days' },
+      { category: '15-30 Days', count: analytics.daysLateDistribution.month1, color: '#ef4444', range: '15-30 days' },
+      { category: '31-60 Days', count: analytics.daysLateDistribution.month2, color: '#dc2626', range: '31-60 days' },
+      { category: '60+ Days', count: analytics.daysLateDistribution.longTerm, color: '#991b1b', range: '60+ days' }
+    ];
+
+    // Monthly trends with trend calculation
+    const monthlyTrendsWithTrend = analytics.monthlyTrends.map((month: any, index: number) => {
+      const prevMonth = analytics.monthlyTrends[index - 1];
+      let trend = 0;
+      if (prevMonth && prevMonth.onTimePercentage !== undefined) {
+        trend = month.onTimePercentage - prevMonth.onTimePercentage;
+      }
+      
+      return {
+        ...month,
+        monthDisplay: format(new Date(month.month + '-01'), 'MMM yyyy'),
+        trend,
+        trendDirection: trend > 0 ? 'up' : trend < 0 ? 'down' : 'stable'
+      };
+    });
+
+    return {
+      responsibilityData,
+      distributionData,
+      monthlyTrendsWithTrend
+    };
+  }, [analytics]);
+
   // Helper functions
   const formatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return "N/A";
@@ -163,6 +217,16 @@ const OnTimeDeliveryPage: React.FC = () => {
       return format(date, 'MMM d, yyyy');
     } catch {
       return "N/A";
+    }
+  };
+
+  const getResponsibilityColor = (responsibility: string) => {
+    switch (responsibility) {
+      case "nomad_fault": return "#ef4444";
+      case "vendor_fault": return "#f59e0b";
+      case "client_fault": return "#3b82f6";
+      case "not_applicable": return "#6b7280";
+      default: return "#9ca3af";
     }
   };
 
@@ -186,6 +250,9 @@ const OnTimeDeliveryPage: React.FC = () => {
     if (daysLate <= 7) return <Badge className="bg-amber-500 hover:bg-amber-600 text-white">{daysLate} Days Late</Badge>;
     return <Badge variant="destructive">{daysLate} Days Late</Badge>;
   };
+
+  console.log("🔍 Analytics data:", analytics);
+  console.log("🔍 Loading state:", isLoadingAnalytics);
 
   // Prepare chart data
   const prepareResponsibilityPieData = () => {

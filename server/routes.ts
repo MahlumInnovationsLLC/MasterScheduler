@@ -703,10 +703,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("📊 Found delivered projects (status = 'delivered'):", deliveredProjects.length);
       
-      // Simple analytics calculation
+      // Enhanced analytics calculation
       let onTimeCount = 0;
       let lateCount = 0;
       let totalDaysLate = 0;
+      
+      // Responsibility breakdown counters
+      const responsibilityBreakdown = {
+        nomad_fault: 0,
+        vendor_fault: 0,
+        client_fault: 0,
+        not_applicable: 0
+      };
+      
+      // Days late distribution
+      const daysLateDistribution = {
+        onTime: 0,
+        week1: 0,      // 1-7 days late
+        week2: 0,      // 8-14 days late
+        month1: 0,     // 15-30 days late
+        month2: 0,     // 31-60 days late
+        longTerm: 0    // 60+ days late
+      };
+      
+      // Monthly trends data
+      const monthlyData = new Map();
+      const yearlyData = new Map();
       
       deliveredProjects.forEach(project => {
         let daysLate = 0;
@@ -719,13 +741,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
           daysLate = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         }
         
+        // Count responsibility
+        if (project.delayResponsibility && responsibilityBreakdown.hasOwnProperty(project.delayResponsibility)) {
+          responsibilityBreakdown[project.delayResponsibility]++;
+        } else {
+          responsibilityBreakdown.not_applicable++;
+        }
+        
+        // Categorize delivery performance
         if (daysLate <= 0) {
           onTimeCount++;
+          daysLateDistribution.onTime++;
         } else {
           lateCount++;
           totalDaysLate += daysLate;
+          
+          // Distribute by delay severity
+          if (daysLate <= 7) {
+            daysLateDistribution.week1++;
+          } else if (daysLate <= 14) {
+            daysLateDistribution.week2++;
+          } else if (daysLate <= 30) {
+            daysLateDistribution.month1++;
+          } else if (daysLate <= 60) {
+            daysLateDistribution.month2++;
+          } else {
+            daysLateDistribution.longTerm++;
+          }
+        }
+        
+        // Track monthly trends if delivery date exists
+        if (project.deliveryDate) {
+          const deliveryDate = new Date(project.deliveryDate);
+          const monthKey = `${deliveryDate.getFullYear()}-${String(deliveryDate.getMonth() + 1).padStart(2, '0')}`;
+          const yearKey = String(deliveryDate.getFullYear());
+          
+          if (!monthlyData.has(monthKey)) {
+            monthlyData.set(monthKey, {
+              month: monthKey,
+              total: 0,
+              onTime: 0,
+              late: 0,
+              totalDaysLate: 0
+            });
+          }
+          
+          if (!yearlyData.has(yearKey)) {
+            yearlyData.set(yearKey, {
+              year: yearKey,
+              total: 0,
+              onTime: 0,
+              late: 0,
+              totalDaysLate: 0
+            });
+          }
+          
+          const monthStats = monthlyData.get(monthKey);
+          const yearStats = yearlyData.get(yearKey);
+          
+          monthStats.total++;
+          yearStats.total++;
+          
+          if (daysLate <= 0) {
+            monthStats.onTime++;
+            yearStats.onTime++;
+          } else {
+            monthStats.late++;
+            yearStats.late++;
+            monthStats.totalDaysLate += daysLate;
+            yearStats.totalDaysLate += daysLate;
+          }
         }
       });
+      
+      // Convert monthly trends to array and calculate percentages
+      const monthlyTrends = Array.from(monthlyData.values())
+        .sort((a, b) => a.month.localeCompare(b.month))
+        .slice(-12) // Last 12 months
+        .map(month => ({
+          ...month,
+          onTimePercentage: month.total > 0 ? Math.round((month.onTime / month.total) * 100) : 0,
+          avgDaysLate: month.late > 0 ? Math.round((month.totalDaysLate / month.late) * 10) / 10 : 0
+        }));
+      
+      // Convert yearly comparison to array and calculate percentages
+      const yearlyComparison = Array.from(yearlyData.values())
+        .sort((a, b) => a.year.localeCompare(b.year))
+        .slice(-3) // Last 3 years
+        .map(year => ({
+          ...year,
+          onTimePercentage: year.total > 0 ? Math.round((year.onTime / year.total) * 100) : 0,
+          avgDaysLate: year.late > 0 ? Math.round((year.totalDaysLate / year.late) * 10) / 10 : 0
+        }));
       
       const analytics = {
         summary: {
@@ -736,22 +843,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           avgDaysLate: lateCount > 0 ? Math.round((totalDaysLate / lateCount) * 10) / 10 : 0,
           totalDaysLate
         },
-        responsibilityBreakdown: {
-          nomad_fault: 0,
-          vendor_fault: 0,
-          client_fault: 0,
-          not_applicable: deliveredProjects.length
-        },
-        monthlyTrends: [],
-        daysLateDistribution: {
-          onTime: onTimeCount,
-          week1: 0,
-          week2: 0,
-          month1: 0,
-          month2: 0,
-          longTerm: 0
-        },
-        yearlyComparison: []
+        responsibilityBreakdown,
+        monthlyTrends,
+        daysLateDistribution,
+        yearlyComparison
       };
       
       console.log("📊 Returning analytics:", analytics);
