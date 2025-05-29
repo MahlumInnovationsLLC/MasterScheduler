@@ -1899,6 +1899,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Billing milestone routes
+  app.post("/api/billing-milestones", hasEditRights, async (req, res) => {
+    try {
+      const validatedData = insertBillingMilestoneSchema.parse(req.body);
+      const newMilestone = await storage.createBillingMilestone(validatedData);
+      res.status(201).json(newMilestone);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: "Invalid billing milestone data", errors: error.errors });
+      }
+      console.error("Error creating billing milestone:", error);
+      res.status(500).json({ message: "Error creating billing milestone" });
+    }
+  });
+
+  app.put("/api/billing-milestones/:id", hasEditRights, async (req, res) => {
+    try {
+      const milestoneId = parseInt(req.params.id);
+      const updatedMilestone = await storage.updateBillingMilestone(milestoneId, req.body);
+      if (!updatedMilestone) {
+        return res.status(404).json({ message: "Billing milestone not found" });
+      }
+      res.json(updatedMilestone);
+    } catch (error) {
+      console.error("Error updating billing milestone:", error);
+      res.status(500).json({ message: "Error updating billing milestone" });
+    }
+  });
+
   // Import routes
   app.post("/api/import/projects", isAuthenticated, importProjects);
   app.post("/api/import/billing-milestones", isAuthenticated, importBillingMilestones);
