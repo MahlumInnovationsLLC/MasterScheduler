@@ -66,6 +66,12 @@ export function DataTable<TData, TValue>({
   // Initialize pageIndex with saved value immediately
   const getInitialPageIndex = () => {
     if (persistenceKey && typeof window !== 'undefined') {
+      // For delivered projects, always start at page 1 on fresh page loads
+      if (persistenceKey === 'delivered-projects') {
+        console.log("🔄 PAGINATION: Delivered projects - starting at page 1 on fresh load");
+        return 0;
+      }
+      
       const saved = localStorage.getItem(`datatable-page-${persistenceKey}`);
       if (saved) {
         try {
@@ -84,11 +90,19 @@ export function DataTable<TData, TValue>({
 
   const [pageIndex, setPageIndex] = useState<number>(getInitialPageIndex);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const isInitialLoad = useRef(true);
 
   // Debug logging for pagination changes
   useEffect(() => {
     console.log("🔄 PAGINATION: Current pageIndex state:", pageIndex);
   }, [pageIndex]);
+
+  // Mark initial load as complete after first render
+  useEffect(() => {
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+    }
+  }, []);
 
   // Save pagination state when it changes
   useEffect(() => {
@@ -172,11 +186,16 @@ export function DataTable<TData, TValue>({
         const currentPagination = { pageIndex, pageSize: 10 };
         const newPagination = updater(currentPagination);
         console.log("🔄 PAGINATION: Function updater - from", currentPagination, "to", newPagination);
-        // Prevent automatic reset to page 0 when data changes
-        if (newPagination.pageIndex === 0 && currentPagination.pageIndex > 0) {
-          console.log("🚫 PAGINATION: Blocked reset to page 0, keeping current page", currentPagination.pageIndex);
+        
+        // Only block automatic resets after initial load, allow manual navigation
+        if (newPagination.pageIndex === 0 && 
+            currentPagination.pageIndex > 0 && 
+            !isInitialLoad.current &&
+            persistenceKey !== 'delivered-projects') {
+          console.log("🚫 PAGINATION: Blocked automatic reset to page 0, keeping current page", currentPagination.pageIndex);
           return;
         }
+        
         setPageIndex(newPagination.pageIndex);
       } else {
         console.log("🔄 PAGINATION: Direct updater - setting pageIndex to", updater.pageIndex);
