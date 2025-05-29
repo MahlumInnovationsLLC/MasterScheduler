@@ -256,14 +256,17 @@ const ProjectStatus = () => {
   
   // Create stable callback functions to prevent re-renders
   const handleDeliveryDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("🔄 DELIVERY DIALOG: Date change triggered, value:", e.target.value);
     setDeliveryDate(e.target.value);
   }, []);
 
   const handleDeliveryReasonChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    console.log("🔄 DELIVERY DIALOG: Reason change triggered, value:", e.target.value);
     setDeliveryReason(e.target.value);
   }, []);
 
   const handleDelayResponsibilityChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log("🔄 DELIVERY DIALOG: Responsibility change triggered, value:", e.target.value);
     setDelayResponsibility(e.target.value);
   }, []);
 
@@ -278,6 +281,15 @@ const ProjectStatus = () => {
 
   // Stable Delivery Dialog component to prevent focus loss
   const StableDeliveryDialog = React.memo(function DeliveryDialogComponent() {
+    console.log("🔄 DELIVERY DIALOG: Component rendering with state:", {
+      deliveryDialogOpen,
+      deliveryDate,
+      isLateDelivery,
+      deliveryReason,
+      delayResponsibility,
+      selectedProject: selectedProject?.name
+    });
+    
     return (
       <Dialog open={deliveryDialogOpen} onOpenChange={setDeliveryDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
