@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, memo } from 'react';
+import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,22 @@ export const DeliveryDialog = memo(({ open, onOpenChange, project }: DeliveryDia
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Stable callbacks to prevent re-renders
+  const handleDeliveryDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("🔥 DELIVERY DIALOG: Date change - value:", e.target.value);
+    setDeliveryDate(e.target.value);
+  }, []);
+
+  const handleReasonChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    console.log("🔥 DELIVERY DIALOG: Reason change - value:", e.target.value, "cursor at:", e.target.selectionStart);
+    setDeliveryReason(e.target.value);
+  }, []);
+
+  const handleResponsibilityChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log("🔥 DELIVERY DIALOG: Responsibility change - value:", e.target.value);
+    setDelayResponsibility(e.target.value);
+  }, []);
+
   // Calculate if delivery is late - memoized to prevent re-calculations
   const isLateDelivery = useMemo(() => {
     if (!project?.contractDate || !deliveryDate) return false;
@@ -42,7 +59,9 @@ export const DeliveryDialog = memo(({ open, onOpenChange, project }: DeliveryDia
   useEffect(() => {
     if (open && project) {
       console.log("🔥 DELIVERY DIALOG: Initializing for project", project.projectNumber);
-      setDeliveryDate(new Date().toISOString().split('T')[0]);
+      // Use project's existing delivery date if available, otherwise use today
+      const initialDate = project.deliveryDate || new Date().toISOString().split('T')[0];
+      setDeliveryDate(initialDate);
       setDeliveryReason("");
       setDelayResponsibility("");
     }
@@ -130,10 +149,7 @@ export const DeliveryDialog = memo(({ open, onOpenChange, project }: DeliveryDia
               id="delivery-date"
               type="date"
               value={deliveryDate}
-              onChange={(e) => {
-                console.log("🔥 DELIVERY DIALOG: Date change - value:", e.target.value);
-                setDeliveryDate(e.target.value);
-              }}
+              onChange={handleDeliveryDateChange}
               className="col-span-3"
             />
           </div>
@@ -159,10 +175,7 @@ export const DeliveryDialog = memo(({ open, onOpenChange, project }: DeliveryDia
                 <Textarea
                   id="delay-reason"
                   value={deliveryReason}
-                  onChange={(e) => {
-                    console.log("🔥 DELIVERY DIALOG: Reason change - value:", e.target.value, "cursor at:", e.target.selectionStart);
-                    setDeliveryReason(e.target.value);
-                  }}
+                  onChange={handleReasonChange}
                   onFocus={() => console.log("🔥 DELIVERY DIALOG: Reason textarea focused")}
                   onBlur={() => console.log("🔥 DELIVERY DIALOG: Reason textarea blurred")}
                   placeholder="Explain why the delivery was delayed"
@@ -178,10 +191,7 @@ export const DeliveryDialog = memo(({ open, onOpenChange, project }: DeliveryDia
                 <select
                   id="delay-responsibility"
                   value={delayResponsibility}
-                  onChange={(e) => {
-                    console.log("🔥 DELIVERY DIALOG: Responsibility change - value:", e.target.value);
-                    setDelayResponsibility(e.target.value);
-                  }}
+                  onChange={handleResponsibilityChange}
                   className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <option value="">-- Select responsibility --</option>
