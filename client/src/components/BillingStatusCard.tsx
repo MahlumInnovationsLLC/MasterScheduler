@@ -647,7 +647,7 @@ export function BillingStatusCard({
                               : 'bg-blue-500'
                       }`}
                       style={{ 
-                        height: `${val > 0 ? Math.max(15, heightPercentage) : 8}%` 
+                        height: `${val > 0 ? Math.max(3, heightPercentage) : 2}%` 
                       }}
                     ></div>
                     
