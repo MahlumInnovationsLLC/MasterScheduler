@@ -138,7 +138,7 @@ const RESPONSIBILITY_COLORS = {
 };
 
 const OnTimeDeliveryPage: React.FC = () => {
-  const [selectedTimeframe, setSelectedTimeframe] = useState<string>("12");
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string>("all");
   const [selectedResponsibility, setSelectedResponsibility] = useState<string>("all");
 
   // Fetch delivered projects analytics
@@ -365,16 +365,12 @@ const OnTimeDeliveryPage: React.FC = () => {
   const prepareMonthlyTrendsData = () => {
     if (!analytics) return [];
     
-    console.log("📊 Raw monthly trends data:", analytics.monthlyTrends);
-    console.log("📊 Selected timeframe:", selectedTimeframe);
-    
     let filteredData = analytics.monthlyTrends;
     
     // Apply timeframe filtering if not "all"
     if (selectedTimeframe !== "all") {
       const monthsToShow = parseInt(selectedTimeframe);
       filteredData = analytics.monthlyTrends.slice(-monthsToShow);
-      console.log("📊 After timeframe filter:", filteredData);
     }
     
     const processedData = filteredData.map((trend: any) => ({
@@ -384,8 +380,6 @@ const OnTimeDeliveryPage: React.FC = () => {
       "On Time %": trend.onTimePercentage,
       total: trend.total
     }));
-    
-    console.log("📊 Final processed monthly trends data:", processedData);
     
     return processedData;
   };
