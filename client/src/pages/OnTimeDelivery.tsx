@@ -365,13 +365,19 @@ const OnTimeDeliveryPage: React.FC = () => {
   const prepareMonthlyTrendsData = () => {
     if (!analytics) return [];
     
-    return analytics.monthlyTrends.map((trend: any) => ({
+    console.log("📊 Raw monthly trends data:", analytics.monthlyTrends);
+    
+    const processedData = analytics.monthlyTrends.map((trend: any) => ({
       month: format(new Date(trend.month + '-01'), 'MMM yyyy'),
       "On Time": trend.onTime,
       "Late": trend.late,
       "On Time %": trend.onTimePercentage,
       total: trend.total
     }));
+    
+    console.log("📊 Processed monthly trends data:", processedData);
+    
+    return processedData;
   };
 
   if (isLoadingAnalytics || isLoadingProjects) {
