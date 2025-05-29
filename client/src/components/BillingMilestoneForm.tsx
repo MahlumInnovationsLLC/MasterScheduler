@@ -107,11 +107,10 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
   // Create mutation for adding new milestone
   const createMutation = useMutation({
     mutationFn: async (data: BillingMilestoneFormValues) => {
-      const response = await apiRequest("POST", "/api/billing-milestones", {
+      return await apiRequest("POST", "/api/billing-milestones", {
         ...data,
         amount: parseFloat(data.amount),
       });
-      return await response.json();
     },
     onSuccess: () => {
       toast({
@@ -142,11 +141,10 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
   // Update mutation for editing an existing milestone
   const updateMutation = useMutation({
     mutationFn: async (data: BillingMilestoneFormValues) => {
-      const response = await apiRequest("PUT", `/api/billing-milestones/${milestoneId}`, {
+      return await apiRequest("PUT", `/api/billing-milestones/${milestoneId}`, {
         ...data,
         amount: parseFloat(data.amount),
       });
-      return await response.json();
     },
     onSuccess: () => {
       toast({
