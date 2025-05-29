@@ -262,15 +262,84 @@ const OnTimeDeliveryPage: React.FC = () => {
   console.log("🔍 Analytics data:", analytics);
   console.log("🔍 Loading state:", isLoadingAnalytics);
 
+  // Custom tooltip component with proper styling
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-background border border-border rounded-lg shadow-lg p-3 text-foreground">
+          <p className="text-sm font-medium mb-1">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-sm">
+              <span style={{ color: entry.color }}>●</span> {entry.name}: {entry.value}
+              {entry.name.includes('%') ? '%' : ''}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Get current month data
+  const getCurrentMonthData = () => {
+    if (!analytics || !analytics.monthlyTrends || analytics.monthlyTrends.length === 0) {
+      return { percentage: 0, total: 0, onTime: 0, late: 0, month: 'Current Month' };
+    }
+    const currentMonth = analytics.monthlyTrends[analytics.monthlyTrends.length - 1];
+    return {
+      percentage: currentMonth.onTimePercentage || 0,
+      total: currentMonth.total || 0,
+      onTime: currentMonth.onTime || 0,
+      late: currentMonth.late || 0,
+      month: format(new Date(currentMonth.month + '-01'), 'MMMM yyyy')
+    };
+  };
+
+  // Prepare quarterly data
+  const prepareQuarterlyData = () => {
+    if (!analytics || !analytics.monthlyTrends) return [];
+    
+    const quarterlyData = new Map();
+    
+    analytics.monthlyTrends.forEach((month: any) => {
+      const date = new Date(month.month + '-01');
+      const year = date.getFullYear();
+      const quarter = Math.ceil((date.getMonth() + 1) / 3);
+      const key = `Q${quarter} ${year}`;
+      
+      if (!quarterlyData.has(key)) {
+        quarterlyData.set(key, {
+          quarter: key,
+          total: 0,
+          onTime: 0,
+          late: 0,
+          totalDaysLate: 0
+        });
+      }
+      
+      const quarterStats = quarterlyData.get(key);
+      quarterStats.total += month.total || 0;
+      quarterStats.onTime += month.onTime || 0;
+      quarterStats.late += month.late || 0;
+      quarterStats.totalDaysLate += month.totalDaysLate || 0;
+    });
+    
+    return Array.from(quarterlyData.values()).map(quarter => ({
+      ...quarter,
+      onTimePercentage: quarter.total > 0 ? Math.round((quarter.onTime / quarter.total) * 100) : 0,
+      avgDaysLate: quarter.late > 0 ? Math.round((quarter.totalDaysLate / quarter.late) * 10) / 10 : 0
+    })).sort((a, b) => a.quarter.localeCompare(b.quarter)).slice(-8); // Last 8 quarters
+  };
+
   // Prepare chart data
   const prepareResponsibilityPieData = () => {
     if (!analytics || !analytics.responsibilityBreakdown) return [];
     
     return [
-      { name: "Nomad Fault", value: analytics.responsibilityBreakdown.nomad_fault || 0, color: RESPONSIBILITY_COLORS.nomad_fault },
-      { name: "Vendor Fault", value: analytics.responsibilityBreakdown.vendor_fault || 0, color: RESPONSIBILITY_COLORS.vendor_fault },
-      { name: "Client Fault", value: analytics.responsibilityBreakdown.client_fault || 0, color: RESPONSIBILITY_COLORS.client_fault },
-      { name: "Not Applicable", value: analytics.responsibilityBreakdown.not_applicable || 0, color: RESPONSIBILITY_COLORS.not_applicable },
+      { name: "Nomad Fault", value: analytics.responsibilityBreakdown.nomad_fault || 0, color: "#ef4444" },
+      { name: "Vendor Fault", value: analytics.responsibilityBreakdown.vendor_fault || 0, color: "#f59e0b" },
+      { name: "Client Fault", value: analytics.responsibilityBreakdown.client_fault || 0, color: "#3b82f6" },
+      { name: "Not Applicable", value: analytics.responsibilityBreakdown.not_applicable || 0, color: "#6b7280" },
     ].filter(item => item.value > 0);
   };
 
@@ -278,10 +347,10 @@ const OnTimeDeliveryPage: React.FC = () => {
     if (!analytics) return [];
     
     return [
-      { name: "On Time", value: analytics.daysLateDistribution.onTime, color: COLORS.success },
-      { name: "1-7 Days", value: analytics.daysLateDistribution.week1, color: COLORS.warning },
+      { name: "On Time", value: analytics.daysLateDistribution.onTime, color: "#22c55e" },
+      { name: "1-7 Days", value: analytics.daysLateDistribution.week1, color: "#facc15" },
       { name: "8-14 Days", value: analytics.daysLateDistribution.week2, color: "#f97316" },
-      { name: "15-30 Days", value: analytics.daysLateDistribution.month1, color: COLORS.danger },
+      { name: "15-30 Days", value: analytics.daysLateDistribution.month1, color: "#ef4444" },
       { name: "31-60 Days", value: analytics.daysLateDistribution.month2, color: "#dc2626" },
       { name: "60+ Days", value: analytics.daysLateDistribution.longTerm, color: "#991b1b" },
     ].filter(item => item.value > 0);
@@ -290,7 +359,7 @@ const OnTimeDeliveryPage: React.FC = () => {
   const prepareMonthlyTrendsData = () => {
     if (!analytics) return [];
     
-    return analytics.monthlyTrends.map(trend => ({
+    return analytics.monthlyTrends.map((trend: any) => ({
       month: format(new Date(trend.month + '-01'), 'MMM yyyy'),
       "On Time": trend.onTime,
       "Late": trend.late,
@@ -394,6 +463,22 @@ const OnTimeDeliveryPage: React.FC = () => {
                 <div className="text-2xl font-bold text-green-600">{analytics.summary.onTimePercentage}%</div>
                 <p className="text-xs text-muted-foreground">
                   {analytics.summary.onTimeCount} of {analytics.summary.totalProjects} projects
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Current Month</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{getCurrentMonthData().percentage}%</div>
+                <p className="text-xs text-muted-foreground">
+                  {getCurrentMonthData().month}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {getCurrentMonthData().onTime} on time, {getCurrentMonthData().late} late
                 </p>
               </CardContent>
             </Card>
@@ -538,12 +623,35 @@ const OnTimeDeliveryPage: React.FC = () => {
                   <XAxis dataKey="month" />
                   <YAxis yAxisId="left" />
                   <YAxis yAxisId="right" orientation="right" domain={[0, 100]} />
-                  <Tooltip />
+                  <Tooltip content={<CustomTooltip />} />
                   <Legend />
-                  <Bar yAxisId="left" dataKey="On Time" stackId="a" fill={COLORS.success} />
-                  <Bar yAxisId="left" dataKey="Late" stackId="a" fill={COLORS.danger} />
-                  <Line yAxisId="right" type="monotone" dataKey="On Time %" stroke={COLORS.primary} strokeWidth={3} dot={{ fill: COLORS.primary }} />
+                  <Bar yAxisId="left" dataKey="On Time" stackId="a" fill="#22c55e" />
+                  <Bar yAxisId="left" dataKey="Late" stackId="a" fill="#ef4444" />
+                  <Line yAxisId="right" type="monotone" dataKey="On Time %" stroke="#3b82f6" strokeWidth={3} dot={{ fill: "#3b82f6" }} />
                 </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Quarterly Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quarterly Performance</CardTitle>
+              <CardDescription>Quarterly on-time delivery trends</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <ComposedChart data={prepareQuarterlyData()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="quarter" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" domain={[0, 100]} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="onTime" fill="#22c55e" name="On Time" />
+                  <Bar yAxisId="left" dataKey="late" fill="#ef4444" name="Late" />
+                  <Line yAxisId="right" type="monotone" dataKey="onTimePercentage" stroke="#3b82f6" strokeWidth={3} dot={{ fill: "#3b82f6" }} name="On Time %" />
+                </ComposedChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -555,15 +663,18 @@ const OnTimeDeliveryPage: React.FC = () => {
                 <CardDescription>Year-over-year performance comparison</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={analytics.yearlyComparison}>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ComposedChart data={analytics.yearlyComparison}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="year" />
-                    <YAxis />
-                    <Tooltip />
+                    <YAxis yAxisId="left" />
+                    <YAxis yAxisId="right" orientation="right" domain={[0, 100]} />
+                    <Tooltip content={<CustomTooltip />} />
                     <Legend />
-                    <Bar dataKey="onTimePercentage" fill={COLORS.primary} name="On Time %" />
-                  </BarChart>
+                    <Bar yAxisId="left" dataKey="onTime" fill="#22c55e" name="On Time" />
+                    <Bar yAxisId="left" dataKey="late" fill="#ef4444" name="Late" />
+                    <Line yAxisId="right" type="monotone" dataKey="onTimePercentage" stroke="#3b82f6" strokeWidth={3} dot={{ fill: "#3b82f6" }} name="On Time %" />
+                  </ComposedChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
