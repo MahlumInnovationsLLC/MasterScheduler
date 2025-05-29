@@ -276,8 +276,8 @@ const ProjectStatus = () => {
     return projects?.find(p => p.id === selectedProjectId) || null;
   }, [projects, selectedProjectId]);
 
-  // Add the Delivery Dialog component with stable props
-  const DeliveryDialog = useCallback(() => {
+  // Stable Delivery Dialog component to prevent focus loss
+  const StableDeliveryDialog = React.memo(function DeliveryDialogComponent() {
     return (
       <Dialog open={deliveryDialogOpen} onOpenChange={setDeliveryDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
@@ -361,7 +361,7 @@ const ProjectStatus = () => {
         </DialogContent>
       </Dialog>
     );
-  }, [deliveryDialogOpen, selectedProject, deliveryDate, isLateDelivery, deliveryReason, delayResponsibility, responsibilityOptions, handleDeliveryDateChange, handleDeliveryReasonChange, handleDelayResponsibilityChange, handleCloseDialog, handleMarkAsDelivered]);
+  });
 
   // Create stable callback functions for archive dialog
   const handleArchiveReasonChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1914,7 +1914,7 @@ const ProjectStatus = () => {
       )}
       
       {/* Delivery Dialog */}
-      <DeliveryDialog />
+      <StableDeliveryDialog />
       <ArchiveDialog />
     </div>
   );
