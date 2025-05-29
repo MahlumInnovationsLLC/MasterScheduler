@@ -186,8 +186,8 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] max-h-[95vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>{isEdit ? "Edit Billing Milestone" : "Add New Billing Milestone"}</DialogTitle>
           <DialogDescription>
             {isEdit 
@@ -197,8 +197,8 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 flex-1 flex flex-col">
-            <div className="overflow-y-auto pr-1 flex-1 space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+            <div className="overflow-y-auto pr-2 flex-1 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               <FormField
                 control={form.control}
                 name="projectId"
@@ -533,7 +533,7 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
               </div>
             </div>
             
-            <div className="mt-4">
+            <div className="flex-shrink-0 pt-4 border-t bg-white">
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
                   Cancel
