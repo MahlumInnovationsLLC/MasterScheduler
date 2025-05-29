@@ -198,6 +198,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.redirect(307, '/api/auth/user');
   });
 
+  // Auth user endpoint that the frontend expects
+  app.get("/api/auth/user", (req, res) => {
+    // In development mode, return a mock admin user
+    if (process.env.NODE_ENV === 'development') {
+      res.json({
+        id: "dev-user-id",
+        username: "dev-admin",
+        email: "dev@example.com",
+        role: "admin",
+        isApproved: true,
+        firstName: "Development",
+        lastName: "User"
+      });
+      return;
+    }
+
+    // In production, check if user is authenticated
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    res.json(req.user);
+  });
+
   // Error handling middleware for Zod validation
   const validateRequest = (schema: z.ZodSchema<any>) => {
     return (req: Request, res: Response, next: any) => {
@@ -1152,6 +1176,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching billing milestones:", error);
       res.status(500).json({ message: "Error fetching billing milestones" });
+    }
+  });
+
+  // Get billing milestones for a specific project
+  app.get("/api/projects/:id/billing-milestones", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const milestones = await storage.getProjectBillingMilestones(projectId);
+      res.json(milestones);
+    } catch (error) {
+      console.error("Error fetching project billing milestones:", error);
+      res.status(500).json({ message: "Error fetching project billing milestones" });
     }
   });
 
