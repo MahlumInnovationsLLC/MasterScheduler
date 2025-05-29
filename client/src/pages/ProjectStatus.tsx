@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -69,6 +69,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { formatDate, getProjectStatusColor, getProjectScheduleState } from '@/lib/utils';
 import { Project, delayResponsibilityEnum } from '@shared/schema';
+import { DeliveryDialog } from '../components/DeliveryDialog';
 
 // Extend Project type to ensure rawData is included
 interface ProjectWithRawData extends Project {
@@ -84,124 +85,7 @@ interface ProjectRow {
   original: ProjectWithRawData;
 }
 
-// Define delivery dialog component OUTSIDE main component to prevent re-creation
-const DeliveryDialogComponent = React.memo(function DeliveryDialogComponent({
-  isOpen,
-  onClose,
-  selectedProject,
-  deliveryDate,
-  onDeliveryDateChange,
-  isLateDelivery,
-  deliveryReason,
-  onDeliveryReasonChange,
-  delayResponsibility,
-  onDelayResponsibilityChange,
-  responsibilityOptions,
-  onSubmit
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  selectedProject: Project | null;
-  deliveryDate: string;
-  onDeliveryDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  isLateDelivery: boolean;
-  deliveryReason: string;
-  onDeliveryReasonChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  delayResponsibility: string;
-  onDelayResponsibilityChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  responsibilityOptions: string[];
-  onSubmit: () => void;
-}) {
-  console.log("🔄 STABLE DELIVERY DIALOG: Component rendering, isOpen:", isOpen, "project:", selectedProject?.name);
-  
-  if (!isOpen) {
-    return null;
-  }
-  
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Mark Project as Delivered</DialogTitle>
-          <DialogDescription>
-            {selectedProject ? (
-              <>Mark <strong>{selectedProject.name}</strong> (#{selectedProject.projectNumber}) as delivered</>
-            ) : 'Mark project as delivered'}
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="delivery-date" className="text-right">
-              Delivery Date
-            </Label>
-            <Input
-              id="delivery-date"
-              type="date"
-              value={deliveryDate}
-              onChange={onDeliveryDateChange}
-              className="col-span-3"
-            />
-          </div>
-          
-          {isLateDelivery && (
-            <>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <div className="text-right col-span-4">
-                  <div className="text-amber-600 font-semibold flex items-center justify-end">
-                    <AlertTriangle className="h-4 w-4 mr-1" />
-                    Late Delivery Detected
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    This delivery is after the contracted delivery date
-                  </p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="delay-reason" className="text-right">
-                  Delay Reason
-                </Label>
-                <Textarea
-                  id="delay-reason"
-                  value={deliveryReason}
-                  onChange={onDeliveryReasonChange}
-                  placeholder="Explain why the delivery was delayed"
-                  className="col-span-3"
-                  rows={3}
-                />
-              </div>
-              
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="delay-responsibility" className="text-right">
-                  Responsibility
-                </Label>
-                <select
-                  id="delay-responsibility"
-                  value={delayResponsibility}
-                  onChange={onDelayResponsibilityChange}
-                  className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="">-- Select responsibility --</option>
-                  {responsibilityOptions.map(option => (
-                    <option key={option} value={option}>
-                      {option.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </>
-          )}
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={onSubmit}>Mark as Delivered</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-});
+
 
 // Utility function to format column names
 const formatColumnName = (column: string): string => {
@@ -374,24 +258,129 @@ const ProjectStatus = () => {
   };
   
   // Create stable callback functions to prevent re-renders
-  const handleDeliveryDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("🔄 DELIVERY DIALOG: Date change triggered, value:", e.target.value);
+  // Create stable refs for dialog handlers to prevent React.memo from breaking
+  const dialogHandlersRef = useRef({
+    onDateChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      console.log("🔄 STABLE DIALOG: Date change triggered, value:", e.target.value);
+      setDeliveryDate(e.target.value);
+    },
+    onReasonChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      console.log("🔄 STABLE DIALOG: Reason change triggered, value:", e.target.value);
+      setDeliveryReason(e.target.value);
+    },
+    onResponsibilityChange: (e: React.ChangeEvent<HTMLSelectElement>) => {
+      console.log("🔄 STABLE DIALOG: Responsibility change triggered, value:", e.target.value);
+      setDelayResponsibility(e.target.value);
+    },
+    onClose: () => {
+      setDeliveryDialogOpen(false);
+    },
+    onSubmit: async () => {
+      if (!selectedProject) return;
+
+      try {
+        const updateData: any = {
+          status: 'delivered',
+          actualDeliveryDate: deliveryDate
+        };
+
+        if (isLateDelivery && deliveryReason) {
+          updateData.delayReason = deliveryReason;
+        }
+        
+        if (isLateDelivery && delayResponsibility) {
+          updateData.delayResponsibility = delayResponsibility;
+        }
+
+        await apiRequest(`/api/projects/${selectedProject.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(updateData),
+        });
+
+        toast({
+          title: "Success",
+          description: `Project ${selectedProject.name} marked as delivered`,
+        });
+
+        queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+        setDeliveryDialogOpen(false);
+        setSelectedProjectId(null);
+        setDeliveryDate('');
+        setDeliveryReason('');
+        setDelayResponsibility('');
+
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to mark project as delivered",
+          variant: "destructive",
+        });
+      }
+    }
+  });
+
+  // Update refs on every render to capture latest state
+  dialogHandlersRef.current.onDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("🔄 STABLE DIALOG: Date change triggered, value:", e.target.value);
     setDeliveryDate(e.target.value);
-  }, []);
-
-  const handleDeliveryReasonChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    console.log("🔄 DELIVERY DIALOG: Reason change triggered, value:", e.target.value);
+  };
+  
+  dialogHandlersRef.current.onReasonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    console.log("🔄 STABLE DIALOG: Reason change triggered, value:", e.target.value);
     setDeliveryReason(e.target.value);
-  }, []);
-
-  const handleDelayResponsibilityChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    console.log("🔄 DELIVERY DIALOG: Responsibility change triggered, value:", e.target.value);
+  };
+  
+  dialogHandlersRef.current.onResponsibilityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log("🔄 STABLE DIALOG: Responsibility change triggered, value:", e.target.value);
     setDelayResponsibility(e.target.value);
-  }, []);
-
-  const handleCloseDialog = useCallback(() => {
+  };
+  
+  dialogHandlersRef.current.onClose = () => {
     setDeliveryDialogOpen(false);
-  }, []);
+  };
+
+  dialogHandlersRef.current.onSubmit = async () => {
+    if (!selectedProject) return;
+
+    try {
+      const updateData: any = {
+        status: 'delivered',
+        actualDeliveryDate: deliveryDate
+      };
+
+      if (isLateDelivery && deliveryReason) {
+        updateData.delayReason = deliveryReason;
+      }
+      
+      if (isLateDelivery && delayResponsibility) {
+        updateData.delayResponsibility = delayResponsibility;
+      }
+
+      await apiRequest(`/api/projects/${selectedProject.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+      });
+
+      toast({
+        title: "Success",
+        description: `Project ${selectedProject.name} marked as delivered`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      setDeliveryDialogOpen(false);
+      setSelectedProjectId(null);
+      setDeliveryDate('');
+      setDeliveryReason('');
+      setDelayResponsibility('');
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to mark project as delivered",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Memoize the selected project to prevent unnecessary re-renders
   const selectedProject = useMemo(() => {
@@ -1950,21 +1939,136 @@ const ProjectStatus = () => {
         </div>
       )}
       
-      {/* Delivery Dialog */}
-      <DeliveryDialogComponent
-        isOpen={deliveryDialogOpen}
-        onClose={handleCloseDialog}
-        selectedProject={selectedProject}
-        deliveryDate={deliveryDate}
-        onDeliveryDateChange={handleDeliveryDateChange}
-        isLateDelivery={isLateDelivery}
-        deliveryReason={deliveryReason}
-        onDeliveryReasonChange={handleDeliveryReasonChange}
-        delayResponsibility={delayResponsibility}
-        onDelayResponsibilityChange={handleDelayResponsibilityChange}
-        responsibilityOptions={responsibilityOptions}
-        onSubmit={handleMarkAsDelivered}
-      />
+      {/* Delivery Dialog - Only render when open to prevent unnecessary re-renders */}
+      {deliveryDialogOpen && (
+        <Dialog open={deliveryDialogOpen} onOpenChange={setDeliveryDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Mark Project as Delivered</DialogTitle>
+              <DialogDescription>
+                {selectedProject ? (
+                  <>Mark <strong>{selectedProject.name}</strong> (#{selectedProject.projectNumber}) as delivered</>
+                ) : 'Mark project as delivered'}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="delivery-date" className="text-right">
+                  Delivery Date
+                </Label>
+                <Input
+                  id="delivery-date"
+                  type="date"
+                  value={deliveryDate}
+                  onChange={(e) => {
+                    console.log("🔥 FINAL FIX: Date change, value:", e.target.value);
+                    setDeliveryDate(e.target.value);
+                  }}
+                  className="col-span-3"
+                />
+              </div>
+              
+              {isLateDelivery && (
+                <>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <div className="text-right col-span-4">
+                      <div className="text-amber-600 font-semibold flex items-center justify-end">
+                        <AlertTriangle className="h-4 w-4 mr-1" />
+                        Late Delivery Detected
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        This delivery is after the contracted delivery date
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="delay-reason" className="text-right">
+                      Delay Reason
+                    </Label>
+                    <Textarea
+                      id="delay-reason"
+                      value={deliveryReason}
+                      onChange={(e) => {
+                        console.log("🔥 FINAL FIX: Reason change, value:", e.target.value);
+                        setDeliveryReason(e.target.value);
+                      }}
+                      placeholder="Explain why the delivery was delayed"
+                      className="col-span-3"
+                      rows={3}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="delay-responsibility" className="text-right">
+                      Responsibility
+                    </Label>
+                    <select
+                      id="delay-responsibility"
+                      value={delayResponsibility}
+                      onChange={(e) => {
+                        console.log("🔥 FINAL FIX: Responsibility change, value:", e.target.value);
+                        setDelayResponsibility(e.target.value);
+                      }}
+                      className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">-- Select responsibility --</option>
+                      {responsibilityOptions.map(option => (
+                        <option key={option} value={option}>
+                          {option.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeliveryDialogOpen(false)}>Cancel</Button>
+              <Button onClick={async () => {
+                if (!selectedProject) return;
+                try {
+                  const response = await fetch(`/api/projects/${selectedProject.id}/mark-delivered`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      deliveryDate,
+                      lateDeliveryReason: deliveryReason,
+                      delayResponsibility,
+                    }),
+                  });
+
+                  if (!response.ok) {
+                    throw new Error('Failed to mark project as delivered');
+                  }
+
+                  toast({
+                    title: "Success",
+                    description: `Project ${selectedProject.name} marked as delivered`,
+                  });
+                  
+                  queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+                  setDeliveryDialogOpen(false);
+                  setSelectedProjectId(null);
+                  setDeliveryDate('');
+                  setDeliveryReason('');
+                  setDelayResponsibility('');
+                } catch (error) {
+                  toast({
+                    title: "Error",
+                    description: "Failed to mark project as delivered",
+                    variant: "destructive",
+                  });
+                }
+              }}>Mark as Delivered</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
       <ArchiveDialog />
     </div>
   );
