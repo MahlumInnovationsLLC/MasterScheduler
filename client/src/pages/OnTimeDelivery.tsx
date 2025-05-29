@@ -633,19 +633,27 @@ const OnTimeDeliveryPage: React.FC = () => {
               <CardDescription>On-time delivery performance over time</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={prepareMonthlyTrendsData()}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" domain={[0, 100]} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Bar yAxisId="left" dataKey="On Time" stackId="a" fill="#22c55e" />
-                  <Bar yAxisId="left" dataKey="Late" stackId="a" fill="#ef4444" />
-                  <Line yAxisId="right" type="monotone" dataKey="On Time %" stroke="#3b82f6" strokeWidth={3} dot={{ fill: "#3b82f6" }} />
-                </LineChart>
-              </ResponsiveContainer>
+              {(() => {
+                const chartData = prepareMonthlyTrendsData();
+                console.log("🎯 Chart data being passed to LineChart:", chartData);
+                console.log("🎯 Number of data points:", chartData.length);
+                console.log("🎯 Last data point:", chartData[chartData.length - 1]);
+                return (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis yAxisId="left" />
+                      <YAxis yAxisId="right" orientation="right" domain={[0, 100]} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Bar yAxisId="left" dataKey="On Time" stackId="a" fill="#22c55e" />
+                      <Bar yAxisId="left" dataKey="Late" stackId="a" fill="#ef4444" />
+                      <Line yAxisId="right" type="monotone" dataKey="On Time %" stroke="#3b82f6" strokeWidth={3} dot={{ fill: "#3b82f6" }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                );
+              })()}
             </CardContent>
           </Card>
 
