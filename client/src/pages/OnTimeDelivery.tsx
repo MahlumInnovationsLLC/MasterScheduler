@@ -302,10 +302,13 @@ const OnTimeDeliveryPage: React.FC = () => {
     const quarterlyData = new Map();
     
     analytics.monthlyTrends.forEach((month: any) => {
-      const date = new Date(month.month + '-01');
-      const year = date.getFullYear();
-      const quarter = Math.ceil((date.getMonth() + 1) / 3);
-      const key = `Q${quarter} ${year}`;
+      // Fix the date parsing issue like we did for monthly trends
+      const [year, monthNum] = month.month.split('-');
+      const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+      const quarterNum = Math.ceil((date.getMonth() + 1) / 3);
+      const key = `Q${quarterNum} ${year}`;
+      
+      console.log(`📅 Processing ${month.month} -> ${key} (onTime: ${month.onTime}, total: ${month.total})`);
       
       if (!quarterlyData.has(key)) {
         quarterlyData.set(key, {
@@ -324,7 +327,7 @@ const OnTimeDeliveryPage: React.FC = () => {
       quarterStats.totalDaysLate += month.totalDaysLate || 0;
     });
     
-    return Array.from(quarterlyData.values()).map(quarter => ({
+    const result = Array.from(quarterlyData.values()).map(quarter => ({
       ...quarter,
       onTimePercentage: quarter.total > 0 ? Math.round((quarter.onTime / quarter.total) * 100) : 0,
       avgDaysLate: quarter.late > 0 ? Math.round((quarter.totalDaysLate / quarter.late) * 10) / 10 : 0
@@ -335,6 +338,9 @@ const OnTimeDeliveryPage: React.FC = () => {
       if (aY !== bY) return parseInt(aY) - parseInt(bY);
       return parseInt(aQ.replace('Q', '')) - parseInt(bQ.replace('Q', ''));
     }).slice(-8); // Last 8 quarters
+    
+    console.log("📊 Final quarterly data:", result);
+    return result;
   };
 
   // Prepare chart data
