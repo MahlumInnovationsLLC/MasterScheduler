@@ -63,25 +63,32 @@ export function DataTable<TData, TValue>({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState<string>("");
-  const [pageIndex, setPageIndex] = useState<number>(0);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // Load saved pagination state on mount
-  useEffect(() => {
+  // Initialize pageIndex with saved value immediately
+  const getInitialPageIndex = () => {
     if (persistenceKey && typeof window !== 'undefined') {
       const saved = localStorage.getItem(`datatable-page-${persistenceKey}`);
       if (saved) {
         try {
           const savedPage = parseInt(saved, 10);
           if (!isNaN(savedPage) && savedPage >= 0) {
-            setPageIndex(savedPage);
+            console.log("🔄 PAGINATION: Initializing with saved page", savedPage, "for key", persistenceKey);
+            return savedPage;
           }
         } catch (e) {
           // Ignore invalid saved data
         }
       }
     }
-  }, [persistenceKey]);
+    return 0;
+  };
+
+  const [pageIndex, setPageIndex] = useState<number>(getInitialPageIndex);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Debug logging for pagination changes
+  useEffect(() => {
+    console.log("🔄 PAGINATION: Current pageIndex state:", pageIndex);
+  }, [pageIndex]);
 
   // Save pagination state when it changes
   useEffect(() => {
@@ -160,10 +167,14 @@ export function DataTable<TData, TValue>({
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: (updater) => {
+      console.log("🔄 PAGINATION: onPaginationChange called with:", updater);
       if (typeof updater === 'function') {
-        const newPagination = updater({ pageIndex, pageSize: 10 });
+        const currentPagination = { pageIndex, pageSize: 10 };
+        const newPagination = updater(currentPagination);
+        console.log("🔄 PAGINATION: Function updater - from", currentPagination, "to", newPagination);
         setPageIndex(newPagination.pageIndex);
       } else {
+        console.log("🔄 PAGINATION: Direct updater - setting pageIndex to", updater.pageIndex);
         setPageIndex(updater.pageIndex);
       }
     },
