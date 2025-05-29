@@ -3677,12 +3677,11 @@ export default function ResizableBaySchedule({
                             console.log(`🔍 COMPLETE BAR DATA:`, JSON.stringify(bar, null, 2));
                           }
                           
-                          {(() => {
-                            // Find the project for this bar to check if it's a sales estimate
-                            const project = projects.find(p => p.id === bar.projectId);
-                            const isSalesEstimate = project?.isSalesEstimate;
-                            
-                            return bar.bayId === bay.id && (
+                          // Find the project for this bar to check if it's a sales estimate
+                          const project = projects.find(p => p.id === bar.projectId);
+                          const isSalesEstimate = project?.isSalesEstimate;
+                          
+                          return bar.bayId === bay.id && (
                             <div
                               key={`schedule-bar-${bar.id}`}
                               className={`schedule-bar absolute p-1 text-white text-xs rounded cursor-grab z-20 row-${bar.row}-bar ${isSalesEstimate ? 'animate-pulse' : ''}`}
@@ -3855,7 +3854,7 @@ export default function ResizableBaySchedule({
                               {/* Removed resize handles from inside project container to fix z-index issues */}
                             </div>
                           );
-                          })()}
+                        })}
                         
                         {/* RESIZE HANDLES - Rendered OUTSIDE project containers to fix z-index layering */}
                         {scheduleBars.map((bar) => {
