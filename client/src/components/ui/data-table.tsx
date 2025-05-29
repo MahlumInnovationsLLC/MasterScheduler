@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -46,6 +46,7 @@ interface DataTableProps<TData, TValue> {
   showPagination?: boolean;
   frozenColumns?: string[]; // Names of column IDs to freeze
   enableSorting?: boolean; // Control whether sorting is enabled
+  persistenceKey?: string; // Unique key for persisting pagination state
 }
 
 export function DataTable<TData, TValue>({
@@ -57,11 +58,37 @@ export function DataTable<TData, TValue>({
   showPagination = true,
   frozenColumns = [],
   enableSorting = true,
+  persistenceKey,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState<string>("");
+  const [pageIndex, setPageIndex] = useState<number>(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Load saved pagination state on mount
+  useEffect(() => {
+    if (persistenceKey && typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`datatable-page-${persistenceKey}`);
+      if (saved) {
+        try {
+          const savedPage = parseInt(saved, 10);
+          if (!isNaN(savedPage) && savedPage >= 0) {
+            setPageIndex(savedPage);
+          }
+        } catch (e) {
+          // Ignore invalid saved data
+        }
+      }
+    }
+  }, [persistenceKey]);
+
+  // Save pagination state when it changes
+  useEffect(() => {
+    if (persistenceKey && typeof window !== 'undefined') {
+      localStorage.setItem(`datatable-page-${persistenceKey}`, pageIndex.toString());
+    }
+  }, [pageIndex, persistenceKey]);
 
   // Focus-preserving global filter handler
   const handleGlobalFilterChange = useCallback((value: string) => {
@@ -132,10 +159,19 @@ export function DataTable<TData, TValue>({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: (updater) => {
+      if (typeof updater === 'function') {
+        const newPagination = updater({ pageIndex, pageSize: 10 });
+        setPageIndex(newPagination.pageIndex);
+      } else {
+        setPageIndex(updater.pageIndex);
+      }
+    },
     state: {
       sorting,
       columnFilters,
       globalFilter,
+      pagination: { pageIndex, pageSize: 10 },
     },
   });
 

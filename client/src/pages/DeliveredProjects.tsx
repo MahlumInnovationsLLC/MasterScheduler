@@ -699,6 +699,7 @@ const DeliveredProjects = () => {
             data={deliveredProjects}
             searchPlaceholder="Filter projects..."
             filterColumn="projectNumber"
+            persistenceKey="delivered-projects"
           />
         ) : (
           <div className="flex flex-col items-center justify-center p-8 text-center border border-dashed border-gray-700 rounded-lg">
