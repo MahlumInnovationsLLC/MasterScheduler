@@ -18,12 +18,10 @@ interface DeliveryDialogProps {
 }
 
 const responsibilityOptions = [
-  'client_modification',
-  'third_party_equipment_install',
-  'vendor_fault',
-  'weather',
-  'client_requested_delay',
-  'other'
+  'nomad_fault',
+  'vendor_fault', 
+  'client_fault',
+  'not_applicable'
 ];
 
 export const DeliveryDialog = memo(({ open, onOpenChange, project }: DeliveryDialogProps) => {
