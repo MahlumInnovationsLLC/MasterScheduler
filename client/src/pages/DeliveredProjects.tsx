@@ -249,11 +249,13 @@ const DeliveredProjects = () => {
     onSuccess: () => {
       // Reset editing state immediately to prevent focus issues
       setEditingResponsibility(null);
-      // COMPLETELY DISABLE CACHE INVALIDATION TO PREVENT FOCUS LOSS
-      // Data will refresh on page reload or manual refresh
-      // setTimeout(() => {
-      //   queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
-      // }, 300);
+      
+      // Re-enable cache invalidation with a small delay to prevent focus issues
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects/analytics'] });
+      }, 100);
+      
       toast({ title: "Success", description: "Responsibility updated successfully" });
     },
     onError: () => {
