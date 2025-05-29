@@ -366,8 +366,18 @@ const OnTimeDeliveryPage: React.FC = () => {
     if (!analytics) return [];
     
     console.log("📊 Raw monthly trends data:", analytics.monthlyTrends);
+    console.log("📊 Selected timeframe:", selectedTimeframe);
     
-    const processedData = analytics.monthlyTrends.map((trend: any) => ({
+    let filteredData = analytics.monthlyTrends;
+    
+    // Apply timeframe filtering if not "all"
+    if (selectedTimeframe !== "all") {
+      const monthsToShow = parseInt(selectedTimeframe);
+      filteredData = analytics.monthlyTrends.slice(-monthsToShow);
+      console.log("📊 After timeframe filter:", filteredData);
+    }
+    
+    const processedData = filteredData.map((trend: any) => ({
       month: format(new Date(trend.month + '-01'), 'MMM yyyy'),
       "On Time": trend.onTime,
       "Late": trend.late,
@@ -375,7 +385,7 @@ const OnTimeDeliveryPage: React.FC = () => {
       total: trend.total
     }));
     
-    console.log("📊 Processed monthly trends data:", processedData);
+    console.log("📊 Final processed monthly trends data:", processedData);
     
     return processedData;
   };
