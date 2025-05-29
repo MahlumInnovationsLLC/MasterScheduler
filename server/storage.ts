@@ -1999,25 +1999,38 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("🔥🔥🔥 STORAGE: Starting responsibility update for project", projectId, "with value:", responsibility);
       
-      const result = await db.update(projects)
-        .set({ delayResponsibility: responsibility as any })
-        .where(eq(projects.id, projectId));
+      // First, let's verify the project exists
+      const existingProject = await this.getProject(projectId);
+      if (!existingProject) {
+        console.error("💥 STORAGE: Project not found with ID:", projectId);
+        return false;
+      }
       
-      console.log("🔥🔥🔥 STORAGE: Responsibility update result:", result);
-      console.log("🔥🔥🔥 STORAGE: Result type:", typeof result);
-      console.log("🔥🔥🔥 STORAGE: Result stringified:", JSON.stringify(result));
+      console.log("🔥🔥🔥 STORAGE: Project exists, proceeding with update");
       
-      // Check if the update actually affected any rows (PostgreSQL uses rowCount, not changes)
-      if (result && result.rowCount && result.rowCount > 0) {
-        console.log("🎉 STORAGE: Successfully updated", result.rowCount, "rows for responsibility");
+      // Use the same pattern as other successful updates in storage
+      const [updatedProject] = await db.update(projects)
+        .set({ 
+          delayResponsibility: responsibility as any,
+          updatedAt: new Date()
+        })
+        .where(eq(projects.id, projectId))
+        .returning();
+      
+      if (updatedProject) {
+        console.log("🎉 STORAGE: Successfully updated responsibility for project", projectId, "to:", responsibility);
         return true;
       } else {
-        console.log("💥 STORAGE: No rows were updated for responsibility - this is the problem!");
-        console.log("💥 STORAGE: Result.rowCount:", result?.rowCount);
+        console.log("💥 STORAGE: Update completed but no project returned");
         return false;
       }
     } catch (error) {
       console.error("💥💥💥 STORAGE RESPONSIBILITY ERROR:", error);
+      // Log the specific error details
+      if (error instanceof Error) {
+        console.error("💥💥💥 Error message:", error.message);
+        console.error("💥💥💥 Error stack:", error.stack);
+      }
       return false;
     }
   }

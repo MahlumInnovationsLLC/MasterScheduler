@@ -519,12 +519,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.lateDeliveryReason = lateDeliveryReason;
       }
       
-      if (delayResponsibility) {
-        updateData.delayResponsibility = delayResponsibility;
-      }
+      console.log("🚀 DELIVERY API: Updating project with data:", JSON.stringify(updateData, null, 2));
       
-      // Update the project
+      // Update the project first
       const updatedProject = await storage.updateProject(id, updateData);
+      
+      // Handle delay responsibility separately using the specific method
+      if (delayResponsibility && delayResponsibility !== 'not_applicable') {
+        console.log("🚀 DELIVERY API: Updating delay responsibility:", delayResponsibility);
+        try {
+          const responsibilitySuccess = await storage.updateDeliveredProjectResponsibility(id, delayResponsibility);
+          if (!responsibilitySuccess) {
+            console.warn("⚠️ DELIVERY API: Failed to update delay responsibility, but project delivery was successful");
+            // Return a partial success response
+            return res.status(200).json({ 
+              ...updatedProject, 
+              warning: "Project delivered successfully but responsibility update failed" 
+            });
+          } else {
+            console.log("✅ DELIVERY API: Successfully updated delay responsibility");
+          }
+        } catch (error) {
+          console.error("🔥 DELIVERY API: Error updating delay responsibility:", error);
+          // Return partial success since the main delivery worked
+          return res.status(200).json({ 
+            ...updatedProject, 
+            warning: "Project delivered successfully but responsibility update failed" 
+          });
+        }
+      }
       
       // Create a notification for the delivery
       const deliveryStatus = isDeliveredOnTime ? "on time" : "late";
