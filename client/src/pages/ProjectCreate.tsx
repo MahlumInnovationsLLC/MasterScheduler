@@ -375,24 +375,34 @@ export default function ProjectCreate() {
                   <FormField
                     control={form.control}
                     name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            key="description-field"
-                            placeholder="Enter project description"
-                            className="min-h-[100px]"
-                            value={field.value || ''}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            name={field.name}
-                            ref={field.ref}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const [localValue, setLocalValue] = React.useState(field.value || '');
+                      
+                      React.useEffect(() => {
+                        setLocalValue(field.value || '');
+                      }, [field.value]);
+                      
+                      return (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Enter project description"
+                              className="min-h-[100px]"
+                              value={localValue}
+                              onChange={(e) => {
+                                setLocalValue(e.target.value);
+                                field.onChange(e.target.value);
+                              }}
+                              onBlur={field.onBlur}
+                              name={field.name}
+                              ref={field.ref}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   
                   <Separator className="my-4" />
