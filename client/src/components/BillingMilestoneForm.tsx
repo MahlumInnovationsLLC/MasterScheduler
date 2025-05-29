@@ -46,7 +46,7 @@ const formSchema = z.object({
     .refine(val => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
       message: "Amount must be a positive number",
     }),
-  targetInvoiceDate: z.string().min(1, "Target invoice date is required"),
+  targetInvoiceDate: z.string().optional(),
   actualInvoiceDate: z.string().optional(),
   paymentReceivedDate: z.string().optional(),
   status: z.enum(["upcoming", "invoiced", "paid", "delayed"]),
@@ -186,7 +186,7 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[95vh] flex flex-col">
+      <DialogContent className="sm:max-w-[700px] max-h-[95vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>{isEdit ? "Edit Billing Milestone" : "Add New Billing Milestone"}</DialogTitle>
           <DialogDescription>
@@ -533,7 +533,7 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
               </div>
             </div>
             
-            <div className="flex-shrink-0 pt-4 border-t bg-white">
+            <div className="flex-shrink-0 pt-4 border-t">
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
                   Cancel
