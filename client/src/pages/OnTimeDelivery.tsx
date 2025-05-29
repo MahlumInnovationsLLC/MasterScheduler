@@ -373,13 +373,18 @@ const OnTimeDeliveryPage: React.FC = () => {
       filteredData = analytics.monthlyTrends.slice(-monthsToShow);
     }
     
-    const processedData = filteredData.map((trend: any) => ({
-      month: format(new Date(trend.month + '-01'), 'MMM yyyy'),
-      "On Time": trend.onTime,
-      "Late": trend.late,
-      "On Time %": trend.onTimePercentage,
-      total: trend.total
-    }));
+    const processedData = filteredData.map((trend: any) => {
+      // Parse the YYYY-MM format correctly
+      const [year, month] = trend.month.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, 1); // month - 1 because JS months are 0-indexed
+      return {
+        month: format(date, 'MMM yyyy'),
+        "On Time": trend.onTime,
+        "Late": trend.late,
+        "On Time %": trend.onTimePercentage,
+        total: trend.total
+      };
+    });
     
     return processedData;
   };
