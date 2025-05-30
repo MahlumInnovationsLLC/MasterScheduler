@@ -1979,7 +1979,7 @@ export class DatabaseStorage implements IStorage {
     return await safeQuery<Project>(() =>
       db.select()
         .from(projects)
-        .where(eq(projects.status, 'delivered'))
+        .where(sql`'delivered' = ANY(${projects.status})`)
         .orderBy(desc(projects.deliveryDate))
     );
   }
