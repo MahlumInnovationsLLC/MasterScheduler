@@ -177,22 +177,45 @@ const OnTimeDeliveryPage: React.FC = () => {
     }
   };
 
-  // Filter projects based on selected responsibility
-  const filteredProjects = deliveredProjects?.filter(project => {
-    if (selectedResponsibility === "all") return true;
-    return project.delayResponsibility === selectedResponsibility;
-  }) || [];
+  // Filter projects based on selected responsibility and timeframe
+  const filteredProjects = useMemo(() => {
+    if (!deliveredProjects) return [];
+    
+    return deliveredProjects.filter(project => {
+      // Filter by responsibility
+      if (selectedResponsibility !== "all" && project.delayResponsibility !== selectedResponsibility) {
+        return false;
+      }
+      
+      // Filter by timeframe
+      if (selectedTimeframe !== "all" && project.deliveryDate) {
+        const deliveryDate = new Date(project.deliveryDate);
+        const cutoffDate = new Date();
+        cutoffDate.setMonth(cutoffDate.getMonth() - parseInt(selectedTimeframe));
+        
+        if (deliveryDate < cutoffDate) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [deliveredProjects, selectedResponsibility, selectedTimeframe]);
 
-  // Enhanced data processing for charts
+  // Enhanced data processing for charts using filtered projects
   const processedData = useMemo(() => {
-    if (!analytics) return null;
+    if (!filteredProjects) return null;
 
-    // Use real analytics data with proper type checking
-    const summary = analytics.summary || {};
-    const responsibilityBreakdown = analytics.responsibilityBreakdown || {};
-    const daysLateDistribution = analytics.daysLateDistribution || {};
-    const monthlyTrends = analytics.monthlyTrends || [];
-    const yearlyComparison = analytics.yearlyComparison || [];
+    // Calculate statistics from filtered projects
+    const totalProjects = filteredProjects.length;
+    const onTimeProjects = filteredProjects.filter(p => p.daysLate <= 0).length;
+    const lateProjects = totalProjects - onTimeProjects;
+
+    // Responsibility breakdown from filtered projects
+    const responsibilityBreakdown = filteredProjects.reduce((acc, project) => {
+      acc[project.delayResponsibility] = (acc[project.delayResponsibility] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
     // Responsibility breakdown for pie chart - only show categories with data
     const responsibilityData = Object.entries(responsibilityBreakdown)
@@ -200,43 +223,75 @@ const OnTimeDeliveryPage: React.FC = () => {
       .map(([key, count]) => ({
         name: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
         value: count as number,
-        percentage: summary.totalProjects > 0 ? Math.round(((count as number) / summary.totalProjects) * 100) : 0,
+        percentage: totalProjects > 0 ? Math.round((count / totalProjects) * 100) : 0,
         color: getResponsibilityColor(key)
       }));
 
+    // Days late distribution from filtered projects
+    const daysLateDistribution = filteredProjects.reduce((acc, project) => {
+      if (project.daysLate <= 0) acc.onTime++;
+      else if (project.daysLate <= 7) acc.week1++;
+      else if (project.daysLate <= 14) acc.week2++;
+      else if (project.daysLate <= 30) acc.month1++;
+      else if (project.daysLate <= 60) acc.month2++;
+      else acc.longTerm++;
+      return acc;
+    }, { onTime: 0, week1: 0, week2: 0, month1: 0, month2: 0, longTerm: 0 });
+
     // Days late distribution for bar chart
     const distributionData = [
-      { category: 'On Time', count: daysLateDistribution.onTime || 0, color: '#22c55e', range: '0 days' },
-      { category: '1-7 Days', count: daysLateDistribution.week1 || 0, color: '#facc15', range: '1-7 days' },
-      { category: '8-14 Days', count: daysLateDistribution.week2 || 0, color: '#f97316', range: '8-14 days' },
-      { category: '15-30 Days', count: daysLateDistribution.month1 || 0, color: '#ef4444', range: '15-30 days' },
-      { category: '31-60 Days', count: daysLateDistribution.month2 || 0, color: '#dc2626', range: '31-60 days' },
-      { category: '60+ Days', count: daysLateDistribution.longTerm || 0, color: '#991b1b', range: '60+ days' }
+      { category: 'On Time', count: daysLateDistribution.onTime, color: '#22c55e', range: '0 days' },
+      { category: '1-7 Days', count: daysLateDistribution.week1, color: '#facc15', range: '1-7 days' },
+      { category: '8-14 Days', count: daysLateDistribution.week2, color: '#f97316', range: '8-14 days' },
+      { category: '15-30 Days', count: daysLateDistribution.month1, color: '#ef4444', range: '15-30 days' },
+      { category: '31-60 Days', count: daysLateDistribution.month2, color: '#dc2626', range: '31-60 days' },
+      { category: '60+ Days', count: daysLateDistribution.longTerm, color: '#991b1b', range: '60+ days' }
     ];
 
-    // Process monthly trends
-    const monthlyTrendsWithTrend = monthlyTrends.map((month: any, index: number) => {
-      const prevMonth = monthlyTrends[index - 1];
-      let trend = 0;
-      if (prevMonth && prevMonth.onTimePercentage !== undefined) {
-        trend = month.onTimePercentage - prevMonth.onTimePercentage;
-      }
+    // Delay responsibility bar chart data
+    const responsibilityBarData = [
+      { name: 'Nomad Fault', count: responsibilityBreakdown.nomad_fault || 0, color: '#ef4444' },
+      { name: 'Vendor Fault', count: responsibilityBreakdown.vendor_fault || 0, color: '#f59e0b' },
+      { name: 'Client Fault', count: responsibilityBreakdown.client_fault || 0, color: '#3b82f6' },
+      { name: 'Not Applicable', count: responsibilityBreakdown.not_applicable || 0, color: '#6b7280' }
+    ];
+
+    // Monthly trends for responsibility over time
+    const monthlyResponsibilityTrends = filteredProjects.reduce((acc, project) => {
+      if (!project.deliveryDate) return acc;
       
-      return {
-        ...month,
-        monthDisplay: month.month ? format(new Date(month.month + '-01'), 'MMM yyyy') : 'Unknown',
-        trend,
-        trendDirection: trend > 0 ? 'up' : trend < 0 ? 'down' : 'stable'
-      };
-    });
+      const month = format(new Date(project.deliveryDate), 'yyyy-MM');
+      if (!acc[month]) {
+        acc[month] = { nomad_fault: 0, vendor_fault: 0, client_fault: 0, not_applicable: 0 };
+      }
+      acc[month][project.delayResponsibility]++;
+      return acc;
+    }, {} as Record<string, Record<string, number>>);
+
+    const monthlyTrendsData = Object.entries(monthlyResponsibilityTrends)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, data]) => ({
+        month: format(new Date(month + '-01'), 'MMM yyyy'),
+        nomadFault: data.nomad_fault,
+        vendorFault: data.vendor_fault,
+        clientFault: data.client_fault,
+        notApplicable: data.not_applicable,
+        total: Object.values(data).reduce((sum, count) => sum + count, 0)
+      }));
 
     return {
+      summary: {
+        totalProjects,
+        onTimeProjects,
+        lateProjects,
+        onTimePercentage: totalProjects > 0 ? Math.round((onTimeProjects / totalProjects) * 100) : 0
+      },
       responsibilityData,
       distributionData,
-      monthlyTrendsWithTrend,
-      yearlyComparison
+      responsibilityBarData,
+      monthlyTrendsData
     };
-  }, [analytics]);
+  }, [filteredProjects]);
 
   const getResponsibilityBadge = (responsibility: string | null) => {
     switch (responsibility) {
@@ -445,10 +500,11 @@ const OnTimeDeliveryPage: React.FC = () => {
         <h1 className="text-3xl font-bold">On Time Delivery Analytics</h1>
         <div className="flex gap-4">
           <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="3">Last Quarter</SelectItem>
               <SelectItem value="6">Last 6 months</SelectItem>
               <SelectItem value="12">Last 12 months</SelectItem>
               <SelectItem value="24">Last 24 months</SelectItem>
@@ -459,7 +515,7 @@ const OnTimeDeliveryPage: React.FC = () => {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="trends">Trends</TabsTrigger>
           <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
