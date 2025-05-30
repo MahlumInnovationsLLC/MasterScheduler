@@ -445,15 +445,18 @@ const OnTimeDeliveryPage: React.FC = () => {
     const onTimeProjects = filteredProjects.filter(p => p.daysLate <= 0).length;
     const lateProjects = totalProjects - onTimeProjects;
 
-    // Responsibility breakdown from filtered projects
+    // Responsibility breakdown from filtered projects - exclude not_applicable
     const responsibilityBreakdown = filteredProjects.reduce((acc, project) => {
-      acc[project.delayResponsibility] = (acc[project.delayResponsibility] || 0) + 1;
+      // Skip not_applicable entries
+      if (project.delayResponsibility && project.delayResponsibility !== 'not_applicable') {
+        acc[project.delayResponsibility] = (acc[project.delayResponsibility] || 0) + 1;
+      }
       return acc;
     }, {} as Record<string, number>);
 
-    // Responsibility breakdown for pie chart - only show categories with data
+    // Responsibility breakdown for pie chart - only show meaningful categories
     const responsibilityData = Object.entries(responsibilityBreakdown)
-      .filter(([_, count]) => count > 0)
+      .filter(([key, count]) => count > 0 && key !== 'not_applicable')
       .map(([key, count]) => ({
         name: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
         value: count as number,
@@ -632,7 +635,7 @@ const OnTimeDeliveryPage: React.FC = () => {
     }).slice(-8); // Last 8 quarters
   };
 
-  // Prepare chart data
+  // Prepare chart data - exclude not_applicable values
   const prepareResponsibilityPieData = () => {
     if (!analytics || !analytics.responsibilityBreakdown) return [];
     
@@ -640,7 +643,7 @@ const OnTimeDeliveryPage: React.FC = () => {
       { name: "Nomad Fault", value: analytics.responsibilityBreakdown.nomad_fault || 0, color: "#ef4444" },
       { name: "Vendor Fault", value: analytics.responsibilityBreakdown.vendor_fault || 0, color: "#f59e0b" },
       { name: "Client Fault", value: analytics.responsibilityBreakdown.client_fault || 0, color: "#3b82f6" },
-      { name: "Not Applicable", value: analytics.responsibilityBreakdown.not_applicable || 0, color: "#6b7280" },
+      // Removed "Not Applicable" to match updated UI consistency
     ].filter(item => item.value > 0);
   };
 
@@ -1031,7 +1034,7 @@ const OnTimeDeliveryPage: React.FC = () => {
                 </ResponsiveContainer>
                 
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div className="text-center p-4 border rounded-lg">
                       <div className="text-2xl font-bold text-red-600">
                         {processedData?.responsibilityBarData?.find(d => d.name === 'Nomad Fault')?.count || 0}
@@ -1049,12 +1052,6 @@ const OnTimeDeliveryPage: React.FC = () => {
                         {processedData?.responsibilityBarData?.find(d => d.name === 'Client Fault')?.count || 0}
                       </div>
                       <div className="text-sm text-muted-foreground">Client Fault</div>
-                    </div>
-                    <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-gray-600">
-                        {processedData?.responsibilityBarData?.find(d => d.name === 'Not Applicable')?.count || 0}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Not Applicable</div>
                     </div>
                   </div>
                 </div>
