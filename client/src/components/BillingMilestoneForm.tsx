@@ -111,7 +111,8 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
       
       const requestData = {
         ...data,
-        amount: parseFloat(data.amount),
+        // Keep amount as string since the schema expects it
+        amount: data.amount,
       };
       
       console.log("📤 Sending to API:", JSON.stringify(requestData, null, 2));
@@ -149,7 +150,8 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
     mutationFn: async (data: BillingMilestoneFormValues) => {
       return await apiRequest("PUT", `/api/billing-milestones/${milestoneId}`, {
         ...data,
-        amount: parseFloat(data.amount),
+        // Keep amount as string since the schema expects it
+        amount: data.amount,
       });
     },
     onSuccess: () => {
