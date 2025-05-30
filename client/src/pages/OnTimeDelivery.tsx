@@ -168,10 +168,8 @@ const AIInsightsTab: React.FC<AIInsightsTabProps> = ({ filteredProjects, selecte
         responsibility: p.delayResponsibility
       }));
 
-      return apiRequest("/api/ai/analyze-delays", {
-        method: "POST",
-        body: { delays: delayDescriptions }
-      });
+      const response = await apiRequest("POST", "/api/ai/analyze-delays", { delays: delayDescriptions });
+      return response.json();
     },
     onSuccess: (data) => {
       setInsights(data);
