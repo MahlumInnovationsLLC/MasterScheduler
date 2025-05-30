@@ -664,30 +664,23 @@ const OnTimeDeliveryPage: React.FC = () => {
 
   // Prepare monthly responsibility trends data 
   const prepareMonthlyResponsibilityTrendsData = () => {
-    if (!deliveredProjects || !analytics?.monthlyTrends) {
-      console.log('🚫 Missing data for monthly responsibility trends:', { 
-        hasDeliveredProjects: !!deliveredProjects, 
-        hasMonthlyTrends: !!analytics?.monthlyTrends 
-      });
-      return [];
-    }
-    
-    console.log('📊 Processing monthly responsibility trends for', analytics.monthlyTrends.length, 'months');
+    if (!deliveredProjects || !analytics?.monthlyTrends) return [];
     
     // Use all monthly trends from API (includes May 2025)
-    const result = analytics.monthlyTrends.map((trend: any) => {
+    return analytics.monthlyTrends.map((trend: any) => {
       const [year, month] = trend.month.split('-');
       const date = new Date(parseInt(year), parseInt(month) - 1, 1);
       
       // Get projects for this month excluding not_applicable responsibility
       const monthProjects = deliveredProjects.filter((project: any) => {
-        if (!project.actualDeliveryDate || project.delayResponsibility === 'not_applicable') return false;
-        const deliveryDate = new Date(project.actualDeliveryDate);
+        // Check both actualDeliveryDate and deliveryDate fields
+        const projectDate = project.actualDeliveryDate || project.deliveryDate;
+        if (!projectDate || project.delayResponsibility === 'not_applicable') return false;
+        
+        const deliveryDate = new Date(projectDate);
         return deliveryDate.getFullYear() === parseInt(year) && 
                deliveryDate.getMonth() === parseInt(month) - 1;
       });
-      
-      console.log(`📅 ${trend.month}: Found ${monthProjects.length} projects with responsibility data`);
       
       // Count each responsibility type
       const counts = monthProjects.reduce((acc: any, project: any) => {
@@ -698,19 +691,13 @@ const OnTimeDeliveryPage: React.FC = () => {
         return acc;
       }, { nomad_fault: 0, vendor_fault: 0, client_fault: 0 });
       
-      const monthData = {
+      return {
         month: format(date, 'MMM yy'),
         nomadFault: counts.nomad_fault,
         vendorFault: counts.vendor_fault,
         clientFault: counts.client_fault
       };
-      
-      console.log(`📊 ${trend.month} data:`, monthData);
-      return monthData;
     });
-    
-    console.log('📈 Final monthly responsibility data:', result);
-    return result;
   };
 
   const prepareMonthlyTrendsData = () => {
