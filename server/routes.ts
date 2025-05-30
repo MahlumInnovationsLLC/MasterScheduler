@@ -1934,6 +1934,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/billing-milestones/:id", async (req, res) => {
+    try {
+      const milestoneId = parseInt(req.params.id);
+      const milestone = await storage.getBillingMilestone(milestoneId);
+      if (!milestone) {
+        return res.status(404).json({ message: "Billing milestone not found" });
+      }
+      res.json(milestone);
+    } catch (error) {
+      console.error("Error fetching billing milestone:", error);
+      res.status(500).json({ message: "Error fetching billing milestone" });
+    }
+  });
+
   app.put("/api/billing-milestones/:id", hasEditRights, async (req, res) => {
     try {
       const milestoneId = parseInt(req.params.id);

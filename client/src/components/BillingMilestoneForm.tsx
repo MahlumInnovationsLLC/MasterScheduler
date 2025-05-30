@@ -87,10 +87,32 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
     queryKey: ['/api/projects'],
   });
 
-  // Define form with defaultValues
+  // Get existing milestone data for editing
+  const { data: existingMilestone, isLoading: isLoadingMilestone } = useQuery({
+    queryKey: ['/api/billing-milestones', milestoneId],
+    queryFn: async () => {
+      if (!isEdit || !milestoneId) return null;
+      const response = await fetch(`/api/billing-milestones/${milestoneId}`);
+      if (!response.ok) throw new Error('Failed to fetch milestone');
+      return response.json();
+    },
+    enabled: isEdit && !!milestoneId,
+  });
+
+  // Define form with defaultValues, using existing milestone data when editing
   const form = useForm<BillingMilestoneFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: isEdit && existingMilestone ? {
+      projectId: existingMilestone.projectId,
+      name: existingMilestone.name,
+      description: existingMilestone.description || "",
+      amount: existingMilestone.amount,
+      targetInvoiceDate: existingMilestone.targetInvoiceDate || "",
+      actualInvoiceDate: existingMilestone.actualInvoiceDate || "",
+      paymentReceivedDate: existingMilestone.paymentReceivedDate || "",
+      status: existingMilestone.status || "upcoming",
+      isDeliveryMilestone: existingMilestone.isDeliveryMilestone || false,
+    } : {
       projectId: projectId || 0,
       name: "",
       description: "",
@@ -103,6 +125,23 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
       ...defaultValues,
     },
   });
+
+  // Reset form when existingMilestone data loads
+  React.useEffect(() => {
+    if (isEdit && existingMilestone) {
+      form.reset({
+        projectId: existingMilestone.projectId,
+        name: existingMilestone.name,
+        description: existingMilestone.description || "",
+        amount: existingMilestone.amount,
+        targetInvoiceDate: existingMilestone.targetInvoiceDate || "",
+        actualInvoiceDate: existingMilestone.actualInvoiceDate || "",
+        paymentReceivedDate: existingMilestone.paymentReceivedDate || "",
+        status: existingMilestone.status || "upcoming",
+        isDeliveryMilestone: existingMilestone.isDeliveryMilestone || false,
+      });
+    }
+  }, [isEdit, existingMilestone, form]);
 
   // Create mutation for adding new milestone
   const createMutation = useMutation({
@@ -124,14 +163,15 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
         title: "Success",
         description: "Billing milestone created successfully",
       });
-      // DISABLED TO PREVENT FOCUS LOSS - Data will refresh on page reload
-      // queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
-      // queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      
+      // Enable cache invalidation so data appears immediately
+      queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       
       // If projectId is set, also invalidate project-specific queries
-      // if (projectId) {
-      //   queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
-      // }
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'billing-milestones'] });
+      }
       
       onOpenChange(false);
       form.reset();
@@ -159,14 +199,15 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
         title: "Success",
         description: "Billing milestone updated successfully",
       });
-      // DISABLED TO PREVENT FOCUS LOSS - Data will refresh on page reload
-      // queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
-      // queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      
+      // Enable cache invalidation so data appears immediately
+      queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       
       // If projectId is set, also invalidate project-specific queries
-      // if (projectId) {
-      //   queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId] });
-      // }
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'billing-milestones'] });
+      }
       
       onOpenChange(false);
     },

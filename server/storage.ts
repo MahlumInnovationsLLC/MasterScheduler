@@ -1070,6 +1070,16 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
+
+  async getBillingMilestone(id: number): Promise<BillingMilestone | undefined> {
+    try {
+      const [milestone] = await db.select().from(billingMilestones).where(eq(billingMilestones.id, id));
+      return milestone;
+    } catch (error) {
+      console.error("Error in getBillingMilestone:", error);
+      return undefined;
+    }
+  }
   
   async getProjectBillingMilestones(projectId: number): Promise<BillingMilestone[]> {
     return await db
