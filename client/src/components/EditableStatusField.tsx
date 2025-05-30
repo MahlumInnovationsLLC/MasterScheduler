@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Check, Plus, X } from 'lucide-react';
 
 interface EditableStatusFieldProps {
   projectId: number;
-  value: string | null;
+  value: string | string[] | null;
   field: string;
 }
 
@@ -23,19 +25,37 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
   
-  const currentStatus = statusOptions.find(option => option.value === value);
+  // Handle both single string and array values
+  const currentStatuses = Array.isArray(value) ? value : (value ? [value] : []);
   
-  const handleStatusChange = async (newValue: string) => {
+  const handleStatusToggle = async (statusValue: string) => {
     try {
+      let newStatuses: string[];
+      
+      if (currentStatuses.includes(statusValue)) {
+        // Remove status (only if we have more than one)
+        if (currentStatuses.length > 1) {
+          newStatuses = currentStatuses.filter(s => s !== statusValue);
+        } else {
+          return; // Don't remove the last status
+        }
+      } else {
+        // Add status
+        newStatuses = [...currentStatuses, statusValue];
+      }
+      
+      // For database compatibility, send as single string if only one status
+      const valueToSend = newStatuses.length === 1 ? newStatuses[0] : newStatuses[0]; // Keep single for now
+      
       await apiRequest('PATCH', `/api/projects/${projectId}`, {
-        [field]: newValue
+        [field]: valueToSend
       });
       
       // Update the cache
       queryClient.setQueryData(['/api/projects'], (oldData: any) => {
         if (!oldData) return oldData;
         return oldData.map((project: any) => 
-          project.id === projectId ? { ...project, [field]: newValue } : project
+          project.id === projectId ? { ...project, [field]: valueToSend } : project
         );
       });
       
@@ -51,31 +71,90 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
     }
   };
 
+  const removeStatus = async (statusValue: string) => {
+    if (currentStatuses.length <= 1) return; // Don't allow removing the last status
+    
+    const newStatuses = currentStatuses.filter(s => s !== statusValue);
+    
+    try {
+      const valueToSend = newStatuses[0]; // Use first remaining status
+      
+      await apiRequest('PATCH', `/api/projects/${projectId}`, {
+        [field]: valueToSend
+      });
+      
+      queryClient.setQueryData(['/api/projects'], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((project: any) => 
+          project.id === projectId ? { ...project, [field]: valueToSend } : project
+        );
+      });
+    } catch (error) {
+      console.error('Failed to update status:', error);
+    }
+  };
+
   return (
-    <Select 
-      value={value || ''} 
-      onValueChange={handleStatusChange}
-      open={isOpen}
-      onOpenChange={setIsOpen}
-    >
-      <SelectTrigger className="w-full border-none shadow-none bg-transparent hover:bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary/20">
-        <SelectValue asChild>
-          <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border-2 ${
-            currentStatus?.color || 'bg-gray-200 text-gray-800 border-gray-300'
-          }`}>
-            {currentStatus?.label || value || 'Select Status'}
+    <div className="flex flex-wrap gap-1 items-center min-w-0">
+      {/* Display current status badges */}
+      {currentStatuses.map(status => {
+        const statusOption = statusOptions.find(opt => opt.value === status);
+        return (
+          <div
+            key={status}
+            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-2 ${
+              statusOption?.color || 'bg-gray-500 text-white border-gray-600'
+            }`}
+          >
+            {statusOption?.label || status}
+            {currentStatuses.length > 1 && (
+              <button
+                onClick={() => removeStatus(status)}
+                className="ml-1 hover:bg-white/20 rounded-full p-0.5 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {statusOptions.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border-2 ${option.color}`}>
-              {option.label}
-            </div>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+        );
+      })}
+      
+      {/* Add status button */}
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 text-xs border-dashed hover:border-solid transition-all"
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            Add
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-56 p-2" align="start">
+          <div className="space-y-1">
+            <div className="text-xs font-medium text-gray-700 mb-2 px-1">Select Status</div>
+            {statusOptions.map((option) => {
+              const isSelected = currentStatuses.includes(option.value);
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => handleStatusToggle(option.value)}
+                  className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-xs hover:bg-gray-50 transition-colors ${
+                    isSelected ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  }`}
+                  disabled={isSelected}
+                >
+                  <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border-2 ${option.color}`}>
+                    {option.label}
+                  </div>
+                  {isSelected && <Check className="w-3 h-3 text-green-600" />}
+                </button>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }
