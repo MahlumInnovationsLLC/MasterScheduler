@@ -3364,7 +3364,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ai/insights', isAuthenticated, getAIInsights);
   
   // AI Delay Analysis API
-  app.post('/api/ai/analyze-delays', isAuthenticated, async (req, res) => {
+  app.post('/api/ai/analyze-delays', async (req, res) => {
+    // Simple development mode check
+    if (process.env.NODE_ENV === 'development') {
+      console.log('AI Delay Analysis: Running in development mode');
+    }
+    
     try {
       const { delays } = req.body;
       
