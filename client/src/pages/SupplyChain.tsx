@@ -556,7 +556,7 @@ const SupplyChain = () => {
     : projectBenchmarks;
 
   // Get active projects only
-  const activeProjects = projects?.filter(p => p.status === 'active') || [];
+  const activeProjects = projects?.filter(p => Array.isArray(p.status) ? p.status.includes('active') : p.status === 'active') || [];
   
   // Calculate upcoming purchase needs in different time periods
   const getUpcomingPurchaseNeeds = (timeframe: 'week' | 'month' | 'quarter') => {
