@@ -89,13 +89,8 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
         [field]: valueToSend
       });
       
-      // Update the cache
-      queryClient.setQueryData(['/api/projects'], (oldData: any) => {
-        if (!oldData) return oldData;
-        return oldData.map((project: any) => 
-          project.id === projectId ? { ...project, [field]: valueToSend } : project
-        );
-      });
+      // Invalidate the cache to trigger a fresh fetch
+      await queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       
       setIsOpen(false);
       
@@ -121,12 +116,8 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
         [field]: valueToSend
       });
       
-      queryClient.setQueryData(['/api/projects'], (oldData: any) => {
-        if (!oldData) return oldData;
-        return oldData.map((project: any) => 
-          project.id === projectId ? { ...project, [field]: valueToSend } : project
-        );
-      });
+      // Invalidate the cache to trigger a fresh fetch
+      await queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
     } catch (error) {
       console.error('Failed to update status:', error);
     }
