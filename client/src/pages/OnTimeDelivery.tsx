@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { 
@@ -520,6 +521,7 @@ const OnTimeDeliveryPage: React.FC = () => {
           <TabsTrigger value="trends">Trends</TabsTrigger>
           <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
           <TabsTrigger value="projects">Projects List</TabsTrigger>
+          <TabsTrigger value="ai-insights">AI Insights</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -769,25 +771,28 @@ const OnTimeDeliveryPage: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Delay Responsibility Breakdown</CardTitle>
-              <CardDescription>Who was responsible for project delays</CardDescription>
+              <CardDescription>
+                Who was responsible for project delays 
+                {selectedTimeframe !== "all" && ` (Last ${selectedTimeframe} months)`}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
                     <Pie
-                      data={prepareResponsibilityPieData()}
+                      data={processedData?.responsibilityData || []}
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
                       paddingAngle={5}
                       dataKey="value"
                     >
-                      {prepareResponsibilityPieData().map((entry, index) => (
+                      {(processedData?.responsibilityData || []).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip formatter={(value, name) => [`${value} projects`, name]} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -795,19 +800,27 @@ const OnTimeDeliveryPage: React.FC = () => {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-red-600">{analytics.responsibilityBreakdown.nomad_fault}</div>
+                      <div className="text-2xl font-bold text-red-600">
+                        {processedData?.responsibilityBarData?.find(d => d.name === 'Nomad Fault')?.count || 0}
+                      </div>
                       <div className="text-sm text-muted-foreground">Nomad Fault</div>
                     </div>
                     <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-amber-600">{analytics.responsibilityBreakdown.vendor_fault}</div>
+                      <div className="text-2xl font-bold text-amber-600">
+                        {processedData?.responsibilityBarData?.find(d => d.name === 'Vendor Fault')?.count || 0}
+                      </div>
                       <div className="text-sm text-muted-foreground">Vendor Fault</div>
                     </div>
                     <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">{analytics.responsibilityBreakdown.client_fault}</div>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {processedData?.responsibilityBarData?.find(d => d.name === 'Client Fault')?.count || 0}
+                      </div>
                       <div className="text-sm text-muted-foreground">Client Fault</div>
                     </div>
                     <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-gray-600">{analytics.responsibilityBreakdown.not_applicable}</div>
+                      <div className="text-2xl font-bold text-gray-600">
+                        {processedData?.responsibilityBarData?.find(d => d.name === 'Not Applicable')?.count || 0}
+                      </div>
                       <div className="text-sm text-muted-foreground">Not Applicable</div>
                     </div>
                   </div>
@@ -815,6 +828,67 @@ const OnTimeDeliveryPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Delay Responsibility Bar Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Delay Responsibility Distribution</CardTitle>
+                <CardDescription>Number of projects by responsibility type</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={processedData?.responsibilityBarData || []}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fontSize: 12 }}
+                      interval={0}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                      {(processedData?.responsibilityBarData || []).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Monthly Responsibility Trends</CardTitle>
+                <CardDescription>Delay responsibility patterns over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={processedData?.monthlyTrendsData || []}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="month" 
+                      tick={{ fontSize: 12 }}
+                      interval={0}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Area type="monotone" dataKey="nomadFault" stackId="1" stroke="#ef4444" fill="#ef4444" name="Nomad Fault" />
+                    <Area type="monotone" dataKey="vendorFault" stackId="1" stroke="#f59e0b" fill="#f59e0b" name="Vendor Fault" />
+                    <Area type="monotone" dataKey="clientFault" stackId="1" stroke="#3b82f6" fill="#3b82f6" name="Client Fault" />
+                    <Area type="monotone" dataKey="notApplicable" stackId="1" stroke="#6b7280" fill="#6b7280" name="Not Applicable" />
+                    <Legend />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Projects List Tab */}
@@ -884,6 +958,11 @@ const OnTimeDeliveryPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* AI Insights Tab */}
+        <TabsContent value="ai-insights" className="space-y-6">
+          <AIInsightsTab filteredProjects={filteredProjects} selectedTimeframe={selectedTimeframe} />
         </TabsContent>
       </Tabs>
     </div>
