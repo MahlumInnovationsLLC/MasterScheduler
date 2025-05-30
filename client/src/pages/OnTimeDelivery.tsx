@@ -1019,14 +1019,14 @@ const OnTimeDeliveryPage: React.FC = () => {
                 <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
                     <Pie
-                      data={processedData?.responsibilityData || []}
+                      data={prepareResponsibilityPieData()}
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
                       paddingAngle={5}
                       dataKey="value"
                     >
-                      {(processedData?.responsibilityData || []).map((entry, index) => (
+                      {prepareResponsibilityPieData().map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -1099,7 +1099,7 @@ const OnTimeDeliveryPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={processedData?.monthlyTrendsData || []}>
+                  <AreaChart data={processedData?.monthlyTrendsData?.slice(-12) || []}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="month" 
