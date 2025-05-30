@@ -44,7 +44,7 @@ import {
   XAxis, 
   YAxis 
 } from "recharts";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, parse } from "date-fns";
 import { 
   Loader2, 
   TrendingUp, 
@@ -637,14 +637,23 @@ const OnTimeDeliveryPage: React.FC = () => {
     }).slice(-8); // Last 8 quarters
   };
 
-  // Prepare chart data - exclude not_applicable values
+  // Prepare chart data - exclude not_applicable values and use filtered data
   const prepareResponsibilityPieData = () => {
-    if (!analytics || !analytics.responsibilityBreakdown) return [];
+    if (!filteredProjects) return [];
+    
+    // Calculate responsibility breakdown from filtered projects
+    const counts = filteredProjects.reduce((acc: any, project: any) => {
+      const resp = project.delayResponsibility;
+      if (resp && resp !== 'not_applicable') {
+        acc[resp] = (acc[resp] || 0) + 1;
+      }
+      return acc;
+    }, { nomad_fault: 0, vendor_fault: 0, client_fault: 0 });
     
     return [
-      { name: "Nomad Fault", value: analytics.responsibilityBreakdown.nomad_fault || 0, color: "#ef4444" },
-      { name: "Vendor Fault", value: analytics.responsibilityBreakdown.vendor_fault || 0, color: "#f59e0b" },
-      { name: "Client Fault", value: analytics.responsibilityBreakdown.client_fault || 0, color: "#3b82f6" },
+      { name: "Nomad Fault", value: counts.nomad_fault || 0, color: "#ef4444" },
+      { name: "Vendor Fault", value: counts.vendor_fault || 0, color: "#f59e0b" },
+      { name: "Client Fault", value: counts.client_fault || 0, color: "#3b82f6" },
       // Removed "Not Applicable" to match updated UI consistency
     ].filter(item => item.value > 0);
   };
@@ -662,42 +671,50 @@ const OnTimeDeliveryPage: React.FC = () => {
     ].filter(item => item.value > 0);
   };
 
-  // Prepare monthly responsibility trends data 
+  // Prepare monthly responsibility trends data using filtered projects
   const prepareMonthlyResponsibilityTrendsData = () => {
-    if (!deliveredProjects || !analytics?.monthlyTrends) return [];
+    if (!filteredProjects) return [];
     
-    // Use all monthly trends from API (includes May 2025)
-    return analytics.monthlyTrends.map((trend: any) => {
-      const [year, month] = trend.month.split('-');
-      const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+    // Group filtered projects by month
+    const monthlyData: { [key: string]: any } = {};
+    
+    filteredProjects.forEach((project: any) => {
+      if (project.delayResponsibility === 'not_applicable') return;
       
-      // Get projects for this month excluding not_applicable responsibility
-      const monthProjects = deliveredProjects.filter((project: any) => {
-        // Check both actualDeliveryDate and deliveryDate fields
-        const projectDate = project.actualDeliveryDate || project.deliveryDate;
-        if (!projectDate || project.delayResponsibility === 'not_applicable') return false;
-        
-        const deliveryDate = new Date(projectDate);
-        return deliveryDate.getFullYear() === parseInt(year) && 
-               deliveryDate.getMonth() === parseInt(month) - 1;
-      });
+      const projectDate = project.actualDeliveryDate || project.deliveryDate;
+      if (!projectDate) return;
       
-      // Count each responsibility type
-      const counts = monthProjects.reduce((acc: any, project: any) => {
-        const resp = project.delayResponsibility;
-        if (resp && resp !== 'not_applicable') {
-          acc[resp] = (acc[resp] || 0) + 1;
-        }
-        return acc;
-      }, { nomad_fault: 0, vendor_fault: 0, client_fault: 0 });
+      const date = new Date(projectDate);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       
-      return {
-        month: format(date, 'MMM yy'),
-        nomadFault: counts.nomad_fault,
-        vendorFault: counts.vendor_fault,
-        clientFault: counts.client_fault
-      };
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = {
+          date,
+          nomad_fault: 0,
+          vendor_fault: 0,
+          client_fault: 0
+        };
+      }
+      
+      const resp = project.delayResponsibility;
+      if (resp && resp !== 'not_applicable') {
+        monthlyData[monthKey][resp]++;
+      }
     });
+    
+    // Convert to array and sort by date
+    return Object.entries(monthlyData)
+      .map(([monthKey, data]: [string, any]) => ({
+        month: format(data.date, 'MMM yy'),
+        nomadFault: data.nomad_fault,
+        vendorFault: data.vendor_fault,
+        clientFault: data.client_fault
+      }))
+      .sort((a, b) => {
+        const aDate = parse(a.month, 'MMM yy', new Date());
+        const bDate = parse(b.month, 'MMM yy', new Date());
+        return aDate.getTime() - bDate.getTime();
+      });
   };
 
   const prepareMonthlyTrendsData = () => {
