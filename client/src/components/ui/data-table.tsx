@@ -47,6 +47,7 @@ interface DataTableProps<TData, TValue> {
   frozenColumns?: string[]; // Names of column IDs to freeze
   enableSorting?: boolean; // Control whether sorting is enabled
   persistenceKey?: string; // Unique key for persisting pagination state
+  initialSorting?: SortingState; // Initial sorting configuration
 }
 
 export function DataTable<TData, TValue>({
@@ -59,8 +60,9 @@ export function DataTable<TData, TValue>({
   frozenColumns = [],
   enableSorting = true,
   persistenceKey,
+  initialSorting = [],
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = useState<SortingState>(initialSorting);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState<string>("");
   // Initialize pageIndex with saved value immediately
