@@ -139,6 +139,15 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
         paymentReceivedDate: existingMilestone.paymentReceivedDate || "",
         status: existingMilestone.status || "upcoming",
         isDeliveryMilestone: existingMilestone.isDeliveryMilestone || false,
+        // Additional billing information fields
+        contractReference: existingMilestone.contractReference || "",
+        paymentTerms: existingMilestone.paymentTerms || "",
+        invoiceNumber: existingMilestone.invoiceNumber || "",
+        percentageOfTotal: existingMilestone.percentageOfTotal || "",
+        billingContact: existingMilestone.billingContact || "",
+        notes: existingMilestone.notes || "",
+        liveDate: existingMilestone.liveDate || "",
+        shipDateChanged: existingMilestone.shipDateChanged || false,
       });
     }
   }, [isEdit, existingMilestone, form]);
@@ -150,6 +159,11 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
       
       const requestData = {
         ...data,
+        // Convert empty strings to null for date fields to prevent database errors
+        targetInvoiceDate: data.targetInvoiceDate || null,
+        actualInvoiceDate: data.actualInvoiceDate || null,
+        paymentReceivedDate: data.paymentReceivedDate || null,
+        liveDate: data.liveDate || null,
         // Keep amount as string since the schema expects it
         amount: data.amount,
       };
@@ -188,11 +202,18 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
   // Update mutation for editing an existing milestone
   const updateMutation = useMutation({
     mutationFn: async (data: BillingMilestoneFormValues) => {
-      return await apiRequest("PUT", `/api/billing-milestones/${milestoneId}`, {
+      const requestData = {
         ...data,
+        // Convert empty strings to null for date fields to prevent database errors
+        targetInvoiceDate: data.targetInvoiceDate || null,
+        actualInvoiceDate: data.actualInvoiceDate || null,
+        paymentReceivedDate: data.paymentReceivedDate || null,
+        liveDate: data.liveDate || null,
         // Keep amount as string since the schema expects it
         amount: data.amount,
-      });
+      };
+      
+      return await apiRequest("PUT", `/api/billing-milestones/${milestoneId}`, requestData);
     },
     onSuccess: () => {
       toast({
