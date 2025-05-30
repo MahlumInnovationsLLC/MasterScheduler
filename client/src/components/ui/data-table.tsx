@@ -189,15 +189,6 @@ export function DataTable<TData, TValue>({
         const newPagination = updater(currentPagination);
         console.log("🔄 PAGINATION: Function updater - from", currentPagination, "to", newPagination);
         
-        // Only block automatic resets after initial load, allow manual navigation
-        if (newPagination.pageIndex === 0 && 
-            currentPagination.pageIndex > 0 && 
-            !isInitialLoad.current &&
-            persistenceKey !== 'delivered-projects') {
-          console.log("🚫 PAGINATION: Blocked automatic reset to page 0, keeping current page", currentPagination.pageIndex);
-          return;
-        }
-        
         setPageIndex(newPagination.pageIndex);
       } else {
         console.log("🔄 PAGINATION: Direct updater - setting pageIndex to", updater.pageIndex);

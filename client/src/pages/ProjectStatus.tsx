@@ -48,6 +48,7 @@ import { ProgressBadge } from '@/components/ui/progress-badge';
 import EditableDateField from '@/components/EditableDateField';
 import EditableNotesField from '../components/EditableNotesField';
 import EditableTextField from '@/components/EditableTextField';
+import { EditableStatusField } from '@/components/EditableStatusField';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1191,36 +1192,9 @@ const ProjectStatus = () => {
       { size: 120 }),
     createColumn('status', 'status', 'Status', 
       (value, project) => {
-        const percentValue = typeof project.percentComplete === 'string' 
-          ? parseFloat(project.percentComplete) 
-          : Number(project.percentComplete);
-          
-        const { status } = getProjectStatusColor(
-          percentValue,
-          project.estimatedCompletionDate
-        );
-        
-        // Get the scheduling state for this project
-        const scheduleState = manufacturingSchedules 
-          ? getProjectScheduleState(manufacturingSchedules, project.id)
-          : 'Unscheduled';
-        
-        return (
-          <div className="flex items-center gap-2">
-            <ProgressBadge status={status} />
-            <ProgressBadge 
-              status={scheduleState} 
-              className={
-                scheduleState === 'Unscheduled' ? 'bg-gray-700 border-gray-600' :
-                scheduleState === 'Scheduled' ? 'bg-green-900 border-green-700' :
-                scheduleState === 'In Progress' ? 'bg-yellow-900 border-yellow-700' :
-                'bg-blue-900 border-blue-700'
-              }
-            />
-          </div>
-        );
+        return <EditableStatusField projectId={project.id} value={value} field="status" />;
       },
-      { size: 180 }),
+      { size: 140 }),
     createColumn('contractDate', 'contractDate', 'Contract Date', 
       (value, project) => <EditableDateField projectId={project.id} field="contractDate" value={value} />,
       { size: 140 }),
