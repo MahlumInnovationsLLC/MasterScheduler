@@ -3363,12 +3363,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Insights API
   app.post('/api/ai/insights', isAuthenticated, getAIInsights);
   
-  // AI Delay Analysis API
-  app.post('/api/ai/analyze-delays', async (req, res) => {
-    // Simple development mode check
-    if (process.env.NODE_ENV === 'development') {
-      console.log('AI Delay Analysis: Running in development mode');
-    }
+  // AI Delay Analysis API - bypassing all middleware
+  app.post('/analyze-delays', async (req, res) => {
+    console.log('AI Delay Analysis: Direct route accessed');
+    res.setHeader('Content-Type', 'application/json');
     
     try {
       const { delays } = req.body;
