@@ -47,6 +47,19 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
   const [customStatuses, setCustomStatuses] = useState<Array<{value: string, label: string, color: string}>>([]);
   const { toast } = useToast();
   
+  // Load custom statuses from localStorage on component mount
+  React.useEffect(() => {
+    const savedCustomStatuses = localStorage.getItem('customStatusOptions');
+    if (savedCustomStatuses) {
+      try {
+        const parsed = JSON.parse(savedCustomStatuses);
+        setCustomStatuses(parsed);
+      } catch (error) {
+        console.error('Failed to parse custom statuses:', error);
+      }
+    }
+  }, []);
+  
   // Handle both single string and array values
   const currentStatuses = Array.isArray(value) ? value : (value ? [value] : []);
   
@@ -130,20 +143,37 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
     }
 
     const customValue = customLabel.toLowerCase().replace(/\s+/g, '-');
+    
+    // Check if this status already exists
+    const existingStatus = allStatusOptions.find(opt => opt.value === customValue);
+    if (existingStatus) {
+      toast({
+        title: 'Status Already Exists',
+        description: `A status with this name already exists.`,
+        variant: 'destructive'
+      });
+      return;
+    }
+
     const newCustomStatus = {
       value: customValue,
       label: customLabel,
       color: customColor
     };
 
-    setCustomStatuses(prev => [...prev, newCustomStatus]);
+    const updatedCustomStatuses = [...customStatuses, newCustomStatus];
+    setCustomStatuses(updatedCustomStatuses);
+    
+    // Save to localStorage
+    localStorage.setItem('customStatusOptions', JSON.stringify(updatedCustomStatuses));
+    
     setCustomLabel('');
     setCustomColor(colorOptions[0].value);
     setShowCustomForm(false);
     
     toast({
       title: 'Custom Status Created',
-      description: `"${customLabel}" status has been added.`,
+      description: `"${customLabel}" status has been added and is now available for selection.`,
     });
   };
 
