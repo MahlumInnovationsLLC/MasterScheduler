@@ -664,7 +664,7 @@ const OnTimeDeliveryPage: React.FC = () => {
 
   // Prepare monthly responsibility trends data using raw API data
   const prepareMonthlyResponsibilityTrendsData = () => {
-    if (!analytics || !analytics.monthlyTrends) return [];
+    if (!analytics || !analytics.monthlyTrends || !deliveredProjects) return [];
     
     // Use the raw monthly trends data from API to get all months including May 2025
     return analytics.monthlyTrends.map((trend: any) => {
@@ -676,7 +676,8 @@ const OnTimeDeliveryPage: React.FC = () => {
         if (!project.actualDeliveryDate) return false;
         const deliveryDate = new Date(project.actualDeliveryDate);
         return deliveryDate.getFullYear() === parseInt(year) && 
-               deliveryDate.getMonth() === parseInt(month) - 1;
+               deliveryDate.getMonth() === parseInt(month) - 1 &&
+               project.delayResponsibility !== 'not_applicable';
       });
       
       // Count responsibilities excluding not_applicable
@@ -686,7 +687,7 @@ const OnTimeDeliveryPage: React.FC = () => {
           acc[resp] = (acc[resp] || 0) + 1;
         }
         return acc;
-      }, {});
+      }, { nomad_fault: 0, vendor_fault: 0, client_fault: 0 });
       
       return {
         month: format(date, 'MMM yy'),
