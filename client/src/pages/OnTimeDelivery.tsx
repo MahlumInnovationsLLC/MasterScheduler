@@ -662,6 +662,41 @@ const OnTimeDeliveryPage: React.FC = () => {
     ].filter(item => item.value > 0);
   };
 
+  // Prepare monthly responsibility trends data using raw API data
+  const prepareMonthlyResponsibilityTrendsData = () => {
+    if (!analytics || !analytics.monthlyTrends) return [];
+    
+    // Use the raw monthly trends data from API to get all months including May 2025
+    return analytics.monthlyTrends.map((trend: any) => {
+      const [year, month] = trend.month.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+      
+      // Get responsibility data for this month by filtering delivered projects
+      const monthProjects = deliveredProjects.filter((project: any) => {
+        if (!project.actualDeliveryDate) return false;
+        const deliveryDate = new Date(project.actualDeliveryDate);
+        return deliveryDate.getFullYear() === parseInt(year) && 
+               deliveryDate.getMonth() === parseInt(month) - 1;
+      });
+      
+      // Count responsibilities excluding not_applicable
+      const responsibilities = monthProjects.reduce((acc: any, project: any) => {
+        const resp = project.delayResponsibility;
+        if (resp && resp !== 'not_applicable') {
+          acc[resp] = (acc[resp] || 0) + 1;
+        }
+        return acc;
+      }, {});
+      
+      return {
+        month: format(date, 'MMM yy'),
+        nomadFault: responsibilities.nomad_fault || 0,
+        vendorFault: responsibilities.vendor_fault || 0,
+        clientFault: responsibilities.client_fault || 0
+      };
+    });
+  };
+
   const prepareMonthlyTrendsData = () => {
     if (!analytics) return [];
     
@@ -1099,7 +1134,7 @@ const OnTimeDeliveryPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={processedData?.monthlyTrendsData?.slice(-12) || []}>
+                  <AreaChart data={prepareMonthlyResponsibilityTrendsData()}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="month" 
