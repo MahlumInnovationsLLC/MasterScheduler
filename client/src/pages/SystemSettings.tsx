@@ -60,8 +60,14 @@ import { queryClient, apiRequest, getQueryFn } from '../lib/queryClient';
 const SystemSettings = () => {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeletingMilestones, setIsDeletingMilestones] = useState(false);
   const [showNotificationForm, setShowNotificationForm] = useState(false);
   const [deleteResult, setDeleteResult] = useState<{
+    success: boolean;
+    message: string;
+    totalDeleted?: number;
+  } | null>(null);
+  const [deleteMilestonesResult, setDeleteMilestonesResult] = useState<{
     success: boolean;
     message: string;
     totalDeleted?: number;
@@ -242,6 +248,47 @@ const SystemSettings = () => {
       });
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteAllBillingMilestones = async () => {
+    setIsDeletingMilestones(true);
+    
+    try {
+      const response = await fetch('/api/billing-milestones/all', {
+        method: 'DELETE',
+      });
+      
+      const result = await response.json();
+      
+      setDeleteMilestonesResult({
+        success: result.success,
+        message: result.message,
+        totalDeleted: result.totalDeleted
+      });
+      
+      toast({
+        title: result.success ? "Billing Milestones Deleted" : "Deletion Failed",
+        description: result.message,
+        variant: result.success ? "default" : "destructive"
+      });
+      
+      // Invalidate billing milestones cache
+      queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+    } catch (error) {
+      setDeleteMilestonesResult({
+        success: false,
+        message: "Error deleting billing milestones: " + (error as Error).message
+      });
+      
+      toast({
+        title: "Error",
+        description: "Failed to delete billing milestones: " + (error as Error).message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeletingMilestones(false);
     }
   };
 
@@ -1532,7 +1579,7 @@ const SystemSettings = () => {
                     </AlertDescription>
                   </Alert>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card className="border border-destructive/40">
                       <CardHeader className="pb-2">
                         <CardTitle className="text-lg">Reset All Projects</CardTitle>
@@ -1589,6 +1636,72 @@ const SystemSettings = () => {
                                   <div className="mt-2">
                                     <Badge variant="outline">
                                       {deleteResult.totalDeleted} projects deleted
+                                    </Badge>
+                                  </div>
+                                )}
+                              </AlertDescription>
+                            </Alert>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border border-destructive/40">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Delete All Billing Milestones</CardTitle>
+                        <CardDescription>
+                          Delete all billing milestones from the system.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-2">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="w-full">
+                              Delete All Milestones
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete All Billing Milestones</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete ALL billing milestones from the system.
+                                This action cannot be undone. Are you absolutely sure?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={handleDeleteAllBillingMilestones}
+                              >
+                                {isDeletingMilestones ? (
+                                  <>
+                                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
+                                    Deleting...
+                                  </>
+                                ) : (
+                                  <>Delete All Milestones</>
+                                )}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        
+                        {deleteMilestonesResult && (
+                          <div className="mt-4">
+                            <Alert variant={deleteMilestonesResult.success ? "default" : "destructive"}>
+                              {deleteMilestonesResult.success ? (
+                                <CheckCircle2 className="h-4 w-4" />
+                              ) : (
+                                <AlertCircle className="h-4 w-4" />
+                              )}
+                              <AlertTitle>{deleteMilestonesResult.success ? "Success" : "Error"}</AlertTitle>
+                              <AlertDescription>
+                                {deleteMilestonesResult.message}
+                                {deleteMilestonesResult.totalDeleted !== undefined && (
+                                  <div className="mt-2">
+                                    <Badge variant="outline">
+                                      {deleteMilestonesResult.totalDeleted} milestones deleted
                                     </Badge>
                                   </div>
                                 )}
