@@ -584,9 +584,6 @@ const DeliveredProjects = () => {
               {getResponsibilityBadge(responsibility)}
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="not_applicable">
-                <span className="px-2 py-1 rounded-full text-xs bg-green-900 text-green-400">N/A</span>
-              </SelectItem>
               <SelectItem value="client_fault">
                 <span className="px-2 py-1 rounded-full text-xs bg-blue-900 text-blue-400">Client Fault</span>
               </SelectItem>
