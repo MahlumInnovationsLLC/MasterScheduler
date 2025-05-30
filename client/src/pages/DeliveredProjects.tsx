@@ -559,15 +559,14 @@ const DeliveredProjects = () => {
         const projectId = row.original.id;
         
         const getResponsibilityBadge = (value: string | null) => {
-          if (value === 'not_applicable') {
-            return <span className="px-2 py-1 rounded-full text-xs bg-green-900 text-green-400">N/A</span>;
-          } else if (value === 'client_fault') {
+          if (value === 'client_fault') {
             return <span className="px-2 py-1 rounded-full text-xs bg-blue-900 text-blue-400">Client Fault</span>;
           } else if (value === 'nomad_fault') {
             return <span className="px-2 py-1 rounded-full text-xs bg-red-900 text-red-400">Nomad Fault</span>;
           } else if (value === 'vendor_fault') {
             return <span className="px-2 py-1 rounded-full text-xs bg-yellow-900 text-yellow-400">Vendor Fault</span>;
           } else {
+            // For not_applicable, null, or any other value, show a dash
             return <span className="px-2 py-1 rounded-full text-xs bg-gray-900 text-gray-400">-</span>;
           }
         };
