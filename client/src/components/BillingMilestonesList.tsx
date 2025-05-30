@@ -132,7 +132,7 @@ export function BillingMilestonesList({ projectId }: BillingMilestonesListProps)
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-4 py-3">
         <h3 className="text-lg font-semibold">Billing Milestones</h3>
         <Button
           size="sm"
@@ -199,7 +199,7 @@ export function BillingMilestonesList({ projectId }: BillingMilestonesListProps)
                 </div>
                 <div className="flex items-center text-xs mt-1">
                   <Calendar className="h-3 w-3 mr-1" />
-                  Due: {format(new Date(milestone.targetInvoiceDate), "MMM d, yyyy")}
+                  Due: {milestone.targetInvoiceDate ? format(new Date(milestone.targetInvoiceDate), "MMM d, yyyy") : "Upcoming"}
                 </div>
                 {milestone.actualInvoiceDate && (
                   <div className="flex items-center text-xs mt-1">
