@@ -421,11 +421,12 @@ const OnTimeDeliveryPage: React.FC = () => {
         return false;
       }
       
-      // Filter by timeframe
+      // Filter by timeframe - ensure current month is included
       if (selectedTimeframe !== "all" && project.deliveryDate) {
         const deliveryDate = new Date(project.deliveryDate);
         const cutoffDate = new Date();
         cutoffDate.setMonth(cutoffDate.getMonth() - parseInt(selectedTimeframe));
+        cutoffDate.setDate(1); // Start of month to include full months
         
         if (deliveryDate < cutoffDate) {
           return false;
@@ -485,23 +486,25 @@ const OnTimeDeliveryPage: React.FC = () => {
       { category: '60+ Days', count: daysLateDistribution.longTerm, color: '#991b1b', range: '60+ days' }
     ];
 
-    // Delay responsibility bar chart data
+    // Delay responsibility bar chart data - exclude not_applicable
     const responsibilityBarData = [
       { name: 'Nomad Fault', count: responsibilityBreakdown.nomad_fault || 0, color: '#ef4444' },
       { name: 'Vendor Fault', count: responsibilityBreakdown.vendor_fault || 0, color: '#f59e0b' },
-      { name: 'Client Fault', count: responsibilityBreakdown.client_fault || 0, color: '#3b82f6' },
-      { name: 'Not Applicable', count: responsibilityBreakdown.not_applicable || 0, color: '#6b7280' }
+      { name: 'Client Fault', count: responsibilityBreakdown.client_fault || 0, color: '#3b82f6' }
     ];
 
-    // Monthly trends for responsibility over time
+    // Monthly trends for responsibility over time - exclude not_applicable
     const monthlyResponsibilityTrends = filteredProjects.reduce((acc, project) => {
       if (!project.deliveryDate) return acc;
       
       const month = format(new Date(project.deliveryDate), 'yyyy-MM');
       if (!acc[month]) {
-        acc[month] = { nomad_fault: 0, vendor_fault: 0, client_fault: 0, not_applicable: 0 };
+        acc[month] = { nomad_fault: 0, vendor_fault: 0, client_fault: 0 };
       }
-      acc[month][project.delayResponsibility]++;
+      // Only count meaningful responsibility assignments
+      if (project.delayResponsibility && project.delayResponsibility !== 'not_applicable') {
+        acc[month][project.delayResponsibility]++;
+      }
       return acc;
     }, {} as Record<string, Record<string, number>>);
 
@@ -512,7 +515,6 @@ const OnTimeDeliveryPage: React.FC = () => {
         nomadFault: data.nomad_fault,
         vendorFault: data.vendor_fault,
         clientFault: data.client_fault,
-        notApplicable: data.not_applicable,
         total: Object.values(data).reduce((sum, count) => sum + count, 0)
       }));
 
@@ -1112,7 +1114,6 @@ const OnTimeDeliveryPage: React.FC = () => {
                     <Area type="monotone" dataKey="nomadFault" stackId="1" stroke="#ef4444" fill="#ef4444" name="Nomad Fault" />
                     <Area type="monotone" dataKey="vendorFault" stackId="1" stroke="#f59e0b" fill="#f59e0b" name="Vendor Fault" />
                     <Area type="monotone" dataKey="clientFault" stackId="1" stroke="#3b82f6" fill="#3b82f6" name="Client Fault" />
-                    <Area type="monotone" dataKey="notApplicable" stackId="1" stroke="#6b7280" fill="#6b7280" name="Not Applicable" />
                     <Legend />
                   </AreaChart>
                 </ResponsiveContainer>
