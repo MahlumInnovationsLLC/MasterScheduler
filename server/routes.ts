@@ -3362,6 +3362,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // AI Insights API
   app.post('/api/ai/insights', isAuthenticated, getAIInsights);
+  
+  // AI Delay Analysis API
+  app.post('/api/ai/analyze-delays', isAuthenticated, async (req, res) => {
+    try {
+      const { delays } = req.body;
+      
+      if (!delays || !Array.isArray(delays) || delays.length === 0) {
+        return res.status(400).json({ message: "No delay data provided" });
+      }
+
+      // Import OpenAI here to handle the API key check
+      const OpenAI = require('openai');
+      
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(400).json({ 
+          message: "OpenAI API key not configured. Please provide your OpenAI API key to enable AI analysis." 
+        });
+      }
+
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+
+      // Format the delay data for analysis
+      const delayText = delays.map(d => 
+        `Project ${d.projectNumber} (${d.projectName}): ${d.daysLate} days late - ${d.reason} [Responsibility: ${d.responsibility}]`
+      ).join('\n');
+
+      const prompt = `Analyze the following project delay data and provide insights in JSON format:
+
+${delayText}
+
+Please analyze these delays and provide:
+1. Categories of root causes with descriptions and examples
+2. Actionable recommendations with impact and priority levels
+3. Trend analysis identifying increasing or improving patterns
+
+Response format:
+{
+  "categories": [
+    {
+      "name": "Category Name",
+      "description": "Brief description",
+      "count": number,
+      "examples": ["example1", "example2"]
+    }
+  ],
+  "recommendations": [
+    {
+      "title": "Recommendation Title",
+      "description": "Detailed recommendation",
+      "impact": "High/Medium/Low",
+      "priority": "High/Medium/Low"
+    }
+  ],
+  "trends": {
+    "increasing": ["patterns that are getting worse"],
+    "improving": ["patterns that are getting better"]
+  }
+}`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert project management analyst specializing in delay analysis and operational improvements. Analyze delay patterns and provide actionable insights."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3
+      });
+
+      const analysis = JSON.parse(response.choices[0].message.content);
+      res.json(analysis);
+      
+    } catch (error) {
+      console.error("Error analyzing delays with AI:", error);
+      if (error.message?.includes('API key')) {
+        res.status(400).json({ 
+          message: "Invalid OpenAI API key. Please check your API key configuration." 
+        });
+      } else {
+        res.status(500).json({ 
+          message: "Error analyzing delays. Please try again." 
+        });
+      }
+    }
+  });
 
   // Supply Chain Routes
   app.use('/api', supplyChainRoutes);

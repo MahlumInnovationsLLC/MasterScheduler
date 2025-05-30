@@ -60,8 +60,11 @@ import {
   Zap,
   Users,
   ShieldAlert,
-  Award
+  Award,
+  Brain,
+  RefreshCw
 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 // Types for delivered projects analytics
 interface DeliveredProjectsAnalytics {
@@ -136,6 +139,236 @@ const RESPONSIBILITY_COLORS = {
   vendor_fault: "#f59e0b", 
   client_fault: "#3b82f6",
   not_applicable: "#6b7280"
+};
+
+// AI Insights Tab Component
+interface AIInsightsTabProps {
+  filteredProjects: DeliveredProject[];
+  selectedTimeframe: string;
+}
+
+const AIInsightsTab: React.FC<AIInsightsTabProps> = ({ filteredProjects, selectedTimeframe }) => {
+  const [insights, setInsights] = useState<any>(null);
+
+  const analyzeDelaysMutation = useMutation({
+    mutationFn: async () => {
+      const projectsWithDelays = filteredProjects.filter(p => 
+        p.daysLate > 0 && (p.lateDeliveryReason || p.reason)
+      );
+
+      if (projectsWithDelays.length === 0) {
+        throw new Error("No delayed projects with reasons found in the selected timeframe");
+      }
+
+      const delayDescriptions = projectsWithDelays.map(p => ({
+        projectNumber: p.projectNumber,
+        projectName: p.name,
+        daysLate: p.daysLate,
+        reason: p.lateDeliveryReason || p.reason || "",
+        responsibility: p.delayResponsibility
+      }));
+
+      return apiRequest("/api/ai/analyze-delays", {
+        method: "POST",
+        body: { delays: delayDescriptions }
+      });
+    },
+    onSuccess: (data) => {
+      setInsights(data);
+    }
+  });
+
+  const projectsWithDelays = filteredProjects.filter(p => 
+    p.daysLate > 0 && (p.lateDeliveryReason || p.reason)
+  );
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="h-5 w-5" />
+            AI-Powered Delay Analysis
+          </CardTitle>
+          <CardDescription>
+            Intelligent analysis of project delay patterns and root causes
+            {selectedTimeframe !== "all" && ` (Last ${selectedTimeframe} months)`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  Found {projectsWithDelays.length} delayed projects with documented reasons
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  AI will analyze delay descriptions to identify patterns and categorize root causes
+                </p>
+              </div>
+              <Button 
+                onClick={() => analyzeDelaysMutation.mutate()}
+                disabled={analyzeDelaysMutation.isPending || projectsWithDelays.length === 0}
+                className="flex items-center gap-2"
+              >
+                {analyzeDelaysMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Brain className="h-4 w-4" />
+                    Analyze Delays
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {analyzeDelaysMutation.error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-800 text-sm">
+                  {analyzeDelaysMutation.error.message}
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {insights && (
+        <>
+          {/* AI Analysis Results */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Delay Pattern Analysis</CardTitle>
+              <CardDescription>AI-identified categories and patterns</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {insights.categories && (
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Root Cause Categories</h4>
+                    {insights.categories.map((category: any, index: number) => (
+                      <div key={index} className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <h5 className="font-medium">{category.name}</h5>
+                          <Badge variant="outline">{category.count} projects</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {category.description}
+                        </p>
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium">Examples:</p>
+                          {category.examples.slice(0, 3).map((example: string, i: number) => (
+                            <p key={i} className="text-xs text-muted-foreground">
+                              • {example}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {insights.recommendations && (
+                  <div className="space-y-4">
+                    <h4 className="font-medium">AI Recommendations</h4>
+                    {insights.recommendations.map((rec: any, index: number) => (
+                      <div key={index} className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h5 className="font-medium text-blue-900 mb-2">{rec.title}</h5>
+                        <p className="text-sm text-blue-800 mb-2">{rec.description}</p>
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-blue-100 text-blue-800">
+                            Impact: {rec.impact}
+                          </Badge>
+                          <Badge variant="outline">
+                            Priority: {rec.priority}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Trend Analysis */}
+          {insights.trends && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Delay Trend Analysis</CardTitle>
+                <CardDescription>AI-identified patterns over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {insights.trends.increasing && insights.trends.increasing.length > 0 && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <h5 className="font-medium text-red-900 mb-2 flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4" />
+                        Increasing Delay Patterns
+                      </h5>
+                      {insights.trends.increasing.map((trend: string, index: number) => (
+                        <p key={index} className="text-sm text-red-800">• {trend}</p>
+                      ))}
+                    </div>
+                  )}
+
+                  {insights.trends.improving && insights.trends.improving.length > 0 && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <h5 className="font-medium text-green-900 mb-2 flex items-center gap-2">
+                        <TrendingDown className="h-4 w-4" />
+                        Improving Areas
+                      </h5>
+                      {insights.trends.improving.map((trend: string, index: number) => (
+                        <p key={index} className="text-sm text-green-800">• {trend}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* Recent Delayed Projects */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Delayed Projects</CardTitle>
+          <CardDescription>Projects with documented delay reasons</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {projectsWithDelays.slice(0, 10).map((project) => (
+              <div key={project.id} className="p-4 border rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline">{project.projectNumber}</Badge>
+                    <span className="font-medium">{project.name}</span>
+                    <Badge variant="destructive">{project.daysLate} days late</Badge>
+                  </div>
+                  {project.delayResponsibility && (
+                    <Badge className={
+                      project.delayResponsibility === 'nomad_fault' ? 'bg-red-500' :
+                      project.delayResponsibility === 'vendor_fault' ? 'bg-amber-500' :
+                      project.delayResponsibility === 'client_fault' ? 'bg-blue-500' : 'bg-gray-500'
+                    }>
+                      {project.delayResponsibility.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {project.lateDeliveryReason || project.reason}
+                </p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 };
 
 const OnTimeDeliveryPage: React.FC = () => {
