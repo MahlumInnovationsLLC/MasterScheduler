@@ -623,13 +623,18 @@ const DeliveredProjects = () => {
       accessorKey: 'status',
       header: 'Status',
       cell: ({ row }) => {
+        // Handle both array and string status formats
+        const status = Array.isArray(row.original.status) 
+          ? row.original.status[0] || 'delivered'
+          : row.original.status || 'delivered';
+        
         return (
           <span className={`px-2 py-1 rounded-full text-xs ${
-            row.original.status === 'completed' ? 'bg-green-900 text-green-400' :
-            row.original.status === 'delivered' ? 'bg-blue-900 text-blue-400' :
+            status === 'completed' ? 'bg-green-900 text-green-400' :
+            status === 'delivered' ? 'bg-blue-900 text-blue-400' :
             'bg-gray-800 text-gray-400'
           }`}>
-            {row.original.status.charAt(0).toUpperCase() + row.original.status.slice(1)}
+            {status.charAt(0).toUpperCase() + status.slice(1)}
           </span>
         );
       }
