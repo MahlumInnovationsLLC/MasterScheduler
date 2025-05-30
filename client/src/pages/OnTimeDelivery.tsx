@@ -662,26 +662,25 @@ const OnTimeDeliveryPage: React.FC = () => {
     ].filter(item => item.value > 0);
   };
 
-  // Prepare monthly responsibility trends data using raw API data
+  // Prepare monthly responsibility trends data 
   const prepareMonthlyResponsibilityTrendsData = () => {
-    if (!analytics || !analytics.monthlyTrends || !deliveredProjects) return [];
+    if (!deliveredProjects || !analytics?.monthlyTrends) return [];
     
-    // Use the raw monthly trends data from API to get all months including May 2025
+    // Use all monthly trends from API (includes May 2025)
     return analytics.monthlyTrends.map((trend: any) => {
       const [year, month] = trend.month.split('-');
       const date = new Date(parseInt(year), parseInt(month) - 1, 1);
       
-      // Get responsibility data for this month by filtering delivered projects
+      // Get projects for this month excluding not_applicable responsibility
       const monthProjects = deliveredProjects.filter((project: any) => {
-        if (!project.actualDeliveryDate) return false;
+        if (!project.actualDeliveryDate || project.delayResponsibility === 'not_applicable') return false;
         const deliveryDate = new Date(project.actualDeliveryDate);
         return deliveryDate.getFullYear() === parseInt(year) && 
-               deliveryDate.getMonth() === parseInt(month) - 1 &&
-               project.delayResponsibility !== 'not_applicable';
+               deliveryDate.getMonth() === parseInt(month) - 1;
       });
       
-      // Count responsibilities excluding not_applicable
-      const responsibilities = monthProjects.reduce((acc: any, project: any) => {
+      // Count each responsibility type
+      const counts = monthProjects.reduce((acc: any, project: any) => {
         const resp = project.delayResponsibility;
         if (resp && resp !== 'not_applicable') {
           acc[resp] = (acc[resp] || 0) + 1;
@@ -691,9 +690,9 @@ const OnTimeDeliveryPage: React.FC = () => {
       
       return {
         month: format(date, 'MMM yy'),
-        nomadFault: responsibilities.nomad_fault || 0,
-        vendorFault: responsibilities.vendor_fault || 0,
-        clientFault: responsibilities.client_fault || 0
+        nomadFault: counts.nomad_fault,
+        vendorFault: counts.vendor_fault,
+        clientFault: counts.client_fault
       };
     });
   };
