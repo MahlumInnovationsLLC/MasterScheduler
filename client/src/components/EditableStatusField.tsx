@@ -82,8 +82,8 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
         newStatuses = [...currentStatuses, statusValue];
       }
       
-      // For database compatibility, send as single string if only one status
-      const valueToSend = newStatuses.length === 1 ? newStatuses[0] : newStatuses[0]; // Keep single for now
+      // Send as array to support multiple statuses
+      const valueToSend = newStatuses;
       
       await apiRequest('PATCH', `/api/projects/${projectId}`, {
         [field]: valueToSend
@@ -110,10 +110,8 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
     const newStatuses = currentStatuses.filter(s => s !== statusValue);
     
     try {
-      const valueToSend = newStatuses[0]; // Use first remaining status
-      
       await apiRequest('PATCH', `/api/projects/${projectId}`, {
-        [field]: valueToSend
+        [field]: newStatuses
       });
       
       // Invalidate the cache to trigger a fresh fetch

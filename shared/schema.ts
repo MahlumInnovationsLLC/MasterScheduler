@@ -381,8 +381,8 @@ export const archivedProjects = pgTable("archived_projects", {
   itDesignOrdersPercent: decimal("it_design_orders_percent", { precision: 5, scale: 2 }),
   ntcDesignOrdersPercent: decimal("ntc_design_orders_percent", { precision: 5, scale: 2 }),
   
-  // Status fields - always "archived" for archived projects
-  status: projectStatusEnum("status").default("archived").notNull(),
+  // Status fields - can store multiple statuses as an array
+  status: text("status").array().default(["archived"]).notNull(),
   riskLevel: projectRiskLevelEnum("risk_level").default("medium"),
   hasBillingMilestones: boolean("has_billing_milestones").default(false),
   notes: text("notes"),
