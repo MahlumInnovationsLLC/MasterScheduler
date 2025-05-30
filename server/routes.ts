@@ -1909,7 +1909,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("✅ Data validation passed");
       console.log("📊 Validated data:", JSON.stringify(validatedData, null, 2));
       
-      const newMilestone = await storage.createBillingMilestone(validatedData);
+      // Convert empty strings to null for date fields
+      const processedData = {
+        ...validatedData,
+        targetInvoiceDate: validatedData.targetInvoiceDate === "" ? null : validatedData.targetInvoiceDate,
+        actualInvoiceDate: validatedData.actualInvoiceDate === "" ? null : validatedData.actualInvoiceDate,
+        paymentReceivedDate: validatedData.paymentReceivedDate === "" ? null : validatedData.paymentReceivedDate,
+      };
+      
+      console.log("🔧 Processed data for database:", JSON.stringify(processedData, null, 2));
+      
+      const newMilestone = await storage.createBillingMilestone(processedData);
       console.log("🎉 Billing milestone created successfully:", newMilestone.id);
       
       res.status(201).json(newMilestone);
