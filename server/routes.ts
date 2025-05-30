@@ -1902,14 +1902,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Billing milestone routes
   app.post("/api/billing-milestones", hasEditRights, async (req, res) => {
     try {
+      console.log("🔍 Billing milestone creation request received");
+      console.log("📝 Request body:", JSON.stringify(req.body, null, 2));
+      
       const validatedData = insertBillingMilestoneSchema.parse(req.body);
+      console.log("✅ Data validation passed");
+      console.log("📊 Validated data:", JSON.stringify(validatedData, null, 2));
+      
       const newMilestone = await storage.createBillingMilestone(validatedData);
+      console.log("🎉 Billing milestone created successfully:", newMilestone.id);
+      
       res.status(201).json(newMilestone);
     } catch (error) {
       if (error instanceof ZodError) {
+        console.log("❌ Validation failed - Zod errors:");
+        console.log(JSON.stringify(error.errors, null, 2));
         return res.status(400).json({ message: "Invalid billing milestone data", errors: error.errors });
       }
-      console.error("Error creating billing milestone:", error);
+      console.error("💥 Error creating billing milestone:", error);
       res.status(500).json({ message: "Error creating billing milestone" });
     }
   });

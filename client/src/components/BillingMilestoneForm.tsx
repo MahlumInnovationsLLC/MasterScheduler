@@ -107,10 +107,16 @@ export const BillingMilestoneForm: React.FC<BillingMilestoneFormProps> = ({
   // Create mutation for adding new milestone
   const createMutation = useMutation({
     mutationFn: async (data: BillingMilestoneFormValues) => {
-      return await apiRequest("POST", "/api/billing-milestones", {
+      console.log("🚀 Form submission data:", JSON.stringify(data, null, 2));
+      
+      const requestData = {
         ...data,
         amount: parseFloat(data.amount),
-      });
+      };
+      
+      console.log("📤 Sending to API:", JSON.stringify(requestData, null, 2));
+      
+      return await apiRequest("POST", "/api/billing-milestones", requestData);
     },
     onSuccess: () => {
       toast({
