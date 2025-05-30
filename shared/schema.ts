@@ -501,7 +501,7 @@ export const billingMilestones = pgTable("billing_milestones", {
   name: text("name").notNull(),
   description: text("description"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  targetInvoiceDate: date("target_invoice_date").notNull(),
+  targetInvoiceDate: date("target_invoice_date"),
   actualInvoiceDate: date("actual_invoice_date"),
   paymentReceivedDate: date("payment_received_date"),
   status: billingStatusEnum("status").default("upcoming").notNull(),
@@ -816,6 +816,8 @@ export const insertBillingMilestoneSchema = createInsertSchema(billingMilestones
   createdAt: true,
   updatedAt: true,
 }).extend({
+  // Make targetInvoiceDate optional to match our form
+  targetInvoiceDate: z.string().optional(),
   // Make additional fields optional with proper validation
   contractReference: z.string().optional(),
   paymentTerms: z.string().optional(),
