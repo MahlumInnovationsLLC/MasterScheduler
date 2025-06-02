@@ -38,7 +38,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
     
     // Check localStorage for text values (N/A, PENDING) even if database field is null
     try {
-      const storageKey = `project_${project.id}_${fieldName}`;
+      const storageKey = `dateField_${fieldName}`;
       const storedValue = localStorage.getItem(storageKey);
       if (storedValue && (storedValue === 'N/A' || storedValue === 'PENDING')) {
         return storedValue;
