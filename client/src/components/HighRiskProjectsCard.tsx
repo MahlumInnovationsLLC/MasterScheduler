@@ -72,6 +72,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
       const enhancedProject = {
         ...project,
         bayName: bay?.name || 'Unknown',
+        teamName: bay?.team || bay?.name || 'Unknown',
         startDate: schedule.startDate,
         endDate: schedule.endDate
       };
@@ -186,7 +187,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                           </p>
                           <div className="flex items-center mt-1 text-xs dark:text-blue-500 text-blue-700">
                             <LayoutGrid className="h-3 w-3 mr-1" />
-                            <span>{project.bayName}</span>
+                            <span>{project.teamName || project.bayName}</span>
                           </div>
                         </div>
                         <div className="ml-2 flex items-center">
@@ -347,17 +348,18 @@ function getCurrentPhase(project: any, today: Date): string {
     const daysSinceStart = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
     const progressPercent = (daysSinceStart / totalDays) * 100;
     
-    // Use standard phase percentages (matching visual timeline)
-    const fabPercent = 27;
-    const paintPercent = 7;
-    const prodPercent = 60;
-    const itPercent = 7;
-    const ntcPercent = 7;
+    // Use actual project percentages (matching visual timeline)
+    const fabPercent = parseFloat(project.fabPercentage || '27');
+    const paintPercent = parseFloat(project.paintPercentage || '7');
+    const prodPercent = parseFloat(project.productionPercentage || '60');
+    const itPercent = parseFloat(project.itPercentage || '7');
+    const ntcPercent = parseFloat(project.ntcPercentage || '7');
+    const qcPercent = parseFloat(project.qcPercentage || '7');
     
     let cumulativePercent = 0;
     
     cumulativePercent += fabPercent;
-    if (progressPercent < cumulativePercent) return "FAB";
+    if (progressPercent < cumulativePercent) return "Fabrication";
     
     cumulativePercent += paintPercent;
     if (progressPercent < cumulativePercent) return "Paint";
@@ -366,10 +368,10 @@ function getCurrentPhase(project: any, today: Date): string {
     if (progressPercent < cumulativePercent) return "Production";
     
     cumulativePercent += itPercent;
-    if (progressPercent < cumulativePercent) return "IT";
+    if (progressPercent < cumulativePercent) return "IT Integration";
     
     cumulativePercent += ntcPercent;
-    if (progressPercent < cumulativePercent) return "NTC";
+    if (progressPercent < cumulativePercent) return "NTC Testing";
     
     return "QC";
   }
