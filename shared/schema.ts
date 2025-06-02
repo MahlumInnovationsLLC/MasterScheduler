@@ -273,6 +273,13 @@ export const projects = pgTable("projects", {
   shipDate: date("ship_date"),
   deliveryDate: date("delivery_date"),
   
+  // Text overrides for date fields (stores "N/A", "PENDING", etc.)
+  fabricationStartText: text("fabrication_start_text"),
+  wrapDateText: text("wrap_date_text"),
+  ntcTestingDateText: text("ntc_testing_date_text"),
+  executiveReviewDateText: text("executive_review_date_text"),
+  deliveryDateText: text("delivery_date_text"),
+  
   // Delivery information
   actualDeliveryDate: date("actual_delivery_date"),
   lateDeliveryReason: text("late_delivery_reason"),
