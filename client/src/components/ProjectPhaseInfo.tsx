@@ -91,10 +91,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             <Clock className="h-4 w-4 text-blue-500" />
             <div>
               <div className="text-xs text-gray-400">CONTRACT DATE</div>
-              <div className="text-sm font-medium">{(() => {
-                console.log('DEBUG TIMELINE CONTRACT DATE:', contractDate);
-                return formatDate(contractDate);
-              })()}</div>
+              <div className="text-sm font-medium">{formatDate(contractDate)}</div>
             </div>
           </div>
         )}

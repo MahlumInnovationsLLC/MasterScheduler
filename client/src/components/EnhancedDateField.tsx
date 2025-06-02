@@ -27,7 +27,9 @@ export function EnhancedDateField({ label, value, onChange, placeholder, descrip
 
   const handleDateChange = (dateString: string) => {
     if (dateString) {
-      const date = new Date(dateString);
+      // Parse date as local time to avoid timezone shifts
+      const [year, month, day] = dateString.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
       onChange(date);
     } else {
       onChange(undefined);
