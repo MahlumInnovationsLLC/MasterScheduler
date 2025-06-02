@@ -12,27 +12,16 @@ interface EnhancedDateFieldProps {
   placeholder?: string;
   description?: string;
   fieldName?: string; // Add field name for localStorage key
+  textOverride?: string | null; // Text override value from database
 }
 
-export function EnhancedDateField({ label, value, onChange, placeholder, description, fieldName }: EnhancedDateFieldProps) {
-  // Check localStorage for saved text selection
-  const getStoredTextValue = () => {
-    if (!fieldName) return null;
-    try {
-      const stored = localStorage.getItem(`dateField_${fieldName}`);
-      return stored && (stored === 'PENDING' || stored === 'N/A') ? stored : null;
-    } catch {
-      return null;
-    }
-  };
-
-  // Determine if current value is a text value or if we should restore from localStorage
-  const storedTextValue = getStoredTextValue();
+export function EnhancedDateField({ label, value, onChange, placeholder, description, fieldName, textOverride }: EnhancedDateFieldProps) {
+  // Determine if current value is a text value or if we have a text override from database
   const isTextValue = typeof value === 'string' && (value === 'PENDING' || value === 'N/A');
-  const shouldShowStoredText = !value && storedTextValue; // If database has null but localStorage has text
+  const hasTextOverride = textOverride && (textOverride === 'PENDING' || textOverride === 'N/A');
   
   const [inputMode, setInputMode] = useState<'date' | 'text'>(
-    isTextValue || shouldShowStoredText ? 'text' : 'date'
+    isTextValue || hasTextOverride ? 'text' : 'date'
   );
   
   // Convert date to string for input
@@ -40,8 +29,8 @@ export function EnhancedDateField({ label, value, onChange, placeholder, descrip
     value.toISOString().split('T')[0] : 
     (typeof value === 'string' && value !== 'PENDING' && value !== 'N/A') ? value : '';
   
-  // Handle text value display - prioritize stored text if database has null
-  const textValue = isTextValue ? (value as string) : (shouldShowStoredText ? storedTextValue : '');
+  // Handle text value display - prioritize text override from database
+  const textValue = isTextValue ? (value as string) : (hasTextOverride ? textOverride : '');
 
   const handleDateChange = (dateString: string) => {
     if (dateString) {

@@ -429,11 +429,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get data from request
       const updateData = req.body;
       
-      // Convert text values like "N/A" and "PENDING" to null for database compatibility
+      // Handle text values like "N/A" and "PENDING" by storing in separate text fields
+      const dateTextFields: Record<string, string> = {
+        'fabricationStart': 'fabricationStartText',
+        'wrapDate': 'wrapDateText', 
+        'ntcTestingDate': 'ntcTestingDateText',
+        'executiveReviewDate': 'executiveReviewDateText',
+        'deliveryDate': 'deliveryDateText'
+      };
+      
       Object.keys(updateData).forEach(key => {
         if (updateData[key] === 'N/A' || updateData[key] === 'PENDING') {
           console.log(`Converting ${key} from "${updateData[key]}" to null for database`);
-          updateData[key] = null;
+          
+          // If this is a date field that supports text overrides, save to text field
+          if (dateTextFields[key]) {
+            updateData[dateTextFields[key]] = updateData[key]; // Save text value
+            updateData[key] = null; // Clear the date field
+            console.log(`Storing text value "${updateData[dateTextFields[key]]}" in ${dateTextFields[key]} field`);
+          } else {
+            updateData[key] = null;
+          }
+        } else {
+          // If setting a real date value, clear any existing text override
+          if (dateTextFields[key]) {
+            updateData[dateTextFields[key]] = null;
+          }
         }
       });
       
