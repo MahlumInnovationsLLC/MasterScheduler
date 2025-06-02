@@ -32,6 +32,7 @@ import { format, addDays } from 'date-fns';
 import { cn, formatDate } from '@/lib/utils';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useRolePermissions } from '@/hooks/use-role-permissions';
+import { EnhancedDateField } from '@/components/EnhancedDateField';
 import { RoleBasedWrapper } from '@/components/RoleBasedWrapper';
 import { 
   AlertDialog,
@@ -58,21 +59,21 @@ const projectSchema = z.object({
   // New field for auto-calculation of dates
   poDroppedToDeliveryDays: z.number().min(1).default(365),
   
-  // Dates
-  contractDate: z.date().optional(),
-  startDate: z.date().optional(), // This is Assembly Start Date
-  poDroppedDate: z.date().optional(), // New field for PO Dropped Date
-  estimatedCompletionDate: z.date().optional(),
-  actualCompletionDate: z.date().optional(),
-  chassisETA: z.date().optional(),
-  fabricationStart: z.date().optional(),
-  assemblyStart: z.date().optional(),
-  wrapDate: z.date().optional(),
-  ntcTestingDate: z.date().optional(),
-  qcStartDate: z.date().optional(),
-  executiveReviewDate: z.date().optional(),
-  shipDate: z.date().optional(),
-  deliveryDate: z.date().optional(),
+  // Dates (allow Date objects or text values like PENDING/N/A)
+  contractDate: z.union([z.date(), z.string()]).optional(),
+  startDate: z.union([z.date(), z.string()]).optional(), // This is Assembly Start Date
+  poDroppedDate: z.union([z.date(), z.string()]).optional(), // New field for PO Dropped Date
+  estimatedCompletionDate: z.union([z.date(), z.string()]).optional(),
+  actualCompletionDate: z.union([z.date(), z.string()]).optional(),
+  chassisETA: z.union([z.date(), z.string()]).optional(),
+  fabricationStart: z.union([z.date(), z.string()]).optional(),
+  assemblyStart: z.union([z.date(), z.string()]).optional(),
+  wrapDate: z.union([z.date(), z.string()]).optional(),
+  ntcTestingDate: z.union([z.date(), z.string()]).optional(),
+  qcStartDate: z.union([z.date(), z.string()]).optional(),
+  executiveReviewDate: z.union([z.date(), z.string()]).optional(),
+  shipDate: z.union([z.date(), z.string()]).optional(),
+  deliveryDate: z.union([z.date(), z.string()]).optional(),
   
   // Project details
   percentComplete: z.number().min(0).max(100).default(0),
@@ -376,12 +377,12 @@ function ProjectEdit() {
       fixedData.qcPercentage = fixedData.qcPercent;
       
       // Remove the form field names to avoid conflicts
-      delete fixedData.fabricationPercent;
-      delete fixedData.paintPercent;
-      delete fixedData.assemblyPercent;
-      delete fixedData.itPercent;
-      delete fixedData.ntcTestingPercent;
-      delete fixedData.qcPercent;
+      delete (fixedData as any).fabricationPercent;
+      delete (fixedData as any).paintPercent;
+      delete (fixedData as any).assemblyPercent;
+      delete (fixedData as any).itPercent;
+      delete (fixedData as any).ntcTestingPercent;
+      delete (fixedData as any).qcPercent;
       
       const res = await apiRequest('PUT', `/api/projects/${projectId}`, fixedData);
       return await res.json();
@@ -1322,52 +1323,13 @@ function ProjectEdit() {
                       control={form.control}
                       name="poDroppedDate"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>PO Dropped Date</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value ? (
-                                    format(field.value, 'MMM d, yyyy')
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value ? new Date(field.value) : undefined}
-                                onSelect={(date) => {
-                                  if (date) {
-                                    // Fix timezone issue by creating date at noon UTC
-                                    const fixedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
-                                    field.onChange(fixedDate);
-                                  } else {
-                                    field.onChange(null);
-                                  }
-                                }}
-                                disabled={(date) =>
-                                  date < new Date("1900-01-01")
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormDescription>
-                            The date when the Purchase Order was received
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
+                        <EnhancedDateField
+                          label="PO Dropped Date"
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select date or status..."
+                          description="The date when the Purchase Order was received"
+                        />
                       )}
                     />
                     
