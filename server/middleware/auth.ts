@@ -1,4 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
+import { ROLES, canEdit, isAdmin, isViewOnlyUser } from '../../shared/roles';
+
+// Extend session type to include user
+declare module 'express-session' {
+  interface SessionData {
+    user?: {
+      id: string;
+      email: string;
+      role: string;
+      firstName?: string;
+      lastName?: string;
+    };
+  }
+}
 
 // Check if user has edit rights
 export const hasEditRights = (req: Request, res: Response, next: NextFunction) => {
@@ -11,12 +25,12 @@ export const hasEditRights = (req: Request, res: Response, next: NextFunction) =
     console.log(`hasEditRights middleware: Development mode with role: ${urlRole}`);
     
     // Only grant edit rights to admin or editor roles
-    if (urlRole === 'admin' || urlRole === 'editor') {
+    if (canEdit(urlRole)) {
       console.log('hasEditRights middleware: Development mode - edit rights granted for admin/editor');
       return next();
     } else {
       console.log('hasEditRights middleware: Development mode - edit rights denied for viewer/other role');
-      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+      return res.status(403).json({ message: 'Read-only users cannot modify data.' });
     }
   }
 
@@ -26,11 +40,11 @@ export const hasEditRights = (req: Request, res: Response, next: NextFunction) =
   }
 
   const userRole = req.session.user.role;
-  if (userRole === 'admin' || userRole === 'editor') {
+  if (canEdit(userRole)) {
     return next();
   }
 
-  return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+  return res.status(403).json({ message: 'Read-only users cannot modify data.' });
 };
 
 // Check if user has admin rights
@@ -42,7 +56,7 @@ export const hasAdminRights = (req: Request, res: Response, next: NextFunction) 
     console.log(`Admin check: Development mode with role: ${urlRole}`);
     
     // Only grant admin rights to admin role
-    if (urlRole === 'admin') {
+    if (isAdmin(urlRole)) {
       console.log('Admin check: Development mode - admin rights granted');
       return next();
     } else {
@@ -57,14 +71,27 @@ export const hasAdminRights = (req: Request, res: Response, next: NextFunction) 
   }
 
   const userRole = req.session.user.role;
-  if (userRole === 'admin') {
+  if (isAdmin(userRole)) {
     return next();
   }
 
   return res.status(403).json({ message: 'Forbidden: Admin rights required' });
 };
 
-// For endpoints that require authentication
+// Extend session type to include user
+declare module 'express-session' {
+  interface SessionData {
+    user?: {
+      id: string;
+      email: string;
+      role: string;
+      firstName?: string;
+      lastName?: string;
+    };
+  }
+}
+
+// For endpoints that require authentication  
 export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
   console.log('isAuthenticated middleware: Checking authentication');
   
@@ -75,7 +102,7 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
     console.log(`isAuthenticated middleware: Development mode with role: ${urlRole}`);
     
     // Require a valid role to be present
-    if (urlRole && ['admin', 'editor', 'viewer'].includes(urlRole)) {
+    if (urlRole && [ROLES.ADMIN, ROLES.EDIT, ROLES.VIEW].includes(urlRole as any)) {
       console.log('isAuthenticated middleware: Development mode - authentication passed');
       return next();
     } else {
@@ -92,4 +119,30 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
   }
   
   return res.status(401).json({ message: 'Unauthorized: Please log in' });
+};
+
+// Middleware to block write operations for VIEW users
+export const blockViewUserWrites = (req: Request, res: Response, next: NextFunction) => {
+  // Skip for GET requests (read operations)
+  if (req.method === 'GET') {
+    return next();
+  }
+  
+  // In development mode, check URL role
+  if (process.env.NODE_ENV === 'development') {
+    const urlRole = req.query.role as string;
+    if (isViewOnlyUser(urlRole)) {
+      console.log('blockViewUserWrites: Blocking write operation for VIEW user');
+      return res.status(403).json({ message: 'Read-only users cannot modify data.' });
+    }
+    return next();
+  }
+  
+  // Production mode - check session user role
+  if (req.session.user && isViewOnlyUser(req.session.user.role)) {
+    console.log('blockViewUserWrites: Blocking write operation for VIEW user');
+    return res.status(403).json({ message: 'Read-only users cannot modify data.' });
+  }
+  
+  return next();
 };
