@@ -778,10 +778,17 @@ export default function ResizableBaySchedule({
   // PDF generation function for team schedules with project bar visualization
   const generateTeamSchedulePDF = (teamName: string, teamBays: ManufacturingBay[]) => {
     try {
+      console.log('Starting PDF generation for team:', teamName);
+      console.log('Team bays:', teamBays);
+      console.log('Available scheduleBars:', scheduleBars?.length || 0);
+      console.log('Available projects:', projects?.length || 0);
+      
       // Get all projects scheduled for this team
       const teamProjects = scheduleBars.filter(bar => 
         teamBays.some(bay => bay.id === bar.bayId)
       );
+      
+      console.log('Team projects found:', teamProjects.length);
       
       // Sort projects by start date
       teamProjects.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
@@ -799,11 +806,13 @@ export default function ResizableBaySchedule({
       const weeklyCapacity = totalStaff * 40;
       
       // Create new PDF document in landscape orientation
+      console.log('Creating jsPDF instance...');
       const doc = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
         format: 'a4'
       });
+      console.log('jsPDF instance created successfully');
       
       const pageWidth = 297; // A4 landscape width in mm
       const pageHeight = 210; // A4 landscape height in mm
