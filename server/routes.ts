@@ -2320,20 +2320,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.redirect(307, '/api/auth/login');
   });
   
-  // Logout endpoint
-  app.post("/api/auth/logout", (req, res) => {
+  // Logout endpoint - handle both GET and POST
+  const handleLogout = (req: any, res: any) => {
     if (req.session) {
-      req.session.destroy((err) => {
+      req.session.destroy((err: any) => {
         if (err) {
           console.error("Session destruction error:", err);
           return res.status(500).json({ message: "Logout failed" });
         }
-        res.json({ message: "Logged out successfully" });
+        
+        // For GET requests (direct navigation), redirect to auth page
+        if (req.method === 'GET') {
+          res.redirect('/auth');
+        } else {
+          // For POST requests (API calls), return JSON
+          res.json({ message: "Logged out successfully" });
+        }
       });
     } else {
-      res.json({ message: "No session to destroy" });
+      if (req.method === 'GET') {
+        res.redirect('/auth');
+      } else {
+        res.json({ message: "No session to destroy" });
+      }
     }
-  });
+  };
+
+  app.post("/api/auth/logout", handleLogout);
+  app.get("/api/auth/logout", handleLogout);
 
   app.post("/api/logout", (req, res) => {
     console.log("DEBUG: Redirecting legacy logout request to /api/auth/logout");

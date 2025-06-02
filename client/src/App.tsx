@@ -97,10 +97,10 @@ function Router() {
     return () => clearInterval(interval);
   }, [location]);
   
-  // In development mode, redirect from auth page to dashboard
-  if (isDevelopment && isAuthPage) {
-    return <Redirect to="/" />;
-  }
+  // Allow auth page access in development for testing
+  // if (isDevelopment && isAuthPage) {
+  //   return <Redirect to="/" />;
+  // }
   const isResetPasswordPage = location === "/reset-password" || location.startsWith("/reset-password?");
 
   // If we're on the auth page or reset password page, render without the app layout
