@@ -2714,7 +2714,7 @@ export default function ResizableBaySchedule({
   return (
     <div className="resizable-bay-schedule relative flex flex-col h-full dark">
       {/* Header Bar */}
-      <div className="schedule-header sticky top-0 z-10 bg-gray-900 border-b border-gray-700 shadow-sm">
+      <div className="schedule-header sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="flex justify-between items-center p-2">
           <div className="flex items-center space-x-2">
             <h2 className="text-lg font-semibold text-white">Manufacturing Schedule</h2>
@@ -2773,7 +2773,7 @@ export default function ResizableBaySchedule({
       <div className="flex flex-row flex-1 h-full">
         {/* Unassigned Projects Sidebar - Collapsible with Drop Zone */}
         <div 
-          className={`unassigned-projects-sidebar border-r border-gray-700 flex-shrink-0 bg-gray-900 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
+          className={`unassigned-projects-sidebar border-r border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-900 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
           style={{ 
             transitionProperty: 'width, padding', 
             height: '100%', // Changed from fixed height to 100% to fill parent container
@@ -2851,7 +2851,7 @@ export default function ResizableBaySchedule({
               }}
             >
               {/* Visual drop zone indicator - fixed height, doesn't scroll, but entire column is a drop zone */}
-              <div className="unassigned-drop-container min-h-[80px] rounded-md border-2 border-dashed border-gray-700 mb-4 p-2 flex-shrink-0">
+              <div className="unassigned-drop-container min-h-[80px] rounded-md border-2 border-dashed border-gray-300 dark:border-gray-700 mb-4 p-2 flex-shrink-0">
                 <div className="text-sm text-gray-400 italic p-2 text-center flex items-center justify-center">
                   Drop projects anywhere in this column to unassign them
                 </div>
@@ -2866,7 +2866,7 @@ export default function ResizableBaySchedule({
                     {unassignedProjects.map(project => (
                       <div 
                         key={`unassigned-${project.id}`}
-                        className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
+                        className="unassigned-project-card bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 shadow-sm cursor-grab hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         draggable={true}
                         onDragStart={(e) => {
                           // Store project ID with special prefix to identify unassigned projects
@@ -3586,7 +3586,7 @@ export default function ResizableBaySchedule({
                 
                 {/* Week header row for this team */}
                 <div 
-                  className="team-week-header h-8 border-b border-gray-700 grid overflow-hidden mb-2" 
+                  className="team-week-header h-8 border-b border-gray-200 dark:border-gray-700 grid overflow-hidden mb-2" 
                   style={{ 
                     gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
                     width: `${Math.max(10000, slots.length * slotWidth)}px`
@@ -3860,7 +3860,7 @@ export default function ResizableBaySchedule({
                                 {slots.map((slot, index) => (
                                   <div 
                                     key={`bay-${bay.id}-slot-${index}`} 
-                                    className="relative h-full border-r border-gray-700/30"
+                                    className="relative h-full border-r border-gray-200/50 dark:border-gray-700/30"
                                     data-row="0"
                                     data-slot-index={index}
                                     data-date={format(slot.date, 'yyyy-MM-dd')}
