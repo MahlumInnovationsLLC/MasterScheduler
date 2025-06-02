@@ -2520,7 +2520,7 @@ body:has([role="dialog"]) .resize-handle {
   pointer-events: none;
 }
 
-/* Enhanced project bar styling for dark mode - May 15, 2025 */
+/* Enhanced project bar styling with light mode support - May 15, 2025 */
 .big-project-bar, 
 .project-bar, 
 .bay-project-area .project-bar {
@@ -2533,6 +2533,27 @@ body:has([role="dialog"]) .resize-handle {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Stronger shadow */
   background-color: rgba(59, 130, 246, 0.3); /* More vibrant blue */
   z-index: 2; /* Ensure project bars are above the grid */
+}
+
+/* Project title styling for better light mode visibility */
+.big-project-bar .project-title,
+.project-bar .project-title,
+.schedule-bar .project-title {
+  background-color: rgba(255, 255, 255, 0.95);
+  color: #1a1a1a;
+  padding: 2px 6px;
+  border-radius: 2px;
+  margin: 2px;
+  font-weight: 600;
+  font-size: 11px;
+  text-shadow: none;
+}
+
+.dark .big-project-bar .project-title,
+.dark .project-bar .project-title,
+.dark .schedule-bar .project-title {
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
 }
 
 /* Project bar styles for light mode */

@@ -3564,14 +3564,16 @@ export default function ResizableBaySchedule({
                                 }).length;
                                 
                                 // Calculate utilization percentage based on team capacity
-                                const percentage = Math.min(
+                                // Use team length as base capacity (1 project per bay)
+                                const teamCapacity = team.length;
+                                const percentage = teamCapacity > 0 ? Math.min(
                                   Math.round(
-                                    (currentWeekProjects / (team.length * 2)) * 100
+                                    (currentWeekProjects / teamCapacity) * 100
                                   ), 
                                   100
-                                );
+                                ) : 0;
                                 
-                                return `${percentage}% utilization this week`;
+                                return `${currentWeekProjects} projects, ${percentage}% utilization`;
                               })()}
                             </span>
                           </div>
