@@ -2717,7 +2717,7 @@ export default function ResizableBaySchedule({
       <div className="schedule-header sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="flex justify-between items-center p-2">
           <div className="flex items-center space-x-2">
-            <h2 className="text-lg font-semibold text-white">Manufacturing Schedule</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Manufacturing Schedule</h2>
             <Badge variant="secondary" className="ml-2">
               {viewMode.charAt(0).toUpperCase() + viewMode.slice(1)} View
             </Badge>
@@ -2784,7 +2784,7 @@ export default function ResizableBaySchedule({
           }}
         >
           <div className="flex items-center justify-between mb-4 flex-shrink-0">
-            <h3 className={`font-bold text-white ${!sidebarOpen ? 'hidden' : 'block'}`}>Unassigned Projects</h3>
+            <h3 className={`font-bold text-gray-900 dark:text-white ${!sidebarOpen ? 'hidden' : 'block'}`}>Unassigned Projects</h3>
             <button 
               onClick={() => {
                 console.log("Toggling sidebar from", sidebarOpen, "to", !sidebarOpen);
@@ -2930,9 +2930,9 @@ export default function ResizableBaySchedule({
                           console.log('Unassigned project drag operation completed - cleaned up states');
                         }}
                       >
-                        <div className="font-medium text-white text-sm mb-1 truncate">{project.projectNumber}: {project.name}</div>
-                        <div className="text-xs text-gray-400 truncate">{project.status}</div>
-                        <div className="text-xs text-gray-400 mt-1 flex items-center">
+                        <div className="font-medium text-gray-900 dark:text-white text-sm mb-1 truncate">{project.projectNumber}: {project.name}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 truncate">{project.status}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex items-center">
                           <span className="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
                           {project.team || 'No Team'}
                         </div>
