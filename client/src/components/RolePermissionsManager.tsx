@@ -32,7 +32,7 @@ interface RolePermissionsManagerProps {
   isReadOnly?: boolean; // Added to control read-only mode
 }
 
-// Define the available module categories and their features
+// Define the available module categories and their features based on actual application structure
 const moduleCategories = [
   {
     id: 'projects',
@@ -41,9 +41,10 @@ const moduleCategories = [
     features: [
       { id: 'project_list', name: 'Project List' },
       { id: 'project_details', name: 'Project Details' },
-      { id: 'project_timeline', name: 'Project Timeline' },
-      { id: 'project_status', name: 'Project Status' },
-      { id: 'project_delivery', name: 'Project Delivery' },
+      { id: 'project_create', name: 'Create Projects' },
+      { id: 'project_edit', name: 'Edit Projects' },
+      { id: 'archived_projects', name: 'Archived Projects' },
+      { id: 'delivered_projects', name: 'Delivered Projects' },
     ]
   },
   {
@@ -52,9 +53,9 @@ const moduleCategories = [
     icon: <Package className="h-5 w-5" />,
     features: [
       { id: 'bay_scheduling', name: 'Bay Scheduling' },
-      { id: 'bay_management', name: 'Bay Management' },
-      { id: 'manufacturing_timeline', name: 'Manufacturing Timeline' },
-      { id: 'resource_allocation', name: 'Resource Allocation' },
+      { id: 'manufacturing_bays', name: 'Manufacturing Bays' },
+      { id: 'on_time_delivery', name: 'On Time Delivery' },
+      { id: 'supply_chain', name: 'Supply Chain' },
     ]
   },
   {
@@ -63,19 +64,8 @@ const moduleCategories = [
     icon: <FileText className="h-5 w-5" />,
     features: [
       { id: 'billing_milestones', name: 'Billing Milestones' },
-      { id: 'invoicing', name: 'Invoicing' },
-      { id: 'payment_tracking', name: 'Payment Tracking' },
-      { id: 'financial_reports', name: 'Financial Reports' },
-    ]
-  },
-  {
-    id: 'users',
-    name: 'User Management',
-    icon: <Users className="h-5 w-5" />,
-    features: [
-      { id: 'user_list', name: 'User List' },
-      { id: 'user_roles', name: 'User Roles' },
-      { id: 'user_profile', name: 'User Profile' },
+      { id: 'sales_forecast', name: 'Sales Forecast' },
+      { id: 'sales_deals', name: 'Sales Deals' },
     ]
   },
   {
@@ -83,10 +73,9 @@ const moduleCategories = [
     name: 'Reports & Analytics',
     icon: <BarChart3 className="h-5 w-5" />,
     features: [
-      { id: 'production_reports', name: 'Production Reports' },
-      { id: 'delivery_reports', name: 'Delivery Reports' },
-      { id: 'financial_analytics', name: 'Financial Analytics' },
-      { id: 'performance_metrics', name: 'Performance Metrics' },
+      { id: 'reports', name: 'Reports Dashboard' },
+      { id: 'export_reports', name: 'Export Reports' },
+      { id: 'calendar', name: 'Calendar View' },
     ]
   },
   {
@@ -94,9 +83,9 @@ const moduleCategories = [
     name: 'Import & Export',
     icon: <Download className="h-5 w-5" />,
     features: [
-      { id: 'excel_import', name: 'Excel Import' },
-      { id: 'data_export', name: 'Data Export' },
-      { id: 'batch_operations', name: 'Batch Operations' },
+      { id: 'import_data', name: 'Import Data' },
+      { id: 'export_data', name: 'Export Data' },
+      { id: 'bulk_operations', name: 'Bulk Operations' },
     ]
   },
   {
@@ -104,9 +93,10 @@ const moduleCategories = [
     name: 'System Settings',
     icon: <Settings className="h-5 w-5" />,
     features: [
-      { id: 'general_settings', name: 'General Settings' },
+      { id: 'user_management', name: 'User Management' },
       { id: 'access_control', name: 'Access Control' },
       { id: 'system_maintenance', name: 'System Maintenance' },
+      { id: 'user_preferences', name: 'User Preferences' },
     ]
   },
 ];
@@ -218,10 +208,36 @@ const RolePermissionsManager: React.FC<RolePermissionsManagerProps> = ({ role, i
     
     const updatedPermissions = permissions.map(p => {
       if (p.category === categoryId && p.feature === featureId) {
-        return {
+        let newPermission = {
           ...p,
           [permissionType]: !p[permissionType as keyof RolePermission]
         };
+        
+        // If turning off view, also turn off dependent permissions
+        if (permissionType === 'canView' && !newPermission.canView) {
+          newPermission.canEdit = false;
+          newPermission.canCreate = false;
+          newPermission.canDelete = false;
+        }
+        
+        // If turning on edit/create/delete, ensure view is on
+        if ((permissionType === 'canEdit' || permissionType === 'canCreate' || permissionType === 'canDelete') 
+            && newPermission[permissionType]) {
+          newPermission.canView = true;
+        }
+        
+        // If turning off edit, also turn off delete
+        if (permissionType === 'canEdit' && !newPermission.canEdit) {
+          newPermission.canDelete = false;
+        }
+        
+        // If turning on delete, ensure edit is on
+        if (permissionType === 'canDelete' && newPermission.canDelete) {
+          newPermission.canEdit = true;
+          newPermission.canView = true;
+        }
+        
+        return newPermission;
       }
       return p;
     });
