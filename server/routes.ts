@@ -276,35 +276,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     };
   };
 
-  // Project routes with pagination and caching
+  // Project routes
   app.get("/api/projects", async (req, res) => {
     try {
-      const startTime = Date.now();
+      const projects = await storage.getActiveProjects();
       
-      // Add cache headers for better performance
-      res.set({
-        'Cache-Control': 'public, max-age=30',
-        'ETag': Date.now().toString()
+      // Calculate QC Days for each project based on qcStartDate and shipDate
+      const projectsWithQcDays = projects.map(project => {
+        if (project.qcStartDate && project.shipDate) {
+          const qcDaysCount = countWorkingDays(project.qcStartDate, project.shipDate);
+          return { ...project, qcDays: qcDaysCount };
+        }
+        return project;
       });
       
-      const limit = parseInt(req.query.limit as string) || 50;
-      const offset = parseInt(req.query.offset as string) || 0;
-      
-      if (limit > 0 && offset >= 0) {
-        // Use pagination for better performance
-        const projects = await storage.getActiveProjectsPaginated(limit, offset);
-        const endTime = Date.now();
-        console.log(`⚡ Projects query (paginated) took ${endTime - startTime}ms for ${projects.length} projects`);
-        res.json(projects);
-      } else {
-        // Fallback to all projects if pagination params are invalid
-        const projects = await storage.getActiveProjects();
-        const endTime = Date.now();
-        console.log(`⚡ Projects query (all) took ${endTime - startTime}ms for ${projects.length} projects`);
-        res.json(projects);
-      }
+      res.json(projectsWithQcDays);
     } catch (error) {
       console.error("Error fetching projects:", error);
+      // Log additional details for debugging
       if (error instanceof Error) {
         console.error("Error message:", error.message);
         console.error("Error stack:", error.stack);
