@@ -185,6 +185,12 @@ export function setupLocalAuth(app: Express) {
   passport.deserializeUser(async (id: string, done) => {
     try {
       console.log('Deserializing user ID:', id);
+      
+      if (!id) {
+        console.log('No user ID provided for deserialization');
+        return done(null, false);
+      }
+      
       const user = await storage.getUser(id);
       
       if (!user) {
@@ -196,7 +202,9 @@ export function setupLocalAuth(app: Express) {
       done(null, user);
     } catch (error) {
       console.error('Error deserializing user:', error);
-      done(error);
+      // Don't pass the error to done() as it may cause session issues
+      // Instead, just return false to indicate no user
+      done(null, false);
     }
   });
   
@@ -230,9 +238,12 @@ export function setupLocalAuth(app: Express) {
   // Login route
   app.post('/api/auth/login', (req, res, next) => {
     try {
+      console.log('Login attempt received:', { email: req.body.email });
+      
       // Validate request
       const result = loginSchema.safeParse(req.body);
       if (!result.success) {
+        console.log('Login validation failed:', result.error.errors);
         return res.status(400).json({ 
           message: "Invalid login data", 
           errors: result.error.errors 
@@ -240,34 +251,52 @@ export function setupLocalAuth(app: Express) {
       }
       
       passport.authenticate('local', (err: any, user: any, info: any) => {
-        if (err) {
-          return next(err);
-        }
-        
-        if (!user) {
-          return res.status(401).json({ message: info.message || 'Authentication failed' });
-        }
-        
-        // Check if user is approved
-        if (!user.isApproved) {
-          return res.status(403).json({ 
-            message: "Your account is pending approval", 
-            status: "pending_approval" 
-          });
-        }
-        
-        req.login(user, (loginErr) => {
-          if (loginErr) {
-            return next(loginErr);
+        try {
+          if (err) {
+            console.error('Passport authentication error:', err);
+            return res.status(500).json({ message: 'Authentication system error' });
           }
           
-          // Return user info without sensitive data
-          const { password, passwordResetToken, passwordResetExpires, ...safeUser } = user;
-          return res.json(safeUser);
-        });
+          if (!user) {
+            console.log('Authentication failed:', info?.message || 'No user returned');
+            return res.status(401).json({ message: info?.message || 'Authentication failed' });
+          }
+          
+          console.log('User authenticated:', { id: user.id, email: user.email, isApproved: user.isApproved });
+          
+          // Check if user is approved
+          if (!user.isApproved) {
+            console.log('User not approved:', user.email);
+            return res.status(403).json({ 
+              message: "Your account is pending approval", 
+              status: "pending_approval" 
+            });
+          }
+          
+          req.login(user, (loginErr) => {
+            try {
+              if (loginErr) {
+                console.error('Login session error:', loginErr);
+                return res.status(500).json({ message: 'Session creation failed' });
+              }
+              
+              // Return user info without sensitive data
+              const { password, passwordResetToken, passwordResetExpires, ...safeUser } = user;
+              console.log('Login successful for:', user.email);
+              return res.json(safeUser);
+            } catch (sessionError) {
+              console.error('Session handling error:', sessionError);
+              return res.status(500).json({ message: 'Login session error' });
+            }
+          });
+        } catch (authError) {
+          console.error('Authentication handler error:', authError);
+          return res.status(500).json({ message: 'Authentication handler error' });
+        }
       })(req, res, next);
     } catch (error) {
-      next(error);
+      console.error('Login route error:', error);
+      res.status(500).json({ message: 'Login failed: ' + String(error) });
     }
   });
   
