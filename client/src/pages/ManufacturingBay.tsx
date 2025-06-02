@@ -297,6 +297,14 @@ const ManufacturingBay = () => {
           bays={manufacturingBays || []}
           onScheduleChange={async (scheduleId, newBayId, newStartDate, newEndDate) => {
             try {
+              // Find the bay to get team information
+              const bay = manufacturingBays?.find(b => b.id === newBayId);
+              const teamName = bay?.team || bay?.name;
+              
+              // Find the schedule to get project ID
+              const schedule = manufacturingSchedules?.find(s => s.id === scheduleId);
+              const projectId = schedule?.projectId;
+              
               const response = await fetch(`/api/manufacturing-schedules/${scheduleId}`, {
                 method: 'PUT',
                 headers: {
@@ -311,6 +319,23 @@ const ManufacturingBay = () => {
               
               if (!response.ok) {
                 throw new Error('Failed to update schedule');
+              }
+              
+              // Auto-update project team when moved to a bay
+              if (projectId && teamName) {
+                try {
+                  await fetch(`/api/projects/${projectId}`, {
+                    method: 'PUT',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      team: teamName
+                    }),
+                  });
+                } catch (teamUpdateError) {
+                  console.warn('Failed to auto-update project team:', teamUpdateError);
+                }
               }
               
               // Refetch manufacturing schedules
@@ -350,6 +375,10 @@ const ManufacturingBay = () => {
               // Add debug logging to show the EXACT data being sent to the API
               console.log(`🚨 SENDING TO API: projectId=${projectId}, bayId=${bayId}, row=${rowValue}`);
               
+              // Find the bay to get team information for auto-update
+              const bay = manufacturingBays?.find(b => b.id === bayId);
+              const teamName = bay?.team || bay?.name;
+              
               // Enhanced API call with redundant row parameters for maximum reliability
               const response = await fetch('/api/manufacturing-schedules', {
                 method: 'POST',
@@ -371,6 +400,23 @@ const ManufacturingBay = () => {
               
               if (!response.ok) {
                 throw new Error('Failed to create schedule');
+              }
+              
+              // Auto-update project team when placed in a bay
+              if (projectId && teamName) {
+                try {
+                  await fetch(`/api/projects/${projectId}`, {
+                    method: 'PUT',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      team: teamName
+                    }),
+                  });
+                } catch (teamUpdateError) {
+                  console.warn('Failed to auto-update project team:', teamUpdateError);
+                }
               }
               
               // Refetch manufacturing schedules
