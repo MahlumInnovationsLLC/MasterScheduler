@@ -1088,22 +1088,25 @@ function ProjectEdit() {
                       control={form.control}
                       name="lltsOrdered"
                       render={({ field }) => (
-                        <FormItem className="rounded-md border p-4">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              id="lltsOrdered"
-                            />
-                            <div className="grid gap-1.5 leading-none">
-                              <FormLabel htmlFor="lltsOrdered">
-                                LLTs Ordered
-                              </FormLabel>
-                              <FormDescription>
-                                Check if Long Lead Time items have been ordered
-                              </FormDescription>
+                        <FormItem>
+                          <FormLabel>LLTs Ordered</FormLabel>
+                          <div className="grid grid-cols-[1fr_60px] gap-2">
+                            <FormControl>
+                              <Slider 
+                                value={[field.value ? 1 : 0]} 
+                                min={0} 
+                                max={1} 
+                                step={1}
+                                onValueChange={(vals) => field.onChange(vals[0] === 1)}
+                              />
+                            </FormControl>
+                            <div className="text-sm font-medium text-center">
+                              {field.value ? "Yes" : "No"}
                             </div>
                           </div>
+                          <FormDescription>
+                            Check if Long Lead Time items have been ordered
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1113,22 +1116,25 @@ function ProjectEdit() {
                       control={form.control}
                       name="hasBillingMilestones"
                       render={({ field }) => (
-                        <FormItem className="rounded-md border p-4">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              id="hasBillingMilestones"
-                            />
-                            <div className="grid gap-1.5 leading-none">
-                              <FormLabel htmlFor="hasBillingMilestones">
-                                Has Billing Milestones
-                              </FormLabel>
-                              <FormDescription>
-                                Check if project has defined billing milestones
-                              </FormDescription>
+                        <FormItem>
+                          <FormLabel>Has Billing Milestones</FormLabel>
+                          <div className="grid grid-cols-[1fr_60px] gap-2">
+                            <FormControl>
+                              <Slider 
+                                value={[field.value ? 1 : 0]} 
+                                min={0} 
+                                max={1} 
+                                step={1}
+                                onValueChange={(vals) => field.onChange(vals[0] === 1)}
+                              />
+                            </FormControl>
+                            <div className="text-sm font-medium text-center">
+                              {field.value ? "Yes" : "No"}
                             </div>
                           </div>
+                          <FormDescription>
+                            Check if project has defined billing milestones
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
