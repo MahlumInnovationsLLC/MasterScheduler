@@ -540,7 +540,7 @@ export class DatabaseStorage implements IStorage {
     return await safeQuery<Project>(() =>
       db.select()
         .from(projects)
-        .where(sql`NOT ('delivered' = ANY(${projects.status}))`)
+        .where(ne(projects.status, 'delivered'))
     );
   }
   
