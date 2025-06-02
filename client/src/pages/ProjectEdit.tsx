@@ -1088,26 +1088,19 @@ function ProjectEdit() {
                       control={form.control}
                       name="lltsOrdered"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>LLTs Ordered</FormLabel>
-                          <div className="grid grid-cols-[1fr_60px] gap-2">
-                            <FormControl>
-                              <Slider 
-                                value={[field.value ? 1 : 0]} 
-                                min={0} 
-                                max={1} 
-                                step={1}
-                                onValueChange={(vals) => field.onChange(vals[0] === 1)}
-                              />
-                            </FormControl>
-                            <div className="text-sm font-medium text-center">
-                              {field.value ? "Yes" : "No"}
-                            </div>
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">
+                              LLTs Ordered
+                            </FormLabel>
+                            <FormDescription>
+                              Check if Long Lead Time items have been ordered
+                            </FormDescription>
                           </div>
-                          <FormDescription>
-                            Check if Long Lead Time items have been ordered
-                          </FormDescription>
-                          <FormMessage />
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
                         </FormItem>
                       )}
                     />
@@ -1116,26 +1109,19 @@ function ProjectEdit() {
                       control={form.control}
                       name="hasBillingMilestones"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Has Billing Milestones</FormLabel>
-                          <div className="grid grid-cols-[1fr_60px] gap-2">
-                            <FormControl>
-                              <Slider 
-                                value={[field.value ? 1 : 0]} 
-                                min={0} 
-                                max={1} 
-                                step={1}
-                                onValueChange={(vals) => field.onChange(vals[0] === 1)}
-                              />
-                            </FormControl>
-                            <div className="text-sm font-medium text-center">
-                              {field.value ? "Yes" : "No"}
-                            </div>
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">
+                              Has Billing Milestones
+                            </FormLabel>
+                            <FormDescription>
+                              Check if project has defined billing milestones
+                            </FormDescription>
                           </div>
-                          <FormDescription>
-                            Check if project has defined billing milestones
-                          </FormDescription>
-                          <FormMessage />
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
                         </FormItem>
                       )}
                     />
