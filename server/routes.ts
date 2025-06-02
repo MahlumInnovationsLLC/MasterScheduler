@@ -205,16 +205,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth user endpoint that the frontend expects
   app.get("/api/auth/user", (req, res) => {
-    // In development mode, return a mock admin user
+    // In development mode, return user based on role query parameter for testing
     if (process.env.NODE_ENV === 'development') {
+      const urlRole = req.query.role as string;
+      const role = ['admin', 'editor', 'viewer'].includes(urlRole) ? urlRole : 'admin';
+      
       res.json({
         id: "dev-user-id",
-        username: "dev-admin",
-        email: "dev@example.com",
-        role: "admin",
+        username: `dev-${role}`,
+        email: `${role}@example.com`,
+        role: role,
         isApproved: true,
         firstName: "Development",
-        lastName: "User"
+        lastName: role.charAt(0).toUpperCase() + role.slice(1)
       });
       return;
     }

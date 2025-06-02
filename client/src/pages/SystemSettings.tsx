@@ -55,6 +55,8 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
+import { useRolePermissions } from "@/hooks/use-role-permissions";
+import { RoleBasedWrapper } from "@/components/RoleBasedWrapper";
 import { queryClient, apiRequest, getQueryFn } from '../lib/queryClient';
 
 const SystemSettings = () => {
@@ -75,6 +77,9 @@ const SystemSettings = () => {
   
   // Get user data from authentication context
   const { user } = useAuth();
+  
+  // Get role-based permissions
+  const { isViewOnly, canEdit, isAdmin: hasAdminRole, shouldDisableInput, getDisabledTooltip } = useRolePermissions();
   
   // User role state (for permission management)
   const [isAdmin, setIsAdmin] = useState(false);

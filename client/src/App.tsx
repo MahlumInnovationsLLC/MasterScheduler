@@ -33,6 +33,7 @@ import UserPreferences from "@/pages/UserPreferences";
 import SalesForecast from "@/pages/SalesForecast";
 import SalesDealEdit from "@/pages/SalesDealEdit";
 import SupplyChain from "@/pages/SupplyChain";
+import RoleTestPage from "@/pages/RoleTestPage";
 import AuthPage from "@/pages/auth-page";
 import GuaranteedAuthPage from "@/pages/guaranteed-auth-page";
 import SimpleLogin from "@/pages/simple-login";
@@ -127,6 +128,7 @@ function MainContent() {
             <ProtectedRoute path="/export-reports" component={ExportReports} />
             <ProtectedRoute path="/import" component={ImportData} />
             <ProtectedRoute path="/supply-chain" component={SupplyChain} />
+            <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <AdminRoute path="/settings/system" component={SystemSettings} />
             <AdminRoute path="/system-settings" component={SystemSettings} />
             <AdminRoute path="/settings" component={SystemSettings} />
