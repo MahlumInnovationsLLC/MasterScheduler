@@ -44,7 +44,16 @@ export function ProjectStatusBreakdownCard({ projects }: ProjectStatusBreakdownC
       }
       
       // For all other projects, categorize by their schedule state
+      // If manufacturingSchedules isn't loaded yet, treat as unscheduled
+      if (!manufacturingSchedules) {
+        unscheduledProjects.push(project);
+        return;
+      }
+      
       const scheduleState = getProjectScheduleState(manufacturingSchedules, project.id);
+      
+      // Debug logging for Projects Module
+      console.log('Projects Module Debug - Project:', project.name, 'Schedule State:', scheduleState);
       
       if (scheduleState === 'Unscheduled') {
         unscheduledProjects.push(project);
@@ -56,6 +65,15 @@ export function ProjectStatusBreakdownCard({ projects }: ProjectStatusBreakdownC
         completeProjects.push(project);
       }
     });
+    
+    // Debug logging for final counts
+    console.log('Projects Module Debug - Final counts:', {
+      unscheduled: unscheduledProjects.length,
+      scheduled: scheduledProjects.length,
+      inProgress: inProgressProjects.length,
+      complete: completeProjects.length
+    });
+    console.log('Projects Module Debug - Unscheduled projects:', unscheduledProjects.map(p => ({ id: p.id, name: p.name, projectNumber: p.projectNumber })));
     
     return {
       counts: {
