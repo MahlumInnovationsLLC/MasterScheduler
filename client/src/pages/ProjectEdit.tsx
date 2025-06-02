@@ -31,6 +31,8 @@ import { useForm } from 'react-hook-form';
 import { format, addDays } from 'date-fns';
 import { cn, formatDate } from '@/lib/utils';
 import { queryClient, apiRequest } from '@/lib/queryClient';
+import { useRolePermissions } from '@/hooks/use-role-permissions';
+import { RoleBasedWrapper } from '@/components/RoleBasedWrapper';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -121,6 +123,9 @@ function ProjectEdit() {
   const [totalPercentage, setTotalPercentage] = useState(100);
   const [originalShipDate, setOriginalShipDate] = useState<Date | null>(null);
   const [pendingFormData, setPendingFormData] = useState<ProjectFormValues | null>(null);
+
+  // Get role permissions
+  const { isViewOnly, canEdit, shouldDisableInput, getDisabledTooltip } = useRolePermissions();
 
   // Extract project ID from the URL
   const currentPath = window.location.pathname;
