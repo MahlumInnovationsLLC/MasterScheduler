@@ -4106,7 +4106,7 @@ export default function ResizableBaySchedule({
                                        pointerEvents: 'none', /* Allow clicks to pass through */
                                        zIndex: 9999 /* Extremely high z-index to ensure it's on top of everything */
                                      }}>
-                                  <div className="text-xs font-bold text-white bg-black bg-opacity-90 px-2 py-0.5 rounded-md text-center truncate shadow-md" style={{minWidth: "250px", maxWidth: "250px", position: 'relative'}}>
+                                  <div className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center truncate shadow-md border border-gray-300" style={{minWidth: "250px", maxWidth: "250px", position: 'relative'}}>
                                     {bar.projectNumber} - {bar.projectName}
                                   </div>
                                 </div>
@@ -4129,16 +4129,16 @@ export default function ResizableBaySchedule({
                               
                               {/* Project information overlay */}
                               <div className="project-info relative z-10 flex justify-between items-start h-full pointer-events-none">
-                                <div className="ml-1 mt-1">
+                                <div className="ml-1 mt-1 bg-white bg-opacity-95 px-2 py-1 rounded border border-gray-300 shadow-sm">
                                   <div className="flex items-center gap-2">
-                                    <div className="font-bold truncate max-w-[120px]">{bar.projectNumber}</div>
+                                    <div className="font-bold truncate max-w-[120px] text-gray-900 text-xs">{bar.projectNumber}</div>
                                     {isSalesEstimate && (
-                                      <span className="px-1 py-0.5 text-xs font-semibold bg-yellow-500/30 text-yellow-200 border border-yellow-400/50 rounded animate-pulse">
+                                      <span className="px-1 py-0.5 text-xs font-semibold bg-yellow-500/30 text-yellow-800 border border-yellow-400/50 rounded animate-pulse">
                                         Proposed
                                       </span>
                                     )}
                                   </div>
-                                  <div className="truncate max-w-[200px]">{bar.projectName}</div>
+                                  <div className="truncate max-w-[200px] text-gray-800 text-xs">{bar.projectName}</div>
                                 </div>
                                 
                                 {/* Delete button (appears on hover) */}
