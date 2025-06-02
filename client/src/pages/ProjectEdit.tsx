@@ -1375,6 +1375,7 @@ function ProjectEdit() {
                           onChange={field.onChange}
                           placeholder="Select date or status..."
                           fieldName="fabricationStart"
+                          textOverride={projectData?.fabricationStartText}
                         />
                       )}
                     />
@@ -1402,6 +1403,7 @@ function ProjectEdit() {
                           onChange={field.onChange}
                           placeholder="Select date or status..."
                           fieldName="ntcTestingDate"
+                          textOverride={projectData?.ntcTestingDateText}
                         />
                       )}
                     />
@@ -1416,6 +1418,7 @@ function ProjectEdit() {
                           onChange={field.onChange}
                           placeholder="Select date or status..."
                           fieldName="wrapDate"
+                          textOverride={projectData?.wrapDateText}
                         />
                       )}
                     />
@@ -1443,6 +1446,7 @@ function ProjectEdit() {
                           onChange={field.onChange}
                           placeholder="Select date or status..."
                           fieldName="executiveReviewDate"
+                          textOverride={projectData?.executiveReviewDateText}
                         />
                       )}
                     />
@@ -1470,6 +1474,7 @@ function ProjectEdit() {
                           onChange={field.onChange}
                           placeholder="Select date or status..."
                           fieldName="deliveryDate"
+                          textOverride={projectData?.deliveryDateText}
                         />
                       )}
                     />
