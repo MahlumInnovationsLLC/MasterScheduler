@@ -23,6 +23,7 @@ import {
 
 import { exportReport } from "./routes/export";
 import { setupSession, setupLocalAuth, isAuthenticated, hasEditRights, isAdmin, isEditor, hashPassword, comparePasswords } from "./authService";
+import { blockViewUserWrites } from "./middleware/auth";
 import { 
   importProjects, 
   importBillingMilestones, 

@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { SidebarContext } from '@/context/SidebarContext';
 import { usePermissions } from '@/components/PermissionsManager';
+import { useRolePermissions } from '@/hooks/use-role-permissions';
+import { RoleBasedWrapper } from '@/components/RoleBasedWrapper';
 
 // Custom Link component that adds sidebar-item class for view-only mode support
 const SidebarLink = ({ href, className, title, children }: { 
@@ -189,12 +191,14 @@ const Sidebar = () => {
           )}
           <ul>
             <li>
-              <SidebarLink href="/import" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/import') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`} title="Import Data">
-                <Upload className={`text-xl ${isActive('/import') ? 'text-primary' : ''}`} />
-                {!isCollapsed && <span>Import Data</span>}
-              </SidebarLink>
+              <RoleBasedWrapper requiresEdit={true}>
+                <SidebarLink href="/import" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                  isActive('/import') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
+                }`} title="Import Data">
+                  <Upload className={`text-xl ${isActive('/import') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Import Data</span>}
+                </SidebarLink>
+              </RoleBasedWrapper>
             </li>
             <li>
               <SidebarLink href="/export-reports" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
@@ -223,14 +227,16 @@ const Sidebar = () => {
                 {!isCollapsed && <span>User Preferences</span>}
               </SidebarLink>
             </li>
-            <li>
-              <SidebarLink href="/system-settings" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`} title="System Settings">
-                <Settings className={`text-xl ${isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'text-primary' : ''}`} />
-                {!isCollapsed && <span>System Settings</span>}
-              </SidebarLink>
-            </li>
+            <RoleBasedWrapper requiresAdmin={true} fallback={null}>
+              <li>
+                <SidebarLink href="/system-settings" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
+                  isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
+                }`} title="System Settings">
+                  <Settings className={`text-xl ${isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>System Settings</span>}
+                </SidebarLink>
+              </li>
+            </RoleBasedWrapper>
           </ul>
         </div>
       </nav>
