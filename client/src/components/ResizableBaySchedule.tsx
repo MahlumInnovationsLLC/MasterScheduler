@@ -775,7 +775,7 @@ export default function ResizableBaySchedule({
   // Add forceUpdate state to force re-rendering when needed
   const [forceUpdate, setForceUpdate] = useState<number>(Date.now());
   
-  // PDF generation function for team schedules
+  // PDF generation function for team schedules with project bar visualization
   const generateTeamSchedulePDF = (teamName: string, teamBays: ManufacturingBay[]) => {
     try {
       // Get all projects scheduled for this team
@@ -786,6 +786,15 @@ export default function ResizableBaySchedule({
       // Sort projects by start date
       teamProjects.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
       
+      // Calculate real team capacity from actual data
+      const totalStaff = teamBays.reduce((sum, bay) => 
+        sum + (bay.assemblyStaffCount || 2) + (bay.electricalStaffCount || 1), 0
+      );
+      const avgHoursPerWeek = teamBays.reduce((sum, bay) => 
+        sum + (bay.hoursPerPersonPerWeek || 40), 0
+      ) / teamBays.length;
+      const weeklyCapacity = totalStaff * avgHoursPerWeek;
+      
       // Create new PDF document in landscape orientation
       const doc = new jsPDF({
         orientation: 'landscape',
@@ -793,86 +802,215 @@ export default function ResizableBaySchedule({
         format: 'a4'
       });
       
+      const pageWidth = 297; // A4 landscape width in mm
+      const pageHeight = 210; // A4 landscape height in mm
+      const margin = 15;
+      const usableWidth = pageWidth - (margin * 2);
+      
       // Add title
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text(`${teamName} - Project Schedule`, 20, 20);
+      doc.text(`${teamName} - Project Schedule`, margin, 20);
       
       // Add generation date
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Generated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`, 20, 30);
+      doc.text(`Generated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`, margin, 30);
       
-      // Add team information
+      // Add team information using real data
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Team Information:', 20, 45);
+      doc.text('Team Information:', margin, 45);
       
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       const teamInfo = [
         `Bays: ${teamBays.map(bay => bay.name).join(', ')}`,
         `Total Projects: ${teamProjects.length}`,
-        `Staff: ${teamBays.reduce((sum, bay) => sum + (bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0), 0)} members`,
-        `Weekly Capacity: ${teamBays.reduce((sum, bay) => sum + ((bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0)) * (bay.hoursPerPersonPerWeek || 40), 0)} hours`
+        `Staff: ${totalStaff} members (${teamBays.reduce((sum, bay) => sum + (bay.assemblyStaffCount || 2), 0)} assembly, ${teamBays.reduce((sum, bay) => sum + (bay.electricalStaffCount || 1), 0)} electrical)`,
+        `Weekly Capacity: ${Math.round(weeklyCapacity)} hours`
       ];
       
       teamInfo.forEach((info, index) => {
-        doc.text(info, 25, 55 + (index * 6));
+        doc.text(info, margin + 5, 55 + (index * 6));
       });
       
-      // Prepare table data
-      const tableData = teamProjects.map(project => {
-        const projectData = projects.find(p => p.id === project.projectId);
-        const bay = teamBays.find(b => b.id === project.bayId);
+      // Calculate timeline for project bars
+      if (teamProjects.length > 0) {
+        const earliestStart = new Date(Math.min(...teamProjects.map(p => new Date(p.startDate).getTime())));
+        const latestEnd = new Date(Math.max(...teamProjects.map(p => new Date(p.endDate).getTime())));
+        const totalDays = differenceInDays(latestEnd, earliestStart);
         
-        return [
-          projectData?.projectNumber || 'N/A',
-          projectData?.name || project.projectName,
-          bay?.name || `Bay ${project.bayId}`,
-          format(new Date(project.startDate), 'MMM dd, yyyy'),
-          format(new Date(project.endDate), 'MMM dd, yyyy'),
-          `${Math.ceil(differenceInDays(new Date(project.endDate), new Date(project.startDate)))} days`,
-          `${project.totalHours || 0} hrs`,
-          projectData?.status || 'Active'
-        ];
-      });
-      
-      // Add table
-      autoTable(doc, {
-        head: [['Project #', 'Project Name', 'Bay', 'Start Date', 'End Date', 'Duration', 'Hours', 'Status']],
-        body: tableData,
-        startY: 85,
-        styles: {
-          fontSize: 8,
-          cellPadding: 2
-        },
-        headStyles: {
-          fillColor: [59, 130, 246], // Blue color
-          textColor: 255,
-          fontStyle: 'bold'
-        },
-        alternateRowStyles: {
-          fillColor: [248, 250, 252] // Light gray
-        },
-        columnStyles: {
-          0: { cellWidth: 25 }, // Project #
-          1: { cellWidth: 60 }, // Project Name
-          2: { cellWidth: 30 }, // Bay
-          3: { cellWidth: 35 }, // Start Date
-          4: { cellWidth: 35 }, // End Date
-          5: { cellWidth: 25 }, // Duration
-          6: { cellWidth: 25 }, // Hours
-          7: { cellWidth: 25 }  // Status
+        // Start project bar visualization
+        let currentY = 85;
+        const barHeight = 8;
+        const bayRowHeight = 12;
+        const timelineHeight = 20;
+        
+        // Add timeline header
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Project Timeline:', margin, currentY);
+        currentY += 10;
+        
+        // Group projects by bay for visualization
+        const projectsByBay = teamBays.map(bay => ({
+          bay,
+          projects: teamProjects.filter(p => p.bayId === bay.id)
+        })).filter(group => group.projects.length > 0);
+        
+        for (const bayGroup of projectsByBay) {
+          // Check if we need a new page
+          const requiredHeight = timelineHeight + (bayGroup.projects.length * bayRowHeight) + 20;
+          if (currentY + requiredHeight > pageHeight - margin) {
+            doc.addPage();
+            currentY = margin;
+          }
+          
+          // Draw bay header
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${bayGroup.bay.name}`, margin, currentY);
+          currentY += 8;
+          
+          // Draw timeline scale for this bay
+          const scaleY = currentY;
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          
+          // Draw month markers
+          const timelineWidth = usableWidth - 40;
+          const pixelsPerDay = timelineWidth / totalDays;
+          
+          let currentMonth = new Date(earliestStart);
+          while (currentMonth <= latestEnd) {
+            const monthOffset = differenceInDays(currentMonth, earliestStart) * pixelsPerDay;
+            const monthX = margin + 40 + monthOffset;
+            
+            if (monthX <= margin + usableWidth - 20) {
+              doc.line(monthX, scaleY, monthX, scaleY + 5);
+              doc.text(format(currentMonth, 'MMM'), monthX - 5, scaleY - 2);
+            }
+            
+            currentMonth = addMonths(currentMonth, 1);
+          }
+          
+          currentY += 15;
+          
+          // Draw project bars for this bay
+          bayGroup.projects.forEach((project, index) => {
+            const projectData = projects.find(p => p.id === project.projectId);
+            const startOffset = differenceInDays(new Date(project.startDate), earliestStart) * pixelsPerDay;
+            const duration = differenceInDays(new Date(project.endDate), new Date(project.startDate));
+            const barWidth = Math.max(duration * pixelsPerDay, 5); // Minimum 5mm width
+            
+            const barX = margin + 40 + startOffset;
+            const barY = currentY;
+            
+            // Ensure bar doesn't exceed page width
+            const actualBarWidth = Math.min(barWidth, usableWidth - (barX - margin));
+            
+            // Draw project bar with phase colors
+            const phases = [
+              { name: 'FAB', percentage: project.fabPercentage || 27, color: [255, 165, 0] }, // Orange
+              { name: 'PAINT', percentage: project.paintPercentage || 7, color: [255, 69, 0] }, // Red-orange
+              { name: 'PROD', percentage: project.productionPercentage || 60, color: [34, 139, 34] }, // Green
+              { name: 'IT', percentage: project.itPercentage || 7, color: [30, 144, 255] }, // Blue
+              { name: 'NTC', percentage: project.ntcPercentage || 7, color: [138, 43, 226] }, // Purple
+              { name: 'QC', percentage: project.qcPercentage || 7, color: [220, 20, 60] } // Crimson
+            ];
+            
+            let phaseStartX = barX;
+            phases.forEach(phase => {
+              const phaseWidth = (actualBarWidth * phase.percentage) / 100;
+              
+              if (phaseWidth > 0.5) { // Only draw if visible
+                doc.setFillColor(phase.color[0], phase.color[1], phase.color[2]);
+                doc.rect(phaseStartX, barY, phaseWidth, barHeight, 'F');
+                phaseStartX += phaseWidth;
+              }
+            });
+            
+            // Add project label
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            const projectLabel = `${projectData?.projectNumber || project.projectId} - ${(projectData?.name || project.projectName).substring(0, 30)}`;
+            doc.text(projectLabel, barX, barY + barHeight + 3);
+            
+            currentY += bayRowHeight;
+            
+            // If project bar extends beyond page width, continue on next page
+            if (barX + barWidth > usableWidth + margin) {
+              doc.addPage();
+              currentY = margin;
+              
+              // Continue drawing the remaining part of the bar
+              const remainingWidth = barWidth - actualBarWidth;
+              if (remainingWidth > 5) {
+                doc.text(`${projectLabel} (continued)`, margin, currentY + 8);
+                currentY += 15;
+                
+                // Draw remaining phases
+                let remainingPhaseStartX = margin;
+                const remainingStartPercentage = (actualBarWidth / barWidth) * 100;
+                
+                phases.forEach(phase => {
+                  const totalPhaseWidth = (barWidth * phase.percentage) / 100;
+                  const usedPhaseWidth = (actualBarWidth * phase.percentage) / 100;
+                  const remainingPhaseWidth = totalPhaseWidth - usedPhaseWidth;
+                  
+                  if (remainingPhaseWidth > 0.5) {
+                    doc.setFillColor(phase.color[0], phase.color[1], phase.color[2]);
+                    doc.rect(remainingPhaseStartX, currentY, Math.min(remainingPhaseWidth, usableWidth - remainingPhaseStartX), barHeight, 'F');
+                    remainingPhaseStartX += remainingPhaseWidth;
+                  }
+                });
+                
+                currentY += bayRowHeight;
+              }
+            }
+          });
+          
+          currentY += 10; // Space between bays
         }
-      });
+        
+        // Add legend for phases
+        if (currentY + 40 > pageHeight - margin) {
+          doc.addPage();
+          currentY = margin;
+        }
+        
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Phase Legend:', margin, currentY);
+        currentY += 10;
+        
+        const legendPhases = [
+          { name: 'FAB', color: [255, 165, 0] },
+          { name: 'PAINT', color: [255, 69, 0] },
+          { name: 'PRODUCTION', color: [34, 139, 34] },
+          { name: 'IT', color: [30, 144, 255] },
+          { name: 'NTC', color: [138, 43, 226] },
+          { name: 'QC', color: [220, 20, 60] }
+        ];
+        
+        legendPhases.forEach((phase, index) => {
+          const legendX = margin + (index * 45);
+          doc.setFillColor(phase.color[0], phase.color[1], phase.color[2]);
+          doc.rect(legendX, currentY, 8, 6, 'F');
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          doc.text(phase.name, legendX + 10, currentY + 4);
+        });
+      }
       
-      // Add footer with page number
+      // Add footer with page numbers
       const pageCount = doc.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
-        doc.text(`Page ${i} of ${pageCount}`, 270, 200);
+        doc.text(`Page ${i} of ${pageCount}`, pageWidth - 30, pageHeight - 10);
+        doc.text(`${teamName} - Generated ${format(new Date(), 'MMM dd, yyyy')}`, margin, pageHeight - 10);
       }
       
       // Save the PDF
@@ -882,7 +1020,7 @@ export default function ResizableBaySchedule({
       // Show success toast
       toast({
         title: "PDF Generated",
-        description: `Schedule for ${teamName} has been downloaded as ${fileName}`,
+        description: `Schedule for ${teamName} has been downloaded with project timeline visualization`,
       });
       
     } catch (error) {
