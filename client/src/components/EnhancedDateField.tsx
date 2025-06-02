@@ -7,17 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface EnhancedDateFieldProps {
   label: string;
-  value: Date | undefined;
+  value: Date | string | undefined;
   onChange: (value: Date | string | undefined) => void;
   placeholder?: string;
   description?: string;
 }
 
 export function EnhancedDateField({ label, value, onChange, placeholder, description }: EnhancedDateFieldProps) {
-  const [inputMode, setInputMode] = useState<'date' | 'text'>('date');
-  
-  // Determine current value type
+  // Determine current value type and set initial mode based on value
   const isTextValue = typeof value === 'string' && (value === 'PENDING' || value === 'N/A');
+  const [inputMode, setInputMode] = useState<'date' | 'text'>(isTextValue ? 'text' : 'date');
   
   // Convert date to string for input
   const dateValueString = value instanceof Date ? 
