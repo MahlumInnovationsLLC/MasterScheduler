@@ -1027,10 +1027,13 @@ export default function ResizableBaySchedule({
       });
       
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      console.error('Detailed PDF generation error:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('Error message:', error instanceof Error ? error.message : String(error));
+      
       toast({
         title: "PDF Generation Failed",
-        description: "There was an error generating the PDF. Please try again.",
+        description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}. Check console for details.`,
         variant: "destructive",
       });
     }
