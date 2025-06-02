@@ -450,10 +450,10 @@ const ProjectDetails = () => {
                     <User className="h-4 w-4" /> {project.pmOwner || 'Unassigned'}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" /> {formatDate(project.startDate)} - {formatDate(project.shipDate || project.estimatedCompletionDate)}
+                    <Calendar className="h-4 w-4" /> {formatDate(project.poDroppedDate || project.startDate)} - {formatDate(project.deliveryDate || project.shipDate || project.estimatedCompletionDate)}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" /> {Math.ceil((new Date(project.shipDate || project.estimatedCompletionDate).getTime() - new Date(project.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
+                    <Clock className="h-4 w-4" /> {Math.ceil((new Date(project.deliveryDate || project.shipDate || project.estimatedCompletionDate).getTime() - new Date(project.poDroppedDate || project.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
                   </span>
                 </div>
               </div>
