@@ -1,0 +1,179 @@
+You are a Replit AI Agent with full access to my project’s source files. I need you to review and enhance our existing Auth/Login code and user‐management logic so that “View Only” users can browse every part of the app (except System Settings) but can never trigger any writes or edits. Follow these requirements exactly:
+
+Project Scanning and Context
+• Automatically locate any files related to authentication, role definitions, and route protection (for example: auth.js, userRoles.js, AuthContext.jsx, RouteGuard.jsx, SystemSettingsModule.jsx, etc.).
+• Identify where we currently handle VIEW, EDIT, and ADMIN roles. Note any places where “view” is treated like “no permissions” (e.g. blocking access to login pages) and correct that.
+
+Role Definitions
+• Ensure there is a clear enum or object in a central file (e.g. userRoles.js) that looks something like:
+
+js
+Copy
+Edit
+export const ROLES = {
+  VIEW: "view",
+  EDIT: "edit",
+  ADMIN: "admin",
+};
+• If such a file doesn’t exist, create one and update all imports so that authentication and route guards reference ROLES.VIEW / ROLES.EDIT / ROLES.ADMIN instead of hard-coded strings.
+
+Protecting the Auth/Login Page
+• Detect any existing code that wraps the login or signup page in a “view‐only” check. Remove or bypass that guard so that every user (including VIEW users) can still click, type, and submit on the login form. The Auth/Login page must remain fully interactive for all roles.
+• Verify that the AuthContext or equivalent does not mistakenly require EDIT or ADMIN to access the login route. For example, if you see:
+
+js
+Copy
+Edit
+if (user.role !== ROLES.ADMIN) {
+  return <Redirect to="/no-access" />;
+}
+• Change to logic that only applies to protected modules, not /login or /auth.
+
+Front-End: Disabling All Write Controls for VIEW Users
+• At every UI component or page where a “view” user might see input fields, buttons, or links that cause state changes (e.g. <input>, <button onClick={handleSave}>, <Link to="/edit">, inline onChange handlers, etc.), wrap them in a conditional check:
+
+js
+Copy
+Edit
+const { user } = useAuth(); // or however you get current user
+const isView = user?.role === ROLES.VIEW;
+
+// Example for disabling a Save button:
+<Button
+  onClick={handleSave}
+  disabled={isView}
+  title={isView ? "Read-only mode: you cannot edit" : ""}
+>
+  Save
+</Button>
+
+// Example for making a text input readonly:
+<input
+  value={value}
+  onChange={isView ? undefined : e => setValue(e.target.value)}
+  readOnly={isView}
+/>
+• Wherever you render a form or “Edit” link, conditionally hide or disable it if user.role === ROLES.VIEW. For instance:
+
+jsx
+Copy
+Edit
+{!isView && <button onClick={deleteItem}>Delete</button>}
+• Ensure that “View” users can still click around: use pointer-events: auto; or don’t apply opacity: 0.5; pointer-events: none; to the entire page. Instead, only disable interactive elements that perform writes.
+• In each module (except System Settings), scan for “Save,” “Update,” “Delete,” “Create,” or any code that calls an API method other than GET. Wrap or short-circuit those calls for isView === true.
+
+Front-End: Hiding or Blocking the System Settings Module
+• Locate how the navigation drawer or sidebar is built. Insert a check like:
+
+js
+Copy
+Edit
+if (user.role === ROLES.VIEW) {
+  // Do not render the System Settings link at all:
+  // e.g. return null for that <NavLink> or <MenuItem>
+} else {
+  // render normally
+}
+• If the System Settings route is mounted regardless of navigation (e.g. somebody manually types /system-settings), wrap the route component in a guard:
+
+jsx
+Copy
+Edit
+<Route path="/system-settings">
+  {user.role === ROLES.ADMIN 
+    ? <SystemSettingsModule /> 
+    : <Redirect to="/no-access" />}
+</Route>
+• Create or update a “No Access” component to show a friendly message (“You don’t have permission to view this page”) for VIEW or EDIT users if they somehow try to manually navigate there.
+
+Back-End: Enforcing Read-Only on API Level for VIEW Users
+• In your Express (or other) server, find your role-checking middleware. For every route that modifies data (POST, PUT, DELETE), add a check:
+
+js
+Copy
+Edit
+app.use((req, res, next) => {
+  const { role } = req.user; // assuming user object is attached to req
+  // If the endpoint is write-only:
+  if (["POST", "PUT", "DELETE"].includes(req.method) && role === ROLES.VIEW) {
+    return res.status(403).json({ message: "Read-only users cannot modify data." });
+  }
+  return next();
+});
+• Alternatively, on each individual route handler, do:
+
+js
+Copy
+Edit
+router.post("/updateItem", (req, res) => {
+  if (req.user.role === ROLES.VIEW) {
+    return res.status(403).json({ error: "Insufficient permissions." });
+  }
+  // existing update logic...
+});
+• For GET endpoints, allow requests normally regardless of role. That ensures VIEW users can still fetch lists, details, etc.
+
+Avoiding the Common “View Only Locks the Auth Page” Bug
+• Search for any global “deny all non-ADMIN” or “deny all non-EDIT” logic that might wrap your entire router. If you have something like:
+
+js
+Copy
+Edit
+if (req.user.role !== ROLES.ADMIN) {
+  return res.redirect("/no-access");
+}
+• Move that logic inside a more granular guard so that it only applies when req.path.startsWith("/system-settings") or other write-only routes.
+• Do not apply this check to /login, /auth/*, /public/*, or any static assets.
+
+Conditional Rendering of Module Components
+• In every module page/component, wrap any code that would open an “Edit Modal” or show a “Delete” button in if (role !== ROLES.VIEW) { … }. For example:
+
+jsx
+Copy
+Edit
+// In ProjectDetails.jsx
+return (
+  <div>
+    <h1>{project.name}</h1>
+    <p>{project.description}</p>
+    {user.role !== ROLES.VIEW && (
+      <button onClick={() => openEditModal(project)}>Edit Project</button>
+    )}
+    {/* Even if VIEW user clicks inside the card, no APIs can be called */}
+  </div>
+);
+• If you have a global wrapper like <RouteGuard allowedRoles={[ROLES.EDIT, ROLES.ADMIN]}>, change it so that VIEW is allowed to enter the page but not allowed to trigger any UI events. In other words, remove VIEW from the “blocked roles” guard on entry; enforce block on button clicks / form submissions instead.
+
+Testing Steps
+• Create or update a test VIEW user account in your system settings.
+• Log in as that VIEW user. Confirm you can reach every route except System Settings (get a 403 or “No Access”).
+• Click around in each module—verify that:
+– All lists, tables, details pages load (API GETs succeed).
+– All “Add,” “Edit,” “Delete,” “Save,” etc. buttons are either hidden or disabled.
+– If by some means you attempt a write (e.g. craft a POST from DevTools), the server returns 403.
+• Log out, log in as an EDIT user, and confirm “Edit” buttons reappear.
+• Log out, log in as ADMIN, and confirm full access (including System Settings).
+
+Error-Handling and UX Hints
+• For any disabled button, set a tooltip or title="View-only users cannot modify data" so it’s obvious why the button is greyed out.
+• If a VIEW user attempts to navigate manually to a write‐only route (e.g. via URL), show a clear “Access Denied” page rather than a blank screen or generic 404.
+• Log an error on the server console if req.user.role === ROLES.VIEW tries a write—helpful for debugging whether your front-end guards are working.
+
+Deliverables
+• Update all relevant role-checking code in front-end and back-end so VIEW users are strictly read-only everywhere except they remain 100% functional on the login/auth pages.
+• Add or refine middleware to catch any rogue write requests from VIEW users.
+• Ensure System Settings is totally black-boxed for VIEW.
+• Provide code comments or inline explanations where you add new conditionals or guards so future maintainers understand the “view only” flow.
+
+Final Instructions:
+Copy and paste this entire prompt into your Replit AI Chat. Then, walk through each step—scanning files, patching role checks, disabling UI elements, and adding middleware. Reference the existing project structure and file names exactly as they appear in the Replit workspace. After you finish coding, run a quick manual smoke test:
+
+Log in as VIEW user → navigate modules → verify read-only.
+
+Attempt to write via UI → confirm disabled.
+
+Attempt to write via API → confirm 403.
+
+Log in as EDIT and ADMIN to verify restored permissions.
+
+Make the VIEW role logic bullet-proof so we never accidentally lock VIEW users out of the login page or allow them to edit anything.
