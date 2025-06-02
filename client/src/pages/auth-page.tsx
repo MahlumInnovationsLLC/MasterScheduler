@@ -189,17 +189,7 @@ export default function AuthPage() {
               Manage manufacturing projects, billing milestones, and production schedules
             </p>
             
-            {/* Development auto-login button */}
-            {process.env.NODE_ENV !== "production" && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-2 w-full"
-                onClick={handleDevLogin}
-              >
-                DEV: Auto-login as Admin
-              </Button>
-            )}
+
           </div>
 
           <Tabs defaultValue="login" className="w-full">
