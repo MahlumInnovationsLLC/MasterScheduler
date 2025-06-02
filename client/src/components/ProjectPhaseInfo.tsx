@@ -36,6 +36,17 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
       return project[fieldName];
     }
     
+    // Check localStorage for text values (N/A, PENDING) even if database field is null
+    try {
+      const storageKey = `project_${project.id}_${fieldName}`;
+      const storedValue = localStorage.getItem(storageKey);
+      if (storedValue && (storedValue === 'N/A' || storedValue === 'PENDING')) {
+        return storedValue;
+      }
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+    
     // Try to get from rawData
     if (project.rawData) {
       // Check different naming patterns
