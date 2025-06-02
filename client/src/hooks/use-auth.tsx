@@ -86,29 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check if we're on the login page - never return a mock user on auth page
       const isAuthPage = window.location.pathname === "/auth";
       
-      // For development mode, we can simulate specific roles for testing
-      // Use search param role= to override the default role (admin)
-      if (isDevelopment && !isAuthPage) {
-        const searchParams = new URLSearchParams(window.location.search);
-        const roleOverride = searchParams.get('role');
-        const viewerMode = searchParams.get('viewerMode') === 'true';
-        
-        // Check for ViewerModeSimulator toggle or explicit role parameter
-        if (roleOverride === 'viewer' || viewerMode) {
-          console.log("🔧 Development mode: Using mock VIEWER user for testing");
-          return {
-            ...DEV_MOCK_USER,
-            role: 'viewer' // Override role for testing viewer permissions
-          };
-        } else {
-          // Force admin role to ensure proper permissions in development
-          console.log("🔧 Development mode: Using mock ADMIN user with FULL permissions");
-          return {
-            ...DEV_MOCK_USER,
-            role: 'admin' // Explicitly set role to admin
-          };
-        }
-      }
+      // Always use real database authentication - no mock users
       
       // Normal authentication for production or auth page
       try {
