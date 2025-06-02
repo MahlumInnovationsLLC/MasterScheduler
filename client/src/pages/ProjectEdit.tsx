@@ -1375,7 +1375,7 @@ function ProjectEdit() {
                           onChange={field.onChange}
                           placeholder="Select date or status..."
                           fieldName="fabricationStart"
-                          textOverride={projectData?.fabricationStartText}
+                          textOverride={project?.fabricationStartText}
                         />
                       )}
                     />
@@ -1403,7 +1403,7 @@ function ProjectEdit() {
                           onChange={field.onChange}
                           placeholder="Select date or status..."
                           fieldName="ntcTestingDate"
-                          textOverride={projectData?.ntcTestingDateText}
+                          textOverride={project?.ntcTestingDateText}
                         />
                       )}
                     />
@@ -1418,7 +1418,7 @@ function ProjectEdit() {
                           onChange={field.onChange}
                           placeholder="Select date or status..."
                           fieldName="wrapDate"
-                          textOverride={projectData?.wrapDateText}
+                          textOverride={project?.wrapDateText}
                         />
                       )}
                     />
@@ -1446,7 +1446,7 @@ function ProjectEdit() {
                           onChange={field.onChange}
                           placeholder="Select date or status..."
                           fieldName="executiveReviewDate"
-                          textOverride={projectData?.executiveReviewDateText}
+                          textOverride={project?.executiveReviewDateText}
                         />
                       )}
                     />
@@ -1474,7 +1474,7 @@ function ProjectEdit() {
                           onChange={field.onChange}
                           placeholder="Select date or status..."
                           fieldName="deliveryDate"
-                          textOverride={projectData?.deliveryDateText}
+                          textOverride={project?.deliveryDateText}
                         />
                       )}
                     />
