@@ -650,6 +650,12 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
+  async getAllUsers(): Promise<User[]> {
+    return await safeQuery<User>(() =>
+      db.select().from(users).orderBy(desc(users.updatedAt))
+    );
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
