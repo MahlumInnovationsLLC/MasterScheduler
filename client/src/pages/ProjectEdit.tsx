@@ -433,9 +433,13 @@ function ProjectEdit() {
   });
 
   function onSubmit(data: ProjectFormValues) {
+    console.log('SAVE BUTTON CLICKED - Form submitted with data:', data);
+    
     // Check if total percentage exceeds 100%
     const total = calculateTotalPercentage();
+    console.log('Total percentage:', total);
     if (total > 100) {
+      console.log('Showing percentage warning dialog');
       setIsPercentageWarningOpen(true);
       return;
     }
@@ -443,6 +447,7 @@ function ProjectEdit() {
     // Check if this is a scheduled project and if ship date has been changed
     if (isProjectScheduled && data.shipDate && originalShipDate && 
         data.shipDate.getTime() !== originalShipDate.getTime()) {
+      console.log('Showing ship date warning dialog');
       // Store the form data to use after confirmation
       setPendingFormData(data);
       // Show warning dialog about ship date changes affecting the manufacturing schedule
@@ -451,6 +456,7 @@ function ProjectEdit() {
     }
     
     // Otherwise proceed with normal update
+    console.log('Proceeding with mutation');
     updateMutation.mutate(data);
   }
   
