@@ -18,20 +18,10 @@ declare module 'express-session' {
 export const hasEditRights = (req: Request, res: Response, next: NextFunction) => {
   console.log('hasEditRights middleware: checking if user has edit rights');
   
-  // In development mode, check the role from URL parameter
+  // In development mode, always grant admin rights
   if (process.env.NODE_ENV === 'development') {
-    // Extract role from request query parameters or URL
-    const urlRole = req.query.role as string;
-    console.log(`hasEditRights middleware: Development mode with role: ${urlRole}`);
-    
-    // Only grant edit rights to admin or editor roles
-    if (canEdit(urlRole)) {
-      console.log('hasEditRights middleware: Development mode - edit rights granted for admin/editor');
-      return next();
-    } else {
-      console.log('hasEditRights middleware: Development mode - edit rights denied for viewer/other role');
-      return res.status(403).json({ message: 'Read-only users cannot modify data.' });
-    }
+    console.log('hasEditRights middleware: Development mode detected, granting edit rights');
+    return next();
   }
 
   // Production mode
@@ -128,13 +118,8 @@ export const blockViewUserWrites = (req: Request, res: Response, next: NextFunct
     return next();
   }
   
-  // In development mode, check URL role
+  // In development mode, always allow writes
   if (process.env.NODE_ENV === 'development') {
-    const urlRole = req.query.role as string;
-    if (isViewOnlyUser(urlRole)) {
-      console.log('blockViewUserWrites: Blocking write operation for VIEW user');
-      return res.status(403).json({ message: 'Read-only users cannot modify data.' });
-    }
     return next();
   }
   

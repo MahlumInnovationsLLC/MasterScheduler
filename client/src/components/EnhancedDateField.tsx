@@ -35,7 +35,9 @@ export function EnhancedDateField({ label, value, onChange, placeholder, descrip
   };
 
   const handleTextChange = (textValue: string) => {
-    if (textValue) {
+    if (textValue === "CLEAR") {
+      onChange(undefined);
+    } else if (textValue) {
       onChange(textValue);
     } else {
       onChange(undefined);
@@ -92,7 +94,7 @@ export function EnhancedDateField({ label, value, onChange, placeholder, descrip
               <SelectValue placeholder="Select status..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Clear</SelectItem>
+              <SelectItem value="CLEAR">Clear</SelectItem>
               <SelectItem value="PENDING">PENDING</SelectItem>
               <SelectItem value="N/A">N/A</SelectItem>
             </SelectContent>
