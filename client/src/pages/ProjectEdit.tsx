@@ -312,14 +312,7 @@ function ProjectEdit() {
         ntcDesignOrdersPercent: project.ntcDesignOrdersPercent ? Number(project.ntcDesignOrdersPercent) : undefined,
         
         // Status and notes
-        status: (() => {
-          console.log('DEBUG STATUS FIELD - Raw project.status:', project.status);
-          console.log('DEBUG STATUS FIELD - Type of project.status:', typeof project.status);
-          console.log('DEBUG STATUS FIELD - Is Array:', Array.isArray(project.status));
-          const statusValue = Array.isArray(project.status) ? project.status[0] || 'active' : (project.status || 'active');
-          console.log('DEBUG STATUS FIELD - Final status value:', statusValue);
-          return statusValue;
-        })(),
+        status: project.status || 'active',
         priority: project.priority || 'medium',
         category: project.category || '',
         hasBillingMilestones: project.hasBillingMilestones || false,
