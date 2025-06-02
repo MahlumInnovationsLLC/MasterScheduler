@@ -198,31 +198,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Auth user endpoint that the frontend expects
-  app.get("/api/auth/user", (req, res) => {
-    // In development mode, return user based on role query parameter for testing
-    if (process.env.NODE_ENV === 'development') {
-      const urlRole = req.query.role as string;
-      const role = ['admin', 'editor', 'viewer'].includes(urlRole) ? urlRole : 'admin';
+  app.get("/api/auth/user", async (req, res) => {
+    try {
+      // Check session for authenticated user
+      const sessionUser = (req.session as any)?.user;
+      const userId = (req.session as any)?.userId;
       
-      res.json({
-        id: "dev-user-id",
-        username: `dev-${role}`,
-        email: `${role}@example.com`,
-        role: role,
-        isApproved: true,
-        firstName: "Development",
-        lastName: role.charAt(0).toUpperCase() + role.slice(1)
-      });
-      return;
+      if (!sessionUser && !userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // If we have complete session data, return it
+      if (sessionUser) {
+        res.json({
+          id: sessionUser.id,
+          email: sessionUser.email,
+          firstName: sessionUser.firstName,
+          lastName: sessionUser.lastName,
+          username: sessionUser.username,
+          role: sessionUser.role || 'admin',
+          isApproved: true
+        });
+        return;
+      }
+      
+      // If we only have userId, fetch user from database
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user) {
+          res.json({
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username,
+            role: user.role || 'admin',
+            isApproved: true
+          });
+          return;
+        }
+      }
+      
+      res.status(401).json({ message: "User not found" });
+    } catch (error) {
+      console.error("Auth user error:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
-
-    // In production, check session for authenticated user
-    const sessionUser = req.session?.user;
-    if (!sessionUser) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    res.json(sessionUser);
   });
 
   // System settings - Get all authenticated users from Neon database
@@ -2245,7 +2266,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Auth routes are already handled by setupAuth(app) above
+  // Local authentication endpoint
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      // Find user by email
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Verify password using the existing hash format
+      if (user.password && user.password.includes('.')) {
+        const crypto = await import('crypto');
+        const [hashedPassword, salt] = user.password.split('.');
+        const hash = crypto.createHash('sha512').update(password + salt).digest('hex');
+        
+        if (hash !== hashedPassword) {
+          return res.status(401).json({ message: "Invalid credentials" });
+        }
+      } else if (user.password !== password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Create session (if session middleware is available)
+      if (req.session) {
+        (req.session as any).userId = user.id;
+        (req.session as any).user = user;
+      }
+
+      res.json({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        username: user.username,
+        role: user.role || 'admin'
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.post("/api/login", (req, res) => {
     console.log("DEBUG: Redirecting legacy login request to /api/auth/login");
     // Forward the request to the proper auth endpoint
@@ -2253,6 +2321,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Logout endpoint
+  app.post("/api/auth/logout", (req, res) => {
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destruction error:", err);
+          return res.status(500).json({ message: "Logout failed" });
+        }
+        res.json({ message: "Logged out successfully" });
+      });
+    } else {
+      res.json({ message: "No session to destroy" });
+    }
+  });
+
   app.post("/api/logout", (req, res) => {
     console.log("DEBUG: Redirecting legacy logout request to /api/auth/logout");
     // Forward the request to the proper auth endpoint
