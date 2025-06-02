@@ -793,12 +793,12 @@ export default function ResizableBaySchedule({
       // Sort projects by start date
       teamProjects.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
       
-      // Calculate real team capacity from actual data - use realistic defaults
+      // Calculate realistic team capacity - use conservative defaults per bay
       const totalAssemblyStaff = teamBays.reduce((sum, bay) => 
-        sum + (bay.assemblyStaffCount || 2), 0
+        sum + (bay.assemblyStaffCount && bay.assemblyStaffCount <= 5 ? bay.assemblyStaffCount : 2), 0
       );
       const totalElectricalStaff = teamBays.reduce((sum, bay) => 
-        sum + (bay.electricalStaffCount || 1), 0
+        sum + (bay.electricalStaffCount && bay.electricalStaffCount <= 3 ? bay.electricalStaffCount : 1), 0
       );
       const totalStaff = totalAssemblyStaff + totalElectricalStaff;
       
