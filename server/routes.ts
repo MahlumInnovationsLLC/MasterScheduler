@@ -222,12 +222,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return;
     }
 
-    // In production, check if user is authenticated
-    if (!req.isAuthenticated() || !req.user) {
+    // In production, check session for authenticated user
+    const sessionUser = req.session?.user;
+    if (!sessionUser) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    res.json(req.user);
+    res.json(sessionUser);
   });
 
   // Error handling middleware for Zod validation
