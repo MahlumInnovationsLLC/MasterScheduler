@@ -1384,41 +1384,12 @@ function ProjectEdit() {
                       control={form.control}
                       name="ntcTestingDate"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>NTC Testing Date</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value ? (
-                                    formatDate(field.value)
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) =>
-                                  date < new Date("1900-01-01")
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
+                        <EnhancedDateField
+                          label="NTC Testing Date"
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select date or status..."
+                        />
                       )}
                     />
                     
@@ -1426,41 +1397,12 @@ function ProjectEdit() {
                       control={form.control}
                       name="qcStartDate"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>QC Start Date</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value ? (
-                                    formatDate(field.value)
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) =>
-                                  date < new Date("1900-01-01")
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
+                        <EnhancedDateField
+                          label="QC Start Date"
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select date or status..."
+                        />
                       )}
                     />
                     
@@ -1468,41 +1410,12 @@ function ProjectEdit() {
                       control={form.control}
                       name="shipDate"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Ship Date</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value ? (
-                                    formatDate(field.value)
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) =>
-                                  date < new Date("1900-01-01")
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
+                        <EnhancedDateField
+                          label="Ship Date"
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select date or status..."
+                        />
                       )}
                     />
                     
@@ -1510,41 +1423,12 @@ function ProjectEdit() {
                       control={form.control}
                       name="deliveryDate"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Delivery Date</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value ? (
-                                    formatDate(field.value)
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) =>
-                                  date < new Date("1900-01-01")
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
+                        <EnhancedDateField
+                          label="Delivery Date"
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select date or status..."
+                        />
                       )}
                     />
                   </div>
