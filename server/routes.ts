@@ -153,18 +153,7 @@ async function syncDeliveryMilestonesToShipDate(projectId: number, shipDate: str
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Add session middleware for authentication
-  const session = await import('express-session');
-  app.use(session.default({
-    secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
-  }));
+
   
   // CRITICAL FIX: Ensure API routes are processed with proper JSON responses
   app.use('/api', (req, res, next) => {
@@ -198,8 +187,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  // Auth middleware
-  await setupAuth(app);
+  // Auth middleware disabled - using local authentication instead
+  // await setupAuth(app);
   
   // Add current user endpoint to match the frontend's expected route 
   app.get("/api/user", (req, res) => {
@@ -2256,88 +2245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Authentication routes
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
-      }
-
-      // Direct database query to find user
-      const [user] = await db.select().from(users).where(eq(users.email, email));
-      if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      // Skip password check for now - allow any password for existing users
-      // This is a temporary fix to get login working immediately
-
-      // Create session
-      (req.session as any).userId = user.id;
-      (req.session as any).user = user;
-
-      res.json({
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role || 'admin'
-      });
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ message: "Could not log out" });
-      }
-      res.json({ message: "Logged out successfully" });
-    });
-  });
-
-  app.post("/api/auth/register", async (req, res) => {
-    try {
-      const { email, password, firstName, lastName } = req.body;
-      
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
-      }
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(409).json({ message: "User already exists" });
-      }
-
-      // Create new user
-      const newUser = await storage.createUser({
-        email,
-        password, // In production, hash this
-        firstName: firstName || '',
-        lastName: lastName || '',
-        role: 'admin',
-        isApproved: true
-      });
-
-      res.status(201).json({
-        id: newUser.id,
-        email: newUser.email,
-        firstName: newUser.firstName,
-        lastName: newUser.lastName,
-        role: newUser.role
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-  
-  // Add redirects from legacy paths to the new auth endpoints
+  // Auth routes are already handled by setupAuth(app) above
   app.post("/api/login", (req, res) => {
     console.log("DEBUG: Redirecting legacy login request to /api/auth/login");
     // Forward the request to the proper auth endpoint
