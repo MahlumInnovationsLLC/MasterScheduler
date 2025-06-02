@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatDate } from '@/lib/utils';
-import { Clock, Calendar, Hammer, Wrench, TestTube, CheckSquare, CheckCircle, Truck, Navigation } from 'lucide-react';
+import { Clock, Calendar, Hammer, Wrench, TestTube, CheckSquare, CheckCircle, Truck, Navigation, Package } from 'lucide-react';
 
 interface ProjectPhaseInfoProps {
   project: any;
@@ -88,10 +88,11 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
   const executiveReviewDate = getPhaseDate('executiveReviewDate');
   const shipDate = project.shipDate || null;
   const deliveryDate = getPhaseDate('deliveryDate');
+  const wrapDate = getPhaseDate('wrapDate');
   
-  // Only display if we have at least one phase date
+  // Only display if we have at least one phase date (including text values from localStorage)
   if (!contractDate && !poDroppedDate && !fabricationStart && !assemblyStart && !ntcTestingDate && 
-      !qcStartDate && !executiveReviewDate && !shipDate && !deliveryDate) {
+      !qcStartDate && !executiveReviewDate && !shipDate && !deliveryDate && !wrapDate) {
     return null;
   }
 
@@ -135,6 +136,16 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             <div>
               <div className="text-xs text-gray-400">ASSEMBLY START</div>
               <div className="text-sm font-medium">{formatDateOrText(assemblyStart)}</div>
+            </div>
+          </div>
+        )}
+        
+        {wrapDate && (
+          <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
+            <Package className="h-4 w-4 text-cyan-400" />
+            <div>
+              <div className="text-xs text-gray-400">WRAP DATE</div>
+              <div className="text-sm font-medium">{formatDateOrText(wrapDate)}</div>
             </div>
           </div>
         )}
