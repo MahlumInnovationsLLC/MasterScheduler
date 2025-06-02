@@ -786,14 +786,17 @@ export default function ResizableBaySchedule({
       // Sort projects by start date
       teamProjects.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
       
-      // Calculate real team capacity from actual data
-      const totalStaff = teamBays.reduce((sum, bay) => 
-        sum + (bay.assemblyStaffCount || 2) + (bay.electricalStaffCount || 1), 0
+      // Calculate real team capacity from actual data - use realistic defaults
+      const totalAssemblyStaff = teamBays.reduce((sum, bay) => 
+        sum + (bay.assemblyStaffCount || 2), 0
       );
-      const avgHoursPerWeek = teamBays.reduce((sum, bay) => 
-        sum + (bay.hoursPerPersonPerWeek || 40), 0
-      ) / teamBays.length;
-      const weeklyCapacity = totalStaff * avgHoursPerWeek;
+      const totalElectricalStaff = teamBays.reduce((sum, bay) => 
+        sum + (bay.electricalStaffCount || 1), 0
+      );
+      const totalStaff = totalAssemblyStaff + totalElectricalStaff;
+      
+      // Use realistic 40 hours per person per week
+      const weeklyCapacity = totalStaff * 40;
       
       // Create new PDF document in landscape orientation
       const doc = new jsPDF({
@@ -827,65 +830,50 @@ export default function ResizableBaySchedule({
       const teamInfo = [
         `Bays: ${teamBays.map(bay => bay.name).join(', ')}`,
         `Total Projects: ${teamProjects.length}`,
-        `Staff: ${totalStaff} members (${teamBays.reduce((sum, bay) => sum + (bay.assemblyStaffCount || 2), 0)} assembly, ${teamBays.reduce((sum, bay) => sum + (bay.electricalStaffCount || 1), 0)} electrical)`,
-        `Weekly Capacity: ${Math.round(weeklyCapacity)} hours`
+        `Staff: ${totalStaff} members (${totalAssemblyStaff} assembly, ${totalElectricalStaff} electrical)`,
+        `Weekly Capacity: ${weeklyCapacity} hours`
       ];
       
       teamInfo.forEach((info, index) => {
         doc.text(info, margin + 5, 55 + (index * 6));
       });
       
-      // Calculate timeline for project bars
+      // Calculate timeline for project bars - start from today and filter future projects
       if (teamProjects.length > 0) {
-        const earliestStart = new Date(Math.min(...teamProjects.map(p => new Date(p.startDate).getTime())));
-        const latestEnd = new Date(Math.max(...teamProjects.map(p => new Date(p.endDate).getTime())));
-        const totalDays = differenceInDays(latestEnd, earliestStart);
+        const today = new Date();
         
-        // Start project bar visualization
-        let currentY = 85;
-        const barHeight = 8;
-        const bayRowHeight = 12;
-        const timelineHeight = 20;
+        // Filter projects that start today or in the future
+        const futureProjects = teamProjects.filter(p => new Date(p.startDate) >= today);
         
-        // Add timeline header
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Project Timeline:', margin, currentY);
-        currentY += 10;
-        
-        // Group projects by bay for visualization
-        const projectsByBay = teamBays.map(bay => ({
-          bay,
-          projects: teamProjects.filter(p => p.bayId === bay.id)
-        })).filter(group => group.projects.length > 0);
-        
-        for (const bayGroup of projectsByBay) {
-          // Check if we need a new page
-          const requiredHeight = timelineHeight + (bayGroup.projects.length * bayRowHeight) + 20;
-          if (currentY + requiredHeight > pageHeight - margin) {
-            doc.addPage();
-            currentY = margin;
-          }
+        if (futureProjects.length > 0) {
+          const latestEnd = new Date(Math.max(...futureProjects.map(p => new Date(p.endDate).getTime())));
+          const totalDays = differenceInDays(latestEnd, today);
           
-          // Draw bay header
-          doc.setFontSize(11);
+          // Start project bar visualization
+          let currentY = 85;
+          const barHeight = 12;
+          const projectRowHeight = 18;
+          const timelineHeight = 20;
+          
+          // Add timeline header
+          doc.setFontSize(12);
           doc.setFont('helvetica', 'bold');
-          doc.text(`${bayGroup.bay.name}`, margin, currentY);
-          currentY += 8;
+          doc.text('Project Timeline (From Today Forward):', margin, currentY);
+          currentY += 10;
           
-          // Draw timeline scale for this bay
+          // Draw unified timeline scale
           const scaleY = currentY;
           doc.setFontSize(8);
           doc.setFont('helvetica', 'normal');
           
           // Draw month markers
-          const timelineWidth = usableWidth - 40;
+          const timelineWidth = usableWidth - 60;
           const pixelsPerDay = timelineWidth / totalDays;
           
-          let currentMonth = new Date(earliestStart);
+          let currentMonth = new Date(today);
           while (currentMonth <= latestEnd) {
-            const monthOffset = differenceInDays(currentMonth, earliestStart) * pixelsPerDay;
-            const monthX = margin + 40 + monthOffset;
+            const monthOffset = differenceInDays(currentMonth, today) * pixelsPerDay;
+            const monthX = margin + 60 + monthOffset;
             
             if (monthX <= margin + usableWidth - 20) {
               doc.line(monthX, scaleY, monthX, scaleY + 5);
@@ -895,16 +883,23 @@ export default function ResizableBaySchedule({
             currentMonth = addMonths(currentMonth, 1);
           }
           
-          currentY += 15;
+          currentY += 20;
           
-          // Draw project bars for this bay
-          bayGroup.projects.forEach((project, index) => {
+          // Draw all future projects in a unified timeline (no bay grouping)
+          futureProjects.forEach((project, index) => {
+            // Check if we need a new page
+            if (currentY + projectRowHeight > pageHeight - margin) {
+              doc.addPage();
+              currentY = margin + 20; // Leave space for timeline if needed
+            }
+            
             const projectData = projects.find(p => p.id === project.projectId);
-            const startOffset = differenceInDays(new Date(project.startDate), earliestStart) * pixelsPerDay;
+            const bay = teamBays.find(b => b.id === project.bayId);
+            const startOffset = differenceInDays(new Date(project.startDate), today) * pixelsPerDay;
             const duration = differenceInDays(new Date(project.endDate), new Date(project.startDate));
             const barWidth = Math.max(duration * pixelsPerDay, 5); // Minimum 5mm width
             
-            const barX = margin + 40 + startOffset;
+            const barX = margin + 60 + startOffset;
             const barY = currentY;
             
             // Ensure bar doesn't exceed page width
@@ -931,13 +926,19 @@ export default function ResizableBaySchedule({
               }
             });
             
-            // Add project label
-            doc.setFontSize(7);
+            // Add project label with bay info
+            doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
-            const projectLabel = `${projectData?.projectNumber || project.projectId} - ${(projectData?.name || project.projectName).substring(0, 30)}`;
-            doc.text(projectLabel, barX, barY + barHeight + 3);
+            const projectLabel = `${projectData?.projectNumber || project.projectId} - ${(projectData?.name || project.projectName).substring(0, 25)}`;
+            const bayLabel = `(${bay?.name || 'Bay ' + project.bayId})`;
             
-            currentY += bayRowHeight;
+            // Project number and name
+            doc.text(projectLabel, margin + 5, barY + 8);
+            // Bay assignment
+            doc.setFontSize(7);
+            doc.text(bayLabel, margin + 5, barY + 14);
+            
+            currentY += projectRowHeight;
             
             // If project bar extends beyond page width, continue on next page
             if (barX + barWidth > usableWidth + margin) {
@@ -952,7 +953,6 @@ export default function ResizableBaySchedule({
                 
                 // Draw remaining phases
                 let remainingPhaseStartX = margin;
-                const remainingStartPercentage = (actualBarWidth / barWidth) * 100;
                 
                 phases.forEach(phase => {
                   const totalPhaseWidth = (barWidth * phase.percentage) / 100;
@@ -966,12 +966,15 @@ export default function ResizableBaySchedule({
                   }
                 });
                 
-                currentY += bayRowHeight;
+                currentY += projectRowHeight;
               }
             }
           });
-          
-          currentY += 10; // Space between bays
+        } else {
+          // No future projects
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text('No future projects scheduled for this team.', margin, 85);
         }
         
         // Add legend for phases
