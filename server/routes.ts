@@ -2906,7 +2906,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/projects/:id/restore", isAuthenticated, hasEditRights, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
-      const userId = req.user!.id;
+      
+      // Get user ID safely for both development and production
+      let userId = "system-user"; // fallback for production
+      if (req.user) {
+        userId = req.user.id || req.user.claims?.sub || "system-user";
+      } else if (req.userDetails) {
+        userId = req.userDetails.id || "system-user";
+      }
       
       const restoredProject = await storage.restoreProject(projectId, userId);
       
@@ -3078,7 +3085,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/projects/:id/archive", isAuthenticated, hasEditRights, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
-      const userId = req.user!.id;
+      
+      // Get user ID safely for both development and production
+      let userId = "system-user"; // fallback for production
+      if (req.user) {
+        userId = req.user.id || req.user.claims?.sub || "system-user";
+      } else if (req.userDetails) {
+        userId = req.userDetails.id || "system-user";
+      }
       const { reason } = req.body;
       
       const archivedProject = await storage.archiveProject(projectId, userId, reason);
