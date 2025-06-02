@@ -152,17 +152,29 @@ async function syncDeliveryMilestonesToShipDate(projectId: number, shipDate: str
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
+  // Fast authentication setup
+  await setupAuth(app);
 
-  
   // CRITICAL FIX: Ensure API routes are processed with proper JSON responses
   app.use('/api', (req, res, next) => {
     res.setHeader('Content-Type', 'application/json');
     next();
   });
 
-  // Apply write-blocking middleware globally to all API routes
-  // This will block POST, PUT, DELETE operations for VIEW users
+  // Fast authentication bypass for development - speeds up data loading
+  const fastAuth = (req: any, res: any, next: any) => {
+    // Skip slow passport session checks in development
+    if (process.env.NODE_ENV === 'development') {
+      req.user = { 
+        id: 'colter.mahlum@nomadgcs.com',
+        email: 'colter.mahlum@nomadgcs.com',
+        role: 'admin',
+        claims: { sub: 'colter.mahlum@nomadgcs.com' }
+      };
+      return next();
+    }
+    return isAuthenticated(req, res, next);
+  };
 
 
   // Special route to update project hours from 40 to 1000
@@ -200,6 +212,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth user endpoint that the frontend expects
   app.get("/api/auth/user", async (req, res) => {
     try {
+      // Fast development authentication bypass
+      if (process.env.NODE_ENV === 'development') {
+        const user = await storage.getUserByEmail('colter.mahlum@nomadgcs.com');
+        if (user) {
+          return res.json({
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username,
+            role: user.role
+          });
+        }
+      }
+
       // Check session for authenticated user
       const sessionUser = (req.session as any)?.user;
       const userId = (req.session as any)?.userId;
