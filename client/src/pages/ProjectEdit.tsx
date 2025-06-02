@@ -375,6 +375,14 @@ function ProjectEdit() {
       fixedData.ntcPercentage = fixedData.ntcTestingPercent;
       fixedData.qcPercentage = fixedData.qcPercent;
       
+      // Remove the form field names to avoid conflicts
+      delete fixedData.fabricationPercent;
+      delete fixedData.paintPercent;
+      delete fixedData.assemblyPercent;
+      delete fixedData.itPercent;
+      delete fixedData.ntcTestingPercent;
+      delete fixedData.qcPercent;
+      
       const res = await apiRequest('PUT', `/api/projects/${projectId}`, fixedData);
       return await res.json();
     },

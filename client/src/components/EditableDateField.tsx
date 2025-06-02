@@ -49,6 +49,8 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
   // SIMPLE DATE HANDLING - FIXED TIMEZONE ISSUE
   // We use the raw date value for display - no adjustments
   const [dateValue, setDateValue] = useState<string | undefined>(undefined);
+  const [textValue, setTextValue] = useState<string>(''); // For PENDING/N/A options
+  const [inputMode, setInputMode] = useState<'date' | 'text'>('date');
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -59,10 +61,17 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
     debugDate(`Incoming from server (${field})`, value);
     
     if (value) {
-      // Just use the value directly if it's already in YYYY-MM-DD format
-      if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Check if it's a text value like PENDING or N/A
+      if (value === 'PENDING' || value === 'N/A') {
+        setTextValue(value);
+        setInputMode('text');
+        setDateValue(undefined);
+      } else if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // Just use the value directly if it's already in YYYY-MM-DD format
         console.log(`DATE DISPLAY: Using direct value: ${value}`);
         setDateValue(value);
+        setInputMode('date');
+        setTextValue('');
       } else {
         // Create a date object if needed
         const dateObj = new Date(value);
@@ -71,33 +80,43 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
           const displayDate = dateObj.toISOString().split('T')[0];
           console.log(`DATE DISPLAY: Converted ${value} to ${displayDate}`);
           setDateValue(displayDate);
+          setInputMode('date');
+          setTextValue('');
         } else {
-          // Fallback for unparsable dates
-          setDateValue(value);
+          // Fallback for unparsable dates - treat as text
+          setTextValue(value);
+          setInputMode('text');
+          setDateValue(undefined);
         }
       }
     } else {
       setDateValue(undefined);
+      setTextValue('');
+      setInputMode('date');
     }
   }, [value, field]);
 
   const handleSave = async () => {
     setIsUpdating(true);
     try {
-      // Handle both setting and clearing dates
-      let dateToSend = null;
+      // Handle both date and text values
+      let valueToSend = null;
       
-      if (dateValue) {
+      if (inputMode === 'text' && textValue) {
+        // Save text values like PENDING or N/A
+        valueToSend = textValue;
+        console.log(`TEXT SAVE: Saving text value: ${textValue}`);
+      } else if (inputMode === 'date' && dateValue) {
         // FINAL FIX: Save the exact date that was selected without adjustment
         // This ensures exactly what the user sees is what gets stored
-        dateToSend = dateValue;
+        valueToSend = dateValue;
         console.log(`DATE SAVE: Saving directly as selected: ${dateValue}`);
       }
         
       const response = await apiRequest(
         "PATCH",
         `/api/projects/${projectId}`,
-        { [field]: dateToSend }
+        { [field]: valueToSend }
       );
       
       if (!response.ok) {
@@ -113,15 +132,15 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
       }, 100);
       
       toast({
-        title: "Date Updated",
-        description: "The date has been updated successfully",
+        title: "Field Updated",
+        description: "The field has been updated successfully",
         variant: "default"
       });
     } catch (error) {
-      console.error("Date update error:", error);
+      console.error("Field update error:", error);
       toast({
         title: "Update Failed",
-        description: `Error updating date: ${(error as Error).message}`,
+        description: `Error updating field: ${(error as Error).message}`,
         variant: "destructive"
       });
     } finally {
@@ -133,13 +152,35 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
   if (isEditing) {
     return (
       <div className="flex items-center space-x-2">
-        <input
-          type="date"
-          className="w-32 px-2 py-1 rounded text-xs bg-background border border-input"
-          value={dateValue || ''}
-          onChange={(e) => setDateValue(e.target.value)}
-        />
+        {inputMode === 'date' ? (
+          <input
+            type="date"
+            className="w-32 px-2 py-1 rounded text-xs bg-background border border-input"
+            value={dateValue || ''}
+            onChange={(e) => setDateValue(e.target.value)}
+          />
+        ) : (
+          <select
+            className="w-32 px-2 py-1 rounded text-xs bg-background border border-input"
+            value={textValue}
+            onChange={(e) => setTextValue(e.target.value)}
+          >
+            <option value="">Select...</option>
+            <option value="PENDING">PENDING</option>
+            <option value="N/A">N/A</option>
+          </select>
+        )}
         <div className="flex space-x-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-6 w-6" 
+            onClick={() => setInputMode(inputMode === 'date' ? 'text' : 'date')}
+            disabled={isUpdating}
+            title="Switch between date and text mode"
+          >
+            <Calendar className="h-3 w-3" />
+          </Button>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -179,7 +220,9 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
           className="text-sm cursor-pointer flex items-center hover:bg-gray-100/10 px-2 py-1 rounded group"
           onClick={() => setIsEditing(true)}
         >
-          <span>{formatDate(value)}</span>
+          <span className={value === 'PENDING' ? 'text-orange-600 font-medium' : value === 'N/A' ? 'text-gray-500 italic' : ''}>
+            {value === 'PENDING' || value === 'N/A' ? value : formatDate(value)}
+          </span>
           <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500 opacity-0 group-hover:opacity-100" />
         </div>
       )}
