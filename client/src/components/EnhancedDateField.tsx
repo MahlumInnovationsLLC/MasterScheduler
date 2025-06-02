@@ -14,18 +14,17 @@ interface EnhancedDateFieldProps {
 }
 
 export function EnhancedDateField({ label, value, onChange, placeholder, description }: EnhancedDateFieldProps) {
-  // Determine current value type and set initial mode based on value
+  // Determine if current value is a text value
   const isTextValue = typeof value === 'string' && (value === 'PENDING' || value === 'N/A');
   const [inputMode, setInputMode] = useState<'date' | 'text'>(isTextValue ? 'text' : 'date');
-  const [lastTextValue, setLastTextValue] = useState<string>('');
   
   // Convert date to string for input
   const dateValueString = value instanceof Date ? 
     value.toISOString().split('T')[0] : 
     (typeof value === 'string' && value !== 'PENDING' && value !== 'N/A') ? value : '';
   
-  // Handle text value display - show last selected text value if current value is null/undefined but we were in text mode
-  const textValue = isTextValue ? value as string : (inputMode === 'text' ? lastTextValue : '');
+  // Handle text value display
+  const textValue = isTextValue ? value as string : '';
 
   const handleDateChange = (dateString: string) => {
     if (dateString) {
@@ -40,10 +39,8 @@ export function EnhancedDateField({ label, value, onChange, placeholder, descrip
 
   const handleTextChange = (textValue: string) => {
     if (textValue === "CLEAR") {
-      setLastTextValue('');
       onChange(undefined);
     } else if (textValue) {
-      setLastTextValue(textValue);
       onChange(textValue);
     } else {
       onChange(undefined);
