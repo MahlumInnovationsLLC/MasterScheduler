@@ -551,7 +551,10 @@ function ProjectEdit() {
       </div>
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+          console.log('FORM VALIDATION ERRORS:', errors);
+          console.log('Form is invalid, cannot submit');
+        })} className="space-y-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="bg-darkCard border border-gray-800 mb-6">
               <TabsTrigger value="general">General Information</TabsTrigger>
