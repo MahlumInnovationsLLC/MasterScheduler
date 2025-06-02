@@ -2910,9 +2910,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get user ID safely for both development and production
       let userId = "system-user"; // fallback for production
-      if (req.user) {
-        userId = req.user.id || req.user.claims?.sub || "system-user";
-      } else if (req.userDetails) {
+      if (req.user && typeof req.user === 'object') {
+        userId = req.user.id || (req.user.claims && req.user.claims.sub) || "system-user";
+      } else if (req.userDetails && typeof req.userDetails === 'object') {
         userId = req.userDetails.id || "system-user";
       }
       
@@ -3089,9 +3089,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get user ID safely for both development and production
       let userId = "system-user"; // fallback for production
-      if (req.user) {
-        userId = req.user.id || req.user.claims?.sub || "system-user";
-      } else if (req.userDetails) {
+      if (req.user && typeof req.user === 'object') {
+        userId = req.user.id || (req.user.claims && req.user.claims.sub) || "system-user";
+      } else if (req.userDetails && typeof req.userDetails === 'object') {
         userId = req.userDetails.id || "system-user";
       }
       const { reason } = req.body;
