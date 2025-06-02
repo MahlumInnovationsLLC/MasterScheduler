@@ -18,22 +18,66 @@
               styleEl = document.createElement('style');
               styleEl.id = 'auth-direct-fix';
               styleEl.textContent = `
-                body * {
+                /* COMPLETE OVERRIDE OF ALL VIEW-ONLY RESTRICTIONS FOR AUTH PAGE */
+                body[data-page="auth"] *,
+                body[data-page="auth"] input,
+                body[data-page="auth"] button,
+                body[data-page="auth"] form,
+                body[data-page="auth"] a,
+                body[data-page="auth"] select,
+                body[data-page="auth"] textarea,
+                body[data-page="auth"] [role="button"],
+                body.viewer-mode[data-page="auth"] *,
+                body.role-viewer[data-page="auth"] *,
+                .viewer-mode[data-page="auth"] *,
+                .role-viewer[data-page="auth"] * {
                   pointer-events: auto !important;
                   opacity: 1 !important;
                   filter: none !important;
+                  cursor: auto !important;
+                  user-select: auto !important;
+                  -webkit-user-select: auto !important;
+                  touch-action: auto !important;
                 }
-                input, button, a {
-                  pointer-events: auto !important;
-                  opacity: 1 !important;
+                
+                body[data-page="auth"] button,
+                body[data-page="auth"] a,
+                body[data-page="auth"] [role="button"],
+                body[data-page="auth"] [type="submit"],
+                body.viewer-mode[data-page="auth"] button,
+                body.viewer-mode[data-page="auth"] a,
+                body.viewer-mode[data-page="auth"] [role="button"] {
                   cursor: pointer !important;
+                }
+                
+                body[data-page="auth"] input,
+                body[data-page="auth"] textarea,
+                body.viewer-mode[data-page="auth"] input,
+                body.viewer-mode[data-page="auth"] textarea {
+                  cursor: text !important;
+                }
+                
+                /* Remove any overlay that might be blocking interactions */
+                body[data-page="auth"] .view-only-overlay,
+                body[data-page="auth"] .viewer-overlay {
+                  display: none !important;
                 }
               `;
               document.head.appendChild(styleEl);
             }
             
-            // Set direct attribute on body
+            // Set direct attribute on body and remove ALL viewer mode restrictions
             document.body.setAttribute('data-page', 'auth');
+            document.body.classList.remove('viewer-mode', 'role-viewer', 'view-only');
+            document.body.classList.add('auth-page-unrestricted');
+            
+            // Remove disabled attributes from ALL elements on auth page
+            document.querySelectorAll('input, button, form, a, select, textarea, [role="button"]').forEach(el => {
+              el.removeAttribute('disabled');
+              el.style.pointerEvents = 'auto';
+              el.style.opacity = '1';
+              el.style.cursor = el.tagName === 'BUTTON' || el.tagName === 'A' ? 'pointer' : 'auto';
+            });
           }
         }
 
