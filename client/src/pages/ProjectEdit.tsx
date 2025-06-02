@@ -1341,6 +1341,7 @@ function ProjectEdit() {
                           onChange={field.onChange}
                           placeholder="Select date or status..."
                           description="The date when the Purchase Order was received"
+                          fieldName="poDroppedDate"
                         />
                       )}
                     />
@@ -1355,6 +1356,7 @@ function ProjectEdit() {
                           onChange={field.onChange}
                           placeholder="Select date or status..."
                           description="The contract delivery date (must be manually entered)"
+                          fieldName="contractDate"
                         />
                       )}
                     />
@@ -1372,6 +1374,7 @@ function ProjectEdit() {
                           value={field.value}
                           onChange={field.onChange}
                           placeholder="Select date or status..."
+                          fieldName="fabricationStart"
                         />
                       )}
                     />
@@ -1411,6 +1414,7 @@ function ProjectEdit() {
                           value={field.value}
                           onChange={field.onChange}
                           placeholder="Select date or status..."
+                          fieldName="wrapDate"
                         />
                       )}
                     />
@@ -1437,6 +1441,7 @@ function ProjectEdit() {
                           value={field.value}
                           onChange={field.onChange}
                           placeholder="Select date or status..."
+                          fieldName="executiveReviewDate"
                         />
                       )}
                     />
@@ -1463,6 +1468,7 @@ function ProjectEdit() {
                           value={field.value}
                           onChange={field.onChange}
                           placeholder="Select date or status..."
+                          fieldName="deliveryDate"
                         />
                       )}
                     />
