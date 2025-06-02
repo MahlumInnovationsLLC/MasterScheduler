@@ -49,7 +49,8 @@ import {
   Truck,
   BarChart2, // Added for utilization icon
   Calculator, // Added for duration calculation
-  DollarSign // Added for financial impact
+  DollarSign, // Added for financial impact
+  Printer // Added for print functionality
 } from 'lucide-react';
 import {
   Dialog,
@@ -83,6 +84,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useApiRequest } from '@/lib/queryClient';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface ManufacturingBay {
   id: number;
@@ -771,6 +774,126 @@ export default function ResizableBaySchedule({
   };
   // Add forceUpdate state to force re-rendering when needed
   const [forceUpdate, setForceUpdate] = useState<number>(Date.now());
+  
+  // PDF generation function for team schedules
+  const generateTeamSchedulePDF = (teamName: string, teamBays: ManufacturingBay[]) => {
+    try {
+      // Get all projects scheduled for this team
+      const teamProjects = scheduleBars.filter(bar => 
+        teamBays.some(bay => bay.id === bar.bayId)
+      );
+      
+      // Sort projects by start date
+      teamProjects.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+      
+      // Create new PDF document in landscape orientation
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      // Add title
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${teamName} - Project Schedule`, 20, 20);
+      
+      // Add generation date
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Generated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`, 20, 30);
+      
+      // Add team information
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Team Information:', 20, 45);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const teamInfo = [
+        `Bays: ${teamBays.map(bay => bay.name).join(', ')}`,
+        `Total Projects: ${teamProjects.length}`,
+        `Staff: ${teamBays.reduce((sum, bay) => sum + (bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0), 0)} members`,
+        `Weekly Capacity: ${teamBays.reduce((sum, bay) => sum + ((bay.assemblyStaffCount || 0) + (bay.electricalStaffCount || 0)) * (bay.hoursPerPersonPerWeek || 40), 0)} hours`
+      ];
+      
+      teamInfo.forEach((info, index) => {
+        doc.text(info, 25, 55 + (index * 6));
+      });
+      
+      // Prepare table data
+      const tableData = teamProjects.map(project => {
+        const projectData = projects.find(p => p.id === project.projectId);
+        const bay = teamBays.find(b => b.id === project.bayId);
+        
+        return [
+          projectData?.projectNumber || 'N/A',
+          projectData?.name || project.projectName,
+          bay?.name || `Bay ${project.bayId}`,
+          format(new Date(project.startDate), 'MMM dd, yyyy'),
+          format(new Date(project.endDate), 'MMM dd, yyyy'),
+          `${Math.ceil(differenceInDays(new Date(project.endDate), new Date(project.startDate)))} days`,
+          `${project.totalHours || 0} hrs`,
+          projectData?.status || 'Active'
+        ];
+      });
+      
+      // Add table
+      autoTable(doc, {
+        head: [['Project #', 'Project Name', 'Bay', 'Start Date', 'End Date', 'Duration', 'Hours', 'Status']],
+        body: tableData,
+        startY: 85,
+        styles: {
+          fontSize: 8,
+          cellPadding: 2
+        },
+        headStyles: {
+          fillColor: [59, 130, 246], // Blue color
+          textColor: 255,
+          fontStyle: 'bold'
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252] // Light gray
+        },
+        columnStyles: {
+          0: { cellWidth: 25 }, // Project #
+          1: { cellWidth: 60 }, // Project Name
+          2: { cellWidth: 30 }, // Bay
+          3: { cellWidth: 35 }, // Start Date
+          4: { cellWidth: 35 }, // End Date
+          5: { cellWidth: 25 }, // Duration
+          6: { cellWidth: 25 }, // Hours
+          7: { cellWidth: 25 }  // Status
+        }
+      });
+      
+      // Add footer with page number
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(`Page ${i} of ${pageCount}`, 270, 200);
+      }
+      
+      // Save the PDF
+      const fileName = `${teamName.replace(/[^a-zA-Z0-9]/g, '_')}_Schedule_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      doc.save(fileName);
+      
+      // Show success toast
+      toast({
+        title: "PDF Generated",
+        description: `Schedule for ${teamName} has been downloaded as ${fileName}`,
+      });
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "PDF Generation Failed",
+        description: "There was an error generating the PDF. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
   const [confirmRowDelete, setConfirmRowDelete] = useState<{
     bayId: number;
     rowIndex: number;
@@ -2916,6 +3039,26 @@ export default function ResizableBaySchedule({
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>Delete team</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          {/* Print Button */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button 
+                                  className="p-1 bg-purple-700 hover:bg-purple-600 rounded-full text-white flex items-center justify-center ml-1"
+                                  onClick={() => {
+                                    const teamName = team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`;
+                                    generateTeamSchedulePDF(teamName, team);
+                                  }}
+                                >
+                                  <Printer className="h-4 w-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Print team schedule to PDF</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
