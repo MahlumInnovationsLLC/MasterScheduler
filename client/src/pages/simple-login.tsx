@@ -94,8 +94,8 @@ export default function SimpleLogin() {
     setError('');
     
     try {
-      // Direct API call to login endpoint
-      const response = await fetch('/api/login', {
+      // Use production-safe login endpoint
+      const response = await fetch('/api/auth/production-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -147,38 +147,64 @@ export function setupLocalAuth(app: Express) {
     },
     async (email, password, done) => {
       try {
+        console.log('Local strategy: Authenticating user:', email);
+        
+        if (!email || !password) {
+          console.log('Local strategy: Missing email or password');
+          return done(null, false, { message: 'Email and password are required' });
+        }
+        
         // Find the user by email
-        const [user] = await db.select().from(users).where(eq(users.email, email));
+        const userResult = await db.select().from(users).where(eq(users.email, email));
+        const user = userResult?.[0];
         
         if (!user) {
+          console.log('Local strategy: User not found:', email);
           return done(null, false, { message: 'Email not registered' });
         }
         
+        console.log('Local strategy: User found:', { id: user.id, email: user.email, hasPassword: !!user.password });
+        
         // Check if the user has a password (might not if using Replit auth previously)
         if (!user.password) {
+          console.log('Local strategy: User has no password set');
           return done(null, false, { message: 'Please reset your password' });
         }
         
         // Verify password
         const isValid = await comparePasswords(password, user.password);
         if (!isValid) {
+          console.log('Local strategy: Invalid password for user:', email);
           return done(null, false, { message: 'Incorrect password' });
         }
         
         // Update last login timestamp
-        await storage.updateUserLastLogin(user.id);
+        try {
+          await storage.updateUserLastLogin(user.id);
+        } catch (updateError) {
+          console.error('Local strategy: Failed to update last login:', updateError);
+          // Don't fail authentication for this
+        }
         
+        console.log('Local strategy: Authentication successful for user:', email);
         return done(null, user);
       } catch (error) {
-        return done(error);
+        console.error('Local strategy: Authentication error:', error);
+        return done(null, false, { message: 'Authentication system error' });
       }
     }
   ));
   
   // Serialize user to session
   passport.serializeUser((user: any, done) => {
-    console.log('Serializing user:', user.id);
-    done(null, user.id);
+    try {
+      const userId = user?.id || user?.claims?.sub || 'unknown';
+      console.log('Serializing user:', userId);
+      done(null, userId);
+    } catch (error) {
+      console.error('Serialization error:', error);
+      done(null, 'fallback-user');
+    }
   });
   
   // Deserialize user from session
@@ -280,9 +306,17 @@ export function setupLocalAuth(app: Express) {
                 return res.status(500).json({ message: 'Session creation failed' });
               }
               
-              // Return user info without sensitive data
-              const { password, passwordResetToken, passwordResetExpires, ...safeUser } = user;
-              console.log('Login successful for:', user.email);
+              // Safely extract user info without sensitive data
+              const safeUser = {
+                id: user?.id || 'unknown',
+                email: user?.email || 'unknown',
+                firstName: user?.firstName || '',
+                lastName: user?.lastName || '',
+                role: user?.role || 'viewer',
+                isApproved: user?.isApproved || false
+              };
+              
+              console.log('Login successful for:', user?.email || 'unknown user');
               return res.json(safeUser);
             } catch (sessionError) {
               console.error('Session handling error:', sessionError);
@@ -297,6 +331,78 @@ export function setupLocalAuth(app: Express) {
     } catch (error) {
       console.error('Login route error:', error);
       res.status(500).json({ message: 'Login failed: ' + String(error) });
+    }
+  });
+
+  // Production-safe login route that bypasses middleware conflicts
+  app.post('/api/auth/production-login', async (req, res) => {
+    try {
+      console.log('Production login attempt:', req.body.email);
+      
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required' });
+      }
+      
+      // Direct database lookup without passport middleware
+      const userResult = await db.select().from(users).where(eq(users.email, email));
+      const user = userResult?.[0];
+      
+      if (!user) {
+        return res.status(401).json({ message: 'Email not registered' });
+      }
+      
+      if (!user.password) {
+        return res.status(401).json({ message: 'Please reset your password' });
+      }
+      
+      // Verify password
+      const isValid = await comparePasswords(password, user.password);
+      if (!isValid) {
+        return res.status(401).json({ message: 'Incorrect password' });
+      }
+      
+      if (!user.isApproved) {
+        return res.status(403).json({ 
+          message: "Your account is pending approval", 
+          status: "pending_approval" 
+        });
+      }
+      
+      // Create session manually
+      req.session.user = {
+        id: user.id,
+        email: user.email,
+        role: user.role || 'viewer',
+        firstName: user.firstName,
+        lastName: user.lastName,
+        isApproved: user.isApproved
+      };
+      
+      // Update last login
+      try {
+        await storage.updateUserLastLogin(user.id);
+      } catch (updateError) {
+        console.error('Failed to update last login:', updateError);
+      }
+      
+      // Return safe user data
+      const safeUser = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        role: user.role || 'viewer',
+        isApproved: user.isApproved
+      };
+      
+      console.log('Production login successful for:', user.email);
+      res.json(safeUser);
+      
+    } catch (error) {
+      console.error('Production login error:', error);
+      res.status(500).json({ message: 'Login failed due to server error' });
     }
   });
   
