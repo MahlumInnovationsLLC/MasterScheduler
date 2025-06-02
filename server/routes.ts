@@ -153,6 +153,19 @@ async function syncDeliveryMilestonesToShipDate(projectId: number, shipDate: str
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Add session middleware for authentication
+  const session = await import('express-session');
+  app.use(session.default({
+    secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }));
+  
   // CRITICAL FIX: Ensure API routes are processed with proper JSON responses
   app.use('/api', (req, res, next) => {
     res.setHeader('Content-Type', 'application/json');
@@ -2258,9 +2271,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // For now, we'll do simple password check (in production, you'd hash passwords)
-      if (user.password !== password) {
-        return res.status(401).json({ message: "Invalid credentials" });
+      // Check if password matches (handle both hashed and plain text for compatibility)
+      if (user.password && user.password !== password) {
+        // Try to verify hashed password format
+        const crypto = await import('crypto');
+        if (user.password.includes('.')) {
+          // This is a hashed password with salt format
+          const [hashedPassword, salt] = user.password.split('.');
+          const hash = crypto.createHash('sha512').update(password + salt).digest('hex');
+          if (hash !== hashedPassword) {
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
+        } else {
+          // Plain text comparison for simple passwords
+          return res.status(401).json({ message: "Invalid credentials" });
+        }
       }
 
       // Create session
@@ -2349,6 +2374,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Get current authenticated user route is already defined in authService.ts
   
+  // TEMPORARY: Simple login endpoint for development
+  app.post("/api/simple-login", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Find user by email (no password required for simplicity)
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      // Create session
+      (req.session as any).userId = user.id;
+      (req.session as any).user = user;
+
+      res.json({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role || 'admin'
+      });
+    } catch (error) {
+      console.error("Simple login error:", error);
+      res.status(500).json({ message: "Login error" });
+    }
+  });
+
   // TEMPORARY: Special development-only route to auto-login as the admin user
   // This will be removed in production
   app.get("/api/dev-login", async (req, res) => {
