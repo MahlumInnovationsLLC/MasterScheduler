@@ -64,6 +64,27 @@ async function upsertUser(
   if (!existingUser && email) {
     // Check if the email is in our allowed list
     const emailCheck = await storage.checkIsEmailAllowed(email);
+    console.log(`[REPLIT AUTH] Email check result for ${email}:`, emailCheck);
+    
+    // Handle first user as admin
+    const allUsers = await storage.getUsers();
+    const isFirstUser = allUsers.length === 0;
+    
+    // Determine role and approval status
+    let userRole = "pending";
+    let isApproved = false;
+    
+    if (isFirstUser) {
+      userRole = "admin";
+      isApproved = true;
+      console.log(`[REPLIT AUTH] First user detected, setting as admin`);
+    } else if (emailCheck && emailCheck.allowed) {
+      userRole = emailCheck.defaultRole || "viewer";
+      isApproved = emailCheck.autoApprove === true;
+      console.log(`[REPLIT AUTH] Email pattern matched - Role: ${userRole}, Auto-approved: ${isApproved}`);
+    } else {
+      console.log(`[REPLIT AUTH] No email pattern match, user needs manual approval`);
+    }
     
     // First-time login, check if we should auto-approve based on email pattern
     const userData = {
@@ -74,18 +95,12 @@ async function upsertUser(
       lastName: claims["last_name"],
       bio: claims["bio"],
       profileImageUrl: claims["profile_image_url"],
-      role: emailCheck?.defaultRole || "pending",
-      isApproved: emailCheck?.autoApprove || false,
+      role: userRole,
+      isApproved: isApproved,
       lastLogin: new Date(),
     };
     
-    // Handle first user as admin
-    const allUsers = await storage.getUsers();
-    if (allUsers.length === 0) {
-      userData.role = "admin";
-      userData.isApproved = true;
-    }
-    
+    console.log(`[REPLIT AUTH] Creating user with data:`, userData);
     await storage.upsertUser(userData);
   } else if (existingUser) {
     // Existing user - update last login

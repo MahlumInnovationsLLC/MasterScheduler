@@ -293,6 +293,8 @@ export function setupLocalAuth(app: Express) {
       
       // Check if email is allowed
       const emailCheck = await storage.checkIsEmailAllowed(email);
+      console.log(`[REGISTRATION] Email check result for ${email}:`, emailCheck);
+      
       if (!emailCheck || !emailCheck.allowed) {
         return res.status(403).json({ message: "Email domain not allowed for registration" });
       }
@@ -302,13 +304,27 @@ export function setupLocalAuth(app: Express) {
       
       // Get all users to check if this is the first user
       const allUsers = await storage.getUsers();
+      const isFirstUser = allUsers.length === 0;
       
-      // Create user
-      console.log(`[REGISTRATION] Creating new user with auto-approval status: ${emailCheck.autoApprove}`);
+      // Determine role and approval status
+      let userRole = "pending";
+      let shouldAutoApprove = false;
       
-      // Determine if user should be auto-approved
-      const shouldAutoApprove = allUsers.length === 0 || emailCheck.autoApprove === true;
-      console.log(`[REGISTRATION] Final auto-approval decision: ${shouldAutoApprove} (First user: ${allUsers.length === 0}, Email pattern match: ${emailCheck.autoApprove})`);
+      if (isFirstUser) {
+        userRole = "admin";
+        shouldAutoApprove = true;
+        console.log(`[REGISTRATION] First user detected, setting as admin`);
+      } else if (emailCheck.autoApprove === true) {
+        userRole = emailCheck.defaultRole || "viewer";
+        shouldAutoApprove = true;
+        console.log(`[REGISTRATION] Email pattern matched with auto-approve - Role: ${userRole}, Auto-approved: ${shouldAutoApprove}`);
+      } else {
+        userRole = emailCheck.defaultRole || "pending";
+        shouldAutoApprove = false;
+        console.log(`[REGISTRATION] Email pattern matched but no auto-approve - Role: ${userRole}, Manual approval required`);
+      }
+      
+      console.log(`[REGISTRATION] Final user creation data - Role: ${userRole}, Approved: ${shouldAutoApprove}`);
       
       const newUser = await storage.createUser({
         id: randomUUID(),
@@ -317,7 +333,7 @@ export function setupLocalAuth(app: Express) {
         password: hashedPassword,
         firstName: firstName || "",
         lastName: lastName || "",
-        role: allUsers.length === 0 ? "admin" : (emailCheck.defaultRole || "pending"),
+        role: userRole,
         isApproved: shouldAutoApprove,
         lastLogin: new Date(),
       });
