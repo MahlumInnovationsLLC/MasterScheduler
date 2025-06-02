@@ -11,20 +11,37 @@ interface EnhancedDateFieldProps {
   onChange: (value: Date | string | undefined) => void;
   placeholder?: string;
   description?: string;
+  fieldName?: string; // Add field name for localStorage key
 }
 
-export function EnhancedDateField({ label, value, onChange, placeholder, description }: EnhancedDateFieldProps) {
-  // Determine if current value is a text value
+export function EnhancedDateField({ label, value, onChange, placeholder, description, fieldName }: EnhancedDateFieldProps) {
+  // Check localStorage for saved text selection
+  const getStoredTextValue = () => {
+    if (!fieldName) return null;
+    try {
+      const stored = localStorage.getItem(`dateField_${fieldName}`);
+      return stored && (stored === 'PENDING' || stored === 'N/A') ? stored : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Determine if current value is a text value or if we should restore from localStorage
+  const storedTextValue = getStoredTextValue();
   const isTextValue = typeof value === 'string' && (value === 'PENDING' || value === 'N/A');
-  const [inputMode, setInputMode] = useState<'date' | 'text'>(isTextValue ? 'text' : 'date');
+  const shouldShowStoredText = !value && storedTextValue; // If database has null but localStorage has text
+  
+  const [inputMode, setInputMode] = useState<'date' | 'text'>(
+    isTextValue || shouldShowStoredText ? 'text' : 'date'
+  );
   
   // Convert date to string for input
   const dateValueString = value instanceof Date ? 
     value.toISOString().split('T')[0] : 
     (typeof value === 'string' && value !== 'PENDING' && value !== 'N/A') ? value : '';
   
-  // Handle text value display
-  const textValue = isTextValue ? value as string : '';
+  // Handle text value display - prioritize stored text if database has null
+  const textValue = isTextValue ? (value as string) : (shouldShowStoredText ? storedTextValue : '');
 
   const handleDateChange = (dateString: string) => {
     if (dateString) {
@@ -38,6 +55,22 @@ export function EnhancedDateField({ label, value, onChange, placeholder, descrip
   };
 
   const handleTextChange = (textValue: string) => {
+    // Save text selection to localStorage
+    if (fieldName && (textValue === 'PENDING' || textValue === 'N/A')) {
+      try {
+        localStorage.setItem(`dateField_${fieldName}`, textValue);
+      } catch (error) {
+        console.warn('Failed to save text selection to localStorage:', error);
+      }
+    } else if (fieldName && textValue === "CLEAR") {
+      // Clear localStorage when user clears field
+      try {
+        localStorage.removeItem(`dateField_${fieldName}`);
+      } catch (error) {
+        console.warn('Failed to clear text selection from localStorage:', error);
+      }
+    }
+    
     if (textValue === "CLEAR") {
       onChange(undefined);
     } else if (textValue) {
