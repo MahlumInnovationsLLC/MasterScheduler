@@ -1088,18 +1088,21 @@ function ProjectEdit() {
                       control={form.control}
                       name="lltsOrdered"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>
-                              LLTs Ordered
-                            </FormLabel>
-                            <FormDescription>
-                              Check if Long Lead Time items have been ordered
-                            </FormDescription>
+                        <FormItem className="rounded-md border p-4">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              id="lltsOrdered"
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                              <FormLabel htmlFor="lltsOrdered">
+                                LLTs Ordered
+                              </FormLabel>
+                              <FormDescription>
+                                Check if Long Lead Time items have been ordered
+                              </FormDescription>
+                            </div>
                           </div>
                           <FormMessage />
                         </FormItem>
@@ -1110,18 +1113,21 @@ function ProjectEdit() {
                       control={form.control}
                       name="hasBillingMilestones"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>
-                              Has Billing Milestones
-                            </FormLabel>
-                            <FormDescription>
-                              Check if project has defined billing milestones
-                            </FormDescription>
+                        <FormItem className="rounded-md border p-4">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              id="hasBillingMilestones"
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                              <FormLabel htmlFor="hasBillingMilestones">
+                                Has Billing Milestones
+                              </FormLabel>
+                              <FormDescription>
+                                Check if project has defined billing milestones
+                              </FormDescription>
+                            </div>
                           </div>
                           <FormMessage />
                         </FormItem>
