@@ -2725,14 +2725,14 @@ export default function ResizableBaySchedule({
           
           <div className="flex items-center space-x-2">
             <button 
-              className="bg-gray-700 hover:bg-gray-600 p-1 rounded"
+              className="bg-gray-700 hover:bg-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600 p-1 rounded"
               onClick={() => setDialogOpen(true)}
             >
               <PlusCircle className="h-5 w-5 text-white" />
             </button>
             
             <button
-              className="bg-blue-700 hover:bg-blue-600 p-1 rounded"
+              className="bg-blue-700 hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600 p-1 rounded"
               onClick={() => {
                 // Set up a new team creation dialog
                 const teamName = "New Team";
@@ -2792,10 +2792,10 @@ export default function ResizableBaySchedule({
                 // Save to localStorage to persist between page reloads
                 localStorage.setItem('sidebarOpen', String(!sidebarOpen));
               }} 
-              className="p-1 bg-gray-800 rounded-full hover:bg-gray-700 transition-colors flex items-center justify-center"
+              className="p-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-full transition-colors flex items-center justify-center"
               title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
             >
-              {sidebarOpen ? <ChevronLeft className="h-4 w-4 text-gray-300" /> : <ChevronRight className="h-4 w-4 text-gray-300" />}
+              {sidebarOpen ? <ChevronLeft className="h-4 w-4 text-gray-600 dark:text-gray-300" /> : <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-300" />}
             </button>
           </div>
           
