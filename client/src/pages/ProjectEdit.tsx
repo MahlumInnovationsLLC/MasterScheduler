@@ -103,7 +103,7 @@ const projectSchema = z.object({
   qcPercent: z.number().min(0).max(100).default(7),
   
   // Status and notes
-  status: z.string(),
+  status: z.string().optional(),
   priority: z.string().optional(),
   category: z.string().optional(),
   hasBillingMilestones: z.boolean().default(false),
