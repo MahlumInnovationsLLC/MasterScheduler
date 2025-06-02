@@ -47,10 +47,9 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 // Check if we're in development mode
 const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
 
-// Use the role from the URL parameter in development mode
-import { ROLES } from '../../../shared/roles';
+// Simple role handling for development mode
 function getDevelopmentUserRole(): string {
-  // Default to admin for development testing
+  // Default role for development testing
   if (typeof window !== 'undefined') {
     const urlParams = new URLSearchParams(window.location.search);
     const role = urlParams.get('role');

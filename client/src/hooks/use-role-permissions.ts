@@ -1,24 +1,28 @@
 import { useAuth } from './use-auth';
-import { ROLES, isViewOnlyUser, canEdit, isAdmin, ROLE_LABELS } from '../../../shared/roles';
 
 export const useRolePermissions = () => {
-  const { user } = useAuth();
-  const userRole = user?.role || ROLES.PENDING;
+  const { user, isAuthenticated } = useAuth();
+  const userRole = user?.role || 'pending';
+
+  // Simple role checks for clean authentication
+  const isViewOnly = userRole === 'viewer';
+  const canEditData = isAuthenticated && userRole !== 'viewer';
+  const isAdminUser = userRole === 'admin';
 
   return {
     userRole,
-    isViewOnly: isViewOnlyUser(userRole),
-    canEdit: canEdit(userRole),
-    isAdmin: isAdmin(userRole),
-    roleLabel: ROLE_LABELS[userRole as keyof typeof ROLE_LABELS] || 'Unknown',
+    isViewOnly,
+    canEdit: canEditData,
+    isAdmin: isAdminUser,
+    roleLabel: userRole || 'Unknown',
     
     // Helper methods for UI conditional rendering
-    shouldDisableInput: () => isViewOnlyUser(userRole),
-    shouldHideEditButton: () => isViewOnlyUser(userRole),
-    shouldHideDeleteButton: () => isViewOnlyUser(userRole),
-    shouldHideCreateButton: () => isViewOnlyUser(userRole),
+    shouldDisableInput: () => isViewOnly,
+    shouldHideEditButton: () => isViewOnly,
+    shouldHideDeleteButton: () => isViewOnly,
+    shouldHideCreateButton: () => isViewOnly,
     
     // Get tooltip text for disabled elements
-    getDisabledTooltip: () => isViewOnlyUser(userRole) ? "Read-only mode: you cannot edit" : "",
+    getDisabledTooltip: () => isViewOnly ? "Read-only mode: you cannot edit" : "",
   };
 };
