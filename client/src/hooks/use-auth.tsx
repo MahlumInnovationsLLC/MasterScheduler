@@ -141,60 +141,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mutationFn: async (credentials: LoginData) => {
       console.log("Attempting login with:", credentials.email);
       
-      // Log the exact request details for debugging
-      console.log("Login Request Details:", {
-        url: "/api/auth/login",
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: credentials
-      });
-      
-      // First try the /api/auth/login endpoint (from authService.ts)
+      // Use the production-safe login endpoint first
       try {
+        const response = await fetch("/api/auth/production-login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(credentials),
+          credentials: "include"
+        });
+        
+        console.log("Production login response:", response);
+        console.log("Response.data:", response.status);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Production login failed:", errorData);
+          throw new Error(errorData.message || "Login failed");
+        }
+        
+        const userData = await response.json();
+        console.log("Production login userData:", userData);
+        
+        // Defensive check as recommended in the guide
+        if (!userData) {
+          throw new Error("No user data returned from login");
+        }
+        
+        return userData;
+      } catch (productionError) {
+        console.log("Production login failed, trying standard endpoint...");
+        
+        // Fallback to standard login
         const res = await fetch("/api/auth/login", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(credentials),
-          credentials: "include" // Make sure cookies are sent with the request
+          credentials: "include"
         });
         
-        console.log("Login response status:", res.status);
+        console.log("Standard login response status:", res.status);
         
         if (!res.ok) {
           const errorData = await res.json();
-          console.error("Login failed with /api/auth/login:", errorData);
+          console.error("Standard login failed:", errorData);
           throw new Error(errorData.message || "Login failed");
         }
         
         const userData = await res.json();
-        console.log("Login successful with /api/auth/login:", userData);
-        return userData;
-      } catch (firstError) {
-        console.log("First login attempt failed, trying backup endpoint...");
-        
-        // If the first endpoint fails, try the /api/login endpoint (from routes.ts)
-        const res = await fetch("/api/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(credentials),
-          credentials: "include" // Make sure cookies are sent with the request
-        });
-        
-        console.log("Backup login response status:", res.status);
-        
-        if (!res.ok) {
-          const errorData = await res.json();
-          console.error("Login error with backup endpoint:", errorData);
-          throw new Error(errorData.message || "Login failed");
-        }
-        
-        const userData = await res.json();
-        console.log("Login successful with backup endpoint:", userData);
+        console.log("Standard login successful:", userData);
         return userData;
       }
     },
@@ -380,8 +378,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
+  
+  // Enhanced defensive checks as recommended in the debugging guide
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    console.error('useAuth returned undefined - component not wrapped in AuthProvider?');
+    throw new Error("useAuth must be used within an AuthProvider. Make sure your component is wrapped in <AuthProvider>");
   }
+  
+  // Additional logging for debugging
+  console.log('useAuth context:', {
+    user: context.user ? 'present' : 'null',
+    isLoading: context.isLoading,
+    isAuthenticated: context.isAuthenticated
+  });
+  
   return context;
 }
