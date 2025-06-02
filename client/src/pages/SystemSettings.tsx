@@ -1161,20 +1161,12 @@ const SystemSettings = () => {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <Select 
-                                  defaultValue={user.role} 
-                                  onValueChange={(value) => handleUpdateUserRole(user.id, value)}
-                                  disabled={!isAdmin}
+                                <Badge 
+                                  variant={user.role === 'admin' ? 'default' : user.role === 'editor' ? 'secondary' : 'outline'}
+                                  className="capitalize"
                                 >
-                                  <SelectTrigger className="w-[110px]">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="viewer">Viewer</SelectItem>
-                                    <SelectItem value="editor">Editor</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                  {user.role || 'viewer'}
+                                </Badge>
                               </TableCell>
                               <TableCell>
                                 {user.department || 'Not assigned'}
