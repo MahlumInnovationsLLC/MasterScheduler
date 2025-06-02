@@ -22,7 +22,7 @@ import {
 } from "@shared/schema";
 
 import { exportReport } from "./routes/export";
-import { setupAuth, isAuthenticated, hasEditRights, isAdmin, isEditor } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 import { 
   importProjects, 
@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Special route to update project hours from 40 to 1000
-  app.post("/api/admin/update-project-hours", isAdmin, async (req, res) => {
+  app.post("/api/admin/update-project-hours", async (req, res) => {
     try {
       // Update all existing projects that still have the default 40 hours
       const projectsUpdated = await storage.updateDefaultProjectHours();
@@ -224,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // System settings - Get all authenticated users from Neon database
-  app.get("/api/system/users", isAdmin, async (req, res) => {
+  app.get("/api/system/users", async (req, res) => {
     try {
       const users = await storage.getAllUsers();
       res.json(users);
@@ -319,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PATCH endpoint for handling partial updates (especially dates)
-  app.patch("/api/projects/:id", isAuthenticated, hasEditRights, async (req, res) => {
+  app.patch("/api/projects/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       console.log(`PATCH request received for project ID: ${id}`, req.body);
@@ -419,7 +419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PUT endpoint for updating projects (used by project edit form)
-  app.put("/api/projects/:id", isAuthenticated, hasEditRights, async (req, res) => {
+  app.put("/api/projects/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       console.log(`PUT request received for project ID: ${id}`, req.body);
@@ -548,7 +548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
       
   // Mark a project as delivered
-  app.post("/api/projects/:id/mark-delivered", hasEditRights, async (req, res) => {
+  app.post("/api/projects/:id/mark-delivered", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { lateDeliveryReason, delayResponsibility, deliveryDate } = req.body;
@@ -632,7 +632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Mark a delivered project as active again (revert delivered status)
-  app.post("/api/projects/:id/revert-delivered", hasEditRights, async (req, res) => {
+  app.post("/api/projects/:id/revert-delivered", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       
@@ -710,7 +710,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update delivered project reason
-  app.patch("/api/delivered-projects/:id/reason", isAuthenticated, hasEditRights, async (req, res) => {
+  app.patch("/api/delivered-projects/:id/reason", isAuthenticated, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const { reason } = req.body;
@@ -733,7 +733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update delivered project responsibility  
-  app.patch("/api/delivered-projects/:id/responsibility", isAuthenticated, hasEditRights, async (req, res) => {
+  app.patch("/api/delivered-projects/:id/responsibility", isAuthenticated, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const { responsibility } = req.body;
@@ -1941,7 +1941,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Billing milestone routes
-  app.post("/api/billing-milestones", hasEditRights, async (req, res) => {
+  app.post("/api/billing-milestones", async (req, res) => {
     try {
       console.log("🔍 Billing milestone creation request received");
       console.log("📝 Request body:", JSON.stringify(req.body, null, 2));
@@ -1989,7 +1989,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/billing-milestones/:id", hasEditRights, async (req, res) => {
+  app.put("/api/billing-milestones/:id", async (req, res) => {
     try {
       const milestoneId = parseInt(req.params.id);
       const updatedMilestone = await storage.updateBillingMilestone(milestoneId, req.body);
@@ -2164,9 +2164,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/delivery-tracking", getAllDeliveryTracking);
   app.get("/api/delivery-tracking/analytics", getDeliveryAnalytics);
   app.get("/api/projects/:projectId/delivery-tracking", getProjectDeliveryTracking);
-  app.post("/api/delivery-tracking", isAuthenticated, hasEditRights, createDeliveryTracking);
-  app.put("/api/delivery-tracking/:id", isAuthenticated, hasEditRights, updateDeliveryTracking);
-  app.delete("/api/delivery-tracking/:id", isAuthenticated, hasEditRights, deleteDeliveryTracking);
+  app.post("/api/delivery-tracking", isAuthenticated, createDeliveryTracking);
+  app.put("/api/delivery-tracking/:id", isAuthenticated, updateDeliveryTracking);
+  app.delete("/api/delivery-tracking/:id", isAuthenticated, deleteDeliveryTracking);
   
   // User Preferences routes
   app.get("/api/user-preferences", isAuthenticated, async (req: any, res) => {
@@ -2375,7 +2375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/tasks", hasEditRights, async (req, res) => {
+  app.post("/api/tasks", async (req, res) => {
     try {
       const validatedData = insertTaskSchema.parse(req.body);
       const newTask = await storage.createTask(validatedData);
@@ -2389,7 +2389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/tasks/:id", hasEditRights, async (req, res) => {
+  app.put("/api/tasks/:id", async (req, res) => {
     try {
       const taskId = parseInt(req.params.id);
       const updatedTask = await storage.updateTask(taskId, req.body);
@@ -2403,7 +2403,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/tasks/:id", hasEditRights, async (req, res) => {
+  app.delete("/api/tasks/:id", async (req, res) => {
     try {
       const taskId = parseInt(req.params.id);
       const success = await storage.deleteTask(taskId);
@@ -2495,7 +2495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User Management routes (admin only)
-  app.get("/api/users", isAdmin, async (req, res) => {
+  app.get("/api/users", async (req, res) => {
     try {
       // Get all users
       const users = await storage.getUsers();
@@ -2523,7 +2523,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Add endpoint to get user preferences
-  app.get("/api/users/:id/preferences", isAdmin, async (req, res) => {
+  app.get("/api/users/:id/preferences", async (req, res) => {
     try {
       const userId = req.params.id;
       const preferences = await storage.getUserPreferences(userId);
@@ -2535,7 +2535,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add PATCH endpoint for updating user information including department
-  app.patch("/api/users/:id", isAdmin, async (req, res) => {
+  app.patch("/api/users/:id", async (req, res) => {
     try {
       const userId = req.params.id;
       const { firstName, lastName, email, role, department } = req.body;
@@ -2586,7 +2586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.put("/api/users/:id/role", isAdmin, async (req, res) => {
+  app.put("/api/users/:id/role", async (req, res) => {
     try {
       const { role, isApproved, status, preferences } = req.body;
       if (!role || typeof isApproved !== 'boolean') {
@@ -2643,7 +2643,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Route to update user status (active, inactive, archived)
-  app.put("/api/users/:id/status", isAdmin, async (req, res) => {
+  app.put("/api/users/:id/status", async (req, res) => {
     try {
       const { status, reason } = req.body;
       if (!status || !['active', 'inactive', 'archived'].includes(status)) {
@@ -2665,7 +2665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Route to approve a user
-  app.patch("/api/users/:id/approve", isAdmin, async (req, res) => {
+  app.patch("/api/users/:id/approve", async (req, res) => {
     try {
       const userId = req.params.id;
       const user = await storage.getUser(userId);
@@ -2703,7 +2703,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Route to reject a user
-  app.patch("/api/users/:id/reject", isAdmin, async (req, res) => {
+  app.patch("/api/users/:id/reject", async (req, res) => {
     try {
       const userId = req.params.id;
       const user = await storage.getUser(userId);
@@ -2742,7 +2742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Route to archive a user
-  app.put("/api/users/:id/archive", isAdmin, async (req, res) => {
+  app.put("/api/users/:id/archive", async (req, res) => {
     try {
       const { reason } = req.body;
       if (!reason) {
@@ -2764,7 +2764,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Route to get audit logs for a specific user
-  app.get("/api/users/:id/audit-logs", isAdmin, async (req, res) => {
+  app.get("/api/users/:id/audit-logs", async (req, res) => {
     try {
       const auditLogs = await storage.getUserAuditLogs(req.params.id);
       res.json(auditLogs);
@@ -2775,7 +2775,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Route to get all user audit logs
-  app.get("/api/user-audit-logs", isAdmin, async (req, res) => {
+  app.get("/api/user-audit-logs", async (req, res) => {
     try {
       const allAuditLogs = await storage.getAllUserAuditLogs();
       res.json(allAuditLogs);
@@ -2786,7 +2786,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Allowed Email patterns for auto-approval (admin only)
-  app.get("/api/allowed-emails", isAdmin, async (req, res) => {
+  app.get("/api/allowed-emails", async (req, res) => {
     try {
       const patterns = await storage.getAllowedEmails();
       res.json(patterns);
@@ -2796,7 +2796,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/allowed-emails", isAdmin, async (req, res) => {
+  app.post("/api/allowed-emails", async (req, res) => {
     try {
       const { emailPattern, autoApprove, defaultRole } = req.body;
       
@@ -2817,7 +2817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.put("/api/allowed-emails/:id", isAdmin, async (req, res) => {
+  app.put("/api/allowed-emails/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { emailPattern, autoApprove, defaultRole } = req.body;
@@ -2839,7 +2839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.delete("/api/allowed-emails/:id", isAdmin, async (req, res) => {
+  app.delete("/api/allowed-emails/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const result = await storage.deleteAllowedEmail(id);
@@ -2851,15 +2851,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Notification Routes
-  app.get("/api/notifications", hasEditRights, getNotifications);
+  app.get("/api/notifications", getNotifications);
   app.get("/api/notifications/unread/count", isAuthenticated, getUnreadNotificationCount);
-  app.post("/api/notifications", isAuthenticated, isAdmin, validateRequest(insertNotificationSchema), createNotification);
+  app.post("/api/notifications", isAuthenticated, validateRequest(insertNotificationSchema), createNotification);
   app.put("/api/notifications/:id/read", isAuthenticated, markNotificationAsRead);
   app.put("/api/notifications/read-all", isAuthenticated, markAllNotificationsAsRead);
   app.delete("/api/notifications/:id", isAuthenticated, deleteNotification);
   
   // Notification generation routes - typically called via cron, but can be manually triggered
-  app.post("/api/notifications/generate/billing", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/notifications/generate/billing", isAuthenticated, async (req, res) => {
     try {
       const count = await generateBillingNotifications();
       res.json({ success: true, count, message: `Generated ${count} billing notifications` });
@@ -2869,7 +2869,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/notifications/generate/manufacturing", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/notifications/generate/manufacturing", isAuthenticated, async (req, res) => {
     try {
       const count = await generateManufacturingNotifications();
       res.json({ success: true, count, message: `Generated ${count} manufacturing notifications` });
@@ -2907,7 +2907,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Route to restore an archived project
-  app.put("/api/projects/:id/restore", isAuthenticated, hasEditRights, async (req, res) => {
+  app.put("/api/projects/:id/restore", isAuthenticated, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       
@@ -3016,7 +3016,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/sales-deals", isAuthenticated, hasEditRights, validateRequest(insertSalesDealSchema), async (req, res) => {
+  app.post("/api/sales-deals", isAuthenticated, validateRequest(insertSalesDealSchema), async (req, res) => {
     try {
       const salesDeal = await storage.createSalesDeal(req.body);
       res.status(201).json(salesDeal);
@@ -3026,7 +3026,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.put("/api/sales-deals/:id", isAuthenticated, hasEditRights, async (req, res) => {
+  app.put("/api/sales-deals/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const salesDeal = await storage.updateSalesDeal(id, req.body);
@@ -3042,7 +3042,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.delete("/api/sales-deals/:id", isAuthenticated, hasEditRights, async (req, res) => {
+  app.delete("/api/sales-deals/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const result = await storage.deleteSalesDeal(id);
@@ -3053,7 +3053,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/sales-deals/:id/convert", isAuthenticated, hasEditRights, async (req, res) => {
+  app.post("/api/sales-deals/:id/convert", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { projectId } = req.body;
@@ -3086,7 +3086,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects/:id/archive", isAuthenticated, hasEditRights, async (req, res) => {
+  app.post("/api/projects/:id/archive", isAuthenticated, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       
@@ -3194,7 +3194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new financial goal
-  app.post("/api/financial-goals", hasEditRights, async (req, res) => {
+  app.post("/api/financial-goals", async (req, res) => {
     try {
       const { year, month, week, targetAmount, description } = req.body;
       
@@ -3234,7 +3234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update a financial goal - monthly goal (no week specified)
-  app.put("/api/financial-goals/:year/:month", hasEditRights, async (req, res) => {
+  app.put("/api/financial-goals/:year/:month", async (req, res) => {
     try {
       const year = parseInt(req.params.year);
       const month = parseInt(req.params.month);
@@ -3268,7 +3268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update a weekly financial goal
-  app.put("/api/financial-goals/:year/:month/week/:week", hasEditRights, async (req, res) => {
+  app.put("/api/financial-goals/:year/:month/week/:week", async (req, res) => {
     try {
       const year = parseInt(req.params.year);
       const month = parseInt(req.params.month);
@@ -3303,7 +3303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete a monthly financial goal (no week specified)
-  app.delete("/api/financial-goals/:year/:month", hasEditRights, async (req, res) => {
+  app.delete("/api/financial-goals/:year/:month", async (req, res) => {
     try {
       const year = parseInt(req.params.year);
       const month = parseInt(req.params.month);
@@ -3332,7 +3332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Delete a weekly financial goal
-  app.delete("/api/financial-goals/:year/:month/week/:week", hasEditRights, async (req, res) => {
+  app.delete("/api/financial-goals/:year/:month/week/:week", async (req, res) => {
     try {
       const year = parseInt(req.params.year);
       const month = parseInt(req.params.month);
@@ -3374,7 +3374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/project-costs", hasEditRights, validateRequest(insertProjectCostSchema), async (req, res) => {
+  app.post("/api/project-costs", validateRequest(insertProjectCostSchema), async (req, res) => {
     try {
       const projectCost = await storage.createProjectCost(req.body);
       res.status(201).json(projectCost);
@@ -3384,7 +3384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/project-costs/:projectId", hasEditRights, async (req, res) => {
+  app.put("/api/project-costs/:projectId", async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
       const projectCost = await storage.updateProjectCost(projectId, req.body);
@@ -3398,7 +3398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/project-costs/:projectId", hasEditRights, async (req, res) => {
+  app.delete("/api/project-costs/:projectId", async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
       const result = await storage.deleteProjectCost(projectId);

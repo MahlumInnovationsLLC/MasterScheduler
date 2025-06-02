@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
-import { isAuthenticated, isAdmin } from '../replitAuth';
+import { isAuthenticated } from '../replitAuth';
 
 const router = express.Router();
 
@@ -61,7 +61,7 @@ router.get('/:id', isAuthenticated, async (req, res) => {
 });
 
 // Create a new permission
-router.post('/', isAuthenticated, isAdmin, async (req, res) => {
+router.post('/', isAuthenticated, async (req, res) => {
   try {
     const schema = z.object({
       role: z.string(),
@@ -91,7 +91,7 @@ router.post('/', isAuthenticated, isAdmin, async (req, res) => {
 });
 
 // Update a permission
-router.patch('/:id', isAuthenticated, isAdmin, async (req, res) => {
+router.patch('/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
     const schema = z.object({
@@ -127,7 +127,7 @@ router.patch('/:id', isAuthenticated, isAdmin, async (req, res) => {
 });
 
 // Delete a permission
-router.delete('/:id', isAuthenticated, isAdmin, async (req, res) => {
+router.delete('/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
     const success = await storage.deleteRolePermission(parseInt(id));
@@ -144,7 +144,7 @@ router.delete('/:id', isAuthenticated, isAdmin, async (req, res) => {
 });
 
 // Bulk update permissions for a role
-router.post('/bulk-update/:role', isAuthenticated, isAdmin, async (req, res) => {
+router.post('/bulk-update/:role', isAuthenticated, async (req, res) => {
   try {
     const { role } = req.params;
     const { permissions } = req.body;

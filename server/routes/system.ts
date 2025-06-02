@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { exec } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { hasAdminRights } from '../middleware/auth';
+// Clean slate - admin rights removed
 import { storage } from '../storage';
 
 const router = Router();
