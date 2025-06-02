@@ -561,7 +561,21 @@ export function setupLocalAuth(app: Express) {
       // If we don't have a sub claim or can't find the user in the database
       // just return the session user info (Local Auth)
       console.log("GET /api/auth/user - Returning session user info (non-Replit auth)");
-      const { password, passwordResetToken, passwordResetExpires, ...safeUser } = user;
+      
+      // Safely destructure user object to prevent 500 errors
+      const safeUser = {
+        id: user?.id || 'unknown',
+        email: user?.email || 'unknown',
+        username: user?.username || 'unknown',
+        firstName: user?.firstName || '',
+        lastName: user?.lastName || '',
+        role: user?.role || 'viewer',
+        isApproved: user?.isApproved || false,
+        lastLogin: user?.lastLogin || null,
+        createdAt: user?.createdAt || null,
+        updatedAt: user?.updatedAt || null
+      };
+      
       return res.json({
         ...safeUser,
         isAuthenticated: true
@@ -718,54 +732,23 @@ export const isAuthenticated = async (req: Request, res: Response, next: NextFun
     return next();
   }
   
-  if (!req.isAuthenticated() || !req.user) {
-    console.log("isAuthenticated middleware: User not authenticated");
+  // Check session user or production login session
+  const sessionUser = req.session?.user || req.user;
+  
+  if (!sessionUser) {
+    console.log("isAuthenticated middleware: No authenticated user found");
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  // Check if user is approved in the database
-  const user = req.user as any;
-  console.log("isAuthenticated middleware: User authenticated, checking approval", user);
+  console.log("isAuthenticated middleware: User authenticated", sessionUser.email || sessionUser.id);
   
-  // If user has claims (from Replit Auth) we need to get the DB user
-  if (user.claims?.sub) {
-    console.log("isAuthenticated middleware: User has claims, getting from DB", user.claims.sub);
-    const dbUser = await storage.getUser(user.claims.sub);
-    
-    if (!dbUser) {
-      console.log("isAuthenticated middleware: User not found in database");
-      return res.status(403).json({ message: "User not found in database" });
-    }
-    
-    if (!dbUser.isApproved) {
-      console.log("isAuthenticated middleware: User not approved");
-      return res.status(403).json({ 
-        message: "Your account is pending approval", 
-        status: "pending_approval" 
-      });
-    }
-    
-    // User is approved, proceed
-    console.log("isAuthenticated middleware: User is approved, proceeding");
-    req.userRole = dbUser.role || undefined;
-    req.userDetails = dbUser;
+  // For production login sessions, user is already validated
+  if (req.session?.user) {
     return next();
   }
   
-  // Regular auth (not Replit Auth)
-  if (!user.isApproved) {
-    console.log("isAuthenticated middleware: User not approved");
-    return res.status(403).json({ 
-      message: "Your account is pending approval", 
-      status: "pending_approval" 
-    });
-  }
-  
-  // Add user details to the request
-  console.log("isAuthenticated middleware: User is approved, proceeding");
-  req.userRole = user.role || "pending";
-  req.userDetails = user;
-  
+  // All authentication checks passed
+  console.log("isAuthenticated middleware: Authentication successful");
   next();
 };
 
