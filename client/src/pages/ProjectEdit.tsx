@@ -1514,12 +1514,10 @@ function ProjectEdit() {
                             Mark this project as a sales estimate proposal only
                           </FormDescription>
                         </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormItem>
                     )}
                   />
