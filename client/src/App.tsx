@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -7,12 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LoadingProvider } from "@/components/LoadingManager";
 import { PermissionsProvider, GlobalPermissionsHandler } from "@/components/PermissionsManager";
-import AuthPageUnrestrictor from "@/components/AuthPageUnrestrictor";
-import AuthFix from "@/pages/AuthFix";
-import EmergencyAuthPageFix from "@/components/EmergencyAuthPageFix";
-import AuthPageOverride from "@/pages/auth-page-override";
-import AuthFixInjection from "@/auth-fix-injection";
-import RemoveViewModeBadge from "@/components/RemoveViewModeBadge";
+
 import Dashboard from "@/pages/Dashboard";
 import ProjectStatus from "@/pages/ProjectStatus";
 import BillingMilestones from "@/pages/BillingMilestones";
@@ -35,8 +30,6 @@ import SalesDealEdit from "@/pages/SalesDealEdit";
 import SupplyChain from "@/pages/SupplyChain";
 import RoleTestPage from "@/pages/RoleTestPage";
 import AuthPage from "@/pages/auth-page";
-import GuaranteedAuthPage from "@/pages/guaranteed-auth-page";
-import SimpleLogin from "@/pages/simple-login";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import NotFound from "@/pages/not-found";
 import Header from "@/components/Header";
@@ -57,6 +50,53 @@ function Router() {
   const [location] = useLocation();
   const isAuthPage = location === "/auth";
   
+  // GLOBAL AUTH PAGE FIX - Run continuously to prevent view-only mode
+  useEffect(() => {
+    const forceAuthPageInteractive = () => {
+      const currentPath = window.location.pathname;
+      const isAnyAuthPage = currentPath === '/auth' || 
+                           currentPath === '/login' || 
+                           currentPath === '/simple-login' || 
+                           currentPath.includes('/auth') ||
+                           currentPath.includes('/reset-password');
+      
+      if (isAnyAuthPage) {
+        // Remove all view-only restrictions immediately
+        document.body.classList.remove('viewer-mode', 'role-viewer');
+        document.body.classList.add('auth-page', 'full-access', 'auth-routes', 'no-restrictions');
+        
+        // Set data attributes for CSS targeting
+        document.body.setAttribute('data-current-url', currentPath);
+        document.body.setAttribute('data-page', 'auth');
+        
+        // Force enable all interactive elements
+        document.querySelectorAll('input, button, form, a, select, textarea, [role="button"]').forEach(el => {
+          if (el instanceof HTMLElement) {
+            el.style.pointerEvents = 'auto';
+            el.style.opacity = '1';
+            el.style.filter = 'none';
+            el.style.cursor = 'auto';
+            el.removeAttribute('disabled');
+            el.removeAttribute('readonly');
+            
+            if (el.tagName === 'BUTTON' || el.tagName === 'A' || el.getAttribute('role') === 'button') {
+              el.style.cursor = 'pointer';
+            }
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+              el.style.cursor = 'text';
+            }
+          }
+        });
+      }
+    };
+    
+    // Run immediately and every 50ms
+    forceAuthPageInteractive();
+    const interval = setInterval(forceAuthPageInteractive, 50);
+    
+    return () => clearInterval(interval);
+  }, [location]);
+  
   // In development mode, redirect from auth page to dashboard
   if (isDevelopment && isAuthPage) {
     return <Redirect to="/" />;
@@ -76,13 +116,7 @@ function Router() {
     return (
       <div className="auth-routes no-restrictions">
         <Switch>
-          {/* New simple login that works regardless of restrictions */}
-          <Route path="/simple-login" component={SimpleLogin} />
-          
-          {/* Our guaranteed auth page */}
-          <Route path="/login" component={GuaranteedAuthPage} />
-          
-          {/* Original auth routes */}
+          {/* Single auth page */}
           <Route path="/auth" component={AuthPage} />
           <Route path="/reset-password" component={ResetPasswordPage} />
         </Switch>
@@ -151,12 +185,7 @@ function App() {
             <PermissionsProvider>
               <Toaster />
               <GlobalPermissionsHandler />
-              {/* HIGHEST PRIORITY FIXES: Auth page must be interactive regardless of settings */}
-              <AuthFixInjection />
-              <AuthPageOverride />
-              <EmergencyAuthPageFix />
-              <AuthFix />
-              <AuthPageUnrestrictor />
+              {/* Auth page now handled by the single /auth route */}
               <Router />
               
               {/* Custom styles for viewer mode exceptions */}

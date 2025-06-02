@@ -95,8 +95,55 @@ body.viewer-mode [role="grid"] {
   overflow: auto !important;
 }
 
-/* EMERGENCY FIX - AUTH PAGE OVERRIDE SYSTEM
-   This is a critical fix to ensure the auth page works regardless of any other settings */
+/* COMPLETE AUTH PAGE FIX - REMOVE ALL VIEW-ONLY MODE RESTRICTIONS */
+
+/* GLOBAL RULE - COMPLETELY DISABLE VIEW-ONLY MODE ON AUTH PAGES */
+body[data-current-url*="auth"] *,
+html[data-current-url*="auth"] *,
+body:has([href*="/auth"]) *,
+body:has([action*="/auth"]) *,
+body:has(form[action*="login"]) *,
+html:has(form[action*="login"]) *,
+[data-page="auth"] *,
+.auth-page *,
+.auth-routes * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: auto !important;
+  user-select: auto !important;
+  filter: none !important;
+  touch-action: auto !important;
+  -webkit-user-select: auto !important;
+  -moz-user-select: auto !important;
+  -ms-user-select: auto !important;
+}
+
+/* FORCE AUTH FORM ELEMENTS TO BE INTERACTIVE */
+body[data-current-url*="auth"] input,
+body[data-current-url*="auth"] button,
+body[data-current-url*="auth"] form,
+body[data-current-url*="auth"] a,
+html[data-current-url*="auth"] input,
+html[data-current-url*="auth"] button,
+html[data-current-url*="auth"] form,
+html[data-current-url*="auth"] a,
+[data-page="auth"] input,
+[data-page="auth"] button,
+[data-page="auth"] form,
+[data-page="auth"] a,
+.auth-page input,
+.auth-page button,
+.auth-page form,
+.auth-page a {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  user-select: auto !important;
+  filter: none !important;
+  background: initial !important;
+}
+
+/* EMERGENCY AUTH FIX - DISABLE VIEW-ONLY EVERYWHERE ON AUTH PAGES */
 
 /* GLOBAL RULE - AUTH URL DETECTION */
 html:has(a[href*="auth"]) *,

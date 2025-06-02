@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,74 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
 export default function AuthPage() {
+  // CRITICAL: Remove all view-only mode restrictions immediately
+  useEffect(() => {
+    const forceAuthPageInteractive = () => {
+      // Remove all view-only classes
+      document.body.classList.remove('viewer-mode', 'role-viewer');
+      document.body.classList.add('auth-page', 'full-access');
+      
+      // Set data attribute for CSS targeting
+      document.body.setAttribute('data-current-url', '/auth');
+      document.body.setAttribute('data-page', 'auth');
+      
+      // Force all interactive elements to be enabled
+      const elements = document.querySelectorAll('input, button, form, a, select, textarea, [role="button"]');
+      elements.forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.style.pointerEvents = 'auto';
+          el.style.opacity = '1';
+          el.style.cursor = 'auto';
+          el.style.filter = 'none';
+          el.removeAttribute('disabled');
+          
+          if (el.tagName === 'BUTTON' || el.tagName === 'A' || el.getAttribute('role') === 'button') {
+            el.style.cursor = 'pointer';
+          }
+          if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            el.style.cursor = 'text';
+          }
+        }
+      });
+    };
+    
+    // Run immediately and continuously
+    forceAuthPageInteractive();
+    const interval = setInterval(forceAuthPageInteractive, 50);
+    
+    // Add emergency styles
+    const style = document.createElement('style');
+    style.id = 'auth-emergency-fix';
+    style.textContent = `
+      /* EMERGENCY AUTH PAGE FIX - HIGHEST PRIORITY */
+      body[data-page="auth"] *,
+      body[data-current-url="/auth"] *,
+      .auth-page *,
+      .full-access * {
+        pointer-events: auto !important;
+        opacity: 1 !important;
+        cursor: auto !important;
+        filter: none !important;
+        user-select: auto !important;
+      }
+      
+      body[data-page="auth"] button,
+      body[data-page="auth"] [role="button"],
+      body[data-page="auth"] a {
+        cursor: pointer !important;
+      }
+      
+      body[data-page="auth"] input,
+      body[data-page="auth"] textarea {
+        cursor: text !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { user, isLoading, loginMutation, registerMutation } = useAuth();
