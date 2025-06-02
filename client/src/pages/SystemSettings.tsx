@@ -17,7 +17,7 @@ import {
   ArchiveRestore
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import RolePermissionsManager from "@/components/RolePermissionsManager";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -916,39 +916,7 @@ const SystemSettings = () => {
 
         {/* Access Control Tab */}
         <TabsContent value="accessControl" className="space-y-6">
-          <Card>
-              <CardHeader>
-                <CardTitle>Role Permissions</CardTitle>
-                <CardDescription>
-                  Customize what each role (Viewer, Editor, Admin) can access and modify in the system.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="viewer" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="viewer">Viewer Permissions</TabsTrigger>
-                    <TabsTrigger value="editor">Editor Permissions</TabsTrigger>
-                    <TabsTrigger value="admin">Admin Permissions</TabsTrigger>
-                  </TabsList>
-                  
-                  {/* Viewer Permissions Tab */}
-                  <TabsContent value="viewer" className="pt-4">
-                    <RolePermissionsManager role="viewer" isReadOnly={!isAdmin} />
-                  </TabsContent>
-                  
-                  {/* Editor Permissions Tab */}
-                  <TabsContent value="editor" className="pt-4">
-                    <RolePermissionsManager role="editor" isReadOnly={!isAdmin} />
-                  </TabsContent>
-                  
-                  {/* Admin Permissions Tab */}
-                  <TabsContent value="admin" className="pt-4">
-                    <RolePermissionsManager role="admin" isReadOnly={!isAdmin} />
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Email Access Control</CardTitle>
