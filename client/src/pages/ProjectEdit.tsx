@@ -358,13 +358,16 @@ function ProjectEdit() {
       
       // Process all date fields to send as simple date strings
       Object.keys(fixedData).forEach(key => {
-        if (fixedData[key] instanceof Date) {
+        const value = (fixedData as any)[key];
+        if (value instanceof Date) {
           // Convert to YYYY-MM-DD format without timezone conversion
-          const date = fixedData[key] as Date;
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          fixedData[key] = `${year}-${month}-${day}`;
+          const year = value.getFullYear();
+          const month = String(value.getMonth() + 1).padStart(2, '0');
+          const day = String(value.getDate()).padStart(2, '0');
+          (fixedData as any)[key] = `${year}-${month}-${day}`;
+        } else if (typeof value === 'string' && (value === 'PENDING' || value === 'N/A')) {
+          // Keep text values as-is
+          (fixedData as any)[key] = value;
         }
       });
       
@@ -1337,52 +1340,13 @@ function ProjectEdit() {
                       control={form.control}
                       name="contractDate"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Contract Date *</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value ? (
-                                    format(field.value, 'MMM d, yyyy')
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value ? new Date(field.value) : undefined}
-                                onSelect={(date) => {
-                                  if (date) {
-                                    // Fix timezone issue by creating date at noon UTC
-                                    const fixedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
-                                    field.onChange(fixedDate);
-                                  } else {
-                                    field.onChange(null);
-                                  }
-                                }}
-                                disabled={(date) =>
-                                  date < new Date("1900-01-01")
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormDescription>
-                            The contract delivery date (must be manually entered)
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
+                        <EnhancedDateField
+                          label="Contract Date *"
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select date or status..."
+                          description="The contract delivery date (must be manually entered)"
+                        />
                       )}
                     />
                   </div>
