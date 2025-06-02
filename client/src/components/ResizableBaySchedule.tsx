@@ -819,33 +819,35 @@ export default function ResizableBaySchedule({
       const margin = 15;
       const usableWidth = pageWidth - (margin * 2);
       
-      // Add title
-      doc.setFontSize(16);
+      // Create professional Nomad GCS header
+      doc.setFillColor(41, 128, 185); // Professional blue background
+      doc.rect(0, 0, pageWidth, 35, 'F');
+      
+      // Company name
+      doc.setTextColor(255, 255, 255); // White text
+      doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      doc.text(`${teamName} - Project Schedule`, margin, 20);
+      doc.text('NOMAD GCS', margin, 20);
       
-      // Add generation date
-      doc.setFontSize(10);
+      // Subtitle
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Generated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`, margin, 30);
+      doc.text('Manufacturing Schedule Report', margin, 28);
       
-      // Add team information using real data
+      // Generation date aligned to right
+      doc.setFontSize(10);
+      const dateText = `Generated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`;
+      const dateWidth = doc.getTextWidth(dateText);
+      doc.text(dateText, pageWidth - margin - dateWidth, 20);
+      
+      // Team name aligned to right
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Team Information:', margin, 45);
+      const teamWidth = doc.getTextWidth(teamName);
+      doc.text(teamName, pageWidth - margin - teamWidth, 28);
       
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      const teamInfo = [
-        `Bays: ${teamBays.map(bay => bay.name).join(', ')}`,
-        `Total Projects: ${teamProjects.length}`,
-        `Staff: ${totalStaff} members (${totalAssemblyStaff} assembly, ${totalElectricalStaff} electrical)`,
-        `Weekly Capacity: ${weeklyCapacity} hours`
-      ];
-      
-      teamInfo.forEach((info, index) => {
-        doc.text(info, margin + 5, 55 + (index * 6));
-      });
+      // Reset text color for content
+      doc.setTextColor(0, 0, 0);
       
       // Initialize currentY at the proper scope
       let currentY = 85;
