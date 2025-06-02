@@ -231,6 +231,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(sessionUser);
   });
 
+  // System settings - Get all authenticated users from Neon database
+  app.get("/api/system/users", isAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching system users:", error);
+      res.status(500).json({ message: "Error fetching system users" });
+    }
+  });
+
   // Error handling middleware for Zod validation
   const validateRequest = (schema: z.ZodSchema<any>) => {
     return (req: Request, res: Response, next: any) => {

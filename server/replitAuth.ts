@@ -204,12 +204,23 @@ export const withAuthInfo: RequestHandler = (req, res, next) => {
 
 // Middleware to check if user has edit permissions, but don't block if not
 export const hasEditRights = async (req: any, res: Response, next: NextFunction) => {
+  console.log('hasEditRights middleware: checking if user has edit rights');
+  
   // Default - no edit rights
   req.hasEditRights = false;
   req.userRole = null;
   
+  // Development mode bypass
+  if (process.env.NODE_ENV === 'development') {
+    console.log('hasEditRights middleware: Development mode detected, granting edit rights');
+    req.hasEditRights = true;
+    req.userRole = 'admin';
+    req.userDetails = { id: 'dev-user', role: 'admin', isApproved: true };
+    return next();
+  }
+  
   // Check if authenticated
-  if (req.isAuthenticated() && req.user?.claims?.sub) {
+  if (req.isAuthenticated() && req.user && req.user.claims && req.user.claims.sub) {
     // Look up the DB user to check approval status and role
     const dbUser = await storage.getUser(req.user.claims.sub);
     
@@ -226,8 +237,15 @@ export const hasEditRights = async (req: any, res: Response, next: NextFunction)
 
 // Check if user has admin role
 export const isAdmin = async (req: any, res: Response, next: NextFunction) => {
+  // Development mode bypass
+  if (process.env.NODE_ENV === 'development') {
+    req.userRole = "admin";
+    req.userDetails = { id: 'dev-user', role: 'admin', isApproved: true };
+    return next();
+  }
+
   // First check if authenticated and approved
-  if (!req.isAuthenticated() || !req.user?.claims?.sub) {
+  if (!req.isAuthenticated() || !req.user || !req.user.claims || !req.user.claims.sub) {
     return res.status(401).json({ message: "Authentication required" });
   }
   
@@ -246,8 +264,15 @@ export const isAdmin = async (req: any, res: Response, next: NextFunction) => {
 
 // Check if user has at least editor role
 export const isEditor = async (req: any, res: Response, next: NextFunction) => {
+  // Development mode bypass
+  if (process.env.NODE_ENV === 'development') {
+    req.userRole = "admin";
+    req.userDetails = { id: 'dev-user', role: 'admin', isApproved: true };
+    return next();
+  }
+
   // First check if authenticated and approved
-  if (!req.isAuthenticated() || !req.user?.claims?.sub) {
+  if (!req.isAuthenticated() || !req.user || !req.user.claims || !req.user.claims.sub) {
     return res.status(401).json({ message: "Authentication required" });
   }
   
@@ -270,9 +295,15 @@ export const isEditor = async (req: any, res: Response, next: NextFunction) => {
 
 // Strict authentication check - requires authentication
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  // Development mode bypass
+  if (process.env.NODE_ENV === 'development') {
+    console.log('isAuthenticated middleware: Development mode detected, bypassing authentication');
+    return next();
+  }
+
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user?.expires_at) {
+  if (!req.isAuthenticated() || !user || !user.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
