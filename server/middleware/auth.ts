@@ -111,23 +111,3 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
   return res.status(401).json({ message: 'Unauthorized: Please log in' });
 };
 
-// Middleware to block write operations for VIEW users
-export const blockViewUserWrites = (req: Request, res: Response, next: NextFunction) => {
-  // Skip for GET requests (read operations)
-  if (req.method === 'GET') {
-    return next();
-  }
-  
-  // In development mode, always allow writes
-  if (process.env.NODE_ENV === 'development') {
-    return next();
-  }
-  
-  // Production mode - check session user role
-  if (req.session.user && isViewOnlyUser(req.session.user.role)) {
-    console.log('blockViewUserWrites: Blocking write operation for VIEW user');
-    return res.status(403).json({ message: 'Read-only users cannot modify data.' });
-  }
-  
-  return next();
-};

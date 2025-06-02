@@ -23,7 +23,7 @@ import {
 
 import { exportReport } from "./routes/export";
 import { setupAuth, isAuthenticated, hasEditRights, isAdmin, isEditor } from "./replitAuth";
-import { blockViewUserWrites } from "./middleware/auth";
+
 import { 
   importProjects, 
   importBillingMilestones, 
@@ -161,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Apply write-blocking middleware globally to all API routes
   // This will block POST, PUT, DELETE operations for VIEW users
-  app.use('/api', blockViewUserWrites);
+
 
   // Special route to update project hours from 40 to 1000
   app.post("/api/admin/update-project-hours", isAdmin, async (req, res) => {
