@@ -22,7 +22,7 @@ import {
 } from "@shared/schema";
 
 import { exportReport } from "./routes/export";
-import { setupSession, setupLocalAuth, isAuthenticated, hasEditRights, isAdmin, isEditor, hashPassword, comparePasswords } from "./authService";
+import { setupAuth, isAuthenticated, hasEditRights, isAdmin, isEditor } from "./replitAuth";
 import { blockViewUserWrites } from "./middleware/auth";
 import { 
   importProjects, 
@@ -186,15 +186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   // Auth middleware
-  setupSession(app);
-  setupLocalAuth(app);
-  
-  // Route redirections for backward compatibility
-  app.get('/api/login', (req, res) => res.redirect('/api/auth/login'));
-  app.get('/api/logout', (req, res) => res.redirect('/api/auth/logout'));
-
-  // Auth routes are already defined in setupLocalAuth
-  // All the /api/auth/* routes are handled there
+  await setupAuth(app);
   
   // Add current user endpoint to match the frontend's expected route 
   app.get("/api/user", (req, res) => {

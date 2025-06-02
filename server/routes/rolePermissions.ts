@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
-import { isAuthenticated, isAdmin } from '../authService';
+import { isAuthenticated, isAdmin } from '../replitAuth';
 
 const router = express.Router();
 
