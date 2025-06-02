@@ -429,15 +429,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get data from request
       const updateData = req.body;
       
-      // Convert text values like "N/A" and "PENDING" to null for database storage
-      Object.keys(updateData).forEach(key => {
-        if (updateData[key] === 'N/A' || updateData[key] === 'PENDING' || updateData[key] === '') {
-          const originalValue = updateData[key];
-          updateData[key] = null;
-          console.log(`Converting ${key} from "${originalValue}" to null for database`);
-        }
-      });
-      
       // Process date fields specifically
       const dateFields = [
         'startDate', 'contractDate', 'estimatedCompletionDate', 'actualCompletionDate',

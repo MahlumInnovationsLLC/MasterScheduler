@@ -1404,10 +1404,36 @@ function ProjectEdit() {
                     
                     <FormField
                       control={form.control}
+                      name="wrapDate"
+                      render={({ field }) => (
+                        <EnhancedDateField
+                          label="Wrap Date"
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select date or status..."
+                        />
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
                       name="qcStartDate"
                       render={({ field }) => (
                         <EnhancedDateField
                           label="QC Start Date"
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Select date or status..."
+                        />
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="executiveReviewDate"
+                      render={({ field }) => (
+                        <EnhancedDateField
+                          label="Executive Review Date"
                           value={field.value}
                           onChange={field.onChange}
                           placeholder="Select date or status..."
