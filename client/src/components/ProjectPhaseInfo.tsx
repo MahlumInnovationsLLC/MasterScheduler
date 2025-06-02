@@ -7,8 +7,21 @@ interface ProjectPhaseInfoProps {
 }
 
 export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) => {
-  // Helper to safely get date from project or rawData
+  // Helper to format date or return text value as-is
+  const formatDateOrText = (value: string | null): string => {
+    if (!value) return '';
+    if (value === 'N/A' || value === 'PENDING') return value;
+    return formatDate(value);
+  };
+
+  // Helper to safely get date from project, localStorage, or rawData
   const getPhaseDate = (fieldName: string): string | null => {
+    // First check localStorage for text values like "N/A" or "PENDING"
+    const storedValue = localStorage.getItem(`date_field_${project.id}_${fieldName}`);
+    if (storedValue && (storedValue === 'N/A' || storedValue === 'PENDING')) {
+      return storedValue;
+    }
+    
     // Special case for startDate and shipDate which should come from project first
     if (fieldName === 'startDate' && project.startDate) {
       return project.startDate;
@@ -70,11 +83,11 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
   const poDroppedDate = project.poDroppedDate || project.startDate || null; // Timeline Start
   const fabricationStart = getPhaseDate('fabricationStart');
   const assemblyStart = getPhaseDate('assemblyStart');
-  const ntcTestingDate = project.ntcTestingDate || null;
+  const ntcTestingDate = getPhaseDate('ntcTestingDate');
   const qcStartDate = project.qcStartDate || null;
-  const executiveReviewDate = project.executiveReviewDate || null;
+  const executiveReviewDate = getPhaseDate('executiveReviewDate');
   const shipDate = project.shipDate || null;
-  const deliveryDate = project.deliveryDate || null;
+  const deliveryDate = getPhaseDate('deliveryDate');
   
   // Only display if we have at least one phase date
   if (!contractDate && !poDroppedDate && !fabricationStart && !assemblyStart && !ntcTestingDate && 
@@ -91,7 +104,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             <Clock className="h-4 w-4 text-blue-500" />
             <div>
               <div className="text-xs text-gray-400">CONTRACT DATE</div>
-              <div className="text-sm font-medium">{formatDate(contractDate)}</div>
+              <div className="text-sm font-medium">{formatDateOrText(contractDate)}</div>
             </div>
           </div>
         )}
@@ -101,7 +114,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             <Calendar className="h-4 w-4 text-primary" />
             <div>
               <div className="text-xs text-gray-400">TIMELINE START</div>
-              <div className="text-sm font-medium">{formatDate(poDroppedDate)}</div>
+              <div className="text-sm font-medium">{formatDateOrText(poDroppedDate)}</div>
             </div>
           </div>
         )}
@@ -111,7 +124,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             <Hammer className="h-4 w-4 text-blue-400" />
             <div>
               <div className="text-xs text-gray-400">FAB START</div>
-              <div className="text-sm font-medium">{formatDate(fabricationStart)}</div>
+              <div className="text-sm font-medium">{formatDateOrText(fabricationStart)}</div>
             </div>
           </div>
         )}
@@ -121,7 +134,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             <Wrench className="h-4 w-4 text-indigo-400" />
             <div>
               <div className="text-xs text-gray-400">ASSEMBLY START</div>
-              <div className="text-sm font-medium">{formatDate(assemblyStart)}</div>
+              <div className="text-sm font-medium">{formatDateOrText(assemblyStart)}</div>
             </div>
           </div>
         )}
@@ -131,7 +144,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             <TestTube className="h-4 w-4 text-purple-400" />
             <div>
               <div className="text-xs text-gray-400">NTC TESTING</div>
-              <div className="text-sm font-medium">{formatDate(ntcTestingDate)}</div>
+              <div className="text-sm font-medium">{formatDateOrText(ntcTestingDate)}</div>
             </div>
           </div>
         )}
@@ -141,7 +154,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             <CheckSquare className="h-4 w-4 text-green-400" />
             <div>
               <div className="text-xs text-gray-400">QC START</div>
-              <div className="text-sm font-medium">{formatDate(qcStartDate)}</div>
+              <div className="text-sm font-medium">{formatDateOrText(qcStartDate)}</div>
             </div>
           </div>
         )}
@@ -151,7 +164,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             <CheckCircle className="h-4 w-4 text-yellow-400" />
             <div>
               <div className="text-xs text-gray-400">EXECUTIVE REVIEW</div>
-              <div className="text-sm font-medium">{formatDate(executiveReviewDate)}</div>
+              <div className="text-sm font-medium">{formatDateOrText(executiveReviewDate)}</div>
             </div>
           </div>
         )}
@@ -161,7 +174,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             <Truck className="h-4 w-4 text-orange-400" />
             <div>
               <div className="text-xs text-gray-400">SHIP</div>
-              <div className="text-sm font-medium">{formatDate(shipDate)}</div>
+              <div className="text-sm font-medium">{formatDateOrText(shipDate)}</div>
             </div>
           </div>
         )}
@@ -171,7 +184,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             <Navigation className="h-4 w-4 text-red-400" />
             <div>
               <div className="text-xs text-gray-400">DELIVERY</div>
-              <div className="text-sm font-medium">{formatDate(deliveryDate)}</div>
+              <div className="text-sm font-medium">{formatDateOrText(deliveryDate)}</div>
             </div>
           </div>
         )}

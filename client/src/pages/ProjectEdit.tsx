@@ -1401,6 +1401,7 @@ function ProjectEdit() {
                           value={field.value}
                           onChange={field.onChange}
                           placeholder="Select date or status..."
+                          fieldName="ntcTestingDate"
                         />
                       )}
                     />
