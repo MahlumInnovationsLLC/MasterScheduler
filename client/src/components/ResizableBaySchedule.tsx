@@ -847,6 +847,9 @@ export default function ResizableBaySchedule({
         doc.text(info, margin + 5, 55 + (index * 6));
       });
       
+      // Initialize currentY at the proper scope
+      let currentY = 85;
+      
       // Calculate timeline for project bars - start from today and filter future projects
       if (teamProjects.length > 0) {
         const today = new Date();
@@ -859,7 +862,6 @@ export default function ResizableBaySchedule({
           const totalDays = differenceInDays(latestEnd, today);
           
           // Start project bar visualization
-          let currentY = 85;
           const barHeight = 12;
           const projectRowHeight = 18;
           const timelineHeight = 20;
