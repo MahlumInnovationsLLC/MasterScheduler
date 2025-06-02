@@ -118,7 +118,14 @@ const Dashboard = () => {
       : [];
     const completeProjects = projects.filter(p => p.status === 'completed');
     const unscheduledProjects = manufacturingSchedules
-      ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'Unscheduled' && p.status !== 'completed')
+      ? projects.filter(p => {
+          const scheduleState = getProjectScheduleState(manufacturingSchedules, p.id);
+          const isUnscheduled = scheduleState === 'Unscheduled' && p.status !== 'completed';
+          if (isUnscheduled) {
+            console.log('Found unscheduled project:', p.name, p.projectNumber, 'Schedule state:', scheduleState, 'Status:', p.status);
+          }
+          return isUnscheduled;
+        })
       : [];
     
     // Simple project info for the popover display
@@ -144,6 +151,16 @@ const Dashboard = () => {
         projectNumber: p.projectNumber 
       }))
     };
+
+    console.log('Dashboard Debug - Project counts:');
+    console.log('Total projects:', projects.length);
+    console.log('Unscheduled projects found:', unscheduledProjects.length);
+    console.log('Project lists for hover:', {
+      unscheduled: projectLists.unscheduled.length,
+      scheduled: projectLists.scheduled.length,
+      inProgress: projectLists.inProgress.length,
+      complete: projectLists.complete.length
+    });
 
     return {
       total: projects.length,
