@@ -188,19 +188,44 @@ function App() {
               {/* Auth page now handled by the single /auth route */}
               <Router />
               
-              {/* Custom styles for viewer mode exceptions */}
+              {/* Complete removal of view-only restrictions for auth pages */}
               <style dangerouslySetInnerHTML={{
                 __html: `
-                  /* Auth elements need to be clickable even in viewer mode */
+                  /* COMPLETELY DISABLE VIEW-ONLY MODE FOR AUTH PAGES */
+                  body[class*="auth"] .viewer-mode,
+                  body[class*="auth"] .view-only,
+                  .auth-page *,
+                  .auth-form *,
+                  [data-auth-page] *,
+                  [data-auth-form] * {
+                    pointer-events: auto !important;
+                    opacity: 1 !important;
+                    cursor: auto !important;
+                    user-select: auto !important;
+                    -webkit-user-select: auto !important;
+                    -moz-user-select: auto !important;
+                    -ms-user-select: auto !important;
+                  }
+                  
+                  /* Override ALL view-only restrictions on auth elements */
                   body.viewer-mode .auth-form input,
                   body.viewer-mode .auth-form button,
-                  body.viewer-mode .auth-form select {
+                  body.viewer-mode .auth-form select,
+                  body.viewer-mode .auth-page input,
+                  body.viewer-mode .auth-page button,
+                  body.viewer-mode .auth-page select,
+                  body.viewer-mode [data-auth-page] *,
+                  body.viewer-mode [data-auth-form] * {
                     pointer-events: auto !important;
                     opacity: 1 !important;
                     cursor: pointer !important;
+                    user-select: auto !important;
+                    -webkit-user-select: auto !important;
+                    -moz-user-select: auto !important;
+                    -ms-user-select: auto !important;
                   }
                   
-                  /* Bay Scheduling sandbox mode elements need to be clickable in viewer mode */
+                  /* Bay Scheduling sandbox mode elements */
                   body.viewer-mode .sandbox-mode button,
                   body.viewer-mode .sandbox-mode input,
                   body.viewer-mode .sandbox-mode select {
