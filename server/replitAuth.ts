@@ -146,7 +146,13 @@ export async function setupAuth(app: Express) {
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  // Check if isAuthenticated function exists (Passport properly initialized)
+  if (!req.isAuthenticated || typeof req.isAuthenticated !== 'function') {
+    console.error('Passport not properly initialized - req.isAuthenticated is not a function');
+    return res.status(500).json({ message: "Authentication system not initialized" });
+  }
+
+  if (!req.isAuthenticated() || !user?.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 

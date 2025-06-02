@@ -1,8 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import session from "express-session";
-import connectPg from "connect-pg-simple";
+import { setupAuth } from "./replitAuth";
 
 // Add global error handlers to prevent server crashes
 process.on('uncaughtException', (error) => {
@@ -25,27 +24,7 @@ app.get('/health', (_req, res) => {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Session configuration for authentication
-const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-const pgStore = connectPg(session);
-const sessionStore = new pgStore({
-  conString: process.env.DATABASE_URL,
-  createTableIfMissing: false,
-  ttl: sessionTtl,
-  tableName: "sessions",
-});
-
-app.use(session({
-  secret: process.env.SESSION_SECRET || "tier4-app-secret-key",
-  store: sessionStore,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    secure: false, // Set to true in production with HTTPS
-    maxAge: sessionTtl,
-  },
-}));
+// Session will be configured in setupAuth
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -78,6 +57,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize authentication BEFORE registering routes
+  await setupAuth(app);
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

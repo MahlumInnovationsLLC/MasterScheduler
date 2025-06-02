@@ -152,9 +152,6 @@ async function syncDeliveryMilestonesToShipDate(projectId: number, shipDate: str
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Fast authentication setup
-  await setupAuth(app);
-
   // CRITICAL FIX: Ensure API routes are processed with proper JSON responses
   app.use('/api', (req, res, next) => {
     res.setHeader('Content-Type', 'application/json');
