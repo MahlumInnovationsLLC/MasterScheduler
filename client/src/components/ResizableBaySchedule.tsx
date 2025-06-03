@@ -3968,7 +3968,7 @@ export default function ResizableBaySchedule({
                                   </div>
                                   
                                   {/* Bottom row of phases (FAB and PAINT) */}
-                                  <div className="bottom-phases w-full h-[48px] absolute left-0" style={{ bottom: '-20px' }}>
+                                  <div className="bottom-phases w-full h-[48px] absolute left-0" style={{ bottom: '-30px' }}>
                                     {/* FAB phase (starts from left) */}
                                     {bar.fabWidth && bar.fabWidth > 0 && (
                                       <div className="fab-phase bg-blue-700 h-full absolute left-0" 
@@ -3991,11 +3991,11 @@ export default function ResizableBaySchedule({
                                   </div>
                                 </div>
                                 
-                                {/* Project information display centered below the PROD section */}
+                                {/* Project information display centered below the bottom phases */}
                                 <div className="project-info absolute flex items-center justify-center"
                                      style={{
                                        left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + ((bar.productionWidth || 0) / 2) - 200}px`,
-                                       top: '28px',
+                                       top: '70px', /* Moved down to appear under bottom phases (52px top height + 48px bottom height - 30px offset = 70px) */
                                        width: '400px',
                                        pointerEvents: 'none', /* Allow clicks to pass through */
                                        zIndex: 9999 /* Extremely high z-index to ensure it's on top of everything */
