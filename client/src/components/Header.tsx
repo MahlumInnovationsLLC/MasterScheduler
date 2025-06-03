@@ -22,9 +22,9 @@ import { NotificationBell } from '@/components/ui/notification/NotificationBell'
 
 const Header = () => {
   const { user, isLoading } = useAuth();
-  const isAuthenticated = !!user;
   
   const typedUser = user as UserType | undefined;
+  const isAuthenticated = !!user;
   
   const getInitials = (name?: string) => {
     if (!name) return 'U';
@@ -108,7 +108,14 @@ const Header = () => {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     className="cursor-pointer viewer-interactive"
-                    onClick={() => window.location.href = '/api/auth/logout'}
+                    onClick={() => {
+                      fetch('/api/logout', { 
+                        method: 'POST', 
+                        credentials: 'include' 
+                      }).then(() => {
+                        window.location.href = '/auth';
+                      });
+                    }}
                   >
                     <LogOut className="mr-2 h-4 w-4 viewer-interactive" />
                     <span className="viewer-interactive">Log out</span>
@@ -119,7 +126,7 @@ const Header = () => {
           ) : (
             <Button 
               variant="default"
-              onClick={() => window.location.href = '/api/auth/login'}
+              onClick={() => window.location.href = '/auth'}
             >
               Log In
             </Button>
