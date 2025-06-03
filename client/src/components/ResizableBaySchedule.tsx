@@ -4039,12 +4039,12 @@ export default function ResizableBaySchedule({
                                   // Calculate milestone position based on phase timing
                                   let milestonePosition = 0;
                                   
-                                  if (milestone.phaseType === 'PRODUCTION' && milestone.daysBefore) {
+                                  if (milestone.phase === 'PRODUCTION' && milestone.daysBefore) {
                                     // Position before PRODUCTION phase
                                     const productionStartPosition = (bar.fabWidth || 0) + (bar.paintWidth || 0);
                                     const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
                                     milestonePosition = productionStartPosition - (milestone.daysBefore * pixelsPerDay);
-                                  } else if (milestone.phaseType === 'QC' && milestone.daysBefore) {
+                                  } else if (milestone.phase === 'QC' && milestone.daysBefore) {
                                     // Position before QC phase
                                     const qcStartPosition = (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0);
                                     const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
@@ -4063,17 +4063,17 @@ export default function ResizableBaySchedule({
                                           width: '20px',
                                           height: '20px',
                                         }}
-                                        title={`${milestone.name} - ${milestone.daysBefore} days before ${milestone.phaseType}`}
+                                        title={`${milestone.name} - ${milestone.daysBefore} days before ${milestone.phase}`}
                                       >
                                         <div className="bg-white border-2 border-gray-600 rounded-full p-1 shadow-lg">
-                                          {milestone.iconName === 'car' && <span className="text-sm">🚗</span>}
-                                          {milestone.iconName === 'paintBucket' && <span className="text-sm">🎨</span>}
-                                          {milestone.iconName === 'wrench' && <span className="text-sm">🔧</span>}
-                                          {milestone.iconName === 'clock' && <span className="text-sm">⏰</span>}
-                                          {milestone.iconName === 'flag' && <span className="text-sm">🏁</span>}
-                                          {milestone.iconName === 'star' && <span className="text-sm">⭐</span>}
-                                          {milestone.iconName === 'warning' && <span className="text-sm">⚠️</span>}
-                                          {milestone.iconName === 'check' && <span className="text-sm">✅</span>}
+                                          {milestone.icon === 'car' && <span className="text-sm">🚗</span>}
+                                          {milestone.icon === 'paintBucket' && <span className="text-sm">🎨</span>}
+                                          {milestone.icon === 'wrench' && <span className="text-sm">🔧</span>}
+                                          {milestone.icon === 'clock' && <span className="text-sm">⏰</span>}
+                                          {milestone.icon === 'flag' && <span className="text-sm">🏁</span>}
+                                          {milestone.icon === 'star' && <span className="text-sm">⭐</span>}
+                                          {milestone.icon === 'warning' && <span className="text-sm">⚠️</span>}
+                                          {milestone.icon === 'check' && <span className="text-sm">✅</span>}
                                         </div>
                                       </div>
                                     );
