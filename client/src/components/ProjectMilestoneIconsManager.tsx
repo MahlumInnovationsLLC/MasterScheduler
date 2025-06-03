@@ -106,14 +106,7 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
   // Create milestone icon mutation
   const createMutation = useMutation({
     mutationFn: async (data: InsertProjectMilestoneIcon) => {
-      return apiRequest(`/api/projects/${projectId}/milestone-icons`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        on401: 'redirect' as const,
-      });
+      return apiRequest('POST', `/api/projects/${projectId}/milestone-icons`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/milestone-icons`] });
@@ -137,14 +130,7 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
   // Update milestone icon mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<ProjectMilestoneIcon> }) => {
-      return apiRequest(`/api/projects/${projectId}/milestone-icons/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        on401: 'redirect' as const,
-      });
+      return apiRequest('PATCH', `/api/projects/${projectId}/milestone-icons/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/milestone-icons`] });
@@ -167,10 +153,7 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
   // Delete milestone icon mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/projects/${projectId}/milestone-icons/${id}`, {
-        method: 'DELETE',
-        on401: 'redirect' as const,
-      });
+      return apiRequest('DELETE', `/api/projects/${projectId}/milestone-icons/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/milestone-icons`] });
