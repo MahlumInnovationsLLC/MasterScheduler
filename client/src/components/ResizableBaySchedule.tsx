@@ -4053,15 +4053,19 @@ export default function ResizableBaySchedule({
                                   
                                   // Only show milestone if position is within the bar bounds
                                   if (milestonePosition >= 0 && milestonePosition <= bar.width) {
+                                    // Calculate top position based on milestone type
+                                    const topPosition = milestone.icon === 'car' ? '92px' : '30px'; // Car icon 100px lower, star icon 30px below
+                                    
                                     return (
                                       <div
                                         key={`milestone-${milestone.id}`}
-                                        className="absolute z-30 flex items-center justify-center"
+                                        className="absolute flex items-center justify-center"
                                         style={{
                                           left: `${milestonePosition}px`,
-                                          top: '-8px',
-                                          width: '20px',
-                                          height: '20px',
+                                          top: topPosition,
+                                          width: '24px',
+                                          height: '24px',
+                                          zIndex: 50, // Higher z-index to appear above project bars
                                         }}
                                         title={`${milestone.name} - ${milestone.daysBefore} days before ${milestone.phase}`}
                                       >
