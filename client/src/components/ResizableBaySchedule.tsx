@@ -4075,10 +4075,10 @@ export default function ResizableBaySchedule({
                                     }
                                   });
                                   
-                                  // Only show milestone if position is within the bar bounds
-                                  if (milestonePosition >= 0 && milestonePosition <= bar.width) {
+                                  // Always show milestone regardless of bounds for debugging
+                                  if (true) { // Temporarily show all milestones for debugging
                                     // Calculate top position based on milestone type
-                                    const topPosition = milestone.icon === 'car' ? '92px' : '30px'; // Car icon 100px lower, star icon 30px below
+                                    const topPosition = milestone.icon === 'car' ? '92px' : '-15px'; // Car icon lower, star icon above project bar
                                     
                                     return (
                                       <div
@@ -4087,21 +4087,21 @@ export default function ResizableBaySchedule({
                                         style={{
                                           left: `${milestonePosition}px`,
                                           top: topPosition,
-                                          width: '24px',
-                                          height: '24px',
-                                          zIndex: 50, // Higher z-index to appear above project bars
+                                          width: '28px',
+                                          height: '28px',
+                                          zIndex: 999, // Very high z-index to ensure visibility
                                         }}
                                         title={`${milestone.name} - ${milestone.daysBefore} days before ${milestone.phase}`}
                                       >
-                                        <div className="bg-white border-2 border-gray-600 rounded-full p-1 shadow-lg">
-                                          {milestone.icon === 'car' && <span className="text-sm">🚗</span>}
-                                          {milestone.icon === 'paintBucket' && <span className="text-sm">🎨</span>}
-                                          {milestone.icon === 'wrench' && <span className="text-sm">🔧</span>}
-                                          {milestone.icon === 'clock' && <span className="text-sm">⏰</span>}
-                                          {milestone.icon === 'flag' && <span className="text-sm">🏁</span>}
-                                          {milestone.icon === 'star' && <span className="text-sm">⭐</span>}
-                                          {milestone.icon === 'warning' && <span className="text-sm">⚠️</span>}
-                                          {milestone.icon === 'check' && <span className="text-sm">✅</span>}
+                                        <div className="bg-yellow-300 border-2 border-red-600 rounded-full p-1 shadow-xl">
+                                          {milestone.icon === 'car' && <span className="text-lg">🚗</span>}
+                                          {milestone.icon === 'paintBucket' && <span className="text-lg">🎨</span>}
+                                          {milestone.icon === 'wrench' && <span className="text-lg">🔧</span>}
+                                          {milestone.icon === 'clock' && <span className="text-lg">⏰</span>}
+                                          {milestone.icon === 'flag' && <span className="text-lg">🏁</span>}
+                                          {milestone.icon === 'star' && <span className="text-lg">⭐</span>}
+                                          {milestone.icon === 'warning' && <span className="text-lg">⚠️</span>}
+                                          {milestone.icon === 'check' && <span className="text-lg">✅</span>}
                                         </div>
                                       </div>
                                     );
