@@ -106,7 +106,8 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
   // Create milestone icon mutation
   const createMutation = useMutation({
     mutationFn: async (data: InsertProjectMilestoneIcon) => {
-      return apiRequest('POST', `/api/projects/${projectId}/milestone-icons`, data);
+      const response = await apiRequest('POST', `/api/projects/${projectId}/milestone-icons`, data);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/milestone-icons`] });
@@ -130,7 +131,8 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
   // Update milestone icon mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<ProjectMilestoneIcon> }) => {
-      return apiRequest('PATCH', `/api/projects/${projectId}/milestone-icons/${id}`, data);
+      const response = await apiRequest('PATCH', `/api/projects/${projectId}/milestone-icons/${id}`, data);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/milestone-icons`] });
@@ -153,7 +155,8 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
   // Delete milestone icon mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest('DELETE', `/api/projects/${projectId}/milestone-icons/${id}`);
+      const response = await apiRequest('DELETE', `/api/projects/${projectId}/milestone-icons/${id}`);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/milestone-icons`] });
