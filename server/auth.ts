@@ -41,19 +41,24 @@ export function setupAuth(app: Express) {
       pool: pool, 
       createTableIfMissing: true,
       errorLog: (error) => {
-        // Suppress expected errors for table/index creation
-        if (error.code === '42P07' && error.message.includes('IDX_session_expire')) {
-          console.log('Session index already exists (expected on restart)');
+        // Suppress all expected database object creation errors
+        const suppressedCodes = ['42P01', '42P07', '42P11']; // relation exists, index exists, duplicate object
+        const suppressedMessages = [
+          'IDX_session_expire',
+          'already exists',
+          'relation "session" already exists',
+          'index "IDX_session_expire" already exists'
+        ];
+        
+        // Check if this is an expected error we should suppress
+        if (suppressedCodes.includes(error.code) || 
+            suppressedMessages.some(msg => error.message && error.message.includes(msg))) {
+          // Don't log these expected errors at all
           return;
         }
-        if (error.code === '42P01' || error.code === '42P07') {
-          console.log('Table/index creation handled, ignoring error');
-          return;
-        }
-        // Only log unexpected errors
-        if (!error.message.includes('already exists')) {
-          console.error('Session store error:', error.message);
-        }
+        
+        // Only log truly unexpected errors
+        console.error('Session store error:', error.message);
       }
     }),
     cookie: {

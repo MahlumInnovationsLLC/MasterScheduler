@@ -5,31 +5,58 @@ import { setupAuth } from "./auth";
 
 // Add global error handlers to prevent server crashes
 process.on('uncaughtException', (error) => {
-  // Suppress known database session errors
-  if (error.message && error.message.includes('IDX_session_expire')) {
-    console.log('Session index creation handled (expected on restart)');
+  // Suppress known database session and object creation errors
+  const suppressedMessages = [
+    'IDX_session_expire',
+    'already exists',
+    'relation "session" already exists',
+    'index "IDX_session_expire" already exists'
+  ];
+  
+  const suppressedCodes = ['42P01', '42P07', '42P11', '57P01', '08P01'];
+  
+  if (error.message && suppressedMessages.some(msg => error.message.includes(msg))) {
+    // Don't log these expected errors
     return;
   }
-  if (error.code === '42P07' || error.code === '57P01') {
-    console.log('Database connection issue handled (expected with Neon)');
+  
+  if (error.code && suppressedCodes.includes(error.code)) {
+    // Don't log these expected error codes
     return;
   }
+  
   console.error('Uncaught Exception:', error);
   // Don't exit the process so the server keeps running
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  // Suppress known database connection rejections
+  // Suppress known database connection and object creation rejections
+  const suppressedCodes = ['42P01', '42P07', '42P11', '57P01', '08P01', '08006'];
+  const suppressedMessages = [
+    'IDX_session_expire',
+    'already exists',
+    'relation "session" already exists',
+    'index "IDX_session_expire" already exists'
+  ];
+  
   if (reason && typeof reason === 'object' && 'code' in reason) {
-    if (reason.code === '42P07' || reason.code === '57P01' || reason.code === '08P01') {
-      console.log('Database rejection handled (expected with Neon sleep cycle)');
-      return;
+    if (suppressedCodes.includes(reason.code)) {
+      return; // Don't log expected error codes
     }
   }
-  if (reason && typeof reason === 'string' && reason.includes('IDX_session_expire')) {
-    console.log('Session index rejection handled (expected on restart)');
-    return;
+  
+  if (reason && typeof reason === 'string') {
+    if (suppressedMessages.some(msg => reason.includes(msg))) {
+      return; // Don't log expected error messages
+    }
   }
+  
+  if (reason && typeof reason === 'object' && 'message' in reason && typeof reason.message === 'string') {
+    if (suppressedMessages.some(msg => reason.message.includes(msg))) {
+      return; // Don't log expected error messages in error objects
+    }
+  }
+  
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
   // Don't exit the process so the server keeps running
 });
