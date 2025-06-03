@@ -45,7 +45,7 @@ async function initializeSessionStore() {
       console.log('Creating session table...');
       await pool.query(`
         CREATE TABLE "session" (
-          "sid" varchar NOT NULL COLLATE "default",
+          "sid" varchar NOT NULL COLLATE "default" PRIMARY KEY,
           "sess" jsonb NOT NULL,
           "expire" timestamp(6) NOT NULL
         )
@@ -84,14 +84,45 @@ async function initializeSessionStore() {
 
     if (!pkExists.rows[0].exists) {
       console.log('Adding primary key to session table...');
-      await pool.query(`
-        ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid");
-      `);
-      console.log('Session primary key added successfully');
+      try {
+        await pool.query(`
+          ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid");
+        `);
+        console.log('Session primary key added successfully');
+      } catch (pkError) {
+        if (pkError.code === '42P16') {
+          // Primary key already exists, ignore
+          console.log('Primary key already exists (expected)');
+        } else {
+          throw pkError;
+        }
+      }
     }
 
   } catch (error) {
     console.error('Error initializing session store:', error.message);
+    
+    // If we have constraint issues, try to recreate the session table
+    if (error.code === '42P10' || error.message.includes('ON CONFLICT')) {
+      try {
+        console.log('Attempting to fix session table...');
+        await pool.query('DROP TABLE IF EXISTS "session";');
+        await pool.query(`
+          CREATE TABLE "session" (
+            "sid" varchar NOT NULL COLLATE "default" PRIMARY KEY,
+            "sess" jsonb NOT NULL,
+            "expire" timestamp(6) NOT NULL
+          )
+          WITH (OIDS=FALSE);
+        `);
+        await pool.query(`
+          CREATE INDEX "IDX_session_expire" ON "session" ("expire");
+        `);
+        console.log('Session table recreated successfully');
+      } catch (recreateError) {
+        console.error('Failed to recreate session table:', recreateError.message);
+      }
+    }
     // Don't throw the error to prevent server crash
   }
 }
