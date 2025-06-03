@@ -3593,7 +3593,7 @@ export default function ResizableBaySchedule({
                   style={{ 
                     gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
                     width: `${Math.max(10000, slots.length * slotWidth)}px`,
-                    marginLeft: "-240px"  // Negative margin to counteract team container offset for header alignment
+                    marginLeft: "240px"  // Add same 240px offset as timeline header to align properly
                   }}
                 >
                   {slots.map((slot, index) => (
