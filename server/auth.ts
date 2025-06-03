@@ -24,43 +24,10 @@ async function hashPassword(password: string) {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  try {
-    // Handle empty or invalid passwords
-    if (!supplied || !stored) {
-      console.log('[PASSWORD] Empty password or stored hash');
-      return false;
-    }
-
-    // Check if stored password has the expected format (hash.salt)
-    if (!stored.includes('.')) {
-      console.log('[PASSWORD] Invalid stored password format - missing salt separator');
-      return false;
-    }
-
-    const [hashed, salt] = stored.split(".");
-    
-    // Validate hash and salt
-    if (!hashed || !salt) {
-      console.log('[PASSWORD] Invalid stored password format - missing hash or salt');
-      return false;
-    }
-
-    // Validate hex format
-    if (!/^[0-9a-f]+$/i.test(hashed)) {
-      console.log('[PASSWORD] Invalid hash format - not hexadecimal');
-      return false;
-    }
-
-    const hashedBuf = Buffer.from(hashed, "hex");
-    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-    
-    const isMatch = timingSafeEqual(hashedBuf, suppliedBuf);
-    console.log(`[PASSWORD] Comparison result: ${isMatch}`);
-    return isMatch;
-  } catch (error) {
-    console.error('[PASSWORD] Error during password comparison:', error);
-    return false;
-  }
+  const [hashed, salt] = stored.split(".");
+  const hashedBuf = Buffer.from(hashed, "hex");
+  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
 async function initializeSessionStore() {
@@ -167,43 +134,23 @@ export async function setupAuth(app: Express) {
             return done(null, false, { message: 'Invalid email or password' });
           }
 
-          // Check if user is approved and active
-          if (user.status === 'archived') {
-            console.log(`[AUTH] User account is archived: ${username}`);
-            return done(null, false, { message: 'Account has been archived' });
-          }
-
-          if (!user.isApproved) {
-            console.log(`[AUTH] User account not approved: ${username}`);
-            return done(null, false, { message: 'Account is pending approval' });
-          }
-
           if (!user.password) {
             console.log(`[AUTH] User found but no password set for: ${username}`);
             return done(null, false, { message: 'Invalid email or password' });
           }
 
           console.log(`[AUTH] Verifying password for user: ${user.email || user.username}`);
-          console.log(`[AUTH] User status: ${user.status}, isApproved: ${user.isApproved}`);
-          console.log(`[AUTH] Password hash length: ${user.password.length}`);
-          
-          try {
-            const passwordMatch = await comparePasswords(password, user.password);
-            console.log(`[AUTH] Password match: ${passwordMatch}`);
+          console.log(`[AUTH] Stored password hash: ${user.password}`);
+          console.log(`[AUTH] Input password: ${password}`);
+          const passwordMatch = await comparePasswords(password, user.password);
+          console.log(`[AUTH] Password match: ${passwordMatch}`);
 
-            if (!passwordMatch) {
-              console.log(`[AUTH] Password verification failed for: ${username}`);
-              return done(null, false, { message: 'Invalid email or password' });
-            }
-
-            // Update last login time
-            await storage.updateUserLastLogin(user.id);
-            console.log(`[AUTH] Login successful for: ${user.email || user.username}`);
-            return done(null, user);
-          } catch (passwordError) {
-            console.error(`[AUTH] Password comparison error for ${username}:`, passwordError);
-            return done(null, false, { message: 'Authentication error' });
+          if (!passwordMatch) {
+            return done(null, false, { message: 'Invalid email or password' });
           }
+
+          console.log(`[AUTH] Login successful for: ${user.email || user.username}`);
+          return done(null, user);
         } catch (error) {
           console.error('Authentication error:', error);
           return done(error);
@@ -408,75 +355,6 @@ export async function setupAuth(app: Express) {
     } catch (error) {
       console.error('Password reset error:', error);
       res.status(500).json({ error: "Password reset failed" });
-    }
-  });
-
-  // Debug endpoint to check user account details
-  app.get("/api/debug/check-user/:email", async (req, res) => {
-    try {
-      const email = req.params.email;
-      const user = await storage.getUserByEmail(email);
-      
-      if (!user) {
-        return res.json({
-          found: false,
-          message: "User not found"
-        });
-      }
-
-      res.json({
-        found: true,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        status: user.status,
-        isApproved: user.isApproved,
-        hasPassword: !!user.password,
-        passwordLength: user.password ? user.password.length : 0,
-        createdAt: user.createdAt,
-        lastLogin: user.lastLogin
-      });
-    } catch (error) {
-      console.error('User check error:', error);
-      res.status(500).json({ error: "Failed to check user" });
-    }
-  });
-
-  // Debug endpoint to fix user account status
-  app.post("/api/debug/fix-user-account", async (req, res) => {
-    try {
-      const { email } = req.body;
-      
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      // Fix common issues with user accounts
-      const updates: any = {};
-      
-      if (user.status === 'archived') {
-        updates.status = 'active';
-      }
-      
-      if (!user.isApproved) {
-        updates.isApproved = true;
-      }
-
-      if (Object.keys(updates).length > 0) {
-        await storage.updateUser(user.id, updates);
-        console.log(`Fixed user account for ${email}:`, updates);
-      }
-
-      res.json({ 
-        success: true,
-        message: "User account fixed",
-        email: user.email,
-        changesApplied: updates
-      });
-    } catch (error) {
-      console.error('User fix error:', error);
-      res.status(500).json({ error: "Failed to fix user account" });
     }
   });
 }

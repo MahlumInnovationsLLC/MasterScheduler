@@ -13,12 +13,12 @@ type AuthContextType = {
   isLoading: boolean;
   isAuthenticated: boolean;
   error: Error | null;
-  loginMutation: UseMutationResult<SelectUser, Error, { email: string }>;
+  loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
 };
 
-type LoginData = { email: string };
+type LoginData = Pick<InsertUser, "username" | "password">;
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -69,9 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (credentials: { email: string }) => {
+    mutationFn: async (credentials: { username: string; password: string }) => {
       try {
-        const response = await fetch("/api/auth/login", {
+        const response = await fetch("/api/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -79,8 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: "Login failed" }));
-          throw new Error(errorData.message || "Login failed");
+          const errorData = await response.json().catch(() => ({ error: "Login failed" }));
+          throw new Error(errorData.error || "Login failed");
         }
 
         return response.json();
@@ -89,15 +89,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(err instanceof Error ? err.message : "Login failed");
       }
     },
-    onSuccess: (data) => {
-      console.log("✅ AUTH: Login successful, user data:", data);
-      // Invalidate and refetch user data immediately
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      // Force a refetch to ensure fresh data
-      refetch();
+    onSuccess: () => {
+      // Use setTimeout to prevent state update conflicts
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      }, 0);
     },
     onError: (error) => {
-      console.log("❌ AUTH: Login error:", error);
+      console.log("Login error:", error);
     },
   });
 

@@ -2290,56 +2290,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Simple email-only login endpoint
+  // Local authentication endpoint
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email } = req.body;
+      const { email, password } = req.body;
       
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
       }
 
       // Find user by email
-      let [user] = await db.select().from(users).where(eq(users.email, email));
-      
-      // If user doesn't exist, create them with admin role
+      const [user] = await db.select().from(users).where(eq(users.email, email));
       if (!user) {
-        console.log(`Creating new user for email: ${email}`);
-        
-        // Generate username from email
-        const username = email.split('@')[0];
-        
-        const newUserData = {
-          id: crypto.randomUUID(),
-          email: email,
-          username: username,
-          firstName: null,
-          lastName: null,
-          password: null, // No password required
-          role: 'admin', // Default to admin role
-          isApproved: true,
-          status: 'active',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          lastLogin: new Date()
-        };
-
-        await db.insert(users).values(newUserData);
-        user = newUserData;
+        return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Update last login time
-      await db.update(users)
-        .set({ lastLogin: new Date() })
-        .where(eq(users.id, user.id));
+      // Verify password using the existing hash format
+      if (user.password && user.password.includes('.')) {
+        const crypto = await import('crypto');
+        const [hashedPassword, salt] = user.password.split('.');
+        const hash = crypto.createHash('sha512').update(password + salt).digest('hex');
+        
+        if (hash !== hashedPassword) {
+          return res.status(401).json({ message: "Invalid credentials" });
+        }
+      } else if (user.password !== password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
 
       // Create session (if session middleware is available)
       if (req.session) {
         (req.session as any).userId = user.id;
         (req.session as any).user = user;
       }
-
-      console.log(`User logged in: ${user.email} with role ${user.role}`);
 
       res.json({
         id: user.id,
