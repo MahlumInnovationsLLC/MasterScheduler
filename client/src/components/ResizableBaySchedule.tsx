@@ -4039,15 +4039,21 @@ export default function ResizableBaySchedule({
                                   // Calculate milestone position based on phase timing
                                   let milestonePosition = 0;
                                   
-                                  if (milestone.phase === 'PRODUCTION' && milestone.daysBefore) {
+                                  // Calculate the total project duration in days
+                                  const projectStart = new Date(bar.startDate);
+                                  const projectEnd = new Date(bar.endDate);
+                                  const totalProjectDays = Math.abs((projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24));
+                                  
+                                  // Calculate pixels per day based on total bar width and project duration
+                                  const pixelsPerDay = bar.width / totalProjectDays;
+                                  
+                                  if (milestone.phase === 'production' && milestone.daysBefore) {
                                     // Position before PRODUCTION phase
                                     const productionStartPosition = (bar.fabWidth || 0) + (bar.paintWidth || 0);
-                                    const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
                                     milestonePosition = productionStartPosition - (milestone.daysBefore * pixelsPerDay);
-                                  } else if (milestone.phase === 'QC' && milestone.daysBefore) {
-                                    // Position before QC phase
+                                  } else if (milestone.phase === 'qc' && milestone.daysBefore) {
+                                    // Position before QC phase  
                                     const qcStartPosition = (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0);
-                                    const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
                                     milestonePosition = qcStartPosition - (milestone.daysBefore * pixelsPerDay);
                                   }
                                   
