@@ -2358,13 +2358,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verify password if provided
       if (password && user.password) {
         if (user.password.includes('.')) {
-          // Hash-based password verification
+          // Use scrypt-based password verification (consistent with auth.ts)
           const crypto = await import('crypto');
-          const [hashedPassword, salt] = user.password.split('.');
-          const hash = crypto.createHash('sha512').update(password + salt).digest('hex');
+          const { promisify } = await import('util');
+          const scryptAsync = promisify(crypto.scrypt);
           
-          if (hash !== hashedPassword) {
-            console.log("❌ Password verification failed");
+          try {
+            const [hashedPassword, salt] = user.password.split('.');
+            const hashedBuf = Buffer.from(hashedPassword, "hex");
+            const suppliedBuf = (await scryptAsync(password, salt, 64)) as Buffer;
+            const passwordMatch = crypto.timingSafeEqual(hashedBuf, suppliedBuf);
+            
+            if (!passwordMatch) {
+              console.log("❌ Password verification failed (scrypt)");
+              return res.status(401).json({ message: "Invalid email or password" });
+            }
+          } catch (scryptError) {
+            console.log("❌ Password verification error:", scryptError);
             return res.status(401).json({ message: "Invalid email or password" });
           }
         } else if (user.password !== password) {
