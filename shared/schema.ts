@@ -423,6 +423,30 @@ export const projectMilestones = pgTable("project_milestones", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Project Milestone Icons - for displaying on bay schedule project bars
+export const projectMilestoneIconsEnum = pgEnum("project_milestone_icon", [
+  "car", "truck", "box", "tape", "wrench", "gear", "calendar", "clock", 
+  "checkmark", "warning", "flag", "star", "diamond", "circle", "square"
+]);
+
+export const projectPhaseEnum = pgEnum("project_phase", [
+  "fab", "paint", "production", "it", "ntc", "qc"
+]);
+
+export const projectMilestoneIcons = pgTable("project_milestone_icons", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .references(() => projects.id)
+    .notNull(),
+  name: text("name").notNull(), // e.g., "MECH SHOP", "GRAPHICS"
+  icon: projectMilestoneIconsEnum("icon").notNull(),
+  phase: projectPhaseEnum("phase").notNull(), // Which phase to calculate from
+  daysBefore: integer("days_before").notNull(), // Days before phase start
+  isEnabled: boolean("is_enabled").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Tasks Table
 export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
@@ -447,6 +471,14 @@ export const projectMilestonesRelations = relations(projectMilestones, ({ one, m
     references: [projects.id],
   }),
   tasks: many(tasks),
+}));
+
+// Project Milestone Icons Relations
+export const projectMilestoneIconsRelations = relations(projectMilestoneIcons, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectMilestoneIcons.projectId],
+    references: [projects.id],
+  }),
 }));
 
 // Tasks Relations
@@ -1100,3 +1132,14 @@ export type InsertProjectSupplyChainBenchmark = z.infer<typeof insertProjectSupp
 
 export type SelectUserPermission = typeof userPermissions.$inferSelect;
 export type InsertUserPermission = typeof userPermissions.$inferInsert;
+
+// Create insert schema for project milestone icons
+export const insertProjectMilestoneIconSchema = createInsertSchema(projectMilestoneIcons).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Type definitions for project milestone icons
+export type ProjectMilestoneIcon = typeof projectMilestoneIcons.$inferSelect;
+export type InsertProjectMilestoneIcon = z.infer<typeof insertProjectMilestoneIconSchema>;
