@@ -1046,7 +1046,7 @@ const SystemSettings = () => {
                 disabled={resetPasswordMutation.isPending}
               >
                 {resetPasswordMutation.isPending ? (
-                  <>```python
+                  <>
                     <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
                     Resetting...
                   </>
@@ -1069,12 +1069,12 @@ const SystemSettings = () => {
       </div>
 
       <Tabs defaultValue="accessControl" className="w-full space-y-6" onValueChange={setCurrentTab}>
-        
-          
-          
-          
-          
-        
+
+
+
+
+
+
 
         {/* Access Control Tab */}
         <TabsContent value="accessControl" className="space-y-6">
@@ -1399,45 +1399,45 @@ const SystemSettings = () => {
             </Card>
           </TabsContent>
 
-          
-          
 
-                
-                  
-                    
-                      
+
+
+
+
+
+
                         Control which modules each user can access. Select a user below to manage their permissions.
-                      
-                    
 
-                    
+
+
+
                       {users
                         ?.filter(user => user.isApproved && user.status === 'active')
                         ?.map((user) => (
-                          
-                            
-                              
+
+
+
                                 {user.firstName} {user.lastName}
-                                
+
                                   {user.email}
-                                
-                                
+
+
                                   {user.role}
-                                
-                              
-                            
+
+
+
                             <UserPermissionsManager
                               userId={user.id}
                               userEmail={user.email}
                               userRole={user.role}
                             />
-                          
-                        ))}
-                    
-                  
-                
 
-          
+                        ))}
+
+
+
+
+
 
           {/* Notifications Tab */}
           <TabsContent value="notifications" className="space-y-6">
@@ -1470,7 +1470,7 @@ const SystemSettings = () => {
                       <CardContent>
                         <form onSubmit={handleCreateNotification} className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            
+
                               Title
                               <Input 
                                 id="title" 
@@ -1479,46 +1479,46 @@ const SystemSettings = () => {
                                 placeholder="Notification Title"
                                 required
                               />
-                            
-                            
-                              
+
+
+
                                 Priority
                                 <Select 
                                   value={newNotification.priority}
                                   onValueChange={(value) => setNewNotification({...newNotification, priority: value})}
                                 >
-                                  
+
                                     Select priority
-                                  
-                                  
-                                    
-                                    
-                                    
-                                    
-                                  
+
+
+
+
+
+
+
                                 </Select>
-                              
-                              
+
+
                                 Type
                                 <Select 
                                   value={newNotification.type}
                                   onValueChange={(value) => setNewNotification({...newNotification, type: value})}
                                 >
-                                  
-                                    Select type
-                                  
-                                  
-                                    
-                                    
-                                    
-                                    
-                                  
-                                </Select>
-                              
-                            
-                          
 
-                          
+                                    Select type
+
+
+
+
+
+
+
+                                </Select>
+
+
+
+
+
                             Message
                             <textarea 
                               id="message" 
@@ -1528,60 +1528,60 @@ const SystemSettings = () => {
                               className="w-full h-24 px-3 py-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
                               required
                             />
-                          
 
-                          
-                            
+
+
+
                               Cancel
-                            
-                            
+
+
                               {createNotificationMutation.isPending ? (
                                 <>
-                                  
+
                                   Sending...
                                 </>
                               ) : (
                                 <>Send Notification</>
                               )}
-                            
-                          
+
+
                         </form>
                       </CardContent>
                     </Card>
                   )}
 
-                  
 
-                    
+
+
                       User Activity Logs
-                    
+
 
                     {userAuditLogsLoading ? (
-                      
-                        
-                      
+
+
+
                     ) : userAuditLogsError ? (
-                      
-                        
+
+
                         Error
                         Failed to load user audit logs
-                      
+
                     ) : userAuditLogs && userAuditLogs.length === 0 ? (
-                      
+
                         No user activity logs found.
-                      
+
                     ) : (
-                      
-                        
-                          
-                            
-                              
+
+
+
+
+
                               Action
                               Details
                               Timestamp
-                            
-                          
-                          
+
+
+
                             {userAuditLogs.map((log: any) => {
                               // Find username if we have a userId
                               const user = users?.find(u => u.id === log.userId);
@@ -1598,30 +1598,30 @@ const SystemSettings = () => {
                               }
 
                               return (
-                                
-                                  
+
+
                                     {displayName}
-                                  
-                                  
-                                    
+
+
+
                                       {log.action}
-                                    
-                                  
-                                  
+
+
+
                                     {log.details}
-                                  
-                                  
+
+
                                     {new Date(log.timestamp).toLocaleString()}
-                                  
-                                
+
+
                               );
                             })}
-                          
-                        
-                      
+
+
+
                     )}
-                  
-                
+
+
               </CardContent>
             </Card>
           </TabsContent>
@@ -1636,112 +1636,112 @@ const SystemSettings = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                
-                  
-                    
+
+
+
                       Archived Projects
-                    
+
 
                     {archivedProjectsLoading ? (
-                      
-                        
-                      
+
+
+
                     ) : archivedProjectsError ? (
-                      
-                        
+
+
                         Error
                         Failed to load archived projects
-                      
+
                     ) : archivedProjects && archivedProjects.length === 0 ? (
-                      
+
                         No archived projects found.
-                      
+
                     ) : (
-                      
-                        
-                          
-                            
+
+
+
+
                               Project
                               Project Number
                               Archived Date
                               Archive Reason
                               Archived By
                                 Actions
-                            
-                          
-                          
+
+
+
                             {archivedProjects && archivedProjects.map((project: any) => (
-                              
-                                
+
+
                                   {project.name}
-                                
-                                
+
+
                                   {project.projectNumber}
-                                
-                                
+
+
                                   {new Date(project.archivedAt || project.updatedAt).toLocaleDateString()}
-                                
-                                
+
+
                                   {project.archiveReason || 'No reason provided'}
-                                
-                                
+
+
                                   {project.archivedBy || 'Unknown'}
-                                
-                                
-                                  
-                                    
-                                      
-                                        
-                                          
+
+
+
+
+
+
+
                                             Restore
-                                          
-                                        
-                                        
-                                          
+
+
+
+
                                             Are you sure you want to restore project '{project.name}'? 
                                             It will be moved back to active projects.
-                                          
-                                        
-                                        
-                                          Cancel
-                                          
-                                            Restore
-                                          
-                                        
-                                      
-                                    
 
-                                    
-                                      
-                                        
-                                          
+
+
+                                          Cancel
+
+                                            Restore
+
+
+
+
+
+
+
+
+
                                             Delete
-                                          
-                                        
-                                        
-                                          
+
+
+
+
                                             Are you sure you want to permanently delete project '{project.name}'? 
                                             This action cannot be undone and all associated data will be lost forever.
-                                          
-                                        
-                                        
+
+
+
                                           Cancel
-                                          
+
                                             Permanently Delete
-                                          
-                                        
-                                      
-                                    
-                                  
-                                
-                              
+
+
+
+
+
+
+
                             ))}
-                          
-                        
-                      
+
+
+
                     )}
-                  
-                
+
+
               </CardContent>
             </Card>
           </TabsContent>
@@ -1756,158 +1756,158 @@ const SystemSettings = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                
-                  
-                    
+
+
+
                       Warning: Destructive Actions
                       The operations in this section can permanently delete data. Proceed with caution.
-                    
-                  
 
-                  
-                    
-                      
-                        
+
+
+
+
+
+
                           Reset All Projects
                           Delete all projects and related data from the system.
-                        
-                        
-                          
-                            
+
+
+
+
                               Reset All Projects
-                            
-                          
-                          
-                            
+
+
+
+
                               Delete All Projects
                               This will permanently delete ALL projects and related data from the system.
                               This action cannot be undone. Are you absolutely sure?
-                            
-                          
-                          
+
+
+
                             Cancel
-                            
+
                               {isDeleting ? (
                                 <>
-                                  
+
                                   Deleting...
                                 </>
                               ) : (
                                 <>Delete All Projects</>
                               )}
-                            
-                          
-                        
+
+
+
 
                         {deleteResult && (
-                          
-                            
+
+
                               {deleteResult.success ? (
-                                
+
                               ) : (
-                                
+
                               )}
                               {deleteResult.success ? "Success" : "Error"}
-                              
+
                                 {deleteResult.message}
                                 {deleteResult.totalDeleted !== undefined && (
-                                  
-                                    
-                                      {deleteResult.totalDeleted} projects deleted
-                                    
-                                  
-                                )}
-                              
-                            
-                          
-                        )}
-                      
-                    
 
-                    
-                      
-                        
+
+                                      {deleteResult.totalDeleted} projects deleted
+
+
+                                )}
+
+
+
+                        )}
+
+
+
+
+
+
                           Delete All Billing Milestones
                           Delete all billing milestones from the system.
-                        
-                        
-                          
-                            
+
+
+
+
                               Delete All Milestones
-                            
-                          
-                          
-                            
+
+
+
+
                               Delete All Billing Milestones
                               This will permanently delete ALL billing milestones from the system.
                               This action cannot be undone. Are you absolutely sure?
-                            
-                          
-                          
+
+
+
                             Cancel
-                            
+
                               {isDeletingMilestones ? (
                                 <>
-                                  
+
                                   Deleting...
                                 </>
                               ) : (
                                 <>Delete All Milestones</>
                               )}
-                            
-                          
-                        
+
+
+
 
                         {deleteMilestonesResult && (
-                          
-                            
+
+
                               {deleteMilestonesResult.success ? (
-                                
+
                               ) : (
-                                
+
                               )}
                               {deleteMilestonesResult.success ? "Success" : "Error"}
-                              
+
                                 {deleteMilestonesResult.message}
                                 {deleteMilestonesResult.totalDeleted !== undefined && (
-                                  
-                                    
-                                      {deleteMilestonesResult.totalDeleted} milestones deleted
-                                    
-                                  
-                                )}
-                              
-                            
-                          
-                        )}
-                      
-                    
 
-                    
-                      
+
+                                      {deleteMilestonesResult.totalDeleted} milestones deleted
+
+
+                                )}
+
+
+
+                        )}
+
+
+
+
+
                         Database Backup
                         Create a backup of the current database.
-                      
-                      
-                        
-                          Backup Database
-                        
-                      
-                    
 
-                    
-                      
+
+
+                          Backup Database
+
+
+
+
+
+
                         Database Restore
                         Restore the database from a backup file.
-                      
-                      
-                        
+
+
+
                           Restore Database
-                        
-                      
-                    
-                  
-                
+
+
+
+
+
               </CardContent>
             </Card>
 
@@ -1919,69 +1919,69 @@ const SystemSettings = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                
-                  
-                    
-                      
+
+
+
+
                         Application Version
                         v1.0.0
-                      
-                      
+
+
                         Database Status
-                        
-                          
-                            
-                          
+
+
+
+
                           Connected
-                        
-                      
-                      
+
+
+
                         System Date
-                        
+
                           {new Date().toLocaleString()}
-                        
-                      
-                    
 
-                  
-                    
-                  
 
-                  
-                    
-                      
-                        
+
+
+
+
+
+
+
+
+
+
                           {users ? users.length : 0}
                           Total Users
-                        
-                      
-                      
-                        
+
+
+
+
                           {activeProjects ? activeProjects.length : 0}
                           Active Projects
-                        
-                      
-                      
-                        
+
+
+
+
                           {archivedProjects ? archivedProjects.length : 0}
                           Archived Projects
-                        
-                      
-                      
-                        
+
+
+
+
                           {storageInfo ? storageInfo.totalStorageUsed : 28}
                           Storage Used (MB)
-                        
-                      
-                    
-                  
-                
+
+
+
+
+
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
-      
-    
+
+
 };
 
 
