@@ -109,6 +109,10 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
       return apiRequest(`/api/projects/${projectId}/milestone-icons`, {
         method: 'POST',
         body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        on401: 'redirect' as const,
       });
     },
     onSuccess: () => {
@@ -136,6 +140,10 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
       return apiRequest(`/api/projects/${projectId}/milestone-icons/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        on401: 'redirect' as const,
       });
     },
     onSuccess: () => {
@@ -161,6 +169,7 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
     mutationFn: async (id: number) => {
       return apiRequest(`/api/projects/${projectId}/milestone-icons/${id}`, {
         method: 'DELETE',
+        on401: 'redirect' as const,
       });
     },
     onSuccess: () => {
@@ -233,13 +242,13 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
     {
       name: 'MECH SHOP',
       icon: 'car' as keyof typeof iconMap,
-      phase: 'PRODUCTION' as const,
+      phase: 'production' as const,
       daysBefore: 30,
     },
     {
       name: 'GRAPHICS',
       icon: 'paintBucket' as keyof typeof iconMap,
-      phase: 'QC' as const,
+      phase: 'qc' as const,
       daysBefore: 7,
     },
   ];
@@ -458,7 +467,7 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
                   <div>
                     <div className="font-medium">{defaultMilestone.name}</div>
                     <div className="text-sm text-muted-foreground">
-                      {defaultMilestone.daysBefore} days before {defaultMilestone.phase} phase
+                      {defaultMilestone.daysBefore} days before {defaultMilestone.phase.toUpperCase()} phase
                     </div>
                   </div>
                 </div>
