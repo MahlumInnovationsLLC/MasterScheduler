@@ -319,7 +319,7 @@ const Dashboard = () => {
       header: 'Location',
       cell: ({ row }) => (
         <div className="flex items-center">
-          <div className="px-3 py-1 rounded bg-primary text-white font-medium">
+          <div className="px-3 py-1 rounded location-block font-medium">
             {row.original.location || 'N/A'}
           </div>
         </div>

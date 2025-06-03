@@ -73,7 +73,7 @@ export function DataTable<TData, TValue>({
         console.log("🔄 PAGINATION: Delivered projects - starting at page 1 on fresh load");
         return 0;
       }
-      
+
       const saved = localStorage.getItem(`datatable-page-${persistenceKey}`);
       if (saved) {
         try {
@@ -146,31 +146,31 @@ export function DataTable<TData, TValue>({
       customSort: (rowA, rowB, columnId) => {
         let valueA = rowA.getValue(columnId) as string | number | Date | null | undefined;
         let valueB = rowB.getValue(columnId) as string | number | Date | null | undefined;
-        
+
         // Check if either value is N/A or null
         const isAEmpty = valueA === 'N/A' || valueA === null || valueA === undefined || valueA === '';
         const isBEmpty = valueB === 'N/A' || valueB === null || valueB === undefined || valueB === '';
-        
+
         // Always move empty/N/A values to the bottom
         if (isAEmpty && !isBEmpty) return 1;
         if (!isAEmpty && isBEmpty) return -1;
         if (isAEmpty && isBEmpty) return 0;
-        
+
         // Date comparison
         if (valueA instanceof Date && valueB instanceof Date) {
           return valueA.getTime() - valueB.getTime();
         }
-        
+
         // Regular string comparison for non-empty values
         if (typeof valueA === 'string' && typeof valueB === 'string') {
           return valueA.localeCompare(valueB);
         }
-        
+
         // Numeric comparison
         if (typeof valueA === 'number' && typeof valueB === 'number') {
           return valueA - valueB;
         }
-        
+
         // Fallback for mixed types - convert to strings and compare
         const strA = String(valueA);
         const strB = String(valueB);
@@ -188,7 +188,7 @@ export function DataTable<TData, TValue>({
         const currentPagination = { pageIndex, pageSize: 10 };
         const newPagination = updater(currentPagination);
         console.log("🔄 PAGINATION: Function updater - from", currentPagination, "to", newPagination);
-        
+
         setPageIndex(newPagination.pageIndex);
       } else {
         console.log("🔄 PAGINATION: Direct updater - setting pageIndex to", updater.pageIndex);
@@ -242,7 +242,7 @@ export function DataTable<TData, TValue>({
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-search"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
             </div>
           </div>
-          
+
           {filterColumn && filterOptions && (
             <Select
               value={(table.getColumn(filterColumn)?.getFilterValue() as string) ?? ""}
@@ -263,7 +263,7 @@ export function DataTable<TData, TValue>({
           )}
         </div>
       </div>
-      
+
       <div className="overflow-hidden">
         <div className="overflow-x-auto" style={{ position: 'relative' }}>
           <div className="grid grid-flow-col" style={{ width: 'fit-content', alignItems: 'stretch' }}>
@@ -371,7 +371,7 @@ export function DataTable<TData, TValue>({
                       </td>
                     </tr>
                   )}
-                  
+
                   {/* Dedicated empty row in frozen section to match scrollbar row height */}
                   <tr className="scrollbar-row">
                     <td colSpan={frozenColumns.length} style={{ height: '15px', padding: 0 }}></td>
@@ -481,7 +481,7 @@ export function DataTable<TData, TValue>({
                       </td>
                     </tr>
                   )}
-                  
+
                   {/* Dedicated row for horizontal scrollbar */}
                   <tr className="scrollbar-row">
                     <td colSpan={columns.length - frozenColumns.length} style={{ height: '15px', padding: 0 }}></td>
@@ -492,7 +492,7 @@ export function DataTable<TData, TValue>({
           </div>
         </div>
       </div>
-      
+
       {showPagination && (
         <div className="px-4 py-3 flex items-center justify-between border-t border-border">
           <div className="text-sm text-muted-foreground">
@@ -520,7 +520,7 @@ export function DataTable<TData, TValue>({
                 table.getState().pagination.pageIndex - 2,
                 table.getPageCount() - 5
               ));
-              
+
               return (
                 <Button
                   key={pageIndex}
