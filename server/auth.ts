@@ -259,19 +259,27 @@ export async function setupAuth(app: Express) {
   });
 
   // Get current user endpoint
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", async (req, res) => {
     try {
       if (!req.isAuthenticated() || !req.user) {
         return res.status(401).json({ error: "Not authenticated" });
       }
+      
+      // Get fresh user data from database to ensure role is current
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      console.log(`[USER ENDPOINT] Returning user data: ${user.email} with role ${user.role}`);
       res.json({
-        id: req.user.id,
-        username: req.user.username,
-        email: req.user.email,
-        role: req.user.role
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role
       });
     } catch (error) {
-      console.log('User endpoint error:', error.message);
+      console.error('User endpoint error:', error);
       res.status(401).json({ error: "Authentication error" });
     }
   });
@@ -352,8 +360,82 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated = (req: any, res: any, next: any) => {
-  if (req.isAuthenticated()) {
-    return next();
+  try {
+    console.log(`[AUTH MIDDLEWARE] Checking authentication for ${req.method} ${req.url}`);
+    console.log(`[AUTH MIDDLEWARE] User authenticated: ${req.isAuthenticated()}`);
+    console.log(`[AUTH MIDDLEWARE] User object:`, req.user ? {
+      id: req.user.id,
+      email: req.user.email,
+      role: req.user.role
+    } : 'No user');
+
+    if (req.isAuthenticated() && req.user) {
+      console.log(`[AUTH MIDDLEWARE] ✅ Authentication successful for ${req.user.email} with role ${req.user.role}`);
+      return next();
+    }
+    
+    console.log(`[AUTH MIDDLEWARE] ❌ Authentication failed - not authenticated or no user`);
+    res.status(401).json({ message: "Unauthorized" });
+  } catch (error) {
+    console.error('[AUTH MIDDLEWARE] Error in authentication check:', error);
+    res.status(401).json({ message: "Authentication error" });
   }
-  res.status(401).json({ message: "Unauthorized" });
+};
+
+// Admin-only middleware
+export const requireAdmin = async (req: any, res: any, next: any) => {
+  try {
+    console.log(`[ADMIN MIDDLEWARE] Checking admin access for ${req.method} ${req.url}`);
+    
+    if (!req.isAuthenticated() || !req.user) {
+      console.log(`[ADMIN MIDDLEWARE] ❌ Not authenticated`);
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    // Get fresh user data from database to ensure role is current
+    const user = await storage.getUser(req.user.id);
+    if (!user) {
+      console.log(`[ADMIN MIDDLEWARE] ❌ User not found in database`);
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    console.log(`[ADMIN MIDDLEWARE] User ${user.email} has role: ${user.role}`);
+    
+    if (user.role !== 'admin') {
+      console.log(`[ADMIN MIDDLEWARE] ❌ Access denied - user role ${user.role} is not admin`);
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    console.log(`[ADMIN MIDDLEWARE] ✅ Admin access granted for ${user.email}`);
+    req.user = user; // Update req.user with fresh data
+    return next();
+  } catch (error) {
+    console.error('[ADMIN MIDDLEWARE] Error in admin check:', error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Editor or Admin middleware
+export const requireEditor = async (req: any, res: any, next: any) => {
+  try {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    // Get fresh user data from database
+    const user = await storage.getUser(req.user.id);
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    if (user.role !== 'admin' && user.role !== 'editor') {
+      return res.status(403).json({ message: "Editor or Admin access required" });
+    }
+
+    req.user = user; // Update req.user with fresh data
+    return next();
+  } catch (error) {
+    console.error('[EDITOR MIDDLEWARE] Error in editor check:', error);
+    res.status(500).json({ message: "Server error" });
+  }
 };

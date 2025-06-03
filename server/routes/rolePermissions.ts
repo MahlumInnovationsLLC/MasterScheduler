@@ -1,12 +1,12 @@
 import express from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
-import { isAuthenticated } from '../replitAuth';
+import { requireAdmin } from '../auth';
 
 const router = express.Router();
 
 // Get all role permissions
-router.get('/', isAuthenticated, async (req, res) => {
+router.get('/', requireAdmin, async (req, res) => {
   try {
     const { role } = req.query;
     
@@ -26,7 +26,7 @@ router.get('/', isAuthenticated, async (req, res) => {
 });
 
 // Get permissions for a specific category and role
-router.get('/category/:category', isAuthenticated, async (req, res) => {
+router.get('/category/:category', requireAdmin, async (req, res) => {
   try {
     const { category } = req.params;
     const { role } = req.query;
@@ -44,7 +44,7 @@ router.get('/category/:category', isAuthenticated, async (req, res) => {
 });
 
 // Get a specific permission by ID
-router.get('/:id', isAuthenticated, async (req, res) => {
+router.get('/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const permission = await storage.getRolePermission(parseInt(id));
@@ -61,7 +61,7 @@ router.get('/:id', isAuthenticated, async (req, res) => {
 });
 
 // Create a new permission
-router.post('/', isAuthenticated, async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   try {
     const schema = z.object({
       role: z.string(),
@@ -91,7 +91,7 @@ router.post('/', isAuthenticated, async (req, res) => {
 });
 
 // Update a permission
-router.patch('/:id', isAuthenticated, async (req, res) => {
+router.patch('/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const schema = z.object({
@@ -127,7 +127,7 @@ router.patch('/:id', isAuthenticated, async (req, res) => {
 });
 
 // Delete a permission
-router.delete('/:id', isAuthenticated, async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const success = await storage.deleteRolePermission(parseInt(id));
@@ -144,7 +144,7 @@ router.delete('/:id', isAuthenticated, async (req, res) => {
 });
 
 // Bulk update permissions for a role
-router.post('/bulk-update/:role', isAuthenticated, async (req, res) => {
+router.post('/bulk-update/:role', requireAdmin, async (req, res) => {
   try {
     const { role } = req.params;
     const { permissions } = req.body;
