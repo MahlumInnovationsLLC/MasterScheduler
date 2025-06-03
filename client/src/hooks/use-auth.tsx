@@ -41,7 +41,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!response.ok) {
           if (response.status === 401) {
-            console.log("🔍 AUTH: User not authenticated (401)");
+            const errorData = await response.json().catch(() => ({}));
+            
+            // Handle specific session expiration cases
+            if (errorData.error === "Session expired") {
+              console.log("🔍 AUTH: Session expired, redirecting to login");
+              toast({
+                title: "Session Expired",
+                description: "Your session has expired. Please log in again.",
+                variant: "destructive",
+              });
+            } else if (errorData.error === "Device validation failed") {
+              console.log("🔍 AUTH: Device validation failed, redirecting to login");
+              toast({
+                title: "New Device Detected",
+                description: "Please log in again from this device.",
+                variant: "destructive",
+              });
+            } else {
+              console.log("🔍 AUTH: User not authenticated (401)");
+            }
+            
             return null;
           }
           throw new Error(`Failed to fetch user: ${response.status}`);
@@ -59,13 +79,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
-    retry: 2,
+    retry: (failureCount, error) => {
+      // Don't retry on 401 errors (authentication failures)
+      if (error?.message?.includes('401')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
     retryDelay: 1000,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes (shorter to check session more frequently)
     gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true, // Check session when window regains focus
     refetchOnMount: true,
     refetchOnReconnect: true,
+    refetchInterval: 5 * 60 * 1000, // Check session every 5 minutes
   });
 
   const loginMutation = useMutation({

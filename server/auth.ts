@@ -2,7 +2,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { scrypt, randomBytes, timingSafeEqual, createHash } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
@@ -16,6 +16,25 @@ declare global {
 }
 
 const scryptAsync = promisify(scrypt);
+
+// Generate device fingerprint based on headers and IP
+function generateDeviceFingerprint(req: any): string {
+  const userAgent = req.headers['user-agent'] || '';
+  const acceptLanguage = req.headers['accept-language'] || '';
+  const acceptEncoding = req.headers['accept-encoding'] || '';
+  const ip = req.ip || req.connection.remoteAddress || '';
+  
+  // Create a stable fingerprint from device characteristics
+  const fingerprint = `${userAgent}|${acceptLanguage}|${acceptEncoding}|${ip}`;
+  return createHash('sha256').update(fingerprint).digest('hex');
+}
+
+// Check if session has expired (24 hours)
+function isSessionExpired(lastActivity: Date): boolean {
+  const now = new Date();
+  const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  return (now.getTime() - lastActivity.getTime()) > twentyFourHours;
+}
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -101,11 +120,51 @@ export async function setupAuth(app: Express) {
     store: sessionStore,
     cookie: {
       secure: false, // Set to true in production with HTTPS
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      httpOnly: true
     }
   };
 
   app.use(session(sessionSettings));
+  
+  // Session timeout and device validation middleware
+  app.use((req: any, res: any, next: any) => {
+    // Skip auth routes
+    if (req.path.includes('/api/login') || req.path.includes('/api/register') || 
+        req.path.includes('/auth') || req.path.includes('/health')) {
+      return next();
+    }
+
+    if (req.session && req.session.user) {
+      const currentFingerprint = generateDeviceFingerprint(req);
+      const sessionFingerprint = req.session.deviceFingerprint;
+      const lastActivity = req.session.lastActivity ? new Date(req.session.lastActivity) : new Date();
+      
+      // Check if session expired
+      if (isSessionExpired(lastActivity)) {
+        console.log(`[SESSION] Session expired for user ${req.session.user.email}`);
+        req.session.destroy((err: any) => {
+          if (err) console.error('Session destroy error:', err);
+        });
+        return next();
+      }
+      
+      // Check if device fingerprint matches
+      if (sessionFingerprint && sessionFingerprint !== currentFingerprint) {
+        console.log(`[SESSION] Device fingerprint mismatch for user ${req.session.user.email}`);
+        req.session.destroy((err: any) => {
+          if (err) console.error('Session destroy error:', err);
+        });
+        return next();
+      }
+      
+      // Update last activity
+      req.session.lastActivity = new Date();
+    }
+    
+    next();
+  });
+  
   app.use(passport.initialize());
   app.use(passport.session());
 
@@ -209,6 +268,8 @@ export async function setupAuth(app: Express) {
 
   // Login endpoint
   app.post("/api/login", (req, res, next) => {
+    const deviceFingerprint = generateDeviceFingerprint(req);
+    
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) {
         console.error('Login authentication error:', err);
@@ -223,17 +284,15 @@ export async function setupAuth(app: Express) {
       req.login(user, (loginErr) => {
         if (loginErr) {
           console.error('Login session error:', loginErr);
-          // If session fails, still return success but warn
-          console.warn('Session creation failed, but user is authenticated');
-          return res.json({ 
-            id: user.id, 
-            username: user.username, 
-            email: user.email, 
-            role: user.role,
-            warning: "Session may not persist"
-          });
+          return res.status(500).json({ error: "Session creation failed" });
         }
-        console.log('Login successful for user:', user.email || user.username);
+        
+        // Store device fingerprint and activity time in session
+        (req.session as any).deviceFingerprint = deviceFingerprint;
+        (req.session as any).lastActivity = new Date();
+        (req.session as any).user = user;
+        
+        console.log(`Login successful for user: ${user.email || user.username} from device: ${deviceFingerprint.substring(0, 8)}...`);
         res.json({ 
           id: user.id, 
           username: user.username, 
@@ -261,15 +320,39 @@ export async function setupAuth(app: Express) {
   // Get current user endpoint
   app.get("/api/user", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || !req.user) {
+      // Check session first
+      const sessionUser = (req.session as any)?.user;
+      if (!sessionUser) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
+      // Validate session hasn't expired
+      const lastActivity = (req.session as any)?.lastActivity ? new Date((req.session as any).lastActivity) : new Date();
+      if (isSessionExpired(lastActivity)) {
+        req.session.destroy((err: any) => {
+          if (err) console.error('Session destroy error:', err);
+        });
+        return res.status(401).json({ error: "Session expired" });
+      }
+      
+      // Validate device fingerprint
+      const currentFingerprint = generateDeviceFingerprint(req);
+      const sessionFingerprint = (req.session as any)?.deviceFingerprint;
+      if (sessionFingerprint && sessionFingerprint !== currentFingerprint) {
+        req.session.destroy((err: any) => {
+          if (err) console.error('Session destroy error:', err);
+        });
+        return res.status(401).json({ error: "Device validation failed" });
+      }
+      
       // Get fresh user data from database to ensure role is current
-      const user = await storage.getUser(req.user.id);
+      const user = await storage.getUser(sessionUser.id);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
+      
+      // Update last activity
+      (req.session as any).lastActivity = new Date();
       
       console.log(`[USER ENDPOINT] Returning user data: ${user.email} with role ${user.role}`);
       res.json({
@@ -362,20 +445,41 @@ export async function setupAuth(app: Express) {
 export const isAuthenticated = (req: any, res: any, next: any) => {
   try {
     console.log(`[AUTH MIDDLEWARE] Checking authentication for ${req.method} ${req.url}`);
-    console.log(`[AUTH MIDDLEWARE] User authenticated: ${req.isAuthenticated()}`);
-    console.log(`[AUTH MIDDLEWARE] User object:`, req.user ? {
-      id: req.user.id,
-      email: req.user.email,
-      role: req.user.role
-    } : 'No user');
-
-    if (req.isAuthenticated() && req.user) {
-      console.log(`[AUTH MIDDLEWARE] ✅ Authentication successful for ${req.user.email} with role ${req.user.role}`);
-      return next();
+    
+    // Check session user
+    const sessionUser = (req.session as any)?.user;
+    if (!sessionUser) {
+      console.log(`[AUTH MIDDLEWARE] ❌ No session user found`);
+      return res.status(401).json({ message: "Unauthorized" });
     }
     
-    console.log(`[AUTH MIDDLEWARE] ❌ Authentication failed - not authenticated or no user`);
-    res.status(401).json({ message: "Unauthorized" });
+    // Validate session hasn't expired
+    const lastActivity = (req.session as any)?.lastActivity ? new Date((req.session as any).lastActivity) : new Date();
+    if (isSessionExpired(lastActivity)) {
+      console.log(`[AUTH MIDDLEWARE] ❌ Session expired for ${sessionUser.email}`);
+      req.session.destroy((err: any) => {
+        if (err) console.error('Session destroy error:', err);
+      });
+      return res.status(401).json({ message: "Session expired" });
+    }
+    
+    // Validate device fingerprint
+    const currentFingerprint = generateDeviceFingerprint(req);
+    const sessionFingerprint = (req.session as any)?.deviceFingerprint;
+    if (sessionFingerprint && sessionFingerprint !== currentFingerprint) {
+      console.log(`[AUTH MIDDLEWARE] ❌ Device fingerprint mismatch for ${sessionUser.email}`);
+      req.session.destroy((err: any) => {
+        if (err) console.error('Session destroy error:', err);
+      });
+      return res.status(401).json({ message: "Device validation failed" });
+    }
+    
+    // Update last activity
+    (req.session as any).lastActivity = new Date();
+    req.user = sessionUser; // Set user for downstream middleware
+    
+    console.log(`[AUTH MIDDLEWARE] ✅ Authentication successful for ${sessionUser.email} with role ${sessionUser.role}`);
+    return next();
   } catch (error) {
     console.error('[AUTH MIDDLEWARE] Error in authentication check:', error);
     res.status(401).json({ message: "Authentication error" });
