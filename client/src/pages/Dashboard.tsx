@@ -387,8 +387,8 @@ const Dashboard = () => {
         const scheduleState = getProjectScheduleState(manufacturingSchedules, row.original.id);
         
         return (
-          <div className="flex flex-col gap-1">
-            <ProgressBadge status={status} animatePulse={status === 'Critical'} />
+          <div className="flex flex-wrap gap-1">
+            <ProgressBadge status={status} animatePulse={status === 'Critical'} size="sm" />
             <ProgressBadge 
               status={scheduleState} 
               size="sm"

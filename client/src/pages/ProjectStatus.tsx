@@ -1194,7 +1194,7 @@ const ProjectStatus = () => {
       (value, project) => {
         return <EditableStatusField projectId={project.id} value={value} field="status" />;
       },
-      { size: 140 }),
+      { size: 200 }),
     createColumn('contractDate', 'contractDate', 'Contract Date', 
       (value, project) => <EditableDateField projectId={project.id} field="contractDate" value={value} />,
       { size: 140 }),

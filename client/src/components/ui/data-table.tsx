@@ -210,9 +210,9 @@ export function DataTable<TData, TValue>({
     location: 96, // Increased by 20%
     projectNumber: 220, // Already adjusted for text wrapping
     name: 420, // Increased by 20%
-    pmOwner: 156, // Increased by 20%
+    pmOwner: 120, // Reduced from 156 to make room for wider status column
     progress: 144, // Increased by 20%
-    status: 120, // Increased by 20%
+    status: 200, // Increased from 120 to 200 for horizontal badge layout
     actions: 120, // Added actions column width
   };
 
