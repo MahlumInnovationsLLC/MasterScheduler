@@ -431,7 +431,11 @@ const ProjectDetails = () => {
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded bg-primary flex items-center justify-center text-white font-bold text-sm">
+              <div className="h-10 w-10 rounded flex items-center justify-center text-white font-bold text-sm border border-gray-500 shadow-lg" 
+                   style={{ 
+                     background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
+                     boxShadow: '0 2px 8px rgba(107, 114, 128, 0.3)'
+                   }}>
                 {project.location || 'N/A'}
               </div>
               <div>
