@@ -1070,7 +1070,7 @@ export default function ResizableBaySchedule({
   const [targetEndDate, setTargetEndDate] = useState<Date | null>(null);
   const [scheduleDuration, setScheduleDuration] = useState(4); // in weeks
   const [recommendedDuration, setRecommendedDuration] = useState(0); // Stores the recommended duration from calculator
-  const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
+  const [rowHeight, setRowHeight] = useState(36); // Height of each row in pixels (reduced by 40% from 60px)
   const [slotWidth, setSlotWidth] = useState(60); // Increased slot width for better visibility
   const [searchTerm, setSearchTerm] = useState('');
   
