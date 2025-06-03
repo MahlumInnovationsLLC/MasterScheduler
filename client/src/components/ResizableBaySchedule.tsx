@@ -3634,9 +3634,9 @@ export default function ResizableBaySchedule({
                   return (
                     <div 
                       key={`bay-${bay.id}`} 
-                      className="bay-container relative border rounded-md overflow-hidden"
+                      className="bay-container relative mb-2 border rounded-md overflow-hidden"
                       style={{ 
-                        height: `${24 * rowCount}px`, // Fixed height: 24px per row (reduced from 60px to eliminate gap)
+                        height: `${36 * rowCount}px`, // Fixed height: 36px per row (reduced from 60px)
                         backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
                       }}
                     >
@@ -3756,8 +3756,7 @@ export default function ResizableBaySchedule({
                                 {slots.map((slot, index) => (
                                   <div 
                                     key={`bay-${bay.id}-slot-${index}`} 
-                                    className="relative border-r border-gray-200/50 dark:border-gray-700/30"
-                                    style={{ height: '24px' }} // Fixed row height - reduced from h-full
+                                    className="relative h-full border-r border-gray-200/50 dark:border-gray-700/30"
                                     data-row="0"
                                     data-slot-index={index}
                                     data-date={format(slot.date, 'yyyy-MM-dd')}
