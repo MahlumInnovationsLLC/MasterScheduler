@@ -2894,7 +2894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Route to reset user password (admin only)
-  app.patch("/api/users/:id/reset-password", isAuthenticated, async (req, res) => {
+  app.patch("/api/users/:id/reset-password", fastAuth, async (req, res) => {
     try {
       const userId = req.params.id;
       const { newPassword } = req.body;
