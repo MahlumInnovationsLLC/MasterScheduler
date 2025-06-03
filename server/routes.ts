@@ -3819,53 +3819,6 @@ Response format:
   // Role Permissions Routes
   app.use('/api/role-permissions', rolePermissionsRouter);
   
-  // User Permissions Routes
-  app.get("/api/user-permissions/:userId", requireAdmin, async (req, res) => {
-    try {
-      const userId = req.params.userId;
-      const permissions = await storage.getUserPermissions(userId);
-      res.json(permissions);
-    } catch (error) {
-      console.error("Error fetching user permissions:", error);
-      res.status(500).json({ message: "Error fetching user permissions" });
-    }
-  });
-
-  app.post("/api/user-permissions/bulk-update/:userId", requireAdmin, async (req, res) => {
-    try {
-      const userId = req.params.userId;
-      const { permissions } = req.body;
-      
-      if (!Array.isArray(permissions)) {
-        return res.status(400).json({ message: "Permissions must be an array" });
-      }
-      
-      const count = await storage.bulkUpdateUserPermissions(userId, permissions);
-      res.json({ success: true, updatedCount: count });
-    } catch (error) {
-      console.error("Error bulk updating user permissions:", error);
-      res.status(500).json({ message: "Error updating user permissions" });
-    }
-  });
-
-  app.get("/api/user/:userId/module-access/:module", requireAuth, async (req: any, res) => {
-    try {
-      const userId = req.params.userId;
-      const module = req.params.module;
-      
-      // Users can only check their own access unless they're admin
-      if (req.user.id !== userId && req.user.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      
-      const hasAccess = await storage.hasModuleAccess(userId, module);
-      res.json({ hasAccess });
-    } catch (error) {
-      console.error("Error checking module access:", error);
-      res.status(500).json({ message: "Error checking module access" });
-    }
-  });
-  
   // System Routes
   app.use('/api/system', systemRoutes);
 

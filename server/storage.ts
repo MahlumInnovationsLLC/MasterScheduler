@@ -17,7 +17,6 @@ import {
   supplyChainBenchmarks,
   projectSupplyChainBenchmarks,
   rolePermissions,
-  userPermissions,
   type User,
   type InsertUser,
   type Project,
@@ -2568,120 +2567,6 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Error bulk updating permissions for role ${role}:`, error);
       return 0;
-    }
-  }
-
-  // User-specific permissions management
-  async getUserPermissions(userId: string): Promise<typeof userPermissions.$inferSelect[]> {
-    try {
-      return await db
-        .select()
-        .from(userPermissions)
-        .where(eq(userPermissions.userId, userId))
-        .orderBy(userPermissions.module);
-    } catch (error) {
-      console.error("Error fetching user permissions:", error);
-      return [];
-    }
-  }
-
-  async createUserPermission(data: typeof userPermissions.$inferInsert): Promise<typeof userPermissions.$inferSelect> {
-    try {
-      const [permission] = await db.insert(userPermissions).values(data).returning();
-      return permission;
-    } catch (error) {
-      console.error("Error creating user permission:", error);
-      throw error;
-    }
-  }
-
-  async updateUserPermission(userId: string, module: string, canAccess: boolean): Promise<typeof userPermissions.$inferSelect | null> {
-    try {
-      const [permission] = await db
-        .update(userPermissions)
-        .set({ canAccess, updatedAt: new Date() })
-        .where(and(
-          eq(userPermissions.userId, userId),
-          eq(userPermissions.module, module as any)
-        ))
-        .returning();
-      return permission;
-    } catch (error) {
-      console.error("Error updating user permission:", error);
-      return null;
-    }
-  }
-
-  async bulkUpdateUserPermissions(userId: string, permissions: { module: string; canAccess: boolean }[]): Promise<number> {
-    try {
-      let updateCount = 0;
-      
-      for (const perm of permissions) {
-        // Try to update existing permission
-        const [updated] = await db
-          .update(userPermissions)
-          .set({ canAccess: perm.canAccess, updatedAt: new Date() })
-          .where(and(
-            eq(userPermissions.userId, userId),
-            eq(userPermissions.module, perm.module as any)
-          ))
-          .returning();
-
-        if (updated) {
-          updateCount++;
-        } else {
-          // Create new permission if it doesn't exist
-          await db.insert(userPermissions).values({
-            userId,
-            module: perm.module as any,
-            canAccess: perm.canAccess,
-          });
-          updateCount++;
-        }
-      }
-
-      return updateCount;
-    } catch (error) {
-      console.error(`Error bulk updating user permissions for user ${userId}:`, error);
-      return 0;
-    }
-  }
-
-  async hasModuleAccess(userId: string, module: string): Promise<boolean> {
-    try {
-      // Get the user's role and module permission
-      const user = await this.getUser(userId);
-      if (!user || !user.role) return false;
-
-      // Admin users have access to all modules by default
-      if (user.role === 'admin') return true;
-
-      // Check user-specific permissions
-      const [permission] = await db
-        .select()
-        .from(userPermissions)
-        .where(and(
-          eq(userPermissions.userId, userId),
-          eq(userPermissions.module, module as any)
-        ));
-
-      if (permission) {
-        return permission.canAccess;
-      }
-
-      // If no specific permission exists, use role defaults
-      if (user.role === 'viewer') {
-        // Viewers can see all modules except sales by default
-        return module !== 'sales';
-      } else if (user.role === 'editor') {
-        // Editors can see all modules by default
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error("Error checking module access:", error);
-      return false;
     }
   }
 

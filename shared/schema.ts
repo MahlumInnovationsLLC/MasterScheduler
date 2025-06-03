@@ -251,13 +251,13 @@ export const projects = pgTable("projects", {
   projectNumber: text("project_number").notNull().unique(),
   name: text("name").notNull(),
   description: text("description"),
-
+  
   // PM and team information
   pmOwnerId: varchar("pm_owner_id").references(() => users.id),
   pmOwner: text("pm_owner"), // Store PM name string directly
   team: text("team"),
   location: text("location"),
-
+  
   // Dates
   contractDate: date("contract_date"),
   startDate: date("start_date").notNull(),
@@ -272,25 +272,25 @@ export const projects = pgTable("projects", {
   executiveReviewDate: date("executive_review_date"),
   shipDate: date("ship_date"),
   deliveryDate: date("delivery_date"),
-
+  
   // Text overrides for date fields (stores "N/A", "PENDING", etc.)
   fabricationStartText: text("fabrication_start_text"),
   wrapDateText: text("wrap_date_text"),
   ntcTestingDateText: text("ntc_testing_date_text"),
   executiveReviewDateText: text("executive_review_date_text"),
   deliveryDateText: text("delivery_date_text"),
-
+  
   // Delivery information
   actualDeliveryDate: date("actual_delivery_date"),
   lateDeliveryReason: text("late_delivery_reason"),
   delayResponsibility: delayResponsibilityEnum("delay_responsibility").default('not_applicable'),
   isDeliveredOnTime: boolean("is_delivered_on_time"),
   contractExtensions: integer("contract_extensions").default(0).notNull(),
-
+  
   // Project details
   percentComplete: decimal("percent_complete", { precision: 5, scale: 2 }).default("0").notNull(),
   totalHours: integer("total_hours").default(1000), // Total hours needed for manufacturing
-
+  
   // Department hours percentage allocations
   fabPercentage: decimal("fab_percentage", { precision: 5, scale: 2 }).default("27").notNull(),
   paintPercentage: decimal("paint_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
@@ -298,13 +298,13 @@ export const projects = pgTable("projects", {
   itPercentage: decimal("it_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
   ntcPercentage: decimal("ntc_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
   qcPercentage: decimal("qc_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
-
+  
   fabWeeks: integer("fab_weeks").default(4), // Number of weeks for FAB phase (precedes production)
   dpasRating: text("dpas_rating"),
   stretchShortenGears: text("stretch_shorten_gears"),
   lltsOrdered: boolean("llts_ordered").default(false),
   qcDays: integer("qc_days"),
-
+  
   // Design assignments
   meAssigned: text("me_assigned"),
   meDesignOrdersPercent: decimal("me_design_orders_percent", { precision: 5, scale: 2 }),
@@ -313,7 +313,7 @@ export const projects = pgTable("projects", {
   iteAssigned: text("ite_assigned"),
   itDesignOrdersPercent: decimal("it_design_orders_percent", { precision: 5, scale: 2 }),
   ntcDesignOrdersPercent: decimal("ntc_design_orders_percent", { precision: 5, scale: 2 }),
-
+  
   // Status fields
   status: projectStatusEnum("status").default("active").notNull(),
   riskLevel: projectRiskLevelEnum("risk_level").default("medium"),
@@ -321,10 +321,10 @@ export const projects = pgTable("projects", {
   notes: text("notes"),
   photosTaken: boolean("photos_taken").default(false), // New field for Photos Taken column
   isSalesEstimate: boolean("is_sales_estimate").default(false), // Sales Estimate Proposal flag
-
+  
   // Store all raw data from Excel import
   rawData: jsonb("raw_data"), // JSON field to store all original Excel columns
-
+  
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -339,13 +339,13 @@ export const archivedProjects = pgTable("archived_projects", {
   projectNumber: text("project_number").notNull(),
   name: text("name").notNull(),
   description: text("description"),
-
+  
   // PM and team information
   pmOwnerId: varchar("pm_owner_id").references(() => users.id),
   pmOwner: text("pm_owner"),
   team: text("team"),
   location: text("location"),
-
+  
   // Dates
   contractDate: date("contract_date"),
   startDate: date("start_date").notNull(),
@@ -360,10 +360,10 @@ export const archivedProjects = pgTable("archived_projects", {
   executiveReviewDate: date("executive_review_date"),
   shipDate: date("ship_date"),
   deliveryDate: date("delivery_date"),
-
+  
   // Project details
   totalHours: integer("total_hours").default(1000), // Total hours needed for manufacturing
-
+  
   // Department hours percentage allocations
   fabPercentage: decimal("fab_percentage", { precision: 5, scale: 2 }).default("27").notNull(),
   paintPercentage: decimal("paint_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
@@ -371,14 +371,14 @@ export const archivedProjects = pgTable("archived_projects", {
   itPercentage: decimal("it_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
   ntcPercentage: decimal("ntc_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
   qcPercentage: decimal("qc_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
-
+  
   fabWeeks: integer("fab_weeks").default(4), // Number of weeks for FAB phase (precedes production)
   percentComplete: decimal("percent_complete", { precision: 5, scale: 2 }).default("0").notNull(),
   dpasRating: text("dpas_rating"),
   stretchShortenGears: text("stretch_shorten_gears"),
   lltsOrdered: boolean("llts_ordered").default(false),
   qcDays: integer("qc_days"),
-
+  
   // Design assignments
   meAssigned: text("me_assigned"),
   meDesignOrdersPercent: decimal("me_design_orders_percent", { precision: 5, scale: 2 }),
@@ -387,21 +387,21 @@ export const archivedProjects = pgTable("archived_projects", {
   iteAssigned: text("ite_assigned"),
   itDesignOrdersPercent: decimal("it_design_orders_percent", { precision: 5, scale: 2 }),
   ntcDesignOrdersPercent: decimal("ntc_design_orders_percent", { precision: 5, scale: 2 }),
-
+  
   // Status fields - can store multiple statuses as an array
   status: text("status").array().default(["archived"]).notNull(),
   riskLevel: projectRiskLevelEnum("risk_level").default("medium"),
   hasBillingMilestones: boolean("has_billing_milestones").default(false),
   notes: text("notes"),
-
+  
   // Store all raw data from Excel import
   rawData: jsonb("raw_data"),
-
+  
   // Archive metadata
   archivedAt: timestamp("archived_at").defaultNow(),
   archivedBy: varchar("archived_by").references(() => users.id),
   archiveReason: text("archive_reason"),
-
+  
   // Original timestamps
   originalCreatedAt: timestamp("original_created_at"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -467,11 +467,11 @@ export const projectCosts = pgTable("project_costs", {
   projectId: integer("project_id")
     .references(() => projects.id)
     .notNull(),
-
+  
   // Overall cost tracking
   overallCost: decimal("overall_cost", { precision: 12, scale: 2 }),
   useOverallCostOnly: boolean("use_overall_cost_only").default(false),
-
+  
   // Section-specific costs
   sectionX: decimal("section_x", { precision: 12, scale: 2 }).default("0"),
   sectionB: decimal("section_b", { precision: 12, scale: 2 }).default("0"),
@@ -489,11 +489,11 @@ export const projectCosts = pgTable("project_costs", {
   sectionN: decimal("section_n", { precision: 12, scale: 2 }).default("0"),
   sectionQ: decimal("section_q", { precision: 12, scale: 2 }).default("0"),
   sectionU: decimal("section_u", { precision: 12, scale: 2 }).default("0"),
-
+  
   // Additional metadata
   notes: text("notes"),
   lastUpdatedBy: varchar("last_updated_by").references(() => users.id),
-
+  
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -637,41 +637,10 @@ export const rolePermissions = pgTable("role_permissions", {
   canExport: boolean("can_export").default(false),
   // For special permissions that don't fit the standard CRUD model
   specialPermissions: jsonb("special_permissions"),
-
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
-
-export const moduleEnum = pgEnum("module", [
-  "projects",
-  "manufacturing",
-  "billing",
-  "users",
-  "settings",
-  "data",
-  "reports",
-  "import_export",
-  "sales",
-  "dashboard",
-  "notifications",
-]);
-
-// User-specific permissions table - For per-user module access control
-export const userPermissions = pgTable("user_permissions", {
-  id: serial("id").primaryKey(),
-  // The user this permission applies to
-  userId: text("user_id").notNull().references(() => users.id),
-  // The module this permission controls
-  module: moduleEnum("module").notNull(),
-  // Whether this user can access this module
-  canAccess: boolean("can_access").default(true),
-
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  // Ensure one permission record per user per module
-  userModuleUnique: unique().on(table.userId, table.module),
-}));
 
 // On Time Delivery Tracking Table
 export const deliveryTracking = pgTable("delivery_tracking", {
@@ -740,29 +709,29 @@ export const salesDeals = pgTable("sales_deals", {
   dealNumber: text("deal_number").notNull().unique(),
   name: text("name").notNull(),
   description: text("description"),
-
+  
   // Client/Customer Information
   clientName: text("client_name"),
   clientLocation: text("client_location"),
   clientContactName: text("client_contact_name"),
   clientContactEmail: text("client_contact_email"),
-
+  
   // Sales Owner Information
   ownerId: varchar("owner_id").references(() => users.id),
   ownerName: text("owner_name"), // Store sales owner name directly
-
+  
   // Deal Details
   value: decimal("value", { precision: 12, scale: 2 }),
   currency: text("currency").default("USD"),
   dealType: dealTypeEnum("deal_type").notNull(),
   dealStage: dealStageEnum("deal_stage").default("not_started").notNull(),
-
+  
   // Dates
   createdDate: date("created_date").defaultNow().notNull(),
   expectedCloseDate: date("expected_close_date"),
   actualCloseDate: date("actual_close_date"),
   lastContactDate: date("last_contact_date"),
-
+  
   // Tracking and Status
   priority: dealPriorityEnum("priority").default("medium"),
   status: dealStatusEnum("status").default("Not Started"),
@@ -771,10 +740,10 @@ export const salesDeals = pgTable("sales_deals", {
   isActive: boolean("is_active").default(true),
   isConverted: boolean("is_converted").default(false),
   convertedProjectId: integer("converted_project_id").references(() => projects.id),
-
+  
   // Tags and Categories
   vertical: text("vertical"), // Business vertical (e.g., Education, Finance, etc.)
-
+  
   // Timestamps
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1097,6 +1066,3 @@ export type SupplyChainBenchmark = typeof supplyChainBenchmarks.$inferSelect;
 export type InsertSupplyChainBenchmark = z.infer<typeof insertSupplyChainBenchmarkSchema>;
 export type ProjectSupplyChainBenchmark = typeof projectSupplyChainBenchmarks.$inferSelect;
 export type InsertProjectSupplyChainBenchmark = z.infer<typeof insertProjectSupplyChainBenchmarkSchema>;
-
-export type SelectUserPermission = typeof userPermissions.$inferSelect;
-export type InsertUserPermission = typeof userPermissions.$inferInsert;
