@@ -3667,8 +3667,7 @@ export default function ResizableBaySchedule({
                           <div className="absolute inset-0 flex flex-col">
                             {/* Single row per bay - simplified drop zone */}
                             <div 
-                              className="bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative droppable-area"
-                              style={{ height: '24px' }} // Fixed row height - reduced from h-full 
+                              className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative droppable-area" 
                               onDragOver={(e) => {
                                 // Must prevent default to enable drop
                                 e.preventDefault();
