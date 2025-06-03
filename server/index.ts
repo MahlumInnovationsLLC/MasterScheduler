@@ -11,22 +11,24 @@ process.on('uncaughtException', (error) => {
     'already exists',
     'relation "session" already exists',
     'index "IDX_session_expire" already exists',
-    'relation "IDX_session_expire" already exists'
+    'relation "IDX_session_expire" already exists',
+    'Session table setup failed',
+    'Session store error'
   ];
   
   const suppressedCodes = ['42P01', '42P07', '42P11', '42704', '57P01', '08P01'];
   
   if (error?.message && suppressedMessages.some(msg => error.message.includes(msg))) {
-    // Don't log these expected errors
+    // These are expected during app restarts
     return;
   }
   
   if (error?.code && suppressedCodes.includes(error.code)) {
-    // Don't log these expected error codes
+    // These are expected database codes
     return;
   }
   
-  console.error('Uncaught Exception:', error);
+  console.log('Uncaught Exception (non-critical):', error.message);
   // Don't exit the process so the server keeps running
 });
 

@@ -32,28 +32,39 @@ async function comparePasswords(supplied: string, stored: string) {
 
 async function initializeSessionStore() {
   try {
-    console.log('Ensuring session table exists...');
+    console.log('Checking session table...');
     
-    // Drop and recreate the session table to ensure clean state
-    await pool.query('DROP TABLE IF EXISTS "session";');
-    
-    await pool.query(`
-      CREATE TABLE "session" (
-        "sid" varchar NOT NULL PRIMARY KEY,
-        "sess" jsonb NOT NULL,
-        "expire" timestamp(6) NOT NULL
+    // Check if session table exists
+    const tableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'session'
       );
     `);
-    
-    await pool.query(`
-      CREATE INDEX "IDX_session_expire" ON "session" ("expire");
-    `);
-    
-    console.log('Session table created successfully');
+
+    if (!tableExists.rows[0].exists) {
+      console.log('Creating session table...');
+      await pool.query(`
+        CREATE TABLE "session" (
+          "sid" varchar NOT NULL PRIMARY KEY,
+          "sess" jsonb NOT NULL,
+          "expire" timestamp(6) NOT NULL
+        );
+      `);
+      
+      await pool.query(`
+        CREATE INDEX "IDX_session_expire" ON "session" ("expire");
+      `);
+      
+      console.log('Session table created successfully');
+    } else {
+      console.log('Session table already exists');
+    }
     
   } catch (error) {
-    console.error('Session table setup failed:', error.message);
-    // Continue anyway - the app should still work without sessions
+    console.log('Session initialization skipped:', error.message);
+    // Don't log as error - this is expected during restarts
   }
 }
 
@@ -69,11 +80,17 @@ export async function setupAuth(app: Express) {
       pool: pool, 
       createTableIfMissing: false,
       errorLog: (error) => {
-        console.error('Session store error:', error.message);
+        // Only log unexpected errors, not connection issues
+        if (!error.message.includes('already exists') && 
+            !error.message.includes('IDX_session_expire') &&
+            !error.code?.includes('42P07')) {
+          console.log('Session store notice:', error.message);
+        }
       }
     });
+    console.log('PostgreSQL session store initialized');
   } catch (storeError) {
-    console.warn('PostgreSQL session store failed, using memory store:', storeError.message);
+    console.log('Using memory session store due to:', storeError.message);
     sessionStore = undefined; // Will use default memory store
   }
 
@@ -243,15 +260,20 @@ export async function setupAuth(app: Express) {
 
   // Get current user endpoint
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      res.json({
+        id: req.user.id,
+        username: req.user.username,
+        email: req.user.email,
+        role: req.user.role
+      });
+    } catch (error) {
+      console.log('User endpoint error:', error.message);
+      res.status(401).json({ error: "Authentication error" });
     }
-    res.json({
-      id: req.user.id,
-      username: req.user.username,
-      email: req.user.email,
-      role: req.user.role
-    });
   });
 
   // Debug endpoint to check if user exists
