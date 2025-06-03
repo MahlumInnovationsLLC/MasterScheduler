@@ -10,17 +10,18 @@ process.on('uncaughtException', (error) => {
     'IDX_session_expire',
     'already exists',
     'relation "session" already exists',
-    'index "IDX_session_expire" already exists'
+    'index "IDX_session_expire" already exists',
+    'relation "IDX_session_expire" already exists'
   ];
   
-  const suppressedCodes = ['42P01', '42P07', '42P11', '57P01', '08P01'];
+  const suppressedCodes = ['42P01', '42P07', '42P11', '42704', '57P01', '08P01'];
   
-  if (error.message && suppressedMessages.some(msg => error.message.includes(msg))) {
+  if (error?.message && suppressedMessages.some(msg => error.message.includes(msg))) {
     // Don't log these expected errors
     return;
   }
   
-  if (error.code && suppressedCodes.includes(error.code)) {
+  if (error?.code && suppressedCodes.includes(error.code)) {
     // Don't log these expected error codes
     return;
   }
@@ -31,12 +32,13 @@ process.on('uncaughtException', (error) => {
 
 process.on('unhandledRejection', (reason, promise) => {
   // Suppress known database connection and object creation rejections
-  const suppressedCodes = ['42P01', '42P07', '42P11', '57P01', '08P01', '08006'];
+  const suppressedCodes = ['42P01', '42P07', '42P11', '42704', '57P01', '08P01', '08006'];
   const suppressedMessages = [
     'IDX_session_expire',
     'already exists',
     'relation "session" already exists',
-    'index "IDX_session_expire" already exists'
+    'index "IDX_session_expire" already exists',
+    'relation "IDX_session_expire" already exists'
   ];
   
   if (reason && typeof reason === 'object' && 'code' in reason) {

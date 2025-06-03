@@ -42,22 +42,27 @@ export function setupAuth(app: Express) {
       createTableIfMissing: true,
       errorLog: (error) => {
         // Suppress all expected database object creation errors
-        const suppressedCodes = ['42P01', '42P07', '42P11']; // relation exists, index exists, duplicate object
+        const suppressedCodes = ['42P01', '42P07', '42P11', '42704']; // relation exists, index exists, duplicate object, already exists
         const suppressedMessages = [
           'IDX_session_expire',
           'already exists',
           'relation "session" already exists',
-          'index "IDX_session_expire" already exists'
+          'index "IDX_session_expire" already exists',
+          'relation "IDX_session_expire" already exists'
         ];
         
         // Check if this is an expected error we should suppress
-        if (suppressedCodes.includes(error.code) || 
-            suppressedMessages.some(msg => error.message && error.message.includes(msg))) {
-          // Don't log these expected errors at all
+        if (error?.code && suppressedCodes.includes(error.code)) {
+          // Don't log these expected error codes at all
           return;
         }
         
-        // Only log truly unexpected errors
+        if (error?.message && suppressedMessages.some(msg => error.message.includes(msg))) {
+          // Don't log these expected error messages at all
+          return;
+        }
+        
+        // Only log truly unexpected errors (but still don't throw them)
         console.error('Session store error:', error.message);
       }
     }),
