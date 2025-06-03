@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -5,20 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, Building2, User, Lock } from "lucide-react";
+import { Loader2, Building2, User, Lock, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
 });
 
 const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
-  email: z.string().email("Invalid email address").optional(),
+  email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -33,7 +34,7 @@ export default function AuthPage() {
   const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -62,7 +63,13 @@ export default function AuthPage() {
   }
 
   const onLogin = (data: LoginData) => {
-    loginMutation.mutate(data, {
+    // Convert email to username format for backend compatibility
+    const loginData = {
+      username: data.email, // Backend expects 'username' field but we'll send email
+      password: data.password,
+    };
+    
+    loginMutation.mutate(loginData, {
       onSuccess: () => {
         setLocation("/");
       },
@@ -84,12 +91,14 @@ export default function AuthPage() {
         <div className="flex justify-center lg:justify-end">
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Building2 className="h-6 w-6 text-white" />
+              <div className="mx-auto mb-4 w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center">
+                <div className="text-white font-bold text-lg">T4</div>
               </div>
-              <CardTitle className="text-2xl">Welcome Back</CardTitle>
+              <CardTitle className="text-2xl">
+                TIER IV<sup className="text-sm">PRO</sup>
+              </CardTitle>
               <CardDescription>
-                Sign in to access your manufacturing dashboard
+                Nomad GCS Project Management
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -104,15 +113,16 @@ export default function AuthPage() {
                     <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
                       <FormField
                         control={loginForm.control}
-                        name="username"
+                        name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Username</FormLabel>
+                            <FormLabel>Email Address</FormLabel>
                             <FormControl>
                               <div className="relative">
-                                <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                                 <Input
-                                  placeholder="Enter your username"
+                                  type="email"
+                                  placeholder="Enter your email"
                                   className="pl-10"
                                   {...field}
                                 />
@@ -189,13 +199,17 @@ export default function AuthPage() {
                         name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Email (Optional)</FormLabel>
+                            <FormLabel>Email Address</FormLabel>
                             <FormControl>
-                              <Input
-                                type="email"
-                                placeholder="Enter your email"
-                                {...field}
-                              />
+                              <div className="relative">
+                                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <Input
+                                  type="email"
+                                  placeholder="Enter your email"
+                                  className="pl-10"
+                                  {...field}
+                                />
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
