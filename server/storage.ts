@@ -2742,6 +2742,14 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
+  async getAllProjectMilestoneIcons(): Promise<ProjectMilestoneIcon[]> {
+    return await safeQuery<ProjectMilestoneIcon>(() =>
+      db.select().from(projectMilestoneIcons)
+        .where(eq(projectMilestoneIcons.isEnabled, true))
+        .orderBy(projectMilestoneIcons.projectId, projectMilestoneIcons.name)
+    );
+  }
+
   async getProjectMilestoneIcon(id: number): Promise<ProjectMilestoneIcon | undefined> {
     return await safeSingleQuery<ProjectMilestoneIcon>(() =>
       db.select().from(projectMilestoneIcons)

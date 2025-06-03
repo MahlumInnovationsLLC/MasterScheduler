@@ -4030,6 +4030,58 @@ export default function ResizableBaySchedule({
                                 stopAutoScroll();
                               }}
                             >
+                              {/* Milestone Icons - Rendered above department phases */}
+                              {(() => {
+                                // Get milestone icons for this project
+                                const projectMilestones = allMilestoneIcons.filter(m => m.projectId === bar.projectId && m.isEnabled);
+                                
+                                return projectMilestones.map((milestone) => {
+                                  // Calculate milestone position based on phase timing
+                                  let milestonePosition = 0;
+                                  
+                                  if (milestone.phaseType === 'PRODUCTION' && milestone.daysBefore) {
+                                    // Position before PRODUCTION phase
+                                    const productionStartPosition = (bar.fabWidth || 0) + (bar.paintWidth || 0);
+                                    const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
+                                    milestonePosition = productionStartPosition - (milestone.daysBefore * pixelsPerDay);
+                                  } else if (milestone.phaseType === 'QC' && milestone.daysBefore) {
+                                    // Position before QC phase
+                                    const qcStartPosition = (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0);
+                                    const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
+                                    milestonePosition = qcStartPosition - (milestone.daysBefore * pixelsPerDay);
+                                  }
+                                  
+                                  // Only show milestone if position is within the bar bounds
+                                  if (milestonePosition >= 0 && milestonePosition <= bar.width) {
+                                    return (
+                                      <div
+                                        key={`milestone-${milestone.id}`}
+                                        className="absolute z-30 flex items-center justify-center"
+                                        style={{
+                                          left: `${milestonePosition}px`,
+                                          top: '-8px',
+                                          width: '20px',
+                                          height: '20px',
+                                        }}
+                                        title={`${milestone.name} - ${milestone.daysBefore} days before ${milestone.phaseType}`}
+                                      >
+                                        <div className="bg-white border-2 border-gray-600 rounded-full p-1 shadow-lg">
+                                          {milestone.iconName === 'car' && <span className="text-sm">🚗</span>}
+                                          {milestone.iconName === 'paintBucket' && <span className="text-sm">🎨</span>}
+                                          {milestone.iconName === 'wrench' && <span className="text-sm">🔧</span>}
+                                          {milestone.iconName === 'clock' && <span className="text-sm">⏰</span>}
+                                          {milestone.iconName === 'flag' && <span className="text-sm">🏁</span>}
+                                          {milestone.iconName === 'star' && <span className="text-sm">⭐</span>}
+                                          {milestone.iconName === 'warning' && <span className="text-sm">⚠️</span>}
+                                          {milestone.iconName === 'check' && <span className="text-sm">✅</span>}
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                });
+                              })()}
+
                               {/* Department phases visualization - COMPLETELY INTEGRATED DESIGN */}
                               <div className="phases-container w-full h-full">
                                 <div className="all-phases-container w-full h-full relative">
