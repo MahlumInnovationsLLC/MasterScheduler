@@ -228,6 +228,57 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
     return <div>Loading milestone icons...</div>;
   }
 
+  // Define default milestones
+  const defaultMilestones = [
+    {
+      name: 'MECH SHOP',
+      icon: 'car' as keyof typeof iconMap,
+      phase: 'PRODUCTION' as const,
+      daysBefore: 30,
+    },
+    {
+      name: 'GRAPHICS',
+      icon: 'paintBucket' as keyof typeof iconMap,
+      phase: 'QC' as const,
+      daysBefore: 7,
+    },
+  ];
+
+  // Check which default milestones are enabled
+  const enabledDefaults = defaultMilestones.map(defaultMilestone => {
+    const existing = milestoneIcons.find(icon => 
+      icon.name === defaultMilestone.name && 
+      icon.phase === defaultMilestone.phase &&
+      icon.daysBefore === defaultMilestone.daysBefore
+    );
+    return {
+      ...defaultMilestone,
+      isEnabled: existing?.isEnabled || false,
+      existingId: existing?.id,
+    };
+  });
+
+  // Toggle default milestone
+  const toggleDefaultMilestone = async (defaultMilestone: typeof enabledDefaults[0]) => {
+    if (defaultMilestone.existingId) {
+      // Update existing milestone
+      updateMutation.mutate({
+        id: defaultMilestone.existingId,
+        data: { isEnabled: !defaultMilestone.isEnabled },
+      });
+    } else {
+      // Create new milestone
+      createMutation.mutate({
+        projectId,
+        name: defaultMilestone.name,
+        icon: defaultMilestone.icon,
+        phase: defaultMilestone.phase,
+        daysBefore: defaultMilestone.daysBefore,
+        isEnabled: true,
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -392,21 +443,39 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
         )}
       </div>
 
-      {/* Default milestone icons info */}
+      {/* Default milestone icons section */}
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">Default Milestone Icons</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <Car className="h-4 w-4" />
-            <span>MECH SHOP - 30 days before PRODUCTION phase</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <PaintBucket className="h-4 w-4" />
-            <span>GRAPHICS - 7 days before QC phase</span>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
+        <CardContent className="space-y-4">
+          {enabledDefaults.map((defaultMilestone, index) => {
+            const IconComponent = iconMap[defaultMilestone.icon];
+            return (
+              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <IconComponent className="h-5 w-5" />
+                  <div>
+                    <div className="font-medium">{defaultMilestone.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {defaultMilestone.daysBefore} days before {defaultMilestone.phase} phase
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={defaultMilestone.isEnabled ? "default" : "secondary"}>
+                    {defaultMilestone.isEnabled ? "Enabled" : "Disabled"}
+                  </Badge>
+                  <Switch
+                    checked={defaultMilestone.isEnabled}
+                    onCheckedChange={() => toggleDefaultMilestone(defaultMilestone)}
+                    disabled={createMutation.isPending || updateMutation.isPending}
+                  />
+                </div>
+              </div>
+            );
+          })}
+          <p className="text-xs text-muted-foreground">
             These are the recommended defaults. You can customize or add your own milestone icons above.
           </p>
         </CardContent>
