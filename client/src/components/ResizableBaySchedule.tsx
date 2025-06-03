@@ -3968,7 +3968,7 @@ export default function ResizableBaySchedule({
                                   </div>
                                   
                                   {/* Bottom row of phases (FAB and PAINT) */}
-                                  <div className="bottom-phases w-full h-[48px] absolute left-0" style={{ bottom: '-30px' }}>
+                                  <div className="bottom-phases w-full h-[48px] absolute left-0" style={{ bottom: '-40px' }}>
                                     {/* FAB phase (starts from left) */}
                                     {bar.fabWidth && bar.fabWidth > 0 && (
                                       <div className="fab-phase bg-blue-700 h-full absolute left-0" 
@@ -3991,16 +3991,16 @@ export default function ResizableBaySchedule({
                                   </div>
                                 </div>
                                 
-                                {/* Project information display centered below the bottom phases */}
+                                {/* Project information display positioned under the FAB phase */}
                                 <div className="project-info absolute flex items-center justify-center"
                                      style={{
-                                       left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + ((bar.productionWidth || 0) / 2) - 200}px`,
-                                       top: '70px', /* Moved down to appear under bottom phases (52px top height + 48px bottom height - 30px offset = 70px) */
-                                       width: '400px',
+                                       left: `${((bar.fabWidth || 0) / 2) - 125}px`, /* Center under FAB phase */
+                                       top: '80px', /* Moved down to appear under bottom phases (52px top height + 48px bottom height - 40px offset + 20px spacing = 80px) */
+                                       width: '250px',
                                        pointerEvents: 'none', /* Allow clicks to pass through */
-                                       zIndex: 9999 /* Extremely high z-index to ensure it's on top of everything */
+                                       zIndex: 5 /* Lower z-index so it appears under the phases */
                                      }}>
-                                  <div className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center truncate shadow-md border border-gray-300" style={{minWidth: "250px", maxWidth: "250px", position: 'relative'}}>
+                                  <div className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center truncate shadow-md border border-gray-300" style={{minWidth: "200px", maxWidth: "200px", position: 'relative'}}>
                                     {bar.projectNumber} - {bar.projectName}
                                   </div>
                                 </div>
