@@ -69,25 +69,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (credentials: { username: string; password: string }) => {
-      try {
-        const response = await fetch("/api/login", {
+    mutationFn: async (data: { username: string; password: string }) => {
+      console.log("Login mutation called with:", { username: data.username, hasPassword: !!data.password });
+
+      // Try production login endpoint first
+      let response = await fetch("/api/auth/production-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          email: data.username, // Map username to email for backend compatibility
+          password: data.password 
+        }),
+        credentials: "include",
+      });
+
+      // Fallback to regular login endpoint if production endpoint fails
+      if (!response.ok) {
+        console.log("Production login failed, trying regular endpoint");
+        response = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
           credentials: "include",
-          body: JSON.stringify(credentials),
         });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: "Login failed" }));
-          throw new Error(errorData.error || "Login failed");
-        }
-
-        return response.json();
-      } catch (err) {
-        console.error("Login request failed:", err);
-        throw new Error(err instanceof Error ? err.message : "Login failed");
       }
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Login failed");
+      }
+
+      const result = await response.json();
+      console.log("Login successful:", result);
+      return result;
     },
     onSuccess: () => {
       // Use setTimeout to prevent state update conflicts
