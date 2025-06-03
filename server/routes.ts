@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { ZodError } from "zod";
 import crypto from "crypto";
+import { promisify } from "util";
 import passport from "passport";
 import multer from "multer";
 import { db } from "./db";
@@ -2889,6 +2890,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error rejecting user:", error);
       res.status(500).json({ message: "Error rejecting user" });
+    }
+  });
+
+  // Route to reset user password (admin only)
+  app.patch("/api/users/:id/reset-password", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const { newPassword } = req.body;
+      
+      // Validate password length
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      }
+      
+      // Get the user to ensure they exist
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Hash the new password using the same method as the auth system
+      const salt = crypto.randomBytes(16).toString("hex");
+      const buf = (await promisify(crypto.scrypt)(newPassword, salt, 64)) as Buffer;
+      const hashedPassword = `${buf.toString("hex")}.${salt}`;
+      
+      // Update the user's password
+      const updatedUser = await storage.updateUser(userId, {
+        password: hashedPassword,
+        updatedAt: new Date()
+      });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to update password" });
+      }
+      
+      // Log the password reset in audit logs
+      await storage.createUserAuditLog(
+        userId,
+        "PASSWORD_RESET",
+        req.user?.id || "system",
+        undefined,
+        undefined,
+        "Password reset by admin"
+      );
+      
+      res.json({ 
+        success: true, 
+        message: "Password reset successfully"
+      });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      res.status(500).json({ message: "Error resetting password" });
     }
   });
   
