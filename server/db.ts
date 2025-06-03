@@ -40,6 +40,12 @@ const pool = new Pool({
 
 // Set up enhanced error handling for the pool
 pool.on('error', (err) => {
+  // Ignore session index creation errors as they're expected on restart
+  if (err.code === '42P07' && err.message && err.message.includes('IDX_session_expire')) {
+    console.log('Session index already exists (expected on restart)');
+    return;
+  }
+  
   console.error('Unexpected database error on idle client:', err);
   
   // Log additional information about pool status to help with debugging

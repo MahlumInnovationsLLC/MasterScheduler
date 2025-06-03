@@ -32,7 +32,7 @@ async function comparePasswords(supplied: string, stored: string) {
 
 export function setupAuth(app: Express) {
   const PostgresSessionStore = connectPg(session);
-  
+
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'your-secret-key-here',
     resave: false,
@@ -56,21 +56,21 @@ export function setupAuth(app: Express) {
     new LocalStrategy(async (username, password, done) => {
       try {
         const user = await storage.getUserByUsername(username);
-        
+
         if (!user) {
           return done(null, false, { message: 'Invalid username or password' });
         }
-        
+
         if (!user.password) {
           return done(null, false, { message: 'Invalid username or password' });
         }
-        
+
         const passwordMatch = await comparePasswords(password, user.password);
-        
+
         if (!passwordMatch) {
           return done(null, false, { message: 'Invalid username or password' });
         }
-        
+
         return done(null, user);
       } catch (error) {
         console.error('Authentication error:', error);
@@ -93,7 +93,7 @@ export function setupAuth(app: Express) {
   app.post("/api/register", async (req, res, next) => {
     try {
       const { username, email, password } = req.body;
-      
+
       if (!username || !password) {
         return res.status(400).json({ error: "Username and password are required" });
       }
