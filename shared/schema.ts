@@ -147,6 +147,19 @@ export const permissionCategoryEnum = pgEnum("permission_category", [
   "import_export",
 ]);
 
+// Module visibility enum for individual user controls
+export const moduleEnum = pgEnum("module", [
+  "dashboard",
+  "projects",
+  "manufacturing", 
+  "billing",
+  "sales",
+  "reports",
+  "import_export",
+  "settings",
+  "calendar",
+]);
+
 // Note: Role Permissions Table is defined further down in this file
 
 export const users = pgTable("users", {
@@ -642,6 +655,27 @@ export const rolePermissions = pgTable("role_permissions", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// User Module Visibility Table - Controls which modules each individual user can see
+export const userModuleVisibility = pgTable("user_module_visibility", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  module: moduleEnum("module").notNull(),
+  isVisible: boolean("is_visible").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  // Ensure each user-module combination is unique
+  unique().on(table.userId, table.module),
+]);
+
+// User Module Visibility Relations
+export const userModuleVisibilityRelations = relations(userModuleVisibility, ({ one }) => ({
+  user: one(users, {
+    fields: [userModuleVisibility.userId],
+    references: [users.id],
+  }),
+}));
+
 // On Time Delivery Tracking Table
 export const deliveryTracking = pgTable("delivery_tracking", {
   id: serial("id").primaryKey(),
@@ -896,6 +930,13 @@ export const insertRolePermissionSchema = createInsertSchema(rolePermissions).om
   updatedAt: true,
 });
 
+// Insert schema for user module visibility
+export const insertUserModuleVisibilitySchema = createInsertSchema(userModuleVisibility).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -905,6 +946,9 @@ export type InsertUserAuditLog = z.infer<typeof insertUserAuditLogSchema>;
 
 export type RolePermission = typeof rolePermissions.$inferSelect;
 export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;
+
+export type UserModuleVisibility = typeof userModuleVisibility.$inferSelect;
+export type InsertUserModuleVisibility = z.infer<typeof insertUserModuleVisibilitySchema>;
 
 export type SalesDeal = typeof salesDeals.$inferSelect;
 export type InsertSalesDeal = z.infer<typeof insertSalesDealSchema>;
