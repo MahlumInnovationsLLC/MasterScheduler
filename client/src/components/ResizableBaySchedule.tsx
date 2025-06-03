@@ -3917,7 +3917,7 @@ export default function ResizableBaySchedule({
                               <div className="phases-container w-full h-full">
                                 <div className="all-phases-container w-full h-full relative">
                                   {/* Top row of phases (production through QC) */}
-                                  <div className="top-phases w-full h-[52px] absolute top-0 left-0">
+                                  <div className="top-phases w-full h-[52px] absolute left-0" style={{ top: '10px' }}>
                                     {/* Production phase (positioned after FAB and PAINT) */}
                                     {bar.productionWidth && bar.productionWidth > 0 && (
                                       <div className="production-phase bg-yellow-700 h-full absolute" 
@@ -3968,7 +3968,7 @@ export default function ResizableBaySchedule({
                                   </div>
                                   
                                   {/* Bottom row of phases (FAB and PAINT) */}
-                                  <div className="bottom-phases w-full h-[48px] absolute left-0" style={{ bottom: '-40px' }}>
+                                  <div className="bottom-phases w-full h-[48px] absolute left-0" style={{ bottom: '-30px' }}>
                                     {/* FAB phase (starts from left) */}
                                     {bar.fabWidth && bar.fabWidth > 0 && (
                                       <div className="fab-phase bg-blue-700 h-full absolute left-0" 
@@ -3995,10 +3995,10 @@ export default function ResizableBaySchedule({
                                 <div className="project-info absolute flex items-center justify-center"
                                      style={{
                                        left: `${((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) / 2) - 100}px`, /* Center under PROD phase */
-                                       top: '60px', /* Position it right under the bottom phases */
+                                       top: '70px', /* Position it right under the bottom phases (moved down 10px) */
                                        width: '200px',
                                        pointerEvents: 'none', /* Allow clicks to pass through */
-                                       zIndex: 15 /* Higher z-index so it appears above the phases but below other elements */
+                                       zIndex: 9999 /* Much higher z-index so it appears above all project bars but below popups */
                                      }}>
                                   <div className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center truncate shadow-md border border-gray-300" style={{minWidth: "200px", maxWidth: "200px", position: 'relative'}}>
                                     {bar.projectNumber}
