@@ -6,8 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LoadingProvider } from "@/components/LoadingManager";
-import { PermissionsProvider, GlobalPermissionsHandler } from "@/components/PermissionsManager";
-
+import { PermissionsProvider } from "@/components/PermissionsManager";
 import Dashboard from "@/pages/Dashboard";
 import ProjectStatus from "@/pages/ProjectStatus";
 import BillingMilestones from "@/pages/BillingMilestones";
@@ -38,92 +37,27 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AdminRoute } from "@/lib/admin-route";
 import { ViewerRestrictedRoute } from "@/lib/viewer-restricted-route";
-
 // Import SidebarContext and SidebarProvider for managing sidebar state
 import { SidebarProvider, SidebarContext } from "@/context/SidebarContext";
 import { useContext } from "react";
 
-// Check if we're in development mode
-const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
-
 function Router() {
   const [location] = useLocation();
   const isAuthPage = location === "/auth";
-  
-  // GLOBAL AUTH PAGE FIX - Run continuously to prevent view-only mode
-  useEffect(() => {
-    const forceAuthPageInteractive = () => {
-      const currentPath = window.location.pathname;
-      const isAnyAuthPage = currentPath === '/auth' || 
-                           currentPath === '/login' || 
-                           currentPath === '/simple-login' || 
-                           currentPath.includes('/auth') ||
-                           currentPath.includes('/reset-password');
-      
-      if (isAnyAuthPage) {
-        // Remove all view-only restrictions immediately
-        document.body.classList.remove('viewer-mode', 'role-viewer');
-        document.body.classList.add('auth-page', 'full-access', 'auth-routes', 'no-restrictions');
-        
-        // Set data attributes for CSS targeting
-        document.body.setAttribute('data-current-url', currentPath);
-        document.body.setAttribute('data-page', 'auth');
-        
-        // Force enable all interactive elements
-        document.querySelectorAll('input, button, form, a, select, textarea, [role="button"]').forEach(el => {
-          if (el instanceof HTMLElement) {
-            el.style.pointerEvents = 'auto';
-            el.style.opacity = '1';
-            el.style.filter = 'none';
-            el.style.cursor = 'auto';
-            el.removeAttribute('disabled');
-            el.removeAttribute('readonly');
-            
-            if (el.tagName === 'BUTTON' || el.tagName === 'A' || el.getAttribute('role') === 'button') {
-              el.style.cursor = 'pointer';
-            }
-            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-              el.style.cursor = 'text';
-            }
-          }
-        });
-      }
-    };
-    
-    // Run immediately and every 50ms
-    forceAuthPageInteractive();
-    const interval = setInterval(forceAuthPageInteractive, 50);
-    
-    return () => clearInterval(interval);
-  }, [location]);
-  
-  // Allow auth page access in development for testing
-  // if (isDevelopment && isAuthPage) {
-  //   return <Redirect to="/" />;
-  // }
   const isResetPasswordPage = location === "/reset-password" || location.startsWith("/reset-password?");
 
   // If we're on the auth page or reset password page, render without the app layout
-  // and without any permissions restrictions
   if (isAuthPage || isResetPasswordPage) {
-    // CRITICAL: Force body classes to be completely unrestricted for auth pages
-    document.body.classList.remove('viewer-mode');
-    document.body.classList.remove('role-viewer');
-    document.body.classList.add('auth-page');
-    document.body.classList.add('full-access');
-    
-    // Don't apply any permissions restrictions to authentication routes
     return (
-      <div className="auth-routes no-restrictions">
+      <div className="auth-routes">
         <Switch>
-          {/* Single auth page */}
           <Route path="/auth" component={AuthPage} />
           <Route path="/reset-password" component={ResetPasswordPage} />
         </Switch>
       </div>
     );
   }
-  
+
   return (
     <SidebarProvider>
       <MainContent />
@@ -133,16 +67,14 @@ function Router() {
 
 // Separate component to use the sidebar context
 function MainContent() {
-  // Now we can safely use the sidebar context
   const { isCollapsed } = useContext(SidebarContext);
-  
+
   return (
     <div className="min-h-screen flex flex-col bg-darkBg text-white">
       <Header />
       <div className="flex flex-1 h-[calc(100vh-64px)]">
         <Sidebar />
         <main className={`overflow-y-auto flex-1 transition-all duration-300 pt-16 ${isCollapsed ? 'ml-[50px]' : 'ml-[260px]'}`}>
-          {/* Main content margin adjusts based on sidebar width */}
           <Switch>
             <ProtectedRoute path="/" component={Dashboard} />
             <ProtectedRoute path="/projects" component={ProjectStatus} />
@@ -184,57 +116,7 @@ function App() {
           <AuthProvider>
             <PermissionsProvider>
               <Toaster />
-              <GlobalPermissionsHandler />
-              {/* Auth page now handled by the single /auth route */}
               <Router />
-              
-              {/* Complete removal of view-only restrictions for auth pages */}
-              <style dangerouslySetInnerHTML={{
-                __html: `
-                  /* COMPLETELY DISABLE VIEW-ONLY MODE FOR AUTH PAGES */
-                  body[class*="auth"] .viewer-mode,
-                  body[class*="auth"] .view-only,
-                  .auth-page *,
-                  .auth-form *,
-                  [data-auth-page] *,
-                  [data-auth-form] * {
-                    pointer-events: auto !important;
-                    opacity: 1 !important;
-                    cursor: auto !important;
-                    user-select: auto !important;
-                    -webkit-user-select: auto !important;
-                    -moz-user-select: auto !important;
-                    -ms-user-select: auto !important;
-                  }
-                  
-                  /* Override ALL view-only restrictions on auth elements */
-                  body.viewer-mode .auth-form input,
-                  body.viewer-mode .auth-form button,
-                  body.viewer-mode .auth-form select,
-                  body.viewer-mode .auth-page input,
-                  body.viewer-mode .auth-page button,
-                  body.viewer-mode .auth-page select,
-                  body.viewer-mode [data-auth-page] *,
-                  body.viewer-mode [data-auth-form] * {
-                    pointer-events: auto !important;
-                    opacity: 1 !important;
-                    cursor: pointer !important;
-                    user-select: auto !important;
-                    -webkit-user-select: auto !important;
-                    -moz-user-select: auto !important;
-                    -ms-user-select: auto !important;
-                  }
-                  
-                  /* Bay Scheduling sandbox mode elements */
-                  body.viewer-mode .sandbox-mode button,
-                  body.viewer-mode .sandbox-mode input,
-                  body.viewer-mode .sandbox-mode select {
-                    pointer-events: auto !important;
-                    opacity: 1 !important;
-                    cursor: pointer !important;
-                  }
-                `
-              }} />
             </PermissionsProvider>
           </AuthProvider>
         </TooltipProvider>

@@ -1,2877 +1,448 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ULTIMATE FIX: Make project bars half transparent during drag operations */
-body.global-drag-active .schedule-bar:not(.dragging) {
-  opacity: 0.5 !important; /* Half transparent so you can still see them */
-  pointer-events: none !important; /* But can't interact with them */
-  z-index: 1 !important; /* Lower z-index so drops pass through */
-}
-
-body[data-drag-in-progress="true"] .drop-zone,
-body[data-drag-in-progress="true"] [data-bay-id],
-body[data-drag-in-progress="true"] [onDrop],
-body[data-drag-in-progress="true"] .grid-cell {
-  pointer-events: auto !important; /* Ensure drop zones work */
-  z-index: 15; /* Higher z-index for drop zones */
-}
-
-/* FORCE all project bars to be non-interactive during drag */
-.global-drag-active .schedule-bar:not(.dragging) {
-  pointer-events: none !important;
-  user-select: none !important;
-  z-index: 1 !important;
-}
-
-/* FORCE all drop zones to be interactive during drag */
-.global-drag-active .drop-zone,
-.global-drag-active [data-bay-id],
-.global-drag-active .grid-cell {
-  pointer-events: auto !important;
-  z-index: 20 !important;
-}
-
-/* Enhanced drop zone visibility when dragging is active */
-.drop-target {
-  background-color: rgba(59, 130, 246, 0.15) !important;
-  border: 2px dashed #3b82f6 !important;
-  transition: all 0.2s ease;
-}
-
-/* Fix for dropdown menus appearing behind dialogs */
-[data-radix-popper-content-wrapper] {
-  z-index: 9999 !important;
-}
-
-/* Special handling for dev-user environment: disable view-only mode completely */
-body.dev-user-env button,
-body.dev-user-env input,
-body.dev-user-env select,
-body.dev-user-env textarea,
-body.dev-user-env a[href],
-body.dev-user-env [role="button"],
-body.dev-user-env [role="switch"],
-body.dev-user-env [role="checkbox"],
-body.dev-user-env [role="radio"],
-body.dev-user-env [role="menuitem"],
-body.dev-user-env [role="tab"],
-body.dev-user-env [type="checkbox"],
-body.dev-user-env [type="radio"],
-body.dev-user-env [type="button"],
-body.dev-user-env [type="submit"],
-body.dev-user-env [type="reset"],
-body.dev-user-env .dropdown-toggle,
-body.dev-user-env .clickable,
-body.dev-user-env .editable-field {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  cursor: pointer !important;
-  user-select: auto !important;
-}
-
-/* Ensure dropdowns and menus are interactive in viewer mode */
-body.viewer-mode [data-radix-popper-content-wrapper],
-body.viewer-mode .dropdown-menu-content,
-body.viewer-mode [role="menu"],
-body.viewer-mode [role="menuitem"],
-body.viewer-mode .dropdown-menu,
-body.viewer-mode .dropdown-menu * {
-  pointer-events: auto !important;
-  cursor: pointer !important;
-  opacity: 1 !important;
-}
-
-/* Make scrollable areas work properly in viewer mode */
-body.viewer-mode .overflow-auto,
-body.viewer-mode .overflow-y-auto,
-body.viewer-mode .overflow-x-auto,
-body.viewer-mode .scrollarea,
-body.viewer-mode .data-table-container,
-body.viewer-mode [data-radix-scroll-area-viewport],
-body.viewer-mode table,
-body.viewer-mode [role="grid"] {
-  pointer-events: auto !important;
-  overflow: auto !important;
-}
-
-/* COMPLETE AUTH PAGE FIX - REMOVE ALL VIEW-ONLY MODE RESTRICTIONS */
-
-/* GLOBAL RULE - COMPLETELY DISABLE VIEW-ONLY MODE ON AUTH PAGES */
-body[data-current-url*="auth"] *,
-html[data-current-url*="auth"] *,
-body:has([href*="/auth"]) *,
-body:has([action*="/auth"]) *,
-body:has(form[action*="login"]) *,
-html:has(form[action*="login"]) *,
-[data-page="auth"] *,
-.auth-page *,
-.auth-routes * {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  cursor: auto !important;
-  user-select: auto !important;
-  filter: none !important;
-  touch-action: auto !important;
-  -webkit-user-select: auto !important;
-  -moz-user-select: auto !important;
-  -ms-user-select: auto !important;
-}
-
-/* FORCE AUTH FORM ELEMENTS TO BE INTERACTIVE */
-body[data-current-url*="auth"] input,
-body[data-current-url*="auth"] button,
-body[data-current-url*="auth"] form,
-body[data-current-url*="auth"] a,
-html[data-current-url*="auth"] input,
-html[data-current-url*="auth"] button,
-html[data-current-url*="auth"] form,
-html[data-current-url*="auth"] a,
-[data-page="auth"] input,
-[data-page="auth"] button,
-[data-page="auth"] form,
-[data-page="auth"] a,
-.auth-page input,
-.auth-page button,
-.auth-page form,
-.auth-page a {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  cursor: pointer !important;
-  user-select: auto !important;
-  filter: none !important;
-  background: initial !important;
-}
-
-/* EMERGENCY AUTH FIX - DISABLE VIEW-ONLY EVERYWHERE ON AUTH PAGES */
-
-/* GLOBAL RULE - AUTH URL DETECTION */
-html:has(a[href*="auth"]) *,
-body:has([href*="/auth"]) *,
-body:has([action*="/auth"]) * {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  user-select: auto !important;
-}
-
-/* AUTH PAGE UNIVERSAL OVERRIDE - STRONGEST POSSIBLE OVERRIDES */
-html[data-current-url*="auth"] *,
-body[data-current-url*="auth"] *,
-html:has(form[action*="login"]) *,
-html:has(form[action*="auth"]) *,
-body:has(form[action*="login"]) *,
-body:has(form[action*="auth"]) * {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  user-select: auto !important;
-  filter: none !important;
-  touch-action: auto !important;
-  cursor: auto !important;
-}
-
-/* DIRECT SOLUTION FOR AUTH PAGE - NO RESTRICTIONS WHATSOEVER */
-body.auth-page-override * {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  cursor: auto !important;
-  filter: none !important;
-  user-select: auto !important;
-}
-
-body.auth-page-override input {
-  cursor: text !important;
-}
-
-body.auth-page-override button,
-body.auth-page-override a,
-body.auth-page-override [role="button"] {
-  cursor: pointer !important;
-}
-
-/* AUTH PATH DIRECT DETECTION - MAXIMUM PRIORITY */
-body:has(nav:has(a[href="/auth"])) {
-  background: transparent !important;
-}
-
-/* DIRECT FORM INTERACTION OVERRIDE */
-form *,
-[role="form"] * {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  filter: none !important;
-}
-
-/* PATH BASED DETECTION - MAXIMUM OVERRIDE */
-html:has(head:has(meta[content*="auth"])) *,
-body[data-location="/auth"] *,
-body[data-path="/auth"] *,
-body[data-page="auth"] * {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  user-select: auto !important;
-  filter: none !important;
-  cursor: auto !important;
-}
-
-/* SPECIFIC FORM ELEMENTS ON AUTH PAGE */
-input[type="email"],
-input[type="password"],
-input[type="text"],
-button[type="submit"],
-a.login-link,
-a.forgot-password,
-form *,
-.auth-form *,
-[class*="login"] *,
-[class*="auth"] * {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  user-select: auto !important;
-  filter: none !important;
-  cursor: auto !important;
-  touch-action: auto !important;
-}
-
-/* CURSOR FIXES */
-a, button, [role="button"], [type="submit"], .login, .submit {
-  cursor: pointer !important;
-}
-
-/* PATH BASED DETECTION - HIGHEST SPECIFICITY */
-html:has(head:has(title:contains("Login"))) *,
-html:has(head:has(title:contains("Auth"))) *,
-html:has(head:has(link[href*="auth"])) * {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  user-select: auto !important;
-}
-
-/* AUTH ROUTE CLASS OVERRIDES */
-.auth-routes,
-.auth-routes *,
-.auth-page,
-.auth-page *,
-body.auth-page,
-body.auth-page *,
-div.auth-routes,
-div.auth-routes *,
-div.no-restrictions,
-div.no-restrictions *,
-[class*="auth-"],
-.full-access,
-.full-access * {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  cursor: auto !important;
-  user-select: auto !important;
-  filter: none !important;
-  touch-action: auto !important;
-}
-
-/* AUTH INTERACTIVE ELEMENTS */
-body.auth-page button,
-body.auth-page input,
-body.auth-page select,
-body.auth-page textarea,
-body.auth-page a[href],
-body.auth-page [role="button"],
-body.auth-page [role="switch"],
-body.auth-page [role="checkbox"],
-body.auth-page [role="radio"],
-body.auth-page [role="menuitem"],
-body.auth-page [role="tab"],
-body.auth-page [type="checkbox"],
-body.auth-page [type="radio"],
-body.auth-page [type="button"],
-body.auth-page [type="submit"],
-body.auth-page [type="reset"],
-body.auth-page form,
-body.auth-page form * {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  cursor: pointer !important;
-  user-select: auto !important;
-}
-
-/* Viewer Mode Restrictions - Applied globally when body has viewer-mode class */
-/* Strict view-only mode - disable ALL interactive elements by default */
-body.viewer-mode button:not(.viewer-interactive),
-body.viewer-mode input:not(.viewer-interactive),
-body.viewer-mode select:not(.viewer-interactive),
-body.viewer-mode textarea:not(.viewer-interactive),
-body.viewer-mode a[href]:not(.sidebar-item):not(.sidebar a):not(.viewer-interactive),
-body.viewer-mode [role="button"]:not(.viewer-interactive),
-body.viewer-mode [role="switch"]:not(.viewer-interactive),
-body.viewer-mode [role="checkbox"]:not(.viewer-interactive),
-body.viewer-mode [role="radio"]:not(.viewer-interactive),
-body.viewer-mode [role="menuitem"]:not(.viewer-interactive),
-body.viewer-mode [role="tab"]:not(.viewer-interactive),
-body.viewer-mode [type="checkbox"]:not(.viewer-interactive),
-body.viewer-mode [type="radio"]:not(.viewer-interactive),
-body.viewer-mode [type="button"]:not(.viewer-interactive),
-body.viewer-mode [type="submit"]:not(.viewer-interactive),
-body.viewer-mode [type="reset"]:not(.viewer-interactive),
-body.viewer-mode .dropdown-toggle:not(.viewer-interactive),
-body.viewer-mode .clickable:not(.viewer-interactive),
-body.viewer-mode .editable-field:not(.viewer-interactive),
-body.viewer-mode .edit-controls:not(.viewer-interactive),
-body.viewer-mode .action-button:not(.viewer-interactive),
-body.viewer-mode [contenteditable="true"]:not(.viewer-interactive),
-body.role-viewer button:not(.sidebar-item):not(.sidebar-button):not(.viewer-interactive),
-body.role-viewer input:not(.auth-input):not(.viewer-interactive),
-body.role-viewer select:not(.auth-select):not(.viewer-interactive),
-body.role-viewer textarea:not(.viewer-interactive),
-body.role-viewer a[href]:not(.sidebar-item):not(.sidebar a):not(.viewer-interactive),
-body.role-viewer [role="button"]:not(.sidebar-item),
-body.role-viewer [role="switch"],
-body.role-viewer [role="checkbox"],
-body.role-viewer [role="radio"],
-body.role-viewer [role="menuitem"],
-body.role-viewer [role="tab"],
-body.role-viewer [type="checkbox"],
-body.role-viewer [type="radio"],
-body.role-viewer [type="button"]:not(.sidebar-button),
-body.role-viewer [type="submit"],
-body.role-viewer [type="reset"],
-body.role-viewer .dropdown-toggle,
-body.role-viewer .clickable:not(.sidebar-item),
-body.role-viewer .editable-field,
-body.role-viewer .edit-controls,
-body.role-viewer .action-button:not(.sidebar-button),
-body.role-viewer [contenteditable="true"],
-/* Double ensure with attribute selectors */
-body[class*="viewer-mode"] button:not([class*="sidebar"]),
-body[class*="role-viewer"] button:not([class*="sidebar"]) {
-  pointer-events: none !important;
-  opacity: 0.7 !important;
-  cursor: not-allowed !important;
-  user-select: none !important;
-  filter: grayscale(20%) !important;
-}
-
-/* ONLY keep sidebar navigation and pagination buttons clickable in viewer mode */
-body.viewer-mode .sidebar a,
-body.viewer-mode .sidebar [role="button"],
-body.viewer-mode .sidebar button,
-body.viewer-mode .sidebar-item,
-body.viewer-mode aside a,
-body.viewer-mode .view-mode-toggle,
-body.viewer-mode button.view-mode-toggle,
-body.viewer-mode [class*="sidebar"] a,
-body.viewer-mode [class*="sidebar"] button,
-body.viewer-mode [aria-label="pagination"],
-body.viewer-mode [aria-label="pagination"] *,
-body.viewer-mode [data-testid="pagination"] button,
-body.viewer-mode [class*="pagination"] button,
-body.viewer-mode [class*="pagination"] [role="button"],
-body.viewer-mode [class*="pagination"] li,
-body.viewer-mode [class*="pagination"] a,
-body.viewer-mode nav button,
-body.viewer-mode .pagination,
-body.viewer-mode .pagination *,
-body.viewer-mode button:has(span:contains("Previous")),
-body.viewer-mode button:has(span:contains("Next")),
-body.viewer-mode button[aria-label="Go to previous page"],
-body.viewer-mode button[aria-label="Go to next page"],
-body.viewer-mode ul.pagination li,
-body.viewer-mode ul.pagination button,
-body.role-viewer [aria-label="pagination"],
-body.role-viewer [aria-label="pagination"] *,
-body.role-viewer [data-testid="pagination"] button,
-body.role-viewer [class*="pagination"] button,
-body.role-viewer [class*="pagination"] [role="button"],
-body.role-viewer [class*="pagination"] li,
-body.role-viewer [class*="pagination"] a,
-body.role-viewer nav button,
-body.role-viewer .pagination,
-body.role-viewer .pagination *,
-body.role-viewer button:has(span:contains("Previous")),
-body.role-viewer button:has(span:contains("Next")),
-body.role-viewer button[aria-label="Go to previous page"],
-body.role-viewer button[aria-label="Go to next page"],
-body.role-viewer ul.pagination li,
-body.role-viewer ul.pagination button {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  cursor: pointer !important;
-}
-
-/* Also keep auth form elements clickable */
-body.viewer-mode .auth-form button,
-body.viewer-mode .auth-form input,
-body.viewer-mode .auth-form select,
-body.viewer-mode .auth-button,
-body.viewer-mode .auth-input,
-body.viewer-mode .auth-select {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  cursor: pointer !important;
-}
-
-/* Also keep sandbox mode clickable for Bay Scheduling */
-body.viewer-mode .sandbox-mode button,
-body.viewer-mode .sandbox-mode input,
-body.viewer-mode .sandbox-mode select,
-body.viewer-mode .sandbox-button,
-body.viewer-mode .sandbox-input,
-body.viewer-mode .sandbox-select {
-  pointer-events: auto !important;
-  opacity: 1 !important;
-  cursor: pointer !important;
-}
-
-/* Disable form submissions for viewers but keep auth forms working */
-body.viewer-mode form:not(.auth-form):not(.sandbox-form) {
-  pointer-events: none !important;
-}
-
-/* Allow scrolling in viewer mode */
-body.viewer-mode .overflow-auto,
-body.viewer-mode .overflow-y-auto,
-body.viewer-mode .overflow-x-auto,
-body.viewer-mode [class*="scroll"],
-body.viewer-mode .main-content,
-body.viewer-mode [role="tabpanel"],
-body.viewer-mode [role="grid"],
-body.viewer-mode [class*="data-table"],
-body.viewer-mode [class*="project-list"],
-body.viewer-mode [class*="container"],
-body.viewer-mode main,
-body.role-viewer .overflow-auto,
-body.role-viewer .overflow-y-auto,
-body.role-viewer .overflow-x-auto,
-body.role-viewer [class*="scroll"],
-body.role-viewer .main-content,
-body.role-viewer [role="tabpanel"],
-body.role-viewer [role="grid"],
-body.role-viewer [class*="data-table"],
-body.role-viewer [class*="project-list"],
-body.role-viewer [class*="container"],
-body.role-viewer main {
-  pointer-events: auto !important;
-  overflow: auto !important;
-  touch-action: auto !important;
-  user-select: text !important;
-}
-
 :root {
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 9% 9%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 10% 3.9%;
+  --chart-1: 12 76% 61%;
+  --chart-2: 173 58% 39%;
+  --chart-3: 197 37% 24%;
+  --chart-4: 43 74% 66%;
+  --chart-5: 27 87% 67%;
   --radius: 0.5rem;
-
-  /* Chart colors - consistent across themes */
-  --chart-1: 217 90% 60%;
-  --chart-2: 199 89% 62%;
-  --chart-3: 270 74% 57%;
-  --chart-4: 163 84% 43%;
-  --chart-5: 32 100% 49%;
-
-  /* Status colors - consistent across themes */
-  --success: 163 84% 43%;
-  --warning: 32 100% 49%;
-  --danger: 341 100% 50%;
 }
 
-/* Dark theme (default) - Improved contrast for better visibility */
 .dark {
-  --background: 240 10% 10%; /* Lightened background for better visibility */
+  --background: 240 10% 3.9%;
   --foreground: 0 0% 98%;
-  --muted: 240 3.7% 20%; /* Lightened muted for better contrast */
-  --muted-foreground: 240 5% 80%; /* Brightened muted foreground for better contrast */
-  --popover: 240 10% 10%; /* Lightened popover to match background */
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
   --popover-foreground: 0 0% 98%;
-  --card: 240 10% 12%; /* Lightened card background for better contrast */
-  --card-foreground: 0 0% 100%; /* Pure white text for better readability */
-  --border: 240 3.7% 25%; /* Brightened border for better visibility */
-  --input: 240 3.7% 20%; /* Brightened input for better visibility */
-  --primary: 217 90% 65%; /* Brightened primary color */
-  --primary-foreground: 211 100% 99%;
-  --secondary: 199 89% 70%; /* Brightened secondary color */
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
   --secondary-foreground: 0 0% 98%;
-  --accent: 270 74% 65%; /* Brightened accent color */
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
   --accent-foreground: 0 0% 98%;
-  --destructive: 341 100% 50%;
+  --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
   --ring: 240 4.9% 83.9%;
-
-  /* Custom dark theme colors - improved for visibility */
-  --darkBg: 0 0% 12%; /* Lightened dark background */
-  --darkCard: 0 0% 18%; /* Lightened dark card */
-  --darkInput: 0 0% 22%; /* Lightened dark input */
-
-  /* Sidebar colors */
-  --sidebar-background: var(--background);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--accent);
-  --sidebar-accent-foreground: var(--accent-foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
+  --chart-1: 220 70% 50%;
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
 }
 
-/* Light theme */
-.light {
-  --background: 0 0% 98%; 
-  --foreground: 240 10% 3%; /* Much darker text for better readability */
-  --muted: 240 5% 90%;
-  --muted-foreground: 240 3.7% 20%; /* Darker muted text for better contrast */
-  --popover: 0 0% 98%;
-  --popover-foreground: 240 10% 3%;
-  --card: 0 0% 98%;
-  --card-foreground: 240 10% 3%;
-  --border: 240 5% 75%; /* Darker border for better visibility */
-  --input: 240 5% 90%;
-  --primary: 217 90% 45%; /* Slightly darker for better contrast */
-  --primary-foreground: 211 100% 99%;
-  --secondary: 199 89% 45%;
-  --secondary-foreground: 0 0% 98%;
-  --accent: 270 74% 45%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 341 100% 45%;
-  --destructive-foreground: 0 0% 98%;
-  --ring: 240 10% 50%;
+* {
+  border-color: hsl(var(--border));
+  font-family: 'Inter', sans-serif;
+}
 
-  /* Custom light theme colors */
-  --darkBg: 0 0% 98%;
-  --darkCard: 0 0% 95%;
-  --darkInput: 0 0% 92%;
-
-  /* Sidebar colors */
-  --sidebar-background: var(--background);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--accent);
-  --sidebar-accent-foreground: var(--accent-foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
 }
 
 @layer base {
   * {
     @apply border-border;
   }
-
   body {
-    @apply font-sans antialiased bg-darkBg text-foreground;
+    @apply bg-background text-foreground;
   }
 }
 
-@layer utilities {
-  .text-shadow-sm {
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-  }
+/* Custom styles for dark theme */
+.dark-bg {
+  background-color: #0a0a0a;
 }
 
-/* Gantt chart styling */
-.gantt-chart {
-  display: grid;
-  grid-template-columns: 180px repeat(30, minmax(40px, 1fr));
-  overflow-x: auto;
+.darkBg {
+  background-color: #111827;
 }
 
-.gantt-row {
-  display: contents;
+/* Table styles */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-/* Gantt chart border styles */
-.dark .gantt-row > * {
-  padding: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+.data-table th,
+.data-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid #374151;
 }
 
-.dark .gantt-cell:not(:first-child) {
-  border-left: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.light .gantt-row > * {
-  padding: 10px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.light .gantt-cell:not(:first-child) {
-  border-left: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-/* Drag and drop styling enhancements */
-.drop-target {
-  outline: 2px dashed rgba(0, 255, 0, 0.5) !important;
-  background-color: rgba(0, 100, 0, 0.2) !important;
-  position: relative;
-  z-index: 5;
-}
-
-.drop-target-active {
-  outline: 2px solid rgba(0, 255, 0, 0.7) !important;
-  background-color: rgba(0, 100, 0, 0.3) !important;
-  position: relative;
-  z-index: 10;
-  cursor: move !important;
-}
-
-/* New CSS class to ensure elements are visibly valid drop targets */
-.valid-drop-target {
-  cursor: move !important;
-  outline: 2px dashed rgba(59, 130, 246, 0.5) !important;
-  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.2);
-  z-index: 5;
-}
-
-/* Enhanced week cell styling to match screenshot */
-.week-cell {
-  position: relative;
-  transition: all 0.2s ease;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-  min-height: 80px;
-}
-
-/* Force proper height on schedule bars to fill bay row */
-.schedule-bar {
-  min-height: 70px !important;
-  height: 70px !important;
-}
-
-.week-cell.even-week {
-  background-color: rgba(30, 41, 59, 0.7);
-}
-
-.week-cell.odd-week {
-  background-color: rgba(30, 41, 59, 0.5);
-}
-
-.week-cell.weekend-cell {
-  background-color: rgba(15, 23, 42, 0.8);
-}
-
-.week-cell.month-boundary {
-  border-left: 2px solid rgba(59, 130, 246, 0.7);
-}
-
-.week-cell.week-boundary {
-  border-left: 1px solid rgba(148, 163, 184, 0.5);
-}
-
-.week-cell-highlight {
-  background-color: rgba(30, 64, 175, 0.3) !important;
-  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.8);
-}
-
-.exact-week-highlight {
-  background-color: rgba(16, 185, 129, 0.3) !important;
-  box-shadow: inset 0 0 0 2px rgba(5, 150, 105, 0.8);
-}
-
-.bay-highlight {
-  background-color: rgba(6, 95, 70, 0.1) !important;
-  outline: 2px solid rgba(5, 150, 105, 0.5) !important;
-}
-
-.row-target-highlight {
-  background-color: rgba(59, 130, 246, 0.1) !important;
-  outline: 1px solid rgba(59, 130, 246, 0.5) !important;
-}
-
-/* Week header styles for calendar-like appearance */
-.week-header-sticky {
-  transition: opacity 0.2s ease-in-out;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.dark .week-header-sticky {
-  background-color: rgb(13, 17, 23);
-  backdrop-filter: blur(8px);
-}
-
-.timeline-header {
-  height: 60px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  z-index: 20;
-}
-
-/* Added grid alignment styles */
-.grid-cell-perfectly-aligned {
-  width: 392px !important; /* Enforce 7 days × 56px per day = 392px width */
-  min-width: 392px !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.15);
-  position: relative;
-}
-
-/* Add vertical grid lines for better visualization */
-.grid-cell-perfectly-aligned::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: rgba(255, 255, 255, 0.05);
-  left: 196px; /* Half-way point */
-  height: 100%;
-  pointer-events: none;
-}
-
-/* Add daily grid markers for more precise positioning */
-.grid-cell-perfectly-aligned {
-  background-image: repeating-linear-gradient(
-    to right,
-    transparent,
-    transparent 55px,
-    rgba(255, 255, 255, 0.07) 55px,
-    rgba(255, 255, 255, 0.07) 56px
-  );
-}
-
-/* Every 7th day (week boundary) is more prominent */
-.week-boundary-marker {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: rgba(59, 130, 246, 0.3);
-  pointer-events: none;
-}
-
-/* Success animation for drop location */
-@keyframes dropSuccess {
-  0%, 100% { background-color: transparent; }
-  50% { background-color: rgba(34, 197, 94, 0.2); }
-}
-
-.drop-success-flash {
-  animation: dropSuccess 0.8s ease-in-out;
-}
-
-/* Cell hover effect to show grid boundaries */
-.grid-cell-perfectly-aligned:hover {
-  background-color: rgba(59, 130, 246, 0.05);
-  outline: 1px dashed rgba(59, 130, 246, 0.3);
-}
-
-/* Add day markers for better day-level positioning */
-.day-marker {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: rgba(255, 255, 255, 0.04);
-  pointer-events: none;
-}
-
-/* Add specific classes for different days of the week */
-.monday-marker { background-color: rgba(59, 130, 246, 0.2); }
-.friday-marker { background-color: rgba(234, 179, 8, 0.2); }
-.weekend-marker { background-color: rgba(239, 68, 68, 0.1); }
-
-/* Style the week start cells to make grid more visible */
-.week-start {
-  border-left: 2px solid rgba(59, 130, 246, 0.3) !important;
-  background-color: rgba(30, 58, 138, 0.05);
-}
-
-/* Add data attribute selectors for better visualization - Dark Mode */
-.dark [data-day-of-week="1"] { /* Monday */
-  border-left: 1px solid rgba(59, 130, 246, 0.2) !important;
-}
-
-.dark [data-day-of-week="5"] { /* Friday */
-  border-right: 1px solid rgba(234, 179, 8, 0.2) !important;
-}
-
-.dark [data-day-of-week="0"], .dark [data-day-of-week="6"] { /* Weekend */
-  background-color: rgba(30, 41, 59, 0.7) !important;
-}
-
-/* Light mode styling for grid cells */
-.light [data-day-of-week="1"] { /* Monday */
-  border-left: 1px solid rgba(59, 130, 246, 0.4) !important;
-}
-
-.light [data-day-of-week="5"] { /* Friday */
-  border-right: 1px solid rgba(234, 179, 8, 0.4) !important;
-}
-
-.light [data-day-of-week="0"], .light [data-day-of-week="6"] { /* Weekend */
-  background-color: rgba(226, 232, 240, 0.6) !important;
-}
-
-.light .week-start {
-  border-left: 2px solid rgba(59, 130, 246, 0.5) !important;
-  background-color: rgba(219, 234, 254, 0.2);
-}
-
-.light .grid-cell-perfectly-aligned {
-  background-image: repeating-linear-gradient(
-    to right,
-    transparent,
-    transparent 55px,
-    rgba(100, 116, 139, 0.1) 55px,
-    rgba(100, 116, 139, 0.1) 56px
-  );
-}
-
-.dark .timeline-header .timeline-slot {
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.light .timeline-header .timeline-slot {
-  border-right: 1px solid rgba(0, 0, 0, 0.1);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-  background-color: rgba(241, 245, 249, 0.8);
-}
-
-.timeline-header .timeline-slot {
-  min-height: 60px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  font-size: 0.75rem;
-  padding: 4px 2px;
-  position: relative;
-}
-
-.week-number {
+.data-table th {
+  background-color: #1f2937;
   font-weight: 600;
-  font-size: 0.8rem;
-  color: #3b82f6;
-  margin-bottom: 4px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  color: #f9fafb;
 }
 
-.week-date-range {
-  font-size: 0.65rem;
-  color: #d1d5db;
-  opacity: 0.95;
-  line-height: 1.3;
-  white-space: nowrap;
+.data-table tr:hover {
+  background-color: #1f2937;
 }
 
-/* Bay row styles to ensure full width */
-.bay-row {
-  position: relative;
-  width: 100%;
-  min-height: 80px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(22, 27, 34, 0.7);
-  padding: 4px 0;
-  transition: all 0.2s ease;
-}
-
-.bay-row:nth-child(odd) {
-  background-color: rgba(17, 24, 39, 0.5);
-}
-
-/* Enhanced hover effect for bay rows */
-.bay-row:hover {
-  background-color: rgba(30, 41, 59, 0.8);
-  border-bottom: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-/* Drop target styling for bay rows */
-.bay-row.drop-target {
-  background-color: rgba(2, 132, 199, 0.15) !important;
-  border: 1px dashed rgba(59, 130, 246, 0.7) !important;
-  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.3);
-}
-
-.bay-row-content {
-  width: 100%;
-  display: flex;
-  overflow: hidden;
-}
-
-.light .week-header-sticky {
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
-}
-
-/* Custom Scrollbar */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
-  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: hsl(var(--darkCard));
+  background: #1f2937;
 }
 
-/* Dark theme scrollbar */
-.dark ::-webkit-scrollbar-thumb {
-  background: #3a3a3a;
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
   border-radius: 4px;
 }
 
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #4a4a4a;
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
 }
 
-/* Light theme scrollbar */
-.light ::-webkit-scrollbar-thumb {
-  background: #c0c0c0;
-  border-radius: 4px;
-}
-
-.light ::-webkit-scrollbar-thumb:hover {
-  background: #a0a0a0;
-}
-
-/* Status indicator pulse effect */
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(255, 0, 110, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(255, 0, 110, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 0, 110, 0); }
-}
-
-.pulse-danger {
-  animation: pulse 2s infinite;
-}
-
-/* Custom background colors */
-.bg-darkBg {
-  background-color: hsl(var(--darkBg));
-}
-
-.bg-darkCard {
-  background-color: hsl(var(--darkCard));
-}
-
-.bg-darkInput {
-  background-color: hsl(var(--darkInput));
-}
-
-/* Table header styling for light mode */
-.light table th,
-.light thead th,
-.light [role="columnheader"] {
-  background-color: hsl(220 14% 94%);
-  color: hsl(220 35% 15%); /* Darker text for better contrast */
-  font-weight: 600;
-}
-
-/* Keep dark table headers in dark mode */
-.dark table th,
-.dark thead th,
-.dark [role="columnheader"] {
-  background-color: hsl(215 28% 17%);
-  color: hsl(210 40% 98%);
-}
-
-.bg-success {
-  background-color: hsl(var(--success));
-}
-
-.bg-warning {
-  background-color: hsl(var(--warning));
-}
-
-.bg-danger {
-  background-color: hsl(var(--danger));
-}
-
-.text-success {
-  color: hsl(var(--success));
-}
-
-.text-warning {
-  color: hsl(var(--warning));
-}
-
-.text-danger {
-  color: hsl(var(--danger));
-}
-
-.text-primary {
-  color: hsl(var(--primary));
-}
-
-.text-secondary {
-  color: hsl(var(--secondary));
-}
-
-.text-accent {
-  color: hsl(var(--accent));
-}
-
-/* Better button styling in light mode */
-.light .button-primary,
-.light .btn-primary,
-.light [data-variant="default"] {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.light .button-secondary,
-.light .btn-secondary,
-.light [data-variant="outline"] {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(0, 0, 0, 0.15);
-}
-
-/* Improve form elements in light mode */
-.light input,
-.light select,
-.light textarea {
-  border: 1px solid rgba(0, 0, 0, 0.2);
-}
-
-.light .form-input:focus,
-.light .form-select:focus,
-.light input:focus,
-.light select:focus,
-.light textarea:focus {
-  border-color: hsl(var(--primary));
-  box-shadow: 0 0 0 2px hsla(var(--primary), 0.2);
-  outline: none;
-}
-
-/* Card styling enhancements */
-.light .card {
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-.light .card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-.dark .card {
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-.dark .card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  transform: translateY(-2px);
-}
-
-/* Navigation styling improvements */
-.light .nav-item,
-.light .sidebar-item,
-.light .nav-link {
-  transition: all 0.2s ease;
-}
-
-.light .nav-item:hover,
-.light .sidebar-item:hover,
-.light .nav-link:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.light .nav-item.active,
-.light .sidebar-item.active,
-.light .nav-link.active {
-  background-color: rgba(var(--primary), 0.1);
-  color: hsl(var(--primary));
-  font-weight: 500;
-}
-
-/* Enhanced status indicators */
-.status-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 6px;
-}
-
-.status-dot.success, .status-dot.completed, .status-dot.healthy, .status-dot.on-track {
-  background-color: hsl(var(--success));
-  box-shadow: 0 0 4px hsla(var(--success), 0.4);
-}
-
-.status-dot.warning, .status-dot.caution, .status-dot.in-progress {
-  background-color: hsl(var(--warning));
-  box-shadow: 0 0 4px hsla(var(--warning), 0.4);
-}
-
-.status-dot.danger, .status-dot.critical, .status-dot.delayed, .status-dot.overdue {
-  background-color: hsl(var(--danger));
-  box-shadow: 0 0 4px hsla(var(--danger), 0.4);
-}
-
-.status-badge {
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-}
-
-.status-badge.success, .status-badge.completed, .status-badge.healthy, .status-badge.on-track {
-  background-color: hsla(var(--success), 0.15);
-  color: hsl(var(--success));
-  border: 1px solid hsla(var(--success), 0.2);
-}
-
-.status-badge.warning, .status-badge.caution, .status-badge.in-progress {
-  background-color: hsla(var(--warning), 0.15);
-  color: hsl(var(--warning));
-  border: 1px solid hsla(var(--warning), 0.2);
-}
-
-.status-badge.danger, .status-badge.critical, .status-badge.delayed, .status-badge.overdue {
-  background-color: hsla(var(--danger), 0.15);
-  color: hsl(var(--danger));
-  border: 1px solid hsla(var(--danger), 0.2);
-}
-
-/* Skeleton loading placeholders */
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--skeleton-start) 25%,
-    var(--skeleton-middle) 50%,
-    var(--skeleton-start) 75%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-loading 1.5s ease-in-out infinite;
-  border-radius: 4px;
-}
-
-.dark .skeleton {
-  --skeleton-start: hsl(215 28% 17%);
-  --skeleton-middle: hsl(215 25% 25%);
-}
-
-.light .skeleton {
-  --skeleton-start: hsl(220 14% 94%);
-  --skeleton-middle: hsl(220 14% 88%);
-}
-
-@keyframes skeleton-loading {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-/* Subtle animations */
-.fade-in {
-  animation: fadeIn 0.3s ease-in;
-}
-
-.slide-in-right {
-  animation: slideInRight 0.3s ease-out;
-}
-
-.slide-in-left {
-  animation: slideInLeft 0.3s ease-out;
-}
-
-.slide-in-up {
-  animation: slideInUp 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideInRight {
-  from { transform: translateX(20px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes slideInLeft {
-  from { transform: translateX(-20px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes slideInUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-/* Fix for section title contrast in light mode */
-.light h1, 
-.light h2, 
-.light h3,
-.light .page-title,
-.light .section-title {
-  color: hsl(240 10% 3%) !important; /* Ensure dark text in light mode */
-}
-
-/* Specifically fix page headers that might be white text */
-.light .text-white,
-.light .text-foreground-white {
-  color: hsl(240 10% 3%) !important;
-}
-
-/* Table enhancements for light mode */
-.light table {
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-/* MAY 16 2025 FIX: Row limit and highlighting styles */
-.row-limit-reached {
-  position: relative;
-  overflow: hidden;
-}
-
-.row-limit-flash {
-  animation: flashRowLimit 0.8s ease-in-out;
-}
-
-@keyframes flashRowLimit {
-  0%, 100% { box-shadow: none; }
-  50% { box-shadow: inset 0 0 0 3px rgba(239, 68, 68, 0.7); } /* Red flash */
-}
-
-/* Highlight the exact row being targeted during drag */
-.exact-row-highlight {
-  background-color: rgba(59, 130, 246, 0.15); /* Blue highlight */
-  position: relative;
-}
-
-.exact-row-highlight::after {
-  content: "Drop Here";
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(59, 130, 246, 0.9);
-  color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.light table {
-  width: 100%;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.light table thead tr {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.light table tbody tr {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.light table tbody tr:last-child {
-  border-bottom: none;
-}
-
-.light table tbody tr:hover {
-  background-color: rgba(0, 0, 0, 0.01);
-}
-
-.light table td {
-  padding: 12px 16px;
-  color: hsl(220 25% 20%);
-}
-
-/* Zebra striping for tables */
-.light table.zebra-striped tbody tr:nth-child(even) {
-  background-color: rgba(0, 0, 0, 0.02);
-}
-
-.dark table.zebra-striped tbody tr:nth-child(even) {
-  background-color: rgba(255, 255, 255, 0.02);
-}
-
-/* Card hover effects */
-.card {
-  transition: all 0.2s ease;
-}
-
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.12);
-}
-
-.dark .card:hover {
-  box-shadow: 0 8px 22px -8px rgba(0, 0, 0, 0.7);
-}
-
-/* Interactive elements hover */
-.button-hover-effect {
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.2s ease, background-color 0.2s ease;
-}
-
-.button-hover-effect:before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  transform: translateX(-100%);
-  transition: transform 0.3s ease;
-}
-
-.button-hover-effect:hover:before {
-  transform: translateX(0);
-}
-
-.dark .button-hover-effect:before {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.light .button-hover-effect:before {
-  background: rgba(0, 0, 0, 0.03);
-}
-
-/* Form field improvements */
-.form-field-focus {
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.dark .form-field-focus:focus-visible {
-  border-color: hsl(var(--primary));
-  box-shadow: 0 0 0 3px hsla(var(--primary), 0.25);
-  outline: none;
-}
-
-.light .form-field-focus:focus-visible {
-  border-color: hsl(var(--primary));
-  box-shadow: 0 0 0 3px hsla(var(--primary), 0.15);
-  outline: none;
-}
-
-/* Button enhancements */
-.btn-primary {
-  position: relative;
-  transition: all 0.2s ease;
-}
-
-.btn-primary:after {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  background: linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0));
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.btn-primary:hover:after {
-  opacity: 1;
-}
-
-.btn-primary:active {
-  transform: translateY(1px);
-}
-
-/* Custom scale animations */
-.scale-on-hover {
-  transition: transform 0.2s ease;
-}
-
-.scale-on-hover:hover {
-  transform: scale(1.03);
-}
-
-/* Entry/exit animations */
-.enter-from-right {
-  animation: enterFromRight 0.3s forwards;
-}
-
-.enter-from-left {
-  animation: enterFromLeft 0.3s forwards;
-}
-
-.enter-from-bottom {
-  animation: enterFromBottom 0.3s forwards;
-}
-
-@keyframes enterFromRight {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes enterFromLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes enterFromBottom {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Enhanced button styling */
-.btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  white-space: nowrap;
-  border-radius: 0.375rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.btn:active {
-  transform: translateY(1px);
-}
-
-.btn svg {
-  transition: transform 0.2s ease;
-}
-
-.btn:hover svg {
-  transform: translateX(2px);
-}
-
-.btn.loading {
-  position: relative;
-  pointer-events: none;
-}
-
-.btn.loading:before {
-  content: '';
-  position: absolute;
-  top: calc(50% - 0.5rem);
-  left: calc(50% - 0.5rem);
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid currentColor;
-  border-radius: 50%;
-  border-top-color: transparent;
-  animation: button-spin 0.6s linear infinite;
-}
-
-@keyframes button-spin {
+/* Loading animations */
+@keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-/* Custom color variants */
-.primary-gradient {
-  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-darker, calc(var(--primary-hue) var(--primary-saturation) 35%))));
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 
-.success-gradient {
-  background: linear-gradient(135deg, hsl(var(--success)), hsl(var(--success-darker, calc(var(--success-hue) var(--success-saturation) 35%))));
+/* Card hover effects */
+.card-hover {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
-.warning-gradient {
-  background: linear-gradient(135deg, hsl(var(--warning)), hsl(var(--warning-darker, calc(var(--warning-hue) var(--warning-saturation) 35%))));
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
-.danger-gradient {
-  background: linear-gradient(135deg, hsl(var(--danger)), hsl(var(--danger-darker, calc(var(--danger-hue) var(--danger-saturation) 35%))));
+/* Button focus styles */
+button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }
 
-/* Department phases within project bars */
-.dept-fab-phase {
-  @apply bg-blue-600;
+/* Form input styles */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.dept-paint-phase {
-  @apply bg-violet-600;
+/* Custom badge styles */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
 }
 
-.dept-production-phase {
-  @apply bg-emerald-600;
+.status-active {
+  background-color: #10b981;
+  color: white;
 }
 
-.dept-it-phase {
-  @apply bg-amber-600;
+.status-pending {
+  background-color: #f59e0b;
+  color: white;
 }
 
-.dept-ntc-phase {
-  @apply bg-red-600;
+.status-delivered {
+  background-color: #3b82f6;
+  color: white;
 }
 
-.dept-qc-phase {
-  @apply bg-purple-700;
+.status-archived {
+  background-color: #6b7280;
+  color: white;
 }
 
-/* Hide department labels and percentage labels unless hovering over the project bar */
-.big-project-bar:not(:hover) .dept-phase-label,
-.schedule-bar:not(:hover) .percentage-label {
-  opacity: 0;
-  visibility: hidden;
-}
-
-/* Row highlight classes for visualizing drag target row */
-.row-0-highlight {
-  background: linear-gradient(180deg, rgba(var(--primary-rgb), 0.2) 0%, rgba(var(--primary-rgb), 0.1) 25%, transparent 25%, transparent 100%) !important;
-}
-
-.row-1-highlight {
-  background: linear-gradient(180deg, transparent 0%, transparent 25%, rgba(var(--primary-rgb), 0.2) 25%, rgba(var(--primary-rgb), 0.1) 50%, transparent 50%, transparent 100%) !important;
-}
-
-.row-2-highlight {
-  background: linear-gradient(180deg, transparent 0%, transparent 50%, rgba(var(--primary-rgb), 0.2) 50%, rgba(var(--primary-rgb), 0.1) 75%, transparent 75%, transparent 100%) !important;
-}
-
-.row-3-highlight {
-  background: linear-gradient(180deg, transparent 0%, transparent 75%, rgba(var(--primary-rgb), 0.2) 75%, rgba(var(--primary-rgb), 0.1) 100%) !important;
-}
-
-/* These classes enable support for Team 7 & 8 with 20 rows */
-/* Special styling for multi-row bays like Team 7 & 8 */
-.multi-row-bay {
-  background-color: rgba(var(--primary-rgb), 0.04);
-  border-top: 1px solid rgba(var(--primary-rgb), 0.2);
-  box-shadow: inset 0 0 0 1px rgba(var(--primary-rgb), 0.1);
-}
-
-/* Row positioning for ALL BAYS - CRITICAL FIX */
-/* Standard bay rows (4 rows at 25% height) */
-/* FIXED: Forcing all rows within bay height boundaries regardless of row index */
-/* 🚨 MAY 16 2025 CRITICAL EMERGENCY FIX: EXACT ROW POSITIONING 🚨 */
-/* Allows ALL row numbers to be positioned EXACTLY where dropped with no remapping */
-/* Each row gets its own position - NO MODULO MATH - projects stay where placed */
-
-/* Row 0 to row 30+ - Using dynamic calculation for exact positioning */
-.row-0-bar { top: calc(0 * 25%) !important; height: 25% !important; }
-.row-1-bar { top: calc(1 * 25%) !important; height: 25% !important; }
-.row-2-bar { top: calc(2 * 25%) !important; height: 25% !important; }
-.row-3-bar { top: calc(3 * 25%) !important; height: 25% !important; }
-.row-4-bar { top: calc(4 * 25%) !important; height: 25% !important; }
-.row-5-bar { top: calc(5 * 25%) !important; height: 25% !important; }
-.row-6-bar { top: calc(6 * 25%) !important; height: 25% !important; }
-.row-7-bar { top: calc(7 * 25%) !important; height: 25% !important; }
-.row-8-bar { top: calc(8 * 25%) !important; height: 25% !important; }
-.row-9-bar { top: calc(9 * 25%) !important; height: 25% !important; }
-.row-10-bar { top: calc(10 * 25%) !important; height: 25% !important; }
-.row-11-bar { top: calc(11 * 25%) !important; height: 25% !important; }
-.row-12-bar { top: calc(12 * 25%) !important; height: 25% !important; }
-.row-13-bar { top: calc(13 * 25%) !important; height: 25% !important; }
-.row-14-bar { top: calc(14 * 25%) !important; height: 25% !important; }
-.row-15-bar { top: calc(15 * 25%) !important; height: 25% !important; }
-
-/* This allows proper positioning for any bay with ANY row number */
-
-/* CRITICAL UPDATE - VISUAL MAPPING FOR STANDARD BAYS (1-6, 9+) */
-/* Styles above handle all row mappings visually */
-
-/* SPECIAL MAPPING: All row numbers visually map to 0-3 for regular bays */
-/* These rules handle the modulo 4 requirement automatically by mapping */
-/* all the values to their visual positions within Bay 1-6 and Bay 9+ */
-
-/* CRITICAL: This ensures ANY given row index from 0-19 displays properly */
-/* Row distribution mapping for modulo 4 - bay 1-6 and bay 9+ specific mapping */
-/* 🚨 MAY 16 2025 CRITICAL CHANGE: PIXEL-PERFECT POSITIONING 🚨 */
-/* Each row gets positioned EXACTLY where it's expected without any remapping */
-/* This new pattern uses the direct data-row-index attribute to position each bar */
-
-/* Now we use a calculation based on the data-row-index value itself */
-.standard-bay .project-bar {
-  height: 25% !important; /* Standard height for each row */
-  border-top: 3px solid #ffffff33 !important;
-  transition: top 0.3s ease; /* Smooth transition for row changes */
-}
-
-/* Direct calculation for position based on attribute */
-.standard-bay .project-bar[data-row-index="0"] { top: calc(0 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="1"] { top: calc(1 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="2"] { top: calc(2 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="3"] { top: calc(3 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="4"] { top: calc(4 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="5"] { top: calc(5 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="6"] { top: calc(6 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="7"] { top: calc(7 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="8"] { top: calc(8 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="9"] { top: calc(9 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="10"] { top: calc(10 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="11"] { top: calc(11 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="12"] { top: calc(12 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="13"] { top: calc(13 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="14"] { top: calc(14 * 25%) !important; }
-.standard-bay .project-bar[data-row-index="15"] { top: calc(15 * 25%) !important; }
-
-/* Row highlight classes for multi-row bays (Teams 7 & 8) */
-/* These use precise percentage positioning for 20 rows (0-19) */
-
-/* First set - Using row-X-bar for backward compatibility */
-.multi-row-bay .row-0-bar { top: 0% !important; height: 5% !important; }
-.multi-row-bay .row-1-bar { top: 5% !important; height: 5% !important; }
-.multi-row-bay .row-2-bar { top: 10% !important; height: 5% !important; }
-.multi-row-bay .row-3-bar { top: 15% !important; height: 5% !important; }
-.multi-row-bay .row-4-bar { top: 20% !important; height: 5% !important; }
-.multi-row-bay .row-5-bar { top: 25% !important; height: 5% !important; }
-.multi-row-bay .row-6-bar { top: 30% !important; height: 5% !important; }
-.multi-row-bay .row-7-bar { top: 35% !important; height: 5% !important; }
-.multi-row-bay .row-8-bar { top: 40% !important; height: 5% !important; }
-.multi-row-bay .row-9-bar { top: 45% !important; height: 5% !important; }
-.multi-row-bay .row-10-bar { top: 50% !important; height: 5% !important; }
-.multi-row-bay .row-11-bar { top: 55% !important; height: 5% !important; }
-.multi-row-bay .row-12-bar { top: 60% !important; height: 5% !important; }
-.multi-row-bay .row-13-bar { top: 65% !important; height: 5% !important; }
-.multi-row-bay .row-14-bar { top: 70% !important; height: 5% !important; }
-.multi-row-bay .row-15-bar { top: 75% !important; height: 5% !important; }
-.multi-row-bay .row-16-bar { top: 80% !important; height: 5% !important; }
-.multi-row-bay .row-17-bar { top: 85% !important; height: 5% !important; }
-.multi-row-bay .row-18-bar { top: 90% !important; height: 5% !important; }
-.multi-row-bay .row-19-bar { top: 95% !important; height: 5% !important; }
-
-/* Second set - Using data-row-index for new implementation consistency */
-.multi-row-bay .project-bar[data-row-index="0"] { top: 0% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="1"] { top: 5% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="2"] { top: 10% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="3"] { top: 15% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="4"] { top: 20% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="5"] { top: 25% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="6"] { top: 30% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="7"] { top: 35% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="8"] { top: 40% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="9"] { top: 45% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="10"] { top: 50% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="11"] { top: 55% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="12"] { top: 60% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="13"] { top: 65% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="14"] { top: 70% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="15"] { top: 75% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="16"] { top: 80% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="17"] { top: 85% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="18"] { top: 90% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-.multi-row-bay .project-bar[data-row-index="19"] { top: 95% !important; height: 5% !important; border-top: 2px solid #ffffff22 !important; }
-
-/* Week cell hover - enhance visibility for dragging targets */
-.week-cell {
-  min-width: 144px;
-  border: 1px solid rgba(180, 180, 200, 0.2); /* Brighter grid lines for better visibility */
-  position: relative; /* Ensure proper positioning of children */
-  transition: background-color 0.15s ease; /* Smooth transitions */
-}
-
-.dark .week-cell {
-  border-color: rgba(180, 180, 200, 0.3); /* Brighter borders in dark mode */
-}
-
-.week-cell.drag-hover {
-  border: 2px dashed hsl(var(--primary)) !important;
-  background-color: rgba(59, 130, 246, 0.15) !important; /* Light blue background in hover state */
-  z-index: 5;
-}
-
-.week-cell.active-drop-target {
-  border: 2px solid hsl(var(--primary)) !important;
-  background-color: rgba(59, 130, 246, 0.3) !important; /* Slightly darker blue when active */
-}
-
-/* Bay row styling with improved visibility */
-.bay-row {
-  position: relative;
-  border-bottom: 1px solid rgba(180, 180, 200, 0.2);
-  transition: background-color 0.15s ease;
-}
-
-.bay-row:hover {
-  background-color: rgba(100, 130, 250, 0.15); /* Brighter highlight on hover */
-}
-
-.dark .bay-row {
-  border-color: rgba(180, 180, 200, 0.3); /* Brighter row borders in dark mode */
-}
-
-.row-target-highlight {
-  background-color: rgba(59, 130, 246, 0.25) !important; /* Increased highlight opacity */
-}
-
-.bay-highlight {
-  outline: 2px dashed #60a5fa !important;
-  box-shadow: 0 0 8px rgba(96, 165, 250, 0.5); /* Added glow effect for highlighting */
-}
-
-/* Styling for subcells in multi-row bays */
-.subcell {
-  transition: background-color 0.15s ease;
+/* Tooltip styles */
+.tooltip {
   position: relative;
 }
 
-.subcell:hover {
-  background-color: rgba(var(--primary-rgb), 0.1);
-  box-shadow: inset 0 0 0 1px rgba(var(--primary-rgb), 0.2);
-}
-
-/* Alternating background colors for better visibility */
-.subcell-even {
-  background-color: rgba(15, 23, 42, 0.01);
-}
-
-.subcell-odd {
-  background-color: rgba(15, 23, 42, 0.03);
-}
-
-/* Row specific highlights when dragging */
-.week-cell[data-target-row] .subcell[data-row-index="0"] {
-  background-color: rgba(var(--primary-rgb), 0.05);
-}
-
-.week-cell[data-target-row="0"] .subcell[data-row-index="0"],
-.week-cell[data-target-row="1"] .subcell[data-row-index="1"],
-.week-cell[data-target-row="2"] .subcell[data-row-index="2"],
-.week-cell[data-target-row="3"] .subcell[data-row-index="3"],
-.week-cell[data-target-row="4"] .subcell[data-row-index="4"],
-.week-cell[data-target-row="5"] .subcell[data-row-index="5"],
-.week-cell[data-target-row="6"] .subcell[data-row-index="6"],
-.week-cell[data-target-row="7"] .subcell[data-row-index="7"],
-.week-cell[data-target-row="8"] .subcell[data-row-index="8"],
-.week-cell[data-target-row="9"] .subcell[data-row-index="9"],
-.week-cell[data-target-row="10"] .subcell[data-row-index="10"],
-.week-cell[data-target-row="11"] .subcell[data-row-index="11"],
-.week-cell[data-target-row="12"] .subcell[data-row-index="12"],
-.week-cell[data-target-row="13"] .subcell[data-row-index="13"],
-.week-cell[data-target-row="14"] .subcell[data-row-index="14"],
-.week-cell[data-target-row="15"] .subcell[data-row-index="15"],
-.week-cell[data-target-row="16"] .subcell[data-row-index="16"],
-.week-cell[data-target-row="17"] .subcell[data-row-index="17"],
-.week-cell[data-target-row="18"] .subcell[data-row-index="18"],
-.week-cell[data-target-row="19"] .subcell[data-row-index="19"] {
-  background-color: rgba(var(--primary-rgb), 0.15) !important;
-}
-
-/* Week cell hover for specific rows/data slots */
-.week-cell-hover {
-  background-color: rgba(var(--primary-rgb), 0.15) !important;
-  border: 2px dashed hsl(var(--primary)) !important;
-  z-index: 5;
-}
-
-/* Vertical column highlight during resize operations */
-.vertical-highlight-column {
-  background-color: rgba(var(--primary-rgb), 0.2) !important;
-  position: relative;
-  z-index: 5;
-  box-shadow: inset 0 0 0 1px rgba(var(--primary-rgb), 0.3) !important;
-}
-
-.vertical-highlight-column::after {
-  content: '';
+.tooltip:hover::after {
+  content: attr(data-tooltip);
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background-color: hsl(var(--primary));
-  box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.8);
-  z-index: 50;
-}
-
-.vertical-highlight-column.left-resize::after {
-  left: 0;
-}
-
-.vertical-highlight-column.right-resize::after {
-  right: 0;
-}
-
-/* Generic column highlight for any cell in the same column */
-.column-highlight {
-  position: relative !important;
-  background-color: rgba(var(--primary-rgb), 0.07) !important;
-  box-shadow: inset 0 0 0 1px rgba(var(--primary-rgb), 0.2) !important;
-}
-
-/* Stronger highlight for the target column */
-.column-highlight::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 1px;
-  background-color: rgba(var(--primary-rgb), 0.5);
-  z-index: 30;
-}
-
-.column-highlight::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  width: 1px;
-  background-color: rgba(var(--primary-rgb), 0.5);
-  z-index: 30;
-}
-
-/* Theme-specific variations for vertical highlights */
-.dark .vertical-highlight-column {
-  background-color: rgba(var(--primary-rgb), 0.25) !important;
-}
-
-.light .vertical-highlight-column {
-  background-color: rgba(var(--primary-rgb), 0.15) !important;
-}
-
-.dark .column-highlight {
-  background-color: rgba(var(--primary-rgb), 0.1) !important;
-}
-
-.light .column-highlight {
-  background-color: rgba(var(--primary-rgb), 0.07) !important;
-}
-
-.dark .week-cell-hover {
-  background-color: rgba(var(--primary-rgb), 0.25) !important;
-}
-
-.light .week-cell-hover {
-  background-color: rgba(var(--primary-rgb), 0.15) !important;
-  z-index: 10;
-}
-
-/* Styling for resize hover target cells */
-.week-cell-resize-hover {
-  background-color: rgba(var(--primary-rgb), 0.25) !important;
-  border: 2px dashed hsl(var(--primary)) !important;
-  transition: all 0.2s ease-in-out;
-  z-index: 5;
-  position: relative;
-  box-shadow: inset 0 0 5px rgba(var(--primary-rgb), 0.3);
-}
-
-/* Dark theme - more visible highlight */
-.dark .week-cell-resize-hover {
-  background-color: rgba(var(--primary-rgb), 0.25) !important;
-  box-shadow: inset 0 0 8px rgba(var(--primary-rgb), 0.4);
-}
-
-/* Light theme - more subtle but still visible */
-.light .week-cell-resize-hover {
-  background-color: rgba(var(--primary-rgb), 0.15) !important;
-  box-shadow: inset 0 0 6px rgba(var(--primary-rgb), 0.25);
-}
-
-/* Column highlight styling */
-.week-column-highlight {
-  background-color: rgba(var(--primary-rgb), 0.05) !important;
-  border-left: 1px solid rgba(var(--primary-rgb), 0.3) !important;
-  border-right: 1px solid rgba(var(--primary-rgb), 0.3) !important;
-  z-index: 3;
-}
-
-.dark .week-column-highlight {
-  background-color: rgba(var(--primary-rgb), 0.1) !important;
-  border-left: 1px solid rgba(var(--primary-rgb), 0.4) !important;
-  border-right: 1px solid rgba(var(--primary-rgb), 0.4) !important;
-}
-
-.light .week-column-highlight {
-  background-color: rgba(var(--primary-rgb), 0.05) !important;
-  border-left: 1px solid rgba(var(--primary-rgb), 0.3) !important;
-  border-right: 1px solid rgba(var(--primary-rgb), 0.3) !important;
-}
-
-/* Target cell highlight at intersection of row and column */
-.target-cell-highlight {
-  background-color: rgba(var(--primary-rgb), 0.3) !important;
-  border: 2px solid hsl(var(--primary)) !important;
-  z-index: 10;
-  box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.5);
-}
-
-.dark .target-cell-highlight {
-  background-color: rgba(var(--primary-rgb), 0.25) !important;
-  border: 2px solid rgba(var(--primary-rgb), 0.9) !important;
-}
-
-.light .target-cell-highlight {
-  background-color: rgba(var(--primary-rgb), 0.15) !important;
-  border: 2px solid rgba(var(--primary-rgb), 0.6) !important;
-}
-
-/* Vertical text for small sections */
-.vertical-text {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  transform-origin: center;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #1f2937;
+  color: #f9fafb;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
   white-space: nowrap;
-  display: inline-block;
-  line-height: 1;
+  z-index: 1000;
 }
 
-/* Resize handles for schedule bars */
+/* Resizable layout styles */
+.resizable-container {
+  display: flex;
+  height: 100%;
+}
+
+.resizable-panel {
+  flex: 1;
+  overflow: hidden;
+}
+
 .resize-handle {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 24px; /* Wider for easier grabbing */
+  width: 4px;
+  background-color: #374151;
+  cursor: col-resize;
+  transition: background-color 0.2s;
+}
+
+.resize-handle:hover {
+  background-color: #4b5563;
+}
+
+/* Gantt chart styles */
+.gantt-bar {
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.gantt-bar-fabrication {
+  background-color: #ef4444;
+}
+
+.gantt-bar-assembly {
+  background-color: #f97316;
+}
+
+.gantt-bar-testing {
+  background-color: #eab308;
+}
+
+.gantt-bar-delivery {
+  background-color: #22c55e;
+}
+
+/* Manufacturing bay styles */
+.bay-container {
+  border: 2px solid #374151;
+  border-radius: 8px;
+  background-color: #1f2937;
+  min-height: 200px;
+  position: relative;
+}
+
+.bay-header {
+  background-color: #111827;
+  padding: 8px 12px;
+  border-bottom: 1px solid #374151;
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+}
+
+.bay-content {
+  padding: 12px;
+}
+
+.project-block {
+  background-color: #3b82f6;
+  color: white;
+  padding: 8px;
+  margin: 4px 0;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: grab;
+  transition: transform 0.2s;
+}
+
+.project-block:hover {
+  transform: scale(1.02);
+}
+
+.project-block.dragging {
+  opacity: 0.5;
+  transform: rotate(5deg);
+}
+
+/* Drop zone styles */
+.drop-zone {
+  min-height: 40px;
+  border: 2px dashed #4b5563;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid rgba(255, 255, 255, 0.7);
-  opacity: 0;
-  transition: opacity 0.15s ease-in-out, background-color 0.15s ease-in-out;
-  cursor: ew-resize !important;
-  z-index: 9999 !important; /* Maximum z-index to always be on top */
-  pointer-events: auto !important; /* Ensure it captures mouse events */
+  color: #9ca3af;
+  font-size: 14px;
+  margin: 4px 0;
+  transition: all 0.2s;
 }
 
-.resize-handle::before {
-  content: "";
-  position: absolute;
-  top: -10px;
-  bottom: -10px;
-  left: -5px;
-  right: -5px;
-  z-index: -1;
+.drop-zone.active {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
 }
 
-.dark .resize-handle {
-  background-color: rgba(0, 0, 0, 0.8);
+/* Calendar styles */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background-color: #374151;
+  border: 1px solid #374151;
+}
+
+.calendar-cell {
+  background-color: #1f2937;
+  padding: 8px;
+  min-height: 80px;
+  position: relative;
+}
+
+.calendar-cell.other-month {
+  color: #6b7280;
+  background-color: #111827;
+}
+
+.calendar-cell.today {
+  background-color: #1e40af;
+}
+
+.calendar-event {
+  background-color: #3b82f6;
   color: white;
+  padding: 2px 4px;
+  margin: 1px 0;
+  border-radius: 2px;
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.light .resize-handle {
-  background-color: rgba(0, 0, 0, 0.6);
-  color: white;
-}
-
-.resize-handle-left {
-  left: 0;
-  transform: translateX(-50%);
-  border-top-left-radius: 4px;
-  border-bottom-left-radius: 4px;
-}
-
-.resize-handle-right {
-  right: 0;
-  transform: translateX(50%);
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 4px;
-}
-
-.big-project-bar:hover .resize-handle {
-  opacity: 1 !important;
-  background-color: rgba(0, 0, 0, 0.95) !important;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9) !important;
-  transform: scale(1.1) !important;
-  z-index: 500 !important;
-}
-
-/* Ensure right handles are always above project phases */
-.resize-handle-right:hover {
-  opacity: 1 !important;
-  background-color: rgba(0, 0, 0, 0.9) !important;
-  border: 2px solid rgba(255, 255, 255, 1) !important;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5) !important;
-  z-index: 500 !important;
-}
-
-/* Always ensure resize handles are visible on overlap */
-.resize-handle-right {
-  background-color: rgba(0, 0, 0, 0.8) !important;
-  border: 3px solid rgba(255, 255, 255, 0.95) !important;
-  z-index: 500 !important; /* Lower z-index below popups */
-  opacity: 0.4 !important; /* Make them slightly visible by default */
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
-}
-
-.resize-handle-left {
-  background-color: rgba(0, 0, 0, 0.8) !important;
-  border: 3px solid rgba(255, 255, 255, 0.95) !important;
-  z-index: 500 !important; /* Lower z-index below popups */
-  opacity: 0.4 !important; /* Make them slightly visible by default */
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
-}
-
-/* Always show handles when in resize operation */
-.resizing-active .resize-handle,
-body.resizing-mode .resize-handle {
-  opacity: 1 !important;
-}
-
-/* Ensure all popups and dialogs are above everything */
-[data-radix-popper-content-wrapper],
-[data-radix-dialog-overlay],
-[data-radix-dialog-content],
-[data-radix-popover-content],
-[data-radix-dropdown-menu-content],
-[data-radix-select-content],
-[data-radix-tooltip-content],
-[role="dialog"],
-[role="menu"],
-[role="listbox"],
-[role="tooltip"],
-.dialog-overlay,
-.dialog-content,
-.popover-content,
-.dropdown-menu-content,
-.select-content,
-.tooltip-content,
-.modal,
-.popup {
-  z-index: 999999 !important; /* Absolutely above everything */
-}
-
-/* Hide all resize handles when any dialog is open */
-[data-state="open"] ~ * .resize-handle,
-[data-radix-dialog-overlay] ~ * .resize-handle,
-body:has([data-radix-dialog-overlay]) .resize-handle,
-body:has([role="dialog"]) .resize-handle {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
-
-.dark .resize-handle:hover {
-  background-color: rgba(0, 0, 0, 1);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
-}
-
-.light .resize-handle:hover {
-  background-color: rgba(0, 0, 0, 0.8);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
-}
-
-/* Style for resize-in-progress class */
-.resize-in-progress {
-  pointer-events: all !important;
-  position: relative;
-  z-index: 45 !important;
-  cursor: ew-resize !important;
-  user-select: none !important;
-}
-
-/* Make the resize icons more visible */
-.resize-handle svg {
-  filter: drop-shadow(0px 0px 2px rgba(0, 0, 0, 0.8));
-  width: 18px;
-  height: 18px;
-  stroke-width: 3px;
-}
-
-/* Styling for week cells during resize hover - enhanced version */
-.week-cell-resize-highlight {
-  position: relative;
-  z-index: 25;
-  border: 2px solid rgba(var(--primary), 0.8) !important;
-  outline: 1px solid white;
-  transition: all 0.1s ease-in-out;
-  transform: scale(1.02);
-}
-
-/* Dark theme styling for resize hover */
-.dark .week-cell-resize-highlight {
-  background-color: rgba(var(--primary), 0.35) !important;
-  box-shadow: 0 0 8px 1px rgba(var(--primary), 0.6);
-}
-
-/* Light theme styling for resize hover */
-.light .week-cell-resize-highlight {
-  background-color: rgba(var(--primary), 0.25) !important;
-  box-shadow: 0 0 8px 1px rgba(var(--primary), 0.4);
-}
-
-/* Improved drag and drop visual feedback */
-.dragging-active {
-  cursor: grabbing !important;
-}
-
-.drag-hover {
-  background-color: rgba(var(--primary), 0.1);
-}
-
-/* Enhanced Bay 3 styling for drag and drop operations */
-.bay-3-drop-active {
-  @apply border-2 border-green-500 bg-green-50 dark:bg-green-900/20 shadow-lg transition-all duration-300;
-}
-
-/* Make Bay 3's background distinctly visible during drag */
-.bay-content[data-bay-id="3"] .bay-row {
-  @apply dark:hover:bg-green-900/20 hover:bg-green-50/50;
-}
-
-/* Special hover state for Bay 3 rows to improve visibility */
-.bay-content[data-bay-id="3"] .bay-row:hover,
-.bay-content[data-bay-id="3"] .bay-row.row-target-highlight {
-  @apply dark:bg-green-900/30 bg-green-50/70 !important;
-}
-
-.dragging-over-bay-3 {
-  @apply outline-2 outline-offset-2 outline-green-500 opacity-90;
-}
-
-.drop-bay-3 {
-  @apply ring-2 ring-green-500 ring-offset-1;
-}
-
-.active-drop-target {
-  background-color: rgba(var(--primary), 0.25) !important;
-  border: 2px dashed rgb(var(--primary)) !important;
-}
-
-/* Row-specific highlight classes */
-.row-0-highlight {
-  box-shadow: inset 0 0 0 2px rgb(var(--primary)), inset 0 0 0 4px rgba(var(--primary), 0.2);
-  background-image: linear-gradient(to bottom, rgba(var(--primary), 0.2) 0%, rgba(var(--primary), 0.05) 25%, transparent 25%, transparent 100%);
-}
-
-.row-1-highlight {
-  box-shadow: inset 0 0 0 2px rgb(var(--primary)), inset 0 0 0 4px rgba(var(--primary), 0.2);
-  background-image: linear-gradient(to bottom, transparent 0%, transparent 25%, rgba(var(--primary), 0.2) 25%, rgba(var(--primary), 0.05) 50%, transparent 50%, transparent 100%);
-}
-
-.row-2-highlight {
-  box-shadow: inset 0 0 0 2px rgb(var(--primary)), inset 0 0 0 4px rgba(var(--primary), 0.2);
-  background-image: linear-gradient(to bottom, transparent 0%, transparent 50%, rgba(var(--primary), 0.2) 50%, rgba(var(--primary), 0.05) 75%, transparent 75%, transparent 100%);
-}
-
-.row-3-highlight {
-  box-shadow: inset 0 0 0 2px rgb(var(--primary)), inset 0 0 0 4px rgba(var(--primary), 0.2);
-  background-image: linear-gradient(to bottom, transparent 0%, transparent 75%, rgba(var(--primary), 0.2) 75%, rgba(var(--primary), 0.05) 100%);
-}
-
-/* Sticky header styles */
-.week-header-sticky {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  backdrop-filter: blur(5px);
-}
-
-.dark .week-header-sticky {
-  background-color: rgba(var(--background), 0.95);
-}
-
-.light .week-header-sticky {
-  background-color: rgba(var(--background), 0.95);
-}
-
-.week-header-sticky:not(.hidden) {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-/* Main content scroll area */
-.main-content {
-  max-height: calc(100vh - 140px);
-  overflow-y: auto;
-  overflow-x: auto;
-  position: relative;
-}
-
-/* Visual feedback animations for resize operations */
-.resizing-active {
-  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.7) !important;
-  transition: all 0.05s ease-out;
-  z-index: 50 !important;
-}
-
-.resizing-active.resize-from-left {
-  border-left: 3px solid hsl(var(--primary)) !important;
-  box-shadow: -4px 0 8px rgba(var(--primary-rgb), 0.5), 0 0 0 2px rgba(var(--primary-rgb), 0.5) !important;
-}
-
-.resizing-active.resize-from-right {
-  border-right: 3px solid hsl(var(--primary)) !important;
-  box-shadow: 4px 0 8px rgba(var(--primary-rgb), 0.5), 0 0 0 2px rgba(var(--primary-rgb), 0.5) !important;
-}
-
-/* Bay row management styles */
-.row-management-buttons {
-  position: absolute;
-  left: 50%;
-  top: calc(100% - 12px); /* Position slightly above the divider line */
-  transform: translateX(-50%);
-  display: flex !important;
-  gap: 8px;
-  z-index: 500 !important; /* Lower than popups */
-  opacity: 1 !important; /* Force visibility */
-  visibility: visible !important; /* Force visibility */
-  pointer-events: auto !important; /* Ensure clickable */
-  background: rgba(0,0,0,0.2) !important; /* Subtle background for better visibility */
-  padding: 2px !important;
-  border-radius: 15px !important;
-}
-
-/* Row divider container needs position relative for absolute positioning of buttons */
-.bay-row {
-  position: relative !important;
-}
-
-/* Make buttons very obvious with larger size and bright colors */
-.row-add-button, .row-delete-button {
-  height: 24px !important;
-  width: 24px !important;
-  border-radius: 50% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer !important;
-  opacity: 1 !important; /* Force visibility */
-  visibility: visible !important; /* Force visibility */
-  border: 2px solid white !important;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.8) !important;
-  transition: transform 0.1s ease !important;
-}
-
-.row-add-button {
-  background-color: rgb(37, 99, 235) !important; /* Bright blue */
-  color: white !important;
-}
-
-.row-delete-button {
-  background-color: rgb(220, 38, 38) !important; /* Bright red */
-  color: white !important;
-}
-
-.row-add-button:hover, .row-delete-button:hover {
-  transform: scale(1.1) !important;
-}
-
-/* Show the row management buttons on hover and by default */
-.row-management-buttons {
-  display: flex !important; /* Always visible by default */
-}
-
-/* Add more emphasis on hover */
-.bay-row:hover .row-management-buttons {
-  transform: translateX(-50%) scale(1.1) !important;
-  background: rgba(0,0,0,0.4) !important;
-}
-
-/* Override any other styles that might hide these buttons */
-.row-management-buttons * {
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-/* Add a pulse animation to make buttons more noticeable */
-@keyframes button-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
-}
-
-.row-management-buttons .row-add-button,
-.row-management-buttons .row-delete-button {
-  animation: button-pulse 2s infinite;
-}
-
-/* Multi-row bay styling for Team 7 & 8 */
-.multi-row-bay {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  border-radius: 0.25rem;
-  background-color: rgba(15, 23, 42, 0.03);
-  border: 1px solid rgba(51, 65, 85, 0.1);
+/* Progress bar styles */
+.progress-container {
+  width: 100%;
+  height: 8px;
+  background-color: #374151;
+  border-radius: 4px;
   overflow: hidden;
 }
 
-/* For Team 7 & 8 with 20 rows */
-.multi-row-bay .bay-row {
-  position: relative;
-  border-bottom: 1px dashed rgba(100, 116, 139, 0.2);
-  transition: background-color 0.2s ease;
-  min-height: 30px !important; 
-  height: 30px !important;
-}
-
-/* Highlight even rows for better visibility */
-.multi-row-bay .bay-row:nth-child(even) {
-  background-color: rgba(15, 23, 42, 0.02);
-}
-
-/* Highlight every 5th row with a slightly darker line */
-.multi-row-bay .bay-row:nth-child(5n) {
-  border-bottom: 1px solid rgba(100, 116, 139, 0.3);
-}
-
-.multi-row-bay .bay-row:hover {
-  background-color: rgba(59, 130, 246, 0.05);
-}
-
-/* Row number indicators for multi-row bays */
-.multi-row-bay .row-number {
-  position: absolute;
-  left: -1.5rem;
-  top: 0;
+.progress-bar {
   height: 100%;
+  background-color: #3b82f6;
+  transition: width 0.3s ease;
+}
+
+.progress-bar.high {
+  background-color: #22c55e;
+}
+
+.progress-bar.medium {
+  background-color: #f59e0b;
+}
+
+.progress-bar.low {
+  background-color: #ef4444;
+}
+
+/* Notification styles */
+.notification {
+  background-color: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px 0;
+  transition: all 0.2s;
+}
+
+.notification:hover {
+  background-color: #374151;
+}
+
+.notification.unread {
+  border-left: 4px solid #3b82f6;
+}
+
+.notification.read {
+  opacity: 0.7;
+}
+
+/* Chart styles */
+.chart-container {
+  background-color: #1f2937;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.chart-legend-item {
   display: flex;
   align-items: center;
-  font-size: 0.65rem;
-  color: rgba(59, 130, 246, 0.8);
+  gap: 4px;
+  font-size: 12px;
 }
 
-.multi-row-bay .row-number-badge {
-  background-color: rgba(59, 130, 246, 0.1);
-  border-radius: 0.25rem;
-  padding: 0 0.25rem;
-  font-weight: 500;
-}
-
-/* Enhanced visibility for every 5th row number */
-.multi-row-bay .bay-row:nth-child(5n) .row-number-badge {
-  background-color: rgba(59, 130, 246, 0.2);
-  font-weight: 700;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-/* Expanded wrapper for Team 7 and Team 8 bays */
-.multi-row-bay-wrapper {
-  height: 600px !important;
-  min-height: 600px !important;
-  overflow-y: auto !important;
-}
-
-/* Row target and limit visualization styles */
-.exact-row-highlight {
-  background-color: rgba(25, 118, 210, 0.2) !important;
-  outline: 2px dashed rgba(25, 118, 210, 0.5) !important;
-  z-index: 5;
-  position: relative;
-}
-
-.exact-row-highlight::before {
-  content: "TARGET";
-  position: absolute;
-  left: 5px;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: rgba(25, 118, 210, 0.2);
-  color: #2074cc;
-  font-size: 8px;
-  font-weight: bold;
-  padding: 1px 3px;
+.chart-legend-color {
+  width: 12px;
+  height: 12px;
   border-radius: 2px;
-  pointer-events: none;
-  z-index: 6;
 }
 
-.row-limit-reached .bay-row:nth-child(4) {
-  position: relative;
-}
-
-.row-limit-reached .bay-row:nth-child(4)::after {
-  content: "ROW LIMIT";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(255, 50, 50, 0.2);
-  color: #ff3232;
-  font-size: 9px;
-  font-weight: bold;
-  text-align: center;
-  padding: 2px;
-  z-index: 10;
-  pointer-events: none;
-}
-
-.row-limit-enforced .bay-row:nth-child(4) {
-  border-bottom: 2px solid #ff3232 !important;
-}
-
-.row-limit-flash {
-  animation: flash-row-limit 0.8s ease-in-out;
-}
-
-@keyframes flash-row-limit {
-  0%, 100% {
-    background-color: rgba(255, 50, 50, 0);
-  }
-  50% {
-    background-color: rgba(255, 50, 50, 0.3);
-  }
-}
-
-/* MAY 16 2025 - CRITICAL PIXEL-PERFECT POSITIONING SYSTEM */
-/* Allow perfect alignment of project bars with no DOM shifting */
-.bay-content .bay-project-area {
-  position: relative;
-  padding: 0;
-  transition: none !important;
-}
-
-/* Force absolute positioning to prevent auto-reflows */
-.bay-content .bay-project-area .project-bar {
-  position: absolute !important;
-  transition: none !important;
-  z-index: 20 !important;
-}
-
-/* 🚨 MAY 16 2025 CRITICAL FIX - ABSOLUTE OVERRIDE FOR ALL POSITIONING 🚨 */
-/* This ensures ALL projects stay EXACTLY where they are placed with NO EXCEPTIONS */
-/* The !important flags with max-specificity override all other CSS rules */
-.big-project-bar {
-  height: var(--row-height, 25%) !important;
-  /* DISABLED ALL AUTO-POSITIONING - Using inline styles only */
-  transform: none !important;
-  transition: none !important;
-  /* No automatic top positioning - the inline style will handle this */
-}
-
-/* 🚨 MAY 16 2025 CRITICAL OVERRIDE: Force CSS custom properties to override all other styles 🚨 */
-/* This ensures the top/height values we set in code always win, regardless of other CSS rules */
-.big-project-bar[style*="--explicit"] {
-  top: var(--explicit-top) !important;
-  height: var(--explicit-height) !important;
-  /* Enhanced specificty to ensure these win in all cases */
-  position: absolute !important;
-  transform: none !important;
-  transition: none !important;
-  z-index: 30 !important;
-}
-
-/* 
- * MAY 16 2025 CRITICAL UPDATE: Allow project bars to appear at ANY row position
- * This CSS matches our server changes to remove row limits
- * Projects will appear at EXACT Y pixel position where they were dropped
- */
-
-/* Generic dynamic positioning - each bar gets positioned at exact % of total height */
-[class*="row-"][class$="-bar"] {
-  position: absolute !important;
-  height: var(--row-height, 25%) !important;
-  transform: none !important;
-}
-
-/* DISABLED MAY 16 2025 - NO CSS CLASS POSITIONING - USING INLINE STYLES ONLY */
-/* Auto-calculation of position previously used CSS class selectors but now we use direct inline styles */
-/* This was causing conflicts with our inline positioning, so we've disabled it completely */
-/* 
-[class*="row-"][class$="-bar"] {
-  --row-index: 0;
-  top: calc(var(--row-index) * var(--row-unit-height, 5%)) !important;
-}
-*/
-
-/* DISABLED MAY 16 2025 - NO CLASS-BASED ROW POSITIONING */
-/* Row classes have been disabled - we now use direct inline styling with !important flags */
-/* This was causing conflicts with our positioning, so we've completely removed it */
-
-/* Keeping only the data attributes for other UI features */
-
-/* For standard bays, we set the unit height to 25% (4 rows) */
-.bay[data-bay-number="1"] .bay-content .bay-project-area,
-.bay[data-bay-number="2"] .bay-content .bay-project-area,
-.bay[data-bay-number="3"] .bay-content .bay-project-area,
-.bay[data-bay-number="4"] .bay-content .bay-project-area,
-.bay[data-bay-number="5"] .bay-content .bay-project-area,
-.bay[data-bay-number="6"] .bay-content .bay-project-area,
-.bay[data-bay-number="9"] .bay-content .bay-project-area,
-.bay[data-bay-number="10"] .bay-content .bay-project-area,
-.bay[data-bay-number="11"] .bay-content .bay-project-area,
-.bay[data-bay-number="12"] .bay-content .bay-project-area {
-  /* Standard bays show 4 rows, so each row is 25% of height */
-  --row-unit-height: 25%;
-  --row-height: 25%;
-}
-
-/* For multi-row bays (7-8), we set the unit height to 5% (20 rows) */
-.bay[data-bay-number="7"] .bay-content .bay-project-area,
-.bay[data-bay-number="8"] .bay-content .bay-project-area {
-  /* Multi-row bays show 20 rows, so each row is 5% of height */
-  --row-unit-height: 5%;
-  --row-height: 5%;
-}
-
-/* CRITICAL FIX: Bay type markers for differentiating between standard and multi-row bays */
-.bay[data-bay-number="1"],
-.bay[data-bay-number="2"],
-.bay[data-bay-number="3"],
-.bay[data-bay-number="4"],
-.bay[data-bay-number="5"],
-.bay[data-bay-number="6"],
-.bay[data-bay-number="9"],
-.bay[data-bay-number="10"] {
-  --bay-type: "standard";
-}
-
-.bay[data-bay-number="7"],
-.bay[data-bay-number="8"] {
-  --bay-type: "multi-row";
-}
-
-/* MAY 15 FIX: Auto-classify bays as standard or multi-row */
-.bay[data-bay-number="1"] .bay-content,
-.bay[data-bay-number="2"] .bay-content,
-.bay[data-bay-number="3"] .bay-content,
-.bay[data-bay-number="4"] .bay-content,
-.bay[data-bay-number="5"] .bay-content,
-.bay[data-bay-number="6"] .bay-content,
-.bay[data-bay-number="9"] .bay-content,
-.bay[data-bay-number="10"] .bay-content {
-  height: 150px !important;
-}
-
-.bay[data-bay-number="7"] .bay-content,
-.bay[data-bay-number="8"] .bay-content {
-  min-height: 600px !important;
-}
-
-/* Add visible bay identification clues */
-.bay[data-bay-number="1"]::before,
-.bay[data-bay-number="2"]::before,
-.bay[data-bay-number="3"]::before,
-.bay[data-bay-number="4"]::before,
-.bay[data-bay-number="5"]::before,
-.bay[data-bay-number="6"]::before,
-.bay[data-bay-number="9"]::before,
-.bay[data-bay-number="10"]::before {
-  content: "4-ROW STANDARD";
-  position: absolute;
-  top: 0;
-  right: 10px;
-  background-color: rgba(113, 113, 122, 0.3);
-  font-size: 9px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  z-index: 5;
-  color: rgb(250, 250, 250);
-  pointer-events: none;
-}
-
-.bay[data-bay-number="7"]::before,
-.bay[data-bay-number="8"]::before {
-  content: "20-ROW BAY";
-  position: absolute;
-  top: 0;
-  right: 10px;
-  background-color: rgba(59, 130, 246, 0.3);
-  font-size: 9px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  z-index: 5;
-  color: rgb(255, 255, 255);
-  pointer-events: none;
-}
-
-/* Enhanced project bar styling with light mode support - May 15, 2025 */
-.big-project-bar, 
-.project-bar, 
-.bay-project-area .project-bar {
-  border-radius: 4px;
-  cursor: move;
-  position: absolute;
-  user-select: none;
-  border: 1px solid rgba(255, 255, 255, 0.25); /* Brighter border for better visibility */
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Stronger shadow */
-  background-color: rgba(59, 130, 246, 0.3); /* More vibrant blue */
-  z-index: 2; /* Ensure project bars are above the grid */
-}
-
-/* Project title styling for better light mode visibility */
-.big-project-bar .project-title,
-.project-bar .project-title,
-.schedule-bar .project-title {
-  background-color: rgba(255, 255, 255, 0.95);
-  color: #1a1a1a;
-  padding: 2px 6px;
-  border-radius: 2px;
-  margin: 2px;
-  font-weight: 600;
-  font-size: 11px;
-  text-shadow: none;
-}
-
-.dark .big-project-bar .project-title,
-.dark .project-bar .project-title,
-.dark .schedule-bar .project-title {
-  background-color: rgba(0, 0, 0, 0.7);
-  color: #ffffff;
-}
-
-/* Project bar styles for light mode */
-.light .big-project-bar,
-.light .project-bar,
-.light .bay-project-area .project-bar {
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-/* Project bar highlights when being dragged */
-.big-project-bar.is-dragging,
-.project-bar.is-dragging,
-.bay-project-area .project-bar.is-dragging {
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4) !important; 
-  opacity: 0.8;
-  z-index: 1000 !important; /* Ensure dragged element is on top */
-}
-
-/* Enhanced hover states for project bars */
-.big-project-bar:hover,
-.project-bar:hover,
-.bay-project-area .project-bar:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
-}
-
-/* PIXEL-PERFECT POSITIONING ENHANCEMENTS */
-
-/* Enhanced bay highlighting for precise drop locations */
-.bay-highlight {
-  background-color: rgba(50, 205, 50, 0.1) !important; 
-  box-shadow: inset 0 0 0 2px rgba(0, 255, 0, 0.4) !important;
-  position: relative;
-}
-
-/* Row target highlight for precise positioning */
-.row-target-highlight {
-  background-color: rgba(0, 200, 100, 0.1) !important;
-  position: relative;
-}
-
-/* Grid to show exact positioning */
-.row-target-highlight::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: linear-gradient(to right, rgba(100, 255, 100, 0.1) 1px, transparent 1px);
-  background-size: 50px 100%;
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* Improved schedule bar styling with drop shadow for better visibility */
-.schedule-bar {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
-  /* CRITICAL: use transform to handle z-index layering instead of z-index */
-  transform: scale(1.0);
-}
-
-/* Hovering over a bar should bring it to the front without disrupting placement */
-.schedule-bar:hover {
-  /* Use transform to visually bring the bar forward rather than changing z-index */
-  transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-  /* Ensure project details are visible even when overlapping */
-  opacity: 0.95;
-}
-
-/* Style for the dragging state */
-.schedule-bar.dragging {
-  transform: scale(1.05);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5) !important;
-  opacity: 0.9;
-}
-
-/* Enhanced week cell styling for better visibility and drop precision */
-.week-cell {
-  transition: background-color 0.1s ease;
-  position: relative;
-}
-
-.week-cell:hover {
-  background-color: rgba(59, 130, 246, 0.1);
-}
-
-/* Week boundary styling */
-.week-boundary {
-  background-color: rgba(30, 41, 59, 0.05);
-}
-
-/* Month boundary styling */
-.month-boundary {
-  background-color: rgba(30, 41, 59, 0.1);
-}
-
-/* Weekend cell styling */
-.weekend-cell {
-  background-color: rgba(30, 41, 59, 0.05);
-}
-
-/* Highlight style for drop target cells */
-.cell-highlight {
-  background-color: rgba(59, 130, 246, 0.2) !important;
-  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.4);
-}
-
-/* Exact week highlight for precision dropping */
-.exact-week-highlight {
-  z-index: 10;
-  box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.8);
-}
-
-/* Dark mode week cell enhancements */
-.dark .week-cell {
-  border-color: rgba(75, 85, 99, 0.4);
-}
-
-.dark .week-boundary {
-  background-color: rgba(255, 255, 255, 0.03);
-}
-
-.dark .month-boundary {
-  background-color: rgba(255, 255, 255, 0.08);
-  border-left-color: rgba(156, 163, 175, 0.5);
-}
-
-.dark .weekend-cell {
-  background-color: rgba(17, 24, 39, 0.3);
-}
-
-.dark .cell-highlight {
-  background-color: rgba(59, 130, 246, 0.15) !important;
-  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.4);
-}
-
-.dark .exact-week-highlight {
-  box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.6);
-}
-
-/* Enhanced bay row styling */
-.bay-row {
-  position: relative;
-  border-top: 1px solid rgba(75, 85, 99, 0.2);
-  transition: background-color 0.15s ease;
-}
-
-.bay-row:hover {
-  background-color: rgba(59, 130, 246, 0.05);
-}
-
-/* Bay highlight during drag operations */
-.bay-highlight {
-  background-color: rgba(16, 185, 129, 0.1) !important;
-  box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.3);
-}
-
-/* Dark mode bay row styling */
-.dark .bay-row {
-  border-color: rgba(75, 85, 99, 0.4);
-}
-
-.dark .bay-row:hover {
-  background-color: rgba(59, 130, 246, 0.08);
-}
-
-.dark .bay-highlight {
-  background-color: rgba(16, 185, 129, 0.15) !important;
-  box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.5);
-}
-
-/* Row target highlight for precise dropping */
-.row-target-highlight {
-  background-color: rgba(16, 185, 129, 0.15);
-}
-
-/* ULTRA FORCE DROP ACCEPTANCE - NO EXCEPTIONS */
-[draggable="true"] {
-  cursor: grab !important;
-  z-index: 9999 !important;
-}
-
-/* When dragging is happening, ALL elements must accept drops */
-.unassigned-project-card:active,
-.unassigned-project-card.dragging {
-  cursor: grabbing !important;
-}
-
-/* DIRECT FIX FOR DROP TARGET - All elements receive drops ALWAYS */
-.bay-row, 
-.schedule-grid-cell, 
-.bay-content,
-.week-cell, 
-.day-cell,
-[data-bay-id],
-[data-row],
-[data-date],
-[data-slot-index] {
-  cursor: default !important; 
-  pointer-events: all !important;
-}
-
-/* Force drop acceptance for ALL elements */
-body[data-drag-in-progress="true"] * {
-  pointer-events: all !important;
-  cursor: move !important;
-}
-
-/* NO ELEMENT CAN REJECT DROPS */
-body[data-drag-in-progress="true"] [draggable="false"] * {
-  pointer-events: all !important;
-}
-
-/* Force unassigned cards to always be draggable */
-.unassigned-project-card {
-  cursor: grab !important;
-  user-select: none !important;
-  z-index: 9999 !important;
-}
-
-/* Make bay labels sticky when scrolling horizontally */
-.bay-label {
-  position: sticky !important;
-  left: 0 !important;
-  z-index: 40 !important;
-  box-shadow: 4px 0 6px rgba(0,0,0,0.1) !important;
-}
-
-/* Enhanced drop zone styling for unassigned projects section */
-.drop-zone-active {
-  background-color: rgba(59, 130, 246, 0.2) !important;
-  border: 2px dashed rgba(59, 130, 246, 0.7) !important;
-  border-radius: 0.5rem !important;
-  transition: all 0.2s ease-in-out !important;
-  animation: pulse 1.5s infinite !important;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-  }
-}
-
-/* Disable all browser restrictions that might prevent dropping */
-[draggable=true] {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
-
-/* CRITICAL: Force drop area and cursor styling */
-.bay-row {
-  cursor: move !important;
-}
-
-/* CRITICAL: Element specific overrides for drop zones */
-.schedule-row-cells .slot-cell,
-.week-cells .slot-cell,
-.schedule-grid td,
-.bay-content {
-  pointer-events: all !important;
-  cursor: move !important;
+/* Authentication pages */
+.auth-routes {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
 }
