@@ -185,6 +185,8 @@ export async function setupAuth(app: Express) {
           }
 
           console.log(`[AUTH] Verifying password for user: ${user.email || user.username}`);
+          console.log(`[AUTH] Stored password hash: ${user.password}`);
+          console.log(`[AUTH] Input password: ${password}`);
           const passwordMatch = await comparePasswords(password, user.password);
           console.log(`[AUTH] Password match: ${passwordMatch}`);
 
