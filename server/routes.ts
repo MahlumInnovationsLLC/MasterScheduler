@@ -19,7 +19,8 @@ import {
   insertUserPreferencesSchema,
   insertNotificationSchema,
   insertSalesDealSchema,
-  insertProjectCostSchema
+  insertProjectCostSchema,
+  insertProjectMilestoneIconSchema
 } from "@shared/schema";
 
 import { exportReport } from "./routes/export";
@@ -3866,6 +3867,73 @@ Response format:
     }
   });
   
+  // Project Milestone Icons Routes
+  app.get("/api/projects/:projectId/milestone-icons", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const milestoneIcons = await storage.getProjectMilestoneIcons(projectId);
+      res.json(milestoneIcons);
+    } catch (error) {
+      console.error("Error fetching project milestone icons:", error);
+      res.status(500).json({ message: "Error fetching project milestone icons" });
+    }
+  });
+
+  app.get("/api/milestone-icons/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const milestoneIcon = await storage.getProjectMilestoneIcon(id);
+      
+      if (!milestoneIcon) {
+        return res.status(404).json({ message: "Milestone icon not found" });
+      }
+      
+      res.json(milestoneIcon);
+    } catch (error) {
+      console.error("Error fetching milestone icon:", error);
+      res.status(500).json({ message: "Error fetching milestone icon" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/milestone-icons", validateRequest(insertProjectMilestoneIconSchema), async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const milestoneIconData = { ...req.body, projectId };
+      const milestoneIcon = await storage.createProjectMilestoneIcon(milestoneIconData);
+      res.status(201).json(milestoneIcon);
+    } catch (error) {
+      console.error("Error creating project milestone icon:", error);
+      res.status(500).json({ message: "Error creating project milestone icon" });
+    }
+  });
+
+  app.put("/api/milestone-icons/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const milestoneIcon = await storage.updateProjectMilestoneIcon(id, req.body);
+      
+      if (!milestoneIcon) {
+        return res.status(404).json({ message: "Milestone icon not found" });
+      }
+      
+      res.json(milestoneIcon);
+    } catch (error) {
+      console.error("Error updating milestone icon:", error);
+      res.status(500).json({ message: "Error updating milestone icon" });
+    }
+  });
+
+  app.delete("/api/milestone-icons/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteProjectMilestoneIcon(id);
+      res.json({ success: result });
+    } catch (error) {
+      console.error("Error deleting milestone icon:", error);
+      res.status(500).json({ message: "Error deleting milestone icon" });
+    }
+  });
+
   // System Routes
   app.use('/api/system', systemRoutes);
 

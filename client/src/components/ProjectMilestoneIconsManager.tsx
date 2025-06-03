@@ -55,7 +55,7 @@ const iconMap = {
   car: Car,
   truck: Truck,
   box: Package,
-  tape: Tape,
+  paintBucket: PaintBucket,
   wrench: Wrench,
   gear: Settings,
   calendar: Calendar,
@@ -403,7 +403,7 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
             <span>MECH SHOP - 30 days before PRODUCTION phase</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <Package className="h-4 w-4" />
+            <PaintBucket className="h-4 w-4" />
             <span>GRAPHICS - 7 days before QC phase</span>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
