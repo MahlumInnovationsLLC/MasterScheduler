@@ -58,7 +58,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRolePermissions } from "@/hooks/use-role-permissions";
 import { RoleBasedWrapper } from "@/components/RoleBasedWrapper";
 import { queryClient, apiRequest, getQueryFn } from '../lib/queryClient';
-import UserModuleVisibilityManager from "@/components/UserModuleVisibilityManager";
+import RolePermissionsManager from "@/components/RolePermissionsManager";
+import UserPermissionsManager from "@/components/UserPermissionsManager";
 
 const SystemSettings = () => {
   const { toast } = useToast();
@@ -75,22 +76,22 @@ const SystemSettings = () => {
     message: string;
     totalDeleted?: number;
   } | null>(null);
-  
+
   // Get user data from authentication context
   const { user } = useAuth();
-  
+
   // Get role-based permissions
   const { isViewOnly, canEdit, isAdmin: hasAdminRole, shouldDisableInput, getDisabledTooltip } = useRolePermissions();
-  
+
   // User role state (for permission management)
   const [isAdmin, setIsAdmin] = useState(false);
-  
+
   // User sorting state
   const [userSort, setUserSort] = useState<{column: string, direction: 'asc' | 'desc'}>({
     column: 'lastName',
     direction: 'asc'
   });
-  
+
   // User edit dialog state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -101,13 +102,13 @@ const SystemSettings = () => {
     role: '',
     department: ''
   });
-  
+
   // Password reset dialog state
   const [isPasswordResetDialogOpen, setIsPasswordResetDialogOpen] = useState(false);
   const [passwordResetUser, setPasswordResetUser] = useState<any>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+
   // Check the user's role to determine admin access
   useEffect(() => {
     if (user && user.role === 'admin') {
@@ -133,9 +134,9 @@ const SystemSettings = () => {
       </div>
     );
   }
-  
+
   // Backup functionality temporarily disabled
-  
+
   // Create database backup
   const handleBackupDatabase = async () => {
     setIsBackupLoading(true);
@@ -143,7 +144,7 @@ const SystemSettings = () => {
       const response = await fetch('/api/system/backup-database', {
         method: 'POST'
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -178,14 +179,14 @@ const SystemSettings = () => {
       setIsBackupLoading(false);
     }
   };
-  
+
   // Restore database from backup
   const handleRestoreDatabase = async (filename: string) => {
     // Show confirmation dialog
     if (!confirm("Are you sure you want to restore the database from backup? This will replace all current data.")) {
       return;
     }
-    
+
     setIsRestoreLoading(true);
     try {
       const response = await fetch('/api/system/restore-database', {
@@ -195,7 +196,7 @@ const SystemSettings = () => {
         },
         body: JSON.stringify({ filename })
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -243,20 +244,20 @@ const SystemSettings = () => {
 
   const handleDeleteAllProjects = async () => {
     setIsDeleting(true);
-    
+
     try {
       const response = await fetch('/api/reset-all-projects', {
         method: 'DELETE',
       });
-      
+
       const result = await response.json();
-      
+
       setDeleteResult({
         success: result.success,
         message: result.message,
         totalDeleted: result.totalDeleted
       });
-      
+
       toast({
         title: result.success ? "Projects Deleted" : "Deletion Failed",
         description: result.message,
@@ -267,7 +268,7 @@ const SystemSettings = () => {
         success: false,
         message: "Error deleting projects: " + (error as Error).message
       });
-      
+
       toast({
         title: "Error",
         description: "Failed to delete projects: " + (error as Error).message,
@@ -280,26 +281,26 @@ const SystemSettings = () => {
 
   const handleDeleteAllBillingMilestones = async () => {
     setIsDeletingMilestones(true);
-    
+
     try {
       const response = await fetch('/api/billing-milestones/all', {
         method: 'DELETE',
       });
-      
+
       const result = await response.json();
-      
+
       setDeleteMilestonesResult({
         success: result.success,
         message: result.message,
         totalDeleted: result.totalDeleted
       });
-      
+
       toast({
         title: result.success ? "Billing Milestones Deleted" : "Deletion Failed",
         description: result.message,
         variant: result.success ? "default" : "destructive"
       });
-      
+
       // Invalidate billing milestones cache
       queryClient.invalidateQueries({ queryKey: ['/api/billing-milestones'] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
@@ -308,7 +309,7 @@ const SystemSettings = () => {
         success: false,
         message: "Error deleting billing milestones: " + (error as Error).message
       });
-      
+
       toast({
         title: "Error",
         description: "Failed to delete billing milestones: " + (error as Error).message,
@@ -335,11 +336,11 @@ const SystemSettings = () => {
         },
         body: JSON.stringify(notification),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to create notification');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -408,11 +409,11 @@ const SystemSettings = () => {
         },
         body: JSON.stringify(emailPattern),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to create email pattern');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -443,11 +444,11 @@ const SystemSettings = () => {
       const response = await fetch(`/api/allowed-emails/${id}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to delete email pattern');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -477,11 +478,11 @@ const SystemSettings = () => {
         },
         body: JSON.stringify({ role }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to update user role');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -507,11 +508,11 @@ const SystemSettings = () => {
       const response = await fetch(`/api/users/${userId}/approve`, {
         method: 'PATCH',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to approve user');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -530,25 +531,25 @@ const SystemSettings = () => {
       });
     }
   });
-  
+
   // Reject user mutation (also handles revoking access for approved users)
   const rejectUserMutation = useMutation({
     mutationFn: async (userId: string) => {
       const response = await fetch(`/api/users/${userId}/reject`, {
         method: 'PATCH',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to reject user');
       }
-      
+
       return await response.json();
     },
     onSuccess: (data, variables) => {
       // Find the user to determine if they were approved or pending
       const user = users.find(u => u.id === variables);
       const wasApproved = user?.isApproved;
-      
+
       toast({
         title: wasApproved ? "Access Revoked" : "User Rejected",
         description: wasApproved 
@@ -583,11 +584,11 @@ const SystemSettings = () => {
   const handleApproveUser = (userId: string) => {
     approveUserMutation.mutate(userId);
   };
-  
+
   const handleRejectUser = (userId: string) => {
     rejectUserMutation.mutate(userId);
   };
-  
+
   // Handle edit user button click
   const handleEditUserClick = (user: any) => {
     setEditingUser(user);
@@ -600,7 +601,7 @@ const SystemSettings = () => {
     });
     setIsEditDialogOpen(true);
   };
-  
+
   // User sorting function
   const handleSort = (column: string) => {
     setUserSort(prev => ({
@@ -612,7 +613,7 @@ const SystemSettings = () => {
   // Get sorted users
   const getSortedUsers = () => {
     if (!users || users.length === 0) return [];
-    
+
     return [...users].sort((a, b) => {
       // Handle special cases based on column
       if (userSort.column === 'lastName') {
@@ -622,7 +623,7 @@ const SystemSettings = () => {
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
-      
+
       if (userSort.column === 'department') {
         const aValue = (a.department || 'zzz').toLowerCase(); // 'zzz' to sort empty values last
         const bValue = (b.department || 'zzz').toLowerCase();
@@ -630,7 +631,7 @@ const SystemSettings = () => {
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
-      
+
       if (userSort.column === 'createdAt' || userSort.column === 'lastLogin') {
         const aDate = a[userSort.column] ? new Date(a[userSort.column]) : new Date(0);
         const bDate = b[userSort.column] ? new Date(b[userSort.column]) : new Date(0);
@@ -638,14 +639,14 @@ const SystemSettings = () => {
           ? aDate.getTime() - bDate.getTime()
           : bDate.getTime() - aDate.getTime();
       }
-      
+
       if (userSort.column === 'isApproved') {
         // Sort by approval status (boolean)
         return userSort.direction === 'asc'
           ? (a.isApproved === b.isApproved ? 0 : a.isApproved ? 1 : -1)
           : (a.isApproved === b.isApproved ? 0 : a.isApproved ? -1 : 1);
       }
-      
+
       // Default sort for other columns
       const aValue = (a[userSort.column] || '').toString().toLowerCase();
       const bValue = (b[userSort.column] || '').toString().toLowerCase();
@@ -659,7 +660,7 @@ const SystemSettings = () => {
   const handleEditUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
-    
+
     // Direct fetch call with proper method formatting
     fetch(`/api/users/${editingUser.id}`, {
       method: 'PATCH',
@@ -707,12 +708,12 @@ const SystemSettings = () => {
         body: JSON.stringify({ newPassword }),
         credentials: 'include',
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to reset password');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -737,9 +738,9 @@ const SystemSettings = () => {
 
   const handlePasswordReset = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!passwordResetUser) return;
-    
+
     if (newPassword !== confirmPassword) {
       toast({
         title: "Error",
@@ -748,7 +749,7 @@ const SystemSettings = () => {
       });
       return;
     }
-    
+
     if (newPassword.length < 6) {
       toast({
         title: "Error",
@@ -757,7 +758,7 @@ const SystemSettings = () => {
       });
       return;
     }
-    
+
     resetPasswordMutation.mutate({
       userId: passwordResetUser.id,
       newPassword: newPassword
@@ -793,7 +794,7 @@ const SystemSettings = () => {
     queryKey: ['/api/archived-projects'],
     queryFn: getQueryFn({}),
   });
-  
+
   // Get system storage info
   const {
     data: storageInfo = { totalStorageUsed: 0 },
@@ -822,11 +823,11 @@ const SystemSettings = () => {
       const response = await fetch(`/api/projects/${projectId}/restore`, {
         method: 'PATCH',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to restore project');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -852,11 +853,11 @@ const SystemSettings = () => {
       const response = await fetch(`/api/projects/${projectId}/permanent-delete`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to permanently delete project');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -895,7 +896,7 @@ const SystemSettings = () => {
               Update user information and department settings.
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handleEditUserSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
@@ -909,7 +910,7 @@ const SystemSettings = () => {
                   className="col-span-3"
                 />
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="lastName" className="text-right">
                   Last Name
@@ -921,7 +922,7 @@ const SystemSettings = () => {
                   className="col-span-3"
                 />
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="email" className="text-right">
                   Email
@@ -935,7 +936,7 @@ const SystemSettings = () => {
                   disabled
                 />
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="role" className="text-right">
                   Role
@@ -955,7 +956,7 @@ const SystemSettings = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="department" className="text-right">
                   Department
@@ -983,7 +984,7 @@ const SystemSettings = () => {
                 </Select>
               </div>
             </div>
-            
+
             <DialogFooter>
               <Button type="button" variant="secondary" onClick={() => setIsEditDialogOpen(false)}>
                 Cancel
@@ -1005,7 +1006,7 @@ const SystemSettings = () => {
               Reset password for {passwordResetUser?.firstName} {passwordResetUser?.lastName} ({passwordResetUser?.email})
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handlePasswordReset}>
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
@@ -1020,7 +1021,7 @@ const SystemSettings = () => {
                   minLength={6}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <Input
@@ -1034,7 +1035,7 @@ const SystemSettings = () => {
                 />
               </div>
             </div>
-            
+
             <DialogFooter>
               <Button type="button" variant="secondary" onClick={() => setIsPasswordResetDialogOpen(false)}>
                 Cancel
@@ -1057,7 +1058,7 @@ const SystemSettings = () => {
           </form>
         </DialogContent>
       </Dialog>
-      
+
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">System Settings</h1>
@@ -1068,13 +1069,12 @@ const SystemSettings = () => {
       </div>
 
       <Tabs defaultValue="accessControl" className="w-full space-y-6" onValueChange={setCurrentTab}>
-        <TabsList className="grid grid-cols-5 w-full">
-          <TabsTrigger value="accessControl">Access Control</TabsTrigger>
-          <TabsTrigger value="moduleVisibility">Module Visibility</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="archiveManagement">Archive Management</TabsTrigger>
-          <TabsTrigger value="maintenance">System Maintenance</TabsTrigger>
-        </TabsList>
+
+
+
+
+
+
 
         {/* Access Control Tab */}
         <TabsContent value="accessControl" className="space-y-6">
@@ -1093,7 +1093,7 @@ const SystemSettings = () => {
                     <p className="text-sm text-gray-500">
                       Add patterns like 'user@example.com' for exact match or '*@example.com' for all emails from a domain.
                     </p>
-                    
+
                     <form onSubmit={handleCreateEmailPattern} className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="md:col-span-2">
                         <Label htmlFor="emailPattern">Email Pattern</Label>
@@ -1146,9 +1146,9 @@ const SystemSettings = () => {
                       </div>
                     </form>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Email Patterns</h3>
                     {allowedEmailsLoading ? (
@@ -1229,7 +1229,7 @@ const SystemSettings = () => {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>User Management</CardTitle>
@@ -1329,7 +1329,7 @@ const SystemSettings = () => {
                                       Approve
                                     </Button>
                                   )}
-                                  
+
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                       <Button 
@@ -1365,7 +1365,7 @@ const SystemSettings = () => {
                                       </AlertDialogFooter>
                                     </AlertDialogContent>
                                   </AlertDialog>
-                                  
+
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
@@ -1375,7 +1375,7 @@ const SystemSettings = () => {
                                   >
                                     <Edit className="h-4 w-4" />
                                   </Button>
-                                  
+
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
@@ -1399,6 +1399,46 @@ const SystemSettings = () => {
             </Card>
           </TabsContent>
 
+
+
+
+
+
+
+
+                        Control which modules each user can access. Select a user below to manage their permissions.
+
+
+
+
+                      {users
+                        ?.filter(user => user.isApproved && user.status === 'active')
+                        ?.map((user) => (
+
+
+
+                                {user.firstName} {user.lastName}
+
+                                  {user.email}
+
+
+                                  {user.role}
+
+
+
+                            <UserPermissionsManager
+                              userId={user.id}
+                              userEmail={user.email}
+                              userRole={user.role}
+                            />
+
+                        ))}
+
+
+
+
+
+
           {/* Notifications Tab */}
           <TabsContent value="notifications" className="space-y-6">
             <Card>
@@ -1418,7 +1458,7 @@ const SystemSettings = () => {
                       {showNotificationForm ? 'Cancel' : 'Create Notification'}
                     </Button>
                   </div>
-                  
+
                   {showNotificationForm && (
                     <Card className="border border-primary/20 bg-primary/5">
                       <CardHeader>
@@ -1430,8 +1470,8 @@ const SystemSettings = () => {
                       <CardContent>
                         <form onSubmit={handleCreateNotification} className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="title">Title</Label>
+
+                              Title
                               <Input 
                                 id="title" 
                                 value={newNotification.title}
@@ -1439,47 +1479,47 @@ const SystemSettings = () => {
                                 placeholder="Notification Title"
                                 required
                               />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="priority">Priority</Label>
+
+
+
+                                Priority
                                 <Select 
                                   value={newNotification.priority}
                                   onValueChange={(value) => setNewNotification({...newNotification, priority: value})}
                                 >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select priority" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="low">Low</SelectItem>
-                                    <SelectItem value="normal">Normal</SelectItem>
-                                    <SelectItem value="high">High</SelectItem>
-                                    <SelectItem value="urgent">Urgent</SelectItem>
-                                  </SelectContent>
+
+                                    Select priority
+
+
+
+
+
+
+
                                 </Select>
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="type">Type</Label>
+
+
+                                Type
                                 <Select 
                                   value={newNotification.type}
                                   onValueChange={(value) => setNewNotification({...newNotification, type: value})}
                                 >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select type" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="system">System</SelectItem>
-                                    <SelectItem value="manufacturing">Manufacturing</SelectItem>
-                                    <SelectItem value="project">Project</SelectItem>
-                                    <SelectItem value="billing">Billing</SelectItem>
-                                  </SelectContent>
+
+                                    Select type
+
+
+
+
+
+
+
                                 </Select>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="message">Message</Label>
+
+
+
+
+
+                            Message
                             <textarea 
                               id="message" 
                               value={newNotification.message}
@@ -1488,62 +1528,65 @@ const SystemSettings = () => {
                               className="w-full h-24 px-3 py-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
                               required
                             />
-                          </div>
-                          
-                          <div className="flex justify-end space-x-2">
-                            <Button type="button" variant="outline" onClick={() => setShowNotificationForm(false)}>
+
+
+
+
                               Cancel
-                            </Button>
-                            <Button type="submit" disabled={createNotificationMutation.isPending}>
+
+
                               {createNotificationMutation.isPending ? (
                                 <>
-                                  <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
+
                                   Sending...
                                 </>
                               ) : (
                                 <>Send Notification</>
                               )}
-                            </Button>
-                          </div>
+
+
                         </form>
                       </CardContent>
                     </Card>
                   )}
-                  
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">User Activity Logs</h3>
-                    
+
+
+
+
+                      User Activity Logs
+
+
                     {userAuditLogsLoading ? (
-                      <div className="flex justify-center p-4">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                      </div>
+
+
+
                     ) : userAuditLogsError ? (
-                      <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>Failed to load user audit logs</AlertDescription>
-                      </Alert>
+
+
+                        Error
+                        Failed to load user audit logs
+
                     ) : userAuditLogs && userAuditLogs.length === 0 ? (
-                      <div className="text-center p-4 border rounded-md">
-                        <p className="text-muted-foreground">No user activity logs found.</p>
-                      </div>
+
+                        No user activity logs found.
+
                     ) : (
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>User</TableHead>
-                              <TableHead>Action</TableHead>
-                              <TableHead>Details</TableHead>
-                              <TableHead>Timestamp</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
+
+
+
+
+
+                              Action
+                              Details
+                              Timestamp
+
+
+
                             {userAuditLogs.map((log: any) => {
                               // Find username if we have a userId
                               const user = users?.find(u => u.id === log.userId);
                               const displayName = user ? `${user.firstName} ${user.lastName}` : (log.userId || 'System');
-                              
+
                               // Determine badge color based on action type
                               let badgeVariant: 'outline' | 'default' | 'secondary' | 'destructive' = 'outline';
                               if (log.action === 'STATUS_CHANGE') {
@@ -1553,26 +1596,32 @@ const SystemSettings = () => {
                               } else if (log.action === 'USER_CREATE') {
                                 badgeVariant = 'default';
                               }
-                              
+
                               return (
-                                <TableRow key={log.id}>
-                                  <TableCell>{displayName}</TableCell>
-                                  <TableCell>
-                                    <Badge variant={badgeVariant}>
+
+
+                                    {displayName}
+
+
+
                                       {log.action}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>{log.details}</TableCell>
-                                  <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
-                                </TableRow>
+
+
+
+                                    {log.details}
+
+
+                                    {new Date(log.timestamp).toLocaleString()}
+
+
                               );
                             })}
-                          </TableBody>
-                        </Table>
-                      </div>
+
+
+
                     )}
-                  </div>
-                </div>
+
+
               </CardContent>
             </Card>
           </TabsContent>
@@ -1587,124 +1636,114 @@ const SystemSettings = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Archived Projects</h3>
-                    
+
+
+
+                      Archived Projects
+
+
                     {archivedProjectsLoading ? (
-                      <div className="flex justify-center p-4">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                      </div>
+
+
+
                     ) : archivedProjectsError ? (
-                      <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>Failed to load archived projects</AlertDescription>
-                      </Alert>
+
+
+                        Error
+                        Failed to load archived projects
+
                     ) : archivedProjects && archivedProjects.length === 0 ? (
-                      <div className="text-center p-4 border rounded-md">
-                        <p className="text-muted-foreground">No archived projects found.</p>
-                      </div>
+
+                        No archived projects found.
+
                     ) : (
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Project</TableHead>
-                              <TableHead>Project Number</TableHead>
-                              <TableHead>Archived Date</TableHead>
-                              <TableHead>Archive Reason</TableHead>
-                              <TableHead>Archived By</TableHead>
-                              <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
+
+
+
+
+                              Project
+                              Project Number
+                              Archived Date
+                              Archive Reason
+                              Archived By
+                                Actions
+
+
+
                             {archivedProjects && archivedProjects.map((project: any) => (
-                              <TableRow key={project.id}>
-                                <TableCell>{project.name}</TableCell>
-                                <TableCell>{project.projectNumber}</TableCell>
-                                <TableCell>{new Date(project.archivedAt || project.updatedAt).toLocaleDateString()}</TableCell>
-                                <TableCell>{project.archiveReason || 'No reason provided'}</TableCell>
-                                <TableCell>{project.archivedBy || 'Unknown'}</TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end space-x-1">
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button 
-                                          variant="outline" 
-                                          size="sm" 
-                                          className="flex items-center space-x-1"
-                                        >
-                                          <ArchiveRestore className="h-4 w-4 mr-1" />
-                                          Restore
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>Restore Project</AlertDialogTitle>
-                                          <AlertDialogDescription>
+
+
+                                  {project.name}
+
+
+                                  {project.projectNumber}
+
+
+                                  {new Date(project.archivedAt || project.updatedAt).toLocaleDateString()}
+
+
+                                  {project.archiveReason || 'No reason provided'}
+
+
+                                  {project.archivedBy || 'Unknown'}
+
+
+
+
+
+
+
+                                            Restore
+
+
+
+
                                             Are you sure you want to restore project '{project.name}'? 
                                             It will be moved back to active projects.
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                          <AlertDialogAction 
-                                            onClick={() => handleRestoreProject(project.id)}
-                                          >
+
+
+
+                                          Cancel
+
                                             Restore
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                    
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm" 
-                                          className="text-destructive hover:text-destructive hover:bg-destructive/20 flex items-center space-x-1"
-                                        >
-                                          <Trash2 className="h-4 w-4 mr-1" />
-                                          Delete
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>Permanently Delete Project</AlertDialogTitle>
-                                          <AlertDialogDescription>
+
+
+
+
+
+
+
+
+
+                                            Delete
+
+
+
+
                                             Are you sure you want to permanently delete project '{project.name}'? 
                                             This action cannot be undone and all associated data will be lost forever.
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                          <AlertDialogAction 
-                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                            onClick={() => handlePermanentDeleteProject(project.id)}
-                                          >
+
+
+
+                                          Cancel
+
                                             Permanently Delete
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
+
+
+
+
+
+
+
                             ))}
-                          </TableBody>
-                        </Table>
-                      </div>
+
+
+
                     )}
-                  </div>
-                </div>
+
+
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* Module Visibility Tab */}
-          <TabsContent value="moduleVisibility" className="space-y-6">
-            <UserModuleVisibilityManager />
           </TabsContent>
 
           {/* System Maintenance Tab */}
@@ -1717,180 +1756,161 @@ const SystemSettings = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  <Alert className="bg-amber-500/20 border-amber-500">
-                    <AlertTriangle className="h-5 w-5 text-amber-500" />
-                    <AlertTitle>Warning: Destructive Actions</AlertTitle>
-                    <AlertDescription>
+
+
+
+                      Warning: Destructive Actions
                       The operations in this section can permanently delete data. Proceed with caution.
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card className="border border-destructive/40">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Reset All Projects</CardTitle>
-                        <CardDescription>
+
+
+
+
+
+
+
+                          Reset All Projects
                           Delete all projects and related data from the system.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pt-2">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="w-full">
+
+
+
+
                               Reset All Projects
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete All Projects</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete ALL projects and related data from the system.
-                                This action cannot be undone. Are you absolutely sure?
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                onClick={handleDeleteAllProjects}
-                              >
-                                {isDeleting ? (
-                                  <>
-                                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
-                                    Deleting...
-                                  </>
-                                ) : (
-                                  <>Delete All Projects</>
-                                )}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                        
-                        {deleteResult && (
-                          <div className="mt-4">
-                            <Alert variant={deleteResult.success ? "default" : "destructive"}>
-                              {deleteResult.success ? (
-                                <CheckCircle2 className="h-4 w-4" />
+
+
+
+
+                              Delete All Projects
+                              This will permanently delete ALL projects and related data from the system.
+                              This action cannot be undone. Are you absolutely sure?
+
+
+
+                            Cancel
+
+                              {isDeleting ? (
+                                <>
+
+                                  Deleting...
+                                </>
                               ) : (
-                                <AlertCircle className="h-4 w-4" />
+                                <>Delete All Projects</>
                               )}
-                              <AlertTitle>{deleteResult.success ? "Success" : "Error"}</AlertTitle>
-                              <AlertDescription>
+
+
+
+
+                        {deleteResult && (
+
+
+                              {deleteResult.success ? (
+
+                              ) : (
+
+                              )}
+                              {deleteResult.success ? "Success" : "Error"}
+
                                 {deleteResult.message}
                                 {deleteResult.totalDeleted !== undefined && (
-                                  <div className="mt-2">
-                                    <Badge variant="outline">
-                                      {deleteResult.totalDeleted} projects deleted
-                                    </Badge>
-                                  </div>
-                                )}
-                              </AlertDescription>
-                            </Alert>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
 
-                    <Card className="border border-destructive/40">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Delete All Billing Milestones</CardTitle>
-                        <CardDescription>
-                          Delete all billing milestones from the system.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pt-2">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="w-full">
-                              Delete All Milestones
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete All Billing Milestones</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete ALL billing milestones from the system.
-                                This action cannot be undone. Are you absolutely sure?
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                onClick={handleDeleteAllBillingMilestones}
-                              >
-                                {isDeletingMilestones ? (
-                                  <>
-                                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
-                                    Deleting...
-                                  </>
-                                ) : (
-                                  <>Delete All Milestones</>
+
+                                      {deleteResult.totalDeleted} projects deleted
+
+
                                 )}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                        
-                        {deleteMilestonesResult && (
-                          <div className="mt-4">
-                            <Alert variant={deleteMilestonesResult.success ? "default" : "destructive"}>
-                              {deleteMilestonesResult.success ? (
-                                <CheckCircle2 className="h-4 w-4" />
+
+
+
+                        )}
+
+
+
+
+
+
+                          Delete All Billing Milestones
+                          Delete all billing milestones from the system.
+
+
+
+
+                              Delete All Milestones
+
+
+
+
+                              Delete All Billing Milestones
+                              This will permanently delete ALL billing milestones from the system.
+                              This action cannot be undone. Are you absolutely sure?
+
+
+
+                            Cancel
+
+                              {isDeletingMilestones ? (
+                                <>
+
+                                  Deleting...
+                                </>
                               ) : (
-                                <AlertCircle className="h-4 w-4" />
+                                <>Delete All Milestones</>
                               )}
-                              <AlertTitle>{deleteMilestonesResult.success ? "Success" : "Error"}</AlertTitle>
-                              <AlertDescription>
+
+
+
+
+                        {deleteMilestonesResult && (
+
+
+                              {deleteMilestonesResult.success ? (
+
+                              ) : (
+
+                              )}
+                              {deleteMilestonesResult.success ? "Success" : "Error"}
+
                                 {deleteMilestonesResult.message}
                                 {deleteMilestonesResult.totalDeleted !== undefined && (
-                                  <div className="mt-2">
-                                    <Badge variant="outline">
+
+
                                       {deleteMilestonesResult.totalDeleted} milestones deleted
-                                    </Badge>
-                                  </div>
+
+
                                 )}
-                              </AlertDescription>
-                            </Alert>
-                          </div>
+
+
+
                         )}
-                      </CardContent>
-                    </Card>
-                    
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Database Backup</CardTitle>
-                        <CardDescription>
-                          Create a backup of the current database.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pt-2">
-                        <Button className="w-full" variant="outline">
+
+
+
+
+
+                        Database Backup
+                        Create a backup of the current database.
+
+
+
                           Backup Database
-                        </Button>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Database Restore</CardTitle>
-                        <CardDescription>
-                          Restore the database from a backup file.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pt-2">
-                        <Button className="w-full" variant="outline">
+
+
+
+
+
+
+                        Database Restore
+                        Restore the database from a backup file.
+
+
+
                           Restore Database
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
+
+
+
+
+
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>System Information</CardTitle>
@@ -1899,70 +1919,69 @@ const SystemSettings = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium text-muted-foreground">Application Version</h3>
-                      <p className="text-lg font-semibold">v1.0.0</p>
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium text-muted-foreground">Database Status</h3>
-                      <div className="flex items-center space-x-2">
-                        <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                        <p className="text-lg font-semibold">Connected</p>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium text-muted-foreground">System Date</h3>
-                      <p className="text-lg font-semibold">
-                        {new Date().toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <Separator className="my-6" />
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="text-center">
-                          <h3 className="text-lg font-semibold">{users ? users.length : 0}</h3>
-                          <p className="text-sm text-muted-foreground">Total Users</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="text-center">
-                          <h3 className="text-lg font-semibold">{activeProjects ? activeProjects.length : 0}</h3>
-                          <p className="text-sm text-muted-foreground">Active Projects</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="text-center">
-                          <h3 className="text-lg font-semibold">{archivedProjects ? archivedProjects.length : 0}</h3>
-                          <p className="text-sm text-muted-foreground">Archived Projects</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="text-center">
-                          <h3 className="text-lg font-semibold">{storageInfo ? storageInfo.totalStorageUsed : 28}</h3>
-                          <p className="text-sm text-muted-foreground">Storage Used (MB)</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
+
+
+
+
+                        Application Version
+                        v1.0.0
+
+
+                        Database Status
+
+
+
+
+                          Connected
+
+
+
+                        System Date
+
+                          {new Date().toLocaleString()}
+
+
+
+
+
+
+
+
+
+
+
+
+                          {users ? users.length : 0}
+                          Total Users
+
+
+
+
+                          {activeProjects ? activeProjects.length : 0}
+                          Active Projects
+
+
+
+
+                          {archivedProjects ? archivedProjects.length : 0}
+                          Archived Projects
+
+
+
+
+                          {storageInfo ? storageInfo.totalStorageUsed : 28}
+                          Storage Used (MB)
+
+
+
+
+
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
-    );
+
+
 };
 
 

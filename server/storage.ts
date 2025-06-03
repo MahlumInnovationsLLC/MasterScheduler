@@ -17,7 +17,7 @@ import {
   supplyChainBenchmarks,
   projectSupplyChainBenchmarks,
   rolePermissions,
-  userModuleVisibility,
+  userPermissions,
   type User,
   type InsertUser,
   type Project,
@@ -48,8 +48,6 @@ import {
   type InsertUserAuditLog,
   type RolePermission,
   type InsertRolePermission,
-  type UserModuleVisibility,
-  type InsertUserModuleVisibility,
   type FinancialGoal,
   type InsertFinancialGoal,
   type SupplyChainBenchmark,
@@ -2573,6 +2571,120 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // User-specific permissions management
+  async getUserPermissions(userId: string): Promise<typeof userPermissions.$inferSelect[]> {
+    try {
+      return await db
+        .select()
+        .from(userPermissions)
+        .where(eq(userPermissions.userId, userId))
+        .orderBy(userPermissions.module);
+    } catch (error) {
+      console.error("Error fetching user permissions:", error);
+      return [];
+    }
+  }
+
+  async createUserPermission(data: typeof userPermissions.$inferInsert): Promise<typeof userPermissions.$inferSelect> {
+    try {
+      const [permission] = await db.insert(userPermissions).values(data).returning();
+      return permission;
+    } catch (error) {
+      console.error("Error creating user permission:", error);
+      throw error;
+    }
+  }
+
+  async updateUserPermission(userId: string, module: string, canAccess: boolean): Promise<typeof userPermissions.$inferSelect | null> {
+    try {
+      const [permission] = await db
+        .update(userPermissions)
+        .set({ canAccess, updatedAt: new Date() })
+        .where(and(
+          eq(userPermissions.userId, userId),
+          eq(userPermissions.module, module as any)
+        ))
+        .returning();
+      return permission;
+    } catch (error) {
+      console.error("Error updating user permission:", error);
+      return null;
+    }
+  }
+
+  async bulkUpdateUserPermissions(userId: string, permissions: { module: string; canAccess: boolean }[]): Promise<number> {
+    try {
+      let updateCount = 0;
+      
+      for (const perm of permissions) {
+        // Try to update existing permission
+        const [updated] = await db
+          .update(userPermissions)
+          .set({ canAccess: perm.canAccess, updatedAt: new Date() })
+          .where(and(
+            eq(userPermissions.userId, userId),
+            eq(userPermissions.module, perm.module as any)
+          ))
+          .returning();
+
+        if (updated) {
+          updateCount++;
+        } else {
+          // Create new permission if it doesn't exist
+          await db.insert(userPermissions).values({
+            userId,
+            module: perm.module as any,
+            canAccess: perm.canAccess,
+          });
+          updateCount++;
+        }
+      }
+
+      return updateCount;
+    } catch (error) {
+      console.error(`Error bulk updating user permissions for user ${userId}:`, error);
+      return 0;
+    }
+  }
+
+  async hasModuleAccess(userId: string, module: string): Promise<boolean> {
+    try {
+      // Get the user's role and module permission
+      const user = await this.getUser(userId);
+      if (!user || !user.role) return false;
+
+      // Admin users have access to all modules by default
+      if (user.role === 'admin') return true;
+
+      // Check user-specific permissions
+      const [permission] = await db
+        .select()
+        .from(userPermissions)
+        .where(and(
+          eq(userPermissions.userId, userId),
+          eq(userPermissions.module, module as any)
+        ));
+
+      if (permission) {
+        return permission.canAccess;
+      }
+
+      // If no specific permission exists, use role defaults
+      if (user.role === 'viewer') {
+        // Viewers can see all modules except sales by default
+        return module !== 'sales';
+      } else if (user.role === 'editor') {
+        // Editors can see all modules by default
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Error checking module access:", error);
+      return false;
+    }
+  }
+
   // Check if a user has a specific permission
   async hasPermission(userId: string, category: string, feature: string, permission: 'view' | 'edit' | 'create' | 'delete' | 'import' | 'export'): Promise<boolean> {
     try {
@@ -2608,139 +2720,6 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Error checking permission for user ${userId}:`, error);
       return false;
-    }
-  }
-
-  // User Module Visibility Management
-  async getUserModuleVisibility(userId: string): Promise<UserModuleVisibility[]> {
-    try {
-      return await db
-        .select()
-        .from(userModuleVisibility)
-        .where(eq(userModuleVisibility.userId, userId))
-        .orderBy(userModuleVisibility.module);
-    } catch (error) {
-      console.error("Error fetching user module visibility:", error);
-      return [];
-    }
-  }
-
-  async getAllUsersModuleVisibility(): Promise<(UserModuleVisibility & { user: User })[]> {
-    try {
-      return await db
-        .select({
-          id: userModuleVisibility.id,
-          userId: userModuleVisibility.userId,
-          module: userModuleVisibility.module,
-          isVisible: userModuleVisibility.isVisible,
-          createdAt: userModuleVisibility.createdAt,
-          updatedAt: userModuleVisibility.updatedAt,
-          user: users
-        })
-        .from(userModuleVisibility)
-        .leftJoin(users, eq(userModuleVisibility.userId, users.id))
-        .orderBy(users.username, userModuleVisibility.module);
-    } catch (error) {
-      console.error("Error fetching all users module visibility:", error);
-      return [];
-    }
-  }
-
-  async setUserModuleVisibility(
-    userId: string, 
-    module: string, 
-    isVisible: boolean
-  ): Promise<UserModuleVisibility | undefined> {
-    try {
-      // First try to update if it exists
-      const [existing] = await db
-        .update(userModuleVisibility)
-        .set({ 
-          isVisible, 
-          updatedAt: new Date() 
-        })
-        .where(and(
-          eq(userModuleVisibility.userId, userId),
-          eq(userModuleVisibility.module, module as any)
-        ))
-        .returning();
-
-      if (existing) {
-        return existing;
-      }
-
-      // If it doesn't exist, create it
-      const [created] = await db
-        .insert(userModuleVisibility)
-        .values({
-          userId,
-          module: module as any,
-          isVisible
-        })
-        .returning();
-
-      return created;
-    } catch (error) {
-      console.error("Error setting user module visibility:", error);
-      return undefined;
-    }
-  }
-
-  async initializeDefaultModuleVisibility(userId: string, userRole: string): Promise<void> {
-    try {
-      const modules = [
-        'dashboard',
-        'projects', 
-        'manufacturing',
-        'billing',
-        'sales',
-        'reports',
-        'import_export',
-        'settings',
-        'calendar'
-      ];
-
-      const visibilitySettings = modules.map(module => {
-        let isVisible = true;
-        
-        // Default visibility rules based on role
-        if (userRole === 'viewer') {
-          // Viewers can see all modules except sales by default
-          isVisible = module !== 'sales';
-        }
-        // Editors and admins can see all modules by default
-        
-        return {
-          userId,
-          module: module as any,
-          isVisible
-        };
-      });
-
-      await db
-        .insert(userModuleVisibility)
-        .values(visibilitySettings)
-        .onConflictDoNothing();
-    } catch (error) {
-      console.error("Error initializing default module visibility:", error);
-    }
-  }
-
-  async isModuleVisibleForUser(userId: string, module: string): Promise<boolean> {
-    try {
-      const [visibility] = await db
-        .select()
-        .from(userModuleVisibility)
-        .where(and(
-          eq(userModuleVisibility.userId, userId),
-          eq(userModuleVisibility.module, module as any)
-        ));
-
-      // If no record exists, default to visible (for backwards compatibility)
-      return visibility?.isVisible ?? true;
-    } catch (error) {
-      console.error("Error checking module visibility:", error);
-      return true; // Default to visible on error
     }
   }
 }

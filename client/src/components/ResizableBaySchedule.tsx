@@ -3041,7 +3041,7 @@ export default function ResizableBaySchedule({
           {/* Timeline Header */}
           <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex" 
             style={{ 
-              marginLeft: "240px",  // Add 240px offset to compensate for removed team details block (approximately 4 weeks worth)
+              marginLeft: "0px",  // Removed the ml-32 class and set to 0px
               width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
             }}>
             {slots.map((slot, index) => (
@@ -3095,8 +3095,7 @@ export default function ResizableBaySchedule({
                 className="team-container mb-5 relative"
                 data-team-section={team[0]?.team ? `${team[0].team}::${team.map(bay => bay.id).join(',')}` : ''}
                 style={{
-                  minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
-                  marginLeft: "240px"  // Add same offset as timeline header
+                  minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
                 }}>
                 <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex shadow-md" style={{ position: 'relative' }}>
                   <div 
@@ -3592,8 +3591,7 @@ export default function ResizableBaySchedule({
                   className="team-week-header h-8 border-b border-gray-200 dark:border-gray-700 grid overflow-hidden mb-2" 
                   style={{ 
                     gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
-                    width: `${Math.max(10000, slots.length * slotWidth)}px`,
-                    marginLeft: "240px"  // Add same 240px offset as timeline header to align properly
+                    width: `${Math.max(10000, slots.length * slotWidth)}px`
                   }}
                 >
                   {slots.map((slot, index) => (
@@ -3644,9 +3642,8 @@ export default function ResizableBaySchedule({
                       
                       
                       {/* Bay content area - FULL WIDTH to extend to end of timeline (2030) */}
-                      <div className="bay-content absolute top-0 bottom-0"
+                      <div className="bay-content absolute left-0 top-0 bottom-0"
                         style={{ 
-                          left: "-240px",  // Offset left to align with timeline header
                           width: `${Math.max(8000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
                         }}>
                         {isMultiRowBay ? (

@@ -3819,81 +3819,55 @@ Response format:
   // Role Permissions Routes
   app.use('/api/role-permissions', rolePermissionsRouter);
   
+  // User Permissions Routes
+  app.get("/api/user-permissions/:userId", requireAdmin, async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const permissions = await storage.getUserPermissions(userId);
+      res.json(permissions);
+    } catch (error) {
+      console.error("Error fetching user permissions:", error);
+      res.status(500).json({ message: "Error fetching user permissions" });
+    }
+  });
+
+  app.post("/api/user-permissions/bulk-update/:userId", requireAdmin, async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const { permissions } = req.body;
+      
+      if (!Array.isArray(permissions)) {
+        return res.status(400).json({ message: "Permissions must be an array" });
+      }
+      
+      const count = await storage.bulkUpdateUserPermissions(userId, permissions);
+      res.json({ success: true, updatedCount: count });
+    } catch (error) {
+      console.error("Error bulk updating user permissions:", error);
+      res.status(500).json({ message: "Error updating user permissions" });
+    }
+  });
+
+  app.get("/api/user/:userId/module-access/:module", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.params.userId;
+      const module = req.params.module;
+      
+      // Users can only check their own access unless they're admin
+      if (req.user.id !== userId && req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const hasAccess = await storage.hasModuleAccess(userId, module);
+      res.json({ hasAccess });
+    } catch (error) {
+      console.error("Error checking module access:", error);
+      res.status(500).json({ message: "Error checking module access" });
+    }
+  });
+  
   // System Routes
   app.use('/api/system', systemRoutes);
-
-  // User Module Visibility routes
-  app.get("/api/user-module-visibility", simpleAuth, async (req, res) => {
-    try {
-      const allVisibility = await storage.getAllUsersModuleVisibility();
-      res.json(allVisibility);
-    } catch (error) {
-      console.error("Error fetching user module visibility:", error);
-      res.status(500).json({ message: "Error fetching user module visibility" });
-    }
-  });
-
-  app.get("/api/user-module-visibility/:userId", simpleAuth, async (req, res) => {
-    try {
-      const userId = req.params.userId;
-      const visibility = await storage.getUserModuleVisibility(userId);
-      res.json(visibility);
-    } catch (error) {
-      console.error("Error fetching user module visibility:", error);
-      res.status(500).json({ message: "Error fetching user module visibility" });
-    }
-  });
-
-  app.post("/api/user-module-visibility", simpleAuth, async (req, res) => {
-    try {
-      const { userId, module, isVisible } = req.body;
-      
-      if (!userId || !module || typeof isVisible !== 'boolean') {
-        return res.status(400).json({ message: "userId, module, and isVisible are required" });
-      }
-
-      const result = await storage.setUserModuleVisibility(userId, module, isVisible);
-      
-      if (!result) {
-        return res.status(500).json({ message: "Failed to set module visibility" });
-      }
-
-      // Log the change
-      const performedBy = req.user?.id || "system";
-      await storage.createUserAuditLog(
-        userId,
-        "MODULE_VISIBILITY_CHANGE",
-        performedBy,
-        undefined,
-        undefined,
-        `Module visibility changed: ${module} set to ${isVisible ? 'visible' : 'hidden'}`
-      );
-
-      res.json(result);
-    } catch (error) {
-      console.error("Error setting user module visibility:", error);
-      res.status(500).json({ message: "Error setting user module visibility" });
-    }
-  });
-
-  app.post("/api/user-module-visibility/:userId/initialize", simpleAuth, async (req, res) => {
-    try {
-      const userId = req.params.userId;
-      const { userRole } = req.body;
-      
-      if (!userRole) {
-        return res.status(400).json({ message: "userRole is required" });
-      }
-
-      await storage.initializeDefaultModuleVisibility(userId, userRole);
-      
-      const visibility = await storage.getUserModuleVisibility(userId);
-      res.json(visibility);
-    } catch (error) {
-      console.error("Error initializing user module visibility:", error);
-      res.status(500).json({ message: "Error initializing user module visibility" });
-    }
-  });
 
   const httpServer = createServer(app);
   return httpServer;
