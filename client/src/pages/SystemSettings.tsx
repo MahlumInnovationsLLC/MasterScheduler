@@ -101,6 +101,12 @@ const SystemSettings = () => {
     department: ''
   });
   
+  // Password reset dialog state
+  const [isPasswordResetDialogOpen, setIsPasswordResetDialogOpen] = useState(false);
+  const [passwordResetUser, setPasswordResetUser] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  
   // Check the user's role to determine admin access
   useEffect(() => {
     if (user && user.role === 'admin') {
@@ -111,6 +117,21 @@ const SystemSettings = () => {
       setIsAdmin(false);
     }
   }, [user]);
+
+  // Redirect non-admins to dashboard
+  if (user && user.role !== 'admin') {
+    return (
+      <div className="container mx-auto py-6 px-6 md:px-8">
+        <Alert variant="destructive" className="max-w-md mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Access Denied</AlertTitle>
+          <AlertDescription>
+            You do not have permission to access system settings. This area is restricted to administrators only.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
   
   // Backup functionality temporarily disabled
   
@@ -674,6 +695,81 @@ const SystemSettings = () => {
       });
   };
 
+  // Password reset mutation
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: string, newPassword: string }) => {
+      const response = await fetch(`/api/users/${userId}/reset-password`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ newPassword }),
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to reset password');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password Reset",
+        description: "User password has been successfully reset.",
+        variant: "default"
+      });
+      setIsPasswordResetDialogOpen(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordResetUser(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to reset password: " + (error as Error).message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handlePasswordReset = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!passwordResetUser) return;
+    
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    resetPasswordMutation.mutate({
+      userId: passwordResetUser.id,
+      newPassword: newPassword
+    });
+  };
+
+  const handlePasswordResetClick = (user: any) => {
+    setPasswordResetUser(user);
+    setNewPassword('');
+    setConfirmPassword('');
+    setIsPasswordResetDialogOpen(true);
+  };
+
   // Handle tab change
   const [currentTab, setCurrentTab] = useState('accessControl');
 
@@ -846,6 +942,7 @@ const SystemSettings = () => {
                 <Select 
                   value={editUserForm.role} 
                   onValueChange={(value) => setEditUserForm({...editUserForm, role: value})}
+                  disabled={!hasAdminRole}
                 >
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select role" />
@@ -865,6 +962,7 @@ const SystemSettings = () => {
                 <Select 
                   value={editUserForm.department || ''} 
                   onValueChange={(value) => setEditUserForm({...editUserForm, department: value})}
+                  disabled={!hasAdminRole}
                 >
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select department" />
@@ -889,8 +987,70 @@ const SystemSettings = () => {
               <Button type="button" variant="secondary" onClick={() => setIsEditDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={!hasAdminRole}>
                 Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={isPasswordResetDialogOpen} onOpenChange={setIsPasswordResetDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Reset User Password</DialogTitle>
+            <DialogDescription>
+              Reset password for {passwordResetUser?.firstName} {passwordResetUser?.lastName} ({passwordResetUser?.email})
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handlePasswordReset}>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  required
+                  minLength={6}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  required
+                  minLength={6}
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="secondary" onClick={() => setIsPasswordResetDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={resetPasswordMutation.isPending}
+              >
+                {resetPasswordMutation.isPending ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
+                    Resetting...
+                  </>
+                ) : (
+                  <>Reset Password</>
+                )}
               </Button>
             </DialogFooter>
           </form>
@@ -941,6 +1101,7 @@ const SystemSettings = () => {
                           value={newEmailPattern.emailPattern}
                           onChange={(e) => setNewEmailPattern({...newEmailPattern, emailPattern: e.target.value})}
                           required
+                          disabled={!hasAdminRole}
                         />
                       </div>
                       <div>
@@ -948,6 +1109,7 @@ const SystemSettings = () => {
                         <Select 
                           value={newEmailPattern.defaultRole}
                           onValueChange={(value) => setNewEmailPattern({...newEmailPattern, defaultRole: value})}
+                          disabled={!hasAdminRole}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select role" />
@@ -965,10 +1127,11 @@ const SystemSettings = () => {
                           id="autoApprove"
                           checked={newEmailPattern.autoApprove}
                           onCheckedChange={(checked) => setNewEmailPattern({...newEmailPattern, autoApprove: checked})}
+                          disabled={!hasAdminRole}
                         />
                       </div>
                       <div className="md:col-span-4 flex justify-end">
-                        <Button type="submit" disabled={createEmailPatternMutation.isPending}>
+                        <Button type="submit" disabled={createEmailPatternMutation.isPending || !hasAdminRole}>
                           {createEmailPatternMutation.isPending ? (
                             <>
                               <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
@@ -1206,8 +1369,20 @@ const SystemSettings = () => {
                                     size="icon" 
                                     title="Edit User"
                                     onClick={() => handleEditUserClick(user)}
+                                    disabled={!hasAdminRole}
                                   >
                                     <Edit className="h-4 w-4" />
+                                  </Button>
+                                  
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    title="Reset Password"
+                                    onClick={() => handlePasswordResetClick(user)}
+                                    disabled={!hasAdminRole}
+                                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-100"
+                                  >
+                                    <Lock className="h-4 w-4" />
                                   </Button>
                                 </div>
                               </TableCell>
