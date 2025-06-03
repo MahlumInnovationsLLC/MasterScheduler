@@ -1136,6 +1136,7 @@ export type InsertUserPermission = typeof userPermissions.$inferInsert;
 // Create insert schema for project milestone icons
 export const insertProjectMilestoneIconSchema = createInsertSchema(projectMilestoneIcons).omit({
   id: true,
+  projectId: true, // Exclude projectId since it comes from route parameter
   createdAt: true,
   updatedAt: true,
 });
