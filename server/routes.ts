@@ -316,6 +316,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simple auth middleware that uses the same logic as requireAuth
+  const simpleAuth = requireAuth;
+
   // Error handling middleware for Zod validation
   const validateRequest = (schema: z.ZodSchema<any>) => {
     return (req: Request, res: Response, next: any) => {
