@@ -2828,7 +2828,30 @@ export default function ResizableBaySchedule({
         </div>
       </div>
       
-      <div className="flex flex-row flex-1 h-full">
+      <div className="flex flex-row flex-1 h-full relative">
+        {/* Left Navigation Chevron */}
+        {canScrollLeft && (
+          <button
+            onClick={handleScrollLeft}
+            className="fixed left-72 top-1/2 transform -translate-y-1/2 z-50 bg-black/60 hover:bg-black/80 text-white rounded-full p-4 transition-all duration-200 shadow-lg backdrop-blur-sm border border-white/20"
+            style={{ marginLeft: sidebarOpen ? '0' : '-240px' }}
+            aria-label="Scroll timeline left"
+          >
+            <ChevronLeft size={40} />
+          </button>
+        )}
+        
+        {/* Right Navigation Chevron */}
+        {canScrollRight && (
+          <button
+            onClick={handleScrollRight}
+            className="fixed right-8 top-1/2 transform -translate-y-1/2 z-50 bg-black/60 hover:bg-black/80 text-white rounded-full p-4 transition-all duration-200 shadow-lg backdrop-blur-sm border border-white/20"
+            aria-label="Scroll timeline right"
+          >
+            <ChevronRight size={40} />
+          </button>
+        )}
+
         {/* Unassigned Projects Sidebar - Collapsible with Drop Zone */}
         <div 
           className={`unassigned-projects-sidebar border-r border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-900 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
@@ -3004,28 +3027,6 @@ export default function ResizableBaySchedule({
         </div>
         
         <div className="bay-schedule-viewport flex-grow overflow-auto relative" ref={viewportRef}>
-          {/* Left Navigation Chevron */}
-          {canScrollLeft && (
-            <button
-              onClick={handleScrollLeft}
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 z-50 bg-black/60 hover:bg-black/80 text-white rounded-full p-3 transition-all duration-200 shadow-lg backdrop-blur-sm"
-              aria-label="Scroll left"
-            >
-              <ChevronLeft size={32} />
-            </button>
-          )}
-          
-          {/* Right Navigation Chevron */}
-          {canScrollRight && (
-            <button
-              onClick={handleScrollRight}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 bg-black/60 hover:bg-black/80 text-white rounded-full p-3 transition-all duration-200 shadow-lg backdrop-blur-sm"
-              aria-label="Scroll right"
-            >
-              <ChevronRight size={32} />
-            </button>
-          )}
-          
           <div className="bay-schedule-container relative" ref={timelineRef}>
           {/* Today Line marker - positioned absolutely */}
           {(() => {
