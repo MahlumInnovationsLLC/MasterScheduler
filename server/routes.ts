@@ -3879,6 +3879,16 @@ Response format:
     }
   });
 
+  app.get("/api/milestone-icons", async (req, res) => {
+    try {
+      const allMilestoneIcons = await storage.getAllProjectMilestoneIcons();
+      res.json(allMilestoneIcons);
+    } catch (error) {
+      console.error("Error fetching all milestone icons:", error);
+      res.status(500).json({ message: "Error fetching all milestone icons" });
+    }
+  });
+
   app.get("/api/milestone-icons/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);

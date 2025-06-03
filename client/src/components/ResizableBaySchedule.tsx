@@ -50,7 +50,17 @@ import {
   BarChart2, // Added for utilization icon
   Calculator, // Added for duration calculation
   DollarSign, // Added for financial impact
-  Printer // Added for print functionality
+  Printer, // Added for print functionality
+  Car,
+  Package,
+  PaintBucket,
+  Settings,
+  CheckCircle,
+  Flag,
+  Star,
+  Diamond,
+  Circle,
+  Square
 } from 'lucide-react';
 import {
   Dialog,
@@ -84,8 +94,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useApiRequest } from '@/lib/queryClient';
+import { useQuery } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { type ProjectMilestoneIcon } from '@shared/schema';
 
 interface ManufacturingBay {
   id: number;
@@ -230,6 +242,25 @@ const PROJECT_COLORS = [
   'rgb(14, 165, 233)', // sky-500
   'rgb(239, 68, 68)',  // red-500
 ];
+
+// Milestone icon mapping
+const iconMap = {
+  car: Car,
+  truck: Truck,
+  box: Package,
+  paintBucket: PaintBucket,
+  wrench: Wrench,
+  gear: Settings,
+  calendar: Calendar,
+  clock: Clock,
+  checkmark: CheckCircle,
+  warning: AlertTriangle,
+  flag: Flag,
+  star: Star,
+  diamond: Diamond,
+  circle: Circle,
+  square: Square,
+};
 
 // Multi-bay teams now have a single row per bay (simplified layout)
 // This makes bays work like horizontal tracks with NO multi-row complexity
@@ -460,6 +491,12 @@ export default function ResizableBaySchedule({
   const [scheduleBars, setScheduleBars] = useState<ScheduleBar[]>([]);
   const [draggingSchedule, setDraggingSchedule] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{ bayId: number, rowIndex: number } | null>(null);
+  
+  // Fetch all milestone icons for all projects
+  const { data: allMilestoneIcons = [] } = useQuery({
+    queryKey: ['/api/milestone-icons'],
+    enabled: true,
+  });
   
   // Auto-scroll state for drag operations
   const autoScrollRef = useRef<number | null>(null);
