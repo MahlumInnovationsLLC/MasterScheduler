@@ -241,7 +241,7 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
     },
     {
       name: 'GRAPHICS',
-      icon: 'paintBucket' as keyof typeof iconMap,
+      icon: 'star' as keyof typeof iconMap, // Changed from paintBucket to star (valid enum value)
       phase: 'qc' as const,
       daysBefore: 7,
     },
