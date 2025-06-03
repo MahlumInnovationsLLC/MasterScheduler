@@ -30,7 +30,76 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-export function setupAuth(app: Express) {
+async function initializeSessionStore() {
+  try {
+    // Check if session table exists
+    const tableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'session'
+      );
+    `);
+
+    if (!tableExists.rows[0].exists) {
+      console.log('Creating session table...');
+      await pool.query(`
+        CREATE TABLE "session" (
+          "sid" varchar NOT NULL COLLATE "default",
+          "sess" jsonb NOT NULL,
+          "expire" timestamp(6) NOT NULL
+        )
+        WITH (OIDS=FALSE);
+      `);
+      console.log('Session table created successfully');
+    }
+
+    // Check if index exists
+    const indexExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT 1 FROM pg_indexes 
+        WHERE schemaname = 'public' 
+        AND tablename = 'session' 
+        AND indexname = 'IDX_session_expire'
+      );
+    `);
+
+    if (!indexExists.rows[0].exists) {
+      console.log('Creating session index...');
+      await pool.query(`
+        CREATE INDEX "IDX_session_expire" ON "session" ("expire");
+      `);
+      console.log('Session index created successfully');
+    }
+
+    // Ensure primary key exists
+    const pkExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE table_schema = 'public' 
+        AND table_name = 'session' 
+        AND constraint_type = 'PRIMARY KEY'
+      );
+    `);
+
+    if (!pkExists.rows[0].exists) {
+      console.log('Adding primary key to session table...');
+      await pool.query(`
+        ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid");
+      `);
+      console.log('Session primary key added successfully');
+    }
+
+  } catch (error) {
+    console.error('Error initializing session store:', error.message);
+    // Don't throw the error to prevent server crash
+  }
+}
+
+export async function setupAuth(app: Express) {
+  // Initialize session store first
+  await initializeSessionStore();
+
   const PostgresSessionStore = connectPg(session);
 
   const sessionSettings: session.SessionOptions = {
@@ -39,30 +108,8 @@ export function setupAuth(app: Express) {
     saveUninitialized: false,
     store: new PostgresSessionStore({ 
       pool: pool, 
-      createTableIfMissing: true,
+      createTableIfMissing: false, // We handle table creation manually
       errorLog: (error) => {
-        // Suppress all expected database object creation errors
-        const suppressedCodes = ['42P01', '42P07', '42P11', '42704']; // relation exists, index exists, duplicate object, already exists
-        const suppressedMessages = [
-          'IDX_session_expire',
-          'already exists',
-          'relation "session" already exists',
-          'index "IDX_session_expire" already exists',
-          'relation "IDX_session_expire" already exists'
-        ];
-        
-        // Check if this is an expected error we should suppress
-        if (error?.code && suppressedCodes.includes(error.code)) {
-          // Don't log these expected error codes at all
-          return;
-        }
-        
-        if (error?.message && suppressedMessages.some(msg => error.message.includes(msg))) {
-          // Don't log these expected error messages at all
-          return;
-        }
-        
-        // Only log truly unexpected errors (but still don't throw them)
         console.error('Session store error:', error.message);
       }
     }),
