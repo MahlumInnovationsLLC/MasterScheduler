@@ -4039,23 +4039,29 @@ export default function ResizableBaySchedule({
                                   // Calculate milestone position based on phase timing
                                   let milestonePosition = 0;
                                   
-                                  // Calculate the total project duration in days
-                                  const projectStart = new Date(bar.startDate);
-                                  const projectEnd = new Date(bar.endDate);
-                                  const totalProjectDays = Math.abs((projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24));
-                                  
-                                  // Calculate pixels per day based on total bar width and project duration
-                                  const pixelsPerDay = bar.width / totalProjectDays;
-                                  
                                   if (milestone.phase === 'production' && milestone.daysBefore) {
-                                    // Position before PRODUCTION phase
+                                    // MECH SHOP: Position 30 days before PRODUCTION phase
                                     const productionStartPosition = (bar.fabWidth || 0) + (bar.paintWidth || 0);
-                                    milestonePosition = productionStartPosition - (milestone.daysBefore * pixelsPerDay);
+                                    // Use a simple approximation: 30 days = roughly 60 pixels before production start
+                                    milestonePosition = productionStartPosition - 60;
                                   } else if (milestone.phase === 'qc' && milestone.daysBefore) {
-                                    // Position before QC phase  
+                                    // GRAPHICS: Position 7 days before QC phase  
                                     const qcStartPosition = (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0);
-                                    milestonePosition = qcStartPosition - (milestone.daysBefore * pixelsPerDay);
+                                    // Use a simple approximation: 7 days = roughly 14 pixels before QC start
+                                    milestonePosition = qcStartPosition - 14;
                                   }
+                                  
+                                  // Debug logging
+                                  console.log(`🎯 MILESTONE DEBUG:`, {
+                                    name: milestone.name,
+                                    phase: milestone.phase,
+                                    daysBefore: milestone.daysBefore,
+                                    calculatedPosition: milestonePosition,
+                                    barWidth: bar.width,
+                                    fabWidth: bar.fabWidth,
+                                    paintWidth: bar.paintWidth,
+                                    productionWidth: bar.productionWidth
+                                  });
                                   
                                   // Only show milestone if position is within the bar bounds
                                   if (milestonePosition >= 0 && milestonePosition <= bar.width) {

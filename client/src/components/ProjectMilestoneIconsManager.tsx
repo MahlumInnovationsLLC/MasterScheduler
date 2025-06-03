@@ -405,7 +405,7 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <IconComponent className="h-5 w-5" />
+                      {IconComponent && <IconComponent className="h-5 w-5" />}
                       <div>
                         <div className="font-medium">{icon.name}</div>
                         <div className="text-sm text-muted-foreground">
