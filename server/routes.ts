@@ -3822,6 +3822,79 @@ Response format:
   // System Routes
   app.use('/api/system', systemRoutes);
 
+  // User Module Visibility routes
+  app.get("/api/user-module-visibility", simpleAuth, async (req, res) => {
+    try {
+      const allVisibility = await storage.getAllUsersModuleVisibility();
+      res.json(allVisibility);
+    } catch (error) {
+      console.error("Error fetching user module visibility:", error);
+      res.status(500).json({ message: "Error fetching user module visibility" });
+    }
+  });
+
+  app.get("/api/user-module-visibility/:userId", simpleAuth, async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const visibility = await storage.getUserModuleVisibility(userId);
+      res.json(visibility);
+    } catch (error) {
+      console.error("Error fetching user module visibility:", error);
+      res.status(500).json({ message: "Error fetching user module visibility" });
+    }
+  });
+
+  app.post("/api/user-module-visibility", simpleAuth, async (req, res) => {
+    try {
+      const { userId, module, isVisible } = req.body;
+      
+      if (!userId || !module || typeof isVisible !== 'boolean') {
+        return res.status(400).json({ message: "userId, module, and isVisible are required" });
+      }
+
+      const result = await storage.setUserModuleVisibility(userId, module, isVisible);
+      
+      if (!result) {
+        return res.status(500).json({ message: "Failed to set module visibility" });
+      }
+
+      // Log the change
+      const performedBy = req.user?.id || "system";
+      await storage.createUserAuditLog(
+        userId,
+        "MODULE_VISIBILITY_CHANGE",
+        performedBy,
+        undefined,
+        undefined,
+        `Module visibility changed: ${module} set to ${isVisible ? 'visible' : 'hidden'}`
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error setting user module visibility:", error);
+      res.status(500).json({ message: "Error setting user module visibility" });
+    }
+  });
+
+  app.post("/api/user-module-visibility/:userId/initialize", simpleAuth, async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const { userRole } = req.body;
+      
+      if (!userRole) {
+        return res.status(400).json({ message: "userRole is required" });
+      }
+
+      await storage.initializeDefaultModuleVisibility(userId, userRole);
+      
+      const visibility = await storage.getUserModuleVisibility(userId);
+      res.json(visibility);
+    } catch (error) {
+      console.error("Error initializing user module visibility:", error);
+      res.status(500).json({ message: "Error initializing user module visibility" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

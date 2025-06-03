@@ -2610,6 +2610,139 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
+
+  // User Module Visibility Management
+  async getUserModuleVisibility(userId: string): Promise<UserModuleVisibility[]> {
+    try {
+      return await db
+        .select()
+        .from(userModuleVisibility)
+        .where(eq(userModuleVisibility.userId, userId))
+        .orderBy(userModuleVisibility.module);
+    } catch (error) {
+      console.error("Error fetching user module visibility:", error);
+      return [];
+    }
+  }
+
+  async getAllUsersModuleVisibility(): Promise<(UserModuleVisibility & { user: User })[]> {
+    try {
+      return await db
+        .select({
+          id: userModuleVisibility.id,
+          userId: userModuleVisibility.userId,
+          module: userModuleVisibility.module,
+          isVisible: userModuleVisibility.isVisible,
+          createdAt: userModuleVisibility.createdAt,
+          updatedAt: userModuleVisibility.updatedAt,
+          user: users
+        })
+        .from(userModuleVisibility)
+        .leftJoin(users, eq(userModuleVisibility.userId, users.id))
+        .orderBy(users.username, userModuleVisibility.module);
+    } catch (error) {
+      console.error("Error fetching all users module visibility:", error);
+      return [];
+    }
+  }
+
+  async setUserModuleVisibility(
+    userId: string, 
+    module: string, 
+    isVisible: boolean
+  ): Promise<UserModuleVisibility | undefined> {
+    try {
+      // First try to update if it exists
+      const [existing] = await db
+        .update(userModuleVisibility)
+        .set({ 
+          isVisible, 
+          updatedAt: new Date() 
+        })
+        .where(and(
+          eq(userModuleVisibility.userId, userId),
+          eq(userModuleVisibility.module, module as any)
+        ))
+        .returning();
+
+      if (existing) {
+        return existing;
+      }
+
+      // If it doesn't exist, create it
+      const [created] = await db
+        .insert(userModuleVisibility)
+        .values({
+          userId,
+          module: module as any,
+          isVisible
+        })
+        .returning();
+
+      return created;
+    } catch (error) {
+      console.error("Error setting user module visibility:", error);
+      return undefined;
+    }
+  }
+
+  async initializeDefaultModuleVisibility(userId: string, userRole: string): Promise<void> {
+    try {
+      const modules = [
+        'dashboard',
+        'projects', 
+        'manufacturing',
+        'billing',
+        'sales',
+        'reports',
+        'import_export',
+        'settings',
+        'calendar'
+      ];
+
+      const visibilitySettings = modules.map(module => {
+        let isVisible = true;
+        
+        // Default visibility rules based on role
+        if (userRole === 'viewer') {
+          // Viewers can see all modules except sales by default
+          isVisible = module !== 'sales';
+        }
+        // Editors and admins can see all modules by default
+        
+        return {
+          userId,
+          module: module as any,
+          isVisible
+        };
+      });
+
+      await db
+        .insert(userModuleVisibility)
+        .values(visibilitySettings)
+        .onConflictDoNothing();
+    } catch (error) {
+      console.error("Error initializing default module visibility:", error);
+    }
+  }
+
+  async isModuleVisibleForUser(userId: string, module: string): Promise<boolean> {
+    try {
+      const [visibility] = await db
+        .select()
+        .from(userModuleVisibility)
+        .where(and(
+          eq(userModuleVisibility.userId, userId),
+          eq(userModuleVisibility.module, module as any)
+        ));
+
+      // If no record exists, default to visible (for backwards compatibility)
+      return visibility?.isVisible ?? true;
+    } catch (error) {
+      console.error("Error checking module visibility:", error);
+      return true; // Default to visible on error
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
