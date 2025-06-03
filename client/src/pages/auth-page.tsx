@@ -66,10 +66,9 @@ export default function AuthPage() {
   }
 
   const onLogin = (data: LoginData) => {
-    // Convert email to username format for backend compatibility
+    // Send email directly to the /api/auth/login endpoint
     const loginData = {
-      username: data.email, // Backend expects 'username' field but we'll send email
-      password: "", // sending empty password for now
+      email: data.email
     };
 
     loginMutation.mutate(loginData, {

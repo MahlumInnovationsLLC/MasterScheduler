@@ -13,12 +13,12 @@ type AuthContextType = {
   isLoading: boolean;
   isAuthenticated: boolean;
   error: Error | null;
-  loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
+  loginMutation: UseMutationResult<SelectUser, Error, { email: string }>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
 };
 
-type LoginData = Pick<InsertUser, "username" | "password">;
+type LoginData = { email: string };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: { email: string }) => {
       try {
-        const response = await fetch("/api/login", {
+        const response = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -79,8 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: "Login failed" }));
-          throw new Error(errorData.error || "Login failed");
+          const errorData = await response.json().catch(() => ({ message: "Login failed" }));
+          throw new Error(errorData.message || "Login failed");
         }
 
         return response.json();
