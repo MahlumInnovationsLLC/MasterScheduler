@@ -4039,28 +4039,40 @@ export default function ResizableBaySchedule({
                                   // Calculate milestone position based on phase timing
                                   let milestonePosition = 0;
                                   
+                                  // Calculate the total project duration in days
+                                  const projectStart = new Date(bar.startDate);
+                                  const projectEnd = new Date(bar.endDate);
+                                  const totalProjectDays = Math.abs((projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24));
+                                  
+                                  // Calculate pixels per day based on total bar width and project duration
+                                  const pixelsPerDay = bar.width / totalProjectDays;
+                                  
                                   if (milestone.phase === 'production' && milestone.daysBefore) {
-                                    // MECH SHOP: Position 30 days before PRODUCTION phase
-                                    const productionStartPosition = (bar.fabWidth || 0) + (bar.paintWidth || 0);
-                                    // Use a simple approximation: 30 days = roughly 60 pixels before production start
-                                    milestonePosition = productionStartPosition - 60;
+                                    // MECH SHOP: Position 30 days before PRODUCTION phase starts
+                                    const productionStartPixel = (bar.fabWidth || 0) + (bar.paintWidth || 0);
+                                    milestonePosition = productionStartPixel - (milestone.daysBefore * pixelsPerDay);
                                   } else if (milestone.phase === 'qc' && milestone.daysBefore) {
-                                    // GRAPHICS: Position 7 days before QC phase  
-                                    const qcStartPosition = (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0);
-                                    // Use a simple approximation: 7 days = roughly 14 pixels before QC start
-                                    milestonePosition = qcStartPosition - 14;
+                                    // GRAPHICS: Position 7 days before QC phase starts
+                                    const qcStartPixel = (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0);
+                                    milestonePosition = qcStartPixel - (milestone.daysBefore * pixelsPerDay);
                                   }
                                   
                                   // Debug logging
-                                  console.log(`🎯 MILESTONE DEBUG:`, {
-                                    name: milestone.name,
+                                  console.log(`🎯 MILESTONE DEBUG for ${milestone.name}:`, {
                                     phase: milestone.phase,
                                     daysBefore: milestone.daysBefore,
+                                    totalProjectDays: totalProjectDays,
+                                    pixelsPerDay: pixelsPerDay,
                                     calculatedPosition: milestonePosition,
                                     barWidth: bar.width,
-                                    fabWidth: bar.fabWidth,
-                                    paintWidth: bar.paintWidth,
-                                    productionWidth: bar.productionWidth
+                                    phases: {
+                                      fabWidth: bar.fabWidth,
+                                      paintWidth: bar.paintWidth,
+                                      productionWidth: bar.productionWidth,
+                                      itWidth: bar.itWidth,
+                                      ntcWidth: bar.ntcWidth,
+                                      qcWidth: bar.qcWidth
+                                    }
                                   });
                                   
                                   // Only show milestone if position is within the bar bounds
