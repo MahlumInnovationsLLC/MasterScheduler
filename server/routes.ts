@@ -159,43 +159,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
-  // Simple authentication bypass - always allows admin access
-  const simpleAuth = (req: any, res: any, next: any) => {
-    req.user = { 
-      id: 'c6e3ae7d-dc35-4f65-a605-5658ba89a0fd',
-      email: 'colter.mahlum@nomadgcs.com',
-      role: 'admin'
-    };
-    return next();
+  // Proper authentication middleware
+  const requireAuth = async (req: any, res: any, next: any) => {
+    try {
+      console.log(`🔍 Auth middleware: Checking authentication for ${req.method} ${req.url}`);
+      
+      // Check session for authenticated user
+      const sessionUser = (req.session as any)?.user;
+      const userId = (req.session as any)?.userId;
+      
+      if (!sessionUser && !userId) {
+        console.log("❌ No session found");
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // If we have complete session data, use it
+      if (sessionUser && sessionUser.isApproved) {
+        req.user = sessionUser;
+        console.log(`✅ Authenticated user: ${sessionUser.email} with role ${sessionUser.role}`);
+        return next();
+      }
+      
+      // If we only have userId, fetch fresh user data
+      if (userId) {
+        const user = await storage.getUser(userId);
+        if (user && user.isApproved) {
+          req.user = user;
+          // Update session with fresh data
+          (req.session as any).user = user;
+          console.log(`✅ Authenticated user: ${user.email} with role ${user.role}`);
+          return next();
+        }
+      }
+      
+      console.log("❌ User not found or not approved");
+      res.status(401).json({ message: "Authentication required" });
+    } catch (error) {
+      console.error("Auth middleware error:", error);
+      res.status(401).json({ message: "Authentication error" });
+    }
   };
 
-  // Production authentication bypass for consistent behavior
-  const productionAuth = async (req: any, res: any, next: any) => {
-    // Check if user is already authenticated
-    if (req.user) {
-      return next();
-    }
-
-    // Auto-authenticate as admin for production consistency
-    const user = await storage.getUserByEmail('colter.mahlum@nomadgcs.com');
-    if (user) {
-      req.user = {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        username: user.username,
-        role: user.role || 'admin'
-      };
-      
-      // Set session data
-      if (req.session) {
-        (req.session as any).userId = user.id;
-        (req.session as any).user = user;
+  // Admin-only middleware
+  const requireAdmin = async (req: any, res: any, next: any) => {
+    await requireAuth(req, res, () => {
+      if (req.user?.role !== 'admin') {
+        console.log(`❌ Admin access denied for role: ${req.user?.role}`);
+        return res.status(403).json({ message: "Admin access required" });
       }
-    }
-    
-    return next();
+      console.log(`✅ Admin access granted for: ${req.user.email}`);
+      next();
+    });
+  };
+
+  // Editor or Admin middleware
+  const requireEditor = async (req: any, res: any, next: any) => {
+    await requireAuth(req, res, () => {
+      if (req.user?.role !== 'admin' && req.user?.role !== 'editor') {
+        console.log(`❌ Editor access denied for role: ${req.user?.role}`);
+        return res.status(403).json({ message: "Editor or Admin access required" });
+      }
+      console.log(`✅ Editor access granted for: ${req.user.email}`);
+      next();
+    });
   };
 
 
@@ -221,87 +247,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  // Auth middleware disabled - using local authentication instead
-  // await setupAuth(app);
+  // Single authentication system - proper role-based access
   
-  // Add current user endpoint to match the frontend's expected route 
-  app.get("/api/user", (req, res) => {
-    console.log("DEBUG: Redirecting legacy user info request to /api/auth/user");
-    // Forward the request to the proper auth endpoint
-    res.redirect(307, '/api/auth/user');
-  });
-
-  // Auth user endpoint that the frontend expects
-  app.get("/api/auth/user", async (req, res) => {
+  // Get current user endpoint
+  app.get("/api/user", async (req, res) => {
     try {
-      console.log("Auth user endpoint called");
+      console.log("📍 Auth check: Validating user session");
       
-      // Production and development authentication bypass
-      const user = await storage.getUserByEmail('colter.mahlum@nomadgcs.com');
-      if (user) {
-        console.log("Auto-authenticating admin user for consistency");
-        
-        // Set session data for future requests
-        if (req.session) {
-          (req.session as any).userId = user.id;
-          (req.session as any).user = user;
-        }
-        
-        return res.json({
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          username: user.username,
-          role: user.role || 'admin',
-          isApproved: true
-        });
-      }
-
       // Check session for authenticated user
       const sessionUser = (req.session as any)?.user;
       const userId = (req.session as any)?.userId;
       
       if (!sessionUser && !userId) {
-        console.log("No session user or userId found");
-        return res.status(401).json({ message: "Unauthorized" });
+        console.log("❌ No session found - user not authenticated");
+        return res.status(401).json({ message: "Not authenticated" });
       }
       
       // If we have complete session data, return it
-      if (sessionUser) {
-        console.log("Returning session user data");
-        res.json({
+      if (sessionUser && sessionUser.isApproved) {
+        console.log(`✅ Returning session user: ${sessionUser.email} with role ${sessionUser.role}`);
+        return res.json({
           id: sessionUser.id,
           email: sessionUser.email,
           firstName: sessionUser.firstName,
           lastName: sessionUser.lastName,
           username: sessionUser.username,
-          role: sessionUser.role || 'admin',
-          isApproved: true
+          role: sessionUser.role,
+          isApproved: sessionUser.isApproved
         });
-        return;
       }
       
-      // If we only have userId, fetch user from database
+      // If we only have userId, fetch fresh user data from database
       if (userId) {
-        console.log("Fetching user by ID from database");
-        const [dbUser] = await db.select().from(users).where(eq(users.id, userId));
-        if (dbUser) {
-          res.json({
-            id: dbUser.id,
-            email: dbUser.email,
-            firstName: dbUser.firstName,
-            lastName: dbUser.lastName,
-            username: dbUser.username,
-            role: dbUser.role || 'admin',
-            isApproved: true
+        console.log("Fetching fresh user data from database");
+        const user = await storage.getUser(userId);
+        if (user && user.isApproved) {
+          // Update session with fresh data
+          (req.session as any).user = user;
+          
+          return res.json({
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username,
+            role: user.role,
+            isApproved: user.isApproved
           });
-          return;
         }
       }
       
-      console.log("User not found in session or database");
-      res.status(401).json({ message: "User not found" });
+      console.log("❌ User not found or not approved");
+      res.status(401).json({ message: "User not found or not approved" });
     } catch (error) {
       console.error("Auth user error:", error);
       res.status(500).json({ message: "Internal server error" });
@@ -384,7 +381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects", simpleAuth, validateRequest(insertProjectSchema), async (req, res) => {
+  app.post("/api/projects", requireEditor, validateRequest(insertProjectSchema), async (req, res) => {
     try {
       const projectData = req.body;
       
@@ -404,7 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PATCH endpoint for handling partial updates (especially dates)
-  app.patch("/api/projects/:id", simpleAuth, async (req, res) => {
+  app.patch("/api/projects/:id", requireEditor, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       console.log(`PATCH request received for project ID: ${id}`, req.body);
@@ -504,7 +501,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PUT endpoint for updating projects (used by project edit form)
-  app.put("/api/projects/:id", simpleAuth, async (req, res) => {
+  app.put("/api/projects/:id", requireEditor, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       console.log(`PUT request received for project ID: ${id}`, req.body);
@@ -2328,13 +2325,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Local authentication endpoint
-  app.post("/api/auth/login", async (req, res) => {
+  // Single login endpoint - proper role-based authentication
+  app.post("/api/login", async (req, res) => {
     try {
       const { username, email, password } = req.body;
       const loginEmail = email || username; // Support both email and username fields
       
-      console.log("Login attempt:", { email: loginEmail, hasPassword: !!password });
+      console.log("🔐 Login attempt:", { email: loginEmail, hasPassword: !!password });
 
       if (!loginEmail) {
         return res.status(400).json({ message: "Email is required" });
@@ -2343,35 +2340,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Find user by email
       const user = await storage.getUserByEmail(loginEmail);
       if (!user) {
-        console.log("User not found:", loginEmail);
-        return res.status(401).json({ message: "Invalid credentials" });
+        console.log("❌ User not found:", loginEmail);
+        return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      console.log("User found:", user.email, "Role:", user.role);
+      console.log(`👤 User found: ${user.email} | Role: ${user.role} | Approved: ${user.isApproved}`);
 
-      // For production consistency, allow login with just email (password optional)
-      if (password) {
-        // Verify password if provided
-        if (user.password && user.password.includes('.')) {
+      // Check if user is approved by admin
+      if (!user.isApproved) {
+        console.log("❌ User not approved by admin");
+        return res.status(401).json({ message: "Account pending admin approval" });
+      }
+
+      // Verify password if provided
+      if (password && user.password) {
+        if (user.password.includes('.')) {
+          // Hash-based password verification
           const crypto = await import('crypto');
           const [hashedPassword, salt] = user.password.split('.');
           const hash = crypto.createHash('sha512').update(password + salt).digest('hex');
           
           if (hash !== hashedPassword) {
-            return res.status(401).json({ message: "Invalid credentials" });
+            console.log("❌ Password verification failed");
+            return res.status(401).json({ message: "Invalid email or password" });
           }
-        } else if (user.password && user.password !== password) {
-          return res.status(401).json({ message: "Invalid credentials" });
+        } else if (user.password !== password) {
+          console.log("❌ Plain password verification failed");
+          return res.status(401).json({ message: "Invalid email or password" });
         }
+      } else if (password && !user.password) {
+        console.log("❌ Password provided but user has no password set");
+        return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      // Create session
+      // Create session with approved user
       if (req.session) {
         (req.session as any).userId = user.id;
         (req.session as any).user = user;
       }
 
-      console.log("User logged in:", user.email, "with role", user.role);
+      console.log(`✅ User logged in: ${user.email} with role ${user.role}`);
 
       res.json({
         id: user.id,
@@ -2379,154 +2387,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName: user.firstName,
         lastName: user.lastName,
         username: user.username,
-        role: user.role || 'admin'
+        role: user.role,
+        isApproved: user.isApproved
       });
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("❌ Login error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
-  });
-
-  // Production login endpoint for consistency
-  app.post("/api/auth/production-login", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      
-      console.log("Production login attempt:", { email, hasPassword: !!password });
-
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-      }
-
-      // Find user by email
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        console.log("Production login - User not found:", email);
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      console.log("Production login - User found:", user.email, "Role:", user.role);
-
-      // For production, allow email-only login for admin users
-      if (user.role === 'admin' || user.email === 'colter.mahlum@nomadgcs.com') {
-        // Skip password verification for admin in production
-        console.log("Admin user detected, skipping password verification");
-      } else if (password) {
-        // Verify password for non-admin users
-        if (user.password && user.password.includes('.')) {
-          const crypto = await import('crypto');
-          const [hashedPassword, salt] = user.password.split('.');
-          const hash = crypto.createHash('sha512').update(password + salt).digest('hex');
-          
-          if (hash !== hashedPassword) {
-            return res.status(401).json({ message: "Invalid credentials" });
-          }
-        } else if (user.password && user.password !== password) {
-          return res.status(401).json({ message: "Invalid credentials" });
-        }
-      }
-
-      // Create session
-      if (req.session) {
-        (req.session as any).userId = user.id;
-        (req.session as any).user = user;
-      }
-
-      console.log("Production user logged in:", user.email, "with role", user.role);
-
-      res.json({
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        username: user.username,
-        role: user.role || 'admin'
-      });
-    } catch (error) {
-      console.error("Production login error:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.post("/api/login", (req, res) => {
-    console.log("DEBUG: Redirecting legacy login request to /api/auth/login");
-    // Forward the request to the proper auth endpoint
-    res.redirect(307, '/api/auth/login');
   });
   
-  // Logout endpoint - handle both GET and POST
-  const handleLogout = (req: any, res: any) => {
+  // Logout endpoint
+  app.post("/api/logout", (req: any, res: any) => {
     if (req.session) {
       req.session.destroy((err: any) => {
         if (err) {
           console.error("Session destruction error:", err);
           return res.status(500).json({ message: "Logout failed" });
         }
-        
-        // For GET requests (direct navigation), redirect to auth page
-        if (req.method === 'GET') {
-          res.redirect('/auth');
-        } else {
-          // For POST requests (API calls), return JSON
-          res.json({ message: "Logged out successfully" });
-        }
+        console.log("✅ User logged out successfully");
+        res.json({ message: "Logged out successfully" });
       });
     } else {
-      if (req.method === 'GET') {
-        res.redirect('/auth');
-      } else {
-        res.json({ message: "No session to destroy" });
-      }
+      res.json({ message: "No session to destroy" });
     }
-  };
-
-  app.post("/api/auth/logout", handleLogout);
-  app.get("/api/auth/logout", handleLogout);
-
-  app.post("/api/logout", (req, res) => {
-    console.log("DEBUG: Redirecting legacy logout request to /api/auth/logout");
-    // Forward the request to the proper auth endpoint
-    res.redirect(307, '/api/auth/logout');
   });
   
-  // Registration endpoint
-  app.post("/api/register", (req, res) => {
-    console.log("DEBUG: Redirecting legacy register request to /api/auth/register");
-    // Forward the request to the proper auth endpoint
-    res.redirect(307, '/api/auth/register');
-  });
-  
-  // Get current authenticated user route is already defined in authService.ts
-  
-  // TEMPORARY: Simple login endpoint for development
-  app.post("/api/simple-login", async (req, res) => {
+  // Registration endpoint - creates pending user for admin approval
+  app.post("/api/register", async (req, res) => {
     try {
-      const { email } = req.body;
+      const { username, email, password } = req.body;
+
+      if (!username || !email || !password) {
+        return res.status(400).json({ message: "Username, email, and password are required" });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      // Hash password
+      const crypto = await import('crypto');
+      const salt = crypto.randomBytes(16).toString("hex");
+      const hash = crypto.createHash('sha512').update(password + salt).digest('hex');
+      const hashedPassword = `${hash}.${salt}`;
+
+      // Create user with pending approval (not approved by default)
+      const newUser = await storage.createUser({
+        id: crypto.randomUUID(),
+        username,
+        email,
+        password: hashedPassword,
+        role: 'pending', // Default role until admin approves
+        isApproved: false // Requires admin approval
+      });
+
+      console.log(`📝 New user registered: ${email} - pending admin approval`);
       
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-      }
+      // Create notification for admin
+      await storage.createNotification({
+        title: "New User Registration",
+        message: `New user ${username} (${email}) has registered and requires approval.`,
+        type: "system",
+        priority: "medium",
+        userId: null // System-wide notification for admins
+      });
 
-      // Find user by email (no password required for simplicity)
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
-      }
-
-      // Create session
-      (req.session as any).userId = user.id;
-      (req.session as any).user = user;
-
-      res.json({
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role || 'admin'
+      res.status(201).json({ 
+        message: "Registration successful. Please wait for admin approval.",
+        requiresApproval: true
       });
     } catch (error) {
-      console.error("Simple login error:", error);
-      res.status(500).json({ message: "Login error" });
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
     }
   });
 

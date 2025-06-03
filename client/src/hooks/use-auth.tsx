@@ -70,10 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (data: { username: string; password: string }) => {
-      console.log("Login mutation called with:", { username: data.username, hasPassword: !!data.password });
+      console.log("🔐 Login mutation called with:", { username: data.username, hasPassword: !!data.password });
 
-      // Try production login endpoint first
-      let response = await fetch("/api/auth/production-login", {
+      const response = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -83,34 +82,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credentials: "include",
       });
 
-      // Fallback to regular login endpoint if production endpoint fails
-      if (!response.ok) {
-        console.log("Production login failed, trying regular endpoint");
-        response = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-          credentials: "include",
-        });
-      }
-
       if (!response.ok) {
         const error = await response.json();
+        console.log("❌ Login failed:", error.message);
         throw new Error(error.message || "Login failed");
       }
 
       const result = await response.json();
-      console.log("Login successful:", result);
+      console.log("✅ Login successful:", result);
       return result;
     },
-    onSuccess: () => {
-      // Use setTimeout to prevent state update conflicts
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      }, 0);
+    onSuccess: (data) => {
+      console.log("✅ AUTH: Login successful, user data:", data);
+      // Invalidate and refetch user data immediately
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      // Force a refetch to ensure fresh data
+      refetch();
     },
     onError: (error) => {
-      console.log("Login error:", error);
+      console.log("❌ AUTH: Login error:", error);
     },
   });
 
