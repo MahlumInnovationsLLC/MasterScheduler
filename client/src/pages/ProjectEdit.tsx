@@ -561,6 +561,7 @@ function ProjectEdit() {
               <TabsTrigger value="general">General Information</TabsTrigger>
               <TabsTrigger value="details">Project Details</TabsTrigger>
               <TabsTrigger value="timeline">Timeline & Schedule</TabsTrigger>
+              <TabsTrigger value="milestones">Milestone Icons</TabsTrigger>
               <TabsTrigger value="notes">Notes & Documentation</TabsTrigger>
             </TabsList>
             
@@ -1472,6 +1473,17 @@ function ProjectEdit() {
                       )}
                     />
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="milestones">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Milestone Icons</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ProjectMilestoneIconsManager projectId={projectId} />
                 </CardContent>
               </Card>
             </TabsContent>
