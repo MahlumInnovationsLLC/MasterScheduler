@@ -2921,6 +2921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Log the password reset in audit logs
+      console.log(`Creating audit log for password reset: userId=${userId}, performedBy=${req.user?.id || "system"}`);
       await storage.createUserAuditLog(
         userId,
         "PASSWORD_RESET",
@@ -2929,6 +2930,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         undefined,
         "Password reset by admin"
       );
+      
+      // Get user information for notification
+      const userInfo = await storage.getUser(userId);
+      const userName = userInfo ? `${userInfo.firstName || ''} ${userInfo.lastName || ''}`.trim() || userInfo.username : 'Unknown User';
+      
+      // Create notification for password reset
+      console.log(`Creating notification for password reset: userId=${userId}, userName=${userName}`);
+      await storage.createNotification({
+        title: "Password Reset",
+        message: `Password has been reset for user: ${userName} (${userInfo?.username || 'unknown'})`,
+        type: "system",
+        priority: "medium",
+        userId: null // System-wide notification
+      });
       
       res.json({ 
         success: true, 
