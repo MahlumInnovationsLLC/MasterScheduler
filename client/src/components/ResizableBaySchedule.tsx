@@ -2406,8 +2406,7 @@ export default function ResizableBaySchedule({
     
     // Calculate left position based on date range start
     const daysFromStart = differenceInDays(startDate, dateRange.start);
-    // Add 240px offset to compensate for removed bay details white box (4 weeks worth)
-    const left = (daysFromStart * pixelsPerDay) + 240;
+    const left = daysFromStart * pixelsPerDay;
     
     // Calculate width based on duration
     const durationDays = differenceInDays(endDate, startDate) + 1; // +1 to include the end date
@@ -3644,8 +3643,9 @@ export default function ResizableBaySchedule({
                       
                       
                       {/* Bay content area - FULL WIDTH to extend to end of timeline (2030) */}
-                      <div className="bay-content absolute left-0 top-0 bottom-0"
+                      <div className="bay-content absolute top-0 bottom-0"
                         style={{ 
+                          left: '240px', // 240px offset to compensate for removed bay details white box (4 weeks worth)
                           width: `${Math.max(8000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
                         }}>
                         {isMultiRowBay ? (
