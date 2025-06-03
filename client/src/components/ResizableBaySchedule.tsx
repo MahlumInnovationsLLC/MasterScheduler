@@ -3991,10 +3991,10 @@ export default function ResizableBaySchedule({
                                   </div>
                                 </div>
                                 
-                                {/* Project information display positioned under the FAB phase */}
+                                {/* Project information display positioned under the PROD phase */}
                                 <div className="project-info absolute flex items-center justify-center"
                                      style={{
-                                       left: `${((bar.fabWidth || 0) / 2) - 100}px`, /* Center under FAB phase */
+                                       left: `${((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) / 2) - 100}px`, /* Center under PROD phase */
                                        top: '60px', /* Position it right under the bottom phases */
                                        width: '200px',
                                        pointerEvents: 'none', /* Allow clicks to pass through */
@@ -4023,31 +4023,16 @@ export default function ResizableBaySchedule({
                                 )}
                               </div>
                               
-                              {/* Project information overlay */}
-                              <div className="project-info relative z-10 flex justify-between items-start h-full pointer-events-none">
-                                <div className="ml-1 mt-1 bg-white bg-opacity-95 px-2 py-1 rounded border border-gray-300 shadow-sm">
-                                  <div className="flex items-center gap-2">
-                                    <div className="font-bold truncate max-w-[120px] text-gray-900 text-xs">{bar.projectNumber}</div>
-                                    {isSalesEstimate && (
-                                      <span className="px-1 py-0.5 text-xs font-semibold bg-yellow-500/30 text-yellow-800 border border-yellow-400/50 rounded animate-pulse">
-                                        Proposed
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="truncate max-w-[200px] text-gray-800 text-xs">{bar.projectName}</div>
-                                </div>
-                                
-                                {/* Delete button (appears on hover) */}
-                                <button
-                                  className="delete-button p-1 bg-red-500 hover:bg-red-600 rounded text-white pointer-events-auto opacity-0 hover:opacity-100 transition-opacity absolute top-1 right-1"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteSchedule(bar.id);
-                                  }}
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </div>
+                              {/* Delete button (appears on hover) */}
+                              <button
+                                className="delete-button p-1 bg-red-500 hover:bg-red-600 rounded text-white pointer-events-auto opacity-0 hover:opacity-100 transition-opacity absolute top-1 right-1 z-20"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteSchedule(bar.id);
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
                               
                               {/* Removed resize handles from inside project container to fix z-index issues */}
                             </div>
