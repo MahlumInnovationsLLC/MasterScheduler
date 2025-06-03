@@ -3917,7 +3917,7 @@ export default function ResizableBaySchedule({
                               <div className="phases-container w-full h-full">
                                 <div className="all-phases-container w-full h-full relative">
                                   {/* Top row of phases (production through QC) */}
-                                  <div className="top-phases w-full h-[26px] absolute top-0 left-0">
+                                  <div className="top-phases w-full h-[52px] absolute top-0 left-0">
                                     {/* Production phase (positioned after FAB and PAINT) */}
                                     {bar.productionWidth && bar.productionWidth > 0 && (
                                       <div className="production-phase bg-yellow-700 h-full absolute" 
@@ -3968,7 +3968,7 @@ export default function ResizableBaySchedule({
                                   </div>
                                   
                                   {/* Bottom row of phases (FAB and PAINT) */}
-                                  <div className="bottom-phases w-full h-[24px] absolute bottom-3 left-0">
+                                  <div className="bottom-phases w-full h-[48px] absolute bottom-3 left-0">
                                     {/* FAB phase (starts from left) */}
                                     {bar.fabWidth && bar.fabWidth > 0 && (
                                       <div className="fab-phase bg-blue-700 h-full absolute left-0" 
