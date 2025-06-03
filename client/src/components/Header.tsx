@@ -21,7 +21,8 @@ import { User as UserType } from '@shared/schema';
 import { NotificationBell } from '@/components/ui/notification/NotificationBell';
 
 const Header = () => {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading } = useAuth();
+  const isAuthenticated = !!user;
   
   const typedUser = user as UserType | undefined;
   
