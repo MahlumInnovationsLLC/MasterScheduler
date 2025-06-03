@@ -1169,6 +1169,63 @@ export default function ResizableBaySchedule({
   const viewportRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   
+  // Navigation state
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  
+  // Update scroll button states based on viewport position
+  const updateScrollButtons = useCallback(() => {
+    if (!viewportRef.current) return;
+    
+    const viewport = viewportRef.current;
+    const scrollLeft = viewport.scrollLeft;
+    const scrollWidth = viewport.scrollWidth;
+    const clientWidth = viewport.clientWidth;
+    
+    setCanScrollLeft(scrollLeft > 0);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth);
+  }, []);
+  
+  // Handle left navigation
+  const handleScrollLeft = useCallback(() => {
+    if (!viewportRef.current) return;
+    
+    const scrollAmount = viewportRef.current.clientWidth * 0.75; // Scroll 75% of viewport width
+    viewportRef.current.scrollBy({
+      left: -scrollAmount,
+      behavior: 'smooth'
+    });
+  }, []);
+  
+  // Handle right navigation
+  const handleScrollRight = useCallback(() => {
+    if (!viewportRef.current) return;
+    
+    const scrollAmount = viewportRef.current.clientWidth * 0.75; // Scroll 75% of viewport width
+    viewportRef.current.scrollBy({
+      left: scrollAmount,
+      behavior: 'smooth'
+    });
+  }, []);
+  
+  // Add scroll event listener to update button states
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    
+    const handleScroll = () => {
+      updateScrollButtons();
+    };
+    
+    viewport.addEventListener('scroll', handleScroll);
+    // Initial check
+    updateScrollButtons();
+    
+    return () => {
+      viewport.removeEventListener('scroll', handleScroll);
+    };
+  }, [updateScrollButtons]);
+  
   // Update end date whenever start date or duration changes
   useEffect(() => {
     if (targetStartDate && scheduleDuration > 0) {
@@ -2946,7 +3003,29 @@ export default function ResizableBaySchedule({
           )}
         </div>
         
-        <div className="bay-schedule-viewport flex-grow overflow-auto" ref={viewportRef}>
+        <div className="bay-schedule-viewport flex-grow overflow-auto relative" ref={viewportRef}>
+          {/* Left Navigation Chevron */}
+          {canScrollLeft && (
+            <button
+              onClick={handleScrollLeft}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 z-50 bg-black/60 hover:bg-black/80 text-white rounded-full p-3 transition-all duration-200 shadow-lg backdrop-blur-sm"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft size={32} />
+            </button>
+          )}
+          
+          {/* Right Navigation Chevron */}
+          {canScrollRight && (
+            <button
+              onClick={handleScrollRight}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 bg-black/60 hover:bg-black/80 text-white rounded-full p-3 transition-all duration-200 shadow-lg backdrop-blur-sm"
+              aria-label="Scroll right"
+            >
+              <ChevronRight size={32} />
+            </button>
+          )}
+          
           <div className="bay-schedule-container relative" ref={timelineRef}>
           {/* Today Line marker - positioned absolutely */}
           {(() => {
