@@ -34,6 +34,7 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useRolePermissions } from '@/hooks/use-role-permissions';
 import { EnhancedDateField } from '@/components/EnhancedDateField';
 import { RoleBasedWrapper } from '@/components/RoleBasedWrapper';
+import { ProjectMilestoneIconsManager } from '@/components/ProjectMilestoneIconsManager';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -1298,6 +1299,18 @@ function ProjectEdit() {
                         )}
                       />
                     </div>
+                  </div>
+                  
+                  <Separator className="my-6" />
+                  
+                  {/* Milestone Icons Manager */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Bay Schedule Milestone Icons</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Configure milestone icons that appear on this project's bar in the bay schedule. 
+                      Icons show at specific time points relative to manufacturing phases.
+                    </p>
+                    <ProjectMilestoneIconsManager projectId={parseInt(projectId)} />
                   </div>
                 </CardContent>
               </Card>

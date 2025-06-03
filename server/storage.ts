@@ -253,6 +253,13 @@ export interface IStorage {
   updateProjectSupplyChainBenchmark(id: number, benchmark: Partial<InsertProjectSupplyChainBenchmark>): Promise<ProjectSupplyChainBenchmark | undefined>;
   deleteProjectSupplyChainBenchmark(id: number): Promise<boolean>;
 
+  // Project Milestone Icons methods
+  getProjectMilestoneIcons(projectId: number): Promise<ProjectMilestoneIcon[]>;
+  getProjectMilestoneIcon(id: number): Promise<ProjectMilestoneIcon | undefined>;
+  createProjectMilestoneIcon(icon: InsertProjectMilestoneIcon): Promise<ProjectMilestoneIcon>;
+  updateProjectMilestoneIcon(id: number, icon: Partial<InsertProjectMilestoneIcon>): Promise<ProjectMilestoneIcon | undefined>;
+  deleteProjectMilestoneIcon(id: number): Promise<boolean>;
+
   // Data migration methods
   updateDefaultProjectHours(): Promise<number>; // Returns count of updated records
   updateDefaultScheduleHours(): Promise<number>; // Returns count of updated records
@@ -2722,6 +2729,55 @@ export class DatabaseStorage implements IStorage {
       }
     } catch (error) {
       console.error(`Error checking permission for user ${userId}:`, error);
+      return false;
+    }
+  }
+
+  // Project Milestone Icons methods
+  async getProjectMilestoneIcons(projectId: number): Promise<ProjectMilestoneIcon[]> {
+    return await safeQuery<ProjectMilestoneIcon>(() =>
+      db.select().from(projectMilestoneIcons)
+        .where(eq(projectMilestoneIcons.projectId, projectId))
+        .orderBy(projectMilestoneIcons.name)
+    );
+  }
+
+  async getProjectMilestoneIcon(id: number): Promise<ProjectMilestoneIcon | undefined> {
+    return await safeSingleQuery<ProjectMilestoneIcon>(() =>
+      db.select().from(projectMilestoneIcons)
+        .where(eq(projectMilestoneIcons.id, id))
+    );
+  }
+
+  async createProjectMilestoneIcon(icon: InsertProjectMilestoneIcon): Promise<ProjectMilestoneIcon> {
+    try {
+      const [newIcon] = await db.insert(projectMilestoneIcons).values(icon).returning();
+      return newIcon;
+    } catch (error) {
+      console.error("Error creating project milestone icon:", error);
+      throw error;
+    }
+  }
+
+  async updateProjectMilestoneIcon(id: number, icon: Partial<InsertProjectMilestoneIcon>): Promise<ProjectMilestoneIcon | undefined> {
+    try {
+      const [updatedIcon] = await db.update(projectMilestoneIcons)
+        .set({ ...icon, updatedAt: new Date() })
+        .where(eq(projectMilestoneIcons.id, id))
+        .returning();
+      return updatedIcon;
+    } catch (error) {
+      console.error("Error updating project milestone icon:", error);
+      return undefined;
+    }
+  }
+
+  async deleteProjectMilestoneIcon(id: number): Promise<boolean> {
+    try {
+      await db.delete(projectMilestoneIcons).where(eq(projectMilestoneIcons.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting project milestone icon:", error);
       return false;
     }
   }

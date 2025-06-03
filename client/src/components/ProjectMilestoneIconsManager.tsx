@@ -28,7 +28,7 @@ import {
   Car, 
   Truck, 
   Package, 
-  Tape, 
+  PaintBucket, 
   Wrench, 
   Settings, 
   Calendar, 
