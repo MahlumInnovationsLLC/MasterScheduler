@@ -454,16 +454,34 @@ select:focus {
 }
 
 /* Specific styling for location column cells */
-.data-table tbody tr td:first-child {
+.data-table tbody tr td:first-child,
+.data-table tbody tr td:first-child .location-block,
+.data-table tbody tr td:first-child > div {
   background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
   color: #e5e7eb !important;
   font-weight: 500;
   text-align: center;
   min-width: 120px;
+  border-radius: 4px;
+  padding: 4px 8px;
+  border: 1px solid #9ca3af;
+  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
 }
 
-.data-table tbody tr:hover td:first-child {
+.data-table tbody tr:hover td:first-child,
+.data-table tbody tr:hover td:first-child .location-block,
+.data-table tbody tr:hover td:first-child > div {
   background: linear-gradient(135deg, #7c8393 0%, #5b6574 100%) !important;
+}
+
+/* Additional targeting for location blocks specifically */
+.data-table td[data-testid*="location"],
+.data-table td .px-3.py-1.rounded {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+  color: #e5e7eb !important;
+  font-weight: 500;
+  border: 1px solid #9ca3af;
+  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
 }
 
 /* Chart styles */
