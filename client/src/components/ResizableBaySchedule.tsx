@@ -4078,7 +4078,7 @@ export default function ResizableBaySchedule({
                                   // Only show milestone if position is within reasonable bounds
                                   if (milestonePosition >= -50 && milestonePosition <= bar.width + 50) {
                                     // Calculate top position based on milestone type
-                                    const topPosition = milestone.icon === 'car' ? '92px' : '25px'; // Car icon lower, star icon 40px down from previous position
+                                    const topPosition = milestone.icon === 'car' ? '92px' : '35px'; // Car icon lower, star icon positioned lower
                                     
                                     return (
                                       <div
@@ -4093,7 +4093,7 @@ export default function ResizableBaySchedule({
                                         }}
                                         title={`${milestone.name} - ${milestone.daysBefore} days before ${milestone.phase}`}
                                       >
-                                        <div className="bg-white/80 border-2 border-gray-600 rounded-full p-1 shadow-lg backdrop-blur-sm">
+                                        <div className="bg-white/60 border-2 border-gray-600 rounded-full p-1 shadow-lg backdrop-blur-sm">
                                           {milestone.icon === 'car' && <span className="text-lg">🚗</span>}
                                           {milestone.icon === 'paintBucket' && <span className="text-lg">🎨</span>}
                                           {milestone.icon === 'wrench' && <span className="text-lg">🔧</span>}
