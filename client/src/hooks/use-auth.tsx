@@ -28,30 +28,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/user"],
     queryFn: async () => {
       try {
+        console.log("🔍 AUTH: Fetching user data...");
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
         const response = await fetch("/api/user", {
           credentials: "include",
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           if (response.status === 401) {
+            console.log("🔍 AUTH: User not authenticated (401)");
             return null;
           }
-          throw new Error("Failed to fetch user");
+          throw new Error(`Failed to fetch user: ${response.status}`);
         }
 
-        return response.json();
+        const userData = await response.json();
+        console.log("✅ AUTH: User data fetched successfully:", userData);
+        return userData;
       } catch (err) {
         // Handle network errors gracefully
-        console.log("Auth check failed:", err);
+        console.log("❌ AUTH: Auth check failed:", err);
+        if (err.name === 'AbortError') {
+          console.log("❌ AUTH: Request timed out");
+        }
         return null;
       }
     },
-    retry: false,
+    retry: 2,
+    retryDelay: 1000,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 
   const loginMutation = useMutation({
