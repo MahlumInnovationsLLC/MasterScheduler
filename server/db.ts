@@ -46,33 +46,47 @@ pool.on('error', (err) => {
     return;
   }
   
+  // Ignore Neon database sleep/wake cycle errors
+  if (err.code === '57P01' && err.message.includes('terminating connection due to administrator command')) {
+    console.log('Database connection terminated by Neon (sleep cycle) - will reconnect on next query');
+    return;
+  }
+  
+  // Ignore other common Neon connection errors during sleep/wake
+  if (err.code === '08P01' || err.code === '08006' || err.message.includes('Connection terminated unexpectedly')) {
+    console.log('Database connection lost (Neon sleep cycle) - will reconnect automatically');
+    return;
+  }
+  
   console.error('Unexpected database error on idle client:', err);
   
-  // Log additional information about pool status to help with debugging
-  console.error(`Database connection error occurred at ${new Date().toISOString()}`);
-  
-  // Create a new connection to replace the failed one
-  const newClient = new Pool({ 
-    connectionString: process.env.DATABASE_URL,
-    max: 1,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
-  });
-  
-  // Attempt recovery through reconnection after a brief delay
-  setTimeout(() => {
-    console.log("Attempting to verify database connection...");
-    newClient.query('SELECT 1')
-      .then(() => {
-        console.log("Database connection reestablished with new client");
-        // Don't replace the pool as it might affect existing references
-        // but keep the new client active
-      })
-      .catch(error => {
-        console.error("Failed to reestablish database connection:", error.message);
-        newClient.end().catch(() => {}); // Clean up failed connection attempt
-      });
-  }, 2000);
+  // Only attempt recovery for truly unexpected errors
+  if (!['57P01', '08P01', '08006'].includes(err.code)) {
+    console.error(`Database connection error occurred at ${new Date().toISOString()}`);
+    
+    // Create a new connection to replace the failed one
+    const newClient = new Pool({ 
+      connectionString: process.env.DATABASE_URL,
+      max: 1,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
+    
+    // Attempt recovery through reconnection after a brief delay
+    setTimeout(() => {
+      console.log("Attempting to verify database connection...");
+      newClient.query('SELECT 1')
+        .then(() => {
+          console.log("Database connection reestablished with new client");
+          // Don't replace the pool as it might affect existing references
+          // but keep the new client active
+        })
+        .catch(error => {
+          console.error("Failed to reestablish database connection:", error.message);
+          newClient.end().catch(() => {}); // Clean up failed connection attempt
+        });
+    }, 2000);
+  }
 });
 
 // Test the connection immediately

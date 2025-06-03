@@ -40,7 +40,21 @@ export function setupAuth(app: Express) {
     store: new PostgresSessionStore({ 
       pool: pool, 
       createTableIfMissing: true,
-      errorLog: () => {} // Suppress error logs for duplicate table/index creation
+      errorLog: (error) => {
+        // Suppress expected errors for table/index creation
+        if (error.code === '42P07' && error.message.includes('IDX_session_expire')) {
+          console.log('Session index already exists (expected on restart)');
+          return;
+        }
+        if (error.code === '42P01' || error.code === '42P07') {
+          console.log('Table/index creation handled, ignoring error');
+          return;
+        }
+        // Only log unexpected errors
+        if (!error.message.includes('already exists')) {
+          console.error('Session store error:', error.message);
+        }
+      }
     }),
     cookie: {
       secure: false, // Set to true in production with HTTPS

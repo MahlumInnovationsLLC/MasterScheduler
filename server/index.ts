@@ -5,11 +5,31 @@ import { setupAuth } from "./auth";
 
 // Add global error handlers to prevent server crashes
 process.on('uncaughtException', (error) => {
+  // Suppress known database session errors
+  if (error.message && error.message.includes('IDX_session_expire')) {
+    console.log('Session index creation handled (expected on restart)');
+    return;
+  }
+  if (error.code === '42P07' || error.code === '57P01') {
+    console.log('Database connection issue handled (expected with Neon)');
+    return;
+  }
   console.error('Uncaught Exception:', error);
   // Don't exit the process so the server keeps running
 });
 
 process.on('unhandledRejection', (reason, promise) => {
+  // Suppress known database connection rejections
+  if (reason && typeof reason === 'object' && 'code' in reason) {
+    if (reason.code === '42P07' || reason.code === '57P01' || reason.code === '08P01') {
+      console.log('Database rejection handled (expected with Neon sleep cycle)');
+      return;
+    }
+  }
+  if (reason && typeof reason === 'string' && reason.includes('IDX_session_expire')) {
+    console.log('Session index rejection handled (expected on restart)');
+    return;
+  }
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
   // Don't exit the process so the server keeps running
 });
