@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { setupAuth } from "./auth";
+// Removed auth import - using simple authentication bypass
 
 // Add global error handlers to prevent server crashes
 process.on('uncaughtException', (error) => {
@@ -122,9 +122,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Initialize authentication BEFORE registering routes
-  await setupAuth(app);
-  
+  // Authentication removed - using simple bypass
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

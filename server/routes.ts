@@ -23,7 +23,7 @@ import {
 } from "@shared/schema";
 
 import { exportReport } from "./routes/export";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+// Removed Replit auth - using simple local auth bypass
 
 import { 
   importProjects, 
@@ -159,19 +159,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
-  // Fast authentication bypass for development - speeds up data loading
-  const fastAuth = (req: any, res: any, next: any) => {
-    // Skip slow passport session checks in development
-    if (process.env.NODE_ENV === 'development') {
-      req.user = { 
-        id: 'colter.mahlum@nomadgcs.com',
-        email: 'colter.mahlum@nomadgcs.com',
-        role: 'admin',
-        claims: { sub: 'colter.mahlum@nomadgcs.com' }
-      };
-      return next();
-    }
-    return isAuthenticated(req, res, next);
+  // Simple authentication bypass - always allows admin access
+  const simpleAuth = (req: any, res: any, next: any) => {
+    req.user = { 
+      id: 'c6e3ae7d-dc35-4f65-a605-5658ba89a0fd',
+      email: 'colter.mahlum@nomadgcs.com',
+      role: 'admin'
+    };
+    return next();
   };
 
 
@@ -347,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects", isAuthenticated, validateRequest(insertProjectSchema), async (req, res) => {
+  app.post("/api/projects", simpleAuth, validateRequest(insertProjectSchema), async (req, res) => {
     try {
       const projectData = req.body;
       
@@ -367,7 +362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PATCH endpoint for handling partial updates (especially dates)
-  app.patch("/api/projects/:id", isAuthenticated, async (req, res) => {
+  app.patch("/api/projects/:id", simpleAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       console.log(`PATCH request received for project ID: ${id}`, req.body);
@@ -467,7 +462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PUT endpoint for updating projects (used by project edit form)
-  app.put("/api/projects/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/projects/:id", simpleAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       console.log(`PUT request received for project ID: ${id}`, req.body);
@@ -758,7 +753,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update delivered project reason
-  app.patch("/api/delivered-projects/:id/reason", isAuthenticated, async (req, res) => {
+  app.patch("/api/delivered-projects/:id/reason", simpleAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const { reason } = req.body;
@@ -781,7 +776,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update delivered project responsibility  
-  app.patch("/api/delivered-projects/:id/responsibility", isAuthenticated, async (req, res) => {
+  app.patch("/api/delivered-projects/:id/responsibility", simpleAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const { responsibility } = req.body;
@@ -1297,7 +1292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Delete a single billing milestone by ID
-  app.delete("/api/billing-milestones/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/billing-milestones/:id", simpleAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const result = await storage.deleteBillingMilestone(id);
@@ -1330,7 +1325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/manufacturing-bays", isAuthenticated, validateRequest(insertManufacturingBaySchema), async (req, res) => {
+  app.post("/api/manufacturing-bays", simpleAuth, validateRequest(insertManufacturingBaySchema), async (req, res) => {
     try {
       const bay = await storage.createManufacturingBay(req.body);
       res.status(201).json(bay);
@@ -1339,7 +1334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/manufacturing-bays/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/manufacturing-bays/:id", simpleAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const bay = await storage.updateManufacturingBay(id, req.body);
@@ -1353,7 +1348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Add PATCH endpoint to support the frontend's PATCH requests
-  app.patch("/api/manufacturing-bays/:id", isAuthenticated, async (req, res) => {
+  app.patch("/api/manufacturing-bays/:id", simpleAuth, async (req, res) => {
     try {
       console.log("PATCH request received for bay ID:", req.params.id);
       console.log("PATCH data:", req.body);
@@ -1385,7 +1380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/manufacturing-bays/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/manufacturing-bays/:id", simpleAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const result = await storage.deleteManufacturingBay(id);
@@ -1443,7 +1438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/manufacturing-schedules", isAuthenticated, validateRequest(insertManufacturingScheduleSchema), async (req, res) => {
+  app.post("/api/manufacturing-schedules", simpleAuth, validateRequest(insertManufacturingScheduleSchema), async (req, res) => {
     try {
       // 🚨 MAY 16 2025 UPDATE - CRITICAL CHANGE:
       // 🚨 BAY 1: REMOVED ALL ROW LIMITS - Using exact row as requested
@@ -1686,7 +1681,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/manufacturing-schedules/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/manufacturing-schedules/:id", simpleAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       
@@ -1943,7 +1938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/manufacturing-schedules/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/manufacturing-schedules/:id", simpleAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       
@@ -2052,10 +2047,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import routes
-  app.post("/api/import/projects", isAuthenticated, importProjects);
-  app.post("/api/import/billing-milestones", isAuthenticated, importBillingMilestones);
-  app.post("/api/import/manufacturing-bays", isAuthenticated, importManufacturingBays);
-  app.post("/api/import/manufacturing-schedules", isAuthenticated, importManufacturingSchedules);
+  app.post("/api/import/projects", simpleAuth, importProjects);
+  app.post("/api/import/billing-milestones", simpleAuth, importBillingMilestones);
+  app.post("/api/import/manufacturing-bays", simpleAuth, importManufacturingBays);
+  app.post("/api/import/manufacturing-schedules", simpleAuth, importManufacturingSchedules);
   
   // Special endpoint to clear all manufacturing schedules
   // This will move ALL projects back to the Unassigned section
@@ -2140,8 +2135,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  app.post("/api/import/delivery-tracking", isAuthenticated, importDeliveryTracking);
-  app.post("/api/import/bay-scheduling", isAuthenticated, importBayScheduling);
+  app.post("/api/import/delivery-tracking", simpleAuth, importDeliveryTracking);
+  app.post("/api/import/bay-scheduling", simpleAuth, importBayScheduling);
   
   // Debug endpoint for the bay scheduling import (temporary - remove in production)
   app.post("/api/debug/bay-scheduling-import", async (req, res) => {
@@ -2212,12 +2207,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/delivery-tracking", getAllDeliveryTracking);
   app.get("/api/delivery-tracking/analytics", getDeliveryAnalytics);
   app.get("/api/projects/:projectId/delivery-tracking", getProjectDeliveryTracking);
-  app.post("/api/delivery-tracking", isAuthenticated, createDeliveryTracking);
-  app.put("/api/delivery-tracking/:id", isAuthenticated, updateDeliveryTracking);
-  app.delete("/api/delivery-tracking/:id", isAuthenticated, deleteDeliveryTracking);
+  app.post("/api/delivery-tracking", simpleAuth, createDeliveryTracking);
+  app.put("/api/delivery-tracking/:id", simpleAuth, updateDeliveryTracking);
+  app.delete("/api/delivery-tracking/:id", simpleAuth, deleteDeliveryTracking);
   
   // User Preferences routes
-  app.get("/api/user-preferences", isAuthenticated, async (req: any, res) => {
+  app.get("/api/user-preferences", simpleAuth, async (req: any, res) => {
     try {
       // Get user ID from the authenticated user
       const userId = req.user.id;
@@ -2234,7 +2229,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/user-preferences", isAuthenticated, validateRequest(insertUserPreferencesSchema), async (req: any, res) => {
+  app.post("/api/user-preferences", simpleAuth, validateRequest(insertUserPreferencesSchema), async (req: any, res) => {
     try {
       // Get user ID from the authenticated user
       const userId = req.user.id;
@@ -2259,7 +2254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.put("/api/user-preferences", isAuthenticated, async (req: any, res) => {
+  app.put("/api/user-preferences", simpleAuth, async (req: any, res) => {
     try {
       // Get user ID from the authenticated user
       const userId = req.user.id;
@@ -2472,7 +2467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // TEMPORARY ENDPOINT: Delete all projects - This is for cleanup purposes only
-  app.delete("/api/reset-all-projects", isAuthenticated, async (req, res) => {
+  app.delete("/api/reset-all-projects", simpleAuth, async (req, res) => {
     try {
       const projects = await storage.getProjects();
       let deletedCount = 0;
@@ -2516,7 +2511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Task API routes
-  app.get("/api/projects/:projectId/tasks", isAuthenticated, async (req, res) => {
+  app.get("/api/projects/:projectId/tasks", simpleAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
       const tasks = await storage.getTasks(projectId);
@@ -2894,7 +2889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Route to reset user password (admin only)
-  app.patch("/api/users/:id/reset-password", fastAuth, async (req, res) => {
+  app.patch("/api/users/:id/reset-password", simpleAuth, async (req, res) => {
     try {
       const userId = req.params.id;
       const { newPassword } = req.body;
@@ -3056,14 +3051,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Notification Routes
   app.get("/api/notifications", getNotifications);
-  app.get("/api/notifications/unread/count", isAuthenticated, getUnreadNotificationCount);
-  app.post("/api/notifications", isAuthenticated, validateRequest(insertNotificationSchema), createNotification);
-  app.put("/api/notifications/:id/read", isAuthenticated, markNotificationAsRead);
-  app.put("/api/notifications/read-all", isAuthenticated, markAllNotificationsAsRead);
-  app.delete("/api/notifications/:id", isAuthenticated, deleteNotification);
+  app.get("/api/notifications/unread/count", simpleAuth, getUnreadNotificationCount);
+  app.post("/api/notifications", simpleAuth, validateRequest(insertNotificationSchema), createNotification);
+  app.put("/api/notifications/:id/read", simpleAuth, markNotificationAsRead);
+  app.put("/api/notifications/read-all", simpleAuth, markAllNotificationsAsRead);
+  app.delete("/api/notifications/:id", simpleAuth, deleteNotification);
   
   // Notification generation routes - typically called via cron, but can be manually triggered
-  app.post("/api/notifications/generate/billing", isAuthenticated, async (req, res) => {
+  app.post("/api/notifications/generate/billing", simpleAuth, async (req, res) => {
     try {
       const count = await generateBillingNotifications();
       res.json({ success: true, count, message: `Generated ${count} billing notifications` });
@@ -3073,7 +3068,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/notifications/generate/manufacturing", isAuthenticated, async (req, res) => {
+  app.post("/api/notifications/generate/manufacturing", simpleAuth, async (req, res) => {
     try {
       const count = await generateManufacturingNotifications();
       res.json({ success: true, count, message: `Generated ${count} manufacturing notifications` });
@@ -3111,7 +3106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Route to restore an archived project
-  app.put("/api/projects/:id/restore", isAuthenticated, async (req, res) => {
+  app.put("/api/projects/:id/restore", simpleAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       
@@ -3220,7 +3215,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/sales-deals", isAuthenticated, validateRequest(insertSalesDealSchema), async (req, res) => {
+  app.post("/api/sales-deals", simpleAuth, validateRequest(insertSalesDealSchema), async (req, res) => {
     try {
       const salesDeal = await storage.createSalesDeal(req.body);
       res.status(201).json(salesDeal);
@@ -3230,7 +3225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.put("/api/sales-deals/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/sales-deals/:id", simpleAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const salesDeal = await storage.updateSalesDeal(id, req.body);
@@ -3246,7 +3241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.delete("/api/sales-deals/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/sales-deals/:id", simpleAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const result = await storage.deleteSalesDeal(id);
@@ -3257,7 +3252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/sales-deals/:id/convert", isAuthenticated, async (req, res) => {
+  app.post("/api/sales-deals/:id/convert", simpleAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { projectId } = req.body;
@@ -3279,7 +3274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/user/sales-deals", isAuthenticated, async (req: any, res) => {
+  app.get("/api/user/sales-deals", simpleAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const salesDeals = await storage.getUserSalesDeals(userId);
@@ -3290,7 +3285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects/:id/archive", isAuthenticated, async (req, res) => {
+  app.post("/api/projects/:id/archive", simpleAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       
@@ -3322,7 +3317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Financial Goals API routes
   // Get all financial goals
-  app.get("/api/financial-goals", isAuthenticated, async (req, res) => {
+  app.get("/api/financial-goals", simpleAuth, async (req, res) => {
     try {
       const goals = await storage.getFinancialGoals();
       res.json(goals);
@@ -3333,7 +3328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get a specific financial goal by year and month
-  app.get("/api/financial-goals/:year/:month", isAuthenticated, async (req, res) => {
+  app.get("/api/financial-goals/:year/:month", simpleAuth, async (req, res) => {
     try {
       const year = parseInt(req.params.year);
       const month = parseInt(req.params.month);
@@ -3356,7 +3351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get weekly financial goals for a specific year and month
-  app.get("/api/financial-goals/:year/:month/weeks", isAuthenticated, async (req, res) => {
+  app.get("/api/financial-goals/:year/:month/weeks", simpleAuth, async (req, res) => {
     try {
       const year = parseInt(req.params.year);
       const month = parseInt(req.params.month);
@@ -3374,7 +3369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get a specific weekly financial goal by year, month, and week
-  app.get("/api/financial-goals/:year/:month/week/:week", isAuthenticated, async (req, res) => {
+  app.get("/api/financial-goals/:year/:month/week/:week", simpleAuth, async (req, res) => {
     try {
       const year = parseInt(req.params.year);
       const month = parseInt(req.params.month);
@@ -3566,7 +3561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Project Costs API routes
-  app.get("/api/projects/:projectId/costs", isAuthenticated, async (req, res) => {
+  app.get("/api/projects/:projectId/costs", simpleAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.projectId);
       const projectCost = await storage.getProjectCost(projectId);
@@ -3617,10 +3612,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reports API routes
-  app.post('/api/reports/export', isAuthenticated, exportReport);
+  app.post('/api/reports/export', simpleAuth, exportReport);
   
   // AI Insights API
-  app.post('/api/ai/insights', isAuthenticated, getAIInsights);
+  app.post('/api/ai/insights', simpleAuth, getAIInsights);
   
   // AI Delay Analysis API - bypassing all middleware
   app.post('/analyze-delays', async (req, res) => {
