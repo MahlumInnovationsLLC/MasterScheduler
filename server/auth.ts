@@ -322,6 +322,30 @@ export async function setupAuth(app: Express) {
       res.status(500).json({ error: "User creation failed" });
     }
   });
+
+  // Debug endpoint to reset user password (for development)
+  app.post("/api/debug/reset-password", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const hashedPassword = await hashPassword(password);
+      await storage.updateUser(user.id, { password: hashedPassword });
+
+      res.json({ 
+        success: true,
+        message: "Password updated successfully",
+        email: user.email 
+      });
+    } catch (error) {
+      console.error('Password reset error:', error);
+      res.status(500).json({ error: "Password reset failed" });
+    }
+  });
 }
 
 export const isAuthenticated = (req: any, res: any, next: any) => {
