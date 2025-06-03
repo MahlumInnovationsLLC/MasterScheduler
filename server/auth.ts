@@ -39,7 +39,8 @@ export function setupAuth(app: Express) {
     saveUninitialized: false,
     store: new PostgresSessionStore({ 
       pool: pool, 
-      createTableIfMissing: true
+      createTableIfMissing: true,
+      errorLog: () => {} // Suppress error logs for duplicate table/index creation
     }),
     cookie: {
       secure: false, // Set to true in production with HTTPS
@@ -54,29 +55,22 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        console.log('Attempting login for username:', username);
         const user = await storage.getUserByUsername(username);
-        console.log('User found:', !!user);
         
         if (!user) {
-          console.log('User not found');
           return done(null, false, { message: 'Invalid username or password' });
         }
         
         if (!user.password) {
-          console.log('User has no password');
           return done(null, false, { message: 'Invalid username or password' });
         }
         
         const passwordMatch = await comparePasswords(password, user.password);
-        console.log('Password match:', passwordMatch);
         
         if (!passwordMatch) {
-          console.log('Password does not match');
           return done(null, false, { message: 'Invalid username or password' });
         }
         
-        console.log('Authentication successful for user:', user.username);
         return done(null, user);
       } catch (error) {
         console.error('Authentication error:', error);
