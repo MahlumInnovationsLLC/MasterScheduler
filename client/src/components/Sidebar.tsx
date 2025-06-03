@@ -73,65 +73,63 @@ const Sidebar = () => {
       >
         {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
       </button>
-      
+
       <nav className={`py-4 ${isCollapsed ? 'px-2' : 'px-4'}`}>
         {/* Main Navigation */}
         <div className="mb-6">
           {!isCollapsed && (
-            <h6 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+            <h6 className="sidebar-section-header text-xs font-semibold uppercase tracking-wider mb-2 px-3">
               Main Navigation
             </h6>
           )}
           <ul>
             <li>
-              <SidebarLink href="/" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`} title="Dashboard">
+              <SidebarLink href="/" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/') ? 'active' : ''
+              } ${isCollapsed ? 'justify-center' : ''}`} title="Dashboard">
                 <LayoutDashboard className={`text-xl ${isActive('/') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>Dashboard</span>}
               </SidebarLink>
             </li>
             <li>
-              <SidebarLink href="/projects" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/projects') || locationStartsWith('/project/') 
-                  ? 'bg-primary bg-opacity-20 text-white' 
-                  : 'text-gray-700 dark:text-gray-300'
-              }`} title="Projects">
+              <SidebarLink href="/projects" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/projects') || locationStartsWith('/project/') ? 'active' : ''
+              } ${isCollapsed ? 'justify-center' : ''}`} title="Projects">
                 <ListChecks className={`text-xl ${isActive('/projects') || locationStartsWith('/project/') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>Projects</span>}
               </SidebarLink>
             </li>
             <li>
-              <SidebarLink href="/calendar" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/calendar') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`} title="Calendar">
+              <SidebarLink href="/calendar" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/calendar') ? 'active' : ''
+              } ${isCollapsed ? 'justify-center' : ''}`} title="Calendar">
                 <Calendar className={`text-xl ${isActive('/calendar') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>Calendar</span>}
               </SidebarLink>
             </li>
             <li>
-              <SidebarLink href="/reports" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/reports') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`} title="Reports">
+              <SidebarLink href="/reports" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/reports') ? 'active' : ''
+              } ${isCollapsed ? 'justify-center' : ''}`} title="Reports">
                 <BarChart3 className={`text-xl ${isActive('/reports') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>Reports</span>}
               </SidebarLink>
             </li>
           </ul>
         </div>
-        
+
         {/* Modules */}
         <div className="mb-6">
           {!isCollapsed && (
-            <h6 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+            <h6 className="sidebar-section-header text-xs font-semibold uppercase tracking-wider mb-2 px-3">
               Modules
             </h6>
           )}
           <ul>
             <li>
-              <SidebarLink href="/sales-forecast" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/sales-forecast') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`} title="Sales Forecast">
+              <SidebarLink href="/sales-forecast" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/sales-forecast') ? 'active' : ''
+              } ${isCollapsed ? 'justify-center' : ''}`} title="Sales Forecast">
                 <TrendingUp className={`text-xl ${isActive('/sales-forecast') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>Sales Forecast</span>}
               </SidebarLink>
@@ -139,99 +137,99 @@ const Sidebar = () => {
             {/* Hide Bay Scheduling from Viewer role users */}
             {userRole !== "viewer" && (
               <li>
-                <SidebarLink href="/bay-scheduling" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                  isActive('/bay-scheduling') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-                }`} title="Bay Scheduling">
+                <SidebarLink href="/bay-scheduling" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/bay-scheduling') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Bay Scheduling">
                   <GanttChart className={`text-xl ${isActive('/bay-scheduling') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Bay Scheduling</span>}
                 </SidebarLink>
               </li>
             )}
             <li>
-              <SidebarLink href="/billing" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/billing') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`} title="Billing Milestones">
+              <SidebarLink href="/billing" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/billing') ? 'active' : ''
+              } ${isCollapsed ? 'justify-center' : ''}`} title="Billing Milestones">
                 <DollarSign className={`text-xl ${isActive('/billing') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>Billing Milestones</span>}
               </SidebarLink>
             </li>
             <li>
-              <SidebarLink href="/on-time-delivery" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/on-time-delivery') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`} title="On Time Delivery">
+              <SidebarLink href="/on-time-delivery" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/on-time-delivery') ? 'active' : ''
+              } ${isCollapsed ? 'justify-center' : ''}`} title="On Time Delivery">
                 <Clock className={`text-xl ${isActive('/on-time-delivery') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>On Time Delivery</span>}
               </SidebarLink>
             </li>
             <li>
-              <SidebarLink href="/delivered-projects" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/delivered-projects') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`} title="Delivered Projects">
+              <SidebarLink href="/delivered-projects" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/delivered-projects') ? 'active' : ''
+              } ${isCollapsed ? 'justify-center' : ''}`} title="Delivered Projects">
                 <Truck className={`text-xl ${isActive('/delivered-projects') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>Delivered Projects</span>}
               </SidebarLink>
             </li>
             <li>
-              <SidebarLink href="/supply-chain" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/supply-chain') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`} title="Supply Chain">
+              <SidebarLink href="/supply-chain" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/supply-chain') ? 'active' : ''
+              } ${isCollapsed ? 'justify-center' : ''}`} title="Supply Chain">
                 <ShoppingCart className={`text-xl ${isActive('/supply-chain') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>Supply Chain</span>}
               </SidebarLink>
             </li>
           </ul>
         </div>
-        
+
         {/* Data Management */}
         <div className="mb-6">
           {!isCollapsed && (
-            <h6 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+            <h6 className="sidebar-section-header text-xs font-semibold uppercase tracking-wider mb-2 px-3">
               Data Management
             </h6>
           )}
           <ul>
             <li>
               <RoleBasedWrapper requiresEdit={true}>
-                <SidebarLink href="/import" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                  isActive('/import') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-                }`} title="Import Data">
+                <SidebarLink href="/import" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/import') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Import Data">
                   <Upload className={`text-xl ${isActive('/import') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Import Data</span>}
                 </SidebarLink>
               </RoleBasedWrapper>
             </li>
             <li>
-              <SidebarLink href="/export-reports" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/export-reports') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`} title="Export Reports">
+              <SidebarLink href="/export-reports" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/export-reports') ? 'active' : ''
+              } ${isCollapsed ? 'justify-center' : ''}`} title="Export Reports">
                 <Download className={`text-xl ${isActive('/export-reports') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>Export Reports</span>}
               </SidebarLink>
             </li>
           </ul>
         </div>
-        
+
         {/* Settings */}
         <div>
           {!isCollapsed && (
-            <h6 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+            <h6 className="sidebar-section-header text-xs font-semibold uppercase tracking-wider mb-2 px-3">
               Settings
             </h6>
           )}
           <ul>
             <li>
-              <SidebarLink href="/settings/user" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                isActive('/settings/user') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-              }`} title="User Preferences">
+              <SidebarLink href="/settings/user" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/settings/user') ? 'active' : ''
+              } ${isCollapsed ? 'justify-center' : ''}`} title="User Preferences">
                 <Users className={`text-xl ${isActive('/settings/user') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>User Preferences</span>}
               </SidebarLink>
             </li>
             <RoleBasedWrapper requiresAdmin={true} fallback={null}>
               <li>
-                <SidebarLink href="/system-settings" className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg hover:bg-gray-800 mb-1 ${
-                  isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'bg-primary bg-opacity-20 text-white' : 'text-gray-700 dark:text-gray-300'
-                }`} title="System Settings">
+                <SidebarLink href="/system-settings" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="System Settings">
                   <Settings className={`text-xl ${isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>System Settings</span>}
                 </SidebarLink>
