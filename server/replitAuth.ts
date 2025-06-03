@@ -118,6 +118,16 @@ export async function setupAuth(app: Express) {
   // Support both standard and auth-prefixed paths for logout route
   app.get("/api/logout", (req, res) => {
     console.log('Logout initiated for user:', req.user);
+    
+    // Store the session ID in a blacklist to prevent reuse
+    const sessionId = req.sessionID;
+    if (sessionId) {
+      // Store blacklisted session (in production, use Redis or database)
+      global.blacklistedSessions = global.blacklistedSessions || new Set();
+      global.blacklistedSessions.add(sessionId);
+      console.log('Blacklisted session:', sessionId);
+    }
+    
     req.logout((err) => {
       if (err) {
         console.error('Logout error:', err);
@@ -127,13 +137,10 @@ export async function setupAuth(app: Express) {
           console.error('Session destroy error:', sessionErr);
         }
         res.clearCookie('connect.sid');
-        // Force OIDC logout to ensure complete logout
-        const logoutUrl = client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        });
-        console.log('Redirecting to OIDC logout:', logoutUrl.href);
-        res.redirect(logoutUrl.href);
+        res.clearCookie('replit.sid'); // Clear any Replit-specific cookies
+        
+        // Redirect to a logout confirmation page that clears all auth state
+        res.redirect(`${req.protocol}://${req.hostname}/logout-complete`);
       });
     });
   });
@@ -141,6 +148,16 @@ export async function setupAuth(app: Express) {
   // Add /api/auth/logout endpoint for Replit Auth
   app.get("/api/auth/logout", (req, res) => {
     console.log('Auth logout initiated for user:', req.user);
+    
+    // Store the session ID in a blacklist to prevent reuse
+    const sessionId = req.sessionID;
+    if (sessionId) {
+      // Store blacklisted session (in production, use Redis or database)
+      global.blacklistedSessions = global.blacklistedSessions || new Set();
+      global.blacklistedSessions.add(sessionId);
+      console.log('Blacklisted session:', sessionId);
+    }
+    
     req.logout((err) => {
       if (err) {
         console.error('Logout error:', err);
@@ -150,15 +167,68 @@ export async function setupAuth(app: Express) {
           console.error('Session destroy error:', sessionErr);
         }
         res.clearCookie('connect.sid');
-        // Force OIDC logout to ensure complete logout
-        const logoutUrl = client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        });
-        console.log('Redirecting to OIDC logout:', logoutUrl.href);
-        res.redirect(logoutUrl.href);
+        res.clearCookie('replit.sid'); // Clear any Replit-specific cookies
+        
+        // Redirect to a logout confirmation page that clears all auth state
+        res.redirect(`${req.protocol}://${req.hostname}/logout-complete`);
       });
     });
+  });
+
+  // Add logout completion page
+  app.get("/logout-complete", (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Logged Out</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+            background-color: #f5f5f5; 
+          }
+          .container { 
+            text-align: center; 
+            background: white; 
+            padding: 2rem; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+          }
+          .btn { 
+            background: #007cba; 
+            color: white; 
+            padding: 10px 20px; 
+            text-decoration: none; 
+            border-radius: 4px; 
+            display: inline-block; 
+            margin-top: 1rem; 
+          }
+        </style>
+        <script>
+          // Clear any remaining authentication state
+          localStorage.clear();
+          sessionStorage.clear();
+          
+          // Clear all cookies
+          document.cookie.split(";").forEach(function(c) { 
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+          });
+        </script>
+      </head>
+      <body>
+        <div class="container">
+          <h2>You have been logged out</h2>
+          <p>Your session has been terminated and all authentication data has been cleared.</p>
+          <a href="/api/login" class="btn">Sign In Again</a>
+        </div>
+      </body>
+      </html>
+    `);
   });
 }
 
