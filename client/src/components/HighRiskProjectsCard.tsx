@@ -309,13 +309,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
         )}
       </div>
       
-      {(activeCount + upcomingCount) > 0 && (
-        <div className="mt-3 text-right">
-          <a href="/manufacturing-schedules" className="text-xs text-primary hover:text-primary/80 inline-flex items-center">
-            View full manufacturing schedule <ArrowRight className="h-3 w-3 ml-1" />
-          </a>
-        </div>
-      )}
+
     </Card>
   );
 }
