@@ -125,10 +125,7 @@ const UserModuleVisibilityManager: React.FC = () => {
   // Initialize default visibility for users who don't have settings
   const initializeUserVisibility = useMutation({
     mutationFn: async ({ userId, userRole }: { userId: string; userRole: string }) => {
-      return apiRequest(`/api/user-module-visibility/${userId}/initialize`, {
-        method: 'POST',
-        body: { userRole }
-      });
+      return apiRequest(`/api/user-module-visibility/${userId}/initialize`, 'POST', { userRole });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user-module-visibility'] });
@@ -150,10 +147,7 @@ const UserModuleVisibilityManager: React.FC = () => {
   // Update module visibility
   const updateVisibility = useMutation({
     mutationFn: async ({ userId, module, isVisible }: { userId: string; module: string; isVisible: boolean }) => {
-      return apiRequest('/api/user-module-visibility', {
-        method: 'POST',
-        body: { userId, module, isVisible }
-      });
+      return apiRequest('/api/user-module-visibility', 'POST', { userId, module, isVisible });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user-module-visibility'] });

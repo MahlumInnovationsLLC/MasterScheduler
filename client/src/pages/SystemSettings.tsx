@@ -58,6 +58,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRolePermissions } from "@/hooks/use-role-permissions";
 import { RoleBasedWrapper } from "@/components/RoleBasedWrapper";
 import { queryClient, apiRequest, getQueryFn } from '../lib/queryClient';
+import UserModuleVisibilityManager from "@/components/UserModuleVisibilityManager";
 
 const SystemSettings = () => {
   const { toast } = useToast();
@@ -1067,8 +1068,9 @@ const SystemSettings = () => {
       </div>
 
       <Tabs defaultValue="accessControl" className="w-full space-y-6" onValueChange={setCurrentTab}>
-        <TabsList className="grid grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="accessControl">Access Control</TabsTrigger>
+          <TabsTrigger value="moduleVisibility">Module Visibility</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="archiveManagement">Archive Management</TabsTrigger>
           <TabsTrigger value="maintenance">System Maintenance</TabsTrigger>
@@ -1698,6 +1700,11 @@ const SystemSettings = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Module Visibility Tab */}
+          <TabsContent value="moduleVisibility" className="space-y-6">
+            <UserModuleVisibilityManager />
           </TabsContent>
 
           {/* System Maintenance Tab */}
