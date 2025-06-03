@@ -117,6 +117,7 @@ export async function setupAuth(app: Express) {
 
   // Support both standard and auth-prefixed paths for logout route
   app.get("/api/logout", (req, res) => {
+    console.log('Logout initiated for user:', req.user);
     req.logout((err) => {
       if (err) {
         console.error('Logout error:', err);
@@ -126,18 +127,21 @@ export async function setupAuth(app: Express) {
           console.error('Session destroy error:', sessionErr);
         }
         res.clearCookie('connect.sid');
-        res.redirect(
-          client.buildEndSessionUrl(config, {
-            client_id: process.env.REPL_ID!,
-            post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-          }).href
-        );
+        // Force OIDC logout with id_token_hint to ensure complete logout
+        const logoutUrl = client.buildEndSessionUrl(config, {
+          client_id: process.env.REPL_ID!,
+          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+          id_token_hint: (req.user as any)?.access_token,
+        });
+        console.log('Redirecting to OIDC logout:', logoutUrl.href);
+        res.redirect(logoutUrl.href);
       });
     });
   });
   
   // Add /api/auth/logout endpoint for Replit Auth
   app.get("/api/auth/logout", (req, res) => {
+    console.log('Auth logout initiated for user:', req.user);
     req.logout((err) => {
       if (err) {
         console.error('Logout error:', err);
@@ -147,12 +151,14 @@ export async function setupAuth(app: Express) {
           console.error('Session destroy error:', sessionErr);
         }
         res.clearCookie('connect.sid');
-        res.redirect(
-          client.buildEndSessionUrl(config, {
-            client_id: process.env.REPL_ID!,
-            post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-          }).href
-        );
+        // Force OIDC logout with id_token_hint to ensure complete logout
+        const logoutUrl = client.buildEndSessionUrl(config, {
+          client_id: process.env.REPL_ID!,
+          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+          id_token_hint: (req.user as any)?.access_token,
+        });
+        console.log('Redirecting to OIDC logout:', logoutUrl.href);
+        res.redirect(logoutUrl.href);
       });
     });
   });
