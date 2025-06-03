@@ -1190,7 +1190,7 @@ export default function ResizableBaySchedule({
   const handleScrollLeft = useCallback(() => {
     if (!viewportRef.current) return;
     
-    const scrollAmount = viewportRef.current.clientWidth * 0.75; // Scroll 75% of viewport width
+    const scrollAmount = viewportRef.current.clientWidth * 0.375; // Scroll 37.5% of viewport width
     viewportRef.current.scrollBy({
       left: -scrollAmount,
       behavior: 'smooth'
@@ -1201,7 +1201,7 @@ export default function ResizableBaySchedule({
   const handleScrollRight = useCallback(() => {
     if (!viewportRef.current) return;
     
-    const scrollAmount = viewportRef.current.clientWidth * 0.75; // Scroll 75% of viewport width
+    const scrollAmount = viewportRef.current.clientWidth * 0.375; // Scroll 37.5% of viewport width
     viewportRef.current.scrollBy({
       left: scrollAmount,
       behavior: 'smooth'
@@ -2833,11 +2833,11 @@ export default function ResizableBaySchedule({
         {canScrollLeft && (
           <button
             onClick={handleScrollLeft}
-            className="fixed left-72 top-1/2 transform -translate-y-1/2 z-50 bg-black/60 hover:bg-black/80 text-white rounded-full p-4 transition-all duration-200 shadow-lg backdrop-blur-sm border border-white/20"
+            className="fixed left-72 top-1/2 transform -translate-y-1/2 z-50 bg-black/60 hover:bg-black/80 text-white rounded-full p-3 transition-all duration-200 shadow-lg backdrop-blur-sm border border-white/20"
             style={{ marginLeft: sidebarOpen ? '0' : '-240px' }}
             aria-label="Scroll timeline left"
           >
-            <ChevronLeft size={40} />
+            <ChevronLeft size={32} />
           </button>
         )}
         
@@ -2845,10 +2845,10 @@ export default function ResizableBaySchedule({
         {canScrollRight && (
           <button
             onClick={handleScrollRight}
-            className="fixed right-8 top-1/2 transform -translate-y-1/2 z-50 bg-black/60 hover:bg-black/80 text-white rounded-full p-4 transition-all duration-200 shadow-lg backdrop-blur-sm border border-white/20"
+            className="fixed right-8 top-1/2 transform -translate-y-1/2 z-50 bg-black/60 hover:bg-black/80 text-white rounded-full p-3 transition-all duration-200 shadow-lg backdrop-blur-sm border border-white/20"
             aria-label="Scroll timeline right"
           >
-            <ChevronRight size={40} />
+            <ChevronRight size={32} />
           </button>
         )}
 
