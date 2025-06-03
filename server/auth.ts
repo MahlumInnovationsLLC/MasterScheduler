@@ -131,28 +131,37 @@ export async function setupAuth(app: Express) {
       },
       async (username, password, done) => {
         try {
+          console.log(`[AUTH] Attempting login for: ${username}`);
+          
           // Try to find user by email first (since frontend sends email as username)
           let user = await storage.getUserByEmail(username);
+          console.log(`[AUTH] User found by email: ${user ? 'Yes' : 'No'}`);
           
           // If not found by email, try by username for backward compatibility
           if (!user) {
             user = await storage.getUserByUsername(username);
+            console.log(`[AUTH] User found by username: ${user ? 'Yes' : 'No'}`);
           }
 
           if (!user) {
+            console.log(`[AUTH] No user found for: ${username}`);
             return done(null, false, { message: 'Invalid email or password' });
           }
 
           if (!user.password) {
+            console.log(`[AUTH] User found but no password set for: ${username}`);
             return done(null, false, { message: 'Invalid email or password' });
           }
 
+          console.log(`[AUTH] Verifying password for user: ${user.email || user.username}`);
           const passwordMatch = await comparePasswords(password, user.password);
+          console.log(`[AUTH] Password match: ${passwordMatch}`);
 
           if (!passwordMatch) {
             return done(null, false, { message: 'Invalid email or password' });
           }
 
+          console.log(`[AUTH] Login successful for: ${user.email || user.username}`);
           return done(null, user);
         } catch (error) {
           console.error('Authentication error:', error);
@@ -262,6 +271,56 @@ export async function setupAuth(app: Express) {
       email: req.user.email,
       role: req.user.role
     });
+  });
+
+  // Debug endpoint to check if user exists
+  app.get("/api/debug/user/:email", async (req, res) => {
+    try {
+      const email = req.params.email;
+      const user = await storage.getUserByEmail(email);
+      res.json({
+        exists: !!user,
+        hasPassword: !!(user?.password),
+        email: user?.email,
+        username: user?.username,
+        role: user?.role
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Debug endpoint to create user (for development)
+  app.post("/api/debug/create-user", async (req, res) => {
+    try {
+      const { email, password, username, role = 'admin' } = req.body;
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "User already exists" });
+      }
+
+      const user = await storage.createUser({
+        id: crypto.randomUUID(),
+        username: username || email.split('@')[0],
+        email,
+        password: await hashPassword(password),
+        role,
+        isApproved: true
+      });
+
+      res.json({ 
+        success: true,
+        id: user.id, 
+        username: user.username, 
+        email: user.email, 
+        role: user.role 
+      });
+    } catch (error) {
+      console.error('User creation error:', error);
+      res.status(500).json({ error: "User creation failed" });
+    }
   });
 }
 
