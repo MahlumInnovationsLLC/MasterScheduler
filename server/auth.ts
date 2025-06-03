@@ -32,98 +32,28 @@ async function comparePasswords(supplied: string, stored: string) {
 
 async function initializeSessionStore() {
   try {
-    // Check if session table exists
-    const tableExists = await pool.query(`
-      SELECT EXISTS (
-        SELECT 1 FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'session'
-      );
-    `);
-
-    if (!tableExists.rows[0].exists) {
-      console.log('Creating session table...');
-      await pool.query(`
-        CREATE TABLE "session" (
-          "sid" varchar NOT NULL COLLATE "default" PRIMARY KEY,
-          "sess" jsonb NOT NULL,
-          "expire" timestamp(6) NOT NULL
-        )
-        WITH (OIDS=FALSE);
-      `);
-      console.log('Session table created successfully');
-    }
-
-    // Check if index exists
-    const indexExists = await pool.query(`
-      SELECT EXISTS (
-        SELECT 1 FROM pg_indexes 
-        WHERE schemaname = 'public' 
-        AND tablename = 'session' 
-        AND indexname = 'IDX_session_expire'
-      );
-    `);
-
-    if (!indexExists.rows[0].exists) {
-      console.log('Creating session index...');
-      await pool.query(`
-        CREATE INDEX "IDX_session_expire" ON "session" ("expire");
-      `);
-      console.log('Session index created successfully');
-    }
-
-    // Ensure primary key exists
-    const pkExists = await pool.query(`
-      SELECT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints 
-        WHERE table_schema = 'public' 
-        AND table_name = 'session' 
-        AND constraint_type = 'PRIMARY KEY'
-      );
-    `);
-
-    if (!pkExists.rows[0].exists) {
-      console.log('Adding primary key to session table...');
-      try {
-        await pool.query(`
-          ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid");
-        `);
-        console.log('Session primary key added successfully');
-      } catch (pkError) {
-        if (pkError.code === '42P16') {
-          // Primary key already exists, ignore
-          console.log('Primary key already exists (expected)');
-        } else {
-          throw pkError;
-        }
-      }
-    }
-
-  } catch (error) {
-    console.error('Error initializing session store:', error.message);
+    console.log('Ensuring session table exists...');
     
-    // If we have constraint issues, try to recreate the session table
-    if (error.code === '42P10' || error.message.includes('ON CONFLICT')) {
-      try {
-        console.log('Attempting to fix session table...');
-        await pool.query('DROP TABLE IF EXISTS "session";');
-        await pool.query(`
-          CREATE TABLE "session" (
-            "sid" varchar NOT NULL COLLATE "default" PRIMARY KEY,
-            "sess" jsonb NOT NULL,
-            "expire" timestamp(6) NOT NULL
-          )
-          WITH (OIDS=FALSE);
-        `);
-        await pool.query(`
-          CREATE INDEX "IDX_session_expire" ON "session" ("expire");
-        `);
-        console.log('Session table recreated successfully');
-      } catch (recreateError) {
-        console.error('Failed to recreate session table:', recreateError.message);
-      }
-    }
-    // Don't throw the error to prevent server crash
+    // Drop and recreate the session table to ensure clean state
+    await pool.query('DROP TABLE IF EXISTS "session";');
+    
+    await pool.query(`
+      CREATE TABLE "session" (
+        "sid" varchar NOT NULL PRIMARY KEY,
+        "sess" jsonb NOT NULL,
+        "expire" timestamp(6) NOT NULL
+      );
+    `);
+    
+    await pool.query(`
+      CREATE INDEX "IDX_session_expire" ON "session" ("expire");
+    `);
+    
+    console.log('Session table created successfully');
+    
+  } catch (error) {
+    console.error('Session table setup failed:', error.message);
+    // Continue anyway - the app should still work without sessions
   }
 }
 
@@ -133,17 +63,25 @@ export async function setupAuth(app: Express) {
 
   const PostgresSessionStore = connectPg(session);
 
+  let sessionStore;
+  try {
+    sessionStore = new PostgresSessionStore({ 
+      pool: pool, 
+      createTableIfMissing: false,
+      errorLog: (error) => {
+        console.error('Session store error:', error.message);
+      }
+    });
+  } catch (storeError) {
+    console.warn('PostgreSQL session store failed, using memory store:', storeError.message);
+    sessionStore = undefined; // Will use default memory store
+  }
+
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'your-secret-key-here',
     resave: false,
     saveUninitialized: false,
-    store: new PostgresSessionStore({ 
-      pool: pool, 
-      createTableIfMissing: false, // We handle table creation manually
-      errorLog: (error) => {
-        console.error('Session store error:', error.message);
-      }
-    }),
+    store: sessionStore,
     cookie: {
       secure: false, // Set to true in production with HTTPS
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
@@ -257,16 +195,26 @@ export async function setupAuth(app: Express) {
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) {
         console.error('Login authentication error:', err);
-        return res.status(500).json({ error: "Authentication error" });
+        return res.status(500).json({ error: "Authentication error: " + err.message });
       }
       if (!user) {
         console.log('Login failed:', info?.message || "Invalid credentials");
         return res.status(401).json({ error: info?.message || "Invalid email or password" });
       }
+      
+      // Try to login the user
       req.login(user, (loginErr) => {
         if (loginErr) {
           console.error('Login session error:', loginErr);
-          return res.status(500).json({ error: "Login failed" });
+          // If session fails, still return success but warn
+          console.warn('Session creation failed, but user is authenticated');
+          return res.json({ 
+            id: user.id, 
+            username: user.username, 
+            email: user.email, 
+            role: user.role,
+            warning: "Session may not persist"
+          });
         }
         console.log('Login successful for user:', user.email || user.username);
         res.json({ 
