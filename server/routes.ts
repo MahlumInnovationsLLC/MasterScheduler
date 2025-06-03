@@ -2829,6 +2829,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Log the user approval in audit logs
+      console.log(`Creating audit log for user approval: userId=${userId}, performedBy=${req.user?.id || "system"}`);
       await storage.createUserAuditLog(
         userId,
         "STATUS_CHANGE", 
@@ -2837,6 +2838,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         undefined,
         "User approved by admin"
       );
+      
+      // Create notification for user approval
+      const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username : 'Unknown User';
+      console.log(`Creating notification for user approval: userId=${userId}, userName=${userName}`);
+      await storage.createNotification({
+        title: "User Approved",
+        message: `User access approved: ${userName} (${user?.username || 'unknown'}) is now able to access the system`,
+        type: "system",
+        priority: "medium",
+        userId: null // System-wide notification
+      });
       
       res.json({ 
         success: true, 
@@ -2868,6 +2880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Log the user rejection in audit logs
+      console.log(`Creating audit log for user rejection: userId=${userId}, performedBy=${req.user?.id || "system"}`);
       await storage.createUserAuditLog(
         userId,
         "STATUS_CHANGE", 
@@ -2876,6 +2889,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         undefined,
         "User rejected by admin"
       );
+      
+      // Create notification for user rejection
+      const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username : 'Unknown User';
+      console.log(`Creating notification for user rejection: userId=${userId}, userName=${userName}`);
+      await storage.createNotification({
+        title: "User Access Denied",
+        message: `User access denied: ${userName} (${user?.username || 'unknown'}) has been rejected and cannot access the system`,
+        type: "system",
+        priority: "medium",
+        userId: null // System-wide notification
+      });
       
       res.json({ 
         success: true, 
