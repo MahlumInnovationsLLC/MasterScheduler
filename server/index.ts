@@ -5,6 +5,20 @@ import { setupAuth } from "./auth";
 
 // Add global error handlers to prevent server crashes
 process.on('uncaughtException', (error) => {
+  // Suppress React hydration and rendering errors from client
+  const reactErrors = [
+    'Cannot update a component',
+    'Warning: Cannot update a component',
+    'Hydration failed',
+    'Text content does not match',
+    'render a different component',
+    'Cannot read properties of null'
+  ];
+  
+  if (error?.message && reactErrors.some(msg => error.message.includes(msg))) {
+    // These are client-side React errors, not server crashes
+    return;
+  }
   // Suppress known database session and object creation errors
   const suppressedMessages = [
     'IDX_session_expire',

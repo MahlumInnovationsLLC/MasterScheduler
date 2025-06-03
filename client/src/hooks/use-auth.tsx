@@ -23,50 +23,97 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const {
-    data: user,
-    error,
-    isLoading,
-  } = useQuery<SelectUser | undefined, Error>({
+  const { data: user, isLoading, error, refetch } = useQuery({
     queryKey: ["/api/user"],
-    retry: (failureCount, error: any) => {
-      // Don't retry on 401 errors
-      if (error?.response?.status === 401) return false;
-      return failureCount < 2;
+    queryFn: async () => {
+      try {
+        const response = await fetch("/api/user", {
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            return null;
+          }
+          throw new Error("Failed to fetch user");
+        }
+
+        return response.json();
+      } catch (err) {
+        // Handle network errors gracefully
+        console.log("Auth check failed:", err);
+        return null;
+      }
     },
+    retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginData) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+    mutationFn: async (credentials: { username: string; password: string }) => {
+      try {
+        const response = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(credentials),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: "Login failed" }));
+          throw new Error(errorData.error || "Login failed");
+        }
+
+        return response.json();
+      } catch (err) {
+        console.error("Login request failed:", err);
+        throw new Error(err instanceof Error ? err.message : "Login failed");
+      }
     },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
+    onSuccess: () => {
+      // Use setTimeout to prevent state update conflicts
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      }, 0);
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
-      });
+    onError: (error) => {
+      console.log("Login error:", error);
     },
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: InsertUser) => {
-      const res = await apiRequest("POST", "/api/register", credentials);
-      return await res.json();
+    mutationFn: async (data: { username: string; email: string; password: string }) => {
+      try {
+        const response = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: "Registration failed" }));
+          throw new Error(errorData.error || "Registration failed");
+        }
+
+        return response.json();
+      } catch (err) {
+        console.error("Registration request failed:", err);
+        throw new Error(err instanceof Error ? err.message : "Registration failed");
+      }
     },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
+    onSuccess: () => {
+      // Use setTimeout to prevent state update conflicts
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      }, 0);
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Registration failed",
-        description: error.message,
-        variant: "destructive",
-      });
+    onError: (error) => {
+      console.log("Registration error:", error);
     },
   });
 

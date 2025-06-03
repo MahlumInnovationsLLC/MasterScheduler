@@ -43,25 +43,25 @@ import { useContext } from "react";
 
 function Router() {
   const [location] = useLocation();
-  const isAuthPage = location === "/auth";
-  const isResetPasswordPage = location === "/reset-password" || location.startsWith("/reset-password?");
-
-  // If we're on the auth page or reset password page, render without the app layout
-  if (isAuthPage || isResetPasswordPage) {
-    return (
-      <div className="auth-routes">
-        <Switch>
-          <Route path="/auth" component={AuthPage} />
-          <Route path="/reset-password" component={ResetPasswordPage} />
-        </Switch>
-      </div>
-    );
-  }
-
+  
   return (
-    <SidebarProvider>
-      <MainContent />
-    </SidebarProvider>
+    <Switch>
+      <Route path="/auth">
+        <div className="auth-routes">
+          <AuthPage />
+        </div>
+      </Route>
+      <Route path="/reset-password">
+        <div className="auth-routes">
+          <ResetPasswordPage />
+        </div>
+      </Route>
+      <Route>
+        <SidebarProvider>
+          <MainContent />
+        </SidebarProvider>
+      </Route>
+    </Switch>
   );
 }
 
