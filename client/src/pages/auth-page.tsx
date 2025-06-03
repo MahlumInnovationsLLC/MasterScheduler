@@ -100,7 +100,7 @@ export default function AuthPage() {
             <CardHeader className="text-center">
               <div className="mx-auto mb-4">
                 <div className="text-primary font-bold text-3xl font-sans">
-                  <span>TIER</span><span className="text-blue-600">IV</span><span className="text-xs align-top ml-1 text-blue-600">PRO</span>
+                  <span>TIER</span><span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">IV</span><span className="text-xs align-top ml-1 text-blue-600">PRO</span>
                 </div>
               </div>
               <CardDescription>

@@ -41,7 +41,7 @@ const Header = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/" className="text-primary font-bold text-2xl font-sans">
-            <span>TIER</span><span className="text-accent">IV</span><span className="text-xs align-top ml-1">PRO</span>
+            <span>TIER</span><span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">IV</span><span className="text-xs align-top ml-1">PRO</span>
           </Link>
           <div className="h-6 border-l border-border mx-2"></div>
           <div className="flex items-center px-3 py-1.5 bg-darkInput rounded-md">
