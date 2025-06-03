@@ -89,14 +89,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(err instanceof Error ? err.message : "Login failed");
       }
     },
-    onSuccess: () => {
-      // Use setTimeout to prevent state update conflicts
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      }, 0);
+    onSuccess: (data) => {
+      console.log("✅ AUTH: Login successful, user data:", data);
+      // Invalidate and refetch user data immediately
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      // Force a refetch to ensure fresh data
+      refetch();
     },
     onError: (error) => {
-      console.log("Login error:", error);
+      console.log("❌ AUTH: Login error:", error);
     },
   });
 
