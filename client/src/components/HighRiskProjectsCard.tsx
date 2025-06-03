@@ -1,6 +1,7 @@
 import React from 'react';
-import { AlertTriangle, Calendar, ArrowRight, Clock, Wrench, Activity, LayoutGrid } from 'lucide-react';
+import { AlertTriangle, Calendar, ArrowRight, Clock, Wrench, Activity, LayoutGrid, Plus, Minus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
 import { Project } from '@shared/schema';
 import { useQuery } from '@tanstack/react-query';
@@ -10,6 +11,10 @@ interface HighRiskProjectsCardProps {
 }
 
 export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
+  // State for managing expansion
+  const [isActiveExpanded, setIsActiveExpanded] = React.useState(false);
+  const [isUpcomingExpanded, setIsUpcomingExpanded] = React.useState(false);
+
   // Get manufacturing schedules
   const { data: manufacturingSchedules } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
@@ -136,13 +141,21 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
         const dateB = getEarliestDate(b);
         
         return dateA.getTime() - dateB.getTime();
-      })
-      .slice(0, 3); // Limit to top 3
+      }); // Remove the slice limit to allow expansion
   }, [projects]);
   
   // Count for the badge
   const activeCount = activeManufacturingProjects.length;
   const upcomingCount = upcomingNtcQcProjects.length;
+
+  // Helper function to get displayed items
+  const getDisplayedActiveProjects = () => {
+    return isActiveExpanded ? activeManufacturingProjects : activeManufacturingProjects.slice(0, 3);
+  };
+
+  const getDisplayedUpcomingProjects = () => {
+    return isUpcomingExpanded ? upcomingNtcQcProjects : upcomingNtcQcProjects.slice(0, 3);
+  };
   
   return (
     <Card className="bg-card rounded-xl p-4 border border-border">
@@ -170,12 +183,28 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
             {/* Today's Active Projects Section */}
             {activeCount > 0 && (
               <div>
-                <h4 className="text-xs font-semibold mb-1 text-muted-foreground flex items-center">
-                  <Wrench className="h-3 w-3 mr-1" /> 
-                  Active & Upcoming Projects (Next 14 Days)
-                </h4>
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-xs font-semibold text-muted-foreground flex items-center">
+                    <Wrench className="h-3 w-3 mr-1" /> 
+                    Active & Upcoming Projects (Next 14 Days)
+                  </h4>
+                  {activeCount > 3 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsActiveExpanded(!isActiveExpanded)}
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                    >
+                      {isActiveExpanded ? (
+                        <Minus className="h-3 w-3" />
+                      ) : (
+                        <Plus className="h-3 w-3" />
+                      )}
+                    </Button>
+                  )}
+                </div>
                 <ul className="divide-y divide-border">
-                  {activeManufacturingProjects.map((project: any) => (
+                  {getDisplayedActiveProjects().map((project: any) => (
                     <li key={project.id} className="py-2">
                       <div className="flex items-start">
                         <div className="flex-1">
@@ -215,12 +244,28 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
             {/* Upcoming NTC/QC Dates Section */}
             {upcomingCount > 0 && (
               <div>
-                <h4 className="text-xs font-semibold mb-1 text-muted-foreground flex items-center">
-                  <Calendar className="h-3 w-3 mr-1" /> 
-                  Upcoming NTC/QC Dates (2 Weeks)
-                </h4>
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-xs font-semibold text-muted-foreground flex items-center">
+                    <Calendar className="h-3 w-3 mr-1" /> 
+                    Upcoming NTC/QC Dates (2 Weeks)
+                  </h4>
+                  {upcomingCount > 3 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsUpcomingExpanded(!isUpcomingExpanded)}
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                    >
+                      {isUpcomingExpanded ? (
+                        <Minus className="h-3 w-3" />
+                      ) : (
+                        <Plus className="h-3 w-3" />
+                      )}
+                    </Button>
+                  )}
+                </div>
                 <ul className="divide-y divide-border">
-                  {upcomingNtcQcProjects.map((project: Project) => (
+                  {getDisplayedUpcomingProjects().map((project: Project) => (
                     <li key={project.id} className="py-2">
                       <div className="flex items-start">
                         <div className="flex-1">
