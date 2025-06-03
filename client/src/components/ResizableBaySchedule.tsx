@@ -3968,7 +3968,7 @@ export default function ResizableBaySchedule({
                                   </div>
                                   
                                   {/* Bottom row of phases (FAB and PAINT) */}
-                                  <div className="bottom-phases w-full h-[48px] absolute left-0" style={{ bottom: '-80px' }}>
+                                  <div className="bottom-phases w-full h-[48px] absolute left-0" style={{ bottom: '-90px' }}>
                                     {/* FAB phase (starts from left) */}
                                     {bar.fabWidth && bar.fabWidth > 0 && (
                                       <div className="fab-phase bg-blue-700 h-full absolute left-0" 
@@ -3994,16 +3994,16 @@ export default function ResizableBaySchedule({
                                 {/* Project information display positioned under the PROD phase */}
                                 <div className="project-info absolute flex items-center justify-center"
                                      style={{
-                                       left: `${((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) / 2) - 100}px`, /* Center under PROD phase */
-                                       top: '110px', /* Position it right under the bottom phases (moved down 40px total) */
-                                       width: '200px',
+                                       left: `${((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) / 2) - 150}px`, /* Center under PROD phase with wider area */
+                                       top: '120px', /* Position it right under the bottom phases (moved down 50px total) */
+                                       width: '300px', /* Increased width to accommodate longer names */
                                        pointerEvents: 'none', /* Allow clicks to pass through */
                                        zIndex: 9999 /* Much higher z-index so it appears above all project bars but below popups */
                                      }}>
-                                  <div className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center truncate shadow-md border border-gray-300" style={{minWidth: "200px", maxWidth: "200px", position: 'relative'}}>
+                                  <div className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center shadow-md border border-gray-300" style={{minWidth: "200px", maxWidth: "400px", position: 'relative', whiteSpace: 'nowrap', overflow: 'visible'}}>
                                     {bar.projectNumber}
                                     <br />
-                                    {bar.projectName}
+                                    <span style={{whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'unset'}}>{bar.projectName}</span>
                                   </div>
                                 </div>
                                 
