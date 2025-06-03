@@ -1113,7 +1113,11 @@ const ProjectStatus = () => {
         const value = row.original.location;
         return (
           <div className="flex items-center">
-            <div className="px-3 py-1 rounded bg-primary text-white font-medium">
+            <div className="px-3 py-1 rounded font-medium text-white border border-gray-500 shadow-lg" 
+                 style={{ 
+                   background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
+                   boxShadow: '0 2px 8px rgba(107, 114, 128, 0.3)'
+                 }}>
               {value || 'N/A'}
             </div>
           </div>
