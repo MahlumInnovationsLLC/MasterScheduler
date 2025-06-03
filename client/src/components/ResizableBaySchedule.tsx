@@ -1070,7 +1070,7 @@ export default function ResizableBaySchedule({
   const [targetEndDate, setTargetEndDate] = useState<Date | null>(null);
   const [scheduleDuration, setScheduleDuration] = useState(4); // in weeks
   const [recommendedDuration, setRecommendedDuration] = useState(0); // Stores the recommended duration from calculator
-  const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
+  const [rowHeight, setRowHeight] = useState(36); // Height of each row in pixels (reduced by 40%)
   const [slotWidth, setSlotWidth] = useState(60); // Increased slot width for better visibility
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -3882,7 +3882,7 @@ export default function ResizableBaySchedule({
                               style={{
                                 left: `${bar.left}px`,
                                 width: `${Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0))}px`, // Ensure width accommodates all phases
-                                height: '72px', // Exact height to match gray row
+                                height: '36px', // Reduced height to match smaller bay row
                                 backgroundColor: isSalesEstimate ? '#fbbf2460' : `${bar.color}25`, // Yellow background for sales estimates
                                 boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : 'none', // Yellow glow for sales estimates
                                 border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : 'none', // Yellow border for sales estimates
