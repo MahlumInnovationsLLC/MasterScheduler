@@ -1,2 +1,1 @@
-// This file will be rebuilt from scratch with clean authentication
-
+// Removed - using Replit OIDC authentication only
