@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useApiRequest, queryClient } from '@/lib/queryClient';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -86,7 +86,6 @@ const iconOptions = Object.keys(iconMap).map(key => ({
 
 export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIconsManagerProps) {
   const { toast } = useToast();
-  const apiRequest = useApiRequest();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingIcon, setEditingIcon] = useState<ProjectMilestoneIcon | null>(null);
   const [formData, setFormData] = useState({
@@ -107,6 +106,9 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
   const createMutation = useMutation({
     mutationFn: async (data: InsertProjectMilestoneIcon) => {
       const response = await apiRequest('POST', `/api/projects/${projectId}/milestone-icons`, data);
+      if (!response.ok) {
+        throw new Error('Failed to create milestone icon');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -132,6 +134,9 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<ProjectMilestoneIcon> }) => {
       const response = await apiRequest('PATCH', `/api/projects/${projectId}/milestone-icons/${id}`, data);
+      if (!response.ok) {
+        throw new Error('Failed to update milestone icon');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -156,6 +161,9 @@ export function ProjectMilestoneIconsManager({ projectId }: ProjectMilestoneIcon
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await apiRequest('DELETE', `/api/projects/${projectId}/milestone-icons/${id}`);
+      if (!response.ok) {
+        throw new Error('Failed to delete milestone icon');
+      }
       return response.json();
     },
     onSuccess: () => {
