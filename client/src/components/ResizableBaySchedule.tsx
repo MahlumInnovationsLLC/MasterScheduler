@@ -4075,10 +4075,10 @@ export default function ResizableBaySchedule({
                                     }
                                   });
                                   
-                                  // Always show milestone regardless of bounds for debugging
-                                  if (true) { // Temporarily show all milestones for debugging
+                                  // Only show milestone if position is within reasonable bounds
+                                  if (milestonePosition >= -50 && milestonePosition <= bar.width + 50) {
                                     // Calculate top position based on milestone type
-                                    const topPosition = milestone.icon === 'car' ? '92px' : '-15px'; // Car icon lower, star icon above project bar
+                                    const topPosition = milestone.icon === 'car' ? '92px' : '25px'; // Car icon lower, star icon 40px down from previous position
                                     
                                     return (
                                       <div
@@ -4087,13 +4087,13 @@ export default function ResizableBaySchedule({
                                         style={{
                                           left: `${milestonePosition}px`,
                                           top: topPosition,
-                                          width: '28px',
-                                          height: '28px',
-                                          zIndex: 999, // Very high z-index to ensure visibility
+                                          width: '24px',
+                                          height: '24px',
+                                          zIndex: 50, // High z-index to appear above project bars
                                         }}
                                         title={`${milestone.name} - ${milestone.daysBefore} days before ${milestone.phase}`}
                                       >
-                                        <div className="bg-yellow-300 border-2 border-red-600 rounded-full p-1 shadow-xl">
+                                        <div className="bg-white/80 border-2 border-gray-600 rounded-full p-1 shadow-lg backdrop-blur-sm">
                                           {milestone.icon === 'car' && <span className="text-lg">🚗</span>}
                                           {milestone.icon === 'paintBucket' && <span className="text-lg">🎨</span>}
                                           {milestone.icon === 'wrench' && <span className="text-lg">🔧</span>}
