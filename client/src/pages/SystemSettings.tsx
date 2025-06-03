@@ -1406,33 +1406,7 @@ const SystemSettings = () => {
 
 
 
-                        Control which modules each user can access. Select a user below to manage their permissions.
 
-
-
-
-                      {users
-                        ?.filter(user => user.isApproved && user.status === 'active')
-                        ?.map((user) => (
-
-
-
-                                {user.firstName} {user.lastName}
-
-                                  {user.email}
-
-
-                                  {user.role}
-
-
-
-                            <UserPermissionsManager
-                              userId={user.id}
-                              userEmail={user.email}
-                              userRole={user.role}
-                            />
-
-                        ))}
 
 
 
