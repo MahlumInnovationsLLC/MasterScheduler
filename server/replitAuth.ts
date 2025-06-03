@@ -117,25 +117,43 @@ export async function setupAuth(app: Express) {
 
   // Support both standard and auth-prefixed paths for logout route
   app.get("/api/logout", (req, res) => {
-    req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
+    req.logout((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+      }
+      req.session.destroy((sessionErr) => {
+        if (sessionErr) {
+          console.error('Session destroy error:', sessionErr);
+        }
+        res.clearCookie('connect.sid');
+        res.redirect(
+          client.buildEndSessionUrl(config, {
+            client_id: process.env.REPL_ID!,
+            post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+          }).href
+        );
+      });
     });
   });
   
   // Add /api/auth/logout endpoint for Replit Auth
   app.get("/api/auth/logout", (req, res) => {
-    req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
+    req.logout((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+      }
+      req.session.destroy((sessionErr) => {
+        if (sessionErr) {
+          console.error('Session destroy error:', sessionErr);
+        }
+        res.clearCookie('connect.sid');
+        res.redirect(
+          client.buildEndSessionUrl(config, {
+            client_id: process.env.REPL_ID!,
+            post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+          }).href
+        );
+      });
     });
   });
 }
