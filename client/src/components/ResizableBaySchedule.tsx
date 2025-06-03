@@ -1429,7 +1429,8 @@ export default function ResizableBaySchedule({
           
           // If we couldn't find it with selectors, look for any red element
           const allElements = document.querySelectorAll('*');
-          for (const el of allElements) {
+          for (let i = 0; i < allElements.length; i++) {
+            const el = allElements[i];
             if (el instanceof HTMLElement) {
               const style = window.getComputedStyle(el);
               const bgColor = style.backgroundColor;
@@ -2405,7 +2406,8 @@ export default function ResizableBaySchedule({
     
     // Calculate left position based on date range start
     const daysFromStart = differenceInDays(startDate, dateRange.start);
-    const left = daysFromStart * pixelsPerDay;
+    // Add 240px offset to compensate for removed bay details white box (4 weeks worth)
+    const left = (daysFromStart * pixelsPerDay) + 240;
     
     // Calculate width based on duration
     const durationDays = differenceInDays(endDate, startDate) + 1; // +1 to include the end date

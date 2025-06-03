@@ -1414,24 +1414,20 @@ const SystemSettings = () => {
                       {users
                         ?.filter(user => user.isApproved && user.status === 'active')
                         ?.map((user) => (
-
-
-
-                                {user.firstName} {user.lastName}
-
-                                  {user.email}
-
-
-                                  {user.role}
-
-
-
-                            <UserPermissionsManager
-                              userId={user.id}
-                              userEmail={user.email}
-                              userRole={user.role}
-                            />
-
+                          <div key={user.id} className="border p-4 rounded">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <div className="font-medium">{user.firstName} {user.lastName}</div>
+                                <div className="text-sm text-gray-600">{user.email}</div>
+                                <div className="text-sm text-gray-500">{user.role}</div>
+                              </div>
+                              <UserPermissionsManager
+                                userId={user.id}
+                                userEmail={user.email}
+                                userRole={user.role}
+                              />
+                            </div>
+                          </div>
                         ))}
 
 
