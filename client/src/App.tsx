@@ -167,7 +167,7 @@ function MainContent() {
             <AdminRoute path="/system-settings" component={SystemSettings} />
             <AdminRoute path="/settings" component={SystemSettings} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
-            <UnrestrictedAuthRoute path="/auth" component={AuthPage} />
+            <Route path="/auth" component={AuthPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
