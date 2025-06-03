@@ -38,7 +38,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AdminRoute } from "@/lib/admin-route";
 import { ViewerRestrictedRoute } from "@/lib/viewer-restricted-route";
-import { UnrestrictedAuthRoute } from "@/lib/unrestricted-auth-route";
+
 // Import SidebarContext and SidebarProvider for managing sidebar state
 import { SidebarProvider, SidebarContext } from "@/context/SidebarContext";
 import { useContext } from "react";
