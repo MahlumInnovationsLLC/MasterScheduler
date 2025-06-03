@@ -3994,14 +3994,16 @@ export default function ResizableBaySchedule({
                                 {/* Project information display positioned under the FAB phase */}
                                 <div className="project-info absolute flex items-center justify-center"
                                      style={{
-                                       left: `${((bar.fabWidth || 0) / 2) - 125}px`, /* Center under FAB phase */
-                                       top: '80px', /* Moved down to appear under bottom phases (52px top height + 48px bottom height - 40px offset + 20px spacing = 80px) */
-                                       width: '250px',
+                                       left: `${((bar.fabWidth || 0) / 2) - 100}px`, /* Center under FAB phase */
+                                       top: '60px', /* Position it right under the bottom phases */
+                                       width: '200px',
                                        pointerEvents: 'none', /* Allow clicks to pass through */
-                                       zIndex: 5 /* Lower z-index so it appears under the phases */
+                                       zIndex: 15 /* Higher z-index so it appears above the phases but below other elements */
                                      }}>
                                   <div className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center truncate shadow-md border border-gray-300" style={{minWidth: "200px", maxWidth: "200px", position: 'relative'}}>
-                                    {bar.projectNumber} - {bar.projectName}
+                                    {bar.projectNumber}
+                                    <br />
+                                    {bar.projectName}
                                   </div>
                                 </div>
                                 
