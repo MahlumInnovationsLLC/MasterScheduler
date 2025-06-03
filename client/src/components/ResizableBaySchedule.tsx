@@ -3756,7 +3756,8 @@ export default function ResizableBaySchedule({
                                 {slots.map((slot, index) => (
                                   <div 
                                     key={`bay-${bay.id}-slot-${index}`} 
-                                    className="relative h-full border-r border-gray-200/50 dark:border-gray-700/30"
+                                    className="relative border-r border-gray-200/50 dark:border-gray-700/30"
+                                    style={{ height: '24px' }} // Fixed row height - reduced from h-full
                                     data-row="0"
                                     data-slot-index={index}
                                     data-date={format(slot.date, 'yyyy-MM-dd')}
