@@ -91,12 +91,11 @@ export default function AuthPage() {
         <div className="flex justify-center lg:justify-end">
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center">
-                <div className="text-white font-bold text-lg">T4</div>
+              <div className="mx-auto mb-4">
+                <div className="text-primary font-bold text-3xl font-sans">
+                  <span>TIER</span><span className="text-blue-600">IV</span><span className="text-xs align-top ml-1 text-blue-600">PRO</span>
+                </div>
               </div>
-              <CardTitle className="text-2xl">
-                TIER IV<sup className="text-sm">PRO</sup>
-              </CardTitle>
               <CardDescription>
                 Nomad GCS Project Management
               </CardDescription>
