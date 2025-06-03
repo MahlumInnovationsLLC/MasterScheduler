@@ -127,11 +127,10 @@ export async function setupAuth(app: Express) {
           console.error('Session destroy error:', sessionErr);
         }
         res.clearCookie('connect.sid');
-        // Force OIDC logout with id_token_hint to ensure complete logout
+        // Force OIDC logout to ensure complete logout
         const logoutUrl = client.buildEndSessionUrl(config, {
           client_id: process.env.REPL_ID!,
           post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-          id_token_hint: (req.user as any)?.access_token,
         });
         console.log('Redirecting to OIDC logout:', logoutUrl.href);
         res.redirect(logoutUrl.href);
@@ -151,11 +150,10 @@ export async function setupAuth(app: Express) {
           console.error('Session destroy error:', sessionErr);
         }
         res.clearCookie('connect.sid');
-        // Force OIDC logout with id_token_hint to ensure complete logout
+        // Force OIDC logout to ensure complete logout
         const logoutUrl = client.buildEndSessionUrl(config, {
           client_id: process.env.REPL_ID!,
           post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-          id_token_hint: (req.user as any)?.access_token,
         });
         console.log('Redirecting to OIDC logout:', logoutUrl.href);
         res.redirect(logoutUrl.href);
