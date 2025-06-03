@@ -3634,9 +3634,9 @@ export default function ResizableBaySchedule({
                   return (
                     <div 
                       key={`bay-${bay.id}`} 
-                      className="bay-container relative mb-2 border rounded-md overflow-hidden"
+                      className="bay-container relative border rounded-md overflow-hidden"
                       style={{ 
-                        height: `${36 * rowCount}px`, // Fixed height: 36px per row (reduced from 60px)
+                        height: `${24 * rowCount}px`, // Fixed height: 24px per row (reduced from 60px to eliminate gap)
                         backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
                       }}
                     >
