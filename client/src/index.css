@@ -97,6 +97,8 @@ body {
   padding: 8px 12px;
   text-align: left;
   border-bottom: 1px solid #374151;
+  background-color: transparent;
+  color: #e5e7eb;
 }
 
 .data-table th {
@@ -107,6 +109,21 @@ body {
 
 .data-table tr:hover {
   background-color: #1f2937;
+}
+
+.data-table tr:hover td {
+  background-color: #1f2937;
+}
+
+/* Fix for location column specifically */
+.data-table td:nth-child(2),
+.data-table th:nth-child(2) {
+  background-color: #374151 !important;
+  color: #e5e7eb !important;
+}
+
+.data-table tr:hover td:nth-child(2) {
+  background-color: #4b5563 !important;
 }
 
 /* Custom scrollbar */
@@ -414,6 +431,24 @@ select:focus {
   opacity: 0.7;
 }
 
+/* Location block and table cell fixes */
+.location-block,
+.data-table td[data-location],
+.table-cell-location {
+  background-color: #374151 !important;
+  color: #e5e7eb !important;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #4b5563;
+}
+
+.location-block:empty,
+.data-table td[data-location]:empty,
+.table-cell-location:empty {
+  background-color: #1f2937 !important;
+  border: 1px dashed #4b5563;
+}
+
 /* Chart styles */
 .chart-container {
   background-color: #1f2937;
@@ -453,10 +488,10 @@ select:focus {
 }
 
 .sidebar-nav-item.active {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
   color: white !important;
-  border: 1px solid #60a5fa;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  border: 1px solid #9ca3af;
+  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
 }
 
 .sidebar-nav-item.active::before {
@@ -466,7 +501,7 @@ select:focus {
   top: 0;
   bottom: 0;
   width: 3px;
-  background: #60a5fa;
+  background: #9ca3af;
   border-radius: 0 2px 2px 0;
 }
 
