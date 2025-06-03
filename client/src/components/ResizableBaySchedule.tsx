@@ -3635,7 +3635,7 @@ export default function ResizableBaySchedule({
                       key={`bay-${bay.id}`} 
                       className="bay-container relative mb-2 border rounded-md overflow-hidden"
                       style={{ 
-                        height: `${rowHeight * rowCount}px`,
+                        height: `${rowHeight * rowCount}px`, // Already reduced to 36px from original 60px
                         backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
                       }}
                     >
@@ -3661,7 +3661,7 @@ export default function ResizableBaySchedule({
                             rowCount={getBayRowCount(bay.id, bay.name)}
                           />
                         ) : (
-                          // SIMPLIFIED SINGLE-ROW LAYOUT - EACH BAY IS ONE ROW
+                          // SIMPLIFIED SINGLE-ROW LAYOUT - EACH BAY IS ONE ROW  
                           <div className="absolute inset-0 flex flex-col">
                             {/* Single row per bay - simplified drop zone */}
                             <div 
