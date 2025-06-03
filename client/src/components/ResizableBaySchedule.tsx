@@ -4048,7 +4048,7 @@ export default function ResizableBaySchedule({
                                 className="absolute cursor-ew-resize resize-handle flex items-center justify-center"
                                 style={{ 
                                   left: `${bar.left - 12}px`,
-                                  top: '20px',
+                                  top: '120px',
                                   width: '24px',
                                   height: '32px',
                                   backgroundColor: 'rgba(15, 23, 42, 0.8)',
@@ -4086,7 +4086,7 @@ export default function ResizableBaySchedule({
                                 className="absolute cursor-ew-resize resize-handle flex items-center justify-center"
                                 style={{ 
                                   left: `${bar.left + Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0)) - 12}px`,
-                                  top: '20px',
+                                  top: '70px',
                                   width: '24px',
                                   height: '32px',
                                   backgroundColor: 'rgba(15, 23, 42, 0.8)',
