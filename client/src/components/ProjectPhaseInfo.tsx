@@ -7,7 +7,7 @@ interface ProjectPhaseInfoProps {
 }
 
 export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) => {
-  // Helper function to format date or return text value
+  // Helper function to format date or return text value with timezone fix
   const formatDateOrText = (value: string | null | undefined): string => {
     if (!value) return 'TBD';
 
@@ -21,8 +21,22 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
       return value; // Return as-is if it's not a recognizable date format
     }
 
-    // Try to format as date
+    // Try to format as date with timezone fix
     try {
+      // TIMEZONE FIX: Parse date in local timezone to prevent day-before display
+      if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+        const [year, month, day] = value.split('-').map(Number);
+        const safeDate = new Date(year, month - 1, day); // month is 0-indexed
+        if (isNaN(safeDate.getTime())) {
+          return value;
+        }
+        // Format manually to avoid timezone conversion
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${months[safeDate.getMonth()]} ${safeDate.getDate().toString().padStart(2, '0')}, ${safeDate.getFullYear()}`;
+      }
+
+      // Fallback for other date formats
       const date = new Date(value);
       if (isNaN(date.getTime())) {
         return value; // Return original value if invalid date
