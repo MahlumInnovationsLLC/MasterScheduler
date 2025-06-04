@@ -101,12 +101,14 @@ const Header = () => {
                       <span className="viewer-interactive">User Preferences</span>
                     </DropdownMenuItem>
                   </Link>
-                  <Link href="/settings/system" className="viewer-interactive">
-                    <DropdownMenuItem className="cursor-pointer viewer-interactive">
-                      <Settings className="mr-2 h-4 w-4 viewer-interactive" />
-                      <span className="viewer-interactive">System Settings</span>
-                    </DropdownMenuItem>
-                  </Link>
+                  {typedUser?.role === 'admin' && (
+                    <Link href="/system-settings" className="viewer-interactive">
+                      <DropdownMenuItem className="cursor-pointer viewer-interactive">
+                        <Settings className="mr-2 h-4 w-4 viewer-interactive" />
+                        <span className="viewer-interactive">System Settings</span>
+                      </DropdownMenuItem>
+                    </Link>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     className="cursor-pointer viewer-interactive"
