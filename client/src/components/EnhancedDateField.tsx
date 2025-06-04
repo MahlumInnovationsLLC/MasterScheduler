@@ -109,6 +109,7 @@ export function EnhancedDateField({ label, value, onChange, placeholder, descrip
             value={dateValueString}
             onChange={(e) => handleDateChange(e.target.value)}
             placeholder={placeholder}
+            className="[&::-webkit-calendar-picker-indicator]:dark:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
           />
         ) : (
           <Select
