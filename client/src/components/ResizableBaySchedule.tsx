@@ -4349,9 +4349,9 @@ export default function ResizableBaySchedule({
                                                 tooltip.style.visibility = 'visible';
                                                 tooltip.style.opacity = '1';
                                                 tooltip.style.left = `${rect.left + rect.width / 2}px`;
-                                                tooltip.style.top = `${rect.top - 10}px`;
-                                                tooltip.style.transform = 'translate(-50%, -100%)';
-                                                console.log(`✅ Showing tooltip for project ${bar.projectNumber} at (${rect.left + rect.width / 2}, ${rect.top - 10})`);
+                                                tooltip.style.top = `${rect.bottom + 20}px`;
+                                                tooltip.style.transform = 'translate(-50%, 0%)';
+                                                console.log(`✅ Showing tooltip for project ${bar.projectNumber} at (${rect.left + rect.width / 2}, ${rect.bottom + 20})`);
                                               } else {
                                                 console.log(`❌ Tooltip not found for project ${bar.projectNumber}`);
                                               }
@@ -4383,7 +4383,7 @@ export default function ResizableBaySchedule({
                                             style={{ 
                                               opacity: 0,
                                               visibility: 'hidden',
-                                              zIndex: 99999999,
+                                              zIndex: 999999999,
                                               left: '50%',
                                               bottom: '100%',
                                               transform: 'translateX(-50%)',
