@@ -4395,9 +4395,28 @@ export default function ResizableBaySchedule({
                                               console.log(`🎯 Mouse ENTER on tooltip for project ${bar.projectNumber}`);
                                               const tooltip = document.getElementById(`tooltip-${bar.id}`);
                                               if (tooltip) {
+                                                // Debug current z-index and stacking context
+                                                const computedStyle = window.getComputedStyle(tooltip);
+                                                console.log(`🔍 TOOLTIP DEBUG for ${bar.projectNumber}:`, {
+                                                  zIndex: computedStyle.zIndex,
+                                                  position: computedStyle.position,
+                                                  stackingContext: computedStyle.isolation,
+                                                  transform: computedStyle.transform
+                                                });
+                                                
+                                                // Force maximum z-index and isolate stacking context
                                                 tooltip.style.display = 'block';
                                                 tooltip.style.visibility = 'visible';
                                                 tooltip.style.opacity = '1';
+                                                tooltip.style.zIndex = '2147483647';
+                                                tooltip.style.isolation = 'isolate';
+                                                tooltip.style.position = 'fixed';
+                                                
+                                                // Move to document body to escape any stacking contexts
+                                                if (tooltip.parentElement !== document.body) {
+                                                  console.log(`📦 Moving tooltip to document.body to escape stacking context`);
+                                                  document.body.appendChild(tooltip);
+                                                }
                                               }
                                             }}
                                             onMouseLeave={() => {
