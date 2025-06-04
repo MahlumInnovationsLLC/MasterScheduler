@@ -3749,14 +3749,48 @@ export default function ResizableBaySchedule({
                   console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${rowCount}, bayNumber=${bay.bayNumber}`);
                   
                   return (
-                    <div 
-                      key={`bay-${bay.id}`} 
-                      className="bay-container relative mb-2 border rounded-md overflow-hidden"
-                      style={{ 
-                        height: `${36 * rowCount}px`, // Fixed height: 36px per row (reduced from 60px)
-                        backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
-                      }}
-                    >
+                    <React.Fragment key={`bay-fragment-${bay.id}`}>
+                      {/* Weekly header row for this individual bay */}
+                      <div 
+                        className="bay-week-header h-8 border-b border-gray-200 dark:border-gray-700 grid overflow-hidden mb-1" 
+                        style={{ 
+                          gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
+                          width: `${Math.max(10000, slots.length * slotWidth)}px`,
+                          marginLeft: '240px' // Align with bay content
+                        }}
+                      >
+                        {slots.map((slot, index) => (
+                          <div
+                            key={`bay-${bay.id}-header-${index}`}
+                            className={`
+                              timeline-slot border-r flex-shrink-0
+                              ${slot.isStartOfMonth ? 'bg-gray-800 border-r-2 border-r-blue-500' : ''}
+                              ${slot.isStartOfWeek ? 'bg-gray-850 border-r border-r-gray-600' : ''}
+                              ${!slot.isBusinessDay ? 'bg-gray-850/70' : ''}
+                            `}
+                            style={{ height: '100%' }}
+                          >
+                            <div className="text-xs text-center w-full h-full flex flex-col justify-center">
+                              {slot.isStartOfMonth && (
+                                <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
+                                  {format(slot.date, 'MMM')}
+                                </div>
+                              )}
+                              <div className="text-gray-400 text-[10px]">
+                                {format(slot.date, 'MM/dd')}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div 
+                        className="bay-container relative mb-2 border rounded-md overflow-hidden"
+                        style={{ 
+                          height: `${36 * rowCount}px`, // Fixed height: 36px per row (reduced from 60px)
+                          backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
+                        }}
+                      >
                       
                       
                       {/* Bay content area - FULL WIDTH to extend to end of timeline (2030) */}
@@ -4329,6 +4363,7 @@ export default function ResizableBaySchedule({
                         })}
                       </div>
                     </div>
+                    </React.Fragment>
                   );
                 })}
               </div>
