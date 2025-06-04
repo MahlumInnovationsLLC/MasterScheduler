@@ -4344,14 +4344,10 @@ export default function ResizableBaySchedule({
                                               // Show this tooltip
                                               const tooltip = document.getElementById(`tooltip-${bar.id}`);
                                               if (tooltip) {
-                                                const rect = (e.target as HTMLElement).getBoundingClientRect();
                                                 tooltip.style.display = 'block';
                                                 tooltip.style.visibility = 'visible';
                                                 tooltip.style.opacity = '1';
-                                                tooltip.style.left = `${rect.left + rect.width / 2}px`;
-                                                tooltip.style.top = `${rect.bottom + 20}px`;
-                                                tooltip.style.transform = 'translate(-50%, 0%)';
-                                                console.log(`✅ Showing tooltip for project ${bar.projectNumber} at (${rect.left + rect.width / 2}, ${rect.bottom + 20})`);
+                                                console.log(`✅ Showing tooltip for project ${bar.projectNumber}`);
                                               } else {
                                                 console.log(`❌ Tooltip not found for project ${bar.projectNumber}`);
                                               }
@@ -4388,25 +4384,8 @@ export default function ResizableBaySchedule({
                                               top: '0',
                                               marginRight: '8px',
                                               display: 'none',
-                                              height: '100%'
-                                            }}
-                                            onMouseEnter={() => {
-                                              console.log(`🎯 Mouse ENTER on tooltip for project ${bar.projectNumber}`);
-                                              const tooltip = document.getElementById(`tooltip-${bar.id}`);
-                                              if (tooltip) {
-                                                tooltip.style.display = 'block';
-                                                tooltip.style.visibility = 'visible';
-                                                tooltip.style.opacity = '1';
-                                              }
-                                            }}
-                                            onMouseLeave={() => {
-                                              console.log(`🎯 Mouse LEAVE on tooltip for project ${bar.projectNumber}`);
-                                              const tooltip = document.getElementById(`tooltip-${bar.id}`);
-                                              if (tooltip) {
-                                                tooltip.style.opacity = '0';
-                                                tooltip.style.visibility = 'hidden';
-                                                tooltip.style.display = 'none';
-                                              }
+                                              height: '100%',
+                                              width: 'auto'
                                             }}
                                           >
                                             <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[350px] max-w-[500px] relative flex flex-col" style={{ zIndex: 1000, height: '100%' }}>
