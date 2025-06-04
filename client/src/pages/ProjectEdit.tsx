@@ -444,13 +444,16 @@ function ProjectEdit() {
         }
       });
       
-      // Map form field names to database field names for department percentages
-      fixedData.fabPercentage = fixedData.fabricationPercent;
-      fixedData.paintPercentage = fixedData.paintPercent;
-      fixedData.productionPercentage = fixedData.assemblyPercent;
-      fixedData.itPercentage = fixedData.itPercent;
-      fixedData.ntcPercentage = fixedData.ntcTestingPercent;
-      fixedData.qcPercentage = fixedData.qcPercent;
+      // Apply redistribution logic when saving to ensure stored percentages match effective percentages
+      const redistributedPercentages = getRedistributedPercentages();
+      
+      // Map form field names to database field names using redistributed values
+      fixedData.fabPercentage = redistributedPercentages.fabricationPercent;
+      fixedData.paintPercentage = redistributedPercentages.paintPercent;
+      fixedData.productionPercentage = redistributedPercentages.assemblyPercent;
+      fixedData.itPercentage = redistributedPercentages.itPercent;
+      fixedData.ntcPercentage = redistributedPercentages.ntcTestingPercent;
+      fixedData.qcPercentage = redistributedPercentages.qcPercent;
       
       // Phase visibility mapping (these names already match database fields)
       fixedData.showFabPhase = fixedData.showFabPhase;
