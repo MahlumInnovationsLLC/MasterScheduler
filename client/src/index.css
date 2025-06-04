@@ -455,12 +455,31 @@ select:focus {
   box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
 }
 
+/* Light mode overrides for location blocks */
+.light .location-block,
+.light .data-table td[data-location],
+.light .table-cell-location,
+.light .data-table td:first-child,
+.light .data-table th:first-child {
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%) !important;
+  color: #374151 !important;
+  border: 1px solid #6b7280;
+}
+
 .location-block:empty,
 .data-table td[data-location]:empty,
 .table-cell-location:empty,
 .data-table td:first-child:empty {
   background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
   border: 1px dashed #4b5563;
+}
+
+.light .location-block:empty,
+.light .data-table td[data-location]:empty,
+.light .table-cell-location:empty,
+.light .data-table td:first-child:empty {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%) !important;
+  border: 1px dashed #9ca3af;
 }
 
 /* Specific styling for location column cells */
@@ -478,10 +497,25 @@ select:focus {
   box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
 }
 
+.light .data-table tbody tr td:first-child,
+.light .data-table tbody tr td:first-child .location-block,
+.light .data-table tbody tr td:first-child > div {
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%) !important;
+  color: #374151 !important;
+  border: 1px solid #6b7280;
+}
+
 .data-table tbody tr:hover td:first-child,
 .data-table tbody tr:hover td:first-child .location-block,
 .data-table tbody tr:hover td:first-child > div {
   background: linear-gradient(135deg, #7c8393 0%, #5b6574 100%) !important;
+}
+
+.light .data-table tbody tr:hover td:first-child,
+.light .data-table tbody tr:hover td:first-child .location-block,
+.light .data-table tbody tr:hover td:first-child > div {
+  background: linear-gradient(135deg, #d1d5db 0%, #c4c9d1 100%) !important;
+  color: #1f2937 !important;
 }
 
 /* Additional targeting for location blocks specifically */
@@ -492,6 +526,13 @@ select:focus {
   font-weight: 500;
   border: 1px solid #9ca3af;
   box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
+}
+
+.light .data-table td[data-testid*="location"],
+.light .data-table td .px-3.py-1.rounded {
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%) !important;
+  color: #374151 !important;
+  border: 1px solid #6b7280;
 }
 
 /* Chart styles */
