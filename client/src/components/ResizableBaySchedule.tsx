@@ -4319,7 +4319,7 @@ export default function ResizableBaySchedule({
                                       { label: 'Actual Delivery', value: getDateDisplayValue((project as any).actualDeliveryDate) },
                                     ].filter(item => item.value !== 'Not Set') : [];
                                     
-                                    console.log(`📅 Timeline dates for project ${bar.projectNumber}:`, timelineDates.length, timelineDates);
+
 
                                     return (
                                       <div className="relative">
@@ -4383,10 +4383,9 @@ export default function ResizableBaySchedule({
                                               visibility: 'hidden',
                                               zIndex: 1000,
                                               right: '100%',
-                                              top: '0',
+                                              top: '-10px',
                                               marginRight: '8px',
                                               display: 'none',
-                                              height: '100%',
                                               width: 'auto'
                                             }}
                                           >
