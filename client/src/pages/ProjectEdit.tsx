@@ -374,6 +374,20 @@ function ProjectEdit() {
     const originalNtcPercent = form.watch('ntcTestingPercent') || 0;
     const originalQcPercent = form.watch('qcPercent') || 0;
 
+    // Check if all phases are visible - if so, return original values without redistribution
+    const allPhasesVisible = showFab && showPaint && showProduction && showIt && showNtc && showQc;
+    
+    if (allPhasesVisible) {
+      return {
+        fabricationPercent: originalFabPercent,
+        paintPercent: originalPaintPercent,
+        assemblyPercent: originalAssemblyPercent,
+        itPercent: originalItPercent,
+        ntcTestingPercent: originalNtcPercent,
+        qcPercent: originalQcPercent
+      };
+    }
+
     // Calculate sum of visible phase percentages
     let visibleSum = 0;
     if (showFab) visibleSum += originalFabPercent;
@@ -395,7 +409,7 @@ function ProjectEdit() {
       };
     }
 
-    // Calculate redistribution factor
+    // Calculate redistribution factor only when phases are hidden
     const redistributionFactor = 100 / visibleSum;
 
     // Return redistributed percentages (0 for hidden phases)
