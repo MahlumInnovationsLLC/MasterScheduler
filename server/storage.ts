@@ -2460,36 +2460,29 @@ export class DatabaseStorage implements IStorage {
   // User Module Visibility Management
   async updateUserModuleVisibility(userId: string, moduleId: string, visible: boolean): Promise<void> {
     try {
-      // Try to update existing record
-      const [updated] = await db
-        .update(userModuleVisibility)
-        .set({ visible, updatedAt: new Date() })
-        .where(and(
-          eq(userModuleVisibility.userId, userId),
-          eq(userModuleVisibility.moduleId, moduleId)
-        ))
-        .returning();
-
-      if (!updated) {
-        // Create new record if it doesn't exist
-        await db.insert(userModuleVisibility).values({
-          userId,
-          moduleId,
-          visible,
-        });
-      }
+      // Use raw SQL since the existing table structure doesn't match our schema
+      await db.execute(sql`
+        INSERT INTO user_module_visibility (user_id, module, is_visible, created_at, updated_at)
+        VALUES (${userId}, ${moduleId}, ${visible}, NOW(), NOW())
+        ON CONFLICT (user_id, module)
+        DO UPDATE SET 
+          is_visible = ${visible},
+          updated_at = NOW()
+      `);
     } catch (error) {
       console.error("Error updating user module visibility:", error);
       throw error;
     }
   }
 
-  async getUserModuleVisibility(userId: string): Promise<typeof userModuleVisibility.$inferSelect[]> {
+  async getUserModuleVisibility(userId: string): Promise<any[]> {
     try {
-      return await db
-        .select()
-        .from(userModuleVisibility)
-        .where(eq(userModuleVisibility.userId, userId));
+      const result = await db.execute(sql`
+        SELECT user_id, module, is_visible, created_at, updated_at
+        FROM user_module_visibility
+        WHERE user_id = ${userId}
+      `);
+      return result.rows;
     } catch (error) {
       console.error("Error fetching user module visibility:", error);
       return [];

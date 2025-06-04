@@ -2987,6 +2987,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update module visibility in database
       await storage.updateUserModuleVisibility(userId, moduleId, visible);
       
+      // Get user info for audit log
+      const user = await storage.getUser(userId);
+      const performedByUser = req.user ? await storage.getUser(req.user.id) : null;
+      const performedByName = performedByUser ? performedByUser.username || performedByUser.email : "System";
+      
       // Create audit log entry
       const performedBy = req.user?.id || "system";
       await storage.createUserAuditLog(
@@ -2994,7 +2999,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "MODULE_VISIBILITY_UPDATE",
         performedBy,
         { moduleId, visible },
-        `Module visibility updated: ${moduleId} set to ${visible ? 'visible' : 'hidden'}`
+        `${performedByName} updated module visibility: ${moduleId} set to ${visible ? 'visible' : 'hidden'}`
       );
       
       res.json({ success: true, message: "Module visibility updated" });
