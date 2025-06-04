@@ -259,92 +259,168 @@ const BaySchedulingPage = () => {
       
       console.log(`Found project ${targetProject.projectNumber} scheduled in bay ${projectSchedule.bayId}`);
       
-      // Try multiple possible scroll container selectors
-      let scrollContainer = document.querySelector('.p-4.overflow-x-auto') ||
-                          document.querySelector('[class*="overflow-x-auto"]') ||
-                          document.querySelector('.manufacturing-schedule') ||
-                          document.querySelector('[data-testid="schedule-container"]');
+      // First, try to find the actual project element in the DOM
+      console.log('Searching for project element in DOM...');
+      let projectElement = null;
+      let scrollContainer = null;
       
-      // If no container found, try the ResizableBaySchedule component container
-      if (!scrollContainer) {
-        const allScrollableElements = document.querySelectorAll('*');
-        for (const element of allScrollableElements) {
-          const styles = window.getComputedStyle(element);
-          if (styles.overflowX === 'auto' || styles.overflowX === 'scroll') {
-            if (element.scrollWidth > element.clientWidth) {
-              scrollContainer = element;
-              break;
-            }
+      // Look for the project by text content in various possible selectors
+      const possibleSelectors = [
+        `*[data-project-number="${targetProject.projectNumber}"]`,
+        `*[data-project-id="${targetProject.id}"]`,
+        '.schedule-bar',
+        '.project-bar', 
+        '.manufacturing-schedule-bar',
+        '[class*="schedule"]',
+        '[class*="project"]'
+      ];
+      
+      for (const selector of possibleSelectors) {
+        const elements = document.querySelectorAll(selector);
+        for (let i = 0; i < elements.length; i++) {
+          const element = elements[i];
+          const text = element.textContent || '';
+          if (text.includes(targetProject.projectNumber)) {
+            projectElement = element;
+            console.log(`Found project element using selector ${selector}:`, element);
+            break;
           }
         }
+        if (projectElement) break;
       }
       
-      if (!scrollContainer) {
-        console.error("No scrollable container found - searching for project bar directly");
-        
-        // Try to find the project bar element directly and scroll its parent
-        const projectBars = document.querySelectorAll('[data-project-id], .schedule-bar, .project-bar');
-        for (const bar of projectBars) {
-          const barText = bar.textContent || '';
-          if (barText.includes(targetProject.projectNumber)) {
-            console.log(`Found project bar for ${targetProject.projectNumber}`);
-            // Scroll the closest scrollable parent
-            let parent = bar.parentElement;
-            while (parent) {
-              const styles = window.getComputedStyle(parent);
-              if (styles.overflowX === 'auto' || styles.overflowX === 'scroll') {
-                scrollContainer = parent;
-                break;
-              }
-              parent = parent.parentElement;
-            }
+      // If still not found, search all elements containing the project number
+      if (!projectElement) {
+        console.log('Searching all elements for project number...');
+        const allElements = document.querySelectorAll('*');
+        for (let i = 0; i < allElements.length; i++) {
+          const element = allElements[i];
+          const text = element.textContent || '';
+          if (text.includes(targetProject.projectNumber) && element.offsetWidth > 50) {
+            projectElement = element;
+            console.log(`Found project element in general search:`, element);
             break;
           }
         }
       }
       
-      if (!scrollContainer) {
-        throw new Error("Could not find any scrollable container");
+      if (projectElement) {
+        console.log('Project element found, getting position...');
+        const rect = projectElement.getBoundingClientRect();
+        console.log(`Project element position: left=${rect.left}, top=${rect.top}, width=${rect.width}`);
+        
+        // Find the scrollable container
+        let parent = projectElement.parentElement;
+        while (parent && parent !== document.body) {
+          const styles = window.getComputedStyle(parent);
+          if (styles.overflowX === 'auto' || styles.overflowX === 'scroll' || styles.overflow === 'auto' || styles.overflow === 'scroll') {
+            if (parent.scrollWidth > parent.clientWidth) {
+              scrollContainer = parent;
+              console.log('Found scrollable container:', parent);
+              break;
+            }
+          }
+          parent = parent.parentElement;
+        }
+        
+        if (scrollContainer) {
+          // Calculate scroll position based on actual element position
+          const containerRect = scrollContainer.getBoundingClientRect();
+          const elementOffsetLeft = projectElement.offsetLeft;
+          const targetScrollLeft = elementOffsetLeft - (containerRect.width / 2) + (rect.width / 2);
+          const finalPosition = Math.max(0, targetScrollLeft);
+          
+          console.log(`Direct positioning:
+            - Container width: ${containerRect.width}
+            - Element offset left: ${elementOffsetLeft}
+            - Element width: ${rect.width}
+            - Target scroll position: ${finalPosition}`);
+          
+          // Scroll to the calculated position
+          scrollContainer.scrollTo({
+            left: finalPosition,
+            behavior: 'smooth'
+          });
+          
+          // Fallback with direct assignment
+          setTimeout(() => {
+            (scrollContainer as HTMLElement).scrollLeft = finalPosition;
+          }, 100);
+          
+          // Also scroll the element into view as additional fallback
+          setTimeout(() => {
+            projectElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center',
+              inline: 'center'
+            });
+          }, 200);
+        } else {
+          // No scrollable container found, just scroll element into view
+          console.log('No scrollable container found, using scrollIntoView');
+          projectElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'center'
+          });
+        }
+      } else {
+        console.log('Project element not found, falling back to date calculation...');
+        
+        // Fallback to original date-based calculation
+        scrollContainer = document.querySelector('.p-4.overflow-x-auto') ||
+                         document.querySelector('[class*="overflow-x-auto"]') ||
+                         document.querySelector('.manufacturing-schedule');
+        
+        if (!scrollContainer) {
+          const allScrollableElements = document.querySelectorAll('*');
+          for (const element of allScrollableElements) {
+            const styles = window.getComputedStyle(element);
+            if (styles.overflowX === 'auto' || styles.overflowX === 'scroll') {
+              if (element.scrollWidth > element.clientWidth) {
+                scrollContainer = element;
+                break;
+              }
+            }
+          }
+        }
+        
+        if (!scrollContainer) {
+          throw new Error("Could not find project element or scrollable container");
+        }
+        
+        console.log(`Using fallback scroll container:`, scrollContainer);
+        
+        // Calculate the project's position based on its start date
+        const projectStartDate = new Date(projectSchedule.startDate);
+        const startOfYear = new Date(2024, 0, 1);
+        const millisecondsPerDay = 24 * 60 * 60 * 1000;
+        const daysSinceStart = Math.floor((projectStartDate.getTime() - startOfYear.getTime()) / millisecondsPerDay);
+        
+        // Week view calculations
+        const pixelsPerDay = 144 / 7;
+        const bayColumnWidth = 200;
+        
+        const projectPixelPosition = daysSinceStart * pixelsPerDay;
+        const viewportWidth = scrollContainer.clientWidth;
+        const targetPosition = projectPixelPosition + bayColumnWidth - (viewportWidth / 2);
+        const finalPosition = Math.max(0, targetPosition);
+        
+        console.log(`Fallback calculation:
+          - Start date: ${projectStartDate.toISOString()}
+          - Days since 2024-01-01: ${daysSinceStart}
+          - Pixel position: ${projectPixelPosition}
+          - Target scroll position: ${finalPosition}`);
+        
+        scrollContainer.scrollTo({
+          left: finalPosition,
+          behavior: 'smooth'
+        });
+        
+        setTimeout(() => {
+          (scrollContainer as HTMLElement).scrollLeft = finalPosition;
+        }, 100);
       }
-      
-      console.log(`Using scroll container:`, scrollContainer);
-      
-      // Calculate the project's position based on its start date
-      const projectStartDate = new Date(projectSchedule.startDate);
-      const startOfYear = new Date(2024, 0, 1); // Use 2024 as the base year to match the dateRange
-      const millisecondsPerDay = 24 * 60 * 60 * 1000;
-      const daysSinceStart = Math.floor((projectStartDate.getTime() - startOfYear.getTime()) / millisecondsPerDay);
-      
-      // Week view calculations - adjust based on actual layout
-      const pixelsPerDay = 144 / 7; // ~20.6px per day in week view
-      const bayColumnWidth = 200; // Reduced estimate for bay column width
-      
-      // Calculate target position
-      const projectPixelPosition = daysSinceStart * pixelsPerDay;
-      const viewportWidth = scrollContainer.clientWidth;
-      const targetPosition = projectPixelPosition + bayColumnWidth - (viewportWidth / 2);
-      
-      // Ensure we don't scroll before the beginning
-      const finalPosition = Math.max(0, targetPosition);
-      
-      console.log(`Project calculation:
-        - Start date: ${projectStartDate.toISOString()}
-        - Days since 2024-01-01: ${daysSinceStart}
-        - Pixel position: ${projectPixelPosition}
-        - Bay column width: ${bayColumnWidth}
-        - Viewport width: ${viewportWidth}
-        - Target scroll position: ${finalPosition}`);
-      
-      // Force scroll using scrollLeft property with smooth behavior
-      (scrollContainer as HTMLElement).scrollTo({
-        left: finalPosition,
-        behavior: 'smooth'
-      });
-      
-      // Also try direct scrollLeft assignment as fallback
-      setTimeout(() => {
-        (scrollContainer as HTMLElement).scrollLeft = finalPosition;
-      }, 100);
       
       console.log(`Scrolled to project ${targetProject.projectNumber} at position ${finalPosition}px`);
       
