@@ -35,7 +35,7 @@ export default function AuthPage() {
 
   // Use auth hook with error handling
   const authResult = useAuth();
-  const { login, register, isLoading, user } = authResult || {};
+  const { loginMutation: authLoginMutation, registerMutation: authRegisterMutation, isLoading, user } = authResult || {};
 
   // Redirect if already logged in
   useEffect(() => {
@@ -62,44 +62,23 @@ export default function AuthPage() {
     },
   });
 
-  // Login mutation
-  const loginMutation = useMutation({
-    mutationFn: async (data: { username: string; password: string }) => {
-      if (!login) throw new Error("Login function not available");
-      return await login(data.username, data.password);
-    },
-    onError: (error: any) => {
+  const onLogin = (data: LoginData) => {
+    if (!authLoginMutation) {
       toast({
         title: "Login failed",
-        description: error.message || 'Failed to log in',
+        description: "Login function not available",
         variant: "destructive",
       });
-    },
-  });
+      return;
+    }
 
-  // Register mutation
-  const registerMutation = useMutation({
-    mutationFn: async (data: RegisterData) => {
-      if (!register) throw new Error("Register function not available");
-      return await register(data.email, data.password, data.username, data.username);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Registration failed",
-        description: error.message || 'Failed to create account',
-        variant: "destructive",
-      });
-    },
-  });
-
-  const onLogin = (data: LoginData) => {
     // Convert email to username format for backend compatibility
     const loginData = {
       username: data.email, // Backend expects 'username' field but we'll send email
       password: data.password,
     };
 
-    loginMutation.mutate(loginData, {
+    authLoginMutation.mutate(loginData, {
       onSuccess: () => {
         toast({
           title: "Welcome back!",
@@ -107,17 +86,40 @@ export default function AuthPage() {
         });
         setLocation("/");
       },
+      onError: (error: any) => {
+        toast({
+          title: "Login failed",
+          description: error.message || 'Failed to log in',
+          variant: "destructive",
+        });
+      },
     });
   };
 
   const onRegister = (data: RegisterData) => {
-    registerMutation.mutate(data, {
+    if (!authRegisterMutation) {
+      toast({
+        title: "Registration failed",
+        description: "Registration function not available",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    authRegisterMutation.mutate(data, {
       onSuccess: () => {
         toast({
           title: "Account created!",
           description: "Your account has been created successfully.",
         });
         setLocation("/");
+      },
+      onError: (error: any) => {
+        toast({
+          title: "Registration failed",
+          description: error.message || 'Failed to create account',
+          variant: "destructive",
+        });
       },
     });
   };
@@ -193,9 +195,9 @@ export default function AuthPage() {
                       <Button 
                         type="submit" 
                         className="w-full" 
-                        disabled={loginMutation.isPending}
+                        disabled={authLoginMutation?.isPending}
                       >
-                        {loginMutation.isPending ? (
+                        {authLoginMutation?.isPending ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Signing in...
@@ -276,9 +278,9 @@ export default function AuthPage() {
                       <Button 
                         type="submit" 
                         className="w-full" 
-                        disabled={registerMutation.isPending}
+                        disabled={authRegisterMutation?.isPending}
                       >
-                        {registerMutation.isPending ? (
+                        {authRegisterMutation?.isPending ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Creating account...
