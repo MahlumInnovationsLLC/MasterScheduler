@@ -40,9 +40,9 @@ const Dashboard = () => {
   // If not authenticated, show login required message
   if (!authLoading && !user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          <Card className="border-border bg-darkCard/80 backdrop-blur-sm">
+          <Card className="border-border bg-card backdrop-blur-sm shadow-lg">
             <CardContent className="p-8 text-center">
               <div className="flex justify-center mb-6">
                 <div className="relative">
