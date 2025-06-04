@@ -564,7 +564,8 @@ select:focus {
 }
 
 /* Projects module location styling - match Dashboard styling */
-.data-table td div[style*="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"] {
+.data-table td div[style*="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"],
+.data-table td div[style*="linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"] {
   background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%) !important;
   color: #ffffff !important;
   font-weight: 500;
@@ -572,7 +573,23 @@ select:focus {
   box-shadow: 0 2px 8px rgba(156, 163, 175, 0.3);
 }
 
-.light .data-table td div[style*="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"] {
+.light .data-table td div[style*="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"],
+.light .data-table td div[style*="linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"] {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #d1d5db;
+}
+
+/* More specific targeting for Projects module location cells */
+.data-table tbody tr td .px-3.py-1.rounded[style*="linear-gradient"] {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%) !important;
+  color: #ffffff !important;
+  font-weight: 500;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 2px 8px rgba(156, 163, 175, 0.3);
+}
+
+.light .data-table tbody tr td .px-3.py-1.rounded[style*="linear-gradient"] {
   background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%) !important;
   color: #ffffff !important;
   border: 1px solid #d1d5db;
