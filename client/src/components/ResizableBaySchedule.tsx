@@ -4379,11 +4379,12 @@ export default function ResizableBaySchedule({
                                         {timelineDates.length > 0 && (
                                           <div 
                                             id={`tooltip-${bar.id}`}
-                                            className="fixed pointer-events-auto transition-opacity duration-200"
+                                            className="pointer-events-auto transition-opacity duration-200"
                                             style={{ 
+                                              position: 'fixed',
                                               opacity: 0,
                                               visibility: 'hidden',
-                                              zIndex: 9999999999,
+                                              zIndex: 2147483647,
                                               left: '50%',
                                               bottom: '100%',
                                               transform: 'translateX(-50%)',
@@ -4409,7 +4410,7 @@ export default function ResizableBaySchedule({
                                               }
                                             }}
                                           >
-                                            <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[300px] max-w-[400px] relative" style={{ zIndex: 9999999999 }}>
+                                            <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[300px] max-w-[400px] relative" style={{ zIndex: 2147483647 }}>
                                               <div className="font-semibold text-blue-300 mb-2 text-center border-b border-gray-700 pb-1">
                                                 Project Timeline Dates - {bar.projectNumber}
                                               </div>
