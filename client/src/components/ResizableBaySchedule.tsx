@@ -4194,11 +4194,20 @@ export default function ResizableBaySchedule({
                                        left: `${((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) / 2) - 150}px`, /* Center under PROD phase with wider area */
                                        top: '120px', /* Position it right under the bottom phases (moved down 50px total) */
                                        width: '300px', /* Increased width to accommodate longer names */
-                                       pointerEvents: 'none', /* Allow clicks to pass through */
+                                       pointerEvents: 'auto', /* Enable clicks */
                                        zIndex: 9999 /* Much higher z-index so it appears above all project bars but below popups */
                                      }}>
                                   <div className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center shadow-md border border-gray-300" style={{minWidth: "200px", maxWidth: "400px", position: 'relative', whiteSpace: 'nowrap', overflow: 'visible'}}>
-                                    {bar.projectNumber}
+                                    <a 
+                                      href={`/project/${bar.projectId}`}
+                                      className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.location.href = `/project/${bar.projectId}`;
+                                      }}
+                                    >
+                                      {bar.projectNumber}
+                                    </a>
                                     <br />
                                     <span style={{whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'unset'}}>{bar.projectName}</span>
                                   </div>
