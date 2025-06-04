@@ -4375,29 +4375,52 @@ export default function ResizableBaySchedule({
                                           <span style={{whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'unset'}}>{bar.projectName}</span>
                                         </div>
                                         
-                                        {/* Timeline Tooltip - positioned to the left within the project bar */}
+                                        {/* Timeline Tooltip - appears on hover with JS control */}
                                         {timelineDates.length > 0 && (
                                           <div 
                                             id={`tooltip-${bar.id}`}
-                                            className="absolute pointer-events-auto transition-opacity duration-200"
+                                            className="pointer-events-auto transition-opacity duration-200"
                                             style={{ 
+                                              position: 'fixed',
                                               opacity: 0,
                                               visibility: 'hidden',
                                               zIndex: 2147483647,
-                                              right: '100%',
-                                              top: '0',
-                                              marginRight: '10px',
-                                              display: 'none'
+                                              left: '50%',
+                                              bottom: '100%',
+                                              transform: 'translateX(-50%)',
+                                              display: 'none',
+                                              marginBottom: '8px'
                                             }}
                                             onMouseEnter={() => {
+                                              console.log(`🎯 Mouse ENTER on tooltip for project ${bar.projectNumber}`);
                                               const tooltip = document.getElementById(`tooltip-${bar.id}`);
                                               if (tooltip) {
+                                                // Debug current z-index and stacking context
+                                                const computedStyle = window.getComputedStyle(tooltip);
+                                                console.log(`🔍 TOOLTIP DEBUG for ${bar.projectNumber}:`, {
+                                                  zIndex: computedStyle.zIndex,
+                                                  position: computedStyle.position,
+                                                  stackingContext: computedStyle.isolation,
+                                                  transform: computedStyle.transform
+                                                });
+                                                
+                                                // Force maximum z-index and isolate stacking context
                                                 tooltip.style.display = 'block';
                                                 tooltip.style.visibility = 'visible';
                                                 tooltip.style.opacity = '1';
+                                                tooltip.style.zIndex = '2147483647';
+                                                tooltip.style.isolation = 'isolate';
+                                                tooltip.style.position = 'fixed';
+                                                
+                                                // Move to document body to escape any stacking contexts
+                                                if (tooltip.parentElement !== document.body) {
+                                                  console.log(`📦 Moving tooltip to document.body to escape stacking context`);
+                                                  document.body.appendChild(tooltip);
+                                                }
                                               }
                                             }}
                                             onMouseLeave={() => {
+                                              console.log(`🎯 Mouse LEAVE on tooltip for project ${bar.projectNumber}`);
                                               const tooltip = document.getElementById(`tooltip-${bar.id}`);
                                               if (tooltip) {
                                                 tooltip.style.opacity = '0';
@@ -4406,11 +4429,11 @@ export default function ResizableBaySchedule({
                                               }
                                             }}
                                           >
-                                            <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[400px] max-w-[500px] relative" style={{ zIndex: 2147483647 }}>
+                                            <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[300px] max-w-[400px] relative" style={{ zIndex: 2147483647 }}>
                                               <div className="font-semibold text-blue-300 mb-2 text-center border-b border-gray-700 pb-1">
                                                 Project Timeline Dates - {bar.projectNumber}
                                               </div>
-                                              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                              <div className="grid grid-cols-1 gap-1">
                                                 {timelineDates.map((item, index) => (
                                                   <div key={index} className="flex justify-between items-center py-1 border-b border-gray-800 last:border-b-0">
                                                     <span className="text-gray-300 font-medium">{item.label}:</span>
@@ -4421,7 +4444,6 @@ export default function ResizableBaySchedule({
                                             </div>
                                           </div>
                                         )}
-
                                       </div>
                                     );
                                   })()}
