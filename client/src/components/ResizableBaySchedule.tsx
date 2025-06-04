@@ -3753,7 +3753,7 @@ export default function ResizableBaySchedule({
                       {/* Weekly header divider between bay rows (not before first bay) */}
                       {bayIndex > 0 && (
                         <div 
-                          className="bay-divider-header h-6 border-b border-gray-300 dark:border-gray-600 grid overflow-hidden mb-1" 
+                          className="bay-divider-header h-6 border-b border-gray-300 dark:border-gray-600 grid overflow-hidden mb-1 bg-gray-800 dark:bg-gray-900" 
                           style={{ 
                             gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
                             width: `${Math.max(10000, slots.length * slotWidth)}px`
@@ -3763,20 +3763,20 @@ export default function ResizableBaySchedule({
                             <div
                               key={`bay-divider-${bay.id}-${index}`}
                               className={`
-                                timeline-slot border-r border-gray-300 dark:border-gray-600 flex-shrink-0
-                                ${slot.isStartOfMonth ? 'bg-gray-200 dark:bg-gray-700 border-r-2 border-r-blue-400' : ''}
-                                ${slot.isStartOfWeek ? 'bg-gray-100 dark:bg-gray-750 border-r border-r-gray-400' : ''}
-                                ${!slot.isBusinessDay ? 'bg-gray-50 dark:bg-gray-800/70' : ''}
+                                timeline-slot border-r border-gray-600 dark:border-gray-600 flex-shrink-0
+                                ${slot.isStartOfMonth ? 'bg-gray-800 dark:bg-gray-800 border-r-2 border-r-blue-500' : ''}
+                                ${slot.isStartOfWeek ? 'bg-gray-850 dark:bg-gray-850 border-r border-r-gray-600' : ''}
+                                ${!slot.isBusinessDay ? 'bg-gray-850/70 dark:bg-gray-850/70' : ''}
                               `}
                               style={{ height: '100%' }}
                             >
                               <div className="text-xs text-center w-full h-full flex flex-col justify-center">
                                 {slot.isStartOfMonth && (
-                                  <div className="font-medium text-gray-400 dark:text-gray-300 whitespace-nowrap overflow-hidden text-[9px]">
+                                  <div className="font-medium text-gray-300 dark:text-gray-300 whitespace-nowrap overflow-hidden text-[9px]">
                                     {format(slot.date, 'MMM')}
                                   </div>
                                 )}
-                                <div className="text-gray-500 dark:text-gray-400 text-[8px]">
+                                <div className="text-gray-400 dark:text-gray-400 text-[8px]">
                                   {format(slot.date, 'MM/dd')}
                                 </div>
                               </div>
