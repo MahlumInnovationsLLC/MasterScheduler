@@ -4409,11 +4409,11 @@ export default function ResizableBaySchedule({
                                               }
                                             }}
                                           >
-                                            <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[300px] max-w-[400px] relative" style={{ zIndex: 99999999 }}>
+                                            <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[300px] max-w-[400px] relative" style={{ zIndex: 9999999999 }}>
                                               <div className="font-semibold text-blue-300 mb-2 text-center border-b border-gray-700 pb-1">
                                                 Project Timeline Dates - {bar.projectNumber}
                                               </div>
-                                              <div className="grid grid-cols-1 gap-1 max-h-64 overflow-y-auto">
+                                              <div className="grid grid-cols-1 gap-1">
                                                 {timelineDates.map((item, index) => (
                                                   <div key={index} className="flex justify-between items-center py-1 border-b border-gray-800 last:border-b-0">
                                                     <span className="text-gray-300 font-medium">{item.label}:</span>
