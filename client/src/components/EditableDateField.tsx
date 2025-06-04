@@ -221,7 +221,7 @@ const EditableDateField: React.FC<EditableDateFieldProps> = ({ projectId, field,
           onClick={() => setIsEditing(true)}
         >
           <span className={value === 'PENDING' ? 'text-orange-600 font-medium' : value === 'N/A' ? 'text-gray-500 italic' : ''}>
-            {value === 'PENDING' || value === 'N/A' ? value : formatDate(value)}
+            {(value === 'PENDING' || value === 'N/A' || value === 'TBD') ? value : formatDate(value)}
           </span>
           <PencilIcon className="h-3.5 w-3.5 ml-2 text-gray-500 opacity-0 group-hover:opacity-100" />
         </div>

@@ -7,11 +7,31 @@ interface ProjectPhaseInfoProps {
 }
 
 export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) => {
-  // Helper to format date or return text value as-is
-  const formatDateOrText = (value: string | null): string => {
-    if (!value) return '';
-    if (value === 'N/A' || value === 'PENDING') return value;
-    return formatDate(value);
+  // Helper function to format date or return text value
+  const formatDateOrText = (value: string | null | undefined): string => {
+    if (!value) return 'TBD';
+
+    // Handle text values like PENDING, N/A, TBD
+    if (value === 'PENDING' || value === 'N/A' || value === 'TBD') {
+      return value;
+    }
+
+    // Check if it's not a valid date format before trying to parse
+    if (typeof value === 'string' && !/^\d{4}-\d{2}-\d{2}/.test(value) && isNaN(Date.parse(value))) {
+      return value; // Return as-is if it's not a recognizable date format
+    }
+
+    // Try to format as date
+    try {
+      const date = new Date(value);
+      if (isNaN(date.getTime())) {
+        return value; // Return original value if invalid date
+      }
+      return formatDate(value);
+    } catch (error) {
+      // If date formatting fails, return the original value
+      return value;
+    }
   };
 
   // Helper to safely get date from project, localStorage, or rawData
@@ -21,21 +41,21 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
     if (storedValue && (storedValue === 'N/A' || storedValue === 'PENDING')) {
       return storedValue;
     }
-    
+
     // Special case for startDate and shipDate which should come from project first
     if (fieldName === 'startDate' && project.startDate) {
       return project.startDate;
     }
-    
+
     if (fieldName === 'shipDate' && project.shipDate) {
       return project.shipDate;
     }
-    
+
     // Try to get directly from project for other fields
     if (project[fieldName]) {
       return project[fieldName];
     }
-    
+
     // Check localStorage for text values (N/A, PENDING) even if database field is null
     try {
       const storageKey = `dateField_${fieldName}`;
@@ -46,7 +66,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
     } catch (e) {
       // Ignore localStorage errors
     }
-    
+
     // Try to get from rawData
     if (project.rawData) {
       // Check different naming patterns
@@ -57,14 +77,14 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
         fieldName.toUpperCase(),
         fieldName.toLowerCase()
       ];
-      
+
       for (const key of possibleKeys) {
         if (project.rawData[key] !== undefined && project.rawData[key] !== null && 
             project.rawData[key] !== 'N/A' && project.rawData[key] !== '') {
           return project.rawData[key];
         }
       }
-      
+
       // Try common alternative names
       const alternativeNames: Record<string, string[]> = {
         'startDate': ['START_DATE', 'START', 'Start Date', 'Start', 'BEGIN_DATE', 'Begin Date'],
@@ -76,7 +96,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
         'shipDate': ['SHIP', 'SHIPPING_DATE', 'Ship', 'Shipping Date', 'SHIP_DATE'],
         'deliveryDate': ['DELIVERY', 'DELIVERY_DATE', 'Delivery', 'Delivery Date']
       };
-      
+
       const alternatives = alternativeNames[fieldName] || [];
       for (const alt of alternatives) {
         if (project.rawData[alt] !== undefined && project.rawData[alt] !== null && 
@@ -85,10 +105,10 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
         }
       }
     }
-    
+
     return null;
   };
-  
+
   // Get the correct dates to display in timeline
   const contractDate = project.contractDate || null;
   const poDroppedDate = project.poDroppedDate || project.startDate || null; // Timeline Start
@@ -100,7 +120,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
   const shipDate = project.shipDate || null;
   const deliveryDate = getPhaseDate('deliveryDate');
   const wrapDate = getPhaseDate('wrapDate');
-  
+
   // Only display if we have at least one phase date (including text values from localStorage)
   if (!contractDate && !poDroppedDate && !fabricationStart && !assemblyStart && !ntcTestingDate && 
       !qcStartDate && !executiveReviewDate && !shipDate && !deliveryDate && !wrapDate) {
@@ -120,7 +140,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             </div>
           </div>
         )}
-        
+
         {poDroppedDate && (
           <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
             <Calendar className="h-4 w-4 text-primary" />
@@ -130,7 +150,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             </div>
           </div>
         )}
-        
+
         {fabricationStart && (
           <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
             <Hammer className="h-4 w-4 text-blue-400" />
@@ -140,7 +160,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             </div>
           </div>
         )}
-        
+
         {assemblyStart && (
           <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
             <Wrench className="h-4 w-4 text-indigo-400" />
@@ -150,7 +170,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             </div>
           </div>
         )}
-        
+
         {wrapDate && (
           <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
             <Package className="h-4 w-4 text-cyan-400" />
@@ -160,7 +180,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             </div>
           </div>
         )}
-        
+
         {ntcTestingDate && (
           <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
             <TestTube className="h-4 w-4 text-purple-400" />
@@ -170,7 +190,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             </div>
           </div>
         )}
-        
+
         {qcStartDate && (
           <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
             <CheckSquare className="h-4 w-4 text-green-400" />
@@ -180,7 +200,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             </div>
           </div>
         )}
-        
+
         {executiveReviewDate && (
           <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
             <CheckCircle className="h-4 w-4 text-yellow-400" />
@@ -190,7 +210,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             </div>
           </div>
         )}
-        
+
         {shipDate && (
           <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
             <Truck className="h-4 w-4 text-orange-400" />
@@ -200,7 +220,7 @@ export const ProjectPhaseInfo: React.FC<ProjectPhaseInfoProps> = ({ project }) =
             </div>
           </div>
         )}
-        
+
         {deliveryDate && (
           <div className="flex items-center gap-1 bg-dark px-2 py-1 rounded">
             <Navigation className="h-4 w-4 text-red-400" />

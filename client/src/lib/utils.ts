@@ -20,33 +20,35 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(date: Date | string | undefined | null): string {
-  if (!date) return 'N/A';
-  
+export function formatDate(dateInput: string | Date | null | undefined): string {
+  if (!dateInput) return 'N/A';
+
+  // Handle text values like PENDING, N/A, etc.
+  if (typeof dateInput === 'string') {
+    // Check if it's a text value (not a date string)
+    if (dateInput === 'PENDING' || dateInput === 'N/A' || dateInput === 'TBD') {
+      return dateInput;
+    }
+
+    // Check if it's not a valid date format before trying to parse
+    if (!/^\d{4}-\d{2}-\d{2}/.test(dateInput) && isNaN(Date.parse(dateInput))) {
+      return dateInput; // Return as-is if it's not a recognizable date format
+    }
+  }
+
   try {
-    let dateObj: Date;
-    
-    // Handle different date formats without timezone conversion
-    if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      // Parse YYYY-MM-DD format as local time to avoid timezone shifts
-      const [year, month, day] = date.split('-');
-      dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    } else {
-      // For other formats, use the existing logic
-      dateObj = new Date(date);
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+
+    if (isNaN(date.getTime())) {
+      // If it's still invalid, return the original string value if it was a string
+      return typeof dateInput === 'string' ? dateInput : 'Invalid Date';
     }
-    
-    // Check if date is valid
-    if (isNaN(dateObj.getTime())) {
-      console.warn(`Invalid date format: ${date}`);
-      return String(date) || 'N/A';
-    }
-    
-    // Format the date without any adjustment - use exact date
-    return format(dateObj, 'MMM dd, yyyy');
+
+    return format(date, 'MMM dd, yyyy');
   } catch (error) {
-    console.error(`Error formatting date: ${date}`, error);
-    return String(date) || 'N/A';
+    console.error('Date formatting error:', error);
+    // Return the original value if it was a string, otherwise return error message
+    return typeof dateInput === 'string' ? dateInput : 'Invalid Date';
   }
 }
 
@@ -54,7 +56,7 @@ export function formatCurrency(amount: number | string | undefined | null): stri
   try {
     // Handle undefined, null, empty string cases
     if (amount === undefined || amount === null || amount === '') return '$0';
-    
+
     // Parse the string to a number if needed
     let num: number;
     if (typeof amount === 'string') {
@@ -64,13 +66,13 @@ export function formatCurrency(amount: number | string | undefined | null): stri
     } else {
       num = amount;
     }
-    
+
     // Check if parsing resulted in a valid number
     if (isNaN(num)) {
       console.warn(`Invalid currency value: ${amount}`);
       return '$0';
     }
-    
+
     // Format as USD with appropriate abbreviations for thousands/millions
     if (num >= 1000000) {
       return `$${(num / 1000000).toFixed(1)}M`;
@@ -87,17 +89,17 @@ export function formatCurrency(amount: number | string | undefined | null): stri
 
 export function calculatePercentComplete(startDate: Date | string, endDate: Date | string, actualPercent?: number): number {
   if (actualPercent !== undefined) return actualPercent;
-  
+
   const start = new Date(startDate);
   const end = new Date(endDate);
   const now = new Date();
-  
+
   if (isBefore(now, start)) return 0;
   if (isAfter(now, end)) return 100;
-  
+
   const totalDuration = differenceInDays(end, start);
   const elapsedDuration = differenceInDays(now, start);
-  
+
   const percent = Math.round((elapsedDuration / totalDuration) * 100);
   return Math.min(100, Math.max(0, percent));
 }
@@ -106,28 +108,28 @@ export function getProjectStatusColor(percentComplete: number, dueDate: Date | s
   if (!dueDate) {
     return { color: 'bg-gray-500', status: 'Unknown' };
   }
-  
+
   const due = new Date(dueDate);
   const now = new Date();
   const daysUntilDue = differenceInDays(due, now);
-  
+
   // Completed
   if (percentComplete >= 100) {
     return { color: 'bg-success', status: 'Completed' };
   }
-  
+
   // Critical - due date passed or very close with very low completion
   if ((daysUntilDue < 0 && percentComplete < 90) ||
       (daysUntilDue < 3 && percentComplete < 75)) {
     return { color: 'bg-danger', status: 'Critical' };
   }
-  
+
   // Delayed - only mark as delayed if significantly behind expected progress
   if ((daysUntilDue < 7 && percentComplete < 60) ||
       (percentComplete < 0.4 * (100 - daysUntilDue) && daysUntilDue < 14)) {
     return { color: 'bg-warning', status: 'Delayed' };
   }
-  
+
   // On track - most projects should show as Active
   return { color: 'bg-success', status: 'Active' };
 }
@@ -139,29 +141,29 @@ export function getProjectScheduleState(
   if (!manufacturingSchedules || manufacturingSchedules.length === 0) {
     return 'Unscheduled';
   }
-  
+
   // Find schedules for this project
   const projectSchedules = manufacturingSchedules.filter(
     schedule => schedule.projectId === projectId
   );
-  
+
   if (projectSchedules.length === 0) {
     return 'Unscheduled';
   }
-  
+
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
+
   // Check if any schedule is complete
   const completed = projectSchedules.some(
     schedule => schedule.status === 'complete' || 
     (schedule.endDate && new Date(schedule.endDate) < today)
   );
-  
+
   if (completed) {
     return 'Complete';
   }
-  
+
   // Check if any schedule is in progress
   const inProgress = projectSchedules.some(
     schedule => {
@@ -170,11 +172,11 @@ export function getProjectScheduleState(
       return startDate <= today && endDate >= today;
     }
   );
-  
+
   if (inProgress) {
     return 'In Progress';
   }
-  
+
   // If not completed or in progress, but scheduled, then it's scheduled
   return 'Scheduled';
 }
@@ -186,21 +188,21 @@ export function getBillingStatusInfo(
   liveDate: Date | string | undefined | null = null
 ): { color: string, display: string, timeline: string } {
   const now = new Date();
-  
+
   if (!targetDate && !liveDate) {
     return { color: 'bg-gray-500', display: 'Unknown', timeline: 'No date set' };
   }
-  
+
   // Use live date if available, otherwise fall back to target date
   const referenceDate = liveDate ? new Date(liveDate) : (targetDate ? new Date(targetDate) : null);
-  
+
   if (!referenceDate) {
     return { color: 'bg-gray-500', display: 'Unknown', timeline: 'No date set' };
   }
-  
+
   // Use formatted string to indicate which date we're comparing against
   const dateTypeLabel = liveDate ? 'Live date' : 'Target date';
-  
+
   switch (status) {
     case 'paid':
       return { 
@@ -267,17 +269,17 @@ export function checkScheduleConflict(
 ): boolean {
   const newStart = new Date(startDate);
   const newEnd = new Date(endDate);
-  
+
   // Check for overlaps with existing schedules
   return schedules.some(schedule => {
     // Skip checking against itself when updating
     if (currentId && schedule.id === currentId) return false;
-    
+
     if (schedule.bayId !== bay) return false;
-    
+
     const scheduleStart = new Date(schedule.startDate);
     const scheduleEnd = new Date(schedule.endDate);
-    
+
     // Check for any overlap between date ranges
     return (
       (isBefore(newStart, scheduleEnd) || newStart.getTime() === scheduleEnd.getTime()) &&
@@ -336,16 +338,16 @@ export function getBayStatusInfo(utilization: number): { status: string, color: 
  */
 export function calculateBayUtilization(bays: any[], schedules: any[]): number {
   if (!bays || !bays.length || !schedules || !schedules.length) return 0;
-  
+
   // Filter to only include active bays (with isActive=true or undefined)
   const activeBays = bays.filter(bay => bay.isActive !== false);
-  
+
   if (activeBays.length === 0) return 0;
-  
+
   // Simplified approach based on project count per bay
   // Using the rule: 0 projects = 0%, 1 project = 50%, 2+ projects = 100%
   const bayUtilizations: number[] = [];
-  
+
   // Process each bay individually
   activeBays.forEach(bay => {
     // Get active schedules for this bay (not completed)
@@ -355,7 +357,7 @@ export function calculateBayUtilization(bays: any[], schedules: any[]): number {
              new Date(schedule.endDate) >= now && 
              schedule.status !== 'complete';
     });
-    
+
     // Apply simplified utilization model and push to array
     if (activeSchedules.length >= 2) {
       bayUtilizations.push(100); // At Capacity (2+ projects)
@@ -365,15 +367,15 @@ export function calculateBayUtilization(bays: any[], schedules: any[]): number {
       bayUtilizations.push(0);   // Available (0 projects)
     }
   });
-  
+
   // Calculate average utilization across all active bays
   let totalUtilization = 0;
   for (const util of bayUtilizations) {
     totalUtilization += util;
   }
-  
+
   const avgUtilization = activeBays.length > 0 ? totalUtilization / activeBays.length : 0;
-  
+
   console.log(`Bay utilization calculation: ${Math.round(avgUtilization)}% (based on project count per bay)`);
   return Math.round(avgUtilization);
 }
@@ -392,7 +394,7 @@ export function getFiscalWeeksForMonth(year: number, month: number): {
   // Get start and end of month
   const startOfMonthDate = new Date(year, month - 1, 1); // month is 1-indexed in the function, but 0-indexed in Date
   const endOfMonthDate = endOfMonth(startOfMonthDate);
-  
+
   // For each week that overlaps with this month, create an entry
   const weeks = eachWeekOfInterval(
     { start: startOfMonthDate, end: endOfMonthDate },
@@ -400,24 +402,24 @@ export function getFiscalWeeksForMonth(year: number, month: number): {
   ).map((weekStart, index) => {
     // Calculate the end date of this week
     const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-    
+
     // Adjust start and end dates to be within the month
     const adjustedStart = isBefore(weekStart, startOfMonthDate) ? startOfMonthDate : weekStart;
     const adjustedEnd = isAfter(weekEnd, endOfMonthDate) ? endOfMonthDate : weekEnd;
-    
+
     // Format the date range label (e.g., "May 1 - 7" or if spans months "May 29 - Jun 4")
     const startFormat = format(adjustedStart, 'MMM d');
     const endFormat = format(adjustedEnd, 'd');
-    
+
     // Check if start and end dates are in the same month
     const startMonth = format(adjustedStart, 'MMM');
     const endMonth = format(adjustedEnd, 'MMM');
-    
+
     // Create the label with appropriate format
     const dateRangeLabel = startMonth === endMonth 
       ? `${startMonth} ${format(adjustedStart, 'd')} - ${format(adjustedEnd, 'd')}` 
       : `${startMonth} ${format(adjustedStart, 'd')} - ${endMonth} ${format(adjustedEnd, 'd')}`;
-    
+
     return {
       weekNumber: index + 1,
       startDate: adjustedStart,
@@ -425,7 +427,7 @@ export function getFiscalWeeksForMonth(year: number, month: number): {
       label: `Week ${index + 1}: ${dateRangeLabel}`
     };
   });
-  
+
   return weeks;
 }
 
@@ -437,18 +439,18 @@ export function getFiscalWeeksForMonth(year: number, month: number): {
 export function getFiscalWeekLabel(year: number, month: number, weekNumber: number, withRange = false): string {
   // Get all fiscal weeks for the month
   const fiscalWeeks = getFiscalWeeksForMonth(year, month);
-  
+
   // Find the requested week
   const targetWeek = fiscalWeeks.find(week => week.weekNumber === weekNumber);
-  
+
   if (!targetWeek) {
     return `Week ${weekNumber}`;
   }
-  
+
   // Format the dates based on whether they're in the same month or not
   const startMonth = format(targetWeek.startDate, 'MMM');
   const endMonth = format(targetWeek.endDate, 'MMM');
-  
+
   if (withRange) {
     // Just return the date range without the "Week X:" prefix
     if (startMonth === endMonth) {
@@ -457,7 +459,7 @@ export function getFiscalWeekLabel(year: number, month: number, weekNumber: numb
       return `${startMonth} ${format(targetWeek.startDate, 'd')} - ${endMonth} ${format(targetWeek.endDate, 'd')}`;
     }
   }
-  
+
   // Return complete label
   if (startMonth === endMonth) {
     return `Week ${weekNumber}: ${startMonth} ${format(targetWeek.startDate, 'd')} - ${format(targetWeek.endDate, 'd')}`;
@@ -474,32 +476,32 @@ export function getFiscalWeekLabel(year: number, month: number, weekNumber: numb
  */
 export function calculateWeekdaysBetween(startDateStr: string | null, endDateStr: string | null): number | null {
   if (!startDateStr || !endDateStr) return null;
-  
+
   const startDate = new Date(startDateStr);
   const endDate = new Date(endDateStr);
-  
+
   if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return null;
-  
+
   // If end date is before start date, return 0
   if (endDate < startDate) return 0;
-  
+
   let weekdays = 0;
   let currentDate = new Date(startDate);
-  
+
   // Set to start of day to avoid time issues
   currentDate.setHours(0, 0, 0, 0);
   endDate.setHours(23, 59, 59, 999);
-  
+
   while (currentDate <= endDate) {
     const dayOfWeek = currentDate.getDay();
     // Check if it's a weekday (Monday-Friday, 1-5)
     if (dayOfWeek > 0 && dayOfWeek < 6) {
       weekdays++;
     }
-    
+
     // Move to next day
     currentDate.setDate(currentDate.getDate() + 1);
   }
-  
+
   return weekdays;
 }
