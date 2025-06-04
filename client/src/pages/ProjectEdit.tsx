@@ -235,66 +235,66 @@ function ProjectEdit() {
         // New field with calculated days
         poDroppedToDeliveryDays: calculatedDays,
         
-        // Dates - parse with timezone safety to prevent day-before issues
+        // Dates - TIMEZONE FIX: Parse dates safely to prevent day-before display issues
         contractDate: project.contractDate ? (() => {
-          // Create date at noon to avoid timezone shifting
-          const dateStr = project.contractDate + 'T12:00:00';
-          return new Date(dateStr);
+          // Parse date in local timezone to avoid UTC conversion shifting the day
+          const [year, month, day] = project.contractDate.split('-').map(Number);
+          return new Date(year, month - 1, day); // month is 0-indexed
         })() : undefined,
         poDroppedDate: project.poDroppedDate ? (() => {
-          const dateStr = project.poDroppedDate + 'T12:00:00';
-          return new Date(dateStr);
+          const [year, month, day] = project.poDroppedDate.split('-').map(Number);
+          return new Date(year, month - 1, day);
         })() : project.startDate ? (() => {
-          const dateStr = project.startDate + 'T12:00:00';
-          return new Date(dateStr);
+          const [year, month, day] = project.startDate.split('-').map(Number);
+          return new Date(year, month - 1, day);
         })() : undefined,
         startDate: project.startDate ? (() => {
-          const dateStr = project.startDate + 'T12:00:00';
-          return new Date(dateStr);
+          const [year, month, day] = project.startDate.split('-').map(Number);
+          return new Date(year, month - 1, day);
         })() : undefined,
         estimatedCompletionDate: project.estimatedCompletionDate ? (() => {
-          const dateStr = project.estimatedCompletionDate + 'T12:00:00';
-          return new Date(dateStr);
+          const [year, month, day] = project.estimatedCompletionDate.split('-').map(Number);
+          return new Date(year, month - 1, day);
         })() : undefined,
         actualCompletionDate: project.actualCompletionDate ? (() => {
-          const dateStr = project.actualCompletionDate + 'T12:00:00';
-          return new Date(dateStr);
+          const [year, month, day] = project.actualCompletionDate.split('-').map(Number);
+          return new Date(year, month - 1, day);
         })() : undefined,
         chassisETA: project.chassisETA ? (() => {
-          const dateStr = project.chassisETA + 'T12:00:00';
-          return new Date(dateStr);
+          const [year, month, day] = project.chassisETA.split('-').map(Number);
+          return new Date(year, month - 1, day);
         })() : undefined,
         fabricationStart: project.fabricationStart ? (() => {
-          const dateStr = project.fabricationStart + 'T12:00:00';
-          return new Date(dateStr);
+          const [year, month, day] = project.fabricationStart.split('-').map(Number);
+          return new Date(year, month - 1, day);
         })() : undefined,
         assemblyStart: project.assemblyStart ? (() => {
-          const dateStr = project.assemblyStart + 'T12:00:00';
-          return new Date(dateStr);
+          const [year, month, day] = project.assemblyStart.split('-').map(Number);
+          return new Date(year, month - 1, day);
         })() : undefined,
         wrapDate: project.wrapDate ? (() => {
-          const dateStr = project.wrapDate + 'T12:00:00';
-          return new Date(dateStr);
+          const [year, month, day] = project.wrapDate.split('-').map(Number);
+          return new Date(year, month - 1, day);
         })() : undefined,
         ntcTestingDate: project.ntcTestingDate ? (() => {
-          const dateStr = project.ntcTestingDate + 'T12:00:00';
-          return new Date(dateStr);
+          const [year, month, day] = project.ntcTestingDate.split('-').map(Number);
+          return new Date(year, month - 1, day);
         })() : undefined,
         qcStartDate: project.qcStartDate ? (() => {
-          const dateStr = project.qcStartDate + 'T12:00:00';
-          return new Date(dateStr);
+          const [year, month, day] = project.qcStartDate.split('-').map(Number);
+          return new Date(year, month - 1, day);
         })() : undefined,
         executiveReviewDate: project.executiveReviewDate ? (() => {
-          const dateStr = project.executiveReviewDate + 'T12:00:00';
-          return new Date(dateStr);
+          const [year, month, day] = project.executiveReviewDate.split('-').map(Number);
+          return new Date(year, month - 1, day);
         })() : undefined,
         shipDate: project.shipDate ? (() => {
-          const dateStr = project.shipDate + 'T12:00:00';
-          return new Date(dateStr);
+          const [year, month, day] = project.shipDate.split('-').map(Number);
+          return new Date(year, month - 1, day);
         })() : undefined,
         deliveryDate: project.deliveryDate ? (() => {
-          const dateStr = project.deliveryDate + 'T12:00:00';
-          return new Date(dateStr);
+          const [year, month, day] = project.deliveryDate.split('-').map(Number);
+          return new Date(year, month - 1, day);
         })() : undefined,
         
         // Project details
