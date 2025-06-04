@@ -4280,16 +4280,8 @@ export default function ResizableBaySchedule({
                                     return (
                                       <div className="relative">
                                         <div 
-                                          className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center shadow-md border border-gray-300 hover-trigger" 
+                                          className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center shadow-md border border-gray-300" 
                                           style={{minWidth: "200px", maxWidth: "400px", position: 'relative', whiteSpace: 'nowrap', overflow: 'visible'}}
-                                          onMouseEnter={() => {
-                                            const tooltip = document.getElementById(`tooltip-${bar.id}`);
-                                            if (tooltip) tooltip.style.opacity = '1';
-                                          }}
-                                          onMouseLeave={() => {
-                                            const tooltip = document.getElementById(`tooltip-${bar.id}`);
-                                            if (tooltip) tooltip.style.opacity = '0';
-                                          }}
                                         >
                                           <a 
                                             href={`/project/${bar.projectId}`}
@@ -4297,6 +4289,19 @@ export default function ResizableBaySchedule({
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               window.location.href = `/project/${bar.projectId}`;
+                                            }}
+                                            onMouseEnter={() => {
+                                              // Hide all other tooltips first
+                                              document.querySelectorAll('[id^="tooltip-"]').forEach(tooltip => {
+                                                (tooltip as HTMLElement).style.opacity = '0';
+                                              });
+                                              // Show this tooltip
+                                              const tooltip = document.getElementById(`tooltip-${bar.id}`);
+                                              if (tooltip) tooltip.style.opacity = '1';
+                                            }}
+                                            onMouseLeave={() => {
+                                              const tooltip = document.getElementById(`tooltip-${bar.id}`);
+                                              if (tooltip) tooltip.style.opacity = '0';
                                             }}
                                           >
                                             {bar.projectNumber}
@@ -4314,13 +4319,13 @@ export default function ResizableBaySchedule({
                                               opacity: 0,
                                               zIndex: 999999,
                                               left: '50%',
-                                              top: '20%',
+                                              top: '15%',
                                               transform: 'translateX(-50%)'
                                             }}
                                           >
                                             <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[300px] max-w-[400px]">
                                               <div className="font-semibold text-blue-300 mb-2 text-center border-b border-gray-700 pb-1">
-                                                Project Timeline Dates
+                                                Project Timeline Dates - {bar.projectNumber}
                                               </div>
                                               <div className="grid grid-cols-1 gap-1 max-h-64 overflow-y-auto">
                                                 {timelineDates.map((item, index) => (
@@ -4330,8 +4335,6 @@ export default function ResizableBaySchedule({
                                                   </div>
                                                 ))}
                                               </div>
-                                              {/* Arrow pointing down */}
-                                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-900"></div>
                                             </div>
                                           </div>
                                         )}
