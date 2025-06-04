@@ -40,9 +40,18 @@ export const useModuleVisibility = () => {
     // Fallback to role-based defaults if no saved data
     if (!user?.role) return false;
     
+    // Admin can see everything
     if (user.role === 'admin') return true;
-    if (user.role === 'editor') return !['system-settings', 'import'].includes(moduleId);
-    if (user.role === 'viewer') return !['sales-forecast', 'bay-scheduling', 'system-settings', 'import'].includes(moduleId);
+    
+    // Editor defaults - can't see system-settings or import
+    if (user.role === 'editor') {
+      return !['system-settings', 'import'].includes(moduleId);
+    }
+    
+    // Viewer defaults - can't see sales-forecast, bay-scheduling, system-settings, or import
+    if (user.role === 'viewer') {
+      return !['sales-forecast', 'bay-scheduling', 'system-settings', 'import'].includes(moduleId);
+    }
     
     return false;
   };

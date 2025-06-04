@@ -86,38 +86,46 @@ const Sidebar = () => {
             </h6>
           )}
           <ul>
-            <li>
-              <SidebarLink href="/" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isActive('/') ? 'active' : ''
-              } ${isCollapsed ? 'justify-center' : ''}`} title="Dashboard">
-                <LayoutDashboard className={`text-xl ${isActive('/') ? 'text-primary' : ''}`} />
-                {!isCollapsed && <span>Dashboard</span>}
-              </SidebarLink>
-            </li>
-            <li>
-              <SidebarLink href="/projects" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isActive('/projects') || locationStartsWith('/project/') ? 'active' : ''
-              } ${isCollapsed ? 'justify-center' : ''}`} title="Projects">
-                <ListChecks className={`text-xl ${isActive('/projects') || locationStartsWith('/project/') ? 'text-primary' : ''}`} />
-                {!isCollapsed && <span>Projects</span>}
-              </SidebarLink>
-            </li>
-            <li>
-              <SidebarLink href="/calendar" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isActive('/calendar') ? 'active' : ''
-              } ${isCollapsed ? 'justify-center' : ''}`} title="Calendar">
-                <Calendar className={`text-xl ${isActive('/calendar') ? 'text-primary' : ''}`} />
-                {!isCollapsed && <span>Calendar</span>}
-              </SidebarLink>
-            </li>
-            <li>
-              <SidebarLink href="/reports" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isActive('/reports') ? 'active' : ''
-              } ${isCollapsed ? 'justify-center' : ''}`} title="Reports">
-                <BarChart3 className={`text-xl ${isActive('/reports') ? 'text-primary' : ''}`} />
-                {!isCollapsed && <span>Reports</span>}
-              </SidebarLink>
-            </li>
+            {isModuleVisible('dashboard') && (
+              <li>
+                <SidebarLink href="/" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Dashboard">
+                  <LayoutDashboard className={`text-xl ${isActive('/') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Dashboard</span>}
+                </SidebarLink>
+              </li>
+            )}
+            {isModuleVisible('projects') && (
+              <li>
+                <SidebarLink href="/projects" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/projects') || locationStartsWith('/project/') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Projects">
+                  <ListChecks className={`text-xl ${isActive('/projects') || locationStartsWith('/project/') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Projects</span>}
+                </SidebarLink>
+              </li>
+            )}
+            {isModuleVisible('calendar') && (
+              <li>
+                <SidebarLink href="/calendar" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/calendar') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Calendar">
+                  <Calendar className={`text-xl ${isActive('/calendar') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Calendar</span>}
+                </SidebarLink>
+              </li>
+            )}
+            {isModuleVisible('reports') && (
+              <li>
+                <SidebarLink href="/reports" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/reports') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Reports">
+                  <BarChart3 className={`text-xl ${isActive('/reports') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Reports</span>}
+                </SidebarLink>
+              </li>
+            )}
           </ul>
         </div>
 
@@ -149,38 +157,46 @@ const Sidebar = () => {
                 </SidebarLink>
               </li>
             )}
-            <li>
-              <SidebarLink href="/billing" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isActive('/billing') ? 'active' : ''
-              } ${isCollapsed ? 'justify-center' : ''}`} title="Billing Milestones">
-                <DollarSign className={`text-xl ${isActive('/billing') ? 'text-primary' : ''}`} />
-                {!isCollapsed && <span>Billing Milestones</span>}
-              </SidebarLink>
-            </li>
-            <li>
-              <SidebarLink href="/on-time-delivery" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isActive('/on-time-delivery') ? 'active' : ''
-              } ${isCollapsed ? 'justify-center' : ''}`} title="On Time Delivery">
-                <Clock className={`text-xl ${isActive('/on-time-delivery') ? 'text-primary' : ''}`} />
-                {!isCollapsed && <span>On Time Delivery</span>}
-              </SidebarLink>
-            </li>
-            <li>
-              <SidebarLink href="/delivered-projects" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isActive('/delivered-projects') ? 'active' : ''
-              } ${isCollapsed ? 'justify-center' : ''}`} title="Delivered Projects">
-                <Truck className={`text-xl ${isActive('/delivered-projects') ? 'text-primary' : ''}`} />
-                {!isCollapsed && <span>Delivered Projects</span>}
-              </SidebarLink>
-            </li>
-            <li>
-              <SidebarLink href="/supply-chain" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isActive('/supply-chain') ? 'active' : ''
-              } ${isCollapsed ? 'justify-center' : ''}`} title="Supply Chain">
-                <ShoppingCart className={`text-xl ${isActive('/supply-chain') ? 'text-primary' : ''}`} />
-                {!isCollapsed && <span>Supply Chain</span>}
-              </SidebarLink>
-            </li>
+            {isModuleVisible('billing-milestones') && (
+              <li>
+                <SidebarLink href="/billing" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/billing') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Billing Milestones">
+                  <DollarSign className={`text-xl ${isActive('/billing') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Billing Milestones</span>}
+                </SidebarLink>
+              </li>
+            )}
+            {isModuleVisible('on-time-delivery') && (
+              <li>
+                <SidebarLink href="/on-time-delivery" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/on-time-delivery') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="On Time Delivery">
+                  <Clock className={`text-xl ${isActive('/on-time-delivery') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>On Time Delivery</span>}
+                </SidebarLink>
+              </li>
+            )}
+            {isModuleVisible('delivered-projects') && (
+              <li>
+                <SidebarLink href="/delivered-projects" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/delivered-projects') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Delivered Projects">
+                  <Truck className={`text-xl ${isActive('/delivered-projects') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Delivered Projects</span>}
+                </SidebarLink>
+              </li>
+            )}
+            {isModuleVisible('supply-chain') && (
+              <li>
+                <SidebarLink href="/supply-chain" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/supply-chain') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Supply Chain">
+                  <ShoppingCart className={`text-xl ${isActive('/supply-chain') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Supply Chain</span>}
+                </SidebarLink>
+              </li>
+            )}
           </ul>
         </div>
 
@@ -202,14 +218,16 @@ const Sidebar = () => {
                 </SidebarLink>
               </li>
             )}
-            <li>
-              <SidebarLink href="/export-reports" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isActive('/export-reports') ? 'active' : ''
-              } ${isCollapsed ? 'justify-center' : ''}`} title="Export Reports">
-                <Download className={`text-xl ${isActive('/export-reports') ? 'text-primary' : ''}`} />
-                {!isCollapsed && <span>Export Reports</span>}
-              </SidebarLink>
-            </li>
+            {isModuleVisible('export-reports') && (
+              <li>
+                <SidebarLink href="/export-reports" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/export-reports') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Export Reports">
+                  <Download className={`text-xl ${isActive('/export-reports') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Export Reports</span>}
+                </SidebarLink>
+              </li>
+            )}
           </ul>
         </div>
 
