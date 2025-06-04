@@ -1487,7 +1487,10 @@ export default function ResizableBaySchedule({
     const hideAllTooltips = () => {
       console.log('🧹 Cleaning up all tooltips');
       document.querySelectorAll('[id^="tooltip-"]').forEach(tooltip => {
-        (tooltip as HTMLElement).style.opacity = '0';
+        const tooltipEl = tooltip as HTMLElement;
+        tooltipEl.style.opacity = '0';
+        tooltipEl.style.visibility = 'hidden';
+        tooltipEl.style.display = 'none';
       });
     };
     
@@ -4333,11 +4336,16 @@ export default function ResizableBaySchedule({
                                               console.log(`🎯 Mouse ENTER on project ${bar.projectNumber} (ID: ${bar.id})`);
                                               // Hide all other tooltips first
                                               document.querySelectorAll('[id^="tooltip-"]').forEach(tooltip => {
-                                                (tooltip as HTMLElement).style.opacity = '0';
+                                                const tooltipEl = tooltip as HTMLElement;
+                                                tooltipEl.style.opacity = '0';
+                                                tooltipEl.style.visibility = 'hidden';
+                                                tooltipEl.style.display = 'none';
                                               });
                                               // Show this tooltip
                                               const tooltip = document.getElementById(`tooltip-${bar.id}`);
                                               if (tooltip) {
+                                                tooltip.style.display = 'block';
+                                                tooltip.style.visibility = 'visible';
                                                 tooltip.style.opacity = '1';
                                                 console.log(`✅ Showing tooltip for project ${bar.projectNumber}`);
                                               } else {
@@ -4349,6 +4357,8 @@ export default function ResizableBaySchedule({
                                               const tooltip = document.getElementById(`tooltip-${bar.id}`);
                                               if (tooltip) {
                                                 tooltip.style.opacity = '0';
+                                                tooltip.style.visibility = 'hidden';
+                                                tooltip.style.display = 'none';
                                                 console.log(`✅ Hiding tooltip for project ${bar.projectNumber}`);
                                               } else {
                                                 console.log(`❌ Tooltip not found for hiding project ${bar.projectNumber}`);
@@ -4368,10 +4378,12 @@ export default function ResizableBaySchedule({
                                             className="fixed pointer-events-none transition-opacity duration-200"
                                             style={{ 
                                               opacity: 0,
+                                              visibility: 'hidden',
                                               zIndex: 999999,
                                               left: '50%',
                                               top: '15%',
-                                              transform: 'translateX(-50%)'
+                                              transform: 'translateX(-50%)',
+                                              display: 'none'
                                             }}
                                           >
                                             <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[300px] max-w-[400px]">
