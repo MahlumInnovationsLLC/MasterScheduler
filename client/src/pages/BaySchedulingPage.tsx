@@ -98,11 +98,13 @@ import { BayUtilizationCard } from '@/components/BayUtilizationCard';
 import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
 import { AIInsightsModal } from '@/components/AIInsightsModal';
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
+import { MobileBaySchedule } from '@/components/MobileBaySchedule';
 import { SandboxModeBanner } from '@/components/SandboxModeBanner';
 import BaySchedulingImport from '@/components/BaySchedulingImport';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import { TeamManagementButton } from '@/components/TeamManagementButton';
 import { TeamCapacityInfo } from '@/components/TeamCapacityInfo';
+import { useIsMobile } from '@/hooks/use-mobile';
 // RowPositionTester removed as requested
 import { 
   ManufacturingBay, 
@@ -112,6 +114,7 @@ import {
 
 const BaySchedulingPage = () => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   // State for import modal and loading
   const [showImportModal, setShowImportModal] = useState(false);
@@ -1236,27 +1239,40 @@ const BaySchedulingPage = () => {
             {/* Removed redundant Sandbox Mode Toggle button since we now have the SandboxModeBanner */}
           </div>
         </div>
-        <div className="p-4 overflow-x-auto">
-          {/* Row Position Testing Tool removed as requested */}
-          
-          <ResizableBaySchedule
-            schedules={isSandboxMode ? sandboxSchedules : manufacturingSchedules}
-            projects={isSandboxMode ? sandboxProjects : projects}
-            bays={filterTeam 
-              ? (isSandboxMode ? sandboxBays : manufacturingBays).filter(bay => bay.team === filterTeam) 
-              : (isSandboxMode ? sandboxBays : manufacturingBays)
-            }
-            onScheduleChange={handleScheduleChange}
-            onScheduleCreate={handleScheduleCreate}
-            onScheduleDelete={handleScheduleDelete}
-            onBayCreate={(bay) => createBayMutation.mutateAsync(bay)}
-            onBayUpdate={(id, bay) => updateBayMutation.mutateAsync({ id, ...bay })}
-            onBayDelete={(id) => deleteBayMutation.mutateAsync(id)}
-            dateRange={dateRange}
-            viewMode={viewMode}
-            enableFinancialImpact={showFinancialImpact}
-            isSandboxMode={isSandboxMode}
-          />
+        <div className={`${isMobile ? 'p-2' : 'p-4 overflow-x-auto'}`}>
+          {isMobile ? (
+            <MobileBaySchedule
+              schedules={isSandboxMode ? sandboxSchedules : manufacturingSchedules}
+              projects={isSandboxMode ? sandboxProjects : projects}
+              bays={filterTeam 
+                ? (isSandboxMode ? sandboxBays : manufacturingBays).filter(bay => bay.team === filterTeam) 
+                : (isSandboxMode ? sandboxBays : manufacturingBays)
+              }
+              dateRange={dateRange}
+              viewMode={viewMode as 'day' | 'week' | 'month'}
+              onViewModeChange={(mode) => setViewMode(mode)}
+              onDateRangeChange={setDateRange}
+            />
+          ) : (
+            <ResizableBaySchedule
+              schedules={isSandboxMode ? sandboxSchedules : manufacturingSchedules}
+              projects={isSandboxMode ? sandboxProjects : projects}
+              bays={filterTeam 
+                ? (isSandboxMode ? sandboxBays : manufacturingBays).filter(bay => bay.team === filterTeam) 
+                : (isSandboxMode ? sandboxBays : manufacturingBays)
+              }
+              onScheduleChange={handleScheduleChange}
+              onScheduleCreate={handleScheduleCreate}
+              onScheduleDelete={handleScheduleDelete}
+              onBayCreate={(bay) => createBayMutation.mutateAsync(bay)}
+              onBayUpdate={(id, bay) => updateBayMutation.mutateAsync({ id, ...bay })}
+              onBayDelete={(id) => deleteBayMutation.mutateAsync(id)}
+              dateRange={dateRange}
+              viewMode={viewMode}
+              enableFinancialImpact={showFinancialImpact}
+              isSandboxMode={isSandboxMode}
+            />
+          )}
         </div>
       </div>
       

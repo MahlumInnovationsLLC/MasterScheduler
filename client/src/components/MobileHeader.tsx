@@ -61,7 +61,7 @@ export function MobileHeader({ onMenuClick, title = "Manufacturing" }: MobileHea
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout}>
+            <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </DropdownMenuItem>
