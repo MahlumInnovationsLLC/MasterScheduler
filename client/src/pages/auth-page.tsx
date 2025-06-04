@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -28,46 +27,31 @@ type RegisterData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
-  const { user, isLoading, loginMutation, registerMutation } = useAuth();
-  const [activeTab, setActiveTab] = useState("login");
+  const { toast } = useToast();
 
-  const loginForm = useForm<LoginData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+  const [isLogin, setIsLogin] = useState(true);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    firstName: '',
+    lastName: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const registerForm = useForm<RegisterData>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      username: "",
-      email: "",
-      password: "",
-    },
-  });
+  // Use auth hook with error handling
+  const authResult = useAuth();
+  const { login, register, isLoading, user } = authResult || {};
 
-  // Handle loading state first
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  // Use useEffect for redirect to prevent rendering conflicts
+  // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      setLocation("/");
+      setLocation('/');
     }
   }, [user, setLocation]);
-
-  // Don't render anything if redirecting
-  if (user) {
-    return null;
-  }
 
   const onLogin = (data: LoginData) => {
     // Convert email to username format for backend compatibility
@@ -75,7 +59,7 @@ export default function AuthPage() {
       username: data.email, // Backend expects 'username' field but we'll send email
       password: data.password,
     };
-    
+
     loginMutation.mutate(loginData, {
       onSuccess: () => {
         setLocation("/");
@@ -89,6 +73,45 @@ export default function AuthPage() {
         setLocation("/");
       },
     });
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsSubmitting(true);
+
+    if (!isLogin && formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      if (isLogin && login) {
+        await login(formData.email, formData.password);
+        toast({
+          title: "Welcome back!",
+          description: "You have been successfully logged in.",
+        });
+        setLocation('/');
+      } else if (!isLogin && register) {
+        await register(formData.email, formData.password, formData.firstName, formData.lastName);
+        toast({
+          title: "Account created!",
+          description: "Your account has been created successfully.",
+        });
+        setLocation('/');
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
+      toast({
+        title: "Authentication failed",
+        description: err.message || 'An error occurred during authentication',
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -113,7 +136,7 @@ export default function AuthPage() {
                   <TabsTrigger value="login">Login</TabsTrigger>
                   <TabsTrigger value="register">Register</TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="login" className="space-y-4">
                   <Form {...loginForm}>
                     <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
@@ -276,7 +299,7 @@ export default function AuthPage() {
               real-time analytics, and comprehensive workflow management.
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg">
             <div className="bg-white p-4 rounded-lg shadow-sm">
               <h3 className="font-semibold text-slate-900 mb-2">Smart Scheduling</h3>
