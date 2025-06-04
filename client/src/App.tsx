@@ -69,12 +69,12 @@ class ErrorBoundary extends React.Component<
           <div className="w-full max-w-md">
             <div className="border-border bg-darkCard/80 backdrop-blur-sm p-8 text-center rounded-lg">
               <h1 className="text-2xl font-bold mb-4 text-white">Something went wrong</h1>
-              <p className="text-gray-300 mb-8">Please refresh the page to try again.</p>
+              <p className="text-gray-300 mb-8">Please try logging in again.</p>
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => window.location.href = '/auth'}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded"
               >
-                Refresh Page
+                Go to Login
               </button>
             </div>
           </div>
