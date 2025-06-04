@@ -1415,13 +1415,13 @@ export default function ResizableBaySchedule({
         color,
         row: schedule.row !== undefined ? schedule.row : 0, // Use the explicit row from database
         
-        // Department phase percentages (default values)
-        fabPercentage: 27,
-        paintPercentage: 7,
-        productionPercentage: 60,
-        itPercentage: 7,
-        ntcPercentage: 7,
-        qcPercentage: 7,
+        // Use project's actual phase percentages from the project data, but only if the phase is visible
+        fabPercentage: (project as any).showFabPhase ? (Number((project as any).fabPercentage) || 27) : 0,
+        paintPercentage: (project as any).showPaintPhase ? (Number((project as any).paintPercentage) || 7) : 0,
+        productionPercentage: (project as any).showProductionPhase ? (Number((project as any).productionPercentage) || 60) : 0,
+        itPercentage: (project as any).showItPhase ? (Number((project as any).itPercentage) || 7) : 0,
+        ntcPercentage: (project as any).showNtcPhase ? (Number((project as any).ntcPercentage) || 7) : 0,
+        qcPercentage: (project as any).showQcPhase ? (Number((project as any).qcPercentage) || 7) : 0,
         
         // Default fab weeks
         fabWeeks: 4
