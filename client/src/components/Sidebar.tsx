@@ -22,6 +22,7 @@ import { SidebarContext } from '@/context/SidebarContext';
 import { usePermissions } from '@/components/PermissionsManager';
 import { useRolePermissions } from '@/hooks/use-role-permissions';
 import { RoleBasedWrapper } from '@/components/RoleBasedWrapper';
+import { useModuleVisibility } from '@/hooks/use-module-visibility';
 
 // Custom Link component that adds sidebar-item class for view-only mode support
 const SidebarLink = ({ href, className, title, children }: { 
@@ -43,6 +44,8 @@ const Sidebar = () => {
   const { isCollapsed, toggleSidebar } = useContext(SidebarContext);
   // Get user role to conditionally hide bay scheduling
   const { userRole } = usePermissions();
+  // Get module visibility settings for the current user
+  const { isModuleVisible } = useModuleVisibility();
 
   // Directly call toggleSidebar from context
   const handleToggle = () => {
@@ -126,16 +129,17 @@ const Sidebar = () => {
             </h6>
           )}
           <ul>
-            <li>
-              <SidebarLink href="/sales-forecast" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isActive('/sales-forecast') ? 'active' : ''
-              } ${isCollapsed ? 'justify-center' : ''}`} title="Sales Forecast">
-                <TrendingUp className={`text-xl ${isActive('/sales-forecast') ? 'text-primary' : ''}`} />
-                {!isCollapsed && <span>Sales Forecast</span>}
-              </SidebarLink>
-            </li>
-            {/* Hide Bay Scheduling from Viewer role users */}
-            {userRole !== "viewer" && (
+            {isModuleVisible('sales-forecast') && (
+              <li>
+                <SidebarLink href="/sales-forecast" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/sales-forecast') ? 'active' : ''
+                } ${isCollapsed ? 'justify-center' : ''}`} title="Sales Forecast">
+                  <TrendingUp className={`text-xl ${isActive('/sales-forecast') ? 'text-primary' : ''}`} />
+                  {!isCollapsed && <span>Sales Forecast</span>}
+                </SidebarLink>
+              </li>
+            )}
+            {isModuleVisible('bay-scheduling') && (
               <li>
                 <SidebarLink href="/bay-scheduling" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/bay-scheduling') ? 'active' : ''
@@ -188,16 +192,16 @@ const Sidebar = () => {
             </h6>
           )}
           <ul>
-            <li>
-              <RoleBasedWrapper requiresEdit={true}>
+            {isModuleVisible('import') && (
+              <li>
                 <SidebarLink href="/import" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/import') ? 'active' : ''
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Import Data">
                   <Upload className={`text-xl ${isActive('/import') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Import Data</span>}
                 </SidebarLink>
-              </RoleBasedWrapper>
-            </li>
+              </li>
+            )}
             <li>
               <SidebarLink href="/export-reports" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isActive('/export-reports') ? 'active' : ''
@@ -225,7 +229,7 @@ const Sidebar = () => {
                 {!isCollapsed && <span>User Preferences</span>}
               </SidebarLink>
             </li>
-            <RoleBasedWrapper requiresAdmin={true} fallback={null}>
+            {isModuleVisible('system-settings') && (
               <li>
                 <SidebarLink href="/system-settings" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'active' : ''
@@ -234,7 +238,7 @@ const Sidebar = () => {
                   {!isCollapsed && <span>System Settings</span>}
                 </SidebarLink>
               </li>
-            </RoleBasedWrapper>
+            )}
           </ul>
         </div>
       </nav>

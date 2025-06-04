@@ -1206,6 +1206,9 @@ const SystemSettings = () => {
                                             }
                                           }));
 
+                                          // Invalidate module visibility cache to trigger refetch
+                                          queryClient.invalidateQueries({ queryKey: ['module-visibility'] });
+
                                           toast({
                                             title: "Module Visibility Updated",
                                             description: `${module.name} visibility for ${user.firstName} ${user.lastName} has been updated.`,
