@@ -261,8 +261,8 @@ const BaySchedulingPage = () => {
       
       // First, try to find the actual project element in the DOM
       console.log('Searching for project element in DOM...');
-      let projectElement = null;
-      let scrollContainer = null;
+      let projectElement: Element | null = null;
+      let scrollContainer: Element | null = null;
       
       // Look for the project by text content in various possible selectors
       const possibleSelectors = [
@@ -294,7 +294,7 @@ const BaySchedulingPage = () => {
         console.log('Searching all elements for project number...');
         const allElements = document.querySelectorAll('*');
         for (let i = 0; i < allElements.length; i++) {
-          const element = allElements[i];
+          const element = allElements[i] as HTMLElement;
           const text = element.textContent || '';
           if (text.includes(targetProject.projectNumber) && element.offsetWidth > 50) {
             projectElement = element;
@@ -326,7 +326,7 @@ const BaySchedulingPage = () => {
         if (scrollContainer) {
           // Calculate scroll position based on actual element position
           const containerRect = scrollContainer.getBoundingClientRect();
-          const elementOffsetLeft = projectElement.offsetLeft;
+          const elementOffsetLeft = (projectElement as HTMLElement).offsetLeft;
           const targetScrollLeft = elementOffsetLeft - (containerRect.width / 2) + (rect.width / 2);
           const finalPosition = Math.max(0, targetScrollLeft);
           
@@ -374,7 +374,8 @@ const BaySchedulingPage = () => {
         
         if (!scrollContainer) {
           const allScrollableElements = document.querySelectorAll('*');
-          for (const element of allScrollableElements) {
+          for (let i = 0; i < allScrollableElements.length; i++) {
+            const element = allScrollableElements[i];
             const styles = window.getComputedStyle(element);
             if (styles.overflowX === 'auto' || styles.overflowX === 'scroll') {
               if (element.scrollWidth > element.clientWidth) {
@@ -422,8 +423,6 @@ const BaySchedulingPage = () => {
         }, 100);
       }
       
-      console.log(`Scrolled to project ${targetProject.projectNumber} at position ${finalPosition}px`);
-      
       // Also scroll vertically to the bay if needed
       const activeBays = isSandboxMode ? sandboxBays : manufacturingBays;
       const targetBay = activeBays.find(bay => bay.id === projectSchedule.bayId);
@@ -431,7 +430,8 @@ const BaySchedulingPage = () => {
         // Try to find the bay element and scroll it into view
         setTimeout(() => {
           const bayElements = document.querySelectorAll(`[data-bay-id="${targetBay.id}"], .bay-row, .manufacturing-bay`);
-          for (const bayElement of bayElements) {
+          for (let i = 0; i < bayElements.length; i++) {
+            const bayElement = bayElements[i];
             const bayText = bayElement.textContent || '';
             if (bayText.includes(targetBay.name) || bayText.includes(`Bay ${targetBay.bayNumber}`)) {
               bayElement.scrollIntoView({ 
