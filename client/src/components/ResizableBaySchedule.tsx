@@ -4383,7 +4383,7 @@ export default function ResizableBaySchedule({
                                             style={{ 
                                               opacity: 0,
                                               visibility: 'hidden',
-                                              zIndex: 999999999,
+                                              zIndex: 9999999999,
                                               left: '50%',
                                               bottom: '100%',
                                               transform: 'translateX(-50%)',
