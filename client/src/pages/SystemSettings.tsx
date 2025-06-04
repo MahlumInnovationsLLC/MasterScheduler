@@ -1093,6 +1093,60 @@ const SystemSettings = () => {
             </Card>
           </TabsContent>
 
+          {/* Module Visibility Tab */}
+          <TabsContent value="moduleVisibility" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Module Visibility Control</CardTitle>
+                <CardDescription>
+                  Control which modules each user role can access in the system. Toggle modules on/off for different user roles.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {['viewer', 'editor', 'admin'].map((role) => (
+                    <div key={role} className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 rounded-full bg-primary"></div>
+                        <h3 className="text-lg font-medium capitalize">{role} Role Modules</h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-5">
+                        {[
+                          { id: 'projects', name: 'Project Management', description: 'View and manage projects' },
+                          { id: 'scheduling', name: 'Bay Scheduling', description: 'Manufacturing scheduling system' },
+                          { id: 'billing', name: 'Billing & Milestones', description: 'Financial tracking and billing' },
+                          { id: 'reporting', name: 'Reports & Analytics', description: 'Data analysis and reporting' },
+                          { id: 'sales', name: 'Sales Pipeline', description: 'Sales and deal management' },
+                          { id: 'notifications', name: 'System Notifications', description: 'Receive system alerts' },
+                          { id: 'settings', name: 'System Settings', description: 'Access system configuration' },
+                          { id: 'users', name: 'User Management', description: 'Manage user accounts' },
+                          { id: 'archives', name: 'Archive Management', description: 'Access archived data' }
+                        ].map((module) => (
+                          <Card key={`${role}-${module.id}`} className="p-4">
+                            <div className="flex items-center justify-between space-x-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm">{module.name}</div>
+                                <div className="text-xs text-muted-foreground">{module.description}</div>
+                              </div>
+                              <Switch 
+                                defaultChecked={role === 'admin' || (role === 'editor' && module.id !== 'settings' && module.id !== 'users') || (role === 'viewer' && ['projects', 'reporting', 'notifications'].includes(module.id))}
+                                disabled={role === 'admin' && ['settings', 'users'].includes(module.id)}
+                                onCheckedChange={(checked) => {
+                                  console.log(`${role} ${module.id} visibility:`, checked);
+                                }}
+                              />
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Notifications Tab */}
           <TabsContent value="notifications" className="space-y-6">
             <Card>
@@ -1228,6 +1282,7 @@ const SystemSettings = () => {
                             <TableRow>
                               <TableHead>User</TableHead>
                               <TableHead>Action</TableHead>
+                              <TableHead>Changed Item</TableHead>
                               <TableHead>Details</TableHead>
                               <TableHead>Timestamp</TableHead>
                             </TableRow>
@@ -1235,14 +1290,41 @@ const SystemSettings = () => {
                           <TableBody>
                             {userAuditLogs.map((log: any) => (
                               <TableRow key={log.id}>
-                                <TableCell>{log.username || log.userId || 'System'}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center space-x-2">
+                                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs text-primary">
+                                      {log.username ? log.username.charAt(0).toUpperCase() : 'S'}
+                                    </div>
+                                    <span className="font-medium">{log.username || 'System'}</span>
+                                  </div>
+                                </TableCell>
                                 <TableCell>
                                   <Badge variant={log.action === 'login' ? 'outline' : log.action === 'create' ? 'default' : log.action === 'update' ? 'secondary' : 'destructive'}>
-                                    {log.action}
+                                    {log.action.charAt(0).toUpperCase() + log.action.slice(1)}
                                   </Badge>
                                 </TableCell>
-                                <TableCell>{log.details}</TableCell>
-                                <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
+                                <TableCell>
+                                  <div className="font-medium text-sm">
+                                    {log.entityType ? `${log.entityType}${log.entityId ? ` #${log.entityId}` : ''}` : 'Unknown'}
+                                  </div>
+                                  {log.entityName && (
+                                    <div className="text-xs text-muted-foreground">{log.entityName}</div>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="max-w-xs">
+                                    <div className="text-sm">{log.details}</div>
+                                    {log.changes && (
+                                      <div className="text-xs text-muted-foreground mt-1">
+                                        Changes: {Object.keys(JSON.parse(log.changes || '{}')).join(', ')}
+                                      </div>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm">{new Date(log.timestamp).toLocaleDateString()}</div>
+                                  <div className="text-xs text-muted-foreground">{new Date(log.timestamp).toLocaleTimeString()}</div>
+                                </TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
