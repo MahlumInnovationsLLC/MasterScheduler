@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -5,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building2, User, Lock, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useMutation } from "@tanstack/react-query";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -28,19 +31,7 @@ type RegisterData = z.infer<typeof registerSchema>;
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-
-  const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    firstName: '',
-    lastName: ''
-  });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
 
   // Use auth hook with error handling
   const authResult = useAuth();
@@ -53,6 +44,54 @@ export default function AuthPage() {
     }
   }, [user, setLocation]);
 
+  // Form setups
+  const loginForm = useForm<LoginData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const registerForm = useForm<RegisterData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      username: "",
+      email: "",
+      password: "",
+    },
+  });
+
+  // Login mutation
+  const loginMutation = useMutation({
+    mutationFn: async (data: { username: string; password: string }) => {
+      if (!login) throw new Error("Login function not available");
+      return await login(data.username, data.password);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Login failed",
+        description: error.message || 'Failed to log in',
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Register mutation
+  const registerMutation = useMutation({
+    mutationFn: async (data: RegisterData) => {
+      if (!register) throw new Error("Register function not available");
+      return await register(data.email, data.password, data.username, data.username);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Registration failed",
+        description: error.message || 'Failed to create account',
+        variant: "destructive",
+      });
+    },
+  });
+
   const onLogin = (data: LoginData) => {
     // Convert email to username format for backend compatibility
     const loginData = {
@@ -62,6 +101,10 @@ export default function AuthPage() {
 
     loginMutation.mutate(loginData, {
       onSuccess: () => {
+        toast({
+          title: "Welcome back!",
+          description: "You have been successfully logged in.",
+        });
         setLocation("/");
       },
     });
@@ -70,48 +113,13 @@ export default function AuthPage() {
   const onRegister = (data: RegisterData) => {
     registerMutation.mutate(data, {
       onSuccess: () => {
-        setLocation("/");
-      },
-    });
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsSubmitting(true);
-
-    if (!isLogin && formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      setIsSubmitting(false);
-      return;
-    }
-
-    try {
-      if (isLogin && login) {
-        await login(formData.email, formData.password);
-        toast({
-          title: "Welcome back!",
-          description: "You have been successfully logged in.",
-        });
-        setLocation('/');
-      } else if (!isLogin && register) {
-        await register(formData.email, formData.password, formData.firstName, formData.lastName);
         toast({
           title: "Account created!",
           description: "Your account has been created successfully.",
         });
-        setLocation('/');
-      }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
-      toast({
-        title: "Authentication failed",
-        description: err.message || 'An error occurred during authentication',
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+        setLocation("/");
+      },
+    });
   };
 
   return (
