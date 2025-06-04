@@ -1302,9 +1302,50 @@ const SystemSettings = () => {
                                 <TableCell>
                                   <div className="flex items-center space-x-2">
                                     <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs text-primary">
-                                      {log.username ? log.username.charAt(0).toUpperCase() : 'S'}
+                                      {(() => {
+                                        // Try to get user from performed_by field first
+                                        if (log.performed_by && log.performed_by !== 'system') {
+                                          return log.performed_by.charAt(0).toUpperCase();
+                                        }
+                                        // Try username
+                                        if (log.username && log.username !== 'system') {
+                                          return log.username.charAt(0).toUpperCase();
+                                        }
+                                        // Try to find user in the users list by userId
+                                        if (log.userId && users) {
+                                          const user = users.find((u: any) => u.id === log.userId);
+                                          if (user && user.firstName) {
+                                            return user.firstName.charAt(0).toUpperCase();
+                                          }
+                                          if (user && user.username) {
+                                            return user.username.charAt(0).toUpperCase();
+                                          }
+                                        }
+                                        return 'S';
+                                      })()}
                                     </div>
-                                    <span className="font-medium">{log.username || 'System'}</span>
+                                    <span className="font-medium">
+                                      {(() => {
+                                        // Try to get user from performed_by field first
+                                        if (log.performed_by && log.performed_by !== 'system') {
+                                          return log.performed_by;
+                                        }
+                                        // Try username
+                                        if (log.username && log.username !== 'system') {
+                                          return log.username;
+                                        }
+                                        // Try to find user in the users list by userId
+                                        if (log.userId && users) {
+                                          const user = users.find((u: any) => u.id === log.userId);
+                                          if (user) {
+                                            return user.firstName && user.lastName 
+                                              ? `${user.firstName} ${user.lastName}`
+                                              : user.username || user.email;
+                                          }
+                                        }
+                                        return 'System';
+                                      })()}
+                                    </span>
                                   </div>
                                 </TableCell>
                                 <TableCell>
