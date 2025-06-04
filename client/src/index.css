@@ -636,62 +636,6 @@ select:focus {
   letter-spacing: 0.05em;
 }
 
-/* Silver gradient shimmer for sidebar module text on hover (non-active only) */
-.sidebar-nav-item:not(.active):hover span {
-  background: linear-gradient(135deg, #e5e7eb 0%, #9ca3af 25%, #f3f4f6 50%, #9ca3af 75%, #d1d5db 100%) !important;
-  background-size: 200% 100%;
-  animation: shimmer 2s ease-in-out infinite;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
-}
-
-/* Gold gradient shimmer for sidebar icons on hover - applied to stroke/fill */
-.sidebar-nav-item:hover svg {
-  stroke: url(#goldGradient) !important;
-  fill: url(#goldGradient) !important;
-  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.3));
-}
-
-/* Create SVG gradient definition for icons */
-.sidebar-nav-item:hover svg::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 25%, #fcd34d 50%, #f59e0b 75%, #d97706 100%);
-  background-size: 200% 100%;
-  animation: shimmer 2s ease-in-out infinite;
-  -webkit-mask: url('data:image/svg+xml;utf8,<svg></svg>');
-  mask: url('data:image/svg+xml;utf8,<svg></svg>');
-}
-
-/* Alternative approach - use CSS filter for gold shimmer on SVG */
-.sidebar-nav-item:hover svg {
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 25%, #fcd34d 50%, #f59e0b 75%, #d97706 100%) !important;
-  background-size: 200% 100%;
-  animation: shimmer 2s ease-in-out infinite;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
-}
-
-/* Ensure active icons don't get the gold gradient */
-.sidebar-nav-item.active:hover svg {
-  background: none !important;
-  -webkit-background-clip: initial;
-  -webkit-text-fill-color: initial;
-  background-clip: initial;
-  filter: none;
-  color: #9ca3af !important;
-  stroke: currentColor !important;
-  fill: currentColor !important;
-}
-
 /* Hide unwanted checkbox elements that appear next to Switch components */
 [data-radix-collection-item] input[type="checkbox"],
 button[role="switch"] input[type="checkbox"] {
