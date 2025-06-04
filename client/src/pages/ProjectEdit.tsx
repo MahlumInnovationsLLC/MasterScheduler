@@ -103,6 +103,14 @@ const projectSchema = z.object({
   ntcTestingPercent: z.number().min(0).max(100).default(7),
   qcPercent: z.number().min(0).max(100).default(7),
   
+  // Phase visibility controls
+  showFabPhase: z.boolean().default(true),
+  showPaintPhase: z.boolean().default(true),
+  showProductionPhase: z.boolean().default(true),
+  showItPhase: z.boolean().default(true),
+  showNtcPhase: z.boolean().default(true),
+  showQcPhase: z.boolean().default(true),
+  
   // Status and notes
   status: z.string().optional(),
   priority: z.string().optional(),
@@ -231,6 +239,14 @@ function ProjectEdit() {
         itPercent: project.itPercentage !== undefined && project.itPercentage !== null ? Number(project.itPercentage) : 7,
         ntcTestingPercent: project.ntcPercentage !== undefined && project.ntcPercentage !== null ? Number(project.ntcPercentage) : 7,
         qcPercent: project.qcPercentage !== undefined && project.qcPercentage !== null ? Number(project.qcPercentage) : 7,
+        
+        // Phase visibility controls
+        showFabPhase: project.showFabPhase !== undefined ? project.showFabPhase : true,
+        showPaintPhase: project.showPaintPhase !== undefined ? project.showPaintPhase : true,
+        showProductionPhase: project.showProductionPhase !== undefined ? project.showProductionPhase : true,
+        showItPhase: project.showItPhase !== undefined ? project.showItPhase : true,
+        showNtcPhase: project.showNtcPhase !== undefined ? project.showNtcPhase : true,
+        showQcPhase: project.showQcPhase !== undefined ? project.showQcPhase : true,
         
         // New field with calculated days
         poDroppedToDeliveryDays: calculatedDays,
@@ -380,6 +396,14 @@ function ProjectEdit() {
       fixedData.itPercentage = fixedData.itPercent;
       fixedData.ntcPercentage = fixedData.ntcTestingPercent;
       fixedData.qcPercentage = fixedData.qcPercent;
+      
+      // Phase visibility mapping (these names already match database fields)
+      fixedData.showFabPhase = fixedData.showFabPhase;
+      fixedData.showPaintPhase = fixedData.showPaintPhase;
+      fixedData.showProductionPhase = fixedData.showProductionPhase;
+      fixedData.showItPhase = fixedData.showItPhase;
+      fixedData.showNtcPhase = fixedData.showNtcPhase;
+      fixedData.showQcPhase = fixedData.showQcPhase;
       
       // Remove the form field names to avoid conflicts
       delete (fixedData as any).fabricationPercent;
@@ -1036,6 +1060,117 @@ function ProjectEdit() {
                             />
                           </div>
                           <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  <h3 className="text-md font-medium mb-2">Phase Visibility Controls</h3>
+                  <p className="text-sm text-gray-400 mb-4">
+                    Toggle which phases should be displayed in the manufacturing bay schedule for this project.
+                    Disabled phases will not appear in the project bar and their percentages will be redistributed.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    <FormField
+                      control={form.control}
+                      name="showFabPhase"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-sm font-medium">Fabrication Phase</FormLabel>
+                            <FormDescription className="text-xs">Show FAB phase in schedule</FormDescription>
+                          </div>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="showPaintPhase"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-sm font-medium">Paint Phase</FormLabel>
+                            <FormDescription className="text-xs">Show PAINT phase in schedule</FormDescription>
+                          </div>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="showProductionPhase"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-sm font-medium">Production Phase</FormLabel>
+                            <FormDescription className="text-xs">Show PROD phase in schedule</FormDescription>
+                          </div>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="showItPhase"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-sm font-medium">IT Phase</FormLabel>
+                            <FormDescription className="text-xs">Show IT phase in schedule</FormDescription>
+                          </div>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="showNtcPhase"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-sm font-medium">NTC Phase</FormLabel>
+                            <FormDescription className="text-xs">Show NTC phase in schedule</FormDescription>
+                          </div>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="showQcPhase"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-sm font-medium">QC Phase</FormLabel>
+                            <FormDescription className="text-xs">Show QC phase in schedule</FormDescription>
+                          </div>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
                         </FormItem>
                       )}
                     />

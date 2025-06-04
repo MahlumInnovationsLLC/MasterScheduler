@@ -12,46 +12,82 @@ import { Project } from "@shared/schema";
  * Calculates exact-fit phase widths from project percentages
  * ensuring they sum exactly to totalWidth
  */
-export const calculateExactFitPhaseWidths = (
-  totalWidth: number,
-  project: Project | null | undefined,
-  defaultNormalizeFactor: number = 1
-) => {
-  // Use project-specific phase percentages or fallback to company standard defaults
-  const fabPercentage = project && project.fabPercentage !== undefined && project.fabPercentage !== null ? Number(project.fabPercentage) : 27;
-  const paintPercentage = project && project.paintPercentage !== undefined && project.paintPercentage !== null ? Number(project.paintPercentage) : 7; 
-  const productionPercentage = project && project.productionPercentage !== undefined && project.productionPercentage !== null ? Number(project.productionPercentage) : 60;
-  const itPercentage = project && project.itPercentage !== undefined && project.itPercentage !== null ? Number(project.itPercentage) : 7;
-  const ntcPercentage = project && project.ntcPercentage !== undefined && project.ntcPercentage !== null ? Number(project.ntcPercentage) : 7;
-  const qcPercentage = project && project.qcPercentage !== undefined && project.qcPercentage !== null ? Number(project.qcPercentage) : 7;
-  
-  // Calculate the total percentage and normalization factor
+export const calculateExactFitPhaseWidths = (totalWidth: number, project: Project | null) => {
+  if (!project || totalWidth <= 0) {
+    return {
+      fabWidth: 0,
+      paintWidth: 0,
+      prodWidth: 0,
+      itWidth: 0,
+      ntcWidth: 0,
+      qcWidth: 0,
+      visiblePhases: []
+    };
+  }
+
+  // Check which phases are visible
+  const showFab = project.showFabPhase !== false;
+  const showPaint = project.showPaintPhase !== false;
+  const showProduction = project.showProductionPhase !== false;
+  const showIt = project.showItPhase !== false;
+  const showNtc = project.showNtcPhase !== false;
+  const showQc = project.showQcPhase !== false;
+
+  // Get percentages from project data with proper fallbacks
+  const fabPercentage = showFab ? (parseFloat(project.fabPercentage as any) || 27) : 0;
+  const paintPercentage = showPaint ? (parseFloat(project.paintPercentage as any) || 7) : 0;
+  const productionPercentage = showProduction ? (parseFloat(project.productionPercentage as any) || 60) : 0;
+  const itPercentage = showIt ? (parseFloat(project.itPercentage as any) || 7) : 0;
+  const ntcPercentage = showNtc ? (parseFloat(project.ntcPercentage as any) || 7) : 0;
+  const qcPercentage = showQc ? (parseFloat(project.qcPercentage as any) || 7) : 0;
+
+  // Calculate the total percentage and normalization factor (only for visible phases)
   const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
-                         itPercentage + ntcPercentage + qcPercentage;
+                          itPercentage + ntcPercentage + qcPercentage;
+
+  // If no phases are visible, return zeros
+  if (totalPercentages === 0) {
+    return {
+      fabWidth: 0,
+      paintWidth: 0,
+      prodWidth: 0,
+      itWidth: 0,
+      ntcWidth: 0,
+      qcWidth: 0,
+      visiblePhases: []
+    };
+  }
+
   const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
-  
-  // Calculate phase widths using floor for the first 5 phases
-  // This prevents rounding errors that can cause the sum to be off by a few pixels
-  const fabWidth = Math.floor(totalWidth * (fabPercentage * normalizeFactor / 100));
-  const paintWidth = Math.floor(totalWidth * (paintPercentage * normalizeFactor / 100));
-  const prodWidth = Math.floor(totalWidth * (productionPercentage * normalizeFactor / 100));
-  const itWidth = Math.floor(totalWidth * (itPercentage * normalizeFactor / 100));
-  const ntcWidth = Math.floor(totalWidth * (ntcPercentage * normalizeFactor / 100));
-  
-  // The last phase (QC) gets the remaining width to ensure perfect fit
-  const sumFirstFivePhases = fabWidth + paintWidth + prodWidth + itWidth + ntcWidth;
-  const qcWidth = totalWidth - sumFirstFivePhases;
-  
-  // Return all calculated widths
-  return { 
-    fabWidth, 
-    paintWidth, 
-    prodWidth, 
-    itWidth, 
-    ntcWidth, 
+
+  // Calculate exact phase widths (floor + remainder method) - only for visible phases
+  const fabWidth = showFab ? Math.floor(totalWidth * (fabPercentage * normalizeFactor / 100)) : 0;
+  const paintWidth = showPaint ? Math.floor(totalWidth * (paintPercentage * normalizeFactor / 100)) : 0;
+  const prodWidth = showProduction ? Math.floor(totalWidth * (productionPercentage * normalizeFactor / 100)) : 0;
+  const itWidth = showIt ? Math.floor(totalWidth * (itPercentage * normalizeFactor / 100)) : 0;
+  const ntcWidth = showNtc ? Math.floor(totalWidth * (ntcPercentage * normalizeFactor / 100)) : 0;
+
+  // The last visible phase gets the remainder to ensure exact fit
+  const usedWidth = fabWidth + paintWidth + prodWidth + itWidth + ntcWidth;
+  const qcWidth = showQc ? (totalWidth - usedWidth) : 0;
+
+  // Track which phases are visible for rendering logic
+  const visiblePhases = [];
+  if (showFab) visiblePhases.push('fab');
+  if (showPaint) visiblePhases.push('paint');
+  if (showProduction) visiblePhases.push('production');
+  if (showIt) visiblePhases.push('it');
+  if (showNtc) visiblePhases.push('ntc');
+  if (showQc) visiblePhases.push('qc');
+
+  return {
+    fabWidth,
+    paintWidth,
+    prodWidth,
+    itWidth,
+    ntcWidth,
     qcWidth,
-    totalWidth,
-    exactMatch: (fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth) === totalWidth
+    visiblePhases
   };
 };
 
@@ -71,25 +107,25 @@ export const applyPhaseWidthsToDom = (
 ) => {
   const { fabWidth, paintWidth, prodWidth, itWidth, ntcWidth, qcWidth } = phaseWidths;
   const { fabPhase, paintPhase, prodPhase, itPhase, ntcPhase, qcPhase } = elements;
-  
+
   // Apply width and position changes directly to DOM elements
   fabPhase.style.width = `${fabWidth}px`;
-  
+
   paintPhase.style.left = `${fabWidth}px`;
   paintPhase.style.width = `${paintWidth}px`;
-  
+
   prodPhase.style.left = `${fabWidth + paintWidth}px`;
   prodPhase.style.width = `${prodWidth}px`;
-  
+
   itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
   itPhase.style.width = `${itWidth}px`;
-  
+
   ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
   ntcPhase.style.width = `${ntcWidth}px`;
-  
+
   qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
   qcPhase.style.width = `${qcWidth}px`;
-  
+
   // Return true if successfully applied
   return true;
 };
@@ -110,27 +146,27 @@ export const updatePhaseWidthsWithExactFit = (
     const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
     const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
     const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
-    
+
     if (!fabPhase || !paintPhase || !prodPhase || !itPhase || !ntcPhase || !qcPhase) {
       console.warn("Missing phase elements - can't apply exact fit widths");
       return false;
     }
-    
+
     // Calculate the exact fit widths
     const phaseWidths = calculateExactFitPhaseWidths(totalWidth, project);
-    
+
     // Apply to DOM
     applyPhaseWidthsToDom(phaseWidths, {
       fabPhase, paintPhase, prodPhase, itPhase, ntcPhase, qcPhase
     });
-    
+
     // Add debugging attributes
     barElement.setAttribute('data-phases-updated', 'exact-fit');
     barElement.setAttribute('data-phase-sum', 
       (phaseWidths.fabWidth + phaseWidths.paintWidth + phaseWidths.prodWidth + 
        phaseWidths.itWidth + phaseWidths.ntcWidth + phaseWidths.qcWidth).toString());
     barElement.setAttribute('data-exact-match', phaseWidths.exactMatch.toString());
-    
+
     return true;
   } catch (error) {
     console.error("Error applying exact fit phase widths:", error);

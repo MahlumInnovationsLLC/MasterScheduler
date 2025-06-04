@@ -299,6 +299,14 @@ export const projects = pgTable("projects", {
   ntcPercentage: decimal("ntc_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
   qcPercentage: decimal("qc_percentage", { precision: 5, scale: 2 }).default("7").notNull(),
 
+  // Phase visibility controls - allow phases to be removed from projects
+  showFabPhase: boolean("show_fab_phase").default(true).notNull(),
+  showPaintPhase: boolean("show_paint_phase").default(true).notNull(),
+  showProductionPhase: boolean("show_production_phase").default(true).notNull(),
+  showItPhase: boolean("show_it_phase").default(true).notNull(),
+  showNtcPhase: boolean("show_ntc_phase").default(true).notNull(),
+  showQcPhase: boolean("show_qc_phase").default(true).notNull(),
+
   fabWeeks: integer("fab_weeks").default(4), // Number of weeks for FAB phase (precedes production)
   dpasRating: text("dpas_rating"),
   stretchShortenGears: text("stretch_shorten_gears"),
@@ -768,7 +776,7 @@ export const notifications = pgTable("notifications", {
   relatedProjectId: integer("related_project_id").references(() => projects.id),
   relatedMilestoneId: integer("related_milestone_id").references(() => billingMilestones.id),
   relatedScheduleId: integer("related_schedule_id").references(() => manufacturingSchedules.id),
-  link: text("link"), // Internal app link for navigation
+  link:text("link"), // Internal app link for navigation
   createdAt: timestamp("created_at").defaultNow(),
   expiresAt: timestamp("expires_at"), // Optional expiration time
 });
