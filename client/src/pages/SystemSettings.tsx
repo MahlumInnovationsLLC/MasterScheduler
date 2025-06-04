@@ -760,39 +760,6 @@ const SystemSettings = () => {
         <TabsContent value="accessControl" className="space-y-6">
           <Card>
               <CardHeader>
-                <CardTitle>Role Permissions</CardTitle>
-                <CardDescription>
-                  Customize what each role (Viewer, Editor, Admin) can access and modify in the system.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="viewer" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="viewer">Viewer Permissions</TabsTrigger>
-                    <TabsTrigger value="editor">Editor Permissions</TabsTrigger>
-                    <TabsTrigger value="admin">Admin Permissions</TabsTrigger>
-                  </TabsList>
-                  
-                  {/* Viewer Permissions Tab */}
-                  <TabsContent value="viewer" className="pt-4">
-                    <RolePermissionsManager role="viewer" isReadOnly={!isAdmin} />
-                  </TabsContent>
-                  
-                  {/* Editor Permissions Tab */}
-                  <TabsContent value="editor" className="pt-4">
-                    <RolePermissionsManager role="editor" isReadOnly={!isAdmin} />
-                  </TabsContent>
-                  
-                  {/* Admin Permissions Tab */}
-                  <TabsContent value="admin" className="pt-4">
-                    <RolePermissionsManager role="admin" isReadOnly={!isAdmin} />
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
                 <CardTitle>Email Access Control</CardTitle>
                 <CardDescription>
                   Configure email patterns for automatic user approval and default role assignment.
@@ -1099,49 +1066,88 @@ const SystemSettings = () => {
               <CardHeader>
                 <CardTitle>Module Visibility Control</CardTitle>
                 <CardDescription>
-                  Control which modules each user role can access in the system. Toggle modules on/off for different user roles.
+                  Control which modules each individual user can access in the system. Toggle modules on/off for specific users.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {['viewer', 'editor', 'admin'].map((role) => (
-                    <div key={role} className="space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 rounded-full bg-primary"></div>
-                        <h3 className="text-lg font-medium capitalize">{role} Role Modules</h3>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-5">
-                        {[
-                          { id: 'projects', name: 'Project Management', description: 'View and manage projects' },
-                          { id: 'scheduling', name: 'Bay Scheduling', description: 'Manufacturing scheduling system' },
-                          { id: 'billing', name: 'Billing & Milestones', description: 'Financial tracking and billing' },
-                          { id: 'reporting', name: 'Reports & Analytics', description: 'Data analysis and reporting' },
-                          { id: 'sales', name: 'Sales Pipeline', description: 'Sales and deal management' },
-                          { id: 'notifications', name: 'System Notifications', description: 'Receive system alerts' },
-                          { id: 'settings', name: 'System Settings', description: 'Access system configuration' },
-                          { id: 'users', name: 'User Management', description: 'Manage user accounts' },
-                          { id: 'archives', name: 'Archive Management', description: 'Access archived data' }
-                        ].map((module) => (
-                          <Card key={`${role}-${module.id}`} className="p-4">
-                            <div className="flex items-center justify-between space-x-3">
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-sm">{module.name}</div>
-                                <div className="text-xs text-muted-foreground">{module.description}</div>
-                              </div>
-                              <Switch 
-                                defaultChecked={role === 'admin' || (role === 'editor' && module.id !== 'settings' && module.id !== 'users') || (role === 'viewer' && ['projects', 'reporting', 'notifications'].includes(module.id))}
-                                disabled={role === 'admin' && ['settings', 'users'].includes(module.id)}
-                                onCheckedChange={(checked) => {
-                                  console.log(`${role} ${module.id} visibility:`, checked);
-                                }}
-                              />
-                            </div>
-                          </Card>
-                        ))}
-                      </div>
+                  {usersLoading ? (
+                    <div className="flex justify-center p-4">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                     </div>
-                  ))}
+                  ) : usersError ? (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>Failed to load users</AlertDescription>
+                    </Alert>
+                  ) : users.length === 0 ? (
+                    <div className="text-center p-4 border rounded-md">
+                      <p className="text-muted-foreground">No users found.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {getSortedUsers().map((user) => (
+                        <div key={user.id} className="space-y-4 border rounded-lg p-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                              {user.firstName ? user.firstName.charAt(0) : user.username?.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="font-medium">{user.firstName} {user.lastName}</div>
+                              <div className="text-sm text-muted-foreground flex items-center space-x-2">
+                                <span>{user.email || user.username}</span>
+                                <Badge variant={user.role === 'admin' ? 'default' : user.role === 'editor' ? 'secondary' : 'outline'}>
+                                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pl-11">
+                            {[
+                              { id: 'projects', name: 'Project Management', description: 'View and manage projects' },
+                              { id: 'scheduling', name: 'Bay Scheduling', description: 'Manufacturing scheduling system' },
+                              { id: 'billing', name: 'Billing & Milestones', description: 'Financial tracking and billing' },
+                              { id: 'reporting', name: 'Reports & Analytics', description: 'Data analysis and reporting' },
+                              { id: 'sales', name: 'Sales Pipeline', description: 'Sales and deal management' },
+                              { id: 'notifications', name: 'System Notifications', description: 'Receive system alerts' },
+                              { id: 'settings', name: 'System Settings', description: 'Access system configuration' },
+                              { id: 'users', name: 'User Management', description: 'Manage user accounts' },
+                              { id: 'archives', name: 'Archive Management', description: 'Access archived data' }
+                            ].map((module) => {
+                              // Default permissions based on role
+                              const getDefaultChecked = () => {
+                                if (user.role === 'admin') return true;
+                                if (user.role === 'editor') return module.id !== 'settings';
+                                if (user.role === 'viewer') return !['sales', 'settings'].includes(module.id);
+                                return false;
+                              };
+
+                              return (
+                                <Card key={`${user.id}-${module.id}`} className="p-3 bg-slate-50/50">
+                                  <div className="flex items-center justify-between space-x-2">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium text-sm">{module.name}</div>
+                                      <div className="text-xs text-muted-foreground">{module.description}</div>
+                                    </div>
+                                    <Switch 
+                                      defaultChecked={getDefaultChecked()}
+                                      disabled={!isAdmin}
+                                      onCheckedChange={(checked) => {
+                                        console.log(`User ${user.firstName} ${user.lastName} - ${module.name} visibility:`, checked);
+                                        // TODO: Save module visibility to backend
+                                      }}
+                                    />
+                                  </div>
+                                </Card>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
