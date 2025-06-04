@@ -676,7 +676,7 @@ export const rolePermissions = pgTable("role_permissions", {
 
 export const moduleEnum = pgEnum("module", [
   "projects",
-  "manufacturing",
+  "manufacturing", 
   "billing",
   "users",
   "settings",
@@ -684,6 +684,13 @@ export const moduleEnum = pgEnum("module", [
   "reports",
   "import_export",
   "sales",
+  "sales-forecast",
+  "bay-scheduling",
+  "on-time-delivery",
+  "delivered-projects",
+  "calendar",
+  "export-reports",
+  "system-settings",
   "dashboard",
   "notifications",
 ]);

@@ -226,6 +226,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
 
+  // User module visibility routes
+  app.get("/api/users/:userId/module-visibility", requireAuth, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const visibility = await storage.getUserModuleVisibility(userId);
+      
+      // Transform to match expected format
+      const formattedVisibility = visibility.map(v => ({
+        user_id: v.userId,
+        module: v.moduleId,
+        is_visible: v.visible
+      }));
+      
+      res.json(formattedVisibility);
+    } catch (error) {
+      console.error("Error fetching user module visibility:", error);
+      res.status(500).json({ message: "Error fetching user module visibility" });
+    }
+  });
+
+  app.patch("/api/users/:userId/module-visibility", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { moduleId, visible } = req.body;
+      
+      console.log(`Updating module visibility for user ${userId}, module ${moduleId} to ${visible}`);
+      
+      const success = await storage.updateUserModuleVisibility(userId, moduleId, visible);
+      
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(500).json({ message: "Failed to update module visibility" });
+      }
+    } catch (error) {
+      console.error("Error updating module visibility:", error);
+      res.status(500).json({ message: "Error updating module visibility: " + (error as Error).message });
+    }
+  });
+
   // Special route to update project hours from 40 to 1000
   app.post("/api/admin/update-project-hours", async (req, res) => {
     try {

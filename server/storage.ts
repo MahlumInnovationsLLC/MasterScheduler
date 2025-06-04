@@ -140,6 +140,10 @@ export interface IStorage {
   getAllUserAuditLogs(): Promise<any[]>;
   createUserAuditLog(userId: string, action: string, performedBy: string, previousData?: any, newData?: any, details?: string): Promise<any>;
 
+  // User Module Visibility methods
+  getUserModuleVisibility(userId: string): Promise<any[]>;
+  updateUserModuleVisibility(userId: string, moduleId: string, visible: boolean): Promise<boolean>;
+
   // User Preferences methods
   getUserPreferences(userId: string): Promise<UserPreference | undefined>;
   createUserPreferences(preferences: InsertUserPreference): Promise<UserPreference>;
@@ -887,6 +891,66 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error creating user audit log:", error);
       throw error;
+    }
+  }
+
+  // User Module Visibility methods
+  async getUserModuleVisibility(userId: string): Promise<any[]> {
+    try {
+      const visibility = await db
+        .select()
+        .from(userModuleVisibility)
+        .where(eq(userModuleVisibility.userId, userId));
+      return visibility;
+    } catch (error) {
+      console.error("Error fetching user module visibility:", error);
+      return [];
+    }
+  }
+
+  async updateUserModuleVisibility(userId: string, moduleId: string, visible: boolean): Promise<boolean> {
+    try {
+      console.log(`Updating module visibility for user ${userId}, module ${moduleId} to ${visible}`);
+      
+      // Try to update existing record first
+      const [updated] = await db
+        .update(userModuleVisibility)
+        .set({ 
+          visible,
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(userModuleVisibility.userId, userId),
+          eq(userModuleVisibility.moduleId, moduleId)
+        ))
+        .returning();
+
+      if (updated) {
+        console.log(`Updated existing module visibility record`);
+        return true;
+      }
+
+      // If no record exists, create a new one
+      const [created] = await db
+        .insert(userModuleVisibility)
+        .values({
+          userId,
+          moduleId,
+          visible,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      if (created) {
+        console.log(`Created new module visibility record`);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Error updating user module visibility:", error);
+      return false;
     }
   }
 
