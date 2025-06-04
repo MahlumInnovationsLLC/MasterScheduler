@@ -1434,7 +1434,7 @@ export default function ResizableBaySchedule({
                   console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${rowCount}, bayNumber=${bay.bayNumber}`);
                   
                   return (
-                    <React.Fragment key={`bay-fragment-${bay.id}`}>
+                    <div key={`bay-wrapper-${bay.id}`} className="bay-with-header">
                       {/* Weekly header row for this individual bay */}
                       <div 
                         className="bay-week-header h-8 border-b border-gray-200 dark:border-gray-700 grid overflow-hidden mb-1" 
@@ -1468,8 +1468,9 @@ export default function ResizableBaySchedule({
                           </div>
                         ))}
                       </div>
-
+                      
                       <div 
+                        key={`bay-${bay.id}`} 
                         className="bay-container relative mb-2 border rounded-md overflow-hidden"
                         style={{ 
                           height: `${rowHeight * rowCount}px`,
@@ -1744,7 +1745,6 @@ export default function ResizableBaySchedule({
                         })}
                       </div>
                     </div>
-                    </React.Fragment>
                   );
                 })}
               </div>
