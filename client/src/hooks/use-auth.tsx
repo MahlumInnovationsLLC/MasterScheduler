@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!response.ok) {
           if (response.status === 401) {
             const errorData = await response.json().catch(() => ({}));
-            
+
             // Handle specific session expiration cases
             if (errorData.error === "Session expired") {
               console.log("🔍 AUTH: Session expired, redirecting to login");
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } else {
               console.log("🔍 AUTH: User not authenticated (401)");
             }
-            
+
             return null;
           }
           throw new Error(`Failed to fetch user: ${response.status}`);

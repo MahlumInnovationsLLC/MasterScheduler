@@ -109,7 +109,9 @@ function MainContent() {
         />
         <main className="mobile-main-content">
           <Switch>
-            <ProtectedRoute path="/" component={Dashboard} />
+            <Route path="/" exact>
+              <Dashboard />
+            </Route>
             <ProtectedRoute path="/projects" component={ProjectStatus} />
             <ProtectedRoute path="/projects/new" component={ProjectCreate} />
             <ProtectedRoute path="/project/:id" component={ProjectDetails} />
@@ -145,7 +147,9 @@ function MainContent() {
         <Sidebar />
         <main className={`overflow-y-auto flex-1 transition-all duration-300 pt-16 ${isCollapsed ? 'ml-[50px]' : 'ml-[260px]'}`}>
           <Switch>
-            <ProtectedRoute path="/" component={Dashboard} />
+            <Route path="/" exact>
+              <Dashboard />
+            </Route>
             <ProtectedRoute path="/projects" component={ProjectStatus} />
             <ProtectedRoute path="/projects/new" component={ProjectCreate} />
             <ProtectedRoute path="/project/:id" component={ProjectDetails} />

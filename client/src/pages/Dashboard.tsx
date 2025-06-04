@@ -25,16 +25,41 @@ import { formatDate, formatCurrency, getProjectStatusColor, getProjectScheduleSt
 import { DashboardTable } from '@/components/ui/dashboard-table';
 import { ProjectStatusBreakdownCard } from '@/components/ProjectStatusBreakdownCard';
 import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
+import { useAuth } from "@/hooks/use-auth";
+import { Redirect } from "wouter";
 
 const Dashboard = () => {
+  const { user, isLoading: authLoading } = useAuth();
+
+  // If not authenticated, redirect to auth page
+  if (!authLoading && !user) {
+    return <Redirect to="/" />;
+  }
+
+  // Show loading if auth is still loading
+  if (authLoading) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-sans font-bold mb-6">Dashboard</h1>
+        <div className="animate-pulse space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-darkCard h-28 rounded-xl border border-gray-800"></div>
+            ))}
+          </div>
+          <div className="bg-darkCard h-80 rounded-xl border border-gray-800"></div>
+        </div>
+      </div>
+    );
+  }
   const { data: projects, isLoading: isLoadingProjects } = useQuery({
     queryKey: ['/api/projects'],
   });
-  
+
   const { data: billingMilestones, isLoading: isLoadingBillingMilestones } = useQuery({
     queryKey: ['/api/billing-milestones'],
   });
-  
+
   const [filteredProjects, setFilteredProjects] = useState([]);
   const [selectedMonthData, setSelectedMonthData] = useState<{
     month: number;
@@ -42,18 +67,18 @@ const Dashboard = () => {
     amount: number;
     milestones: any[];
   } | null>(null);
-  
+
   // Show the top 5 projects that are ready to ship next
   useEffect(() => {
     if (!projects) return;
-    
+
     // Helper to get valid dates and handle null/invalid dates
     const getValidDate = (dateStr) => {
       if (!dateStr) return null;
       const date = new Date(dateStr);
       return isNaN(date.getTime()) ? null : date;
     };
-    
+
     // Filter for projects with valid ship dates and sort by earliest ship date
     const now = new Date();
     const upcomingProjects = projects
@@ -68,7 +93,7 @@ const Dashboard = () => {
         if (!dateB) return -1;
         return dateA.getTime() - dateB.getTime(); // Sort by earliest ship date first
       });
-      
+
     // Show up to 5 projects ready to ship next
     if (upcomingProjects.length > 0) {
       setFilteredProjects(upcomingProjects.slice(0, 5));
@@ -81,7 +106,7 @@ const Dashboard = () => {
           const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
           return numB - numA; // Most recent numbers first
         });
-      
+
       if (activeProjects.length > 0) {
         setFilteredProjects(activeProjects.slice(0, 5));
       } else {
@@ -96,7 +121,7 @@ const Dashboard = () => {
   const { data: manufacturingSchedules, isLoading: isLoadingManufacturing } = useQuery({
     queryKey: ['/api/manufacturing-schedules'],
   });
-  
+
   const { data: manufacturingBays, isLoading: isLoadingBays } = useQuery({
     queryKey: ['/api/manufacturing-bays'],
   });
@@ -108,7 +133,7 @@ const Dashboard = () => {
     const activeProjects = projects.filter(p => p.status === 'active');
     const delayedProjects = projects.filter(p => p.status === 'delayed');
     const criticalProjects = projects.filter(p => p.status === 'critical');
-    
+
     // Get projects by schedule state
     const scheduledProjects = manufacturingSchedules 
       ? projects.filter(p => getProjectScheduleState(manufacturingSchedules, p.id) === 'Scheduled')
@@ -127,7 +152,7 @@ const Dashboard = () => {
           return isUnscheduled;
         })
       : [];
-    
+
     // Simple project info for the popover display
     const projectLists = {
       scheduled: scheduledProjects.map(p => ({ 
@@ -188,11 +213,11 @@ const Dashboard = () => {
     const totalReceived = billingMilestones
       .filter(m => m.status === 'paid')
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-      
+
     const totalPending = billingMilestones
       .filter(m => m.status === 'invoiced')
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-      
+
     const totalOverdue = billingMilestones
       .filter(m => m.status === 'delayed')
       .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
@@ -211,7 +236,7 @@ const Dashboard = () => {
     const forecastValues = nextTwelveMonths.map(month => {
       const nextMonth = new Date(month);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
-      
+
       // Calculate revenue for milestones due in this month
       const monthlyRevenue = billingMilestones
         .filter(m => {
@@ -220,7 +245,7 @@ const Dashboard = () => {
           return milestoneDate >= month && milestoneDate < nextMonth;
         })
         .reduce((sum, m) => sum + parseFloat(m.amount || '0'), 0);
-      
+
       return monthlyRevenue;
     });
 
@@ -244,7 +269,7 @@ const Dashboard = () => {
   }, [billingMilestones]);
 
 
-  
+
   // Manufacturing bay stats
   const manufacturingStats = React.useMemo(() => {
     if (!manufacturingSchedules || !manufacturingBays) return null;
@@ -253,28 +278,28 @@ const Dashboard = () => {
     const activeBayIds = manufacturingSchedules
       .filter(s => s.status === 'in_progress')
       .map(s => s.bayId);
-    
+
     // Remove duplicates to get unique active bays
     const uniqueActiveBayIds = [...new Set(activeBayIds)];
     const active = uniqueActiveBayIds.length;
-    
+
     // Get scheduled bays (bays with scheduled manufacturing but not active)
     const scheduledBayIds = manufacturingSchedules
       .filter(s => s.status === 'scheduled')
       .map(s => s.bayId);
-      
+
     // Remove duplicates and exclude bays that are already active
     const uniqueScheduledBayIds = [...new Set(scheduledBayIds)]
       .filter(id => !uniqueActiveBayIds.includes(id));
     const scheduled = uniqueScheduledBayIds.length;
-    
+
     // For display purposes, count completed and maintenance schedules
     const completed = manufacturingSchedules.filter(s => s.status === 'complete').length;
     const maintenance = manufacturingSchedules.filter(s => s.status === 'maintenance').length;
 
     // Total bays from the manufacturing bays data
     const totalBays = manufacturingBays.length;
-    
+
     // Calculate utilization percentage using the standardized utility function
     const utilization = calculateBayUtilization(manufacturingBays, manufacturingSchedules);
 
@@ -299,7 +324,7 @@ const Dashboard = () => {
       year: 'numeric'
     });
   };
-  
+
   // Project table columns
   const projectColumns = [
     {
@@ -382,10 +407,10 @@ const Dashboard = () => {
           row.original.percentComplete,
           row.original.estimatedCompletionDate
         );
-        
+
         // Get the manufacturing schedule state (Unscheduled, Scheduled, In Progress, Complete)
         const scheduleState = getProjectScheduleState(manufacturingSchedules, row.original.id);
-        
+
         return (
           <div className="flex flex-wrap gap-1">
             <ProgressBadge status={status} animatePulse={status === 'Critical'} size="sm" />
@@ -485,7 +510,7 @@ const Dashboard = () => {
                 return milestoneDate.getFullYear() === currentYear;
               });
               const ytdAmount = ytdMilestones.reduce((sum, milestone) => sum + parseFloat(milestone.amount), 0);
-              
+
               setSelectedMonthData({
                 month: -1,
                 year: currentYear,
@@ -495,7 +520,7 @@ const Dashboard = () => {
               console.log(`YTD ${currentYear}: $${ytdAmount} from ${ytdMilestones.length} milestones`);
               return;
             }
-            
+
             if (month === -2) { // 12-month button
               const next12Months = (billingMilestones || []).filter(milestone => {
                 const milestoneDate = new Date(milestone.targetInvoiceDate);
@@ -504,7 +529,7 @@ const Dashboard = () => {
                 return milestoneDate >= today && milestoneDate <= twelveMonthsFromNow;
               });
               const twelveMonthAmount = next12Months.reduce((sum, milestone) => sum + parseFloat(milestone.amount), 0);
-              
+
               setSelectedMonthData({
                 month: -2,
                 year: new Date().getFullYear(),
@@ -514,26 +539,26 @@ const Dashboard = () => {
               console.log(`Next 12 months: $${twelveMonthAmount} from ${next12Months.length} milestones`);
               return;
             }
-            
+
             // Regular month filtering - use same logic as chart forecast
             const startOfMonth = new Date(year, month, 1);
             const startOfNextMonth = new Date(year, month + 1, 1);
-            
+
             const selectedMonthMilestones = (billingMilestones || []).filter(milestone => {
               if (!milestone.targetInvoiceDate) return false;
               const milestoneDate = new Date(milestone.targetInvoiceDate);
               return milestoneDate >= startOfMonth && milestoneDate < startOfNextMonth;
             });
-            
+
             const monthlyAmount = selectedMonthMilestones.reduce((sum, milestone) => sum + parseFloat(milestone.amount), 0);
-            
+
             setSelectedMonthData({
               month,
               year,
               amount: monthlyAmount,
               milestones: selectedMonthMilestones
             });
-            
+
             console.log(`Month ${month + 1}/${year}: $${monthlyAmount} from ${selectedMonthMilestones.length} milestones`);
           }}
         />
