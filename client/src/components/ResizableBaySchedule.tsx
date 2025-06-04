@@ -4344,10 +4344,14 @@ export default function ResizableBaySchedule({
                                               // Show this tooltip
                                               const tooltip = document.getElementById(`tooltip-${bar.id}`);
                                               if (tooltip) {
+                                                const rect = (e.target as HTMLElement).getBoundingClientRect();
                                                 tooltip.style.display = 'block';
                                                 tooltip.style.visibility = 'visible';
                                                 tooltip.style.opacity = '1';
-                                                console.log(`✅ Showing tooltip for project ${bar.projectNumber}`);
+                                                tooltip.style.left = `${rect.left + rect.width / 2}px`;
+                                                tooltip.style.top = `${rect.top - 10}px`;
+                                                tooltip.style.transform = 'translate(-50%, -100%)';
+                                                console.log(`✅ Showing tooltip for project ${bar.projectNumber} at (${rect.left + rect.width / 2}, ${rect.top - 10})`);
                                               } else {
                                                 console.log(`❌ Tooltip not found for project ${bar.projectNumber}`);
                                               }
