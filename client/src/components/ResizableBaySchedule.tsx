@@ -4301,7 +4301,7 @@ export default function ResizableBaySchedule({
                                       return formatDate(dateValue);
                                     };
 
-                                    // Collect all timeline dates with type assertion for project data access
+                                    // Collect all timeline dates with type assertion for project data access (excluding Estimated Completion)
                                     const timelineDates = project ? [
                                       { label: 'Contract Date', value: getDateDisplayValue((project as any).contractDate) },
                                       { label: 'Start Date', value: getDateDisplayValue((project as any).startDate) },
@@ -4314,7 +4314,6 @@ export default function ResizableBaySchedule({
                                       { label: 'Executive Review Date', value: getDateDisplayValue((project as any).executiveReviewDate, (project as any).executiveReviewDateText) },
                                       { label: 'Ship Date', value: getDateDisplayValue((project as any).shipDate) },
                                       { label: 'Delivery Date', value: getDateDisplayValue((project as any).deliveryDate, (project as any).deliveryDateText) },
-                                      { label: 'Estimated Completion', value: getDateDisplayValue((project as any).estimatedCompletionDate) },
                                       { label: 'Actual Completion', value: getDateDisplayValue((project as any).actualCompletionDate) },
                                       { label: 'Actual Delivery', value: getDateDisplayValue((project as any).actualDeliveryDate) },
                                     ].filter(item => item.value !== 'Not Set') : [];
@@ -4390,16 +4389,16 @@ export default function ResizableBaySchedule({
                                             }}
                                           >
                                             <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[600px] max-w-[800px] relative">
-                                              <div className="font-semibold text-blue-300 mb-2 text-center border-b border-gray-700 pb-1">
-                                                Project Timeline Dates - {bar.projectNumber}
-                                              </div>
-                                              <div className="grid grid-cols-3 gap-x-4 gap-y-1">
+                                              <div className="grid grid-cols-3 gap-x-4 gap-y-1 mb-3">
                                                 {timelineDates.map((item, index) => (
                                                   <div key={index} className="flex flex-col py-1">
                                                     <span className="text-gray-300 font-medium text-xs">{item.label}:</span>
                                                     <span className="text-white font-semibold text-xs">{item.value}</span>
                                                   </div>
                                                 ))}
+                                              </div>
+                                              <div className="absolute bottom-2 right-3 font-semibold text-blue-300 text-xs">
+                                                Project Timeline Dates - {bar.projectNumber}
                                               </div>
                                             </div>
                                           </div>
