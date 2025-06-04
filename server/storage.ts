@@ -19,6 +19,7 @@ import {
   rolePermissions,
   userPermissions,
   projectMilestoneIcons,
+  userModuleVisibility,
   type User,
   type InsertUser,
   type Project,
@@ -2453,6 +2454,45 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error executing SQL query:", error);
       throw error;
+    }
+  }
+
+  // User Module Visibility Management
+  async updateUserModuleVisibility(userId: string, moduleId: string, visible: boolean): Promise<void> {
+    try {
+      // Try to update existing record
+      const [updated] = await db
+        .update(userModuleVisibility)
+        .set({ visible, updatedAt: new Date() })
+        .where(and(
+          eq(userModuleVisibility.userId, userId),
+          eq(userModuleVisibility.moduleId, moduleId)
+        ))
+        .returning();
+
+      if (!updated) {
+        // Create new record if it doesn't exist
+        await db.insert(userModuleVisibility).values({
+          userId,
+          moduleId,
+          visible,
+        });
+      }
+    } catch (error) {
+      console.error("Error updating user module visibility:", error);
+      throw error;
+    }
+  }
+
+  async getUserModuleVisibility(userId: string): Promise<typeof userModuleVisibility.$inferSelect[]> {
+    try {
+      return await db
+        .select()
+        .from(userModuleVisibility)
+        .where(eq(userModuleVisibility.userId, userId));
+    } catch (error) {
+      console.error("Error fetching user module visibility:", error);
+      return [];
     }
   }
 
