@@ -4389,7 +4389,7 @@ export default function ResizableBaySchedule({
                                             }}
                                           >
                                             <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[600px] max-w-[800px] relative">
-                                              <div className="grid grid-cols-3 gap-x-4 gap-y-1 mb-3">
+                                              <div className="grid grid-cols-4 gap-x-4 gap-y-1 mb-3">
                                                 {timelineDates.map((item, index) => (
                                                   <div key={index} className="flex flex-col py-1">
                                                     <span className="text-gray-300 font-medium text-xs">{item.label}:</span>
