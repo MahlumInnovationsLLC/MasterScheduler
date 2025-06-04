@@ -1434,10 +1434,17 @@ export default function ResizableBaySchedule({
                   console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${rowCount}, bayNumber=${bay.bayNumber}`);
                   
                   return (
-                    <>
-                      {/* Weekly header row for this bay */}
+                    <div 
+                      key={`bay-${bay.id}`} 
+                      className="bay-container relative mb-2 border rounded-md overflow-hidden"
+                      style={{ 
+                        height: `${rowHeight * rowCount}px`,
+                        backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
+                      }}
+                    >
+                      {/* Weekly header for this bay */}
                       <div 
-                        className="h-8 bg-gray-800/50 border-b border-gray-600 flex items-center mb-1"
+                        className="absolute top-0 left-0 w-full h-8 bg-gray-800/50 border-b border-gray-600 flex z-20"
                         style={{ width: totalViewWidth }}
                       >
                         <div className="w-32 bg-gray-700 h-full flex items-center justify-center text-xs text-gray-300 border-r border-gray-600">
@@ -1468,19 +1475,11 @@ export default function ResizableBaySchedule({
                           })}
                         </div>
                       </div>
-                      
-                      {/* Bay container */}
-                      <div 
-                      key={`bay-${bay.id}`} 
-                      className="bay-container relative mb-2 border rounded-md overflow-hidden"
-                      style={{ 
-                        height: `${rowHeight * rowCount}px`,
-                        backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
-                      }}
-                    >
+
                       {/* Bay Label */}
                       <div 
-                        className="bay-label absolute top-0 left-0 w-32 h-full bg-gray-100 border-r flex flex-col justify-center px-2 z-10"
+                        className="bay-label absolute left-0 w-32 h-full bg-gray-100 border-r flex flex-col justify-center px-2 z-10"
+                        style={{ top: '32px' }}
                       >
                         <div className="font-medium text-sm">{bay.name}</div>
                         <div className="text-xs text-gray-500">Bay #{bay.bayNumber}</div>
