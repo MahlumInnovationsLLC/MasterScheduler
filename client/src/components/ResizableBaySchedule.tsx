@@ -4068,7 +4068,7 @@ export default function ResizableBaySchedule({
                               {/* Milestone Icons - Rendered above department phases */}
                               {(() => {
                                 // Get milestone icons for this project
-                                const projectMilestones = allMilestoneIcons.filter(m => m.projectId === bar.projectId && m.isEnabled);
+                                const projectMilestones = Array.isArray(allMilestoneIcons) ? allMilestoneIcons.filter((m: any) => m.projectId === bar.projectId && m.isEnabled) : [];
                                 
                                 return projectMilestones.map((milestone) => {
                                   // Calculate milestone position based on phase timing
@@ -4232,20 +4232,91 @@ export default function ResizableBaySchedule({
                                        pointerEvents: 'auto', /* Enable clicks */
                                        zIndex: 9999 /* Much higher z-index so it appears above all project bars but below popups */
                                      }}>
-                                  <div className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center shadow-md border border-gray-300" style={{minWidth: "200px", maxWidth: "400px", position: 'relative', whiteSpace: 'nowrap', overflow: 'visible'}}>
-                                    <a 
-                                      href={`/project/${bar.projectId}`}
-                                      className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        window.location.href = `/project/${bar.projectId}`;
-                                      }}
-                                    >
-                                      {bar.projectNumber}
-                                    </a>
-                                    <br />
-                                    <span style={{whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'unset'}}>{bar.projectName}</span>
-                                  </div>
+                                  {(() => {
+                                    // Find the full project data for this bar
+                                    const project = projects.find(p => p.id === bar.projectId);
+                                    
+                                    // Format date function
+                                    const formatDate = (dateValue: string | Date | null | undefined): string => {
+                                      if (!dateValue) return 'Not Set';
+                                      try {
+                                        const date = new Date(dateValue);
+                                        return date.toLocaleDateString('en-US', { 
+                                          month: '2-digit', 
+                                          day: '2-digit', 
+                                          year: 'numeric' 
+                                        });
+                                      } catch {
+                                        return 'Invalid Date';
+                                      }
+                                    };
+
+                                    // Get text override or formatted date
+                                    const getDateDisplayValue = (dateValue: string | Date | null | undefined, textOverride?: string | null): string => {
+                                      if (textOverride && textOverride.trim() !== '') {
+                                        return textOverride;
+                                      }
+                                      return formatDate(dateValue);
+                                    };
+
+                                    // Collect all timeline dates with type assertion for project data access
+                                    const timelineDates = project ? [
+                                      { label: 'Contract Date', value: getDateDisplayValue((project as any).contractDate) },
+                                      { label: 'Start Date', value: getDateDisplayValue((project as any).startDate) },
+                                      { label: 'Chassis ETA', value: getDateDisplayValue((project as any).chassisETA) },
+                                      { label: 'Fabrication Start', value: getDateDisplayValue((project as any).fabricationStart, (project as any).fabricationStartText) },
+                                      { label: 'Assembly Start', value: getDateDisplayValue((project as any).assemblyStart) },
+                                      { label: 'Wrap Date', value: getDateDisplayValue((project as any).wrapDate, (project as any).wrapDateText) },
+                                      { label: 'NTC Testing Date', value: getDateDisplayValue((project as any).ntcTestingDate, (project as any).ntcTestingDateText) },
+                                      { label: 'QC Start Date', value: getDateDisplayValue((project as any).qcStartDate) },
+                                      { label: 'Executive Review Date', value: getDateDisplayValue((project as any).executiveReviewDate, (project as any).executiveReviewDateText) },
+                                      { label: 'Ship Date', value: getDateDisplayValue((project as any).shipDate) },
+                                      { label: 'Delivery Date', value: getDateDisplayValue((project as any).deliveryDate, (project as any).deliveryDateText) },
+                                      { label: 'Estimated Completion', value: getDateDisplayValue((project as any).estimatedCompletionDate) },
+                                      { label: 'Actual Completion', value: getDateDisplayValue((project as any).actualCompletionDate) },
+                                      { label: 'Actual Delivery', value: getDateDisplayValue((project as any).actualDeliveryDate) },
+                                    ].filter(item => item.value !== 'Not Set') : [];
+
+                                    return (
+                                      <div className="relative group">
+                                        <div className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center shadow-md border border-gray-300" style={{minWidth: "200px", maxWidth: "400px", position: 'relative', whiteSpace: 'nowrap', overflow: 'visible'}}>
+                                          <a 
+                                            href={`/project/${bar.projectId}`}
+                                            className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              window.location.href = `/project/${bar.projectId}`;
+                                            }}
+                                          >
+                                            {bar.projectNumber}
+                                          </a>
+                                          <br />
+                                          <span style={{whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'unset'}}>{bar.projectName}</span>
+                                        </div>
+                                        
+                                        {/* Timeline Tooltip - appears on hover */}
+                                        {timelineDates.length > 0 && (
+                                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                                            <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[300px] max-w-[400px]">
+                                              <div className="font-semibold text-blue-300 mb-2 text-center border-b border-gray-700 pb-1">
+                                                Project Timeline Dates
+                                              </div>
+                                              <div className="grid grid-cols-1 gap-1 max-h-64 overflow-y-auto">
+                                                {timelineDates.map((item, index) => (
+                                                  <div key={index} className="flex justify-between items-center py-1 border-b border-gray-800 last:border-b-0">
+                                                    <span className="text-gray-300 font-medium">{item.label}:</span>
+                                                    <span className="text-white font-semibold ml-2">{item.value}</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                              {/* Arrow pointing down */}
+                                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-900"></div>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                                 
                                 {/* Connection line (vertical segment that connects PAINT to PROD) */}
