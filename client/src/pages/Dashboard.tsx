@@ -16,7 +16,8 @@ import {
   SortDesc,
   ArrowUpRight,
   Shield,
-  LogIn
+  LogIn,
+  BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
