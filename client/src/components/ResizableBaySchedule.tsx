@@ -1434,7 +1434,43 @@ export default function ResizableBaySchedule({
                   console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${rowCount}, bayNumber=${bay.bayNumber}`);
                   
                   return (
-                    <div 
+                    <>
+                      {/* Weekly header row for this bay */}
+                      <div 
+                        className="h-8 bg-gray-800/50 border-b border-gray-600 flex items-center mb-1"
+                        style={{ width: totalViewWidth }}
+                      >
+                        <div className="w-32 bg-gray-700 h-full flex items-center justify-center text-xs text-gray-300 border-r border-gray-600">
+                          Week
+                        </div>
+                        <div 
+                          className="grid h-full"
+                          style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}
+                        >
+                          {slots.map((slot, index) => {
+                            const isFirstOfMonth = slot.date.getDate() === 1;
+                            const monthName = format(slot.date, 'MMM');
+                            const weekNumber = format(slot.date, 'w');
+                            
+                            return (
+                              <div 
+                                key={index}
+                                className="border-r border-gray-600 flex items-center justify-center text-xs text-gray-300"
+                              >
+                                {isFirstOfMonth && (
+                                  <span className="font-medium">{monthName}</span>
+                                )}
+                                {!isFirstOfMonth && index % 7 === 0 && (
+                                  <span>W{weekNumber}</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
+                      {/* Bay container */}
+                      <div 
                       key={`bay-${bay.id}`} 
                       className="bay-container relative mb-2 border rounded-md overflow-hidden"
                       style={{ 
