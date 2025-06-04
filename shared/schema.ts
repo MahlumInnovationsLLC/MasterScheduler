@@ -843,6 +843,26 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+// User Module Visibility Table
+export const userModuleVisibility = pgTable("user_module_visibility", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  moduleId: text("module_id").notNull(), // e.g., 'dashboard', 'projects', 'sales-forecast'
+  visible: boolean("visible").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userModuleUnique: unique().on(table.userId, table.moduleId),
+}));
+
+// User Module Visibility Relations
+export const userModuleVisibilityRelations = relations(userModuleVisibility, ({ one }) => ({
+  user: one(users, {
+    fields: [userModuleVisibility.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert Schemas
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -959,6 +979,13 @@ export const insertRolePermissionSchema = createInsertSchema(rolePermissions).om
   updatedAt: true,
 });
 
+// Insert schema for user module visibility
+export const insertUserModuleVisibilitySchema = createInsertSchema(userModuleVisibility).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -974,6 +1001,9 @@ export type InsertSalesDeal = z.infer<typeof insertSalesDealSchema>;
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+export type UserModuleVisibility = typeof userModuleVisibility.$inferSelect;
+export type InsertUserModuleVisibility = z.infer<typeof insertUserModuleVisibilitySchema>;
 
 // AI Insight types for manufacturing analytics
 export interface AIInsight {

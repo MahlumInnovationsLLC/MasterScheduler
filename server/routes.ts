@@ -2974,6 +2974,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route to update user module visibility
+  app.patch("/api/users/:id/module-visibility", simpleAuth, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const { moduleId, visible } = req.body;
+      
+      if (!moduleId || typeof visible !== 'boolean') {
+        return res.status(400).json({ message: "moduleId and visible are required" });
+      }
+      
+      // Update module visibility in database
+      await storage.updateUserModuleVisibility(userId, moduleId, visible);
+      
+      // Create audit log entry
+      const performedBy = req.user?.id || "system";
+      await storage.createUserAuditLog(
+        userId,
+        "MODULE_VISIBILITY_UPDATE",
+        performedBy,
+        { moduleId, visible },
+        `Module visibility updated: ${moduleId} set to ${visible ? 'visible' : 'hidden'}`
+      );
+      
+      res.json({ success: true, message: "Module visibility updated" });
+    } catch (error) {
+      console.error("Error updating module visibility:", error);
+      res.status(500).json({ message: "Error updating module visibility" });
+    }
+  });
+
   // Route to reset user password (admin only)
   app.patch("/api/users/:id/reset-password", simpleAuth, async (req, res) => {
     try {

@@ -1137,9 +1137,37 @@ const SystemSettings = () => {
                                     <Switch 
                                       defaultChecked={getDefaultChecked()}
                                       disabled={!isAdmin}
-                                      onCheckedChange={(checked) => {
+                                      onCheckedChange={async (checked) => {
                                         console.log(`User ${user.firstName} ${user.lastName} - ${module.name} visibility:`, checked);
-                                        // TODO: Save module visibility to backend
+                                        
+                                        try {
+                                          const response = await fetch(`/api/users/${user.id}/module-visibility`, {
+                                            method: 'PATCH',
+                                            headers: {
+                                              'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({
+                                              moduleId: module.id,
+                                              visible: checked
+                                            }),
+                                          });
+
+                                          if (!response.ok) {
+                                            throw new Error('Failed to update module visibility');
+                                          }
+
+                                          toast({
+                                            title: "Module Visibility Updated",
+                                            description: `${module.name} visibility for ${user.firstName} ${user.lastName} has been updated.`,
+                                            variant: "default"
+                                          });
+                                        } catch (error) {
+                                          toast({
+                                            title: "Error",
+                                            description: "Failed to update module visibility: " + (error as Error).message,
+                                            variant: "destructive"
+                                          });
+                                        }
                                       }}
                                     />
                                   </div>
