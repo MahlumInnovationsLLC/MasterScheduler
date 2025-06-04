@@ -96,7 +96,7 @@ const Sidebar = () => {
                 <SidebarLink href="/" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/') ? 'active' : ''
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Dashboard">
-                  <LayoutDashboard className={`text-xl ${isActive('/') ? 'text-primary' : ''}`} />
+                  <LayoutDashboard size={20} className={`${isActive('/') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Dashboard</span>}
                 </SidebarLink>
               </li>
@@ -106,7 +106,7 @@ const Sidebar = () => {
                 <SidebarLink href="/projects" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/projects') || locationStartsWith('/project/') ? 'active' : ''
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Projects">
-                  <ListChecks className={`text-xl ${isActive('/projects') || locationStartsWith('/project/') ? 'text-primary' : ''}`} />
+                  <ListChecks size={20} className={`${isActive('/projects') || locationStartsWith('/project/') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Projects</span>}
                 </SidebarLink>
               </li>
@@ -116,7 +116,7 @@ const Sidebar = () => {
                 <SidebarLink href="/calendar" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/calendar') ? 'active' : ''
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Calendar">
-                  <Calendar className={`text-xl ${isActive('/calendar') ? 'text-primary' : ''}`} />
+                  <Calendar size={20} className={`${isActive('/calendar') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Calendar</span>}
                 </SidebarLink>
               </li>
@@ -126,7 +126,7 @@ const Sidebar = () => {
                 <SidebarLink href="/reports" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/reports') ? 'active' : ''
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Reports">
-                  <BarChart3 className={`text-xl ${isActive('/reports') ? 'text-primary' : ''}`} />
+                  <BarChart3 size={20} className={`${isActive('/reports') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Reports</span>}
                 </SidebarLink>
               </li>
@@ -147,7 +147,7 @@ const Sidebar = () => {
                 <SidebarLink href="/sales-forecast" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/sales-forecast') ? 'active' : ''
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Sales Forecast">
-                  <TrendingUp className={`text-xl ${isActive('/sales-forecast') ? 'text-primary' : ''}`} />
+                  <TrendingUp size={20} className={`${isActive('/sales-forecast') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Sales Forecast</span>}
                 </SidebarLink>
               </li>
@@ -157,7 +157,7 @@ const Sidebar = () => {
                 <SidebarLink href="/bay-scheduling" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/bay-scheduling') ? 'active' : ''
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Bay Scheduling">
-                  <GanttChart className={`text-xl ${isActive('/bay-scheduling') ? 'text-primary' : ''}`} />
+                  <GanttChart size={20} className={`${isActive('/bay-scheduling') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Bay Scheduling</span>}
                 </SidebarLink>
               </li>
@@ -167,7 +167,7 @@ const Sidebar = () => {
                 <SidebarLink href="/billing" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/billing') ? 'active' : ''
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Billing Milestones">
-                  <DollarSign className={`text-xl ${isActive('/billing') ? 'text-primary' : ''}`} />
+                  <DollarSign size={20} className={`${isActive('/billing') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Billing Milestones</span>}
                 </SidebarLink>
               </li>
@@ -177,7 +177,7 @@ const Sidebar = () => {
                 <SidebarLink href="/on-time-delivery" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/on-time-delivery') ? 'active' : ''
                 } ${isCollapsed ? 'justify-center' : ''}`} title="On Time Delivery">
-                  <Clock className={`text-xl ${isActive('/on-time-delivery') ? 'text-primary' : ''}`} />
+                  <Clock size={20} className={`${isActive('/on-time-delivery') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>On Time Delivery</span>}
                 </SidebarLink>
               </li>
@@ -187,7 +187,7 @@ const Sidebar = () => {
                 <SidebarLink href="/delivered-projects" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/delivered-projects') ? 'active' : ''
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Delivered Projects">
-                  <Truck className={`text-xl ${isActive('/delivered-projects') ? 'text-primary' : ''}`} />
+                  <Truck size={20} className={`${isActive('/delivered-projects') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Delivered Projects</span>}
                 </SidebarLink>
               </li>
@@ -197,7 +197,7 @@ const Sidebar = () => {
                 <SidebarLink href="/supply-chain" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/supply-chain') ? 'active' : ''
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Supply Chain">
-                  <ShoppingCart className={`text-xl ${isActive('/supply-chain') ? 'text-primary' : ''}`} />
+                  <ShoppingCart size={20} className={`${isActive('/supply-chain') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Supply Chain</span>}
                 </SidebarLink>
               </li>
@@ -218,7 +218,7 @@ const Sidebar = () => {
                 <SidebarLink href="/import" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/import') ? 'active' : ''
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Import Data">
-                  <Upload className={`text-xl ${isActive('/import') ? 'text-primary' : ''}`} />
+                  <Upload size={20} className={`${isActive('/import') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Import Data</span>}
                 </SidebarLink>
               </li>
@@ -228,7 +228,7 @@ const Sidebar = () => {
                 <SidebarLink href="/export-reports" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/export-reports') ? 'active' : ''
                 } ${isCollapsed ? 'justify-center' : ''}`} title="Export Reports">
-                  <Download className={`text-xl ${isActive('/export-reports') ? 'text-primary' : ''}`} />
+                  <Download size={20} className={`${isActive('/export-reports') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>Export Reports</span>}
                 </SidebarLink>
               </li>
@@ -248,7 +248,7 @@ const Sidebar = () => {
               <SidebarLink href="/settings/user" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isActive('/settings/user') ? 'active' : ''
               } ${isCollapsed ? 'justify-center' : ''}`} title="User Preferences">
-                <Users className={`text-xl ${isActive('/settings/user') ? 'text-primary' : ''}`} />
+                <Users size={20} className={`${isActive('/settings/user') ? 'text-primary' : ''}`} />
                 {!isCollapsed && <span>User Preferences</span>}
               </SidebarLink>
             </li>
@@ -257,7 +257,7 @@ const Sidebar = () => {
                 <SidebarLink href="/system-settings" className={`sidebar-nav-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'active' : ''
                 } ${isCollapsed ? 'justify-center' : ''}`} title="System Settings">
-                  <Settings className={`text-xl ${isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'text-primary' : ''}`} />
+                  <Settings size={20} className={`${isActive('/system-settings') || isActive('/settings/system') || isActive('/settings') ? 'text-primary' : ''}`} />
                   {!isCollapsed && <span>System Settings</span>}
                 </SidebarLink>
               </li>
