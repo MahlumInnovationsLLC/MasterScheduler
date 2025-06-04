@@ -4318,6 +4318,8 @@ export default function ResizableBaySchedule({
                                       { label: 'Actual Completion', value: getDateDisplayValue((project as any).actualCompletionDate) },
                                       { label: 'Actual Delivery', value: getDateDisplayValue((project as any).actualDeliveryDate) },
                                     ].filter(item => item.value !== 'Not Set') : [];
+                                    
+                                    console.log(`📅 Timeline dates for project ${bar.projectNumber}:`, timelineDates.length, timelineDates);
 
                                     return (
                                       <div className="relative">
@@ -4388,11 +4390,11 @@ export default function ResizableBaySchedule({
                                               width: 'auto'
                                             }}
                                           >
-                                            <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[350px] max-w-[500px] relative flex flex-col" style={{ zIndex: 1000, height: '100%' }}>
+                                            <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[400px] max-w-[600px] relative">
                                               <div className="font-semibold text-blue-300 mb-2 text-center border-b border-gray-700 pb-1">
                                                 Project Timeline Dates - {bar.projectNumber}
                                               </div>
-                                              <div className="grid grid-cols-2 gap-x-4 gap-y-1 flex-1">
+                                              <div className="grid grid-cols-2 gap-x-4 gap-y-1 max-h-[200px] overflow-y-auto">
                                                 {timelineDates.map((item, index) => (
                                                   <div key={index} className="flex flex-col py-1">
                                                     <span className="text-gray-300 font-medium text-xs">{item.label}:</span>
