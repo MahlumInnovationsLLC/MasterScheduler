@@ -1106,21 +1106,24 @@ const SystemSettings = () => {
                           
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pl-11">
                             {[
-                              { id: 'projects', name: 'Project Management', description: 'View and manage projects' },
-                              { id: 'scheduling', name: 'Bay Scheduling', description: 'Manufacturing scheduling system' },
-                              { id: 'billing', name: 'Billing & Milestones', description: 'Financial tracking and billing' },
-                              { id: 'reporting', name: 'Reports & Analytics', description: 'Data analysis and reporting' },
-                              { id: 'sales', name: 'Sales Pipeline', description: 'Sales and deal management' },
-                              { id: 'notifications', name: 'System Notifications', description: 'Receive system alerts' },
-                              { id: 'settings', name: 'System Settings', description: 'Access system configuration' },
-                              { id: 'users', name: 'User Management', description: 'Manage user accounts' },
-                              { id: 'archives', name: 'Archive Management', description: 'Access archived data' }
+                              { id: 'dashboard', name: 'Dashboard', description: 'Main dashboard view' },
+                              { id: 'projects', name: 'Projects', description: 'View and manage projects' },
+                              { id: 'sales-forecast', name: 'Sales Forecast', description: 'Sales forecasting and analytics' },
+                              { id: 'bay-scheduling', name: 'Bay Scheduling', description: 'Manufacturing scheduling system' },
+                              { id: 'billing', name: 'Billing Milestones', description: 'Financial tracking and billing' },
+                              { id: 'on-time-delivery', name: 'On Time Delivery', description: 'Delivery tracking and metrics' },
+                              { id: 'delivered-projects', name: 'Delivered Projects', description: 'View delivered projects' },
+                              { id: 'calendar', name: 'Calendar', description: 'Calendar view and scheduling' },
+                              { id: 'reports', name: 'Reports', description: 'Reports and analytics' },
+                              { id: 'import', name: 'Import Data', description: 'Import data functionality' },
+                              { id: 'export-reports', name: 'Export Reports', description: 'Export reports and data' },
+                              { id: 'system-settings', name: 'System Settings', description: 'Access system configuration' }
                             ].map((module) => {
                               // Default permissions based on role
                               const getDefaultChecked = () => {
                                 if (user.role === 'admin') return true;
-                                if (user.role === 'editor') return module.id !== 'settings';
-                                if (user.role === 'viewer') return !['sales', 'settings'].includes(module.id);
+                                if (user.role === 'editor') return !['system-settings', 'import'].includes(module.id);
+                                if (user.role === 'viewer') return !['sales-forecast', 'bay-scheduling', 'system-settings', 'import'].includes(module.id);
                                 return false;
                               };
 
