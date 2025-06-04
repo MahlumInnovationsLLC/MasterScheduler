@@ -511,30 +511,86 @@ const ProjectDetails = () => {
           </div>
           
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-            <div className="bg-dark rounded border border-gray-800 p-2">
-              <div className="text-xs text-gray-400 mb-1">FABRICATION</div>
-              <div className="text-lg font-bold">{project.fabPercentage || 27}%</div>
-            </div>
-            <div className="bg-dark rounded border border-gray-800 p-2">
-              <div className="text-xs text-gray-400 mb-1">PAINT</div>
-              <div className="text-lg font-bold">{project.paintPercentage || 7}%</div>
-            </div>
-            <div className="bg-dark rounded border border-gray-800 p-2">
-              <div className="text-xs text-gray-400 mb-1">ASSEMBLY</div>
-              <div className="text-lg font-bold">{project.productionPercentage || 45}%</div>
-            </div>
-            <div className="bg-dark rounded border border-gray-800 p-2">
-              <div className="text-xs text-gray-400 mb-1">IT</div>
-              <div className="text-lg font-bold">{project.itPercentage || 7}%</div>
-            </div>
-            <div className="bg-dark rounded border border-gray-800 p-2">
-              <div className="text-xs text-gray-400 mb-1">NTC TESTING</div>
-              <div className="text-lg font-bold">{project.ntcPercentage || 7}%</div>
-            </div>
-            <div className="bg-dark rounded border border-gray-800 p-2">
-              <div className="text-xs text-gray-400 mb-1">QC</div>
-              <div className="text-lg font-bold">{project.qcPercentage || 7}%</div>
-            </div>
+            {(() => {
+              // Calculate redistributed percentages for display
+              const showFab = project.showFabPhase !== undefined ? project.showFabPhase : true;
+              const showPaint = project.showPaintPhase !== undefined ? project.showPaintPhase : true;
+              const showProduction = project.showProductionPhase !== undefined ? project.showProductionPhase : true;
+              const showIt = project.showItPhase !== undefined ? project.showItPhase : true;
+              const showNtc = project.showNtcPhase !== undefined ? project.showNtcPhase : true;
+              const showQc = project.showQcPhase !== undefined ? project.showQcPhase : true;
+
+              // Get original percentages
+              const originalFabPercentage = parseFloat(project.fabPercentage as any) || 27;
+              const originalPaintPercentage = parseFloat(project.paintPercentage as any) || 7;
+              const originalProductionPercentage = parseFloat(project.productionPercentage as any) || 60;
+              const originalItPercentage = parseFloat(project.itPercentage as any) || 7;
+              const originalNtcPercentage = parseFloat(project.ntcPercentage as any) || 7;
+              const originalQcPercentage = parseFloat(project.qcPercentage as any) || 7;
+
+              // Calculate sum of visible phase percentages
+              let visibleSum = 0;
+              if (showFab) visibleSum += originalFabPercentage;
+              if (showPaint) visibleSum += originalPaintPercentage;
+              if (showProduction) visibleSum += originalProductionPercentage;
+              if (showIt) visibleSum += originalItPercentage;
+              if (showNtc) visibleSum += originalNtcPercentage;
+              if (showQc) visibleSum += originalQcPercentage;
+
+              // Calculate redistribution factor
+              const redistributionFactor = visibleSum > 0 ? 100 / visibleSum : 1;
+
+              // Return redistributed percentages (0 for hidden phases)
+              const redistributedPercentages = {
+                fabricationPercent: showFab ? Math.round(originalFabPercentage * redistributionFactor * 100) / 100 : 0,
+                paintPercent: showPaint ? Math.round(originalPaintPercentage * redistributionFactor * 100) / 100 : 0,
+                productionPercent: showProduction ? Math.round(originalProductionPercentage * redistributionFactor * 100) / 100 : 0,
+                itPercent: showIt ? Math.round(originalItPercentage * redistributionFactor * 100) / 100 : 0,
+                ntcPercent: showNtc ? Math.round(originalNtcPercentage * redistributionFactor * 100) / 100 : 0,
+                qcPercent: showQc ? Math.round(originalQcPercentage * redistributionFactor * 100) / 100 : 0
+              };
+
+              return (
+                <>
+                  {showFab && (
+                    <div className="bg-dark rounded border border-gray-800 p-2">
+                      <div className="text-xs text-gray-400 mb-1">FABRICATION</div>
+                      <div className="text-lg font-bold">{redistributedPercentages.fabricationPercent.toFixed(2)}%</div>
+                    </div>
+                  )}
+                  {showPaint && (
+                    <div className="bg-dark rounded border border-gray-800 p-2">
+                      <div className="text-xs text-gray-400 mb-1">PAINT</div>
+                      <div className="text-lg font-bold">{redistributedPercentages.paintPercent.toFixed(2)}%</div>
+                    </div>
+                  )}
+                  {showProduction && (
+                    <div className="bg-dark rounded border border-gray-800 p-2">
+                      <div className="text-xs text-gray-400 mb-1">ASSEMBLY</div>
+                      <div className="text-lg font-bold">{redistributedPercentages.productionPercent.toFixed(2)}%</div>
+                    </div>
+                  )}
+                  {showIt && (
+                    <div className="bg-dark rounded border border-gray-800 p-2">
+                      <div className="text-xs text-gray-400 mb-1">IT</div>
+                      <div className="text-lg font-bold">{redistributedPercentages.itPercent.toFixed(2)}%</div>
+                    </div>
+                  )}
+                  {showNtc && (
+                    <div className="bg-dark rounded border border-gray-800 p-2">
+                      <div className="text-xs text-gray-400 mb-1">NTC TESTING</div>
+                      <div className="text-lg font-bold">{redistributedPercentages.ntcPercent.toFixed(2)}%</div>
+                    </div>
+                  )}
+                  {showQc && (
+                    <div className="bg-dark rounded border border-gray-800 p-2">
+                      <div className="text-xs text-gray-400 mb-1">QC</div>
+                      <div className="text-lg font-bold">{redistributedPercentages.qcPercent.toFixed(2)}%</div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
 
