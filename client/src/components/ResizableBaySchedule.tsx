@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import MultiRowBayContent from './MultiRowBayContent';
+import { useAuth } from "@/hooks/use-auth";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   format, 
   addDays, 
@@ -12,10 +14,17 @@ import {
   endOfMonth, 
   startOfWeek, 
   endOfWeek,
-  getDaysInMonth
+  getDaysInMonth,
+  isWithinInterval,
+  parseISO,
+  subDays
 } from 'date-fns';
 import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom } from './ExactFitPhaseWidths';
+import DurationCalculator from './DurationCalculator';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
+// Function will be defined inside the component
+import { TeamManagementDialog } from './TeamManagementDialog';
+import FinancialImpactPopup from './FinancialImpactPopup';
 import { 
   PlusCircle, 
   GripVertical, 
@@ -26,15 +35,33 @@ import {
   PencilIcon, 
   PlusIcon, 
   MinusIcon,
+  MinusCircle, // Added for remove bay button
   Users, 
+  UserPlus,
   Zap, 
-  Clock as ClockIcon, 
-  AlertTriangle 
+  Wrench, // Replacing Tool with Wrench
+  Clock,
+  Calendar,
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  Trash2, // For delete icon
+  Truck,
+  BarChart2, // Added for utilization icon
+  Calculator, // Added for duration calculation
+  DollarSign, // Added for financial impact
+  Printer, // Added for print functionality
+  Car,
+  Package,
+  PaintBucket,
+  Settings,
+  CheckCircle,
+  Flag,
+  Star,
+  Diamond,
+  Circle,
+  Square
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -42,7 +69,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,12 +78,73 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog";
-import { ManufacturingBay, ManufacturingSchedule, Project } from '@shared/schema';
-import { EditBayDialog } from './EditBayDialog';
-import LoadingOverlay from './LoadingOverlay';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useApiRequest } from '@/lib/queryClient';
+import { useQuery } from '@tanstack/react-query';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { type ProjectMilestoneIcon } from '@shared/schema';
+
+interface ManufacturingBay {
+  id: number;
+  name: string;
+  bayNumber: number;
+  status: 'active' | 'inactive' | 'maintenance';
+  description: string | null;
+  location: string | null;
+  team: string | null;
+  capacityTonn: number | null;
+  maxWidth: number | null;
+  maxHeight: number | null;
+  maxLength: number | null;
+  teamId: number | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  // Team capacity management properties
+  assemblyStaffCount?: number | null;
+  electricalStaffCount?: number | null;
+  hoursPerPersonPerWeek?: number | null;
+}
+
+interface Project {
+  id: number;
+  name: string;
+  projectNumber: string;
+  status: string;
+  description: string | null;
+  team: string | null;
+  createdAt: Date | null;
+  startDate: Date | null;
+  shipDate: Date | null;
+  totalHours?: number; // Added project total hours field
+  // And other project fields
+}
+
+interface ManufacturingSchedule {
+  id: number;
+  projectId: number;
+  bayId: number;
+  startDate: Date;
+  endDate: Date;
+  totalHours: number;
+  row?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 
 interface ResizableBayScheduleProps {
   schedules: ManufacturingSchedule[];
@@ -70,6 +158,8 @@ interface ResizableBayScheduleProps {
   onBayDelete?: (id: number) => Promise<any>;
   dateRange: { start: Date, end: Date };
   viewMode: 'day' | 'week' | 'month' | 'quarter';
+  enableFinancialImpact?: boolean;
+  isSandboxMode?: boolean;
 }
 
 interface ScheduleBar {
@@ -110,241 +200,280 @@ interface ScheduleBar {
   fabWeeks: number; // Number of weeks for FAB phase
 }
 
-// Helper function to determine how many rows a bay should have
-const getBayRowCount = (bayId: number, bayName: string): number => {
-  // IMPORTANT: For Team 7 & 8, the bay NUMBER is the critical requirement
-  // Bay number 7 and 8 must always have 20 rows regardless of name
-  
-  // PRIORITY CHECK: Check if it's bay ID 7 or 8 
-  // This ensures Team 7 and Team 8 always get 20 rows
-  if (bayId === 7 || bayId === 8) {
-    console.log(`Using 20 rows for bay ${bayId} (${bayName}) - mandatory 20 rows for bay numbers 7 & 8`);
-    return 20;
-  }
-  
-  // Secondary check by name (in case bay number changes but name format stays)
-  if (bayName && 
-      (bayName.trim() === 'Team 7' || 
-       bayName.trim() === 'Team 8' || 
-       bayName.trim() === 'Team7' || 
-       bayName.trim() === 'Team8' ||
-       (bayName.toLowerCase().includes('team') && 
-        (bayName.includes('7') || bayName.includes('8'))))) {
-    console.log(`Using 20 rows for ${bayName} by name match`);
-    return 20;
-  }
-  
-  // Standard 4 rows for all other bays
-  return 4;
-}
-
-const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
-  const slots = [];
-  let current = new Date(dateRange.start);
-  let slotWidth = 0;
-  let format_string = '';
-  
-  // Calculate end date 5 years from now for extended timeline
-  const extendedEndDate = new Date();
-  extendedEndDate.setFullYear(extendedEndDate.getFullYear() + 5);
-  
-  switch (viewMode) {
-    case 'day':
-      slotWidth = 50;
-      format_string = 'MMM d';
-      while (current <= extendedEndDate) {
-        slots.push({
-          date: new Date(current),
-          label: format(current, format_string),
-          sublabel: format(current, 'EEE'),
-          isWeekend: current.getDay() === 0 || current.getDay() === 6
-        });
-        current = addDays(current, 1);
-      }
-      break;
-    case 'week':
-      slotWidth = 100;
-      format_string = "'Week' w"; // Standard ISO week number (fiscal week)
-      while (current <= extendedEndDate) {
-        // Ensure we're starting with Monday for each week
-        const dayOfWeek = current.getDay(); // 0 = Sunday, 1 = Monday, etc.
-        const daysToMonday = dayOfWeek === 0 ? 1 : (dayOfWeek === 1 ? 0 : -(dayOfWeek - 1));
-        const monday = addDays(current, daysToMonday);
-        const friday = addDays(monday, 4); // Add 4 days to Monday to get Friday
-        
-        slots.push({
-          date: new Date(current),
-          label: format(current, format_string),
-          sublabel: `${format(monday, 'MMM d')} - ${format(friday, 'MMM d')}`, // Always Monday-Friday
-          isWeekend: false,
-          year: current.getFullYear() // Store year for year row
-        });
-        current = addDays(current, 7);
-      }
-      break;
-    case 'month':
-      slotWidth = 150;
-      format_string = 'MMM yyyy';
-      while (current <= extendedEndDate) {
-        const monthStart = startOfMonth(current);
-        const monthEnd = endOfMonth(current);
-        slots.push({
-          date: new Date(monthStart),
-          label: format(current, format_string),
-          sublabel: '',
-          isWeekend: false
-        });
-        current = addMonths(current, 1);
-      }
-      break;
-    case 'quarter':
-      slotWidth = 200;
-      while (current <= extendedEndDate) {
-        const quarter = Math.floor(current.getMonth() / 3) + 1;
-        const year = current.getFullYear();
-        slots.push({
-          date: new Date(current),
-          label: `Q${quarter} ${year}`,
-          sublabel: `${format(current, 'MMM')} - ${format(addMonths(current, 2), 'MMM')}`,
-          isWeekend: false
-        });
-        current = addMonths(current, 3);
-      }
-      break;
-  }
-  
-  return { slots, slotWidth };
+type TimeSlot = {
+  date: Date;
+  formattedStartDate?: string;
+  formattedEndDate?: string;
+  isStartOfMonth: boolean;
+  isStartOfWeek: boolean;
+  isBusinessDay: boolean;
+  monthName?: string;
+  weekNumber?: number;
 };
 
-const COLORS = [
-  'rgb(59, 130, 246)', // blue-500
-  'rgb(16, 185, 129)', // green-500
-  'rgb(245, 158, 11)', // amber-500
-  'rgb(99, 102, 241)', // indigo-500
-  'rgb(139, 92, 246)', // violet-500
-  'rgb(236, 72, 153)', // pink-500
-  'rgb(220, 38, 38)', // red-500
+const BAY_COLORS = [
+  'bg-blue-500',
+  'bg-green-500',
+  'bg-yellow-500',
+  'bg-purple-500',
+  'bg-indigo-500',
+  'bg-pink-500',
+  'bg-orange-500',
+  'bg-teal-500',
+  'bg-cyan-500',
+  'bg-lime-500',
+  'bg-emerald-500',
+  'bg-sky-500',
+  'bg-red-500',
 ];
 
-const getProjectColor = (projectId: number) => {
-  return COLORS[projectId % COLORS.length];
+const PROJECT_COLORS = [
+  'rgb(59, 130, 246)', // blue-500
+  'rgb(16, 185, 129)', // green-500
+  'rgb(234, 179, 8)',  // yellow-500
+  'rgb(168, 85, 247)', // purple-500
+  'rgb(99, 102, 241)', // indigo-500
+  'rgb(236, 72, 153)', // pink-500
+  'rgb(249, 115, 22)', // orange-500
+  'rgb(20, 184, 166)', // teal-500
+  'rgb(6, 182, 212)',  // cyan-500
+  'rgb(132, 204, 22)', // lime-500
+  'rgb(16, 185, 129)', // emerald-500
+  'rgb(14, 165, 233)', // sky-500
+  'rgb(239, 68, 68)',  // red-500
+];
+
+// Milestone icon mapping
+const iconMap = {
+  car: Car,
+  truck: Truck,
+  box: Package,
+  paintBucket: PaintBucket,
+  wrench: Wrench,
+  gear: Settings,
+  calendar: Calendar,
+  clock: Clock,
+  checkmark: CheckCircle,
+  warning: AlertTriangle,
+  flag: Flag,
+  star: Star,
+  diamond: Diamond,
+  circle: Circle,
+  square: Square,
 };
 
-// Simple BayCapacityInfo component to show staffing breakdown
-const BayCapacityInfo = ({ bay, allSchedules, projects }: { bay: ManufacturingBay, allSchedules: ManufacturingSchedule[], projects: Project[] }) => {
-  const assemblyStaff = bay.assemblyStaffCount || 0;
-  const electricalStaff = bay.electricalStaffCount || 0;
-  const hoursPerWeek = bay.hoursPerPersonPerWeek || 0; // No fallback to hardcoded value
-  const staffCount = bay.staffCount || assemblyStaff + electricalStaff;
-  const weeklyCapacity = hoursPerWeek * staffCount;
+// Multi-bay teams now have a single row per bay (simplified layout)
+// This makes bays work like horizontal tracks with NO multi-row complexity
+const getBayRowCount = (bayId: number, bayName: string) => {
+  console.log(`Single row configuration for bay ${bayId} (${bayName}) - new team-based layout`);
   
-  // Get schedules for this bay
-  const baySchedules = allSchedules.filter(schedule => schedule.bayId === bay.id);
+  // NEW SIMPLIFIED MODEL:
+  // - Each bay has exactly ONE row
+  // - Team-based organization now groups 2 bays = 1 team
+  // - Simplified row calculation guarantees pixel-perfect placement
+  return 1; // Always return 1 row for the simplified single-row layout
+};
+
+// REAL-TIME DATE DISPLAY: No offsets or calibrations
+const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
+  const slots: TimeSlot[] = [];
   
-  // Get active projects in current week (using the same logic as the main component)
-  const now = new Date();
-  const currentWeekStart = startOfWeek(now);
-  const currentWeekEnd = endOfWeek(now);
+  // Use the actual date range provided with no adjustments
+  // This ensures what you see is exactly what you get
+  let currentDate = new Date(dateRange.start);
   
-  // Find projects that are active in the current week
-  const currentWeekProjects = baySchedules.filter(schedule => {
-    const scheduleStart = new Date(schedule.startDate);
-    const scheduleEnd = new Date(schedule.endDate);
-    return !(scheduleEnd < currentWeekStart || scheduleStart > currentWeekEnd);
-  });
+  // Zero out time component for consistent day boundaries
+  currentDate.setHours(0, 0, 0, 0);
   
-  // Count projects in bay for the current week
-  const activeCount = currentWeekProjects.length;
-  
-  console.log(`Bay ${bay.name} has ${activeCount} projects in current week`);
-  
-  // Calculate actual weekly hours used by each project
-  let totalHoursUsedThisWeek = 0;
-  
-  currentWeekProjects.forEach(schedule => {
-    // Get project to check its phase
-    const project = projects.find(p => p.id === schedule.projectId);
-    if (!project) return;
-    
-    // Calculate total project duration in weeks
-    const startDate = new Date(schedule.startDate);
-    const endDate = new Date(schedule.endDate);
-    const totalDays = Math.ceil(Math.abs(endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
-    
-    // CRITICAL FIX: Only consider PRODUCTION hours for bay capacity calculation
-    // Get the project's production percentage or use default (60%)
-    const productionPercentage = parseFloat(project?.productionPercentage as any) || 60;
-    
-    // Calculate production hours (this is what actually consumes bay capacity)
-    const productionHours = (schedule.totalHours || 0) * (productionPercentage / 100);
-    
-    // Calculate weekly hours for this project - using ONLY production hours
-    const projectWeeklyHours = productionHours / totalWeeks;
-    
-    // Log the adjustment for transparency in BayCapacityInfo
-    console.log(`CAPACITY INFO: Using only PRODUCTION hours (${productionPercentage}% of total) for project ${project.projectNumber}`, {
-      totalHours: schedule.totalHours || 0,
-      productionPercentage,
-      productionHours,
-      weeklyHours: projectWeeklyHours,
-    });
-    
-    // Add to total hours
-    totalHoursUsedThisWeek += projectWeeklyHours;
-  });
-  
-  // Calculate actual utilization percentage based on hours
-  // Don't cap at 100% - show the actual utilization even if over capacity
-  const actualUtilization = weeklyCapacity > 0 ? 
-    Math.round((totalHoursUsedThisWeek / weeklyCapacity) * 100) : 0;
-  
-  // For status labels, use the project count method
-  // Set status based on number of projects (0 = Available, 1 = Near Capacity, 2+ = At Capacity)
-  const displayUtilization = actualUtilization;
-  
-  // Determine the status label based on current active projects and utilization percentage
-  let statusLabel = "";
-  if (actualUtilization > 100) {
-    statusLabel = "Over Capacity";
-  } else if (activeCount >= 2 || actualUtilization >= 90) {
-    statusLabel = "At Capacity";
-  } else if (activeCount === 1 || actualUtilization >= 50) {
-    statusLabel = "Near Capacity";
-  } else {
-    statusLabel = "Available";
+  // If viewing by week, adjust to start on Monday
+  if (viewMode === 'week' && currentDate.getDay() !== 1) {
+    // Find the previous Monday
+    const daysToSubtract = currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1;
+    currentDate = addDays(currentDate, -daysToSubtract);
   }
   
-  console.log(`Bay ${bay.name} final status: ${statusLabel} with ${activeCount} active projects and ${actualUtilization}% utilization`);
+  // Use the actual end date from the range with reasonable limit
+  const endDate = new Date(2030, 11, 31); // Far future end date for scrolling
+  
+  console.log(`⏱️ USING ACTUAL DATES: ${format(currentDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
+  console.log(`NO CALIBRATION: All dates shown are actual calendar dates with no offsets`);
+  
+  // Loop until we reach the end date
+  while (currentDate <= endDate) {
+    const isStartOfMonth = currentDate.getDate() === 1;
+    const isStartOfWeek = currentDate.getDay() === 1; // Monday as start of week
+    const isCurrentDateBusinessDay = isBusinessDay(currentDate);
+    
+    slots.push({
+      date: new Date(currentDate),
+      isStartOfMonth,
+      isStartOfWeek,
+      isBusinessDay: isCurrentDateBusinessDay,
+      monthName: isStartOfMonth ? format(currentDate, 'MMMM') : undefined,
+      weekNumber: isStartOfWeek ? Math.ceil(differenceInDays(currentDate, new Date(currentDate.getFullYear(), 0, 1)) / 7) : undefined
+    });
+    
+    if (viewMode === 'day') {
+      currentDate = addDays(currentDate, 1);
+    } else if (viewMode === 'week') {
+      // Always move exactly 7 days for week view to ensure ONE CELL = ONE WEEK
+      currentDate = addDays(currentDate, 7);
+    } else if (viewMode === 'month') {
+      if (isStartOfMonth || slots.length === 0) {
+        currentDate = addDays(currentDate, 1);
+      } else {
+        // Move to first day of next month
+        currentDate = addMonths(currentDate, 1);
+        currentDate.setDate(1);
+      }
+    } else if (viewMode === 'quarter') {
+      if (isStartOfMonth && [0, 3, 6, 9].includes(currentDate.getMonth()) || slots.length === 0) {
+        currentDate = addMonths(currentDate, 1);
+      } else {
+        // Move to first month of next quarter
+        const currentMonth = currentDate.getMonth();
+        const monthsToNextQuarter = 3 - (currentMonth % 3);
+        currentDate = addMonths(currentDate, monthsToNextQuarter);
+        currentDate.setDate(1);
+      }
+    }
+  }
+  
+  return slots;
+};
+
+// Component to display bay capacity information and status indicators
+const BayCapacityInfo = ({ bay, allSchedules, projects, bays }: { bay: ManufacturingBay, allSchedules: ManufacturingSchedule[], projects: Project[], bays: ManufacturingBay[] }) => {
+  // Get scheduled projects for this bay
+  const baySchedules = allSchedules.filter(s => s.bayId === bay.id);
+  const activeProjects = baySchedules.length;
+  
+  // Determine capacity status 
+  let capacityPercentage = 0;
+  if (activeProjects > 0) {
+    // Calculate based on project count
+    capacityPercentage = Math.min(activeProjects * 50, 100); // 2+ projects = 100% capacity
+  }
+  
+  let statusText = 'Available';
+  let statusBg = 'bg-green-500';
+  let statusIcon = <CheckCircle2 className="h-4 w-4 text-white" />;
+  
+  if (capacityPercentage >= 100) {
+    statusText = 'At Capacity';
+    statusBg = 'bg-red-500';
+    statusIcon = <AlertTriangle className="h-4 w-4 text-white" />;
+  } else if (capacityPercentage >= 50) {
+    statusText = 'Near Capacity';
+    statusBg = 'bg-amber-500';
+    statusIcon = <Clock3 className="h-4 w-4 text-white" />;
+  }
+  
+  // Calculate team capacity - look for assembly/electrical staff counts on this bay
+  const assemblyStaff = bay.assemblyStaffCount || 1;
+  const electricalStaff = bay.electricalStaffCount || 1;
+  const hoursPerWeek = bay.hoursPerPersonPerWeek || 29;
+  const totalStaff = assemblyStaff + electricalStaff;
+  const totalCapacity = totalStaff * hoursPerWeek;
+  
+  // Find other bays in same team to calculate team capacity
+  let teamCapacity = totalCapacity;
+  if (bay.team) {
+    const teamBays = bays.filter(b => b.team === bay.team);
+    if (teamBays.length > 0) {
+      // Sum up assembly and electrical staff from all bays in team
+      let teamAssemblyStaff = 0;
+      let teamElectricalStaff = 0;
+      let teamHoursPerWeek = hoursPerWeek; // Use the same hours per week value across team
+      
+      teamBays.forEach(b => {
+        if (b.assemblyStaffCount) teamAssemblyStaff += b.assemblyStaffCount;
+        if (b.electricalStaffCount) teamElectricalStaff += b.electricalStaffCount;
+        if (b.hoursPerPersonPerWeek) teamHoursPerWeek = b.hoursPerPersonPerWeek;
+      });
+      
+      const teamTotalStaff = teamAssemblyStaff + teamElectricalStaff;
+      teamCapacity = teamTotalStaff * teamHoursPerWeek;
+    }
+  }
+  
+  console.log(`Bay ${bay.name} at ${capacityPercentage}% capacity with ${activeProjects === 0 ? 'no projects' : activeProjects + ' project' + (activeProjects > 1 ? 's' : '')}`);
+  console.log(`Bay ${bay.name} final status: ${statusText} with ${activeProjects} active project${activeProjects !== 1 ? 's' : ''}`);
   
   return (
-    <div className="flex flex-col">
-      <div className="text-xs text-gray-400 mb-1">
-        <div className="flex items-center">
-          <div className="flex items-center mr-3">
-            <Users className="h-3 w-3 mr-1 text-blue-400" />
-            <span>{assemblyStaff}</span>
-          </div>
-          <div className="flex items-center">
-            <Zap className="h-3 w-3 mr-1 text-amber-400" />
-            <span>{electricalStaff}</span>
-          </div>
+    <div className="bay-capacity-info absolute right-2 top-2 flex flex-col items-end gap-1">
+      <div className="flex items-center space-x-2">
+        <div className={`status-indicator ${statusBg} text-white text-xs px-2 py-0.5 rounded-full flex items-center`}>
+          {statusIcon}
+          <span className="ml-1">{statusText}</span>
+        </div>
+        <div className="project-count bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded-full">
+          {activeProjects} project{activeProjects !== 1 ? 's' : ''}
         </div>
       </div>
-      <div className="text-xs text-gray-400">
-        {weeklyCapacity}h/week capacity 
-        {/* Always show percentage along with status */}
-        {` (${displayUtilization}% utilized)`}
-        {activeCount > 0 && ` - ${statusLabel}`}
+      
+      {bay.team && (
+        <div className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 mt-1">
+          <Users className="h-3 w-3" />
+          <span>Team: {teamCapacity} hrs/wk</span>
+        </div>
+      )}
+      
+      <div className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 mt-1">
+        <UserPlus className="h-3 w-3" />
+        <span>{assemblyStaff}A + {electricalStaff}E</span>
       </div>
     </div>
   );
 };
 
-const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
+// CRITICAL FIX: Global handler to ensure multiple projects can be placed in the same row
+function initializeGlobalDragDropFix() {
+  // Enable dropping anywhere by preventing default on all dragover events
+  const handleGlobalDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move';
+    }
+  };
+  
+  // Add a global handler for drops outside target areas
+  const handleGlobalDrop = (e: DragEvent) => {
+    const isOverDropTarget = 
+      e.target instanceof Element && 
+      (e.target.closest('.bay-row') || 
+       e.target.closest('.week-cell') || 
+       e.target.closest('.unassigned-drop-container') ||
+       e.target.closest('.droppable-slot'));
+       
+    if (!isOverDropTarget) {
+      e.preventDefault();
+      console.log('Global drop handler caught a drop outside of designated drop zones');
+    }
+  };
+  
+  // Add global listeners
+  document.addEventListener('dragover', handleGlobalDragOver, true);
+  document.addEventListener('drop', handleGlobalDrop, false);
+  
+  // Enable special styling
+  document.body.classList.add('allow-multiple-projects');
+  document.body.classList.add('force-accept-drop');
+  
+  console.log('🔒 MAXIMUM DRAG-DROP OVERRIDE ACTIVE - Projects can now be placed anywhere without restrictions');
+  
+  return () => {
+    document.removeEventListener('dragover', handleGlobalDragOver, true);
+    document.removeEventListener('drop', handleGlobalDrop, false);
+    document.body.classList.remove('allow-multiple-projects');
+    document.body.classList.remove('force-accept-drop');
+  };
+}
+
+export default function ResizableBaySchedule({
   schedules,
   projects,
-  bays: initialBays,
+  bays,
   onScheduleChange,
   onScheduleCreate,
   onScheduleDelete,
@@ -352,10 +481,613 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
   onBayUpdate,
   onBayDelete,
   dateRange,
-  viewMode
-}) => {
-  // Extended state
-  const [bays, setBays] = useState<ManufacturingBay[]>(initialBays);
+  viewMode,
+  enableFinancialImpact = true
+}: ResizableBayScheduleProps) {
+  const { toast } = useToast();
+  const apiRequest = useApiRequest();
+  
+  // State for managing UI
+  const [scheduleBars, setScheduleBars] = useState<ScheduleBar[]>([]);
+  const [draggingSchedule, setDraggingSchedule] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ bayId: number, rowIndex: number } | null>(null);
+  
+  // Fetch all milestone icons for all projects
+  const { data: allMilestoneIcons = [] } = useQuery({
+    queryKey: ['/api/milestone-icons'],
+    enabled: true,
+  });
+  
+  // Auto-scroll state for drag operations
+  const autoScrollRef = useRef<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  
+  // Auto-scroll functionality for drag operations
+  const startAutoScroll = useCallback((direction: 'up' | 'down') => {
+    if (autoScrollRef.current) return; // Already scrolling
+    
+    const SCROLL_SPEED = 8; // pixels per frame
+    const scroll = () => {
+      const scrollAmount = direction === 'up' ? -SCROLL_SPEED : SCROLL_SPEED;
+      window.scrollBy(0, scrollAmount);
+      autoScrollRef.current = requestAnimationFrame(scroll);
+    };
+    
+    autoScrollRef.current = requestAnimationFrame(scroll);
+  }, []);
+  
+  const stopAutoScroll = useCallback(() => {
+    if (autoScrollRef.current) {
+      cancelAnimationFrame(autoScrollRef.current);
+      autoScrollRef.current = null;
+    }
+  }, []);
+  
+  // Handle global mouse movement during drag for auto-scrolling
+  const handleDragMove = useCallback((e: MouseEvent) => {
+    if (!isDragging) return;
+    
+    const SCROLL_ZONE = 100; // pixels from edge to trigger scroll
+    const viewportHeight = window.innerHeight;
+    
+    if (e.clientY < SCROLL_ZONE) {
+      // Near top edge - scroll up
+      startAutoScroll('up');
+    } else if (e.clientY > viewportHeight - SCROLL_ZONE) {
+      // Near bottom edge - scroll down
+      startAutoScroll('down');
+    } else {
+      // In safe zone - stop scrolling
+      stopAutoScroll();
+    }
+  }, [isDragging, startAutoScroll, stopAutoScroll]);
+  
+  // Global drag end handler
+  const handleDragEndGlobal = useCallback(() => {
+    setIsDragging(false);
+    stopAutoScroll();
+  }, [stopAutoScroll]);
+  
+  // Set up global event listeners for drag operations
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleDragMove);
+      document.addEventListener('dragend', handleDragEndGlobal);
+      document.addEventListener('drop', handleDragEndGlobal);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('dragend', handleDragEndGlobal);
+        document.removeEventListener('drop', handleDragEndGlobal);
+        stopAutoScroll();
+      };
+    }
+  }, [isDragging, handleDragMove, handleDragEndGlobal, stopAutoScroll]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newBayDialog, setNewBayDialog] = useState(false);
+  const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
+  const [teamDialogOpen, setTeamDialogOpen] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [deleteRowDialogOpen, setDeleteRowDialogOpen] = useState(false);
+  
+  // Team name inline editing states
+  const [editingTeamId, setEditingTeamId] = useState<string>('');
+  const [editingTeamName, setEditingTeamName] = useState<string>('');
+  
+  // State for team deletion confirmation
+  const [teamDeleteConfirm, setTeamDeleteConfirm] = useState<{isOpen: boolean; teamName: string; bayIds: number[]}>({
+    isOpen: false,
+    teamName: '',
+    bayIds: []
+  });
+  
+  // Map of team descriptions (could be fetched from API in real app)
+  const [teamDescriptions, setTeamDescriptions] = useState<Record<string, string>>({
+    'General': 'Main production team',
+    'ISG': 'Integrated Systems Group',
+    'TCV': 'Tactical Combat Vehicles',
+    'Electrical': 'Power and electrical systems',
+    'Assembly': 'Final assembly and testing',
+    'Bay 1 & 2 & Bay 3 & 4': 'General production and testing',
+    'Bay 5 & 6': 'Vehicle interiors and electrical systems',
+    'Bay 7 & 8': 'Military vehicle conversions',
+    'Bay 9 & 10 (ISG)': 'Advanced systems integration',
+    'Bay 11 & 12': 'Quality control and finalization',
+    'TCV Line': 'Tactical vehicle production line',
+    'TCV Line 2': 'Second tactical vehicle line'
+  });
+  
+  // Handler function to update team names
+  const handleTeamNameUpdate = async (oldTeamName: string, newTeamName: string) => {
+    if (oldTeamName === newTeamName || !newTeamName.trim()) {
+      // No change or empty name, just exit
+      return;
+    }
+    
+    try {
+      // Keep track of the team description
+      const description = teamDescriptions[oldTeamName] || '';
+      
+      // Update all bays with this team name
+      const updatedBays = await Promise.all(
+        bays.filter(bay => bay.team === oldTeamName).map(async (bay) => {
+          // Call the API to update each bay
+          const updatedBay = await onBayUpdate?.(bay.id, {
+            ...bay,
+            team: newTeamName
+          });
+          return updatedBay;
+        })
+      );
+      
+      // Update the team description in our local state
+      setTeamDescriptions(prev => {
+        const newDescriptions = {...prev};
+        if (oldTeamName in newDescriptions) {
+          // Transfer the description to the new team name
+          newDescriptions[newTeamName] = description;
+          // Remove the old team name if it's different
+          if (oldTeamName !== newTeamName) {
+            delete newDescriptions[oldTeamName];
+          }
+        }
+        return newDescriptions;
+      });
+      
+      // Show success toast
+      toast({
+        title: "Team Updated",
+        description: `Team name changed from "${oldTeamName}" to "${newTeamName}"`,
+      });
+      
+      // Force a refresh of the UI
+      setForceUpdate(Date.now());
+      
+    } catch (error) {
+      console.error('Error updating team name:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update team name",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Function to handle team deletion
+  const handleTeamDelete = async (teamName: string, bayIds: number[]) => {
+    try {
+      console.log(`Deleting team "${teamName}" from bays: ${bayIds.join(', ')}`);
+      
+      // For direct UI feedback, hide the team section immediately by adding a class
+      // This provides visual feedback before the actual database update completes
+      const teamSectionSelector = `[data-team-section="${teamName}::${bayIds.join(',')}"]`;
+      const teamSectionElement = document.querySelector(teamSectionSelector);
+      
+      if (teamSectionElement) {
+        // Mark for deletion with a style effect
+        teamSectionElement.classList.add('opacity-50', 'relative');
+        const overlay = document.createElement('div');
+        overlay.className = 'absolute inset-0 bg-red-500 bg-opacity-20 z-50';
+        teamSectionElement.appendChild(overlay);
+      }
+      
+      // Track success of each bay update
+      let successCount = 0;
+      
+      try {
+        // Perform the actual database updates directly with individual requests
+        for (const bayId of bayIds) {
+          console.log(`Removing team "${teamName}" from bay ${bayId}`);
+          
+          try {
+            // Clear the team field for this bay
+            const response = await fetch(`/api/manufacturing-bays/${bayId}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                team: null,
+                description: null
+              })
+            });
+            
+            if (response.ok) {
+              successCount++;
+              console.log(`Successfully updated bay ${bayId}`);
+            } else {
+              console.error(`Failed to update bay ${bayId}: ${response.statusText}`);
+            }
+          } catch (err) {
+            console.error(`Error updating bay ${bayId}:`, err);
+          }
+          
+          // Small delay between requests
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        // Remove from team descriptions
+        setTeamDescriptions(prev => {
+          const newDescriptions = {...prev};
+          if (teamName in newDescriptions) {
+            delete newDescriptions[teamName];
+          }
+          return newDescriptions;
+        });
+        
+        // If we've updated at least one bay successfully, consider it a success
+        if (successCount > 0) {
+          toast({
+            title: "Team Deleted",
+            description: `Successfully removed "${teamName}" team from ${successCount} bay(s)`,
+          });
+          
+          // Close the dialog
+          setTeamDeleteConfirm({
+            isOpen: false,
+            teamName: '',
+            bayIds: []
+          });
+          
+          // Now reload the page for a complete refresh - this is the most reliable way
+          // to ensure the UI fully reflects the database state
+          console.log("Scheduling page reload after team deletion...");
+          setTimeout(() => {
+            window.location.href = window.location.href;
+          }, 1200);
+        } else {
+          // No bays were updated successfully
+          throw new Error("Failed to update any bays");
+        }
+      } catch (apiError) {
+        console.error('API error when deleting team:', apiError);
+        throw apiError;
+      }
+    } catch (error) {
+      console.error('Error deleting team:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete team. Please try again.",
+        variant: "destructive"
+      });
+      
+      // Reset delete confirmation dialog
+      setTeamDeleteConfirm({
+        isOpen: false,
+        teamName: '',
+        bayIds: []
+      });
+    }
+  };
+  
+  // Handler function for when team data is updated from TeamManagementDialog
+  const handleTeamUpdate = async (teamName: string, newTeamName: string, description: string, assemblyStaff: number, electricalStaff: number, hoursPerWeek: number) => {
+    try {
+      console.log(`Updating team from "${teamName}" to "${newTeamName}" with description: "${description}"`);
+      
+      // Update team descriptions immediately in local state
+      const newDescriptions = {...teamDescriptions};
+      newDescriptions[newTeamName] = description; 
+      
+      // If team name changed, remove old entry
+      if (teamName !== newTeamName && teamName in newDescriptions) {
+        delete newDescriptions[teamName];
+      }
+      
+      // Update state with new values
+      setTeamDescriptions(newDescriptions);
+      
+      // Always reload fresh data from API after any team update
+      try {
+        console.log("Fetching fresh bay data after team update");
+        const response = await fetch('/api/manufacturing-bays');
+        if (response.ok) {
+          const freshBays = await response.json();
+          console.log("Received fresh bay data:", freshBays.length, "bays after team update");
+          
+          // Always force a full page refresh after team updates
+          // This ensures all UI elements are properly updated with the latest data
+          console.log("Forcing page refresh to update UI with latest team data");
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }
+      } catch (err) {
+        console.error("Error refreshing bay data:", err);
+        // Force refresh even if API fetch failed as a fallback
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Error in handleTeamUpdate:', error);
+      // Show error toast
+      toast({
+        title: "Update failed",
+        description: "There was an error updating the team. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  // Add forceUpdate state to force re-rendering when needed
+  const [forceUpdate, setForceUpdate] = useState<number>(Date.now());
+  
+  // PDF generation function for team schedules with project bar visualization
+  const generateTeamSchedulePDF = (teamName: string, teamBays: ManufacturingBay[]) => {
+    try {
+      console.log('Starting PDF generation for team:', teamName);
+      console.log('Team bays:', teamBays);
+      console.log('Available scheduleBars:', scheduleBars?.length || 0);
+      console.log('Available projects:', projects?.length || 0);
+      
+      // Get all projects scheduled for this team
+      const teamProjects = scheduleBars.filter(bar => 
+        teamBays.some(bay => bay.id === bar.bayId)
+      );
+      
+      console.log('Team projects found:', teamProjects.length);
+      
+      // Sort projects by start date
+      teamProjects.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+      
+      // Calculate realistic team capacity - use conservative defaults per bay
+      const totalAssemblyStaff = teamBays.reduce((sum, bay) => 
+        sum + (bay.assemblyStaffCount && bay.assemblyStaffCount <= 5 ? bay.assemblyStaffCount : 2), 0
+      );
+      const totalElectricalStaff = teamBays.reduce((sum, bay) => 
+        sum + (bay.electricalStaffCount && bay.electricalStaffCount <= 3 ? bay.electricalStaffCount : 1), 0
+      );
+      const totalStaff = totalAssemblyStaff + totalElectricalStaff;
+      
+      // Use realistic 40 hours per person per week
+      const weeklyCapacity = totalStaff * 40;
+      
+      // Create new PDF document in landscape orientation
+      console.log('Creating jsPDF instance...');
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+      console.log('jsPDF instance created successfully');
+      
+      const pageWidth = 297; // A4 landscape width in mm
+      const pageHeight = 210; // A4 landscape height in mm
+      const margin = 15;
+      const usableWidth = pageWidth - (margin * 2);
+      
+      // Create professional Nomad GCS header
+      doc.setFillColor(41, 128, 185); // Professional blue background
+      doc.rect(0, 0, pageWidth, 35, 'F');
+      
+      // Company name
+      doc.setTextColor(255, 255, 255); // White text
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('NOMAD GCS', margin, 20);
+      
+      // Subtitle
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Manufacturing Schedule Report', margin, 28);
+      
+      // Generation date aligned to right
+      doc.setFontSize(10);
+      const dateText = `Generated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`;
+      const dateWidth = doc.getTextWidth(dateText);
+      doc.text(dateText, pageWidth - margin - dateWidth, 20);
+      
+      // Team name aligned to right
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      const teamWidth = doc.getTextWidth(teamName);
+      doc.text(teamName, pageWidth - margin - teamWidth, 28);
+      
+      // Reset text color for content
+      doc.setTextColor(0, 0, 0);
+      
+      // Initialize currentY at the proper scope
+      let currentY = 85;
+      
+      // Calculate timeline for project bars - start from today and filter future projects
+      if (teamProjects.length > 0) {
+        const today = new Date();
+        
+        // Filter projects that start today or in the future
+        const futureProjects = teamProjects.filter(p => new Date(p.startDate) >= today);
+        
+        if (futureProjects.length > 0) {
+          const latestEnd = new Date(Math.max(...futureProjects.map(p => new Date(p.endDate).getTime())));
+          const totalDays = differenceInDays(latestEnd, today);
+          
+          // Start project bar visualization
+          const barHeight = 12;
+          const projectRowHeight = 18;
+          const timelineHeight = 20;
+          
+          // Add timeline header
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Project Timeline (From Today Forward):', margin, currentY);
+          currentY += 10;
+          
+          // Draw unified timeline scale
+          const scaleY = currentY;
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          
+          // Draw month markers
+          const timelineWidth = usableWidth - 60;
+          const pixelsPerDay = timelineWidth / totalDays;
+          
+          let currentMonth = new Date(today);
+          while (currentMonth <= latestEnd) {
+            const monthOffset = differenceInDays(currentMonth, today) * pixelsPerDay;
+            const monthX = margin + 60 + monthOffset;
+            
+            if (monthX <= margin + usableWidth - 20) {
+              doc.line(monthX, scaleY, monthX, scaleY + 5);
+              doc.text(format(currentMonth, 'MMM'), monthX - 5, scaleY - 2);
+            }
+            
+            currentMonth = addMonths(currentMonth, 1);
+          }
+          
+          currentY += 20;
+          
+          // Draw all future projects in a unified timeline (no bay grouping)
+          futureProjects.forEach((project, index) => {
+            // Check if we need a new page
+            if (currentY + projectRowHeight > pageHeight - margin) {
+              doc.addPage();
+              currentY = margin + 20; // Leave space for timeline if needed
+            }
+            
+            const projectData = projects.find(p => p.id === project.projectId);
+            const bay = teamBays.find(b => b.id === project.bayId);
+            const startOffset = differenceInDays(new Date(project.startDate), today) * pixelsPerDay;
+            const duration = differenceInDays(new Date(project.endDate), new Date(project.startDate));
+            const barWidth = Math.max(duration * pixelsPerDay, 5); // Minimum 5mm width
+            
+            const barX = margin + 60 + startOffset;
+            const barY = currentY;
+            
+            // Ensure bar doesn't exceed page width
+            const actualBarWidth = Math.min(barWidth, usableWidth - (barX - margin));
+            
+            // Draw project bar with phase colors
+            const phases = [
+              { name: 'FAB', percentage: project.fabPercentage || 27, color: [255, 165, 0] }, // Orange
+              { name: 'PAINT', percentage: project.paintPercentage || 7, color: [255, 69, 0] }, // Red-orange
+              { name: 'PROD', percentage: project.productionPercentage || 60, color: [34, 139, 34] }, // Green
+              { name: 'IT', percentage: project.itPercentage || 7, color: [30, 144, 255] }, // Blue
+              { name: 'NTC', percentage: project.ntcPercentage || 7, color: [138, 43, 226] }, // Purple
+              { name: 'QC', percentage: project.qcPercentage || 7, color: [220, 20, 60] } // Crimson
+            ];
+            
+            let phaseStartX = barX;
+            phases.forEach(phase => {
+              const phaseWidth = (actualBarWidth * phase.percentage) / 100;
+              
+              if (phaseWidth > 0.5) { // Only draw if visible
+                doc.setFillColor(phase.color[0], phase.color[1], phase.color[2]);
+                doc.rect(phaseStartX, barY, phaseWidth, barHeight, 'F');
+                phaseStartX += phaseWidth;
+              }
+            });
+            
+            // Add project label with bay info
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            const projectLabel = `${projectData?.projectNumber || project.projectId} - ${(projectData?.name || project.projectName).substring(0, 25)}`;
+            const bayLabel = `(${bay?.name || 'Bay ' + project.bayId})`;
+            
+            // Project number and name
+            doc.text(projectLabel, margin + 5, barY + 8);
+            // Bay assignment
+            doc.setFontSize(7);
+            doc.text(bayLabel, margin + 5, barY + 14);
+            
+            currentY += projectRowHeight;
+            
+            // If project bar extends beyond page width, continue on next page
+            if (barX + barWidth > usableWidth + margin) {
+              doc.addPage();
+              currentY = margin;
+              
+              // Continue drawing the remaining part of the bar
+              const remainingWidth = barWidth - actualBarWidth;
+              if (remainingWidth > 5) {
+                doc.text(`${projectLabel} (continued)`, margin, currentY + 8);
+                currentY += 15;
+                
+                // Draw remaining phases
+                let remainingPhaseStartX = margin;
+                
+                phases.forEach(phase => {
+                  const totalPhaseWidth = (barWidth * phase.percentage) / 100;
+                  const usedPhaseWidth = (actualBarWidth * phase.percentage) / 100;
+                  const remainingPhaseWidth = totalPhaseWidth - usedPhaseWidth;
+                  
+                  if (remainingPhaseWidth > 0.5) {
+                    doc.setFillColor(phase.color[0], phase.color[1], phase.color[2]);
+                    doc.rect(remainingPhaseStartX, currentY, Math.min(remainingPhaseWidth, usableWidth - remainingPhaseStartX), barHeight, 'F');
+                    remainingPhaseStartX += remainingPhaseWidth;
+                  }
+                });
+                
+                currentY += projectRowHeight;
+              }
+            }
+          });
+        } else {
+          // No future projects
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text('No future projects scheduled for this team.', margin, 85);
+        }
+        
+        // Add legend for phases
+        if (currentY + 40 > pageHeight - margin) {
+          doc.addPage();
+          currentY = margin;
+        }
+        
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Phase Legend:', margin, currentY);
+        currentY += 10;
+        
+        const legendPhases = [
+          { name: 'FAB', color: [255, 165, 0] },
+          { name: 'PAINT', color: [255, 69, 0] },
+          { name: 'PRODUCTION', color: [34, 139, 34] },
+          { name: 'IT', color: [30, 144, 255] },
+          { name: 'NTC', color: [138, 43, 226] },
+          { name: 'QC', color: [220, 20, 60] }
+        ];
+        
+        legendPhases.forEach((phase, index) => {
+          const legendX = margin + (index * 45);
+          doc.setFillColor(phase.color[0], phase.color[1], phase.color[2]);
+          doc.rect(legendX, currentY, 8, 6, 'F');
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          doc.text(phase.name, legendX + 10, currentY + 4);
+        });
+      }
+      
+      // Add footer with page numbers
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(`Page ${i} of ${pageCount}`, pageWidth - 30, pageHeight - 10);
+        doc.text(`${teamName} - Generated ${format(new Date(), 'MMM dd, yyyy')}`, margin, pageHeight - 10);
+      }
+      
+      // Save the PDF
+      const fileName = `${teamName.replace(/[^a-zA-Z0-9]/g, '_')}_Schedule_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      doc.save(fileName);
+      
+      // Show success toast
+      toast({
+        title: "PDF Generated",
+        description: `Schedule for ${teamName} has been downloaded with project timeline visualization`,
+      });
+      
+    } catch (error) {
+      console.error('Detailed PDF generation error:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('Error message:', error instanceof Error ? error.message : String(error));
+      
+      toast({
+        title: "PDF Generation Failed",
+        description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}. Check console for details.`,
+        variant: "destructive",
+      });
+    }
+  };
   const [confirmRowDelete, setConfirmRowDelete] = useState<{
     bayId: number;
     rowIndex: number;
@@ -368,6009 +1100,3873 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
       projectNumber: string;
     }[];
   } | null>(null);
+  const [currentProject, setCurrentProject] = useState<number | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // For collapsible sidebar
+  const [targetBay, setTargetBay] = useState<number | null>(null);
+  const [targetStartDate, setTargetStartDate] = useState<Date | null>(null);
+  const [targetEndDate, setTargetEndDate] = useState<Date | null>(null);
+  const [scheduleDuration, setScheduleDuration] = useState(4); // in weeks
+  const [recommendedDuration, setRecommendedDuration] = useState(0); // Stores the recommended duration from calculator
+  const [rowHeight, setRowHeight] = useState(36); // Height of each row in pixels (reduced by 40% from 60px)
+  const [slotWidth, setSlotWidth] = useState(60); // Increased slot width for better visibility
+  const [searchTerm, setSearchTerm] = useState('');
   
-  // Update bays when props change
-  useEffect(() => {
-    setBays(initialBays);
-  }, [initialBays]);
+  // Financial Impact Popup State
+  const [showFinancialImpact, setShowFinancialImpact] = useState(false);
+  const [financialImpactData, setFinancialImpactData] = useState<{
+    scheduleId: number;
+    projectId: number;
+    bayId: number;
+    originalStartDate: string;
+    originalEndDate: string;
+    newStartDate: string;
+    newEndDate: string;
+    totalHours?: number;
+    rowIndex?: number;
+  } | null>(null);
   
-  // Handle row deletion
-  const handleDeleteRow = async (bayId: number, rowIndex: number) => {
+  // Handler for when user confirms schedule changes in the financial impact popup
+  const handleFinancialImpactConfirm = async () => {
+    if (!financialImpactData) return;
+    
     try {
-      // Find affected schedules (projects) in this row
-      const affectedSchedules = schedules.filter(
-        schedule => schedule.bayId === bayId && (schedule.rowIndex === rowIndex || schedule.row === rowIndex)
+      // Update the schedule with the confirmed changes
+      await onScheduleChange(
+        financialImpactData.scheduleId,
+        financialImpactData.bayId,
+        financialImpactData.newStartDate,
+        financialImpactData.newEndDate,
+        financialImpactData.totalHours,
+        financialImpactData.rowIndex
       );
       
-      // Get current date for comparison
-      const today = new Date();
+      // Show success toast
+      toast({
+        title: "Schedule updated",
+        description: `Project schedule has been updated with financial impact considered.`,
+      });
       
-      // Process each affected schedule
-      for (const schedule of affectedSchedules) {
-        const scheduleStartDate = new Date(schedule.startDate);
-        const scheduleEndDate = new Date(schedule.endDate);
+      // Close the financial impact popup
+      setShowFinancialImpact(false);
+      setFinancialImpactData(null);
+    } catch (error) {
+      console.error('Error updating schedule after financial impact assessment:', error);
+      
+      toast({
+        title: "Update failed",
+        description: "There was an error updating the schedule. Please try again.",
+        variant: "destructive",
+      });
+      
+      // Close the financial impact popup
+      setShowFinancialImpact(false);
+      setFinancialImpactData(null);
+    }
+  };
+  
+  // Handler for when user cancels schedule changes in the financial impact popup
+  const handleFinancialImpactCancel = () => {
+    // Reset any visual changes to the affected schedule bar
+    const barElement = document.querySelector(`.schedule-bar[data-schedule-id="${financialImpactData?.scheduleId}"]`) as HTMLElement;
+    if (barElement) {
+      // Find the original position and size
+      const originalStartDate = parseISO(financialImpactData?.originalStartDate || '');
+      const originalEndDate = parseISO(financialImpactData?.originalEndDate || '');
+      
+      // Calculate original position in pixels
+      const { left, width } = calculateBarPosition(originalStartDate, originalEndDate) || {};
+      
+      if (left !== undefined && width !== undefined) {
+        // Revert the element to its original position and size
+        barElement.style.left = `${left}px`;
+        barElement.style.width = `${width}px`;
         
-        // If schedule is in the future or current (not past), move to unassigned
-        if (scheduleEndDate >= today) {
-          // Update schedule to remove from bay (set to "unassigned")
-          await onScheduleChange(
-            schedule.id,
-            0, // bayId 0 represents "unassigned"
-            schedule.startDate,
-            schedule.endDate,
-            schedule.totalHours !== null ? Number(schedule.totalHours) : undefined,
-            0 // rowIndex 0 for unassigned
-          );
-        }
-        // Past projects are not modified - they'll remain in history but won't be visible
+        // Update department phase widths based on original width
+        updateDepartmentPhaseWidths(barElement, width);
       }
-      
-      toast({
-        title: "Row Deleted",
-        description: `Row removed from ${bays.find(b => b.id === bayId)?.name || 'bay'}`,
-      });
-      
-      // Close the confirmation dialog
-      setConfirmRowDelete(null);
-    } catch (error) {
-      console.error('Error deleting row:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete row. Please try again.",
-        variant: "destructive",
-      });
     }
+    
+    // Close the financial impact popup without making any changes
+    setShowFinancialImpact(false);
+    setFinancialImpactData(null);
+    
+    toast({
+      title: "Changes cancelled",
+      description: "Schedule changes have been cancelled."
+    });
   };
+  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
+  const [showAddMultipleWarning, setShowAddMultipleWarning] = useState(false);
+  const [showQcDaysWarning, setShowQcDaysWarning] = useState(false);
+  const [modifiedSchedule, setModifiedSchedule] = useState<ScheduleBar | null>(null);
+  const [originalSchedule, setOriginalSchedule] = useState<ScheduleBar | null>(null);
+  const [showRevertDialog, setShowRevertDialog] = useState(false);
   
-  // Handle row addition - especially for special multi-row bays like Team 7 & 8
-  const handleRowAdd = async (bayId: number, rowIndex: number) => {
-    try {
-      const bay = bays.find(b => b.id === bayId);
-      if (!bay) {
-        throw new Error(`Bay with ID ${bayId} not found`);
-      }
-      
-      toast({
-        title: "Row Added",
-        description: `New row added after row ${rowIndex + 1} in ${bay.name}`,
-      });
-      
-      // In a full implementation, we might update the bay's configuration or capacity
-      // to reflect the addition of a new row
-    } catch (error) {
-      console.error('Error adding row:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add row. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+  // Track the viewport element for scrolling
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
   
-  // Handle document-level drag events for global feedback
-  useEffect(() => {
-    const handleDocumentDragOver = () => {
-      document.body.classList.add('dragging-active');
-    };
+  // Navigation state
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  
+  // Update scroll button states based on viewport position
+  const updateScrollButtons = useCallback(() => {
+    if (!viewportRef.current) return;
     
-    const handleDocumentDragEnd = () => {
-      document.body.classList.remove('dragging-active');
-      
-      // Clean up all highlight classes - properly escape CSS class names with special characters
-      // Separate selectors to avoid issues with special characters
-      [
-        '.drag-hover', 
-        '.active-drop-target', 
-        '.week-cell-hover', 
-        '.week-cell-resize-hover', 
-        '.bay-row-highlight', 
-        '.drop-target-highlight', 
-        '.bg-primary\\/10', 
-        '.bg-primary\\/20', 
-        '.border-primary', 
-        '.border-dashed'
-      ].forEach(selector => {
-        try {
-          document.querySelectorAll(selector).forEach(el => {
-            el.classList.remove(
-              'drag-hover', 
-              'active-drop-target', 
-              'week-cell-hover', 
-              'week-cell-resize-hover',
-              'bay-row-highlight',
-              'drop-target-highlight',
-              'bg-primary/10',
-              'bg-primary/20',
-              'border-primary',
-              'border-dashed'
-            );
-          });
-        } catch (e) {
-          console.log(`Error cleaning up selector ${selector}:`, e);
-        }
-      });
-      
-      // Remove row highlight classes
-      document.querySelectorAll('[class*="row-"][class*="-highlight"]').forEach(el => {
-        // Remove all row highlight classes
-        for (let i = 0; i < 4; i++) {
-          el.classList.remove(`row-${i}-highlight`);
-        }
-      });
-      
-      setDropTarget(null);
-    };
+    const viewport = viewportRef.current;
+    const scrollLeft = viewport.scrollLeft;
+    const scrollWidth = viewport.scrollWidth;
+    const clientWidth = viewport.clientWidth;
     
-    document.addEventListener('dragover', handleDocumentDragOver);
-    document.addEventListener('dragend', handleDocumentDragEnd);
-    document.addEventListener('drop', handleDocumentDragEnd);
-    
-    return () => {
-      document.removeEventListener('dragover', handleDocumentDragOver);
-      document.removeEventListener('dragend', handleDocumentDragEnd);
-      document.removeEventListener('drop', handleDocumentDragEnd);
-    };
+    setCanScrollLeft(scrollLeft > 0);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth);
   }, []);
   
-  const { toast } = useToast();
-  const timelineContainerRef = useRef<HTMLDivElement>(null);
-  const weekHeaderRef = useRef<HTMLDivElement>(null);
-  // Removed sticky header refs
-  const [draggingSchedule, setDraggingSchedule] = useState<any>(null);
+  // Handle left navigation
+  const handleScrollLeft = useCallback(() => {
+    if (!viewportRef.current) return;
+    
+    const scrollAmount = viewportRef.current.clientWidth * 0.375; // Scroll 37.5% of viewport width
+    viewportRef.current.scrollBy({
+      left: -scrollAmount,
+      behavior: 'smooth'
+    });
+  }, []);
   
-  // Function to calculate bar position based on dates
-
-  const calculateBarPosition = (startDate: Date, endDate: Date): { left?: number, width?: number } => {
-    try {
-      // Need to find our viewport date range (what's visible)
-      const viewportStart = dateRange.start;
-      const viewportEnd = dateRange.end;
+  // Handle right navigation
+  const handleScrollRight = useCallback(() => {
+    if (!viewportRef.current) return;
+    
+    const scrollAmount = viewportRef.current.clientWidth * 0.375; // Scroll 37.5% of viewport width
+    viewportRef.current.scrollBy({
+      left: scrollAmount,
+      behavior: 'smooth'
+    });
+  }, []);
+  
+  // Add scroll event listener to update button states
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    
+    const handleScroll = () => {
+      updateScrollButtons();
+    };
+    
+    viewport.addEventListener('scroll', handleScroll);
+    // Initial check
+    updateScrollButtons();
+    
+    return () => {
+      viewport.removeEventListener('scroll', handleScroll);
+    };
+  }, [updateScrollButtons]);
+  
+  // Update end date whenever start date or duration changes
+  useEffect(() => {
+    if (targetStartDate && scheduleDuration > 0) {
+      setTargetEndDate(addWeeks(targetStartDate, scheduleDuration));
+    }
+  }, [targetStartDate, scheduleDuration]);
+  
+  // Group bays by team name - this is the key to preventing duplicate blue headers
+  const bayTeams = useMemo(() => {
+    // First sort all bays by their bay number
+    const sortedBays = [...bays].sort((a, b) => a.bayNumber - b.bayNumber);
+    
+    // Group bays by their team property using a string key in a dictionary
+    const teamMap: Record<string, ManufacturingBay[]> = {};
+    
+    // ONLY include bays that have an actual team assigned 
+    // This completely eliminates phantom teams from the UI
+    const assignedTeamBays = sortedBays.filter(bay => 
+      bay.team !== null && 
+      bay.team !== undefined && 
+      bay.team !== '' && 
+      // Specifically filter out any bays with auto-generated "Team X:" names
+      !bay.team.match(/^Team \d+:?/)
+    );
+    
+    // Process each bay with a valid team and group it
+    assignedTeamBays.forEach(bay => {
+      // Use the team name as the key for grouping
+      const teamKey = bay.team || '';
       
-      // Ensure dates are valid
-      if (!startDate || !endDate || !viewportStart || !viewportEnd) {
-        console.error("Invalid dates in calculateBarPosition", { startDate, endDate, viewportStart, viewportEnd });
-        return {};
+      // Initialize the array for this team if it doesn't exist yet
+      if (!teamMap[teamKey]) {
+        teamMap[teamKey] = [];
       }
       
-      // Calculate day offset from viewport start
-      const daysFromStart = differenceInDays(startDate, viewportStart);
+      // Add this bay to its team group
+      teamMap[teamKey].push(bay);
+    });
+    
+    // Convert the team map to an array of bay arrays (each sub-array = one team)
+    const teams = Object.values(teamMap);
+    
+    // Sort teams by the lowest bay number in each team (for consistent ordering)
+    teams.sort((a, b) => {
+      const minBayNumberA = Math.min(...a.map(bay => bay.bayNumber));
+      const minBayNumberB = Math.min(...b.map(bay => bay.bayNumber));
+      return minBayNumberA - minBayNumberB;
+    });
+    
+    console.log("Active teams found:", teams.map(team => team[0]?.team).join(", "));
+    
+    return teams;
+  }, [bays]);
+  
+  // Slots for the timeline
+  const slots = useMemo(() => {
+    return generateTimeSlots(dateRange, viewMode);
+  }, [dateRange, viewMode]);
+  
+  // Calculate schedule bars positions based on the schedules data
+  useEffect(() => {
+    console.log('Recalculating schedule bars (version 3): ensuring NO automatic adjustments');
+    
+    if (!schedules.length || !projects.length) return;
+    
+    // Calculate pixels per day based on slot width
+    const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
+    
+    // Map schedules to bars
+    const bars = schedules.map((schedule) => {
+      const project = projects.find((p) => p.id === schedule.projectId);
       
-      // Calculate project duration in days
-      const durationDays = Math.max(1, differenceInDays(endDate, startDate)); // Ensure at least 1 day
-      
-      // Calculate viewport width in days
-      const viewportDays = differenceInDays(viewportEnd, viewportStart);
-      
-      // Calculate the total width of the timeline
-      const timelineContainer = timelineContainerRef.current;
-      if (!timelineContainer) {
-        console.error("Timeline container not found");
-        return {};
+      if (!project) {
+        console.warn(`Project not found for schedule: ${schedule.id}, projectId: ${schedule.projectId}`);
+        return null;
       }
       
-      const timelineWidth = timelineContainer.clientWidth;
+      // IMPORTANT FIX: Explicitly handle each date format possibility
+      // This ensures schedules appear in their correct position on the timeline
+      let startDate: Date, endDate: Date;
       
-      // Calculate pixels per day
-      const pixelsPerDay = timelineWidth / viewportDays;
+      // Start date handling
+      if (typeof schedule.startDate === 'string') {
+        // For string dates, parse without timezone influence
+        startDate = parseISO(schedule.startDate.split('T')[0]);
+      } else if (schedule.startDate instanceof Date) {
+        // For Date objects, create a new date to avoid reference issues
+        startDate = new Date(schedule.startDate.getFullYear(), schedule.startDate.getMonth(), schedule.startDate.getDate());
+      } else {
+        // Fallback for any other case
+        console.warn(`Unusual date format for schedule ${schedule.id}, using current date as fallback`);
+        startDate = new Date();
+      }
       
-      // Calculate left position
+      // End date handling with the same careful approach
+      if (typeof schedule.endDate === 'string') {
+        endDate = parseISO(schedule.endDate.split('T')[0]);
+      } else if (schedule.endDate instanceof Date) {
+        endDate = new Date(schedule.endDate.getFullYear(), schedule.endDate.getMonth(), schedule.endDate.getDate());
+      } else {
+        // Fallback case
+        console.warn(`Unusual end date format for schedule ${schedule.id}, using start date + 30 days as fallback`);
+        endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 30);
+      }
+      
+      console.log(`Parsing schedule ${schedule.id} dates (fixed version):`, {
+        originalStartDate: schedule.startDate,
+        originalEndDate: schedule.endDate,
+        fixedStartDate: format(startDate, 'yyyy-MM-dd'),
+        fixedEndDate: format(endDate, 'yyyy-MM-dd')
+      });
+      
+      // FIXED DATE POSITION CALCULATION - Direct fix for date alignment
+      // Instead of calculating based on dateRange.start, use our known starting position
+      // This ensures the dates in UI match the database dates exactly
+      
+      // DIRECT DATE POSITIONING: Use actual dates with no offset
+      // Calculate position from the current view's start date
+      const daysFromStart = differenceInDays(startDate, dateRange.start);
+      
+      // No offsets, no adjustments - use the actual date position
       const left = daysFromStart * pixelsPerDay;
       
-      // Calculate width (ensure minimum width for visibility)
-      const width = Math.max(50, durationDays * pixelsPerDay);
+      console.log(`Schedule ${schedule.id} position:`, {
+        date: format(startDate, 'yyyy-MM-dd'),
+        daysFromStart: daysFromStart,
+        pixelPosition: left
+      });
       
-      console.log("Bar position calculated:", { left, width, daysFromStart, durationDays, pixelsPerDay });
+      // Calculate width based on duration
+      const durationDays = differenceInDays(endDate, startDate) + 1; // +1 to include the end date
+      const width = durationDays * pixelsPerDay;
       
-      return { left, width };
-    } catch (error) {
-      console.error("Error calculating bar position:", error);
-      return {};
-    }
-  };
+      // Determine a color based on project ID
+      const colorIndex = schedule.projectId % PROJECT_COLORS.length;
+      const color = PROJECT_COLORS[colorIndex];
+      
+      const bar: ScheduleBar = {
+        id: schedule.id,
+        projectId: schedule.projectId,
+        bayId: schedule.bayId,
+        startDate,
+        endDate,
+        totalHours: schedule.totalHours,
+        projectName: project.name,
+        projectNumber: project.projectNumber,
+        width,
+        left,
+        color,
+        row: schedule.row !== undefined ? schedule.row : 0, // Use the explicit row from database
+        
+        // Department phase percentages (default values)
+        fabPercentage: 27,
+        paintPercentage: 7,
+        productionPercentage: 60,
+        itPercentage: 7,
+        ntcPercentage: 7,
+        qcPercentage: 7,
+        
+        // Default fab weeks
+        fabWeeks: 4
+      };
+      
+      // Bar object is created but phase widths aren't calculated yet
+      return bar;
+    }).filter((bar): bar is ScheduleBar => bar !== null);
+    
+    // Important: NO automatic row assignment or repositioning
+    // Bars will be positioned exactly where they are in the database
+    
+    // Convert manufacturing bays to the Bay type needed for capacity calculations
+    const capacityBays = bays.map(bay => ({
+      id: bay.id,
+      team: bay.team,
+      assemblyStaffCount: bay.assemblyStaffCount || 1, 
+      electricalStaffCount: bay.electricalStaffCount || 1,
+      hoursPerPersonPerWeek: bay.hoursPerPersonPerWeek || 29 // Default 29 hours per week
+    }));
+    
+    // Apply team capacity-based calculations to all schedule bars
+    const barsWithCapacityCalculation = updatePhaseWidthsWithExactFit(bars, capacityBays);
+    console.log('Applied capacity-based calculations for production phase widths');
+    
+    setScheduleBars(barsWithCapacityCalculation);
+  }, [schedules, projects, dateRange, viewMode, slotWidth]);
   
-  // Function to update the width of department phase elements with exact pixel precision
-  // This is a simplified wrapper around our more robust ExactFitPhaseWidths utility
-  const updateDepartmentPhaseWidths = (barElement: HTMLElement, totalWidth: number) => {
-    try {
-      // Validate input
-      if (!barElement || !totalWidth || totalWidth <= 0) {
-        console.error("Invalid bar element or width", { barElement, totalWidth });
+  // Filter projects when search term changes
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredProjects([]);
+      return;
+    }
+    
+    const searchTermLower = searchTerm.toLowerCase();
+    
+    // Filter projects by name or number
+    const filtered = projects.filter(
+      (project) =>
+        project.name.toLowerCase().includes(searchTermLower) ||
+        project.projectNumber.toLowerCase().includes(searchTermLower)
+    );
+    
+    // Get IDs of already scheduled projects
+    const scheduledProjectIds = new Set(schedules.map((s) => s.projectId));
+    
+    // Sort by whether they're already scheduled
+    const sorted = [...filtered].sort((a, b) => {
+      const aScheduled = scheduledProjectIds.has(a.id);
+      const bScheduled = scheduledProjectIds.has(b.id);
+      
+      if (aScheduled && !bScheduled) return 1;
+      if (!aScheduled && bScheduled) return -1;
+      return 0;
+    });
+    
+    setFilteredProjects(sorted);
+  }, [searchTerm, projects, schedules]);
+  
+  // Auto-scroll to center the red TODAY line in the viewport by finding it visually
+  useEffect(() => {
+    // Wait for rendering to complete
+    const scrollTimeout = setTimeout(() => {
+      // Get the viewport element
+      const viewportEl = viewportRef.current;
+      
+      if (!viewportEl) {
+        console.error('Could not find viewport element');
         return;
       }
       
-      // Force the barElement to have the specified width first
-      barElement.style.width = `${totalWidth}px`;
-      
-      // Force a reflow to ensure the above width change takes effect
-      barElement.getBoundingClientRect();
-      
-      // Get the schedule ID from the bar element
-      const scheduleId = parseInt(barElement.getAttribute('data-schedule-id') || '0', 10);
-      
-      // Find the schedule and project data
-      const schedule = schedules.find(s => s.id === scheduleId);
-      const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
-      
-      // Use our dedicated exact-fit utility to properly update phases
-      const updateSuccess = updatePhaseWidthsWithExactFit(barElement, totalWidth, project);
-      
-      if (updateSuccess) {
-        console.log(`✅ Phase widths successfully updated with exact fit for schedule ${scheduleId}`);
-      } else {
-        console.warn(`⚠️ Could not update phases with exact fit for schedule ${scheduleId}, trying fallback method`);
+      try {
+        // Find the red TODAY line directly in the DOM
+        // This looks for any element with 'today-line' or 'today-marker' class
+        // or any element with red background color that might be the marker
+        const findTodayLine = () => {
+          // Try different selectors to find the today line
+          const selectors = [
+            '.today-line', 
+            '.today-marker', 
+            '.today-indicator',
+            '[data-today="true"]', 
+            '.timeline-container [style*="background-color: rgba(239, 68, 68"]',
+            '.timeline-container [style*="background: rgba(239, 68, 68"]',
+            '.timeline-container [style*="background-color: rgb(239, 68, 68"]',
+            '.timeline-container [style*="background: rgb(239, 68, 68"]',
+            '.today'
+          ];
+          
+          // Try each selector
+          for (const selector of selectors) {
+            const element = document.querySelector(selector);
+            if (element) {
+              console.log(`Found today line using selector: ${selector}`);
+              return element;
+            }
+          }
+          
+          // If we couldn't find it with selectors, look for any red element
+          const allElements = document.querySelectorAll('*');
+          for (let i = 0; i < allElements.length; i++) {
+            const el = allElements[i];
+            if (el instanceof HTMLElement) {
+              const style = window.getComputedStyle(el);
+              const bgColor = style.backgroundColor;
+              // Check if it's a red element (rough check for red-ish colors)
+              if (
+                (bgColor.includes('rgb(239, 68, 68)') || 
+                bgColor.includes('rgb(255, 0, 0)') || 
+                bgColor.includes('rgb(220, 38, 38)') ||
+                el.classList.contains('bg-red-500')) &&
+                el.offsetHeight > 40 // Likely a vertical line
+              ) {
+                console.log('Found today line by color analysis');
+                return el;
+              }
+            }
+          }
+          
+          return null;
+        };
         
-        // Find all phase elements within this bar
-        const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
-        const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
-        const prodPhase = barElement.querySelector('.dept-prod-phase') as HTMLElement;
-        const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
-        const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
-        const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
+        // Find the today line
+        const todayLine = findTodayLine();
         
-        if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
-          // Use project-specific phase percentages or fallback to company standard defaults
-          const fabPercentage = project ? (parseFloat(project.fabPercentage as any) || 27) : 27;
-          const paintPercentage = project ? (parseFloat(project.paintPercentage as any) || 7) : 7; 
-          const productionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
-          const itPercentage = project ? (parseFloat(project.itPercentage as any) || 7) : 7;
-          const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 7) : 7;
-          const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 7) : 7;
+        if (todayLine) {
+          // Get the position of the today line
+          const rect = todayLine.getBoundingClientRect();
+          const containerRect = viewportEl.getBoundingClientRect();
           
-          // Calculate the total percentage and normalization factor
-          const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
-                                  itPercentage + ntcPercentage + qcPercentage;
-          const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
+          // Calculate the today line's position relative to the viewport
+          const todayPosition = rect.left + viewportEl.scrollLeft - containerRect.left;
           
-          // Calculate exact phase widths (floor + remainder method)
-          const fabWidth = Math.floor(totalWidth * (fabPercentage * normalizeFactor / 100));
-          const paintWidth = Math.floor(totalWidth * (paintPercentage * normalizeFactor / 100));
-          const prodWidth = Math.floor(totalWidth * (productionPercentage * normalizeFactor / 100));
-          const itWidth = Math.floor(totalWidth * (itPercentage * normalizeFactor / 100));
-          const ntcWidth = Math.floor(totalWidth * (ntcPercentage * normalizeFactor / 100));
+          console.log(`Found Today line at position: ${todayPosition}px`);
           
-          // The last phase gets the remainder to ensure exact fit
-          const qcWidth = totalWidth - (fabWidth + paintWidth + prodWidth + itWidth + ntcWidth);
+          // Center it in the viewport
+          const viewportWidth = viewportEl.clientWidth;
+          const scrollPosition = Math.max(0, todayPosition - (viewportWidth / 2));
           
-          // Apply phases directly
-          fabPhase.style.width = `${fabWidth}px`;
+          console.log(`Auto-scrolling to position ${scrollPosition}px to center the today line`);
           
-          paintPhase.style.left = `${fabWidth}px`;
-          paintPhase.style.width = `${paintWidth}px`;
-          
-          prodPhase.style.left = `${fabWidth + paintWidth}px`;
-          prodPhase.style.width = `${prodWidth}px`;
-          
-          itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
-          itPhase.style.width = `${itWidth}px`;
-          
-          ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
-          ntcPhase.style.width = `${ntcWidth}px`;
-          
-          qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
-          qcPhase.style.width = `${qcWidth}px`;
-          
-          // Force a DOM reflow to ensure changes are applied immediately
-          barElement.getBoundingClientRect();
-          
-          // Add data attributes for debugging
-          barElement.setAttribute('data-phases-updated', 'fallback-exact-fit');
-          barElement.setAttribute('data-total-width', totalWidth.toString());
-        } else {
-          console.error(`Missing phase elements for schedule bar ${scheduleId}`);
-        }
-      }
-    } catch (error) {
-      console.error(`Error updating phase widths:`, error);
-    }
-  };
-  const [resizingSchedule, setResizingSchedule] = useState<{
-    id: number;
-    direction: 'left' | 'right';
-    startX: number;
-    initialWidth: number;
-    initialLeft: number;
-    initialStartDate: Date;
-    initialEndDate: Date;
-    originalHours?: number; // Added this to store original hours
-    projectId: number;
-    bayId: number;
-    row?: number;
-  } | null>(null);
-  
-  // Track which slot/week the resize is hovering over for visual feedback
-  const [resizeHoverSlot, setResizeHoverSlot] = useState<number | null>(null);
-  const [dropTarget, setDropTarget] = useState<{ bayId: number, slotIndex: number, rowIndex?: number } | null>(null);
-  const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
-  const [newBay, setNewBay] = useState<ManufacturingBay | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
-  
-  // Add a version counter to force recalculation of schedules
-  const [recalculationVersion, setRecalculationVersion] = useState(1);
-
-  // Loading state for project moves
-  const [isMovingProject, setIsMovingProject] = useState(false);
-  const [isUnassigningProject, setIsUnassigningProject] = useState(false);
-  
-  // States for row management in multi-row bays (like Team 7 & 8)
-  const [rowToDelete, setRowToDelete] = useState<{
-    bayId: number;
-    rowIndex: number;
-    projects: {
-      id: number;
-      projectId: number;
-      projectName: string;
-      projectNumber: string;
-    }[];
-  } | null>(null);
-  const [deleteRowDialogOpen, setDeleteRowDialogOpen] = useState(false);
-
-  // Add state for warning popup when manual resizing affects capacity
-  const [showCapacityWarning, setShowCapacityWarning] = useState(false);
-  const [capacityWarningData, setCapacityWarningData] = useState<{
-    scheduleId: number;
-    bayId: number; 
-    newStartDate: string;
-    newEndDate: string;
-    totalHours: number;
-    impact: 'over-capacity' | 'under-capacity';
-    percentage: number;
-    affectedProjects: any[];
-  } | null>(null);
-  
-  // Track auto-adjusted bays using their IDs
-  const [autoAdjustedBays, setAutoAdjustedBays] = useState<Record<number, boolean>>({});
-  
-  // Force a recalculation when component mounts or when schedules change
-  useEffect(() => {
-    setRecalculationVersion(prev => prev + 1);
-  }, [schedules.length]);
-
-  // Removed sticky header behavior as requested by user
-  useEffect(() => {
-    // This effect intentionally left empty as we've removed the sticky header functionality
-    // Per user request: "When starting to scroll right on page upload, I get this funky extra week header bar that is not aligning, Please just remove this."
-  }, []);
-  
-  // Auto-scroll to current week implementation
-  const scrollToCurrentWeek = useCallback(() => {
-    console.log("Auto-scrolling to current week");
-    
-    try {
-      // Get the timeline container from our ref
-      const scrollContainer = timelineContainerRef.current;
-      
-      if (!scrollContainer) {
-        console.error("Timeline container not found - cannot auto-scroll to today");
-        return false;
-      }
-      
-      // Calculate current week based on the actual current date
-      const today = new Date(); // Current date
-      
-      // Calculate the current week number dynamically
-      const startOfYear = new Date(today.getFullYear(), 0, 1);
-      const days = Math.floor((today.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-      const currentWeek = Math.ceil(days / 7);
-      const pixelsPerWeek = 144; // From time slot calculation (144px per week in week view)
-      const bayColumnWidth = 256; // Bay column width - adjusted for this component
-      
-      // Calculate target position
-      const targetPosition = (currentWeek * pixelsPerWeek) + bayColumnWidth;
-      
-      // Force scroll to center the today line in the middle of the viewport
-      const centerPosition = targetPosition - (scrollContainer.clientWidth / 2);
-      scrollContainer.scrollLeft = Math.max(0, centerPosition);
-      
-      console.log(`Auto-scrolled to current week position: ${targetPosition}px (week ${currentWeek} of ${today.getFullYear()}) centered at ${centerPosition}px`);
-      
-      // No toast notification to avoid distracting the user
-      return true;
-    } catch (error) {
-      console.error("Auto-scrolling to current week failed:", error);
-      return false;
-    }
-  }, [toast, dateRange.start]);
-  
-  // Add auto-scroll effect that runs when component mounts
-  useEffect(() => {
-    // Wait for rendering to complete before attempting to scroll
-    const timeoutId = setTimeout(() => {
-      scrollToCurrentWeek();
-    }, 500);
-    
-    return () => clearTimeout(timeoutId);
-  }, [scrollToCurrentWeek]);
-  
-  // Function to automatically adjust schedules to maintain 100% capacity usage
-  // Now takes optional bayId to only adjust a specific bay
-  const applyAutoCapacityAdjustment = (specificBayId?: number) => {
-    if (!schedules.length || !bays.length) return;
-    
-    // Group schedules by bay
-    const schedulesByBay = schedules.reduce((acc, schedule) => {
-      if (!acc[schedule.bayId]) {
-        acc[schedule.bayId] = [];
-      }
-      acc[schedule.bayId].push(schedule);
-      return acc;
-    }, {} as Record<number, typeof schedules>);
-    
-    // Process each bay to optimize capacity (or just the specified bay)
-    Object.entries(schedulesByBay).forEach(([bayIdStr, baySchedules]) => {
-      const bayId = parseInt(bayIdStr);
-      
-      // Skip this bay if we're only processing a specific bay and this isn't it
-      if (specificBayId !== undefined && bayId !== specificBayId) return;
-      
-      const bay = bays.find(b => b.id === bayId);
-      if (!bay) return;
-      
-      // Get the bay's capacity with null safety
-      // Handle null/undefined values safely
-      const hoursPerWeek = bay.hoursPerPersonPerWeek !== null && bay.hoursPerPersonPerWeek !== undefined 
-          ? bay.hoursPerPersonPerWeek : 0;
-      const staffCount = bay.staffCount !== null && bay.staffCount !== undefined 
-          ? bay.staffCount : 1;
-      const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
-      
-      // Sort schedules by start date (top rows first)
-      const sortedSchedules = [...baySchedules].sort((a, b) => {
-        // First sort by row (if available) with null safety
-        const aRow = (a.row !== undefined && a.row !== null) ? a.row : 0;
-        const bRow = (b.row !== undefined && b.row !== null) ? b.row : 0;
-        
-        if (aRow !== bRow) {
-          return aRow - bRow;
-        }
-        // Then by start date
-        return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-      });
-      
-      // Special handling for project 805626 (ensure it gets proper capacity)
-      const project805626Schedule = sortedSchedules.find(schedule => {
-        const project = projects.find(p => p.id === schedule.projectId);
-        return project?.projectNumber === '805626';
-      });
-      
-      if (project805626Schedule) {
-        console.log('Found project 805626 - ensuring proper capacity allocation');
-        // Force this project to get full capacity allocation
-        project805626Schedule.row = 0; // Ensure it's in the top row for priority
-      }
-      
-      // Adjust each schedule in this bay
-      const adjusted: {id: number, newEndDate: string}[] = [];
-      
-      sortedSchedules.forEach(schedule => {
-        const project = projects.find(p => p.id === schedule.projectId);
-        if (!project) return;
-        
-        // Special case for project 805626 - calculate with 100% capacity
-        const is805626 = project.projectNumber === '805626';
-        if (is805626) {
-          console.log('Recalculating project 805626 with 100% capacity');
-          
-          // Original dates from the database
-          const startDate = new Date(schedule.startDate);
-          
-          // Total hours for this project
-          const totalHours = schedule.totalHours || 1000;
-          
-          // CRITICAL FIX: Only consider PRODUCTION hours for bay capacity calculation
-          // Get the related project for this schedule
-          const project = projects.find(p => p.id === schedule.projectId);
-          
-          // Get the project's production percentage or use default (60%)
-          const productionPercentage = parseFloat(project?.productionPercentage as any) || 60;
-          
-          // Calculate production hours (this is what actually consumes bay capacity)
-          const productionHours = totalHours * (productionPercentage / 100);
-          
-          // Calculate using full capacity (without sharing) but ONLY for PRODUCTION hours
-          const weeksNeeded = Math.ceil(productionHours / baseWeeklyCapacity);
-          const calculatedEndDate = addDays(startDate, (weeksNeeded * 7) + 1); // +1 to make inclusive
-          
-          // Add to adjustment list
-          adjusted.push({
-            id: schedule.id,
-            newEndDate: calculatedEndDate.toISOString()
+          // Smooth scroll to center the today line
+          viewportEl.scrollTo({
+            left: Math.floor(scrollPosition),
+            behavior: 'smooth'
           });
           
-          // Skip the rest of the calculations
+          // Enhance visibility of today line
+          if (todayLine instanceof HTMLElement) {
+            todayLine.style.boxShadow = '0 0 12px 3px rgba(239, 68, 68, 0.8)';
+            todayLine.style.zIndex = '1000';
+            todayLine.style.transition = 'all 0.3s ease-in-out';
+            
+            // Quick pulsing animation to draw attention
+            setTimeout(() => {
+              if (todayLine instanceof HTMLElement) {
+                todayLine.style.boxShadow = '0 0 20px 5px rgba(239, 68, 68, 0.9)';
+                setTimeout(() => {
+                  todayLine.style.boxShadow = '0 0 8px 2px rgba(239, 68, 68, 0.7)';
+                }, 500);
+              }
+            }, 300);
+            
+            console.log('Successfully centered and highlighted the TODAY line');
+          }
+        } else {
+          // Fallback: If we can't find the today line, calculate dynamically
+          const currentDate = new Date();
+          console.log(`Couldn't find today line visually, calculating position for current date: ${format(currentDate, 'yyyy-MM-dd')}`);
+          
+          // Calculate week number from start of year
+          const startOfYear = new Date(dateRange.start.getFullYear(), 0, 1);
+          const dayOfYear = differenceInDays(currentDate, startOfYear);
+          const weekIndex = Math.floor(dayOfYear / 7);
+          const dayOfWeek = (currentDate.getDay() + 6) % 7; // Convert to Monday-based
+          
+          // Calculate position based on week and day
+          const todayPosition = (weekIndex * slotWidth) + ((dayOfWeek/7) * slotWidth) + 200;
+          
+          const viewportWidth = viewportEl.clientWidth;
+          const scrollPosition = Math.max(0, todayPosition - (viewportWidth / 2));
+          
+          viewportEl.scrollTo({
+            left: Math.floor(scrollPosition),
+            behavior: 'smooth'
+          });
+        }
+      } catch (error) {
+        console.error('Error during auto-scroll:', error);
+      }
+    }, 1000); // Longer timeout to ensure everything is rendered
+    
+    return () => clearTimeout(scrollTimeout);
+  }, [viewportRef, slotWidth]);
+  
+  // Drag handling functions
+  const handleDragStart = (e: React.DragEvent, scheduleId: number) => {
+    // Find the specific schedule bar to get its details
+    const bar = scheduleBars.find((b) => b.id === scheduleId);
+    if (!bar) {
+      console.error('Could not find schedule bar with ID', scheduleId);
+      return;
+    }
+
+    // Store the schedule ID as plain text (primary data)
+    e.dataTransfer.setData('text/plain', scheduleId.toString());
+    
+    // Also store as JSON with complete data (enhanced data)
+    const dragData = {
+      scheduleId: bar.id,
+      projectId: bar.projectId,
+      bayId: bar.bayId,
+      startDate: format(bar.startDate, 'yyyy-MM-dd'),
+      endDate: format(bar.endDate, 'yyyy-MM-dd'),
+      totalHours: bar.totalHours,
+      projectName: bar.projectName,
+      projectNumber: bar.projectNumber
+    };
+    
+    e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+    e.dataTransfer.effectAllowed = 'move';
+    
+    // Set global state
+    setDraggingSchedule(scheduleId);
+    
+    // CRITICAL FIX: Add enhanced visual feedback AND disable other project bars
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.classList.add('dragging');
+      document.body.classList.add('dragging-active');
+      
+      // CRITICAL: Set the global drag state to hide all OTHER project bars
+      document.body.setAttribute('data-drag-in-progress', 'true');
+      document.body.classList.add('global-drag-active');
+      
+      console.log(`🚀 EXISTING PROJECT DRAG: ${bar.projectNumber} - ALL OTHER PROJECT BARS NOW HIDDEN`);
+      
+      // Create a custom drag image that looks like the actual bar
+      const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
+      dragImage.style.width = '200px'; // Fixed width for drag image
+      dragImage.style.height = '40px';
+      dragImage.style.zIndex = '9999';
+      dragImage.style.opacity = '0.8';
+      dragImage.style.pointerEvents = 'none';
+      dragImage.style.position = 'absolute';
+      dragImage.style.top = '-1000px'; // Hide it initially
+      document.body.appendChild(dragImage);
+      
+      e.dataTransfer.setDragImage(dragImage, 100, 20);
+      
+      // Remove the drag image after the drag operation completes
+      setTimeout(() => {
+        document.body.removeChild(dragImage);
+      }, 0);
+    }
+    
+    setDraggingSchedule(scheduleId);
+  };
+  
+  const handleDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, slotIndex: number) => {
+    // Always prevent default to allow dropping
+    e.preventDefault();
+    
+    // Set appropriate drop effect based on what's being dragged
+    try {
+      const dataString = e.dataTransfer.getData('text/plain');
+      if (dataString.startsWith('-') || document.body.classList.contains('dragging-unassigned-project')) {
+        // This is an unassigned project
+        e.dataTransfer.dropEffect = 'copy';
+      } else {
+        // This is an existing schedule being moved
+        e.dataTransfer.dropEffect = 'move';
+      }
+    } catch (err) {
+      // Default to move if we can't determine
+      e.dataTransfer.dropEffect = 'move';
+    }
+    
+    // Update the drop target for visual feedback
+    setDropTarget({ bayId, rowIndex });
+    
+    // Add visual indicator for drop target
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.classList.add('drop-target-active');
+      
+      // Find parent bay container for additional highlighting
+      let parent = e.currentTarget.parentElement;
+      while (parent && !parent.classList.contains('bay-container')) {
+        parent = parent.parentElement;
+      }
+      
+      if (parent) {
+        parent.classList.add('active-drop-area');
+      }
+    }
+  };
+  
+  const handleSlotDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
+    // CRITICAL: Always call preventDefault() to allow dropping
+    e.preventDefault();
+    
+    // FORCE-ACCEPT ALL DROPS
+    e.stopPropagation();
+    
+    // Force the cursor to always show "move" and never "no-drop"
+    e.dataTransfer.dropEffect = 'move';
+    
+    console.log(`✅ DRAG OVER: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
+    console.log(`✅ DROP TARGET ACTIVE: Cell accepting drop`);
+    
+    // Update drop target info
+    setDropTarget({ bayId, rowIndex });
+    
+    // Visually highlight the drop zone
+    if (e.currentTarget instanceof HTMLElement) {
+      // Add highlight classes
+      e.currentTarget.classList.add('drop-target');
+      e.currentTarget.classList.add('force-accept-drop');
+      
+      // Set critical data attributes needed for drop acceptance
+      e.currentTarget.setAttribute('data-drop-enabled', 'true');
+      e.currentTarget.setAttribute('data-overlap-allowed', 'true');
+      e.currentTarget.setAttribute('data-bay-id', bayId.toString());
+      e.currentTarget.setAttribute('data-row-index', rowIndex.toString());
+      
+      // Force the parent elements to accept drops too
+      let parent = e.currentTarget.parentElement;
+      while (parent) {
+        parent.classList.add('force-accept-drop');
+        parent.setAttribute('data-drop-enabled', 'true');
+        parent = parent.parentElement;
+      }
+      
+      // Ensure the body has the special class for CSS rules
+      document.body.classList.add('allow-multiple-projects');
+      document.body.classList.add('force-accept-drop');
+    }
+  };
+  
+  // Drag end cleanup is now handled by the useCallback above
+  
+  const handleDrop = async (e: React.DragEvent, bayId: number, slotIndex: number, rowIndex: number) => {
+    e.preventDefault();
+    console.log(`DROP DEBUG: handleDrop called with bayId=${bayId}, slotIndex=${slotIndex}, rowIndex=${rowIndex}`);
+    
+    // Try to get the data in both formats - we support both scheduled items and unassigned projects
+    const dataString = e.dataTransfer.getData('text/plain');
+    const jsonData = e.dataTransfer.getData('application/json');
+    
+    try {
+      // First, check if this is an unassigned project (identifier starts with -)
+      if (dataString.startsWith('-')) {
+        // Handle drop of an unassigned project
+        const projectId = parseInt(dataString.substring(1), 10);
+        console.log(`DROP DEBUG: Adding NEW project ID ${projectId} to schedule in bay ${bayId}`);
+        
+        // Find the project to get its details
+        const project = projects.find(p => p.id === projectId);
+        if (!project) {
+          console.error('DROP ERROR: Could not find project with ID', projectId);
           return;
         }
         
-        // Get the FAB weeks for this project (default to 4 if not set)
-        const fabWeeks = project.fabWeeks || 4;
-        
-        // Original dates from the database
-        const startDate = new Date(schedule.startDate);
-        
-        // Calculate production start date (after FAB phase)
-        const fabDays = fabWeeks * 7; // Convert weeks to days
-        const productionStartDate = addDays(startDate, fabDays);
-        
-        // Total hours for this project
-        const totalHours = schedule.totalHours || 1000;
-        
-        // Initialize variables for week-by-week calculation
-        let remainingHours = totalHours;
-        
-        // CRITICAL: Start allocation from the PRODUCTION start date (after FAB)
-        let currentDate = new Date(productionStartDate);
-        let calculatedEndDate = new Date(productionStartDate);
-        
-        // Find all other schedules in this bay
-        const otherSchedules = sortedSchedules.filter(s => s.id !== schedule.id);
-        
-        // Process week by week until all hours are allocated
-        while (remainingHours > 0) {
-          // For each week, check how many projects are overlapping
-          const weekStart = startOfWeek(currentDate);
-          const weekEnd = endOfWeek(currentDate);
-          
-          // Count ONLY projects that are in their PRODUCTION phase this week (AFTER FAB)
-          const projectsInWeek = otherSchedules.filter(s => {
-            const scheduleStart = new Date(s.startDate);
-            // Get the project to find its FAB weeks setting
-            const schedProject = projects.find(p => p.id === s.projectId);
-            const schedFabWeeks = schedProject?.fabWeeks || 4;
-            
-            // Calculate when production phase starts (after FAB)
-            const schedProductionStart = addDays(scheduleStart, schedFabWeeks * 7);
-            const scheduleEnd = new Date(s.endDate);
-            
-            // Only count projects where this week falls within their PRODUCTION phase
-            return (schedProductionStart <= weekEnd && scheduleEnd >= weekStart);
-          });
-          
-          // Calculate available capacity for this project in this week
-          // Up to 4 projects can share the capacity evenly
-          const totalProjects = Math.min(4, projectsInWeek.length + 1); // +1 for the current project
-          const availableCapacity = baseWeeklyCapacity / totalProjects;
-          
-          // Allocate hours for this week
-          const hoursToAllocate = Math.min(remainingHours, availableCapacity);
-          remainingHours -= hoursToAllocate;
-          
-          // Move to next week if we still have hours to allocate
-          if (remainingHours > 0) {
-            currentDate = addDays(currentDate, 7);
-            calculatedEndDate = currentDate;
-          }
+        // Get date at drop position
+        const targetDate = getDateFromDropPosition(e, bayId, rowIndex);
+        if (!targetDate) {
+          console.error('DROP ERROR: Could not determine target date for drop');
+          return;
         }
         
-        // Add an extra day to make the end date inclusive
-        calculatedEndDate = addDays(calculatedEndDate, 1);
+        // Calculate default duration (4 weeks for new projects)
+        const defaultDuration = scheduleDuration || 4; // in weeks
+        const endDate = addWeeks(targetDate, defaultDuration);
         
-        // Only update if there's a significant difference (more than 1 day)
-        const currentEndDate = new Date(schedule.endDate);
-        if (Math.abs(differenceInDays(calculatedEndDate, currentEndDate)) > 1) {
-          adjusted.push({
-            id: schedule.id,
-            newEndDate: calculatedEndDate.toISOString()
-          });
-        }
-      });
-      
-      // Apply adjustments to backend
-      Promise.all(adjusted.map(item => {
-        const schedule = schedules.find(s => s.id === item.id);
-        if (!schedule) return null;
+        // Default hours calculation (use project.totalHours if available, otherwise estimate)
+        const totalHours = project.totalHours || 1200; // Default to 1200 hours if not set
         
-        return onScheduleChange(
-          item.id,
-          schedule.bayId,
-          schedule.startDate,
-          item.newEndDate,
-          schedule.totalHours !== null ? Number(schedule.totalHours) : 1000,
-          schedule.row || 0
-        );
-      }))
-      .then(results => {
-        const validResults = results.filter(Boolean);
-        if (validResults.length > 0) {
-          toast({
-            title: "Schedules Auto-Adjusted",
-            description: `${validResults.length} project(s) adjusted to maintain optimal capacity utilization`,
-            duration: 5000
-          });
-          
-          // Force refresh to show changes
-          queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
-        }
-      })
-      .catch(error => {
-        console.error('Error updating schedules during auto-adjustment:', error);
-        toast({
-          title: "Auto-Adjustment Failed",
-          description: "Failed to adjust schedules automatically",
-          variant: "destructive"
-        });
-      });
-    });
-  };
-
-  // No longer applying auto-adjustment on initial load
-  // Instead, we'll add a button to each bay's header
-  
-  // Generate time slots based on view mode
-  const { slots, slotWidth } = useMemo(() => 
-    generateTimeSlots(dateRange, viewMode), 
-    [dateRange, viewMode]
-  );
-  
-  const totalViewWidth = slots.length * slotWidth;
-  
-  // Map schedules to visual bars
-  const scheduleBars = useMemo(() => {
-    if (!schedules.length || !slots.length) return [];
-    
-    console.log(`Recalculating schedule bars (version ${recalculationVersion}): ensuring NO automatic adjustments`);
-    
-    // First, group schedules by bay
-    const schedulesByBay = schedules.reduce((acc, schedule) => {
-      if (!acc[schedule.bayId]) {
-        acc[schedule.bayId] = [];
-      }
-      acc[schedule.bayId].push(schedule);
-      return acc;
-    }, {} as Record<number, typeof schedules>);
-    
-    // Process each bay's schedules to assign rows within the bay (for overlapping projects)
-    const processedBars: ScheduleBar[] = [];
-    
-    Object.entries(schedulesByBay).forEach(([bayIdStr, baySchedules]) => {
-      const bayId = parseInt(bayIdStr);
-      const bay = bays.find(b => b.id === bayId);
-      if (!bay) return;
-      
-      // Get the base capacity for this bay (only for informational purposes now)
-      // Handle null/undefined values safely
-      const hoursPerWeek = bay.hoursPerPersonPerWeek !== null && bay.hoursPerPersonPerWeek !== undefined 
-          ? bay.hoursPerPersonPerWeek : 0;
-      const staffCount = bay.staffCount !== null && bay.staffCount !== undefined 
-          ? bay.staffCount : 1;
-      const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
-      
-      // Sort schedules by start date
-      const sortedSchedules = [...baySchedules].sort((a, b) => 
-        new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-      );
-      
-      // Initialize row tracking for this bay - using dynamic row count based on bay
-      const rowCount = getBayRowCount(bay.id, bay.name);
-      const rowEndDates: Date[] = Array(rowCount).fill(new Date(0)).map(() => new Date(0));
-      
-      // CRITICAL FIX: COMPLETELY DISABLED ALL AUTO-ADJUSTMENT
-      // Per user request, each project must be treated INDEPENDENTLY
-      // No auto optimization, reordering, or capacity redistribution
-      
-      console.log("⚠️ AUTO-ADJUSTMENT DISABLED PER USER REQUEST - Each project will maintain its EXACT dates");
-      console.log("🔒 NO AUTO OPTIMIZATION: Projects will NEVER be automatically moved to optimize capacity");
-      
-      // Simply use the exact schedules from the database with NO modifications
-      sortedSchedules.forEach(schedule => {
-        const project = projects.find(p => p.id === schedule.projectId);
-        if (!project) return;
+        // Format dates for API
+        const formattedStartDate = format(targetDate, 'yyyy-MM-dd');
+        const formattedEndDate = format(endDate, 'yyyy-MM-dd');
         
-        // Get the FAB weeks for this project (default to 4 if not set)
-        const fabWeeks = project.fabWeeks || 4;
+        console.log(`⚠️ CREATING NEW SCHEDULE: Project ${project.name}`);
+        console.log(`⚠️ Bay: ${bayId}, Row: ${rowIndex}`);
+        console.log(`⚠️ Dates: ${formattedStartDate} to ${formattedEndDate}`);
         
-        // Original dates from the database - NO AUTO ADJUSTMENT
-        const startDate = new Date(schedule.startDate);
-        const endDate = new Date(schedule.endDate);
-        
-        // CRITICAL FIX: RESPECT THE ROW FROM DATABASE
-        // Check if the schedule has a row value in the database, and use it directly
-        let assignedRow = typeof schedule.row === 'number' ? schedule.row : -1;
-        
-        // Only use automatic row assignment if no row is specified in the database
-        if (assignedRow === -1) {
-          // FIXED: Check for time-based overlaps in each row
-          // This allows adding a project in the same row AFTER another project has ended
-          for (let row = 0; row < 4; row++) { // Check first 4 rows first (visual rows)
-            // CRITICAL FIX: Check if this row is available for this time period by checking against all processed bars
-            // We specifically check if projects DON'T overlap in time (one ends before the other starts)
-            const barsInSameRow = processedBars.filter(bar => 
-              bar.row === row && 
-              bar.bayId === bayId
-            );
-            
-            // If no bars in this row, it's completely free
-            if (barsInSameRow.length === 0) {
-              assignedRow = row;
-              break;
-            }
-            
-            // Check if the new schedule would overlap with any existing bars in this row
-            const hasOverlap = barsInSameRow.some(bar => {
-              // No overlap if new schedule starts after existing bar ends OR ends before existing bar starts
-              const noOverlap = startDate >= bar.endDate || endDate <= bar.startDate;
-              return !noOverlap; // We want to check for overlap, so invert the condition
-            });
-            
-            // If there's no overlap with any bars in this row, we can use it
-            if (!hasOverlap) {
-              assignedRow = row;
-              break;
-            }
-          }
-          
-          // If all rows have overlapping projects, find the row with least overlap
-          if (assignedRow === -1) {
-            // Default to row 0 if we can't find a better option
-            assignedRow = 0;
-          }
-        }
-        
-        // Ensure row is within valid range - use bay-specific row count
-        // For Team 7 & 8, we need to support up to 20 rows, others stay at 8 max
-        const maxRows = getBayRowCount(bay.id, bay.name);
-        assignedRow = Math.min(maxRows - 1, Math.max(0, assignedRow));
-        
-        // Update the end date for this row
-        rowEndDates[assignedRow] = new Date(endDate);
-        
-        // Map the actual row to a visual row
-        // For Team 7 & 8, respect all 20 rows, for other bays map to 4 visual rows
-        const maxVisualRows = getBayRowCount(bay.id, bay.name);
-        const visualRow = maxVisualRows > 4 
-          ? assignedRow // For Team 7 & 8, use the actual row (up to 20)
-          : assignedRow % 4; // For standard bays, map rows to 0-3 for display
-        
-        console.log(`Schedule ${schedule.id} positioned in row ${assignedRow} (displays in visual row ${visualRow}) ${typeof schedule.row === 'number' ? '(using database row)' : '(auto-assigned)'}`)
-        
-        // Find the slot indices for the original start date (where the bar begins)
-        const startSlotIndex = slots.findIndex(slot => {
-          if (viewMode === 'day') {
-            return isSameDay(slot.date, startDate) || slot.date > startDate;
-          } else if (viewMode === 'week') {
-            const slotEndDate = addDays(slot.date, 6);
-            return (startDate >= slot.date && startDate <= slotEndDate);
-          } else if (viewMode === 'month') {
-            const slotMonth = slot.date.getMonth();
-            const slotYear = slot.date.getFullYear();
-            return (startDate.getMonth() === slotMonth && startDate.getFullYear() === slotYear);
-          } else { // quarter
-            const slotQuarter = Math.floor(slot.date.getMonth() / 3);
-            const slotYear = slot.date.getFullYear();
-            const startQuarter = Math.floor(startDate.getMonth() / 3);
-            return (startQuarter === slotQuarter && startDate.getFullYear() === slotYear);
-          }
-        });
-        
-        // Find the slot indices for the end date
-        const endSlotIndex = slots.findIndex(slot => {
-          if (viewMode === 'day') {
-            return isSameDay(slot.date, endDate) || slot.date > endDate;
-          } else if (viewMode === 'week') {
-            const slotEndDate = addDays(slot.date, 6);
-            return (endDate >= slot.date && endDate <= slotEndDate);
-          } else if (viewMode === 'month') {
-            const slotMonth = slot.date.getMonth();
-            const slotYear = slot.date.getFullYear();
-            return (endDate.getMonth() === slotMonth && endDate.getFullYear() === slotYear);
-          } else { // quarter
-            const slotQuarter = Math.floor(slot.date.getMonth() / 3);
-            const slotYear = slot.date.getFullYear();
-            const endQuarter = Math.floor(endDate.getMonth() / 3);
-            return (endQuarter === slotQuarter && endDate.getFullYear() === slotYear);
-          }
-        });
-        
-        // Calculate slot indices
-        const validStartIndex = startSlotIndex === -1 ? 0 : startSlotIndex;
-        const validEndIndex = endSlotIndex === -1 ? slots.length - 1 : endSlotIndex;
-        
-        // FIXED: Calculate total bar width based on actual date range AND view mode
-        const startTime = startDate.getTime();
-        const endTime = endDate.getTime();
-        const totalDays = differenceInDays(endDate, startDate) + 1; // +1 to include the start day
-        
-        // Calculate bar width based on actual day count, not just slot indices
-        let barWidth;
-        if (viewMode === 'day') {
-          // In day view, one slot = one day
-          barWidth = ((validEndIndex - validStartIndex) + 1) * slotWidth;
-        } else if (viewMode === 'week') {
-          // In week view, calculate actual days and convert to weeks
-          const weeksNeeded = Math.ceil(totalDays / 7);
-          barWidth = weeksNeeded * slotWidth;
-        } else if (viewMode === 'month') {
-          // In month view, calculate actual months
-          const monthsNeeded = differenceInMonths(endDate, startDate) + 1;
-          barWidth = monthsNeeded * slotWidth;
-        } else { // quarter
-          // In quarter view, calculate actual quarters
-          const quartersNeeded = Math.ceil(differenceInMonths(endDate, startDate) / 3) + 1;
-          barWidth = quartersNeeded * slotWidth;
-        }
-        
-        // Ensure minimum width for visibility
-        barWidth = Math.max(20, barWidth);
-        
-        // Calculate barLeft position more precisely based on view mode and actual date
-        let barLeft;
-        
-        if (viewMode === 'day') {
-          // Day mode: direct slot index calculation
-          barLeft = validStartIndex * slotWidth;
-        } 
-        else if (viewMode === 'week') {
-          // Week mode: position based on week slots
-          barLeft = validStartIndex * slotWidth;
-          
-          // Add fractional position within the week if needed
-          if (startDate.getDay() > 0) {
-            // Calculate day offset within week (0 = Monday in our layout)
-            const dayOffset = startDate.getDay() - 1;
-            if (dayOffset >= 0) {
-              // Add partial position
-              barLeft += (dayOffset / 7) * slotWidth;
-            }
-          }
-        } 
-        else if (viewMode === 'month') {
-          // Month mode: position based on month slots
-          barLeft = validStartIndex * slotWidth;
-          
-          // Add fractional position within the month if needed
-          const dayOffset = startDate.getDate() - 1;
-          const daysInMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0).getDate();
-          barLeft += (dayOffset / daysInMonth) * slotWidth;
-        } 
-        else { // quarter
-          // Quarter mode: position based on quarter slots
-          barLeft = validStartIndex * slotWidth;
-          
-          // Add fractional position within the quarter if needed
-          const quarterStart = new Date(startDate.getFullYear(), Math.floor(startDate.getMonth() / 3) * 3, 1);
-          const dayOffset = differenceInDays(startDate, quarterStart);
-          // Approximate 90 days per quarter
-          barLeft += (dayOffset / 90) * slotWidth;
-        }
-        
-        // Keep the percentages for display in tooltips
-        const fabPercentage = parseFloat(project.fabPercentage as any) || 20;
-        const paintPercentage = parseFloat(project.paintPercentage as any) || 7; 
-        const productionPercentage = parseFloat(project.productionPercentage as any) || 53;
-        const itPercentage = parseFloat(project.itPercentage as any) || 7;
-        const ntcPercentage = parseFloat(project.ntcPercentage as any) || 7;
-        const qcPercentage = parseFloat(project.qcPercentage as any) || 7;
-        
-        // Use actual phase dates from project data when available
-        const fabStartDate = project.fabricationStart ? new Date(project.fabricationStart) : startDate;
-        const paintStartDate = project.wrapDate ? new Date(project.wrapDate) : null;
-        const assemblyStartDate = project.assemblyStart ? new Date(project.assemblyStart) : null;
-        const ntcStartDate = project.ntcTestingDate ? new Date(project.ntcTestingDate) : null;
-        const qcStartDate = project.qcStartDate ? new Date(project.qcStartDate) : null;
-        
-        console.log(`Project ${project.projectNumber} phase dates:`, {
-          schedule: { start: format(startDate, 'yyyy-MM-dd'), end: format(endDate, 'yyyy-MM-dd') },
-          fabStart: fabStartDate ? format(fabStartDate, 'yyyy-MM-dd') : 'N/A',
-          paintStart: paintStartDate ? format(paintStartDate, 'yyyy-MM-dd') : 'N/A',
-          assemblyStart: assemblyStartDate ? format(assemblyStartDate, 'yyyy-MM-dd') : 'N/A',
-          ntcStart: ntcStartDate ? format(ntcStartDate, 'yyyy-MM-dd') : 'N/A',
-          qcStart: qcStartDate ? format(qcStartDate, 'yyyy-MM-dd') : 'N/A',
-          shipDate: project.shipDate || 'N/A'
-        });
-        
-        // Calculate widths based on the actual phase dates when available
-        // or fall back to percentage-based calculations when dates aren't available
-        let fabWidth, paintWidth, productionWidth, itWidth, ntcWidth, qcWidth;
-        
-        // Function to calculate width between two dates
-        const getWidthBetweenDates = (from: Date, to: Date): number => {
-          // Get the slot indices for the dates
-          const fromSlotIndex = slots.findIndex(slot => isSameDay(slot.date, from));
-          const toSlotIndex = slots.findIndex(slot => isSameDay(slot.date, to));
-          
-          if (fromSlotIndex === -1 || toSlotIndex === -1) {
-            // If we can't find exact slots, calculate based on time difference
-            const diff = differenceInDays(to, from);
-            const totalDiff = differenceInDays(endDate, startDate);
-            return Math.floor(barWidth * (diff / totalDiff));
-          }
-          
-          // Calculate width based on slot positions
-          return (toSlotIndex - fromSlotIndex) * slotWidth;
-        };
-        
-        // PRIORITY: When a project is in bay schedule, use the schedule's percentages to calculate phases
-        // This ensures that the bar visualization matches the actual scheduling
-        
-        // Calculate the total of all percentages to ensure they add up to 100%
-        const totalPercentages = fabPercentage + paintPercentage + productionPercentage + itPercentage + ntcPercentage + qcPercentage;
-        
-        // Use a normalizing factor if the percentages don't add up to 100
-        const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
-        
-        // Calculate phase widths strictly based on percentages 
-        // This ensures consistency with the project's phase percentages regardless of dates
-        fabWidth = Math.floor(barWidth * ((fabPercentage * normalizeFactor) / 100));
-        paintWidth = Math.floor(barWidth * ((paintPercentage * normalizeFactor) / 100));
-        productionWidth = Math.floor(barWidth * ((productionPercentage * normalizeFactor) / 100));
-        itWidth = Math.floor(barWidth * ((itPercentage * normalizeFactor) / 100));
-        ntcWidth = Math.floor(barWidth * ((ntcPercentage * normalizeFactor) / 100));
-        qcWidth = Math.floor(barWidth * ((qcPercentage * normalizeFactor) / 100));
-        
-        console.log(`Project ${project.projectNumber} phase calculations:`, {
-          totalPercentages,
-          normalizeFactor,
-          barWidth,
-          phases: {
-            fab: { percent: fabPercentage, width: fabWidth },
-            paint: { percent: paintPercentage, width: paintWidth },
-            production: { percent: productionPercentage, width: productionWidth },
-            it: { percent: itPercentage, width: itWidth },
-            ntc: { percent: ntcPercentage, width: ntcWidth },
-            qc: { percent: qcPercentage, width: qcWidth }
-          }
-        });
-        
-        // Ensure minimum widths for visibility
-        fabWidth = Math.max(4, fabWidth || 0);
-        paintWidth = Math.max(4, paintWidth || 0);
-        productionWidth = Math.max(4, productionWidth || 0);
-        itWidth = Math.max(4, itWidth || 0);
-        ntcWidth = Math.max(4, ntcWidth || 0);
-        qcWidth = Math.max(4, qcWidth || 0);
-        
-        // Adjust total to ensure it matches barWidth exactly
-        const calculatedTotal = fabWidth + paintWidth + productionWidth + itWidth + ntcWidth + qcWidth;
-        if (calculatedTotal !== barWidth) {
-          // First, calculate what portion of the total each phase represents
-          const totalValue = calculatedTotal;
-          const fabPortion = fabWidth / totalValue;
-          const paintPortion = paintWidth / totalValue;
-          const productionPortion = productionWidth / totalValue;
-          const itPortion = itWidth / totalValue;
-          const ntcPortion = ntcWidth / totalValue;
-          const qcPortion = qcWidth / totalValue;
-          
-          // Now distribute the barWidth according to these proportions
-          fabWidth = Math.floor(barWidth * fabPortion);
-          paintWidth = Math.floor(barWidth * paintPortion);
-          productionWidth = Math.floor(barWidth * productionPortion);
-          itWidth = Math.floor(barWidth * itPortion);
-          ntcWidth = Math.floor(barWidth * ntcPortion);
-          qcWidth = Math.floor(barWidth * qcPortion);
-          
-          // Calculate how many pixels we're missing due to rounding
-          const calculatedTotal2 = fabWidth + paintWidth + productionWidth + itWidth + ntcWidth + qcWidth;
-          const remainingPixels = barWidth - calculatedTotal2;
-          
-          if (remainingPixels > 0) {
-            // Create an array of all sections with their proportions
-            const sections = [
-              {name: 'fab', value: fabWidth, portion: fabPortion},
-              {name: 'paint', value: paintWidth, portion: paintPortion},
-              {name: 'production', value: productionWidth, portion: productionPortion},
-              {name: 'it', value: itWidth, portion: itPortion},
-              {name: 'ntc', value: ntcWidth, portion: ntcPortion},
-              {name: 'qc', value: qcWidth, portion: qcPortion}
-            ];
-            
-            // Sort by portion (largest proportion first) to distribute extra pixels proportionally
-            sections.sort((a, b) => b.portion - a.portion);
-            
-            // Distribute remaining pixels proportionally starting with largest sections
-            let pixelsLeft = remainingPixels;
-            let index = 0;
-            
-            while (pixelsLeft > 0 && index < sections.length) {
-              const pixelsToAdd = Math.min(pixelsLeft, Math.ceil(remainingPixels * sections[index].portion));
-              
-              // Add pixels to the appropriate section
-              if (sections[index].name === 'fab') fabWidth += pixelsToAdd;
-              else if (sections[index].name === 'paint') paintWidth += pixelsToAdd;
-              else if (sections[index].name === 'production') productionWidth += pixelsToAdd;
-              else if (sections[index].name === 'it') itWidth += pixelsToAdd;
-              else if (sections[index].name === 'ntc') ntcWidth += pixelsToAdd;
-              else if (sections[index].name === 'qc') qcWidth += pixelsToAdd;
-              
-              pixelsLeft -= pixelsToAdd;
-              index++;
-            }
-            
-            // If we still have pixels left, just add them to the largest section
-            if (pixelsLeft > 0) {
-              if (sections[0].name === 'fab') fabWidth += pixelsLeft;
-              else if (sections[0].name === 'paint') paintWidth += pixelsLeft;
-              else if (sections[0].name === 'production') productionWidth += pixelsLeft;
-              else if (sections[0].name === 'it') itWidth += pixelsLeft;
-              else if (sections[0].name === 'ntc') ntcWidth += pixelsLeft;
-              else if (sections[0].name === 'qc') qcWidth += pixelsLeft;
-            }
-          }
-        }
-        
-        processedBars.push({
-          id: schedule.id,
-          projectId: schedule.projectId,
+        // Create a new schedule with the project
+        await onScheduleCreate(
+          projectId,
           bayId,
-          startDate,
-          endDate,
-          totalHours: schedule.totalHours || 1000,
-          projectName: project.name,
-          projectNumber: project.projectNumber,
-          width: barWidth,
-          left: barLeft,
-          color: getProjectColor(project.id),
-          row: assignedRow,
-          
-          // Department percentages
-          fabPercentage,
-          paintPercentage,
-          productionPercentage,
-          itPercentage,
-          ntcPercentage,
-          qcPercentage,
-          
-          // Department widths
-          fabWidth,
-          paintWidth,
-          productionWidth,
-          itWidth,
-          ntcWidth,
-          qcWidth,
-          
-          // Legacy field
-          fabWeeks
-        });
-      });
-    });
-    
-    return processedBars;
-  }, [schedules, projects, bays, slots, viewMode, slotWidth, recalculationVersion]);
-  
-  // Handle drag start
-  // Handle the start of resize operation
-  const handleResizeStart = (e: React.MouseEvent, barId: number, direction: 'left' | 'right', projectId: number, bayId: number) => {
-    // Prevent default browser behavior and stop event propagation
-    e.stopPropagation();
-    e.preventDefault();
-    
-    console.log(`Starting resize operation for bar ${barId}, direction: ${direction}`);
-    
-    // Add a class to the document body to indicate we're in resize mode
-    // This will help prevent conflict with drag-and-drop
-    document.body.classList.add('resizing-mode');
-    
-    // Find the schedule bar element - first try via data attribute for more reliability
-    const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${barId}"]`) as HTMLElement
-      || e.currentTarget.closest('.big-project-bar') as HTMLElement;
-      
-    if (!barElement) {
-      console.error(`Bar element not found for schedule ${barId}`);
-      return;
-    }
-    
-    // Make the bar non-draggable during resize operation
-    barElement.setAttribute('draggable', 'false');
-    
-    // Add a resize-specific class to help with styling
-    barElement.classList.add('resize-in-progress');
-    
-    // Check if we already have a resize in progress
-    if (resizingSchedule) {
-      console.log("Cleaning up existing resize operation before starting a new one");
-      // Make sure to clean up any existing resize operation
-      document.removeEventListener('mousemove', handleResizeMove);
-      document.removeEventListener('mouseup', handleResizeEnd);
-      setResizingSchedule(null);
-    }
-    
-    // Get initial dimensions with additional error checking
-    const computedStyle = window.getComputedStyle(barElement);
-    let initialWidth = barElement.offsetWidth;
-    let initialLeft = parseInt(barElement.style.left, 10);
-    
-    // Fallback to computed style if inline style isn't available
-    if (isNaN(initialLeft)) {
-      initialLeft = parseInt(computedStyle.left, 10) || 0;
-    }
-    
-    // Find the schedule data
-    const schedule = schedules.find(s => s.id === barId);
-    if (!schedule) {
-      console.error('Schedule not found for resize operation', barId);
-      toast({
-        title: "Error",
-        description: "Could not find schedule data for this project. Please refresh the page.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Extract row index from the schedule data first, then from DOM if needed
-    let row = schedule.rowIndex !== undefined && schedule.rowIndex !== null 
-      ? schedule.rowIndex 
-      : schedule.row;
-      
-    // If still not found, try to extract from class name (format: row-X-bar)
-    if (row === undefined || row === null) {
-      const rowClasses = Array.from(barElement.classList).filter(cls => cls.startsWith('row-') && cls.endsWith('-bar'));
-      row = 0; // Default to first row
-      
-      if (rowClasses.length > 0) {
-        const rowMatch = rowClasses[0].match(/row-(\d+)-bar/);
-        if (rowMatch && rowMatch[1]) {
-          // Get the numeric row index
-          const rowIndex = parseInt(rowMatch[1], 10);
-          
-          // Map to visual row (0-3) for consistent positioning
-          // Rows 0-3 represent the top-to-bottom positions in each bay
-          // Rows 4-7 map to the same visual positions
-          row = rowIndex % 4;
-        }
-      }
-    }
-    
-    console.log(`Resize start for bar ID ${barId}: width=${initialWidth}px, left=${initialLeft}px, row=${row}`);
-    
-    // Apply a visual feedback class to indicate active resize
-    barElement.classList.add('resizing-active');
-    document.body.style.cursor = 'ew-resize';
-    
-    // Set resizing state
-    setResizingSchedule({
-      id: barId,
-      direction,
-      startX: e.clientX,
-      initialWidth,
-      initialLeft,
-      initialStartDate: new Date(schedule.startDate),
-      initialEndDate: new Date(schedule.endDate),
-      originalHours: schedule.totalHours !== null ? Number(schedule.totalHours) : 1000, // Ensure proper type conversion
-      projectId,
-      bayId,
-      row
-    });
-    
-    // Add global event listeners for resize tracking
-    document.addEventListener('mousemove', handleResizeMove);
-    document.addEventListener('mouseup', handleResizeEnd);
-    
-    // Reset the hover slot state
-    setResizeHoverSlot(null);
-    
-    // Add a cursor style to the body
-    document.body.style.cursor = 'ew-resize';
-    
-    console.log(`Resize started: bar ${barId}, direction ${direction}`);
-  };
-  
-  // Handle mouse movement during resize
-  const handleResizeMove = (e: MouseEvent) => {
-    if (!resizingSchedule) {
-      console.log("No active resize operation");
-      return;
-    }
-    
-    e.preventDefault();
-    
-    // Find the schedule bar element using data attribute for reliability
-    // Use a more specific selector that includes both class and data attribute
-    const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
-    if (!barElement) {
-      console.error(`Bar element not found for schedule ${resizingSchedule.id}`);
-      return;
-    }
-    
-    // Add a distinctive class during resize to help with debugging
-    barElement.classList.add('actively-resizing');
-    
-    // Store the original data attributes for restoration if needed
-    if (!barElement.dataset.originalEndDate && resizingSchedule.direction === 'right') {
-      barElement.dataset.originalEndDate = barElement.dataset.endDate || '';
-    }
-    if (!barElement.dataset.originalStartDate && resizingSchedule.direction === 'left') {
-      barElement.dataset.originalStartDate = barElement.dataset.startDate || '';
-    }
-    
-    // Calculate the drag delta
-    const deltaX = e.clientX - resizingSchedule.startX;
-    
-    // Get the timeline container
-    const timelineContainer = timelineContainerRef.current || barElement.closest('.timeline-container') as HTMLElement;
-    if (!timelineContainer) {
-      console.error("Timeline container not found");
-      return;
-    }
-    
-    // Get the main scrollable container
-    const mainScrollContainer = document.querySelector('.main-content') as HTMLElement;
-    
-    // Auto-scroll when resize moves close to viewport edges
-    const viewportWidth = window.innerWidth;
-    const SCROLL_THRESHOLD = 100; // Pixels from viewport edge to start scrolling
-    const SCROLL_SPEED = 15; // Pixels to scroll per move event
-    
-    // Check if mouse is near the right edge
-    if (e.clientX > viewportWidth - SCROLL_THRESHOLD) {
-      // Scroll right
-      if (mainScrollContainer) {
-        mainScrollContainer.scrollLeft += SCROLL_SPEED;
-      }
-    } 
-    // Check if mouse is near the left edge
-    else if (e.clientX < SCROLL_THRESHOLD) {
-      // Scroll left
-      if (mainScrollContainer) {
-        mainScrollContainer.scrollLeft -= SCROLL_SPEED;
-      }
-    }
-    
-    console.log(`Resize move: deltaX=${deltaX}px, direction=${resizingSchedule.direction}`);
-    
-    // Calculate which week/slot we're hovering over
-    // First, get the timeline container offset
-    const timelineRect = timelineContainer.getBoundingClientRect();
-    const relativeX = e.clientX - timelineRect.left;
-    
-    // Determine which slot index we're over
-    const hoverSlotIndex = Math.floor(relativeX / slotWidth);
-    
-    // Highlight the week we're hovering over for visual feedback
-    if (hoverSlotIndex !== resizeHoverSlot) {
-      // Remove previous hover highlights
-      document.querySelectorAll('.week-cell-resize-hover').forEach(el => {
-        el.classList.remove('week-cell-resize-hover');
-      });
-      
-      // Remove previous vertical column highlights
-      document.querySelectorAll('.vertical-highlight-column').forEach(el => {
-        el.classList.remove('vertical-highlight-column', 'left-resize', 'right-resize');
-      });
-      
-      // Add highlight to the current week slot - we need to make this much more visible
-      const weekCells = timelineContainer.querySelectorAll(`.week-cell`);
-      const targetWeekCell = weekCells[hoverSlotIndex];
-      
-      if (targetWeekCell) {
-        // Apply highlight to the week cell
-        targetWeekCell.classList.add('week-cell-resize-hover');
+          formattedStartDate,
+          formattedEndDate,
+          totalHours,
+          rowIndex
+        );
         
-        // Add vertical column highlight for better visual feedback
-        // This highlights the entire column in all rows for ALL BAYS
-        document.querySelectorAll(`.week-cell[data-slot-index="${hoverSlotIndex}"]`).forEach(columnCell => {
-          columnCell.classList.add('vertical-highlight-column');
-          if (resizingSchedule.direction === 'left') {
-            columnCell.classList.add('left-resize');
-          } else {
-            columnCell.classList.add('right-resize');
-          }
+        // Show success toast
+        toast({
+          title: "Project scheduled",
+          description: `${project.name} added to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
         });
         
-        // Also add a highlight class to all cells in the same column regardless of row/bay
-        const allColumnCells = document.querySelectorAll(`[data-slot-index="${hoverSlotIndex}"]`);
-        allColumnCells.forEach(cell => {
-          cell.classList.add('column-highlight');
-        });
-        
-        console.log(`Highlighting week cell at index ${hoverSlotIndex} with vertical column highlight`);
-      }
-      
-      // Update the state
-      setResizeHoverSlot(hoverSlotIndex);
-    }
-    
-    // Calculate the snap position precisely - either by cell (1/4 week) or full week
-    let newLeft = resizingSchedule.initialLeft;
-    let newWidth = resizingSchedule.initialWidth;
-    
-    // Calculate cell width for more precise snapping (4 cells per week)
-    const cellWidth = slotWidth / 4;
-    
-    if (resizingSchedule.direction === 'left') {
-      // Resizing from left (changing start date) - KEEPING END DATE FIXED
-      // Identify the right edge position (end date) that should remain fixed
-      const rightEdge = resizingSchedule.initialLeft + resizingSchedule.initialWidth;
-      
-      // Calculate potential new left position with delta
-      // We need to invert deltaX when moving left handle to the right
-      // This gives the expected behavior of shortening the project duration
-      let potentialLeft = resizingSchedule.initialLeft + deltaX;
-      
-      // Snap to grid cell
-      const snapCell = Math.round(potentialLeft / cellWidth);
-      const snapLeft = snapCell * cellWidth;
-      
-      // Update left position and recalculate width to maintain the fixed right edge
-      newLeft = Math.max(0, snapLeft);
-      // Keep right edge constant, recalculate width
-      newWidth = rightEdge - newLeft;
-      
-      // Ensure minimum width
-      const minWidth = cellWidth * 0.75; // Minimum width of 75% of a cell
-      if (newWidth < minWidth) {
-        newWidth = minWidth;
-        newLeft = rightEdge - minWidth;
-      }
-      
-      // CRITICAL RESIZE FIX: Apply visual update with real-time feedback
-      barElement.style.left = `${newLeft}px`;
-      barElement.style.width = `${newWidth}px`;
-      
-      // Set data attributes for debugging
-      barElement.dataset.leftResizePosition = newLeft.toString();
-      barElement.dataset.leftResizeWidth = newWidth.toString();
-      barElement.dataset.originalLeft = resizingSchedule.initialLeft.toString();
-      
-      // Force the browser to perform a reflow to ensure the position/width updates are applied
-      barElement.getBoundingClientRect();
-      
-      // Add visual feedback classes during resize
-      barElement.classList.add('resizing-active');
-      if (!barElement.classList.contains('resize-from-left')) {
-        barElement.classList.add('resize-from-left');
-      }
-      
-      // REAL-TIME PHASE COLOR UPDATES
-      // Find the schedule and project data
-      const schedule = schedules.find(s => s.id === resizingSchedule.id);
-      const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
-      
-      // Find all the phase elements within the project bar
-      const phases = Array.from(barElement.children).filter(child => 
-        child.classList && child.classList.contains('dept-phase')
-      ) as HTMLElement[];
-      
-      // If there are already phase elements, we need to update them
-      if (phases.length > 0) {
-        const phaseWidths = calculateExactFitPhaseWidths(newWidth, project);
-        
-        // Find each phase element individually
-        const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
-        const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
-        const prodPhase = barElement.querySelector('.dept-production-phase') as HTMLElement;
-        const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
-        const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
-        const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
-        
-        if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
-          // Apply the calculated widths to DOM elements in real-time
-          fabPhase.style.width = `${phaseWidths.fabWidth}px`;
-          
-          paintPhase.style.left = `${phaseWidths.fabWidth}px`;
-          paintPhase.style.width = `${phaseWidths.paintWidth}px`;
-          
-          prodPhase.style.left = `${phaseWidths.fabWidth + phaseWidths.paintWidth}px`;
-          prodPhase.style.width = `${phaseWidths.prodWidth}px`;
-          
-          itPhase.style.left = `${phaseWidths.fabWidth + phaseWidths.paintWidth + phaseWidths.prodWidth}px`;
-          itPhase.style.width = `${phaseWidths.itWidth}px`;
-          
-          ntcPhase.style.left = `${phaseWidths.fabWidth + phaseWidths.paintWidth + phaseWidths.prodWidth + phaseWidths.itWidth}px`;
-          ntcPhase.style.width = `${phaseWidths.ntcWidth}px`;
-          
-          qcPhase.style.left = `${phaseWidths.fabWidth + phaseWidths.paintWidth + phaseWidths.prodWidth + phaseWidths.itWidth + phaseWidths.ntcWidth}px`;
-          qcPhase.style.width = `${phaseWidths.qcWidth}px`;
-          
-          // Force a reflow to ensure changes are applied immediately
-          barElement.getBoundingClientRect();
-          
-          // Debug info
-          console.log(`Real-time phase update (LEFT): `, {
-            barWidth: newWidth,
-            phaseWidths,
-            exactMatch: phaseWidths.exactMatch
-          });
-        } else {
-          // If we can't find all required phases, fall back to helper function
-          updateDepartmentPhaseWidths(barElement, newWidth);
-        }
-      }
-    } else {
-      // Resizing from right (changing end date)
-      // Allow resizing by cell for more precise control
-      const currentRightEdge = resizingSchedule.initialLeft + resizingSchedule.initialWidth;
-      const newRightEdge = currentRightEdge + deltaX;
-      
-      // Snap to cell boundaries instead of week boundaries
-      const snapCell = Math.round(newRightEdge / cellWidth);
-      const snapRight = snapCell * cellWidth;
-      
-      // Ensure we can resize within the same week (current position)
-      // Allow increasing or decreasing by individual cells
-      newWidth = Math.max(cellWidth, snapRight - resizingSchedule.initialLeft);
-      
-      // Limit max extension to avoid excessive growth
-      const maxWidth = slotWidth * 24; // 24 weeks maximum (6 months)
-      newWidth = Math.min(newWidth, maxWidth);
-      
-      // CRITICAL RESIZE FIX: Update project bar width directly
-      barElement.style.width = `${newWidth}px`;
-      
-      // Set data attributes for debugging
-      barElement.dataset.rightResizeWidth = newWidth.toString();
-      barElement.dataset.originalResizeWidth = resizingSchedule.initialWidth.toString();
-      barElement.dataset.deltaResize = (newWidth - resizingSchedule.initialWidth).toString();
-      
-      // Force the browser to perform a reflow to ensure the width update is applied
-      barElement.getBoundingClientRect();
-      
-      // Add visual feedback classes during resize
-      barElement.classList.add('resizing-active');
-      if (!barElement.classList.contains('resize-from-right')) {
-        barElement.classList.add('resize-from-right');
-      }
-      
-      // REAL-TIME PHASE COLOR UPDATES
-      // Find the schedule and project data
-      const schedule = schedules.find(s => s.id === resizingSchedule.id);
-      const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
-      
-      // Find all the phase elements within the project bar
-      const phases = Array.from(barElement.children).filter(child => 
-        child.classList && child.classList.contains('dept-phase')
-      ) as HTMLElement[];
-      
-      // If there are already phase elements, we need to update them
-      if (phases.length > 0) {
-        const phaseWidths = calculateExactFitPhaseWidths(newWidth, project);
-        
-        // Find each phase element individually
-        const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
-        const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
-        const prodPhase = barElement.querySelector('.dept-production-phase') as HTMLElement;
-        const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
-        const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
-        const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
-        
-        if (fabPhase && paintPhase && prodPhase && itPhase && ntcPhase && qcPhase) {
-          // Apply the calculated widths to DOM elements in real-time
-          fabPhase.style.width = `${phaseWidths.fabWidth}px`;
-          
-          paintPhase.style.left = `${phaseWidths.fabWidth}px`;
-          paintPhase.style.width = `${phaseWidths.paintWidth}px`;
-          
-          prodPhase.style.left = `${phaseWidths.fabWidth + phaseWidths.paintWidth}px`;
-          prodPhase.style.width = `${phaseWidths.prodWidth}px`;
-          
-          itPhase.style.left = `${phaseWidths.fabWidth + phaseWidths.paintWidth + phaseWidths.prodWidth}px`;
-          itPhase.style.width = `${phaseWidths.itWidth}px`;
-          
-          ntcPhase.style.left = `${phaseWidths.fabWidth + phaseWidths.paintWidth + phaseWidths.prodWidth + phaseWidths.itWidth}px`;
-          ntcPhase.style.width = `${phaseWidths.ntcWidth}px`;
-          
-          qcPhase.style.left = `${phaseWidths.fabWidth + phaseWidths.paintWidth + phaseWidths.prodWidth + phaseWidths.itWidth + phaseWidths.ntcWidth}px`;
-          qcPhase.style.width = `${phaseWidths.qcWidth}px`;
-          
-          // Force a reflow to ensure changes are applied immediately
-          barElement.getBoundingClientRect();
-          
-          // Debug info
-          console.log(`Real-time phase update (RIGHT): `, {
-            barWidth: newWidth,
-            phaseWidths,
-            exactMatch: phaseWidths.exactMatch
-          });
-        } else {
-          // If we can't find all required phases, fall back to helper function
-          updateDepartmentPhaseWidths(barElement, newWidth);
-        }
-      }
-      
-      // Add debugging attributes
-      barElement.dataset.newWidth = newWidth.toString();
-      barElement.dataset.cellSnap = snapCell.toString();
-    }
-    
-    // Add a data attribute to track the hover slot for debugging
-    barElement.dataset.hoverSlot = hoverSlotIndex.toString();
-  };
-  
-  // Handle the end of resize operation
-  const handleResizeEnd = async (e: MouseEvent) => {
-    if (!resizingSchedule) return;
-    
-    try {
-      // Find the schedule bar element with more precise selector
-      const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
-      if (!barElement) {
-        console.error(`Bar element not found in handleResizeEnd: ${resizingSchedule.id}`);
         return;
       }
       
-      // Make sure to preserve the new size from the resize operation
-      const currentLeft = parseInt(barElement.style.left, 10);
-      const barCurrentWidth = parseInt(barElement.style.width, 10);
+      // If it's not an unassigned project, it must be an existing schedule being moved
+      let scheduleId: number;
+      let bar: ScheduleBar | undefined;
       
-      console.log(`Finalizing resize: ID=${resizingSchedule.id}, Left=${currentLeft}px, Width=${barCurrentWidth}px`);
-      
-      // Remove the resize indicator class
-      barElement.classList.remove('actively-resizing');
-      
-      // Clear any resize hover highlights
-      document.querySelectorAll('.week-cell-resize-hover').forEach(el => {
-        el.classList.remove('week-cell-resize-hover');
-      });
-      
-      // Get the time factor for date calculations based on view mode
-      const msPerDay = 24 * 60 * 60 * 1000;
-      const daysBetweenSlots = slots[1]?.date && slots[0]?.date 
-        ? (slots[1].date.getTime() - slots[0].date.getTime()) / msPerDay 
-        : viewMode === 'day' ? 1 : viewMode === 'week' ? 7 : viewMode === 'month' ? 30 : 90;
-      
-      let newStartDate = new Date(resizingSchedule.initialStartDate);
-      let newEndDate = new Date(resizingSchedule.initialEndDate);
-      
-      if (resizingSchedule.direction === 'left') {
-        // Calculate which slot this snapped to
-        const snapSlot = Math.floor(parseInt(barElement.style.left, 10) / slotWidth);
-        
-        if (snapSlot >= 0 && snapSlot < slots.length) {
-          // Get the date from the slot - change starting point only, KEEP the end date fixed
-          newStartDate = new Date(slots[snapSlot].date);
-          // The end date is unchanged when resizing from left
-          newEndDate = new Date(resizingSchedule.initialEndDate);
-        } else {
-          // Fallback to pixel-based calculation
-          const pixelsDelta = parseInt(barElement.style.left, 10) - resizingSchedule.initialLeft;
-          const pixelsPerDay = slotWidth / daysBetweenSlots;
-          const daysDelta = Math.round(pixelsDelta / pixelsPerDay);
-          newStartDate = addDays(resizingSchedule.initialStartDate, daysDelta);
-          // The end date is unchanged when resizing from left
-          newEndDate = new Date(resizingSchedule.initialEndDate);
-        }
-        
-        // Ensure start date is not after end date
-        if (newStartDate >= newEndDate) {
-          newStartDate = new Date(newEndDate);
-          newStartDate.setDate(newEndDate.getDate() - 1); // At least 1 day between start and end
+      // Try to get complete data from JSON if available
+      if (jsonData) {
+        try {
+          const parsedData = JSON.parse(jsonData);
+          scheduleId = parsedData.scheduleId;
+          console.log('Using complete JSON data for drag operation:', parsedData);
+        } catch (e) {
+          // Fallback to text data if JSON parsing fails
+          scheduleId = parseInt(dataString, 10);
         }
       } else {
-        // Calculate precise cell positioning for the right edge (cell-by-cell resize)
-        const rightEdge = parseInt(barElement.style.left, 10) + parseInt(barElement.style.width, 10);
-        
-        // Calculate cell width (4 cells per week) for more precise snapping 
-        const cellWidth = slotWidth / 4;
-        const cellsPerDay = 4 / daysBetweenSlots; // How many cells per day
-        
-        // Snap to cell boundary instead of week boundary
-        const snapCell = Math.round(rightEdge / cellWidth);
-        
-        if (snapCell * cellWidth >= 0) {
-          // Get the date from the starting week slot
-          const weekIndex = Math.floor(snapCell / 4); // Which week are we in
-          const cellOffset = snapCell % 4; // Which cell within that week (0-3)
-          
-          if (weekIndex >= 0 && weekIndex < slots.length) {
-            // Start with the date from the week
-            newEndDate = new Date(slots[weekIndex].date);
-            
-            // Add days based on cell position within the week
-            // Each cell is 1/4 of a week (approximately 1-2 days depending on view)
-            const daysToAdd = Math.ceil(cellOffset / cellsPerDay);
-            newEndDate = addDays(newEndDate, daysToAdd);
-            
-            // The date should be the end of the day (not start)
-            newEndDate.setHours(23, 59, 59);
-            
-            console.log(`Cell-based resize: Week ${weekIndex}, Cell ${cellOffset}, Adding ${daysToAdd} days`);
+        // Use plain text data
+        scheduleId = parseInt(dataString, 10);
+      }
+      
+      console.log(`DROP DEBUG: Moving EXISTING schedule ID ${scheduleId}`);
+      
+      // Find the schedule bar being moved
+      bar = scheduleBars.find((b) => b.id === scheduleId);
+      if (!bar) {
+        console.error('DROP ERROR: Could not find schedule bar with ID', scheduleId);
+        return;
+      }
+      
+      // Determine the new start and end dates based on drop position
+      const targetDate = getDateFromDropPosition(e, bayId, rowIndex);
+      if (!targetDate) {
+        console.error('DROP ERROR: Could not determine target date for drop');
+        return;
+      }
+      
+      // Calculate the duration in days and apply to the target date
+      const durationDays = differenceInDays(bar.endDate, bar.startDate);
+      const newEndDate = addDays(targetDate, durationDays);
+      
+      // Debug info
+      console.log(`⚠️ DROP DEBUG: AUTO-ADJUSTMENT DISABLED - Project will be placed EXACTLY where dropped`);
+      console.log(`⚠️ DROP DEBUG: Target row index: ${rowIndex}`);
+      console.log(`⚠️ DROP DEBUG: Start date: ${format(targetDate, 'yyyy-MM-dd')}, End date: ${format(newEndDate, 'yyyy-MM-dd')}`);
+      console.log(`🔒 DROP DEBUG: NO AUTO OPTIMIZATION: Projects can overlap - NO collision detection`);
+      
+      // Format dates for the API
+      const formattedStartDate = format(targetDate, 'yyyy-MM-dd');
+      const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
+      
+      // Update the schedule with EXACT row position
+      await onScheduleChange(
+        scheduleId,
+        bayId,
+        formattedStartDate,
+        formattedEndDate,
+        bar.totalHours, 
+        rowIndex // CRITICAL: This preserves the exact row where the user dropped
+      );
+      
+      // Show success toast
+      toast({
+        title: "Schedule updated",
+        description: `${bar.projectName} moved to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
+      });
+    } catch (error) {
+      console.error('Error updating schedule:', error);
+      toast({
+        title: "Update failed",
+        description: "There was an error updating the schedule. Please try again.",
+        variant: "destructive",
+      });
+    }
+    
+    // Reset drag state
+    setDraggingSchedule(null);
+    setDropTarget(null);
+  };
+  
+  const handleSlotDrop = async (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
+    // This is critical - ALWAYS prevent default to allow the drop
+    e.preventDefault();
+    
+    // STOP PROPAGATION to ensure no parent elements interfere
+    e.stopPropagation();
+    
+    // Clear any drag state from the document
+    document.body.removeAttribute('data-drag-in-progress');
+    document.body.classList.remove('global-drag-active');
+    
+    // Get data from the drop event
+    const dataString = e.dataTransfer.getData('text/plain');
+    console.log(`📦 RAW DRAG DATA: "${dataString}"`);
+    
+    // EXTENDED DEBUG LOGGING - to track exactly what's happening
+    console.log(`🎯 DROP SUCCESSFUL: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
+    console.log(`🎯 DROP TARGET: BAY ${bayId} (${bays.find(b => b.id === bayId)?.name})`);
+    console.log(`🎯 EXACT COORDINATES: x=${e.nativeEvent.offsetX}px, y=${e.nativeEvent.offsetY}px`);
+    console.log(`🎯 PLACEMENT: Row ${rowIndex} - NO POSITION RESTRICTIONS`);
+    console.log(`⚠️ CRITICAL POLICY: Projects placed EXACTLY where dropped - NO AUTO-ADJUSTMENT`);
+    console.log(`⚠️ CRITICAL POLICY: Multiple projects ALLOWED in same row - OVERLAPS PERMITTED`);
+    
+    // Check for unassigned project identifier format (begins with a minus sign)
+    const isNegativeFormat = dataString.startsWith('-');
+    const scheduleId = parseInt(dataString, 10);
+    
+    // Check if this is a NEW project being created (negative ID) or existing schedule
+    const isNewProject = isNegativeFormat || scheduleId < 0;
+    
+    if (isNewProject) {
+      // This is a new project being added from the unassigned projects list
+      const projectId = Math.abs(scheduleId);
+      console.log(`🆕 Creating NEW SCHEDULE for project ID ${projectId} in bay ${bayId} at row ${rowIndex}`);
+      
+      // Find the project data
+      const project = projects.find(p => p.id === projectId);
+      if (!project) {
+        // Attempt to recover from sessionStorage if project data is not found
+        try {
+          const storedProject = JSON.parse(sessionStorage.getItem('dragging_project') || '{}');
+          if (storedProject && storedProject.id === projectId) {
+            console.log(`🔄 Recovered project data from session storage: ${storedProject.name}`);
+            // Use the stored project data
+            // Continue with the scheduling creation
           } else {
-            // We're outside the visible timeline - use fallback
-            const cellDelta = snapCell - (resizingSchedule.initialLeft / cellWidth + resizingSchedule.initialWidth / cellWidth);
-            const dayDelta = Math.round(cellDelta / cellsPerDay);
-            newEndDate = addDays(resizingSchedule.initialEndDate, dayDelta);
-            
-            console.log(`Fallback resize: Cell delta ${cellDelta}, Day delta ${dayDelta}`);
+            console.error('❌ Cannot find project with ID', projectId);
+            return;
           }
-        } else {
-          // Fallback to a constrained pixel-based calculation
-          // Limit extension to a reasonable size
-          const pixelsDelta = rightEdge - (resizingSchedule.initialLeft + resizingSchedule.initialWidth);
-          const maxExtensionPixels = slotWidth * 4; // Limit to 4 weeks
-          const constrainedDelta = Math.min(pixelsDelta, maxExtensionPixels);
-          
-          const pixelsPerDay = slotWidth / daysBetweenSlots;
-          const daysDelta = Math.round(constrainedDelta / pixelsPerDay);
-          newEndDate = addDays(resizingSchedule.initialEndDate, daysDelta);
-        }
-        
-        // Ensure end date is not before start date
-        if (newEndDate <= newStartDate) {
-          newEndDate = new Date(newStartDate);
-          newEndDate.setDate(newStartDate.getDate() + 1); // At least 1 day between start and end
+        } catch (error) {
+          console.error('❌ Cannot find project with ID', projectId);
+          return;
         }
       }
       
-      // IMPORTANT: DISABLED business day adjustments per user request for exact placement
-      // Use exact dates from the resize operation, regardless of weekends/holidays
-      let adjustedStartDate = newStartDate;  
-      let adjustedEndDate = newEndDate;
+      // Get phase percentages from the project or use defaults
+      const fabPercent = project && project.fabPercentage ? Number(project.fabPercentage) : 27;
+      const paintPercent = project && project.paintPercentage ? Number(project.paintPercentage) : 7;
       
-      console.log(`EXACT DATES: Using precise dates from resize: ${format(newStartDate, 'yyyy-MM-dd')} to ${format(newEndDate, 'yyyy-MM-dd')}`);
-      console.log(`NO ADJUSTMENT: Weekend/holiday adjustment disabled per user request for exact manual placement`);
+      // Calculate how many days before the PRODUCTION phase
+      // Default duration is 4 weeks if not specified
+      const totalDuration = scheduleDuration * 7; // Convert weeks to days
+      const fabAndPaintDays = Math.ceil(totalDuration * ((fabPercent + paintPercent) / 100));
       
-      // Ensure adjusted end date is after adjusted start date
-      if (adjustedEndDate <= adjustedStartDate) {
-        adjustedEndDate = addDays(adjustedStartDate, 1);
-        // If the next day isn't a business day, find the next business day
-        adjustedEndDate = adjustToPreviousBusinessDay(adjustedEndDate) || adjustedEndDate;
-        if (adjustedEndDate <= adjustedStartDate) {
-          // If we still have an issue, just add 3 days which should get us to next business day
-          adjustedEndDate = adjustToNextBusinessDay(addDays(adjustedStartDate, 3)) || addDays(adjustedStartDate, 3);
-        }
+      console.log(`Starting project from PRODUCTION phase - adjusting drop date:`);
+      console.log(`- Initial drop date: ${format(date, 'yyyy-MM-dd')}`);
+      console.log(`- Fab+Paint %: ${fabPercent + paintPercent}% = ${fabAndPaintDays} days`);
+      
+      // Adjust startDate backwards to account for fab and paint phases
+      // This makes the PRODUCTION phase start at the drop point
+      const adjustedStartDate = subDays(date, fabAndPaintDays);
+      console.log(`- Adjusted start date: ${format(adjustedStartDate, 'yyyy-MM-dd')} (backing up ${fabAndPaintDays} days for fab+paint)`);
+      
+      // End date stays as originally calculated from the drop point + duration
+      const endDate = addWeeks(date, scheduleDuration - (fabAndPaintDays / 7));
+      
+      // Format adjusted dates for API
+      const formattedStartDate = format(adjustedStartDate, 'yyyy-MM-dd');
+      const formattedEndDate = format(endDate, 'yyyy-MM-dd');
+      
+      try {
+        // Create a new schedule with the projectId, bayId, and dates
+        await onScheduleCreate(
+          projectId,
+          bayId,
+          formattedStartDate,
+          formattedEndDate,
+          scheduleDuration * 40, // 40 hours per week default
+          rowIndex // Exact row placement
+        );
         
         toast({
-          title: "Date Range Adjusted",
-          description: "End date adjusted to ensure a valid project duration",
-          variant: "destructive"
+          title: "Schedule created",
+          description: `Added ${project?.name || 'Project'} to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
         });
+      } catch (error) {
+        console.error('Error creating schedule:', error);
+        toast({
+          title: "Failed to create schedule",
+          description: "There was an error creating the schedule. Please try again.",
+          variant: "destructive",
+        });
+      }
+      
+      return;
+    }
+    
+    // Handle existing schedule being moved
+    const bar = scheduleBars.find((b) => b.id === scheduleId);
+    if (!bar) {
+      console.error('DROP ERROR: Could not find schedule bar with ID', scheduleId);
+      return;
+    }
+    
+    // Clear any previous drop highlight markers
+    document.querySelectorAll('.drop-highlight-marker').forEach(el => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    });
+    
+    // Create visual indicators for the exact drop location
+    const targetElement = e.currentTarget instanceof HTMLElement ? e.currentTarget : document.querySelector(`[data-bay-id="${bayId}"]`);
+    if (targetElement) {
+      // Create position marker
+      const marker = document.createElement('div');
+      marker.className = 'drop-highlight-marker absolute w-2 h-10 bg-green-600 z-40 rounded';
+      marker.style.left = '0px';
+      marker.style.top = '0px';
+      targetElement.appendChild(marker);
+      
+      // Add visual indicator for user feedback
+      const indicator = document.createElement('div');
+      indicator.className = 'drop-highlight-marker absolute bg-green-500/30 border border-green-500 px-2 py-1 text-xs font-bold text-white z-50 rounded';
+      indicator.style.top = '5px';
+      indicator.style.left = '5px';
+      indicator.textContent = `EXACT PLACEMENT: ${format(date, 'MMM d')}`;
+      targetElement.appendChild(indicator);
+      
+      // Remove indicators after 2 seconds
+      setTimeout(() => {
+        document.querySelectorAll('.drop-highlight-marker').forEach(el => {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        });
+      }, 2000);
+    }
+    
+    try {
+      // Calculate the duration in days and apply to the target date
+      const durationDays = differenceInDays(bar.endDate, bar.startDate);
+      const newEndDate = addDays(date, durationDays);
+      
+      // Debug info
+      console.log(`⚠️ DROP DEBUG: AUTO-ADJUSTMENT DISABLED - Project will stay EXACTLY at dropped position`);
+      console.log(`⚠️ DROP DEBUG: Target row index: ${rowIndex}`);
+      console.log(`⚠️ DROP DEBUG: Start date: ${format(date, 'yyyy-MM-dd')}, End date: ${format(newEndDate, 'yyyy-MM-dd')}`);
+      console.log(`🔒 DROP DEBUG: NO AUTO OPTIMIZATION: Projects can overlap - NO collision detection`);
+      
+      // Format dates for the API
+      const formattedStartDate = format(date, 'yyyy-MM-dd');
+      const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
+      
+      // Check if a significant date change occurred
+      const originalStartDate = format(bar.startDate, 'yyyy-MM-dd');
+      const originalEndDate = format(bar.endDate, 'yyyy-MM-dd');
+      
+      const isSignificantChange = 
+        Math.abs(differenceInDays(date, bar.startDate)) > 0 || 
+        Math.abs(differenceInDays(newEndDate, bar.endDate)) > 0 ||
+        bayId !== bar.bayId; // Bay change is always significant
+        
+      if (isSignificantChange) {
+        if (enableFinancialImpact) {
+          // Show financial impact popup before committing changes if enabled
+          setFinancialImpactData({
+            scheduleId: scheduleId,
+            projectId: bar.projectId,
+            bayId: bayId,
+            originalStartDate: originalStartDate,
+            originalEndDate: originalEndDate,
+            newStartDate: formattedStartDate,
+            newEndDate: formattedEndDate,
+            totalHours: bar.totalHours,
+            rowIndex: rowIndex
+          });
+          setShowFinancialImpact(true);
+          
+          // Note: Changes will be committed when user confirms in the popup
+          return;
+        } else {
+          // When financial impact analysis is disabled, directly apply the changes
+          try {
+            // Update the schedule without showing financial impact
+            await onScheduleChange(
+              scheduleId,
+              bayId,
+              formattedStartDate,
+              formattedEndDate,
+              bar.totalHours,
+              rowIndex
+            );
+            
+            // Show success toast
+            toast({
+              title: "Schedule updated",
+              description: `${bar.projectName} moved to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
+            });
+            return;
+          } catch (error) {
+            console.error('Error updating schedule:', error);
+            toast({
+              title: 'Update failed',
+              description: 'There was an error updating the schedule.',
+              variant: 'destructive',
+            });
+            return;
+          }
+        }
+      }
+      
+      // If no significant change, update directly
+      await onScheduleChange(
+        scheduleId,
+        bayId,
+        formattedStartDate,
+        formattedEndDate,
+        bar.totalHours,
+        rowIndex
+      );
+      
+      // Show success toast
+      toast({
+        title: "Schedule updated",
+        description: `${bar.projectName} moved to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
+      });
+    } catch (error) {
+      console.error('Error updating schedule:', error);
+      toast({
+        title: "Update failed",
+        description: "There was an error updating the schedule. Please try again.",
+        variant: "destructive",
+      });
+    }
+    
+    // Reset drag state
+    setDraggingSchedule(null);
+    setDropTarget(null);
+    
+    // Remove highlights
+    document.querySelectorAll('.drop-target').forEach((el) => {
+      el.classList.remove('drop-target');
+    });
+  };
+  
+  const getDateFromDropPosition = (e: React.DragEvent, bayId: number, rowIndex: number): Date | null => {
+    console.log(`DROP DEBUG: Bay ID ${bayId}, Row Index ${rowIndex}`);
+    
+    // Try to get date from data attributes first (more precise if available)
+    if (e.currentTarget instanceof HTMLElement) {
+      const dateAttr = e.currentTarget.getAttribute('data-date');
+      if (dateAttr) {
+        console.log(`DROP DEBUG: Using date attribute: ${dateAttr}`);
+        return new Date(dateAttr);
+      }
+    }
+    
+    // Get the element where the drop happened
+    const dropTarget = e.target as HTMLElement;
+    if (dropTarget?.classList.contains('week-cell')) {
+      const dateAttr = dropTarget.getAttribute('data-date');
+      if (dateAttr) {
+        console.log(`DROP DEBUG: Using week-cell date attribute: ${dateAttr}`);
+        return new Date(dateAttr);
+      }
+    }
+    
+    try {
+      // Find the timeline element that contains the week cells
+      const timelineEl = timelineRef.current;
+      if (!timelineEl) {
+        console.error('DROP DEBUG: Timeline element not found');
+        return addDays(dateRange.start, 0); // Default to start date
+      }
+      
+      // Get the timeline bounding rect
+      const timelineRect = timelineEl.getBoundingClientRect();
+      
+      // Find the closest date column based on mouse position
+      const allDateCells = document.querySelectorAll(`[data-bay-id="${bayId}"][data-date]`);
+      if (allDateCells && allDateCells.length > 0) {
+        // Find the closest date cell to the drop position
+        let closestCell = null;
+        let minDistance = Infinity;
+        
+        allDateCells.forEach(cell => {
+          const cellRect = (cell as HTMLElement).getBoundingClientRect();
+          const cellCenterX = cellRect.left + (cellRect.width / 2);
+          const distance = Math.abs(e.clientX - cellCenterX);
+          
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestCell = cell;
+          }
+        });
+        
+        if (closestCell) {
+          const dateAttr = closestCell.getAttribute('data-date');
+          if (dateAttr) {
+            console.log(`🎯 DROP DEBUG: Using date from closest cell: ${dateAttr} (distance: ${minDistance}px)`);
+            return new Date(dateAttr);
+          }
+        }
+      }
+      
+      // Fall back to pixel-based calculation if no cells found
+      // Get the offset from the start of the timeline (left edge) 
+      const timelineX = e.clientX - timelineRect.left - 32; // Adjust for bay label width
+      
+      // Make sure we have a positive value
+      const adjustedX = Math.max(0, timelineX);
+      
+      // Calculate date based on slot width with precise positioning
+      const dayWidth = viewMode === 'day' ? slotWidth : slotWidth / 7;
+      
+      // Calculate the day offset based on pixels
+      const dayOffset = adjustedX / dayWidth;
+      console.log(`📏 DROP DEBUG: Improved calculation - timelineX: ${timelineX}px, adjustedX: ${adjustedX}px, dayWidth: ${dayWidth}px, dayOffset: ${dayOffset} days`);
+      
+      // Get the exact date
+      const exactDate = addDays(dateRange.start, Math.floor(dayOffset));
+      console.log(`📅 DROP DEBUG: Target date: ${format(exactDate, 'yyyy-MM-dd')}`);
+      
+      return exactDate;
+    } catch (error) {
+      console.error('Error calculating drop position:', error);
+      
+      // Fallback - use the center of the first visible week on screen
+      return addDays(dateRange.start, 0);
+    }
+  };
+  
+  const handleDeleteRow = async (bayId: number, rowIndex: number) => {
+    try {
+      // Find schedules in this row
+      const schedulesInRow = scheduleBars.filter(
+        (bar) => bar.bayId === bayId && bar.row === rowIndex
+      );
+      
+      // If schedules exist, delete them first
+      for (const schedule of schedulesInRow) {
+        if (onScheduleDelete) {
+          await onScheduleDelete(schedule.id);
+        }
+      }
+      
+      toast({
+        title: "Row deleted",
+        description: `Row ${rowIndex + 1} in Bay ${bayId} has been deleted.`,
+      });
+    } catch (error) {
+      console.error('Error deleting row:', error);
+      toast({
+        title: "Deletion failed",
+        description: "There was an error deleting the row. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleRowAdd = async (bayId: number) => {
+    try {
+      // For now, adding a row doesn't involve API calls
+      // It's just a UI update that will be reflected in future schedule creates
+      
+      toast({
+        title: "Row added",
+        description: `A new row has been added to Bay ${bayId}.`,
+      });
+    } catch (error) {
+      console.error('Error adding row:', error);
+      toast({
+        title: "Addition failed",
+        description: "There was an error adding the row. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleAddSchedule = async () => {
+    if (!currentProject || !targetBay || !targetStartDate || !targetEndDate) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      // Check if the project is already scheduled anywhere
+      const existingSchedule = schedules.find(s => s.projectId === currentProject);
+      
+      if (existingSchedule) {
+        // Project is already scheduled - show error and don't allow duplicate
+        const existingBay = bays.find(b => b.id === existingSchedule.bayId);
+        const projectDetails = projects.find(p => p.id === currentProject);
+        
+        toast({
+          title: "Duplicate Project Schedule",
+          description: `Project ${projectDetails?.projectNumber} is already scheduled in ${existingBay?.name || 'Bay ' + existingSchedule.bayId}. Please remove the existing schedule before adding a new one.`,
+          variant: "destructive",
+        });
+        return;
       }
       
       // Format dates for the API
-      const formattedStartDate = format(adjustedStartDate, 'yyyy-MM-dd');
-      const formattedEndDate = format(adjustedEndDate, 'yyyy-MM-dd');
+      const formattedStartDate = format(targetStartDate, 'yyyy-MM-dd');
+      const formattedEndDate = format(targetEndDate, 'yyyy-MM-dd');
       
-      // Get original hours - don't recalculate based on duration
-      const originalHours = resizingSchedule.originalHours || 1000;
-      // Calculate days for logging only
-      const totalDays = differenceInDays(adjustedEndDate, adjustedStartDate);
-      // Use original hours or fallback to 1000 hours (don't recalculate)
-      const totalHours = originalHours;
+      // Create the schedule with default row 0
+      const rowIndex = 0;
       
-      console.log(`Updating schedule ${resizingSchedule.id} with new dates:`, {
-        startDate: formattedStartDate,
-        endDate: formattedEndDate,
-        totalHours
-      });
-      
-      // Make sure we use a consistent row value for all bays
-      // Map to visual row (0-3) to ensure proper positioning
-      const rowToUse = resizingSchedule.row ?? 0;
-      const visualRow = rowToUse % 4;
-      
-      console.log(`Applying resize with row ${visualRow} (mapped from ${rowToUse})`);
-      
-      // CRITICAL FIX: Force phase updates with our exact-fit algorithm before finalizing the resize
-      const barWidth = parseInt(barElement.style.width, 10);
-      console.log(`FINAL RESIZE PHASE UPDATE - Ensuring exact phase widths for bar width: ${barWidth}px`);
-      
-      // Get the schedule and project data
-      const schedule = schedules.find(s => s.id === resizingSchedule.id);
-      const project = schedule ? projects.find(p => p.id === schedule.projectId) : null;
-        
-      // Use our utility to apply exact-fit phase updates
-      const updateSuccess = updatePhaseWidthsWithExactFit(barElement, barWidth, project);
-      
-      if (updateSuccess) {
-        console.log(`✓ Final resize: Successfully applied exact-fit phases for project ${project?.projectNumber || 'unknown'}`);
-      } else {
-        console.warn(`⚠️ Final resize: Using fallback method for phase updates on project ${project?.projectNumber || 'unknown'}`);
-        // Use the standard helper function as fallback
-        updateDepartmentPhaseWidths(barElement, barWidth);
-      }
-      
-      // Force browser reflow to ensure all changes are applied
-      barElement.getBoundingClientRect();
-      
-      // Add attributes to verify update was applied
-      barElement.setAttribute('data-final-resize-width', barWidth.toString());
-      barElement.setAttribute('data-resize-complete', 'true');
-      barElement.setAttribute('data-phases-updated', 'exact-fit-final');
-      
-      // Use applyManualResize which will check for capacity impacts
-      applyManualResize(
-        resizingSchedule.id,
+      // Create the schedule
+      await onScheduleCreate(
+        currentProject,
+        targetBay,
         formattedStartDate,
         formattedEndDate,
-        visualRow
+        40, // Default to 40 hours
+        rowIndex
       );
       
-      // No longer automatically adjusting other projects after resize
-      // Auto-adjustment should only happen when the user clicks the Auto Adjust button
-    } catch (error) {
-      console.error('Error updating schedule after resize:', error);
+      // Show success toast
       toast({
-        title: "Error",
-        description: "Failed to update schedule",
-        variant: "destructive"
+        title: "Schedule created",
+        description: `Project added to ${bays.find(b => b.id === targetBay)?.name || 'Bay ' + targetBay}`,
       });
       
-      // Reset the visual appearance
-      const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
-      if (barElement) {
-        barElement.style.left = `${resizingSchedule.initialLeft}px`;
-        barElement.style.width = `${resizingSchedule.initialWidth}px`;
-      }
-    } finally {
-      // Clean up event listeners
-      document.removeEventListener('mousemove', handleResizeMove);
-      document.removeEventListener('mouseup', handleResizeEnd);
-      document.body.style.cursor = '';
-      
-      // Remove resize mode class from body
-      document.body.classList.remove('resizing-mode');
-      
-      // Find the bar element and restore draggable attribute
-      if (resizingSchedule) {
-        const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${resizingSchedule.id}"]`) as HTMLElement;
-        if (barElement) {
-          // Re-enable draggable
-          barElement.setAttribute('draggable', 'true');
-          
-          // Remove the resize-specific class
-          barElement.classList.remove('resize-in-progress');
-        }
-      }
-      
-      // Reset resize hover state and clean up all highlight classes
-      document.querySelectorAll('.week-cell-resize-hover').forEach(el => {
-        el.classList.remove('week-cell-resize-hover');
+      // Reset dialog state
+      setDialogOpen(false);
+      setCurrentProject(null);
+      setTargetBay(null);
+      setTargetStartDate(null);
+      setTargetEndDate(null);
+    } catch (error) {
+      console.error('Error creating schedule:', error);
+      toast({
+        title: "Creation failed",
+        description: "There was an error creating the schedule. Please try again.",
+        variant: "destructive",
       });
-      
-      // Clear all vertical column highlights
-      document.querySelectorAll('.vertical-highlight-column').forEach(el => {
-        el.classList.remove('vertical-highlight-column', 'left-resize', 'right-resize');
-      });
-      
-      // Clear all column highlights from any cell
-      document.querySelectorAll('.column-highlight').forEach(el => {
-        el.classList.remove('column-highlight');
-      });
-      
-      // Clean up resizing visual effects
-      document.querySelectorAll('.resizing-active').forEach(el => {
-        el.classList.remove('resizing-active', 'resize-from-left', 'resize-from-right');
-      });
-      
-      // Reset UI state
-      setResizeHoverSlot(null);
-      setResizingSchedule(null);
-      
-      // Force schedules to be recalculated by incrementing the version counter
-      // This ensures the UI updates with the new position even if data is still cached
-      setRecalculationVersion(prev => prev + 1);
     }
   };
   
-  const handleDragStart = (e: React.DragEvent, type: 'existing' | 'new', data: any) => {
-    e.stopPropagation();
+  const handleDeleteSchedule = async (scheduleId: number) => {
+    if (!onScheduleDelete) return;
     
-    // Add a class to the body to indicate dragging is in progress
-    document.body.classList.add('dragging-active');
-    
-    // CRITICAL FIX: Calculate and store drag offset X (where the mouse grabbed the bar)
-    const barRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const dragOffsetX = e.clientX - barRect.left;
-    console.log(`🎯 EXACT DRAG POSITION: Mouse grabbed bar at x-offset ${dragOffsetX}px from left edge`);
-    
-    // Store this critical value in document body for use during drop
-    document.body.setAttribute('data-drag-offset-x', dragOffsetX.toString());
-    
-    // CRITICAL: We must ensure the correct data is set for the drag operation
     try {
-      // Set both formats for better browser compatibility
-      const payload = JSON.stringify({
-        type,
-        dragOffsetX, // Include the drag offset in the payload data
-        ...data
+      await onScheduleDelete(scheduleId);
+      
+      // Show success toast
+      toast({
+        title: "Schedule deleted",
+        description: "The schedule has been deleted.",
       });
-      
-      e.dataTransfer.setData('text/plain', payload);
-      e.dataTransfer.setData('application/json', payload);
-      
-      // Set drop effect
-      e.dataTransfer.effectAllowed = 'move';
-      
-      console.log(`Drag started for ${type} project at x-offset ${dragOffsetX}px:`, data.projectNumber || 'Project');
-      
-      // Create a better custom drag image
-      const dragImage = document.createElement('div');
-      dragImage.className = 'p-3 rounded-md shadow-xl border border-primary/50 bg-primary text-white';
-      dragImage.style.position = 'absolute';
-      dragImage.style.top = '-1000px';
-      dragImage.style.zIndex = '9999';
-      dragImage.style.padding = '12px';
-      dragImage.style.width = '240px';
-      dragImage.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
-      
-      // Add project number and name
-      const projectInfo = document.createElement('div');
-      projectInfo.className = 'font-medium text-sm';
-      projectInfo.textContent = data.projectNumber ? 
-        `${data.projectNumber}: ${data.projectName?.substring(0, 20) || ''}` : 
-        'Project';
-      projectInfo.style.whiteSpace = 'nowrap';
-      projectInfo.style.overflow = 'hidden';
-      projectInfo.style.textOverflow = 'ellipsis';
-      dragImage.appendChild(projectInfo);
-      
-      // Add hours info with icon
-      const hoursContainer = document.createElement('div');
-      hoursContainer.className = 'text-white text-xs mt-2 flex items-center';
-      hoursContainer.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 mr-1">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
-        <span>${data.totalHours !== null ? Number(data.totalHours) : 1000} hours</span>
-      `;
-      dragImage.appendChild(hoursContainer);
-      
-      // Add a hint label
-      const hintLabel = document.createElement('div');
-      hintLabel.className = 'text-white/70 text-xs mt-2 flex items-center';
-      hintLabel.textContent = 'Drop in a bay to schedule';
-      dragImage.appendChild(hintLabel);
-      
-      document.body.appendChild(dragImage);
-      
-      // Set drag image with offset
-      e.dataTransfer.setDragImage(dragImage, 40, 25);
-      
-      // Clean up after a short delay
-      setTimeout(() => {
-        if (document.body.contains(dragImage)) {
-          document.body.removeChild(dragImage);
-        }
-      }, 100);
-      
-      // Visual feedback on the original element being dragged
-      if (type === 'new') {
-        const element = e.currentTarget as HTMLElement;
-        element.classList.add('opacity-50', 'border-dashed');
-        
-        // Remove the visual feedback when drag ends
-        const cleanup = () => {
-          element.classList.remove('opacity-50', 'border-dashed');
-          document.body.classList.remove('dragging-active');
-          document.removeEventListener('dragend', cleanup);
-        };
-        
-        document.addEventListener('dragend', cleanup);
-      }
-      
-      // Update internal state
-      if (type === 'existing' && data.id) {
-        const bar = scheduleBars.find(b => b.id === data.id);
-        if (bar) {
-          setDraggingSchedule(bar);
-        } else {
-          setDraggingSchedule(data);
-        }
-      } else {
-        setDraggingSchedule(data);
-      }
     } catch (error) {
-      console.error('Error in drag start:', error);
-      document.body.classList.remove('dragging-active');
+      console.error('Error deleting schedule:', error);
+      toast({
+        title: "Deletion failed",
+        description: "There was an error deleting the schedule. Please try again.",
+        variant: "destructive",
+      });
     }
   };
   
-  // Handle drag over
-  const handleDragOver = (e: React.DragEvent<Element>, bayId: number, slotIndex: number, rowIndex: number = 0) => {
-    // CRITICAL: We must call preventDefault to allow dropping
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+  const handleSaveBayEdit = async () => {
+    if (!editingBay || !onBayUpdate) return;
     
-    // First, store the current bay ID in a data attribute on the drag element
-    // This ensures we know which bay the drag started in
-    const dragElement = e.currentTarget as HTMLElement;
-    
-    // ENHANCED BAY 3 FIX: Add bay-specific class to the dragElement for Bay 3
-    if (bayId === 3) {
-      dragElement.classList.add('dragging-over-bay-3');
-      console.log('Dragging over Bay 3 - adding special class');
-    } else {
-      dragElement.classList.remove('dragging-over-bay-3');
-    }
-    
-    // CRITICAL: Update with the current row whenever dragging over
-    // This ensures we track the actual row where the cursor is hovering
-    const currentRow = Math.max(0, Math.min(3, rowIndex));
-    document.body.setAttribute('data-current-drag-row', currentRow.toString());
-    
-    // CRITICAL BUG FIX: Always update with the latest bay ID when dragging over
-    // This ensures the project is placed in the currently hovered bay
-    document.body.setAttribute('data-current-drag-bay', bayId.toString());
-    
-    // Add additional robust tracking for Bay 3 specifically
-    // This ensures we have multiple ways to identify the target bay
-    if (bayId === 3) {
-      document.body.setAttribute('data-bay-three-drag', 'true');
-      document.body.setAttribute('data-last-bay-drag', '3');
-      console.log(`Enhanced tracking for Bay 3 drag, row: ${currentRow}`);
-    } else {
-      document.body.removeAttribute('data-bay-three-drag');
-      document.body.setAttribute('data-last-bay-drag', bayId.toString());
-      console.log(`Updated current drag bay: ${bayId} and row: ${currentRow}`);
-    }
-    
-    // We'll still track the original bay ID on the element (but don't use it for placement)
-    if (dragElement && !dragElement.hasAttribute('data-original-bay-id')) {
-      dragElement.setAttribute('data-original-bay-id', bayId.toString());
-    }
-    
-    // Get the main scrollable container for auto-scroll
-    const mainScrollContainer = document.querySelector('.main-content') as HTMLElement;
-    
-    // Auto-scroll when drag moves close to viewport edges
-    const viewportWidth = window.innerWidth;
-    const SCROLL_THRESHOLD = 80; // Pixels from viewport edge to start scrolling
-    const SCROLL_SPEED = 15; // Pixels to scroll per drag over event
-    
-    // Check if mouse is near the right edge
-    if (e.clientX > viewportWidth - SCROLL_THRESHOLD) {
-      // Scroll right
-      if (mainScrollContainer) {
-        mainScrollContainer.scrollLeft += SCROLL_SPEED;
-      }
-    } 
-    // Check if mouse is near the left edge
-    else if (e.clientX < SCROLL_THRESHOLD) {
-      // Scroll left
-      if (mainScrollContainer) {
-        mainScrollContainer.scrollLeft -= SCROLL_SPEED;
-      }
-    }
-    
-    // Remove highlighted state from all cells and rows first - safely by handling selectors separately
     try {
-      // Clean up simple class names - EXPANDED LIST WITH NEW HIGHLIGHT CLASSES
-      [
-        '.drag-hover', 
-        '.active-drop-target', 
-        '.week-cell-hover', 
-        '.week-cell-resize-hover',
-        '.week-column-highlight',
-        '.target-cell-highlight',
-        '.bay-row-highlight'
-      ].forEach(selector => {
-        document.querySelectorAll(selector).forEach(el => {
-          // Remove all possible highlight classes
-          el.classList.remove(
-            'drag-hover', 
-            'active-drop-target', 
-            'week-cell-hover', 
-            'week-cell-resize-hover',
-            'week-column-highlight',
-            'target-cell-highlight',
-            'bay-row-highlight',
-            'bg-primary/10',
-            'bg-primary/20',
-            'border-primary',
-            'border-primary/40',
-            'border-dashed',
-            'border-2'
-          );
-        });
+      await onBayUpdate(editingBay.id, editingBay);
+      
+      // Show success toast
+      toast({
+        title: "Bay updated",
+        description: `${editingBay.name} has been updated.`,
       });
       
-      // Remove row highlights from all rows
-      document.querySelectorAll('[class*="row-"][class*="-highlight"]').forEach(el => {
-        // Remove all row highlight classes
-        for (let i = 0; i < 4; i++) {
-          el.classList.remove(`row-${i}-highlight`);
-        }
-      });
-      
-      // Clear any data attributes used for highlighting
-      document.querySelectorAll('[data-active-drop-target="true"]').forEach(el => {
-        el.removeAttribute('data-active-drop-target');
-      });
-      
-      document.querySelectorAll('[data-active-row]').forEach(el => {
-        el.removeAttribute('data-active-row');
-      });
-    } catch (error) {
-      console.error('Error cleaning up highlight classes in drag over:', error);
-    }
-    
-    // CRITICAL BUG FIX: ALWAYS use the current bay where user is dragging! 
-    // Previous logic was trying to keep consistent bay which caused projects to jump to wrong bay
-    // We want to use EXACTLY the bay where the user is currently dragging
-    // IMPROVED BAY SELECTION: For bay ID always use the explicit parameter first
-    // This ensures bay 3 works correctly
-    const currentBayId = bayId; // Directly use the bayId parameter from the current event
-    const currentRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
-    
-    // Store the bay ID in body attribute for other functions to use
-    document.body.setAttribute('data-current-drag-bay', bayId.toString());
-    
-    // CRITICAL FIX: ALWAYS use the EXACT current bay where cursor is
-    // DO NOT reference stored/original bay ID - this is what caused projects to jump to wrong bays
-    const forcedBayId = currentBayId;
-    
-    // Extra safety measure for Bay 3: when dragging over bay 3, 
-    // make sure the element's data-bay-id attribute is set correctly
-    if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.setAttribute('data-bay-id', bayId.toString());
-    }
-    
-    // Use the current row where the user is dragging
-    const validRowIndex = Math.max(0, Math.min(3, rowIndex !== undefined ? rowIndex : currentRowIndex));
-    
-    console.log(`Using bay ${forcedBayId} with current row: ${validRowIndex}`);
-    
-    // Just for logging - calculate row position if needed
-    const cellHeight = e.currentTarget.clientHeight;
-    const relativeY = e.nativeEvent.offsetY;
-    const calculatedRowFromMouse = Math.floor((relativeY / cellHeight) * 4);
-    
-    // Add highlight to the current target cell
-    if (e.currentTarget) {
-      // Add class to show this as an active drop target
-      e.currentTarget.classList.add('active-drop-target');
-      
-      // Add a row-specific highlight class
-      e.currentTarget.classList.add(`row-${validRowIndex}-highlight`);
-      
-      // Find all cells in this week column and add hover effect
-      const columnIndex = e.currentTarget.getAttribute('data-slot-index');
-      if (columnIndex) {
-        document.querySelectorAll(`[data-slot-index="${columnIndex}"][data-bay-id="${bayId}"]`).forEach(el => {
-          el.classList.add('drag-hover');
-        });
-      }
-    }
-    
-    // Update the target location
-    setDropTarget({ 
-      bayId, 
-      slotIndex,
-      rowIndex: validRowIndex
-    });
-    
-    // CRITICAL FIX: Set the row index in the global body attribute
-    // This ensures it's available when the drop handler runs
-    document.body.setAttribute('data-current-drag-row', validRowIndex.toString());
-    document.body.setAttribute('data-current-drag-bay', bayId.toString());
-    
-    // Add prominent visual cue to the current cell - ENHANCED VERSION WITH COLUMN HIGHLIGHTING
-    try {
-      const target = e.currentTarget as HTMLElement;
-      
-      // MOST IMPORTANT - Get and store the exact date from this cell
-      const dataDate = target.getAttribute('data-date');
-      if (dataDate) {
-        // Store this for the drop handler - CRUCIAL for preserving week position
-        // CRITICAL FIX: Always use this format to ensure consistent date handling
-        const dateObj = new Date(dataDate);
-        // CRITICAL FIX: Instead of using startOfWeek, use the exact date from the column
-        // This ensures projects align perfectly with the grid columns
-        const exactDateToUse = dataDate;
-        
-        // IMPORTANT: Set a global variable with this date for use in the drop handler
-        (window as any).lastExactDate = exactDateToUse;
-        
-        target.setAttribute('data-exact-date', exactDateToUse);
-        console.log(`Storing exact date: ${exactDateToUse} (from date ${dataDate})`);
-        
-        // Also store this date on the parent bay element for better target identification
-        const parentBay = target.closest('.bay-container');
-        if (parentBay) {
-          parentBay.setAttribute('data-last-dragover-date', exactDateToUse);
-        }
-        
-        // Also add this date to active drop elements that don't have a date
-        document.querySelectorAll('.active-drop-target').forEach(el => {
-          if (!el.hasAttribute('data-exact-date')) {
-            el.setAttribute('data-exact-date', exactDateToUse);
-          }
-        });
-        
-        // Log the exact date and week for debugging
-        const weekNumber = format(dateObj, 'w');
-        const dateFormatted = format(dateObj, 'MMM d, yyyy');
-        console.log(`Target cell date: ${dateFormatted} (Week ${weekNumber})`);
-        
-        // CRITICAL FIX: Also add the slot index to this element data attribute
-        const slotIndex = target.getAttribute('data-slot-index');
-        if (slotIndex) {
-          target.setAttribute('data-exact-slot-index', slotIndex);
-          console.log(`Target slot index: ${slotIndex}`);
-        }
-      }
-      
-      // Add basic highlight classes for the current cell
-      target.classList.add('drop-target-highlight', 'week-cell-hover');
-      target.classList.add('border-primary', 'border-dashed');
-      target.classList.add('bg-primary/20');
-      
-      // Find and highlight the entire column for this week
-      const targetSlotIndex = target.getAttribute('data-slot-index');
-      if (targetSlotIndex) {
-        // First get all cells in this week column for ALL bays
-        document.querySelectorAll(`[data-slot-index="${targetSlotIndex}"]`).forEach(el => {
-          el.classList.add('week-column-highlight');
-        });
-        
-        // Then specifically highlight cells in THIS bay
-        document.querySelectorAll(`[data-slot-index="${targetSlotIndex}"][data-bay-id="${bayId}"]`).forEach(el => {
-          el.classList.add('week-cell-resize-hover', 'border-primary/40');
-        });
-      }
-      
-      // Add a data attribute to mark this cell as the active drop target
-      target.setAttribute('data-active-drop-target', 'true');
-      
-      // Highlight the specific row across the entire bay
-      const bayElement = target.closest('.bay-container');
-      if (bayElement) {
-        const rowElements = bayElement.querySelectorAll('.bay-row');
-        if (rowElements && rowElements.length > validRowIndex) {
-          const rowElement = rowElements[validRowIndex];
-          rowElement.classList.add('bay-row-highlight');
-          rowElement.classList.add('bg-primary/10');
-          
-          // Also store the row index in the row element for later reference
-          rowElement.setAttribute('data-active-row', validRowIndex.toString());
-        }
-      }
-      
-      // Extra visual cue for the intersection of column and row
-      const cellSelector = `[data-slot-index="${targetSlotIndex}"][data-bay-id="${bayId}"][data-row-index="${validRowIndex}"]`;
-      const cellElement = document.querySelector(cellSelector);
-      if (cellElement) {
-        cellElement.classList.add('target-cell-highlight', 'border-primary', 'border-2');
-      }
-    } catch (error) {
-      console.error('Error adding cell highlights:', error);
-    }
-    
-    // Add week number to the data attribute for debugging
-    if (slots && slotIndex >= 0 && slotIndex < slots.length) {
-      const weekNumber = format(slots[slotIndex].date, 'w');
-      
-      // Make sure we have a reference to the current target
-      const currentTarget = e.currentTarget as HTMLElement;
-      if (currentTarget) {
-        currentTarget.setAttribute('data-week-number', weekNumber);
-      }
-      
-      // Log drag over an explicit week for debugging
-      console.log(`Dragging over Bay ${bayId}, Week ${weekNumber} (index ${slotIndex}), Row ${validRowIndex}`);
-    }
-  };
-  
-  // Handle saving an edited bay
-  const handleSaveBayEdit = async (bayId: number, data: Partial<ManufacturingBay>): Promise<void> => {
-    try {
-      if (!data) {
-        toast({
-          title: "Error",
-          description: "Invalid bay data",
-          variant: "destructive"
-        });
-        return Promise.resolve();
-      }
-      
-      // Make sure we have valid staff counts
-      const updatedData = {
-        ...data,
-        staffCount: (data.assemblyStaffCount || 0) + (data.electricalStaffCount || 0),
-      };
-      
-      console.log('Updating bay with data:', updatedData);
-      
-      if (onBayUpdate && bayId > 0) {
-        // Use the parent component's mutation with promise
-        return onBayUpdate(bayId, updatedData)
-          .then((updatedBay) => {
-            console.log('Bay updated successfully:', updatedBay);
-            
-            // Update local state
-            setBays(prev => prev.map(bay => bay.id === bayId ? updatedBay : bay));
-            
-            toast({
-              title: "Bay Updated",
-              description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been updated`,
-            });
-            
-            // Force refetch data from server
-            window.setTimeout(() => {
-              window.location.reload();
-            }, 1000);
-          })
-          .catch((error) => {
-            console.error('Error updating bay:', error);
-            toast({
-              title: "Error",
-              description: "Failed to update bay",
-              variant: "destructive"
-            });
-          });
-      } else if (bayId > 0) {
-        // Simulate success in dev mode to avoid authentication issues
-        console.log('Simulating bay update in dev mode');
-        
-        // Find the bay to update
-        const bayToUpdate = bays.find(b => b.id === bayId);
-        if (!bayToUpdate) {
-          console.error('Bay not found:', bayId);
-          throw new Error('Bay not found');
-        }
-        
-        // Create updated bay 
-        const updatedBay = {
-          ...bayToUpdate,
-          ...updatedData,
-          updatedAt: new Date().toISOString()
-        };
-        console.log('Simulated updated bay:', updatedBay);
-        
-        // Update local state - cast to expected type
-        setBays(prev => prev.map(bay => bay.id === bayId ? {
-          ...updatedBay,
-          createdAt: updatedBay.createdAt ? new Date(updatedBay.createdAt) : null
-        } as ManufacturingBay : bay));
-        
-        toast({
-          title: "Bay Updated",
-          description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been updated`, 
-        });
-        
-        // Force refetch data from server
-        window.setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } else {
-        console.error('Bay update failed - invalid bayId:', bayId);
-        toast({
-          title: "Error",
-          description: "Failed to update bay - invalid bay ID",
-          variant: "destructive"
-        });
-      }
+      // Reset editing state
+      setEditingBay(null);
     } catch (error) {
       console.error('Error updating bay:', error);
       toast({
-        title: "Error",
-        description: "Failed to update bay",
-        variant: "destructive"
+        title: "Update failed",
+        description: "There was an error updating the bay. Please try again.",
+        variant: "destructive",
       });
     }
   };
   
-  // Handle deleting a bay
-  const handleDeleteBay = async (bayId: number): Promise<void> => {
+  const handleCreateBay = async () => {
+    if (!editingBay || !onBayCreate) return;
+    
     try {
-      if (!bayId) {
-        toast({
-          title: "Error",
-          description: "Invalid bay ID",
-          variant: "destructive"
-        });
-        return Promise.resolve();
-      }
-      
-      const bayToDelete = bays.find(b => b.id === bayId);
-      if (!bayToDelete) {
-        console.error('Bay not found for deletion:', bayId);
-        throw new Error('Bay not found');
-      }
-      
-      // Find any schedules that belong to this bay
-      const schedulesInBay = scheduleBars.filter(bar => bar.bayId === bayId);
-      console.log(`Found ${schedulesInBay.length} schedules in bay ${bayId} to reassign`);
-      
-      if (onBayDelete) {
-        // Use the parent component's mutation with promise
-        onBayDelete(bayId)
-          .then(() => {
-            // Handle reassigning any projects that were in this bay to the unassigned section
-            // This will be handled server-side, but we'll update local state for immediate feedback
-            
-            // Remove the bay from local state
-            setBays(prev => prev.filter(bay => bay.id !== bayId));
-            
-            toast({
-              title: "Bay Deleted",
-              description: `Bay ${bayToDelete.bayNumber}: ${bayToDelete.name} has been deleted. Projects have been moved to Unassigned.`,
-            });
-          })
-          .catch((error) => {
-            console.error('Error deleting bay:', error);
-            toast({
-              title: "Error",
-              description: "Failed to delete bay",
-              variant: "destructive"
-            });
-          });
-      } else {
-        // Simulate success in dev mode to avoid authentication issues
-        console.log('Simulating bay deletion in dev mode');
-        
-        // Remove the bay from local state
-        setBays(prev => prev.filter(bay => bay.id !== bayId));
-        
-        toast({
-          title: "Bay Deleted",
-          description: `Bay ${bayToDelete.bayNumber}: ${bayToDelete.name} has been deleted. Projects have been moved to Unassigned.`,
-        });
-        
-        // Force refresh after a delay
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      }
-    } catch (error) {
-      console.error('Error deleting bay:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete bay",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  // Handle creating a new bay
-  const handleCreateBay = async (bayId: number, data: Partial<ManufacturingBay>): Promise<void> => {
-    try {
-      if (!data) {
-        toast({
-          title: "Error",
-          description: "Invalid bay data",
-          variant: "destructive"
-        });
-        return Promise.resolve();
-      }
+      // Check if we're creating a team (has team name and no ID)
+      const isTeamCreation = editingBay.team && !editingBay.id;
       
       // Make sure we have valid staff counts
       const updatedData = {
-        ...data,
-        staffCount: (data.assemblyStaffCount || 0) + (data.electricalStaffCount || 0),
+        ...editingBay,
+        staffCount: (editingBay.assemblyStaffCount || 0) + (editingBay.electricalStaffCount || 0),
       };
       
-      console.log('Creating bay with data:', updatedData);
+      console.log('Creating bay/team with data:', updatedData);
       
-      if (onBayCreate) {
-        // Use the parent component's mutation with promise
-        onBayCreate(updatedData)
-          .then((newBay) => {
-            console.log('Bay created successfully:', newBay);
-            
-            // Update local state
-            setBays(prev => [...prev, newBay]);
-            
-            toast({
-              title: "Bay Created",
-              description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been created`,
-            });
-            
-            // Force refetch data from server
-            window.setTimeout(() => {
-              window.location.reload();
-            }, 1000);
-          })
-          .catch((error) => {
-            console.error('Error creating bay:', error);
-            toast({
-              title: "Error",
-              description: "Failed to create bay",
-              variant: "destructive"
-            });
-          });
-      } else {
-        // If there's no onBayCreate handler provided, simulate success in dev mode
-        // This avoids authentication issues with direct API calls
-        console.log('Simulating bay creation in dev mode');
-        
-        // Create a fake ID
-        const fakeId = Math.floor(Math.random() * 1000) + 100;
-        
-        // Create properly typed bay object with correct data types
-        const newBay: ManufacturingBay = {
-          id: fakeId,
-          bayNumber: updatedData.bayNumber || fakeId,
-          name: updatedData.name || `Bay ${fakeId}`,
-          description: updatedData.description || null,
-          equipment: updatedData.equipment || null,
-          team: updatedData.team || null,
-          staffCount: updatedData.staffCount || 0,
-          assemblyStaffCount: updatedData.assemblyStaffCount || 0,
-          electricalStaffCount: updatedData.electricalStaffCount || 0,
-          hoursPerPersonPerWeek: updatedData.hoursPerPersonPerWeek || 32,
-          isActive: updatedData.isActive !== undefined ? updatedData.isActive : true,
-          createdAt: new Date()
-        };
-        
-        console.log('Simulated new bay:', newBay);
-        
-        // Update local state with properly typed object
-        setBays(prev => [...prev, newBay]);
-        
+      // Create the bay using the parent component's callback
+      const newBay = await onBayCreate(updatedData);
+      
+      // Show appropriate success toast
+      if (isTeamCreation) {
         toast({
-          title: "Bay Created", 
-          description: `Bay ${updatedData.bayNumber}: ${updatedData.name} has been created`,
+          title: "Team created",
+          description: `Team "${editingBay.team}" with bay "${editingBay.name}" has been created.`,
         });
         
-        // Force refresh after a delay
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        // If we created a team, update team descriptions
+        if (editingBay.team && editingBay.description) {
+          const newDescriptions = {...teamDescriptions};
+          newDescriptions[editingBay.team] = editingBay.description;
+          setTeamDescriptions(newDescriptions);
+        }
+      } else {
+        toast({
+          title: "Bay created",
+          description: `${editingBay.name} has been created.`,
+        });
+      }
+      
+      // Reset dialog state
+      setNewBayDialog(false);
+      setEditingBay(null);
+      
+      // Fetch fresh data from API
+      console.log("Fetching fresh bay data after creation");
+      try {
+        const response = await fetch('/api/manufacturing-bays');
+        if (response.ok) {
+          const freshBays = await response.json();
+          
+          // Update bays with fresh data
+          console.log("Received fresh bay data:", freshBays.length, "bays");
+          
+          // Force a full page refresh to ensure proper rendering
+          // This is more reliable than trying to update state directly
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }
+      } catch (err) {
+        console.error("Error refreshing bay data:", err);
       }
     } catch (error) {
       console.error('Error creating bay:', error);
       toast({
-        title: "Error",
-        description: "Failed to create bay",
-        variant: "destructive"
+        title: "Creation failed",
+        description: "There was an error creating the bay. Please try again.",
+        variant: "destructive",
       });
-    }
-  };
-
-  // Handle drop in unassigned area (removing project from bay)
-  const handleDropOnUnassigned = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Remove visual cue from the unassigned drop area
-    document.querySelector('.unassigned-drop-area')?.classList.remove('bg-primary/20', 'border-primary', 'border-dashed');
-    
-    // Remove dragging active class from body
-    document.body.classList.remove('dragging-active');
-    
-    try {
-      // Try multiple formats in case one fails
-      let dataStr = '';
-      try {
-        dataStr = e.dataTransfer.getData('application/json');
-      } catch (err) {
-        console.log('Error getting application/json data, trying text/plain...');
-        dataStr = e.dataTransfer.getData('text/plain');
-      }
-      
-      if (!dataStr) {
-        console.error('No data received in drop event');
-        return;
-      }
-      
-      console.log('Data received in unassigned drop area:', dataStr);
-      
-      const data = JSON.parse(dataStr);
-      if (!data || data.type !== 'existing') {
-        // We only allow dropping existing schedules back to unassigned
-        console.error('Invalid data or attempting to drop new project in unassigned area');
-        return;
-      }
-      
-      // Call the onScheduleDelete function with the schedule ID
-      if (onScheduleDelete && data.id) {
-        // Show loading overlay
-        setIsUnassigningProject(true);
-        
-        onScheduleDelete(data.id)
-          .then(() => {
-            toast({
-              title: "Project Unassigned",
-              description: "Project has been removed from the manufacturing schedule",
-            });
-          })
-          .catch(error => {
-            console.error('Error removing schedule:', error);
-            toast({
-              title: "Error",
-              description: "Failed to remove project from schedule",
-              variant: "destructive"
-            });
-          })
-          .finally(() => {
-            // Hide loading overlay
-            setIsUnassigningProject(false);
-          });
-      }
-    } catch (error) {
-      console.error('Error processing drop on unassigned area:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process drop operation",
-        variant: "destructive"
-      });
-      // Ensure loading overlay is hidden in case of error
-      setIsUnassigningProject(false);
     }
   };
   
-  // Handle drop on a bay timeline
-  const handleDrop = (e: React.DragEvent<Element>, bayId: number, slotIndex: number, rowIndex: number = 0) => {
+  const handleDeleteBay = async (bayId: number) => {
+    if (!onBayDelete) return;
+    
+    try {
+      await onBayDelete(bayId);
+      
+      // Show success toast
+      toast({
+        title: "Bay deleted",
+        description: "The bay has been deleted.",
+      });
+    } catch (error) {
+      console.error('Error deleting bay:', error);
+      toast({
+        title: "Deletion failed",
+        description: "There was an error deleting the bay. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Function to calculate bar position
+  const calculateBarPosition = (startDate: Date, endDate: Date): { left?: number, width?: number } => {
+    // Calculate pixels per day based on slot width
+    const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
+    
+    // Calculate left position based on date range start
+    const daysFromStart = differenceInDays(startDate, dateRange.start);
+    const left = daysFromStart * pixelsPerDay;
+    
+    // Calculate width based on duration
+    const durationDays = differenceInDays(endDate, startDate) + 1; // +1 to include the end date
+    const width = durationDays * pixelsPerDay;
+    
+    return { left, width };
+  };
+  
+  // Function to update department phase widths dynamically 
+  const updateDepartmentPhaseWidths = (barElement: HTMLElement, totalWidth: number) => {
+    const bar = barElement;
+    
+    // Get department percentage values from the element
+    const fabPercent = parseFloat(bar.getAttribute('data-fab-percentage') || '27');
+    const paintPercent = parseFloat(bar.getAttribute('data-paint-percentage') || '7');
+    const prodPercent = parseFloat(bar.getAttribute('data-production-percentage') || '60');
+    const itPercent = parseFloat(bar.getAttribute('data-it-percentage') || '7');
+    const ntcPercent = parseFloat(bar.getAttribute('data-ntc-percentage') || '7');
+    const qcPercent = parseFloat(bar.getAttribute('data-qc-percentage') || '7');
+    
+    // Calculate widths based on percentages of the total width
+    const fabWidth = Math.round(totalWidth * (fabPercent / 100));
+    const paintWidth = Math.round(totalWidth * (paintPercent / 100));
+    const prodWidth = Math.round(totalWidth * (prodPercent / 100));
+    const itWidth = Math.round(totalWidth * (itPercent / 100));
+    const ntcWidth = Math.round(totalWidth * (ntcPercent / 100));
+    const qcWidth = Math.round(totalWidth * (qcPercent / 100));
+    
+    // Find and update the phase elements with just width (positions are handled by CSS)
+    const fabPhase = bar.querySelector('.fab-phase') as HTMLElement;
+    const paintPhase = bar.querySelector('.paint-phase') as HTMLElement;
+    const prodPhase = bar.querySelector('.production-phase') as HTMLElement;
+    const itPhase = bar.querySelector('.it-phase') as HTMLElement;
+    const ntcPhase = bar.querySelector('.ntc-phase') as HTMLElement;
+    const qcPhase = bar.querySelector('.qc-phase') as HTMLElement;
+    
+    // Update only widths - let CSS handle positioning to stay contained
+    if (fabPhase) fabPhase.style.width = `${fabWidth}px`;
+    if (paintPhase) paintPhase.style.width = `${paintWidth}px`;
+    if (prodPhase) prodPhase.style.width = `${prodWidth}px`;
+    if (itPhase) itPhase.style.width = `${itWidth}px`;
+    if (ntcPhase) ntcPhase.style.width = `${ntcWidth}px`;
+    if (qcPhase) qcPhase.style.width = `${qcWidth}px`;
+  };
+  
+  // Handle resizing the schedule bars
+  const handleResizeStart = (e: React.MouseEvent, bar: ScheduleBar, direction: 'start' | 'end') => {
     e.preventDefault();
     e.stopPropagation();
     
-    // CRITICAL FIX: Retrieve mouse position and drag offset for exact positioning
-    const timelineContainer = timelineContainerRef.current;
-    if (!timelineContainer) {
-      console.error("Timeline container ref not available!");
+    // Find the project bar element by its data attribute since handles are now outside containers
+    const element = document.querySelector(`[data-schedule-id="${bar.id}"]`) as HTMLElement;
+    if (!element) {
+      console.error('Could not find project bar element for resize');
       return;
     }
     
-    // Get the container bounds for positioning calculations
-    const containerRect = timelineContainer.getBoundingClientRect();
+    // Track initial position and size
+    const initialRect = element.getBoundingClientRect();
+    const initialLeft = initialRect.left;
+    const initialWidth = initialRect.width;
+    initialStartDate = new Date(bar.startDate);
+    initialEndDate = new Date(bar.endDate);
     
-    // Get the drag offset that was captured during drag start
-    const dragOffsetX = parseInt(document.body.getAttribute('data-drag-offset-x') || '0');
+    // Set up resize mode
+    const resizeMode = direction;
+    let startX = e.clientX;
     
-    // Calculate exact drop position relative to timeline
-    const rawDropX = e.clientX - containerRect.left;
+    // Function to calculate the width between two dates
+    const getWidthBetweenDates = (from: Date, to: Date): number => {
+      const days = differenceInDays(to, from) + 1; // Add 1 to include both start and end dates
+      return days * (viewMode === 'day' ? slotWidth : slotWidth / 7);
+    };
     
-    // Adjust for where on the bar the user grabbed it (subtract the offset)
-    const exactDropPositionPx = Math.max(0, rawDropX - dragOffsetX);
-    
-    console.log(`🎯 EXACT DROP CALCULATION: 
-      - Timeline left edge: ${containerRect.left}px
-      - Mouse position: ${e.clientX}px 
-      - Drag offset: ${dragOffsetX}px
-      - Exact position: ${exactDropPositionPx}px from timeline start`);
+    // Handle mouse move during resizing
+    const handleResizeMove = (e: MouseEvent) => {
+      // Calculate the delta
+      const deltaX = e.clientX - startX;
       
-    // Convert pixels to date (this is critical for exact placement)
-    const pixelsPerDay = 100 / 7; // Adjust based on your timeline scale
-    const daysFromStart = Math.round(exactDropPositionPx / pixelsPerDay);
-    const exactDate = addDays(dateRange.start, daysFromStart);
-    
-    // Store the calculated date for use in later placement logic
-    document.body.setAttribute('data-exact-drop-date', format(exactDate, 'yyyy-MM-dd'));
-    console.log(`📅 EXACT DROP DATE: ${format(exactDate, 'yyyy-MM-dd')} (${daysFromStart} days from start)`);
-    
-    // CRITICAL FIX: Force using the exact bay ID from the event parameters
-    // This prevents the bay jumping issue by ensuring we always use the bay where the drop happened
-    console.log(`🔴 CRITICAL FIX: Using exact bayId=${bayId} from drop event parameters`);
-    
-    // ENHANCED BAY 3 FIX: Special handling for Bay 3 drops
-    // Additional data verification and handling for Bay 3
-    let finalBayId = bayId;
-    
-    if (bayId === 3) {
-      console.log('🔶 BAY 3 DROP DETECTED - Applying special handling');
-      
-      // Add a visual indicator for Bay 3 drop target
-      const bay3Element = document.querySelector(`.bay-content[data-bay-id="3"]`);
-      if (bay3Element) {
-        bay3Element.classList.add('bay-3-drop-active');
-        setTimeout(() => bay3Element.classList.remove('bay-3-drop-active'), 1000);
+      // Update the bar style based on resize direction
+      if (resizeMode === 'start') {
+        // CRITICAL FIX: When resizing from left (start), keep the right edge fixed
+        const rightEdgePosition = initialLeft + initialWidth; // This should remain constant
+
+        // Calculate new left position with constraints
+        const newLeft = Math.min(
+          Math.max(initialLeft + deltaX, 0), // Don't go below 0
+          rightEdgePosition - 40 // Don't make the bar too small
+        );
+        
+        // Calculate new width based on fixed right edge
+        const newWidth = rightEdgePosition - newLeft;
+        
+        // Convert to date range
+        const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
+        const daysOffset = Math.round((newLeft - initialLeft) / pixelsPerDay);
+        const newStartDate = addDays(initialStartDate, daysOffset);
+        
+        // Update the visual bar - adjust position relative to parent
+        const parentOffset = element.parentElement!.getBoundingClientRect().left;
+        element.style.left = `${newLeft - parentOffset}px`;
+        element.style.width = `${newWidth}px`;
+        
+        // Log for debugging
+        console.log('Left resize: Fixed right edge at', rightEdgePosition, 'New left:', newLeft, 'New width:', newWidth);
+        
+        // Update department phase widths in real-time
+        updateDepartmentPhaseWidths(element, newWidth);
+        
+        // Also update the resize handles positions
+        const rightHandle = document.querySelector(`[data-schedule-id="${bar.id}"] + div + div`) as HTMLElement;
+        if (rightHandle) {
+          rightHandle.style.left = `${newLeft + newWidth + 4}px`;
+        }
+        
+      } else { // end resize
+        // CRITICAL FIX: When resizing from right (end), keep the left edge fixed
+        // This means we only adjust the width, not the left position
+        
+        // Calculate the new width with minimum constraint
+        const newWidth = Math.max(40, initialWidth + deltaX); // Ensure a minimum width
+        
+        // Convert to date range
+        const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
+        const daysExtended = Math.round(deltaX / pixelsPerDay);
+        const newEndDate = addDays(initialEndDate, daysExtended);
+        
+        // Update the visual bar - only change width, not left position
+        element.style.width = `${newWidth}px`;
+        
+        // Log for debugging
+        console.log('Right resize: Fixed left edge at', initialLeft, 'New width:', newWidth);
+        
+        // Update department phase widths in real-time
+        updateDepartmentPhaseWidths(element, newWidth);
+        
+        // Also update the right resize handle position
+        const rightHandle = document.querySelector(`[data-schedule-id="${bar.id}"] + div + div`) as HTMLElement;
+        if (rightHandle) {
+          rightHandle.style.left = `${initialLeft + newWidth + 4}px`;
+        }
       }
+    };
+    
+    // Handle mouse up to finalize the resize
+    const handleResizeEnd = async (e: MouseEvent) => {
+      // Clean up event listeners
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
       
-      // Force Bay 3 data attribute to be set on the document body to ensure consistency
-      document.body.setAttribute('data-bay-three-drop', 'true');
-    } else {
-      document.body.removeAttribute('data-bay-three-drop');
-    }
-    
-    // Additional data consistency check for Bay 3 using multiple sources
-    const bodyBayId = document.body.getAttribute('data-current-drag-bay');
-    const lastBayDrag = document.body.getAttribute('data-last-bay-drag');
-    const bay3Flag = document.body.hasAttribute('data-bay-three-drag');
-    
-    console.log(`Drop context: Event bayId=${bayId}, Body bayId=${bodyBayId}, Last drag=${lastBayDrag}, Bay3 flag=${bay3Flag}`);
-    
-    // If ANY source indicates this is a Bay 3 drop, respect that
-    const isBay3ByMultipleChecks = 
-      bayId === 3 || 
-      bodyBayId === '3' || 
-      lastBayDrag === '3' || 
-      bay3Flag;
+      // Calculate the final dimensions
+      const finalRect = element.getBoundingClientRect();
+      const deltaLeft = finalRect.left - initialLeft;
+      const deltaWidth = finalRect.width - initialWidth;
       
-    if (isBay3ByMultipleChecks && bayId !== 3) {
-      console.log('⚠️ Bay 3 detected through alternate data sources - overriding with Bay 3');
-      finalBayId = 3;
-    }
-    
-    // Force any data-bay-id attribute on the element to match the parameter for consistency
-    if (e.currentTarget && e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.setAttribute('data-bay-id', finalBayId.toString());
+      // Convert to dates
+      const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
+      let newStartDate = initialStartDate;
+      let newEndDate = initialEndDate;
       
-      // Add a visual cue for the specific bay
-      e.currentTarget.classList.remove('drop-bay-1', 'drop-bay-2', 'drop-bay-3', 'drop-bay-4', 'drop-bay-5', 'drop-bay-6');
-      e.currentTarget.classList.add(`drop-bay-${finalBayId}`);
-    }
-    
-    // For row, we will still use the global attribute if available as it works correctly
-    const globalRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
-    
-    // ENHANCED ROW SELECTION WITH BAY 3 FIX: 
-    // 1. First check if rowIndex from direct handler is valid (not undefined & >= 0)
-    // 2. Then check the global attribute (set during cell hover) 
-    // 3. Finally fall back to 0 as a safe default
-    let targetRowIndex;
-    
-    // Get the event target to check if this is a bay-specific drop area
-    const dropTarget = e.currentTarget as HTMLElement;
-    const dropTargetBayId = dropTarget?.getAttribute('data-bay-id');
-    
-    // Make sure the bay ID used in the event handler matches the element's bay ID
-    // Now using finalBayId which includes Bay 3 detection
-    if (dropTargetBayId && dropTargetBayId !== finalBayId.toString()) {
-      console.log(`Correcting bay ID mismatch: event=${bayId}, resolved=${finalBayId}, element=${dropTargetBayId}`);
-      // Update the element's data-bay-id attribute to match our finalBayId
-      // This ensures bay 3 and other bays are handled consistently
-      dropTarget.setAttribute('data-bay-id', finalBayId.toString());
-    }
-    
-    if (rowIndex !== undefined && rowIndex >= 0) {
-      console.log(`Using direct row parameter: ${rowIndex} for bay ${bayId}`);
-      targetRowIndex = rowIndex;
-    } else if (globalRowIndex >= 0) {
-      console.log(`Using global row attribute: ${globalRowIndex} for bay ${bayId}`);
-      targetRowIndex = globalRowIndex;
-    } else {
-      console.log(`No valid row found, using default row 0 for bay ${bayId}`);
-      targetRowIndex = 0;
-    }
-    
-    // CRITICAL FIX: Safety bounds check on row based on the actual row count for the bay
-    // Bays 1-6 have 4 rows (0-3), while Bay 7 (TCV Line) has 20 rows
-    
-    // Find the bay to get its row count - default to 4 rows (indexes 0-3) for bays 1-6
-    const targetBay = bays.find(b => b.id === finalBayId);
-    
-    // Calculate max row index based on bay number
-    // Bay 7 (TCV Line) has 20 rows, all others have 4 rows
-    let maxRowForBay = 3; // Default to 3 (4 rows, indexes 0-3) for all regular bays
-    
-    if (targetBay) {
-      if (targetBay.bayNumber === 7) {
-        // TCV Line has 20 rows
-        maxRowForBay = 19; // 20 rows, indexes 0-19
+      if (resizeMode === 'start') {
+        const daysOffset = Math.round(deltaLeft / pixelsPerDay);
+        newStartDate = addDays(initialStartDate, daysOffset);
       } else {
-        // All other bays (1-6) have 4 rows
-        maxRowForBay = 3;  // 4 rows, indexes 0-3
+        const daysExtended = Math.round(deltaWidth / pixelsPerDay);
+        newEndDate = addDays(initialEndDate, daysExtended);
       }
-    }
-    
-    // Ensure the row index is within the bounds for this specific bay
-    targetRowIndex = Math.min(maxRowForBay, Math.max(0, targetRowIndex));
-    
-    // Add detailed logging for debugging
-    const rowCount = targetBay?.bayNumber === 7 ? 20 : 4;
-    console.log(`🔍 ROW BOUNDS CHECK: Bay ${finalBayId} (Bay ${targetBay?.bayNumber || 'unknown'}) has ${rowCount} rows (max index: ${maxRowForBay})`);
-    console.log(`🔍 ADJUSTED ROW: ${targetRowIndex} (from original ${rowIndex}, global ${globalRowIndex})`);
-    
-    
-    // CRITICAL: We already decided to use the exact bay ID from the drop event parameter
-    // DO NOT modify the bayId parameter - use it directly to ensure correct placement
-    
-    console.log(`⚠️ FIXED DROP HANDLER using actual drop target bay: ${bayId} with row: ${targetRowIndex} `);
-    console.log(`(Current row=${globalRowIndex}, passed values: bay=${bayId}, row=${rowIndex})`);
-    
-    // Read data attributes from the drop target element for more precise week targeting
-    let targetElement = e.target as HTMLElement;
-    let targetSlotIndex = slotIndex;
-    
-    // First try the direct target element for data attributes
-    const dataBayId = targetElement.getAttribute('data-bay-id');
-    const dataSlotIndex = targetElement.getAttribute('data-slot-index');
-    const dataExactSlotIndex = targetElement.getAttribute('data-exact-slot-index'); // Check for exact slot index 
-    const dataRow = targetElement.getAttribute('data-row');
-    const dataDate = targetElement.getAttribute('data-date');
-    
-    // For SLOT INDEX ONLY (not bay or row), use the data attributes if available
-    // We still want the week/date precision from the drop target
-    if (dataExactSlotIndex) {
-      targetSlotIndex = parseInt(dataExactSlotIndex);
-      console.log('Using exact slot index from data-exact-slot-index:', targetSlotIndex);
-    } else if (dataSlotIndex) {
-      targetSlotIndex = parseInt(dataSlotIndex);
-      console.log('Using slot index from data-slot-index:', targetSlotIndex);
-    }
-    
-    // Then try to find the closest cell marker element with data-slot-index if needed
-    if (!dataSlotIndex) {
-      const cellElement = targetElement.closest('[data-slot-index]') as HTMLElement;
-      if (cellElement) {
-        // Update slot index if not already set
-        const cellSlotIndex = cellElement.getAttribute('data-slot-index');
-        const cellDate = cellElement.getAttribute('data-date');
+      
+      // Format dates for the API
+      const formattedStartDate = format(newStartDate, 'yyyy-MM-dd');
+      const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
+      
+      // Check if dates changed significantly (more than a day)
+      const isSignificantChange = 
+        Math.abs(differenceInDays(newStartDate, initialStartDate)) > 0 || 
+        Math.abs(differenceInDays(newEndDate, initialEndDate)) > 0;
         
-        if (cellSlotIndex) {
-          targetSlotIndex = parseInt(cellSlotIndex);
-          console.log('Using slot index from cell element:', targetSlotIndex);
+      if (isSignificantChange) {
+        if (enableFinancialImpact) {
+          // Show financial impact popup before committing changes when the feature is enabled
+          setFinancialImpactData({
+            scheduleId: bar.id,
+            projectId: bar.projectId,
+            bayId: bar.bayId,
+            originalStartDate: format(initialStartDate, 'yyyy-MM-dd'),
+            originalEndDate: format(initialEndDate, 'yyyy-MM-dd'),
+            newStartDate: formattedStartDate,
+            newEndDate: formattedEndDate,
+            totalHours: bar.totalHours,
+            rowIndex: bar.row
+          });
+          setShowFinancialImpact(true);
+          
+          // Note: Changes will be committed when user confirms in the popup
+          return;
+        } else {
+          // When financial impact analysis is disabled, directly apply the changes
+          try {
+            // Update the schedule without showing financial impact
+            await onScheduleChange(
+              bar.id,
+              bar.bayId,
+              formattedStartDate,
+              formattedEndDate,
+              bar.totalHours,
+              bar.row
+            );
+            
+            toast({
+              title: "Schedule updated",
+              description: "Project schedule has been updated.",
+            });
+            return;
+          } catch (error) {
+            console.error('Error updating schedule:', error);
+            toast({
+              title: 'Update failed',
+              description: 'There was an error updating the schedule.',
+              variant: 'destructive',
+            });
+            return;
+          }
         }
-        
-        console.log('Drop target date info:', {
-          element: cellElement,
-          slotIndex: targetSlotIndex,
-          date: cellDate || dataDate
-        });
       }
-    } else {
-      console.log('Drop target date info from direct target:', {
-        element: targetElement,
-        slotIndex: targetSlotIndex,
-        date: dataDate
-      });
-    }
-    
-    // Ensure we have valid indexes, especially for the slot
-    if (targetSlotIndex < 0 || targetSlotIndex >= slots.length) {
-      console.error('Invalid slot index detected:', targetSlotIndex);
-      // Use fallback to original slotIndex if target is out of bounds
-      targetSlotIndex = slotIndex;
-    }
-    
-    // Remove highlighted state from all cells - safely with separate selectors
-    try {
-      // Clean up simple classes first
-      [
-        '.drag-hover', 
-        '.active-drop-target', 
-        '.week-cell-hover',
-        '.week-cell-resize-highlight',
-        '.drop-target-highlight'
-      ].forEach(selector => {
-        document.querySelectorAll(selector).forEach(el => {
-          el.classList.remove('drag-hover', 'active-drop-target', 'week-cell-hover', 'week-cell-resize-highlight', 'drop-target-highlight');
-        });
-      });
       
-      // Clean up special classes with escaped characters
-      document.querySelectorAll('.border-primary').forEach(el => {
-        el.classList.remove('border-primary', 'border-dashed');
-      });
-      
-      // Handle special bg classes separately
-      document.querySelectorAll('[class*="bg-primary"]').forEach(el => {
-        if (el.classList.contains('bg-primary/10')) {
-          el.classList.remove('bg-primary/10');
-        }
-        if (el.classList.contains('bg-primary/20')) {
-          el.classList.remove('bg-primary/20');
-        }
-      });
-      
-      // Remove row highlights from all rows
-      document.querySelectorAll('[class*="row-"][class*="-highlight"]').forEach(el => {
-        // Remove all row highlight classes
-        for (let i = 0; i < 4; i++) {
-          el.classList.remove(`row-${i}-highlight`);
-        }
-      });
-      
-      // Remove bay-row-highlight class
-      document.querySelectorAll('.bay-row-highlight').forEach(el => {
-        el.classList.remove('bay-row-highlight');
-      });
-    } catch (error) {
-      console.error('Error cleaning up highlight classes:', error);
-    }
-    
-    // Remove dragging active class from body
-    document.body.classList.remove('dragging-active');
-    
-    try {
-      // Try multiple formats in case one fails
-      let dataStr = '';
       try {
-        dataStr = e.dataTransfer.getData('application/json');
-      } catch (err) {
-        console.log('Error getting application/json data, trying text/plain...');
-        dataStr = e.dataTransfer.getData('text/plain');
-      }
-      
-      if (!dataStr) {
-        console.error('No data received in drop event');
-        return;
-      }
-      
-      console.log('Data received in drop:', dataStr);
-      console.log(`Dropping at bay ${bayId}, slot ${slotIndex}, row ${rowIndex}`);
-      console.log(`DROP HANDLER: FORCING BAY ID TO USE EXACT PARAMETER: ${bayId}`);
-      
-      const data = JSON.parse(dataStr);
-      if (!data) {
-        console.error('Failed to parse drop data');
-        return;
-      }
-      
-      // CRITICAL BUG FIX: Ensure we're using EXACTLY the bay ID from the drop event parameter
-      // This is the most reliable source of the actual bay where the drop occurred
-      // DO NOT override this with any stored value - this is what's causing projects to jump bays
-      const exactBayId = bayId;
-      console.log(`💯 Using EXACT bay ID from drop event parameter: ${exactBayId}`);
-      // Log this prominent message for debugging
-      console.log(`🚨 BAY ID VERIFICATION: Ensuring drop uses bay ${exactBayId} EXACTLY as provided by event`);
-      
-      // CRITICAL FIX: Use exactBayId instead of the normal bayId parameter
-      // This ensures we don't lose the correct bay ID between declarations
-      const bay = bays.find(b => b.id === exactBayId);
-      console.log(`Finding bay with ID ${exactBayId} (from exact parameter)`);
-      
-      if (!bay) {
-        console.error(`Bay with ID ${exactBayId} not found in bays list:`, bays.map(b => b.id));
+        // Update the schedule (for non-significant changes)
+        await onScheduleChange(
+          bar.id,
+          bar.bayId,
+          formattedStartDate,
+          formattedEndDate,
+          bar.totalHours,
+          bar.row
+        );
+        
+        // Show success toast
         toast({
-          title: "Error",
-          description: `Bay ID ${exactBayId} not found`,
-          variant: "destructive"
+          title: "Schedule updated",
+          description: `${bar.projectName} has been resized.`,
         });
-        return;
-      }
-      
-      // Check if the bay has staff assigned
-      if (!bay.staffCount || bay.staffCount <= 0) {
+      } catch (error) {
+        console.error('Error updating schedule:', error);
+        
+        // Revert the visual changes
+        if (resizeMode === 'start') {
+          element.style.left = `${initialLeft - element.parentElement!.getBoundingClientRect().left}px`;
+        }
+        element.style.width = `${initialWidth}px`;
+        
+        // Update department phase widths to original size
+        updateDepartmentPhaseWidths(element, initialWidth);
+        
         toast({
-          title: "Cannot assign to bay",
-          description: "This bay has no staff assigned. Please add staff first.",
-          variant: "destructive"
+          title: "Update failed",
+          description: "There was an error updating the schedule. Please try again.",
+          variant: "destructive",
         });
-        return;
       }
-      
-      // Get the date for this slot using multiple reliable sources with fallbacks
-      let slotDate: Date | null = null;
-      let exactDateForStorage: string | null = null;
-      
-      // HIGHEST PRIORITY: Use the pixel-perfect date calculated from mouse position
-      const pixelPerfectDate = document.body.getAttribute('data-exact-drop-date');
-      if (pixelPerfectDate) {
-        slotDate = new Date(pixelPerfectDate);
-        exactDateForStorage = pixelPerfectDate;
-        console.log('🎯 USING PIXEL-PERFECT DATE from mouse position:', pixelPerfectDate, slotDate);
-      }
-      // NEXT RELIABLE: Check for data-exact-date which is specifically set during drag over
-      // This is the next most accurate way to get the precise date the user intended
-      else {
-        const exactDateFromAttr = targetElement.getAttribute('data-exact-date');
-        if (exactDateFromAttr) {
-          slotDate = new Date(exactDateFromAttr);
-          exactDateForStorage = exactDateFromAttr; // Store the exact string for later use
-          console.log('SUCCESS: Using precise date from data-exact-date attribute:', exactDateFromAttr, slotDate);
-        }
-      }
-      // Next check for data-date on direct target
-      if (!slotDate && dataDate) {
-        slotDate = new Date(dataDate);
-        exactDateForStorage = dataDate;
-        console.log('Using date directly from target element data-date attribute:', dataDate, slotDate);
-      }
-      // Next try to find and check the closest element with a data-date attribute
-      else {
-        const dateElement = targetElement.closest('[data-date]') as HTMLElement;
-        if (dateElement) {
-          const dateStr = dateElement.getAttribute('data-date');
-          if (dateStr) {
-            slotDate = new Date(dateStr);
-            exactDateForStorage = dateStr;
-            console.log('Using date from closest element with data-date attribute:', dateStr, slotDate);
-          }
-        }
-      }
-      
-      // If we couldn't get the date from any attribute, use the targetSlotIndex
-      if (!slotDate && targetSlotIndex >= 0 && targetSlotIndex < slots.length) {
-        slotDate = new Date(slots[targetSlotIndex]?.date);
-        exactDateForStorage = format(slotDate, 'yyyy-MM-dd');
-        console.log('Using date from slots array with targetSlotIndex:', targetSlotIndex, slotDate);
-      }
-      
-      // CRITICAL: Store the EXACT slot date from the drop target before any modifications
-      // This ensures we remember precisely which week cell was targeted
-      if (slotDate) {
-        // IMPORTANT: Keep track of the original target slot date before any phase calculations
-        // Create a clone to avoid any reference issues
-        const exactTargetStartDate = new Date(slotDate.getTime());
-        console.log('Exact target start date (before any FAB calculations):', exactTargetStartDate);
-        
-        // Store this for later use - CRUCIAL for proper week positioning
-        // We MUST create a new property as a string to ensure it's carried forward in drag events
-        data.targetStartDate = exactDateForStorage || exactTargetStartDate.toISOString();
-        
-        // CRITICAL DEBUG: Add more verbose logging
-        console.log('SAVED EXACT TARGET START DATE:', data.targetStartDate);
-        console.log('Week of target start date:', format(exactTargetStartDate, 'w'));
-      }
-      
-      // Final validation
-      if (!slotDate) {
-        toast({
-          title: "Error",
-          description: "Invalid date slot",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Get the project data to determine FAB weeks
-      const project = projects.find(p => p.id === (data.projectId || data.id));
-      const fabWeeks = project?.fabWeeks || 4; // Default to 4 weeks if not set
-      
-      // Calculate FAB phase duration in days (first 4 weeks by default)
-      const fabDays = fabWeeks * 7; // Convert weeks to days
-      
-      // Calculate production start date (after FAB phase)
-      const productionStartDate = addDays(slotDate, fabDays);
-      
-      // Get the bay's base weekly capacity 
-      // Handle null/undefined values safely
-      const hoursPerWeek = bay.hoursPerPersonPerWeek !== null && bay.hoursPerPersonPerWeek !== undefined 
-          ? bay.hoursPerPersonPerWeek : 40;
-      const staffCount = bay.staffCount !== null && bay.staffCount !== undefined 
-          ? bay.staffCount : 1;
-      const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
-      
-      // Find overlapping schedules in the same bay
-      const overlappingSchedules = schedules.filter(s => 
-        s.bayId === bayId && 
-        // Exclude the current schedule if we're updating an existing one
-        (data.type !== 'existing' || s.id !== data.id)
-      );
-      
-      // AUTO-PLACEMENT FUNCTION COMPLETELY REMOVED
-      // We now use exactly the row where the user dropped the project
-      // As explicitly requested by user: SIMPLE PLACEMENT WITH NO ADJUSTMENTS
-      
-      console.log(`SIMPLIFIED PLACEMENT SYSTEM: Using exact row=${targetRowIndex} in bay=${exactBayId}`);
-      console.log(`NO AUTO ADJUSTMENTS APPLIED: Project will be placed EXACTLY where it was dropped`);
-      console.log(`OVERLAP WARNING: Projects may now overlap in time and position as requested`);
-      
-      // We no longer check for overlaps or attempt to find optimal rows
-      // The project will be placed EXACTLY where the user drops it
-      // This is a direct implementation of the user's request for simple placement
-      
-      // Calculate how long the project will take considering capacity sharing
-      const totalHours = data.totalHours !== null ? Number(data.totalHours) : 1000; // Default to 1000 if not specified
-      
-      // CRITICAL FIX: Calculate project duration properly
-      // Project's PROD phase gets 60% of the total hours
-      const prodHours = totalHours * 0.6;
-      console.log(`Production phase hours (60% of total): ${prodHours} hours`);
-      
-      // Use 100% of the bay's weekly capacity
-      const fullWeeklyCapacity = baseWeeklyCapacity;
-      console.log(`Bay weekly capacity (100%): ${fullWeeklyCapacity} hours`);
-      
-      // Calculate how many weeks the PROD phase will take using 100% bay capacity per week
-      // This is the critical calculation that prevents auto-stretching to the entire timeline
-      // We're using PROD hours (60% of total) and full weekly capacity (100% of bay)
-      const prodWeeksNeeded = Math.max(1, Math.ceil(prodHours / fullWeeklyCapacity));
-      console.log(`Production phase weeks needed (at 100% capacity per week): ${prodWeeksNeeded} weeks`);
-      
-      // Explicitly calculate days needed for production phase based on weeks
-      const prodDays = prodWeeksNeeded * 7;
-      console.log(`Production phase days needed: ${prodDays} days`);
-      
-      // Safety check - just log if the duration seems excessive
-      if (prodDays > 365) { // Only log a warning if over a year, but don't cap it
-        console.warn(`WARNING: Very long production phase calculated: ${prodDays} days. This is based on ${prodHours} production hours at ${fullWeeklyCapacity} hours per week capacity.`);
-      }
-      
-      // Use the calculated duration based on hours and capacity
-      // NO CAPPING - allow the proper calculation based on hours/capacity
-      const prodDaysToUse = prodDays;
-      
-      // First get the exact start date that we're using
-      // CRITICAL FIX: Use the global variable we set in handleDragOver if available
-      // This ensures we use the exact week that was targeted during dragging
-      const globalExactDate = (window as any).lastExactDate;
-      console.log(`Global exact date from drag: ${globalExactDate}`);
-      
-      const exactStartDate = globalExactDate 
-        ? new Date(globalExactDate)
-        : (data.targetStartDate ? new Date(data.targetStartDate) : slotDate);
-      
-      // Calculate the FAB phase duration from the exact start date
-      const exactFabEndDate = addDays(exactStartDate, fabDays);
-      
-      // CRITICAL FIX: Calculate proper end date based on capacity per week
-      // Use the production days calculated from hours/capacity
-      // This directly prevents projects from auto-stretching across the entire timeline
-      console.log(`ENFORCED production duration: ${prodDaysToUse} days based on ${prodHours} production hours at ${fullWeeklyCapacity} weekly capacity`);
-      
-      // Now calculate the final end date by adding the calculated production days to the FAB end date
-      let finalEndDate = addDays(exactFabEndDate, prodDaysToUse);
-      
-      // BUSINESS DAY VALIDATION DISABLED
-      // NO AUTO DATE ADJUSTMENTS - Project will use the exact dates where dropped
-      // Per user request: projects should stay EXACTLY where they are dropped
-      
-      // Instead of auto-adjusting weekend or holiday dates, use exactly what user selected
-      const newExactStartDate = exactStartDate;
-      
-      console.log(`NO DATE AUTO-ADJUSTMENT: Using exact dates as selected`);
-      console.log(`WEEKEND/HOLIDAY WARNING: Project may start/end on weekends or holidays as requested`);
-      
-      // We no longer make any adjustments to the dates based on weekends or holidays
-      // The schedule will use EXACTLY the dates where the user drops the project
-      
-      // Store the formatted target date for API - CRUCIAL for preserving exact week position
-      const formattedExactStartDate = format(newExactStartDate, 'yyyy-MM-dd');
-      
-      console.log('Calculated dates:', {
-        originalStartDate: exactStartDate.toISOString(),
-        adjustedStartDate: newExactStartDate.toISOString(),
-        fabEndDate: exactFabEndDate.toISOString(),
-        finalEndDate: finalEndDate.toISOString(),
-        fabDays,
-        prodDays,
-        businessDayAdjusted: !isSameDay(exactStartDate, newExactStartDate)
-      });
-      
-      console.log('Attempting to drop project:', {
-        projectId: data.projectId || data.id,
-        bayId,
-        slotDate: slotDate.toISOString(),
-        finalEndDate: finalEndDate.toISOString(),
-        totalHours: totalHours,
-        baseWeeklyCapacity,
-        prodDays,
-        fabWeeks,
-        overlappingProjects: overlappingSchedules.length,
-        type: data.type
-      });
-      
-      if (data.type === 'existing') {
-        console.log('Moving existing schedule with data:', {
-          id: data.id,
-          projectId: data.projectId,
-          bayId: bayId, // EMERGENCY FIX: Always use the actual bay where the user dropped (function param)
-          startDate: slotDate.toISOString(), 
-          endDate: finalEndDate.toISOString(),
-          totalHours: data.totalHours !== null ? Number(data.totalHours) : 1000,
-          row: targetRowIndex
-        });
-        
-        // Use promise-based approach instead of async/await
-        // IMPORTANT: Use the exact targetStartDate we captured earlier instead of the slotDate 
-        // which may have been modified for FAB calculations
-        // CRITICAL FIX: Use the properly formatted date string for API compatibility
-        const startDateToUse = formattedExactStartDate || data.targetStartDate || format(slotDate, 'yyyy-MM-dd');
-        console.log('Using start date for schedule change:', startDateToUse, '(formatted from', exactStartDate, ')');
-        
-        // Format the finalEndDate properly for the API - CRITICAL FIX
-        const formattedFinalEndDate = format(finalEndDate, 'yyyy-MM-dd');
-        console.log('Using END date for schedule change:', formattedFinalEndDate, '(formatted from', finalEndDate, ')');
-        
-        // Show loading state
-        setIsMovingProject(true);
-        
-        // Add loading animation to the project element
-        const projectElement = document.querySelector(`[data-schedule-id="${data.id}"]`);
-        if (projectElement) {
-          projectElement.classList.add('animate-pulse', 'opacity-50');
-        }
-        
-        // 🚨 EMERGENCY BUG FIX: CRITICAL - DON'T USE STORED/TRACKED BAY REFERENCES
-        // Using our earlier enhanced Bay 3 detection logic
-        
-        // Recheck all sources for Bay 3 identification to ensure consistency
-        const bodyBayId = document.body.getAttribute('data-current-drag-bay');
-        const lastBayDrag = document.body.getAttribute('data-last-bay-drag');
-        const bay3Flag = document.body.hasAttribute('data-bay-three-drag');
-        const bay3Drop = document.body.hasAttribute('data-bay-three-drop');
-        
-        // If ANY source indicates this is a Bay 3 drop, respect that
-        const isBay3ByMultipleChecks = 
-          bayId === 3 || 
-          bodyBayId === '3' || 
-          lastBayDrag === '3' || 
-          bay3Flag ||
-          bay3Drop;
-          
-        // Use our enhanced Bay 3 detection
-        let actualBayId = bayId;
-        if (isBay3ByMultipleChecks && bayId !== 3) {
-          console.log('⚠️ Bay 3 detected through alternate data sources for final DB update - overriding with Bay 3');
-          actualBayId = 3;
-        }
-        
-        console.log(`🚨 EMERGENCY FIX: Using enhanced bay detection - final bay ID: ${actualBayId}`);
-        
-        // CRITICAL: Always use the actual bay ID where the user dropped, with enhanced Bay 3 detection
-        const finalBayId = actualBayId;
-        
-        // ABSOLUTELY CRITICAL FIX - FORCE EXACT ROW PLACEMENT WITH ZERO EXCEPTIONS
-        // Directly use the row from the drag event with no calculations or adjustments whatsoever
-  
-        // Get the MOST ACCURATE row reference - directly from drag events or data attributes
-        const exactRowFromDragCoords = document.body.getAttribute('data-current-drag-row');
-  
-        // FORCE using this value directly - DO NOT APPLY ANY LOGIC OR VALIDATION
-        // Do not check for min/max - user specifically wants absolute control
-        const forcedExactRowIndex = exactRowFromDragCoords ? parseInt(exactRowFromDragCoords) : targetRowIndex;
-  
-        // CRITICAL: HARDCODE DEFAULT TO ROW 0 FOR SAFETY - prevent any null/undefined values
-        // This ensures we always have a valid row even if all drag tracking fails
-        const finalRowIndex = (typeof forcedExactRowIndex === 'number' && !isNaN(forcedExactRowIndex)) 
-          ? forcedExactRowIndex 
-          : 0;
+    };
     
-        console.log(`🎯 EXACT ROW FORCED TO USER SELECTION: ${finalRowIndex} (from drag coordinates: ${exactRowFromDragCoords})`);
-        console.log(`⚠️ ROW PLACEMENT OVERRIDE - NO AUTO ADJUSTMENT - USING EXACT COORDINATES`);
-  
-        // DEVELOPMENT FLAG: Force extreme logging of all row-related variables
-        console.log('🔍 ALL ROW VARIABLES:', {
-          exactRowFromDragCoords,
-          forcedExactRowIndex,
-          finalRowIndex,
-          targetRowIndex,
-          dragRowAttribute: document.body.getAttribute('data-current-drag-row')
-        });
-        
-        console.log(`Updating schedule with MANUAL ROW ASSIGNMENT: bay=${finalBayId} row=${finalRowIndex}`);
-        console.log(`(User selected row: ${targetRowIndex})`);
-        console.log(`Auto-placement logic DISABLED - using exact row where user dropped project`);
-        
-        // CRITICAL LOGGING: Log the exact placement details for easier debugging
-        console.log(`🚨 EXACT PLACEMENT DETAILS FOR SCHEDULE UPDATE:`);
-        console.log(`  - Schedule ID: ${data.id}`);
-        console.log(`  - Project ID: ${data.projectId}`);
-        console.log(`  - Project Number: ${data.projectNumber}`);
-        console.log(`  - Bay ID: ${finalBayId} (${bay.name})`);
-        console.log(`  - Row Index: ${finalRowIndex} (max row for this bay: ${maxRowForBay})`);
-        console.log(`  - Start Date: ${startDateToUse}`); 
-        console.log(`  - End Date: ${formattedFinalEndDate}`);
-        console.log(`  - Target bay has ${targetBay?.bayNumber === 7 ? 20 : 4} rows (indexes 0-${maxRowForBay})`);
-        console.log(`  - Drop coordinates: x=${e.clientX}, y=${e.clientY}`);
-        
-        // Add visual indicator to the DOM to show exact bay/row placement for debugging
-        document.body.setAttribute('data-last-drop-bay', finalBayId.toString());
-        document.body.setAttribute('data-last-drop-row', finalRowIndex.toString());
-        
-        // Call the API with our forced values
-        onScheduleChange(
-          data.id,
-          finalBayId,
-          startDateToUse,
-          formattedFinalEndDate,
-          data.totalHours !== null ? Number(data.totalHours) : 1000,
-          finalRowIndex
-        )
-        .then(result => {
-          console.log('Schedule successfully updated:', result);
-          
-          // Find the target bay to show proper bay number in toast
-          const targetBayInfo = bays.find(b => b.id === finalBayId);
-          toast({
-            title: "Schedule Updated",
-            description: `${data.projectNumber} moved to Bay ${targetBayInfo?.bayNumber || bay.bayNumber}`,
-          });
-          
-          // Force data refresh without full page reload
-          queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
-          
-          // Clear loading state
-          setIsMovingProject(false);
-          
-          // Force refresh to show changes after a delay to allow server processing
-          setTimeout(() => window.location.reload(), 1000);
-        })
-        .catch(error => {
-          // Clear loading state
-          setIsMovingProject(false);
-          
-          // Remove animation classes
-          const projectElement = document.querySelector(`[data-schedule-id="${data.id}"]`);
-          if (projectElement) {
-            projectElement.classList.remove('animate-pulse', 'opacity-50');
-          }
-          
-          console.error('Error updating schedule:', error);
-          toast({
-            title: "Error",
-            description: "Failed to update schedule. Please try again.",
-            variant: "destructive"
-          });
-        });
-      } else {
-        // Create new schedule with row assignment using target values from data attributes
-        // Also use the exact targetStartDate for new schedules to ensure they start exactly where dropped
-        // CRITICAL FIX: Use the properly formatted date string for API compatibility
-        const startDateToUse = formattedExactStartDate || data.targetStartDate || format(slotDate, 'yyyy-MM-dd');
-        console.log('Using start date for new schedule:', startDateToUse, '(formatted from', exactStartDate, ')');
-        
-        // Format the finalEndDate properly for the API
-        const formattedFinalEndDate = format(finalEndDate, 'yyyy-MM-dd');
-        console.log('Using END date for new schedule:', formattedFinalEndDate, '(formatted from', finalEndDate, ')');
-        
-        // Final log message about business day validation
-        console.log('Business day validation complete. Using validated dates:', {
-          startDate: startDateToUse,
-          endDate: formattedFinalEndDate,
-          adjustedFromWeekend: !isSameDay(exactStartDate, slotDate) || !isSameDay(finalEndDate, addDays(exactFabEndDate, prodDaysToUse))
-        });
-        
-        // Show loading state
-        setIsMovingProject(true);
-        
-        // CRITICAL FIX: Use exactBayId for bay element lookup to ensure consistency
-        // This ensures we're selecting the correct bay element for the placeholder
-        const bayElement = document.querySelector(`[data-bay-id="${exactBayId}"]`);
-        console.log(`Using bay element with data-bay-id="${exactBayId}" for placeholder`);
-        if (bayElement) {
-          // Create a temporary placeholder element to show where the project will be placed
-          const placeholderDiv = document.createElement('div');
-          placeholderDiv.classList.add('absolute', 'animate-pulse', 'bg-primary/30', 'border', 'border-primary', 'rounded', 'z-30');
-          
-          // Position it based on the target row
-          // Use 4 visual rows, but map from the expanded internal rows (0-7)
-          const rowHeight = bayElement.clientHeight / 4; // 4 visual rows per bay
-          // Map from logical rows (0-7) to visual rows (0-3)
-          const visualRowIndex = targetRowIndex % 4;
-          const rowTop = visualRowIndex * rowHeight;
-          
-          // Set styles
-          placeholderDiv.style.left = `${slotIndex * slotWidth}px`;
-          placeholderDiv.style.top = `${rowTop}px`;
-          placeholderDiv.style.width = `${slotWidth * 5}px`; // Default to 5 weeks width
-          placeholderDiv.style.height = `${rowHeight}px`;
-          
-          // Add it to the bay element
-          bayElement.appendChild(placeholderDiv);
-        }
-        
-        // Get the bay ID from the global data attribute (keeps projects in same bay)
-        // But use the target row index where the user actually dropped (allows placing on any row)
-        const storedBayId = parseInt(document.body.getAttribute('data-current-drag-bay') || '0');
-        const currentRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
-        
-        // EMERGENCY BUG FIX: ALWAYS use the precise bay where the user dropped it
-        // This is key to preventing the bay jumping issue
-        const finalBayId = exactBayId;  // Use exactBayId which we validated earlier for consistency
-        
-        // CRITICAL FIX: DIRECTLY USE THE USER'S EXACT ROW SELECTION
-        // User specifically requested to disable all auto-placement logic
-        // Always use the exact row the user dragged to
-        const finalRowIndex = targetRowIndex;
-        
-        console.log(`Creating schedule with bay=${finalBayId} row=${finalRowIndex} (MANUAL ROW ASSIGNMENT)`);
-        console.log(`(Directly using user-selected row: ${targetRowIndex})`);
-        console.log(`Auto-placement logic DISABLED - using exact row where user dropped project`);
-        
-        // CRITICAL LOGGING: Log the exact placement details for easier debugging
-        console.log(`🚨 EXACT PLACEMENT DETAILS FOR NEW SCHEDULE:`);
-        console.log(`  - Project ID: ${data.projectId}`);
-        console.log(`  - Project Number: ${data.projectNumber}`);
-        console.log(`  - Bay ID: ${finalBayId} (${bay.name})`);
-        console.log(`  - Row Index: ${finalRowIndex} (max row for this bay: ${maxRowForBay})`);
-        console.log(`  - Start Date: ${startDateToUse}`); 
-        console.log(`  - End Date: ${formattedFinalEndDate}`);
-        console.log(`  - Target bay has ${targetBay?.bayNumber === 7 ? 20 : 4} rows (indexes 0-${maxRowForBay})`);
-        console.log(`  - Row visualization: row ${finalRowIndex} maps to ${finalRowIndex % 4} visual position (0-3)`);
-        console.log(`  - Drop coordinates: x=${e.clientX}, y=${e.clientY}`);
-        
-        // Add visual indicator to the DOM to show exact bay/row placement for debugging
-        document.body.setAttribute('data-last-drop-bay', finalBayId.toString());
-        document.body.setAttribute('data-last-drop-row', finalRowIndex.toString());
-        
-        // Call the API with our forced values
-        onScheduleCreate(
-          data.projectId,
-          finalBayId,
-          startDateToUse,
-          formattedFinalEndDate,
-          data.totalHours !== null ? Number(data.totalHours) : 1000,
-          finalRowIndex // Include rowIndex for vertical positioning
-        )
-        .then(() => {
-          // Find the target bay to show proper bay number in toast
-          const targetBayInfo = bays.find(b => b.id === finalBayId);
-          toast({
-            title: "Schedule Created",
-            description: `${data.projectNumber} assigned to Bay ${targetBayInfo?.bayNumber || bay.bayNumber}`,
-          });
-          
-          // Clear loading state
-          setIsMovingProject(false);
-          
-          // Force refresh to show changes after a delay
-          setTimeout(() => window.location.reload(), 1000);
-        })
-        .catch(err => {
-          // Clear loading state
-          setIsMovingProject(false);
-          
-          // Remove any placeholder elements we created
-          const bayElement = document.querySelector(`[data-bay-id="${bayId}"]`);
-          if (bayElement) {
-            const placeholders = bayElement.querySelectorAll('.animate-pulse.bg-primary/30');
-            placeholders.forEach(el => el.remove());
-          }
-          
-          console.error('Failed to create schedule:', err);
-          toast({
-            title: "Error",
-            description: "Failed to create schedule",
-            variant: "destructive"
-          });
-        });
-      }
-    } catch (error) {
-      console.error('Error handling drop:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process schedule. Please try again.",
-        variant: "destructive"
-      });
-    }
-    
-    // Reset states and clear the global variables after use
-    setDropTarget(null);
-    setDraggingSchedule(null);
-    // Clear the global date variable we set during drag operations
-    (window as any).lastExactDate = null;
+    // Add event listeners
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
   };
   
-  // Update state after edits
-  const handleBayChanges = () => {
-    // This function now consolidated and replaced with apiRequest in handleSaveBayEdit & handleCreateBay
-    // Clear edit state when done
-    setEditingBay(null);
-    setNewBay(null);
-  };
-  
-  // Check if a manual resize operation would affect capacity
-  const checkCapacityImpact = (scheduleId: number, newEndDate: string) => {
-    const schedule = schedules.find(s => s.id === scheduleId);
-    if (!schedule) return null;
-    
-    const bay = bays.find(b => b.id === schedule.bayId);
-    if (!bay) return null;
-    
-    // Get the base capacity for this bay
-    // Handle null/undefined values safely
-    const hoursPerWeek = bay.hoursPerPersonPerWeek !== null && bay.hoursPerPersonPerWeek !== undefined 
-        ? bay.hoursPerPersonPerWeek : 40;
-    const staffCount = bay.staffCount !== null && bay.staffCount !== undefined 
-        ? bay.staffCount : 1;
-    const baseWeeklyCapacity = Math.max(1, hoursPerWeek * staffCount);
-    
-    // FIXED: We need 100% bay utilization, not just 60%
-    // For consistency with the other fix, use the full bay capacity (100%)
-    const standardMaxWeeklyCapacity = baseWeeklyCapacity;
-    
-    // Get all schedules in this bay
-    const baySchedules = schedules.filter(s => s.bayId === schedule.bayId && s.id !== scheduleId);
-    
-    // Calculate the new total hours based on the new end date
-    const originalStartDate = new Date(schedule.startDate);
-    const newEndDateTime = new Date(newEndDate);
-    const totalDays = differenceInDays(newEndDateTime, originalStartDate);
-    
-    // Approximate weekly hours based on new duration
-    const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
-    
-    // CRITICAL FIX: Only consider PRODUCTION hours for bay capacity calculation
-    // Get the related project for this schedule
-    const project = projects.find(p => p.id === schedule.projectId);
-    
-    // Get the project's production percentage or use default (60%)
-    const productionPercentage = parseFloat(project?.productionPercentage as any) || 60;
-    
-    // Total hours for this project
-    const totalHours = schedule.totalHours || 1000;
-    
-    // Calculate production hours (this is what actually consumes bay capacity)
-    const productionHours = totalHours * (productionPercentage / 100);
-    
-    // Log the adjustment for transparency in resize capacity check
-    console.log(`CAPACITY CHECK: Using only PRODUCTION hours (${productionPercentage}% of total) for resizing project ${project?.projectNumber || 'unknown'}`, {
-      totalHours,
-      productionPercentage,
-      productionHours,
-      reduction: totalHours - productionHours,
-      weeks: totalWeeks,
-    });
-    
-    // Calculate weekly hours using ONLY production hours
-    const weeklyHours = productionHours / totalWeeks;
-    
-    // Calculate current capacity usage in overlapping weeks
-    const overCapacityWeeks = [];
-    let currentDate = new Date(originalStartDate);
-    
-    while (currentDate <= newEndDateTime) {
-      const weekStart = startOfWeek(currentDate);
-      const weekEnd = endOfWeek(currentDate);
-      
-      // Count projects in this week
-      const projectsInWeek = baySchedules.filter(s => {
-        const scheduleStart = new Date(s.startDate);
-        const scheduleEnd = new Date(s.endDate);
-        return (scheduleStart <= weekEnd && scheduleEnd >= weekStart);
-      });
-      
-      const projectsCount = projectsInWeek.length + 1; // +1 for the current project
-      const totalWeeklyUsage = (projectsCount * weeklyHours);
-      
-      // FIXED: Check against full bay capacity (100%)
-      // This enforces that manual resizes respect the bay's maximum capacity
-      if (totalWeeklyUsage > standardMaxWeeklyCapacity) {
-        overCapacityWeeks.push({
-          weekStart: format(weekStart, 'MMM d, yyyy'),
-          // Calculate utilization percent against the bay's full capacity
-          utilization: Math.round((totalWeeklyUsage / standardMaxWeeklyCapacity) * 100)
-        });
-      }
-      
-      currentDate = addDays(currentDate, 7);
-    }
-    
-    if (overCapacityWeeks.length > 0) {
+  // Find minimum and maximum dates for the chart
+  const findDateBoundaries = () => {
+    if (!schedules.length) {
       return {
-        scheduleId,
-        bayId: schedule.bayId,
-        newStartDate: schedule.startDate,
-        newEndDate,
-        totalHours: schedule.totalHours || 1000,
-        impact: 'over-capacity' as const,
-        percentage: Math.round(overCapacityWeeks.reduce((sum, week) => sum + week.utilization, 0) / overCapacityWeeks.length),
-        affectedProjects: baySchedules.map(s => {
-          const project = projects.find(p => p.id === s.projectId);
-          return {
-            id: s.id,
-            projectName: project?.name || 'Unknown',
-            projectNumber: project?.projectNumber || 'Unknown'
-          };
-        })
+        earliestDate: dateRange.start,
+        latestDate: dateRange.end
       };
     }
     
-    return null;
-  };
-
-  // Function to apply a manual resize with a capacity warning
-  const applyManualResize = (scheduleId: number, newStartDate: string, newEndDate: string, row?: number) => {
-    const schedule = schedules.find(s => s.id === scheduleId);
-    if (!schedule) return;
+    // Filter out empty and undefined dates
+    const validStartDates = schedules.map(s => s.startDate).filter(Boolean);
+    const validEndDates = schedules.map(s => s.endDate).filter(Boolean);
     
-    // Check if there's a capacity impact
-    const capacityImpact = checkCapacityImpact(scheduleId, newEndDate);
-    
-    // Parse dates for logging
-    const startDateObj = new Date(newStartDate);
-    const endDateObj = new Date(newEndDate);
-    
-    // Calculate total days
-    const totalDays = differenceInDays(endDateObj, startDateObj);
-    
-    // For extremely long durations, just log a warning but allow the user's choice
-    if (totalDays > 365) {
-      console.warn(`WARNING: Very long manual resize duration: ${totalDays} days.`);
+    if (!validStartDates.length || !validEndDates.length) {
+      return {
+        earliestDate: dateRange.start,
+        latestDate: dateRange.end
+      };
     }
     
-    // No capping - use the exact dates chosen by the user
-    const finalEndDate = newEndDate;
+    // Find min/max
+    const earliestDate = new Date(Math.min(...validStartDates.map(d => new Date(d).getTime())));
+    const latestDate = new Date(Math.max(...validEndDates.map(d => new Date(d).getTime())));
     
-    if (capacityImpact) {
-      // Show warning dialog
-      setCapacityWarningData(capacityImpact);
-      setShowCapacityWarning(true);
-      
-      // Show warning toast with details
-      toast({
-        title: "Over Capacity Warning",
-        description: `Bay will be at ${capacityImpact.percentage}% utilization in affected weeks`,
-        variant: "destructive",
-      });
-      
-      // Even with the warning, we'll update the UI immediately to show the new dates
-      // This ensures the UI is responsive, but the server update will happen after confirmation
-      
-      // Force UI update by incrementing recalculation version
-      setRecalculationVersion(prev => prev + 1);
-      
-      // Update project bar visually with new dates (optimistic update)
-      const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${scheduleId}"]`) as HTMLElement;
-      if (barElement) {
-        // Update data attributes for rendering
-        barElement.setAttribute('data-start-date', newStartDate);
-        barElement.setAttribute('data-end-date', finalEndDate);
-        
-        // Make sure the bar's visual dimensions match the new date range
-        // This ensures the bar properly stretches and displays at the right width
-        
-        // Calculate the proper visual dimensions based on the new dates
-        const timelineContainer = document.querySelector('.timeline-container') as HTMLElement;
-        if (timelineContainer) {
-          const viewportStart = dateRange.start;
-          const viewportEnd = dateRange.end;
-          
-          // Calculate day offset from viewport start
-          const daysFromStart = differenceInDays(startDateObj, viewportStart);
-          
-          // Calculate project duration in days
-          const durationDays = Math.max(1, differenceInDays(endDateObj, startDateObj)); // Ensure at least 1 day
-          
-          // Calculate viewport width in days
-          const viewportDays = differenceInDays(viewportEnd, viewportStart);
-          
-          const timelineWidth = timelineContainer.clientWidth;
-          
-          // Calculate pixels per day
-          const pixelsPerDay = timelineWidth / viewportDays;
-          
-          // Calculate left position and width
-          const left = daysFromStart * pixelsPerDay;
-          const width = Math.max(50, durationDays * pixelsPerDay); // Ensure minimum width
-          
-          console.log("Bar position updated:", { left, width, daysFromStart, durationDays });
-          
-          // Apply the visual updates
-          barElement.style.left = `${left}px`;
-          barElement.style.width = `${width}px`;
-          
-          // IMPORTANT FIX: Use our component-level updateDepartmentPhaseWidths function
-          // This ensures consistent phase width calculations across all parts of the application
-          console.log(`Updating phases for schedule ${scheduleId} with width ${width}px`);
-          
-          // Call the shared function to update phase widths with project-specific percentages
-          updateDepartmentPhaseWidths(barElement, width);
-          
-          // Set a specific attribute to indicate this was a manual resize
-          barElement.setAttribute('data-manual-resize', 'true');
-        }
-        
-        // Temporarily apply a highlight to show the change
-        barElement.classList.add('bg-yellow-400/20', 'border-yellow-500', 'border-2');
-        setTimeout(() => {
-          barElement.classList.remove('bg-yellow-400/20', 'border-yellow-500', 'border-2');
-        }, 2000);
-      }
-      
-    } else {
-      // Show loading state
-      setIsMovingProject(true);
-      
-      // Apply the change directly
-      // Get the user's selected row if available, otherwise keep the current row
-      // The row parameter is explicitly used when the user drags to a new row
-      const userSelectedRow = parseInt(document.body.getAttribute('data-current-drag-row') || '-1');
-      
-      // Ensure we map to visual rows (0-3) for consistent positioning
-      let fixedRow;
-      if (row !== undefined) {
-        // If row is explicitly provided, ensure it's in the 0-3 range
-        fixedRow = row % 4;
-      } else if (userSelectedRow >= 0) {
-        // If user selected a row via drag, map to 0-3 range
-        fixedRow = userSelectedRow % 4;
-      } else {
-        // Use the existing row from the schedule, mapped to 0-3
-        fixedRow = (schedule.row || 0) % 4;
-      }
-      
-      console.log(`Manual resize using mapped row: ${fixedRow} for schedule ${scheduleId} (original row: ${schedule.row}, user selected: ${userSelectedRow})`);
-      console.log(`Auto-placement logic DISABLED - using exact row where user dropped or resized project`);
-      
-      onScheduleChange(
-        scheduleId,
-        schedule.bayId,
-        newStartDate,
-        finalEndDate, // Use the exact end date chosen by the user
-        schedule.totalHours || 1000,
-        fixedRow // Keep the same row to prevent automatic reordering
-      )
-      .then(() => {
-        toast({
-          title: "Schedule Updated",
-          description: "Project schedule has been updated",
-        });
-        
-        // Force refresh data
-        queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
-        
-        // Force UI update by incrementing recalculation version
-        setRecalculationVersion(prev => prev + 1);
-        
-        // Clear loading state
-        setIsMovingProject(false);
-        
-        // ENHANCED BAR UPDATE: Find and update the bar element with new dimensions
-        const barElement = document.querySelector(`.big-project-bar[data-schedule-id="${scheduleId}"]`) as HTMLElement;
-        if (barElement) {
-          // Update data attributes to ensure proper rendering on next redraw
-          barElement.setAttribute('data-start-date', newStartDate);
-          barElement.setAttribute('data-end-date', finalEndDate);
-          
-          // Force a recalculation of the bar width and position based on the new dates
-          // This ensures the bar will properly stretch after chevron movement
-          const startDate = new Date(newStartDate);
-          const endDate = new Date(finalEndDate);
-          
-          // Calculate the new left position and width in pixels
-          const msPerDay = 24 * 60 * 60 * 1000;
-          const daysBetweenSlots = viewMode === 'day' ? 1 : viewMode === 'week' ? 7 : viewMode === 'month' ? 30 : 90;
-          const pixelsPerDay = slotWidth / daysBetweenSlots;
-          
-          // Find the time difference between project start and timeline start
-          const timelineStartDate = slots[0]?.date || new Date();
-          const daysFromStart = Math.max(0, (startDate.getTime() - timelineStartDate.getTime()) / msPerDay);
-          const projectDuration = Math.max(1, (endDate.getTime() - startDate.getTime()) / msPerDay);
-          
-          // Calculate new position and width
-          const newLeft = Math.round(daysFromStart * pixelsPerDay);
-          const newWidth = Math.round(projectDuration * pixelsPerDay);
-          
-          console.log(`Updating bar position: Left=${newLeft}px, Width=${newWidth}px`);
-          
-          // Update the visual appearance
-          barElement.style.left = `${newLeft}px`;
-          barElement.style.width = `${newWidth}px`;
-          
-          // Apply a highlight effect that fades out
-          barElement.classList.add('bg-green-400/20', 'border-green-500', 'border-2');
-          setTimeout(() => {
-            barElement.classList.remove('bg-green-400/20', 'border-green-500', 'border-2');
-          }, 2000);
-        }
-      })
-      .catch(error => {
-        console.error('Error updating schedule:', error);
-        
-        // Clear loading state
-        setIsMovingProject(false);
-        
-        toast({
-          title: "Error",
-          description: "Failed to update schedule",
-          variant: "destructive"
-        });
-      });
-    }
+    return { earliestDate, latestDate };
   };
   
-  // Render
-  // Add custom CSS for drag and drop operations
-  const customCSS = `
-    .dragging-active .drop-target-highlight {
-      animation: pulse 1.5s infinite;
-      border-width: 2px;
-    }
+  // Find unassigned projects that don't have any schedules
+  // When forceUpdate changes, this will recalculate and update the UI
+  const unassignedProjects = useMemo(() => {
+    console.log('⚡ Recalculating unassigned projects list');
+    // Make sure projects array exists before filtering
+    if (!projects || !Array.isArray(projects)) return [];
     
-    .dragging-active .bay-row-highlight {
-      background-color: rgba(59, 130, 246, 0.3);
-      transition: all 0.2s ease-in-out;
-      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.6);
-    }
-    
-    /* ENHANCED Row-specific highlight styles with greatly increased visibility */
-    .dragging-active [class*="row-"][class*="-highlight"] {
-      position: relative;
-      background-color: rgba(99, 102, 241, 0.3);
-      box-shadow: inset 0 0 0 3px rgba(99, 102, 241, 0.9);
-      z-index: 2;
-    }
-    
-    /* Show row numbers when dragging */
-    .dragging-active .bay-row .dragging-active\:opacity-100 {
-      opacity: 1 !important;
-    }
-    
-    /* Row-specific highlights for each row */
-    .row-0-highlight {
-      background-color: rgba(99, 102, 241, 0.4) !important;
-      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.8) !important;
-      z-index: 30 !important;
-      position: relative !important;
-    }
-    
-    .row-1-highlight {
-      background-color: rgba(99, 102, 241, 0.4) !important;
-      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.8) !important;
-      z-index: 30 !important;
-      position: relative !important;
-    }
-    
-    .row-2-highlight {
-      background-color: rgba(99, 102, 241, 0.4) !important;
-      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.8) !important;
-      z-index: 30 !important;
-      position: relative !important;
-    }
-    
-    .row-3-highlight {
-      background-color: rgba(99, 102, 241, 0.4) !important;
-      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.8) !important;
-      z-index: 30 !important;
-      position: relative !important;
-    }
-    
-    /* Row target highlighting for entire rows */
-    .row-target-highlight {
-      background-color: rgba(99, 102, 241, 0.2) !important;
-      box-shadow: inset 0 0 0 4px rgba(59, 130, 246, 0.4) !important;
-    }
-    
-    .row-0-target::before {
-      content: "ROW 1";
-      position: absolute;
-      left: -6px;
-      top: 0;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      font-size: 10px;
-      font-weight: bold;
-      color: rgb(59, 130, 246);
-      pointer-events: none;
-      opacity: 0.9;
-    }
-    
-    .row-1-target::before {
-      content: "ROW 2";
-      position: absolute;
-      left: -6px;
-      top: 0;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      font-size: 10px;
-      font-weight: bold;
-      color: rgb(59, 130, 246);
-      pointer-events: none;
-      opacity: 0.9;
-    }
-    
-    .row-2-target::before {
-      content: "ROW 3";
-      position: absolute;
-      left: -6px;
-      top: 0;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      font-size: 10px;
-      font-weight: bold;
-      color: rgb(59, 130, 246);
-      pointer-events: none;
-      opacity: 0.9;
-    }
-    
-    .row-3-target::before {
-      content: "ROW 4";
-      position: absolute;
-      left: -6px;
-      top: 0;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      font-size: 10px;
-      font-weight: bold;
-      color: rgb(59, 130, 246);
-      pointer-events: none;
-      opacity: 0.9;
-    }
-    
-    /* Cell highlight for individual cells within rows */
-    .cell-highlight {
-      background-color: rgba(99, 102, 241, 0.3) !important;
-      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.9) !important;
-      z-index: 40 !important;
-      position: relative !important;
-    }
-    
-    @keyframes pulse {
-      0% { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
-      70% { border-color: rgba(59, 130, 246, 0.8); box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
-      100% { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-    }
-    
-    /* Enhanced visual feedback for drag operations */
-    .week-cell-hover {
-      background-color: rgba(99, 102, 241, 0.3) !important;
-      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.6) !important;
-      z-index: 50 !important;
-      position: relative !important;
-    }
-    
-    .week-cell-resize-hover {
-      border: 1px solid rgba(99, 102, 241, 0.4) !important;
-      background-color: rgba(99, 102, 241, 0.1) !important;
-    }
-    
-    /* Increase visibility of drop targets */
-    .active-drop-target {
-      outline: 2px dashed rgba(99, 102, 241, 0.8) !important;
-      outline-offset: -2px !important;
-      background-color: rgba(99, 102, 241, 0.15) !important;
-    }
-    
-    [draggable=true] {
-      cursor: grab;
-    }
-    
-    [draggable=true]:active {
-      cursor: grabbing;
-    }
-    
-    .bay-schedule-bar {
-      height: 100% !important;
-      min-height: 24px !important;
-    }
-    
-    /* Row positioning - Fixed with proper height values for single row placement */
-    /* Expanded to support 8 rows (0-7) that map to 4 visual rows */
-    
-    /* Visual row 0 (top 25% of bay) */
-    .row-0-bar, .row-4-bar {
-      top: 0% !important;
-      height: 25% !important; /* Match row height at 25% of bay */
-      transform: none !important;
-    }
-    
-    /* Visual row 1 (25-50% of bay) */
-    .row-1-bar, .row-5-bar {
-      top: 25% !important;
-      height: 25% !important; /* Match row height at 25% of bay */
-      transform: none !important;
-    }
-    
-    /* Visual row 2 (50-75% of bay) */
-    .row-2-bar, .row-6-bar {
-      top: 50% !important;
-      height: 25% !important; /* Match row height at 25% of bay */
-      transform: none !important;
-    }
-    
-    /* Visual row 3 (bottom 25% of bay) */
-    .row-3-bar, .row-7-bar {
-      top: 75% !important;
-      height: 25% !important; /* Match row height at 25% of bay */
-      transform: none !important;
-    }
-
-    /* Project bars that fill the ENTIRE ROW height (25% of bay) */
-    .big-project-bar {
-      box-sizing: border-box !important;
-      border-width: 1px !important;
-      overflow: visible !important;
-      position: relative !important; 
-      z-index: 20 !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: flex-start !important;
-      height: 25% !important; /* FULL ROW HEIGHT - exactly 25% of bay */
-      top: 0 !important; /* No offset - fill the entire row */
-    }
-    
-    /* Row positions - each row gets its own vertical position */
-    .row-0 .big-project-bar {
-      top: 0% !important; /* Row 0 starts at top of bay */
-    }
-    
-    .row-1 .big-project-bar {
-      top: 25% !important; /* Row 1 starts at 25% of bay height */
-    }
-    
-    .row-2 .big-project-bar {
-      top: 50% !important; /* Row 2 starts at 50% of bay height */
-    }
-    
-    .row-3 .big-project-bar {
-      top: 75% !important; /* Row 3 starts at 75% of bay height */
-    }
-    
-    /* Department phase colors - MATCH THE FULL ROW HEIGHT */
-    .dept-phase {
-      height: 100% !important; /* Full height of the project bar */
-      position: absolute !important;
-      top: 0 !important;
-    }
-    
-    .dept-fab-phase {
-      background-color: #2563eb !important; /* blue-600 */
-      left: 0 !important;
-      border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
-      z-index: 1 !important;
-    }
-    
-    .dept-paint-phase {
-      background-color: #7c3aed !important; /* violet-600 */
-      border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
-      z-index: 2 !important;
-    }
-    
-    .dept-production-phase {
-      background-color: #059669 !important; /* emerald-600 */
-      border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
-      z-index: 3 !important;
-    }
-    
-    .dept-it-phase {
-      background-color: #d97706 !important; /* amber-600 */
-      border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
-      z-index: 4 !important;
-    }
-    
-    .dept-ntc-phase {
-      background-color: #dc2626 !important; /* red-600 */
-      border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
-      z-index: 5 !important;
-    }
-    
-    .dept-qc-phase {
-      background-color: #7e22ce !important; /* purple-700 */
-      z-index: 6 !important;
-    }
-    
-    /* CRITICAL FIX: Row-specific positioning - This part is intentionally REMOVED as it was creating conflicts
-       The row classes are already defined above and having duplicates was causing positioning issues.
-       Do not add these class definitions back as they conflict with the correct ones above. */
-    
-    /* Resize handles - match height of smaller project bars */
-    .resize-handle {
-      position: absolute !important;
-      top: 0 !important;
-      bottom: 0 !important;
-      height: 100% !important;
-      width: 20px !important; /* Wider handle for easier targeting */
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      cursor: ew-resize !important;
-      z-index: 100 !important; /* Increased z-index to ensure handles are on top */
-      opacity: 0.6 !important; /* More visible by default */
-      transition: opacity 0.2s ease, background-color 0.2s ease !important;
-      background-color: rgba(0, 0, 0, 0.6) !important; /* Darker background for better visibility */
-      pointer-events: all !important; /* Ensure pointer events are not blocked */
-    }
-    
-    .resize-handle-left {
-      left: 0 !important;
-      border-top-left-radius: 4px !important;
-      border-bottom-left-radius: 4px !important;
-      padding-right: 8px !important; /* Add padding for easier grabbing */
-    }
-    
-    .resize-handle-right {
-      right: 0 !important;
-      border-top-right-radius: 4px !important;
-      border-bottom-right-radius: 4px !important;
-      padding-left: 8px !important; /* Add padding for easier grabbing */
-    }
-    
-    .big-project-bar:hover .resize-handle {
-      opacity: 1 !important;
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5) !important;
-      background-color: rgba(0, 0, 0, 0.8) !important;
-    }
-    
-    .resize-handle:hover {
-      background-color: rgba(0, 0, 0, 0.7) !important;
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5) !important;
-      opacity: 1 !important;
-    }
-    
-    /* Force handles to be visible in all team rows during hover */
-    .row-0-bar:hover .resize-handle,
-    .row-1-bar:hover .resize-handle,
-    .row-2-bar:hover .resize-handle,
-    .row-3-bar:hover .resize-handle,
-    .row-4-bar:hover .resize-handle,
-    .row-5-bar:hover .resize-handle,
-    .row-6-bar:hover .resize-handle,
-    .row-7-bar:hover .resize-handle {
-      opacity: 0.9 !important;
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5) !important;
-    }
-    
-    /* Extra emphasis for resize handles in Team 4 rows */
-    [data-bay-id="4"] .resize-handle {
-      opacity: 0.4 !important; /* Slightly more visible by default for Team 4 */
-    }
-    
-    [data-bay-id="4"] .big-project-bar:hover .resize-handle {
-      opacity: 0.9 !important;
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6) !important;
-    }
-    
-    /* Row hover effects for better visualization */
-    .bay-row:hover {
-      background-color: rgba(99, 102, 241, 0.1) !important;
-    }
-    
-    /* Cell hover effect */
-    .week-cell:hover {
-      background-color: rgba(99, 102, 241, 0.07) !important;
-      outline: 1px solid rgba(99, 102, 241, 0.3) !important;
-      z-index: 5 !important;
-    }
-    
-    /* Row-specific target highlighting in cells */
-    .row-0-highlight::before {
-      content: '';
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      height: 25% !important;
-      background-color: rgba(99, 102, 241, 0.15) !important;
-      border-bottom: 1px dashed rgba(99, 102, 241, 0.6) !important;
-      z-index: 1 !important;
-      pointer-events: none !important;
-    }
-    
-    .row-1-highlight::before {
-      content: '';
-      position: absolute !important;
-      top: 25% !important;
-      left: 0 !important;
-      right: 0 !important;
-      height: 25% !important;
-      background-color: rgba(99, 102, 241, 0.15) !important;
-      border-bottom: 1px dashed rgba(99, 102, 241, 0.6) !important;
-      z-index: 1 !important;
-      pointer-events: none !important;
-    }
-    
-    .row-2-highlight::before {
-      content: '';
-      position: absolute !important;
-      top: 50% !important;
-      left: 0 !important;
-      right: 0 !important;
-      height: 25% !important;
-      background-color: rgba(99, 102, 241, 0.15) !important;
-      border-bottom: 1px dashed rgba(99, 102, 241, 0.6) !important;
-      z-index: 1 !important;
-      pointer-events: none !important;
-    }
-    
-    .row-3-highlight::before {
-      content: '';
-      position: absolute !important;
-      top: 75% !important;
-      left: 0 !important;
-      right: 0 !important;
-      height: 25% !important;
-      background-color: rgba(99, 102, 241, 0.15) !important;
-      z-index: 1 !important;
-      pointer-events: none !important;
-    }
-  `;
-    
+    return projects.filter(project => 
+      !schedules.some(schedule => schedule.projectId === project.id)
+    );
+  }, [projects, schedules, forceUpdate]);
+  
   return (
-    <div className="mb-8 overflow-hidden">
-      <style dangerouslySetInnerHTML={{ __html: customCSS }} />
-      
-      {/* Capacity Warning Alert Dialog */}
-      {showCapacityWarning && capacityWarningData && (
-        <AlertDialog open={showCapacityWarning}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-amber-500" />
-                Capacity Warning
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                <div className="my-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md text-sm">
-                  <p>This manual change would result in <span className="font-bold text-amber-600">{capacityWarningData.percentage}%</span> capacity utilization during portions of the schedule.</p>
-                  <p className="mt-2">Bay capacity may be exceeded, which could lead to:</p>
-                  <ul className="list-disc pl-5 mt-1 space-y-1">
-                    <li>Resource constraints during production</li>
-                    <li>Delays in completing projects</li>
-                    <li>Conflicts with other schedules</li>
-                  </ul>
-                </div>
-                
-                <p className="my-2">Other affected projects in this bay:</p>
-                <div className="max-h-24 overflow-y-auto border border-gray-200 rounded p-2 mb-2">
-                  {capacityWarningData.affectedProjects.map(project => (
-                    <div key={project.id} className="text-sm py-1 border-b border-gray-100 last:border-0">
-                      <span className="font-medium">{project.projectNumber}</span> - {project.projectName}
-                    </div>
-                  ))}
-                </div>
-                
-                <p className="text-sm mt-4">Are you sure you want to proceed with this manual adjustment?</p>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel 
-                onClick={() => {
-                  setShowCapacityWarning(false);
-                  setCapacityWarningData(null);
-                }}
-              >
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  if (capacityWarningData) {
-                    // Show loading state
-                    setIsMovingProject(true);
-                    
-                    // CRITICAL: Get the user's selected row from the global attribute
-                    // This ensures we use the exact row where the user dropped the project, not the schedule's current row
-                    const preferredRowIndex = parseInt(document.body.getAttribute('data-current-drag-row') || '0');
-                    console.log(`Capacity warning override using user-selected row: ${preferredRowIndex} for schedule ${capacityWarningData.scheduleId}`);
-                    
-                    onScheduleChange(
-                      capacityWarningData.scheduleId,
-                      capacityWarningData.bayId,
-                      capacityWarningData.newStartDate,
-                      capacityWarningData.newEndDate,
-                      capacityWarningData.totalHours,
-                      preferredRowIndex // Use the user's selected row
-                    )
-                    .then(() => {
-                      // Clear loading state
-                      setIsMovingProject(false);
-                      
-                      toast({
-                        title: "Schedule Updated",
-                        description: "Manual adjustment applied successfully",
-                        duration: 5000
-                      });
-                      
-                      // Force refresh to show changes
-                      queryClient.invalidateQueries({ queryKey: ['/api/manufacturing-schedules'] });
-                    })
-                    .catch(error => {
-                      // Clear loading state
-                      setIsMovingProject(false);
-                      
-                      console.error('Error applying manual adjustment:', error);
-                      toast({
-                        title: "Error",
-                        description: "Failed to apply manual adjustment",
-                        variant: "destructive"
-                      });
-                    });
-                  }
-                  setShowCapacityWarning(false);
-                  setCapacityWarningData(null);
-                }}
-              >
-                Apply Manual Change
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-      
-      {/* EditBayDialog for existing bay edit */}
-      {editingBay && (
-        <EditBayDialog 
-          bay={editingBay}
-          isOpen={!!editingBay}
-          onClose={() => setEditingBay(null)}
-          onSave={handleSaveBayEdit}
-          onDelete={handleDeleteBay}
-          isNewBay={false}
-        />
-      )}
-      
-      {/* EditBayDialog for new bay creation */}
-      {newBay && (
-        <EditBayDialog 
-          bay={newBay}
-          isOpen={!!newBay}
-          onClose={() => setNewBay(null)}
-          onSave={handleCreateBay}
-          isNewBay={true}
-        />
-      )}
-      
-      {/* Loading overlays for project operations */}
-      <LoadingOverlay 
-        visible={isMovingProject} 
-        message="Moving project to new location. Please wait..." 
-      />
-      <LoadingOverlay 
-        visible={isUnassigningProject} 
-        message="Removing project from manufacturing schedule. Please wait..." 
-      />
-      
-      <div className="flex">
-        {/* Left sidebar with bay labels */}
-        <div className="shrink-0 w-64 border-r border-gray-700">
-          {/* Title row aligned with the year row */}
-          <div className="h-6 border-b border-gray-700 flex items-center justify-center">
-            <div className="text-sm font-bold text-gray-300">BAYS</div>
+    <div className="resizable-bay-schedule relative flex flex-col h-full dark">
+      {/* Header Bar */}
+      <div className="schedule-header sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="flex justify-between items-center p-2">
+          <div className="flex items-center space-x-2">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Manufacturing Schedule</h2>
+            <Badge variant="secondary" className="ml-2">
+              {viewMode.charAt(0).toUpperCase() + viewMode.slice(1)} View
+            </Badge>
           </div>
-          {/* Label row aligned with the week headers */}
-          <div className="h-12 border-b border-gray-700"></div>
-          {/* Display edit button for each bay */}
-          {bays.map(bay => (
-            <div 
-              key={bay.id} 
-              className={`flex flex-col px-3 py-3 border-b border-gray-700 ${bay.id === 7 || bay.id === 8 || bay.bayNumber === 7 || bay.bayNumber === 8 ? 'h-[600px]' : 'h-64'}`}
+          
+          <div className="flex items-center space-x-2">
+            <button 
+              className="bg-gray-700 hover:bg-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600 p-1 rounded"
+              onClick={() => setDialogOpen(true)}
             >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center">
-                  <div className="flex flex-col items-center mr-2">
-                    <span className="text-xs font-semibold text-blue-400 mb-1">BAY</span>
-                    <Badge variant="outline">
-                      {bay.bayNumber}
-                    </Badge>
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold">
-                      {bay.name} 
-                      {bay.description && (
-                        <span className="text-gray-400 text-xs font-normal ml-1">- {bay.description}</span>
-                      )}
-                    </div>
-                    <BayCapacityInfo bay={bay} allSchedules={schedules} projects={projects} />
-                  </div>
+              <PlusCircle className="h-5 w-5 text-white" />
+            </button>
+            
+            <button
+              className="bg-blue-700 hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600 p-1 rounded"
+              onClick={() => {
+                // Set up a new team creation dialog
+                const teamName = "New Team";
+                const highestBayNumber = Math.max(...bays.map(b => b.bayNumber));
+                
+                // Create a new bay with the team name
+                setNewBayDialog(true);
+                setEditingBay({
+                  id: 0,
+                  name: `${teamName} Bay 1`,
+                  bayNumber: highestBayNumber + 1,
+                  status: 'active',
+                  description: 'Manufacturing Team',
+                  location: null,
+                  team: teamName, // Important - this assigns the bay to the new team
+                  capacityTonn: null,
+                  maxWidth: null,
+                  maxHeight: null,
+                  maxLength: null,
+                  teamId: null,
+                  createdAt: null,
+                  updatedAt: null,
+                  assemblyStaffCount: 4,
+                  electricalStaffCount: 2,
+                  hoursPerPersonPerWeek: 40
+                });
+              }}
+            >
+              <div className="flex items-center text-white">
+                <PlusIcon className="h-4 w-4" />
+                <span className="text-sm ml-1">Team</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex flex-row flex-1 h-full relative">
+        {/* Left Navigation Chevron */}
+        {canScrollLeft && (
+          <button
+            onClick={handleScrollLeft}
+            className="fixed left-72 top-1/2 transform -translate-y-1/2 z-50 bg-black/60 hover:bg-black/80 text-white rounded-full p-3 transition-all duration-200 shadow-lg backdrop-blur-sm border border-white/20"
+            style={{ marginLeft: sidebarOpen ? '0' : '-240px' }}
+            aria-label="Scroll timeline left"
+          >
+            <ChevronLeft size={32} />
+          </button>
+        )}
+        
+        {/* Right Navigation Chevron */}
+        {canScrollRight && (
+          <button
+            onClick={handleScrollRight}
+            className="fixed right-8 top-1/2 transform -translate-y-1/2 z-50 bg-black/60 hover:bg-black/80 text-white rounded-full p-3 transition-all duration-200 shadow-lg backdrop-blur-sm border border-white/20"
+            aria-label="Scroll timeline right"
+          >
+            <ChevronRight size={32} />
+          </button>
+        )}
+
+        {/* Unassigned Projects Sidebar - Collapsible with Drop Zone */}
+        <div 
+          className={`unassigned-projects-sidebar border-r border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-900 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
+          style={{ 
+            transitionProperty: 'width, padding', 
+            height: '100%', // Changed from fixed height to 100% to fill parent container
+            position: 'sticky', // Make it sticky so it stays in view while scrolling
+            top: '0',
+            left: '0',
+            zIndex: 30 // Ensure it stays above other elements
+          }}
+        >
+          <div className="flex items-center justify-between mb-4 flex-shrink-0">
+            <h3 className={`font-bold text-gray-900 dark:text-white ${!sidebarOpen ? 'hidden' : 'block'}`}>Unassigned Projects</h3>
+            <button 
+              onClick={() => {
+                console.log("Toggling sidebar from", sidebarOpen, "to", !sidebarOpen);
+                setSidebarOpen(!sidebarOpen);
+                // Save to localStorage to persist between page reloads
+                localStorage.setItem('sidebarOpen', String(!sidebarOpen));
+              }} 
+              className="p-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-full transition-colors flex items-center justify-center"
+              title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            >
+              {sidebarOpen ? <ChevronLeft className="h-4 w-4 text-gray-600 dark:text-gray-300" /> : <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-300" />}
+            </button>
+          </div>
+          
+          {sidebarOpen && (
+            <div 
+              className="flex flex-col flex-grow overflow-hidden"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.currentTarget.classList.add('drop-zone-active');
+              }}
+              onDragLeave={(e) => {
+                // Only remove the highlight if we're not dragging over a child element
+                if (!e.currentTarget.contains(e.relatedTarget)) {
+                  e.currentTarget.classList.remove('drop-zone-active');
+                }
+              }}
+              onDrop={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.currentTarget.classList.remove('drop-zone-active');
+                
+                document.body.classList.remove('global-drag-active');
+                
+                try {
+                  const dataString = e.dataTransfer.getData('text/plain');
+                  console.log(`📦 UNASSIGNED DROP ANYWHERE: "${dataString}"`);
+                  
+                  const scheduleId = parseInt(dataString, 10);
+                  
+                  if (scheduleId > 0) {
+                    console.log(`🔄 Returning schedule ${scheduleId} to unassigned section`);
+                    
+                    const schedule = schedules.find(s => s.id === scheduleId);
+                    if (schedule && onScheduleDelete) {
+                      await onScheduleDelete(scheduleId);
+                      
+                      // CRITICAL FIX: Update local state to reflect the deletion
+                      setScheduleBars(prevBars => prevBars.filter(bar => bar.id !== scheduleId));
+                      
+                      toast({
+                        title: "Project unassigned",
+                        description: "Project moved back to unassigned list",
+                      });
+                      
+                      // Force a rerender by updating a timestamp
+                      setForceUpdate(Date.now());
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error processing drop on unassigned section:', error);
+                }
+              }}
+            >
+              {/* Visual drop zone indicator - fixed height, doesn't scroll, but entire column is a drop zone */}
+              <div className="unassigned-drop-container min-h-[80px] rounded-md border-2 border-dashed border-gray-300 dark:border-gray-700 mb-4 p-2 flex-shrink-0">
+                <div className="text-sm text-gray-400 italic p-2 text-center flex items-center justify-center">
+                  Drop projects anywhere in this column to unassign them
                 </div>
               </div>
               
-              {/* Action buttons row - moved below bay info and above capacity indicator */}
-              <div className="flex items-center justify-center gap-1 mb-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setEditingBay(bay)}
-                  title="Edit Bay"
-                >
-                  <PencilIcon className="h-3.5 w-3.5" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => {
-                    // Apply auto-adjustment only to this specific bay
-                    applyAutoCapacityAdjustment(bay.id);
-                    
-                    // Update the auto-adjusted bays state
-                    setAutoAdjustedBays(prev => ({...prev, [bay.id]: true}));
-                    
-                    // Show toast notification
-                    toast({
-                      title: `Auto-Adjusted ${bay.name}`,
-                      description: "Schedule lengths adjusted based on capacity sharing",
-                      duration: 3000
-                    });
-                  }}
-                  title="Auto-Adjust Capacity"
-                  className={autoAdjustedBays[bay.id] ? "text-green-500" : "text-blue-400 hover:text-blue-500"}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 8L22 12L18 16" />
-                    <path d="M2 12H22" />
-                  </svg>
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  className="text-red-400 hover:text-red-500"
-                  onClick={() => {
-                    // Show confirmation dialog before deleting
-                    if (window.confirm(`Are you sure you want to delete bay "${bay.name}"? All projects in this bay will be moved to the Unassigned section.`)) {
-                      handleDeleteBay(bay.id);
-                    }
-                  }}
-                  title="Delete Bay"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 6h18"></path>
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                  </svg>
-                </Button>
-              </div>
-              
-              {/* Bay capacity area with work level indicator */}
-              <div className="flex-1 flex flex-col items-center justify-center gap-1">
-                {/* Work Level Indicator */}
-                {(bay.staffCount !== null && bay.staffCount !== undefined && bay.staffCount > 0) && (
-                  <div className="flex items-center gap-1">
-                    {(() => {
-                      // Calculate weekly workload for this bay based on current projects
-                      const baySchedules = scheduleBars.filter(b => b.bayId === bay.id);
-                      
-                      // Calculate the maximum capacity per week for this bay using bay-specific hours
-                      // Get the hours per person from the bay settings, with no fallback to any hardcoded value
-                      const hoursPerPerson = bay.hoursPerPersonPerWeek || 0;
-                      // Calculate total staff count (either from direct staffCount or from assembly + electrical)
-                      // Handle null/undefined values safely
-                      const staffCount = bay.staffCount !== null && bay.staffCount !== undefined ? bay.staffCount : 0;
-                      const assemblyStaff = bay.assemblyStaffCount !== null && bay.assemblyStaffCount !== undefined ? bay.assemblyStaffCount : 0;
-                      const electricalStaff = bay.electricalStaffCount !== null && bay.electricalStaffCount !== undefined ? bay.electricalStaffCount : 0;
-                      const totalStaff = staffCount > 0 ? staffCount : (assemblyStaff + electricalStaff) || 1;
-                      // Calculate maximum capacity based on actual bay data
-                      const maxCapacity = hoursPerPerson * totalStaff;
-                      
-                      // Check if any week exceeds capacity by looking at overlapping projects
-                      // Break down by weeks in the visible range
-                      const weeklyLoad: {[key: string]: number} = {};
-                      const weeklyProjects: {[key: string]: number} = {};
-                      
-                      // Initialize weeks
-                      slots.forEach(slot => {
-                        const weekStart = format(startOfWeek(slot.date), 'yyyy-MM-dd');
-                        if (!weeklyLoad[weekStart]) {
-                          weeklyLoad[weekStart] = 0;
-                          weeklyProjects[weekStart] = 0;
-                        }
-                      });
-                      
-                      // Calculate load for each week
-                      baySchedules.forEach(schedule => {
-                        const startDate = new Date(schedule.startDate);
-                        const endDate = new Date(schedule.endDate);
-                        const projectFabWeeks = schedule.fabWeeks || 4;
-                        const productionStartDate = addDays(startDate, projectFabWeeks * 7);
-                        
-                        // Only count hours during the production phase (after FAB phase)
-                        const totalWeeks = Math.ceil(differenceInDays(endDate, productionStartDate) / 7);
-                        if (totalWeeks <= 0) return; // No production phase yet
-                        
-                        // Get the project for this schedule
-                        const project = projects.find(p => p.id === schedule.projectId);
-                        // Get production percentage (default 53%)
-                        const productionPercentage = parseFloat(project?.productionPercentage as any) || 53;
-                        // Calculate production hours (53% of total hours by default)
-                        const productionHours = (schedule.totalHours || 1000) * (productionPercentage / 100);
-                        // Calculate weekly hours for production phase only
-                        const weeklyHours = productionHours / totalWeeks;
-                        
-                        // Distribute hours to each week in the production phase
-                        slots.forEach(slot => {
-                          const slotDate = slot.date;
-                          const weekStart = format(startOfWeek(slotDate), 'yyyy-MM-dd');
+              {/* Scrollable Unassigned Projects List - takes remaining space and scrolls */}
+              <div className="overflow-y-auto flex-grow" style={{ maxHeight: 'calc(100% - 100px)' }}>
+                {unassignedProjects.length === 0 ? (
+                  <div className="text-sm text-gray-400 italic">No unassigned projects</div>
+                ) : (
+                  <div className="space-y-3 pb-2 pr-1">
+                    {unassignedProjects.map(project => (
+                      <div 
+                        key={`unassigned-${project.id}`}
+                        className="unassigned-project-card bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 shadow-sm cursor-grab hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        draggable={true}
+                        onDragStart={(e) => {
+                          // Store project ID with special prefix to identify unassigned projects
+                          const projectIdentifier = `-${project.id}`;
+                          e.dataTransfer.setData('text/plain', projectIdentifier);
                           
-                          // Only add hours if this week is in the production phase
-                          if (slotDate >= productionStartDate && slotDate <= endDate) {
-                            weeklyLoad[weekStart] += weeklyHours;
-                            
-                            // Count this project for this week if not already counted
-                            if (!weeklyProjects[weekStart]) {
-                              weeklyProjects[weekStart] = 0;
+                          // Also store complete project data as JSON for enhanced drop handlers
+                          const projectData = {
+                            projectId: project.id,
+                            name: project.name,
+                            projectNumber: project.projectNumber,
+                            isUnassigned: true // Flag to identify this as an unassigned project
+                          };
+                          e.dataTransfer.setData('application/json', JSON.stringify(projectData));
+                          
+                          // Set visual indicators
+                          document.body.setAttribute('data-drag-in-progress', 'true');
+                          document.body.classList.add('global-drag-active');
+                          document.body.classList.add('dragging-unassigned-project');
+                          
+                          console.log(`🔄 Dragging unassigned project ${project.id}: ${project.name}`);
+                          
+                          // Set copy effect for new project assignment
+                          e.dataTransfer.effectAllowed = 'copy';
+                          e.currentTarget.classList.add('opacity-50');
+                          
+                          // Store project data in session storage as backup
+                          sessionStorage.setItem('dragging_project', JSON.stringify({
+                            id: project.id,
+                            name: project.name,
+                            projectNumber: project.projectNumber
+                          }));
+                          
+                          // Create custom drag image
+                          const dragImage = document.createElement('div');
+                          dragImage.className = 'bg-blue-600 text-white p-2 rounded opacity-80 pointer-events-none fixed -left-full';
+                          dragImage.textContent = `${project.projectNumber}: ${project.name}`;
+                          document.body.appendChild(dragImage);
+                          e.dataTransfer.setDragImage(dragImage, 10, 10);
+                          
+                          setTimeout(() => {
+                            if (dragImage.parentNode) {
+                              dragImage.parentNode.removeChild(dragImage);
                             }
-                            weeklyProjects[weekStart]++;
-                          }
-                        });
-                      });
-                      
-                      // Determine overall workload level
-                      let maxLoad = 0;
-                      let totalLoad = 0;
-                      let weeksCount = 0;
-                      let overloadedWeeks = 0;
-                      
-                      // Calculate how many hours in each week and identify overloaded weeks
-                      Object.keys(weeklyLoad).forEach(week => {
-                        if (weeklyLoad[week] > 0) {
-                          weeksCount++;
-                          totalLoad += weeklyLoad[week];
-                          maxLoad = Math.max(maxLoad, weeklyLoad[week]);
+                          }, 100);
+                        }}
+                        onDragEnd={(e) => {
+                          e.currentTarget.classList.remove('opacity-50');
+                          document.body.removeAttribute('data-drag-in-progress');
+                          document.body.classList.remove('global-drag-active');
+                          document.body.classList.remove('dragging-unassigned-project');
                           
-                          if (weeklyLoad[week] > maxCapacity) {
-                            overloadedWeeks++;
-                          }
-                        }
-                      });
-                      
-                      // Calculate how many projects per week on average
-                      let totalProjectWeeks = 0;
-                      Object.keys(weeklyProjects).forEach(week => {
-                        totalProjectWeeks += weeklyProjects[week];
-                      });
-                      const avgProjectsPerWeek = weeksCount > 0 ? totalProjectWeeks / weeksCount : 0;
-                      
-                      // Calculate average loading - OLD METHOD (showing different percentages)
-                      // const avgLoad = weeksCount > 0 ? totalLoad / weeksCount : 0;
-                      // const loadRatio = maxCapacity > 0 ? avgLoad / maxCapacity : 0;
-                      
-                      // NEW METHOD - match BayUtilizationCard calculation
-                      // Calculate scheduled hours for this bay, distributed by week
-                      let weeklyUtilization = 0;
-                      
-                      if (baySchedules.length > 0) {
-                        // Calculate the total weeks for each schedule and distribute hours evenly
-                        baySchedules.forEach(schedule => {
-                          if (schedule.startDate && schedule.endDate && schedule.totalHours) {
-                            const startDate = new Date(schedule.startDate);
-                            const endDate = new Date(schedule.endDate);
-                            
-                            // Calculate number of weeks (including partial weeks)
-                            const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-                            const weeks = Math.max(1, Math.ceil(diffDays / 7));
-                            
-                            // CRITICAL FIX: Only consider PRODUCTION hours for bay capacity calculation
-                            // Get the related project for this schedule
-                            const project = projects.find(p => p.id === schedule.projectId);
-                            
-                            // Get the project's production percentage or use default (60%)
-                            const productionPercentage = parseFloat(project?.productionPercentage as any) || 60;
-                            
-                            // Calculate production hours (this is what actually consumes bay capacity)
-                            const productionHours = schedule.totalHours * (productionPercentage / 100);
-                            
-                            // Calculate hours per week - using ONLY production hours
-                            const hoursPerWeek = productionHours / weeks;
-                            
-                            // Add to weekly utilization
-                            weeklyUtilization += hoursPerWeek;
-                          }
-                        });
-                      }
-                      
-                      // Calculate utilization percentage based on weekly hours
-                      // Get the same utilization percentage shown in BayCapacityInfo for consistency
-                      const utilization = maxCapacity > 0 ? Math.min(100, (weeklyUtilization / maxCapacity) * 100) : 0;
-                      const roundedUtilization = Math.round(utilization);
-                      const loadRatio = roundedUtilization / 100;
-                      
-                      // Create a more detailed analysis
-                      const overloadedPercent = weeksCount > 0 ? (overloadedWeeks / weeksCount) * 100 : 0;
-                      
-                      // Determine status based on load ratio and overloaded weeks
-                      let status: 'success' | 'warning' | 'danger' = 'success';
-                      let label = 'Good';
-                      let details = '';
-                      
-                      if (loadRatio > 1 || overloadedWeeks > 0) {
-                        status = 'danger';
-                        label = 'Overloaded';
-                        details = overloadedWeeks > 0 
-                          ? `${overloadedWeeks} weeks exceed capacity` 
-                          : 'Extended timeline needed';
-                      } else if (loadRatio > 0.85) {
-                        status = 'warning';
-                        label = 'Near Capacity';
-                        details = 'High utilization';
-                      } else if (loadRatio > 0.5) {
-                        label = 'Balanced';
-                        details = 'Good utilization';
-                      } else if (loadRatio > 0) {
-                        label = 'Light Load';
-                        details = 'Capacity available';
-                      } else {
-                        label = 'No Projects';
-                        details = 'Bay is empty';
-                      }
-                      
-                      // Calculate weekly capacity and utilization for the current week only
-                      const now = new Date();
-                      const currentWeekStart = startOfWeek(now);
-                      const currentWeekEnd = endOfWeek(now);
-                      
-                      // Calculate staff count from either direct staffCount or from assembly + electrical
-                      // Handle null/undefined values safely
-                      const bayDirectStaff = bay.staffCount !== null && bay.staffCount !== undefined ? bay.staffCount : 0;
-                      const bayAssemblyStaff = bay.assemblyStaffCount !== null && bay.assemblyStaffCount !== undefined ? bay.assemblyStaffCount : 0;
-                      const bayElectricalStaff = bay.electricalStaffCount !== null && bay.electricalStaffCount !== undefined ? bay.electricalStaffCount : 0;
-                      const bayStaffCount = bayDirectStaff > 0 ? bayDirectStaff : (bayAssemblyStaff + bayElectricalStaff); 
-                      // Get the hours per person from the bay settings with no hardcoded fallback
-                      const bayHoursPerWeek = bay.hoursPerPersonPerWeek || 0;
-                      // Calculate weekly capacity using actual bay-specific hours
-                      const weeklyCapacity = bayHoursPerWeek * bayStaffCount;
-                      
-                      // Find projects that are active in the current week
-                      const currentWeekProjects = scheduleBars.filter(schedule => {
-                        const scheduleStart = new Date(schedule.startDate);
-                        const scheduleEnd = new Date(schedule.endDate);
-                        return schedule.bayId === bay.id && 
-                               !(scheduleEnd < currentWeekStart || scheduleStart > currentWeekEnd);
-                      });
-                      
-                      // Calculate utilization based on number of current projects
-                      // Each project accounts for about 50% of capacity (since a team can handle 2 projects)
-                      const weeklyUtilizationPercent = Math.min(100, Math.round((currentWeekProjects.length / 2) * 100));
-                      
-                      // Get active projects that have not ended yet (across any time period)
-                      // This is to match the BayUtilizationCard component calculation
-                      const activeProjects = scheduleBars.filter(schedule => {
-                        const endDate = new Date(schedule.endDate);
-                        const now = new Date();
-                        return schedule.bayId === bay.id && endDate >= now;
-                      });
-                      
-                      // For ALL bays, use the same standard calculation based on current week projects
-                      if (currentWeekProjects.length > 0) { 
-                        if (currentWeekProjects.length >= 2) {
-                          status = 'danger';
-                          label = 'At Capacity';
-                          details = `${currentWeekProjects.length} projects in PROD`;
-                        } else if (currentWeekProjects.length === 1) {
-                          status = 'warning';
-                          label = 'Near Capacity';
-                          details = `${currentWeekProjects.length} project in PROD`;
-                        } else {
-                          status = 'success';
-                          label = 'Available';
-                          details = 'Capacity available';
-                        }
-                      }
-                      
-                      // Log to verify calculation is consistent with BayCapacityInfo
-                      console.log(`Bay ${bay.name} schedule display utilization: ${weeklyUtilizationPercent}% (${currentWeekProjects.length} projects in current week)`);
-                      
-                      // Set colors based on status
-                      const colors = {
-                        success: 'bg-green-500',
-                        warning: 'bg-yellow-500',
-                        danger: 'bg-red-500',
-                      };
-                      
-                      const textColors = {
-                        success: 'text-green-500',
-                        warning: 'text-yellow-500',
-                        danger: 'text-red-500',
-                      };
-                      
-                      return (
-                        <div className="flex flex-col items-center">
-                          <div className="flex items-center gap-1">
-                            <div className={`w-2 h-2 rounded-full ${colors[status]}`}></div>
-                            <div className={`text-xs font-medium ${textColors[status]}`}>
-                              {label}
-                              {/* Only show percentage for Available status */}
-                              {status === 'success' && weeklyUtilizationPercent > 0 ? ` (${weeklyUtilizationPercent}%)` : ''}
-                            </div>
-                          </div>
-                          <div className="text-xs text-gray-400 mt-0.5">
-                            {details}
-                            {avgProjectsPerWeek > 0 && ` • Avg ${avgProjectsPerWeek.toFixed(1)} projects/week`}
-                          </div>
+                          // Clean up any session storage
+                          sessionStorage.removeItem('dragging_project');
+                          
+                          // Clean up any highlights
+                          document.querySelectorAll('.row-target-highlight, .bay-highlight, .drop-target').forEach((el) => {
+                            el.classList.remove('row-target-highlight', 'bay-highlight', 'drop-target');
+                          });
+                          
+                          console.log('Unassigned project drag operation completed - cleaned up states');
+                        }}
+                      >
+                        <div className="font-medium text-gray-900 dark:text-white text-sm mb-1 truncate">{project.projectNumber}: {project.name}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 truncate">{project.status}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex items-center">
+                          <span className="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
+                          {project.team || 'No Team'}
                         </div>
-                      );
-                    })()}
+                      </div>
+                    ))}
                   </div>
                 )}
-                <div className="text-xs text-gray-400">4 projects max</div>
               </div>
             </div>
-          ))}
-          
-          {/* Empty slots for additional bays */}
-          {Array.from({ length: Math.max(0, 8 - bays.length) }).map((_, index) => {
-            const virtualBayId = bays.length + index + 1;
-            
-            // Create consistent bay naming for empty slots
-            const virtualName = virtualBayId === 7 
-              ? `TCV Line` 
-              : (virtualBayId === 8 
-                 ? `Line 8` 
-                 : `Bay ${virtualBayId * 2 - 1} & ${virtualBayId * 2}`);
-              
-            // Check if this is specifically Bay 7 or 8 position for multi-row display
-            const isTeam7Or8 = virtualBayId === 7 || virtualBayId === 8;
-            
-            // Create a virtual bay object to pass to components
-            const virtualBay: ManufacturingBay = {
-              id: -virtualBayId, // Negative ID to indicate virtual bay
-              bayNumber: virtualBayId,
-              name: virtualName, // Use Team name for 7 and 8
-              description: '',
-              staffCount: 0,
-              assemblyStaffCount: 0,
-              electricalStaffCount: 0,
-              hoursPerPersonPerWeek: 32,
-              isActive: true,
-              createdAt: new Date(),
-              equipment: null,
-              team: null
-            };
-            
-            return (
-              <div
-                key={`empty-bay-${index}`}
-                className="flex flex-col px-3 py-3 border-b border-gray-700 text-gray-500"
-                style={{ height: isTeam7Or8 ? '600px' : '64px' }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center">
-                    <div className="flex flex-col items-center mr-2">
-                      <span className="text-xs font-semibold text-blue-400 mb-1">TEAM</span>
-                      <Badge variant="outline">
-                        {virtualBayId}
-                      </Badge>
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold">
-                        Empty
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        No staff assigned
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Action buttons for empty bay - centered below the bay details */}
-                <div className="flex items-center justify-center gap-1 mb-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => {
-                      // Create a default empty bay to edit
-                      setNewBay(virtualBay);
-                    }}
-                  >
-                    <PlusIcon className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                
-                {isTeam7Or8 ? (
-                  <div className="flex-1 relative">
-                    {/* Special MultiRowBayContent for Bay 7 & 8 */}
-                    <div className="absolute inset-0 opacity-20">
-                      <MultiRowBayContent
-                        bay={virtualBay}
-                        weekSlots={slots}
-                        scheduleBars={[]} // No schedules for empty bay
-                        projects={[]}    // No projects for empty bay
-                        handleDragOver={() => {}} // Empty handlers since this is a placeholder
-                        handleDrop={() => {}}
-                        setRowToDelete={() => {}}
-                        setDeleteRowDialogOpen={() => {}}
-                        handleRowDelete={() => {}}
-                        handleRowAdd={() => {}}
-                        rowCount={20}
-                      />
-                    </div>
-                    
-                    {/* Placeholder text overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-90">
-                      <div className="text-xs text-gray-400">Click + to create Bay {virtualBayId}</div>
-                    </div>
-                  </div>
-                ) : (
-                  // Standard empty area for normal bays
-                  <div className="flex-1 flex items-center justify-center opacity-50">
-                    <div className="text-xs text-gray-400">Click + to create bay</div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          )}
         </div>
         
-        {/* Main timeline grid */}
-        <div 
-          className="overflow-x-auto flex-1 relative" 
-          style={{ maxWidth: 'calc(100% - 64px)' }}
-          ref={timelineContainerRef}
-        >
-          {/* Today indicator line - enhanced for all time views */}
+        <div className="bay-schedule-viewport flex-grow overflow-auto relative" ref={viewportRef}>
+          <div className="bay-schedule-container relative" ref={timelineRef}>
+          {/* Today Line marker - positioned absolutely */}
           {(() => {
-            // Use actual today's date instead of hardcoded value
+            // Use the current real date for TODAY marker
             const today = new Date(); // Current date
-            const startDate = dateRange.start;
             
-            // Calculate position based on view mode
-            let position = 0;
-            
-            // Calculate total milliseconds between dates for precise positioning
-            const totalMilliseconds = today.getTime() - startDate.getTime();
-            const daysFromStart = totalMilliseconds / (1000 * 60 * 60 * 24);
-            
-            // Calculate position with greater precision based on view mode
-            if (viewMode === 'day') {
-              // In day view, each slot is one day
-              position = daysFromStart * slotWidth;
-              
-              // Log for debugging
-              console.log(`Today indicator (day view): ${daysFromStart.toFixed(2)} days from start = ${position.toFixed(2)}px`);
-            } 
-            else if (viewMode === 'week') {
-              // In week view, each slot is one week (7 days)
-              const weeksFromStart = daysFromStart / 7;
-              position = weeksFromStart * slotWidth;
-              
-              // Log for debugging
-              console.log(`Today indicator (week view): ${weeksFromStart.toFixed(2)} weeks from start = ${position.toFixed(2)}px`);
-            }
-            else if (viewMode === 'month') {
-              // In month view, calculate months precisely
-              const totalMonths = differenceInMonths(today, startDate);
-              
-              // Calculate days into the current month for fractional positioning
-              const startOfCurrentMonth = startOfMonth(today);
-              const daysIntoMonth = differenceInDays(today, startOfCurrentMonth);
-              const daysInMonth = getDaysInMonth(today);
-              const monthFraction = daysIntoMonth / daysInMonth;
-              
-              // Calculate final position
-              position = (totalMonths + monthFraction) * slotWidth;
-              
-              // Log for debugging
-              console.log(`Today indicator (month view): ${totalMonths} months + ${monthFraction.toFixed(2)} fraction = ${position.toFixed(2)}px`);
-            }
-            else if (viewMode === 'quarter') {
-              // In quarter view, calculate quarters precisely
-              const totalMonths = differenceInMonths(today, startDate);
-              const quarters = Math.floor(totalMonths / 3);
-              
-              // Calculate months into the current quarter
-              const monthInQuarter = today.getMonth() % 3;
-              
-              // Calculate days into the current month
-              const startOfCurrentMonth = startOfMonth(today);
-              const daysIntoMonth = differenceInDays(today, startOfCurrentMonth);
-              const daysInMonth = getDaysInMonth(today);
-              
-              // Calculate the fractional position within the quarter
-              const quarterFraction = (monthInQuarter + (daysIntoMonth / daysInMonth)) / 3;
-              
-              // Calculate final position
-              position = (quarters + quarterFraction) * slotWidth;
-              
-              // Log for debugging
-              console.log(`Today indicator (quarter view): ${quarters} quarters + ${quarterFraction.toFixed(2)} fraction = ${position.toFixed(2)}px`);
-            }
-            
-            // Ensure the line is visible only when it's within the viewport
-            const isVisible = position >= 0 && position <= totalViewWidth;
-            
-            // Render the today indicator line with label
-            return isVisible ? (
-              <div 
-                className="absolute top-0 bottom-0 w-0.5 bg-red-600 z-30 pointer-events-none" 
-                style={{ 
-                  left: `${position}px`,
-                  height: '100%', // Full height
-                  boxShadow: '0 0 4px rgba(220, 38, 38, 0.5)' // Add glow effect for better visibility
-                }}
-              >
-                {/* Today label - positioned at top of line */}
-                <div className="absolute -top-5 -translate-x-1/2 bg-red-600 text-white px-1.5 py-0.5 text-xs rounded shadow-md">
-                  Today
-                </div>
-              </div>
-            ) : null;
-          })()}
-          
-          {/* Year row above week headers */}
-          <div 
-            className="h-6 border-b border-gray-700 grid" 
-            style={{ 
-              gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
-              width: totalViewWidth 
-            }}
-          >
-            {(() => {
-              // Generate year segments
-              const years: {year: number, startIndex: number, endIndex: number}[] = [];
-              let currentYear = -1;
-              let startIndex = 0;
-              
-              // Group slots by year
-              slots.forEach((slot, index) => {
-                const year = slot.year || slot.date.getFullYear();
-                if (year !== currentYear) {
-                  if (currentYear !== -1) {
-                    years.push({year: currentYear, startIndex, endIndex: index - 1});
-                  }
-                  currentYear = year;
-                  startIndex = index;
-                }
+            console.log(`Calculating TODAY line position for: ${format(today, 'yyyy-MM-dd')}`);
                 
-                // Handle the last group
-                if (index === slots.length - 1) {
-                  years.push({year: currentYear, startIndex, endIndex: index});
-                }
-              });
+            // Find the current date in our slots array
+            for (let i = 0; i < slots.length; i++) {
+              const slot = slots[i];
               
-              // Render year labels
-              return years.map(({year, startIndex, endIndex}) => {
-                const width = (endIndex - startIndex + 1) * slotWidth;
-                return (
-                  <div 
-                    key={`year-${year}-${startIndex}`}
-                    className="border-r border-gray-700 flex items-center justify-center"
-                    style={{
-                      gridColumn: `${startIndex + 1} / ${endIndex + 2}`,
-                      width: `${width}px`
-                    }}
-                  >
-                    <div className="text-xs font-medium text-gray-400">{year}</div>
-                  </div>
-                );
-              });
-            })()}
-          </div>
-
-          {/* Header row with time slots - Add sticky functionality */}
-          <div 
-            className="h-12 border-b border-gray-700 grid week-header-row" 
-            style={{ 
-              gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
-              width: totalViewWidth 
-            }}
-            ref={weekHeaderRef}
-          >
-            {slots.map((slot, index) => (
-              <div 
-                key={index} 
-                className={`border-r border-gray-700 flex flex-col justify-end pb-1 ${
-                  slot.isWeekend ? 'bg-gray-800/20' : ''
-                } ${isSameDay(slot.date, new Date()) ? 'bg-blue-900/20' : ''}`}
-              >
-                <div className="text-xs font-medium px-2">{slot.label}</div>
-                {slot.sublabel && (
-                  <div className="text-xs text-gray-400 px-2">{slot.sublabel}</div>
-                )}
-              </div>
-            ))}
-          </div>
-          
-          {/* Sticky header removed as requested by user */}
-          
-          {/* Bay rows with schedule bars */}
-          <div>
-            {/* Existing bays - each bay now has 4 rows */}
-            {bays.map(bay => (
-              <div 
-                key={bay.id} 
-                className={`relative border-b border-gray-700 ${bay.id === 7 || bay.id === 8 || bay.bayNumber === 7 || bay.bayNumber === 8 ? 'h-[600px]' : 'h-64'}`}
-                style={{ width: totalViewWidth }}
-              >
-                {/* Grid columns */}
-                <div 
-                  className="absolute inset-0 grid bay-container" 
-                  style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}
-                >
-                  {slots.map((slot, index) => (
+              // Check if this slot matches today's date exactly
+              if (slot.date.getFullYear() === today.getFullYear() &&
+                  slot.date.getMonth() === today.getMonth() &&
+                  slot.date.getDate() === today.getDate()) {
+                
+                // Found the exact slot for today
+                let todayPosition = i * slotWidth;
+                
+                console.log(`Found TODAY at slot ${i} (${format(slot.date, 'yyyy-MM-dd')}), position: ${todayPosition}px`);
+                
+                // Only show if today is within visible range
+                if (todayPosition >= 0) {
+                  return (
                     <div 
-                      key={index}
-                      className={`border-r border-gray-700 h-full week-cell ${
-                        slot.isWeekend ? 'bg-gray-800/20' : ''
-                      } ${isSameDay(slot.date, new Date()) ? 'bg-blue-900/20' : ''} ${
-                        dropTarget?.bayId === bay.id && dropTarget.slotIndex === index 
-                          ? 'active-drop-target' 
-                          : ''
-                      }`}
-                      data-week-index={index}
-                      data-date={format(slot.date, 'yyyy-MM-dd')}
-                      data-bay-id={bay.id}
-                      data-slot-index={index}
-                      onDragOver={(e) => {
-                        // Calculate which row within the cell the cursor is over
-                        const cellHeight = e.currentTarget.clientHeight;
-                        const relativeY = e.nativeEvent.offsetY;
-                        const rowIndex = Math.floor((relativeY / cellHeight) * 4);
-                        
-                        // Show which cell row is being targeted with data attributes
-                        e.currentTarget.setAttribute('data-target-row', rowIndex.toString());
-                        e.currentTarget.setAttribute('data-week-number', format(slot.date, 'w'));
-                        
-                        // CRITICAL: Update the global data-current-drag-row attribute
-                        // This ensures the drop handler knows exactly which row to use
-                        document.body.setAttribute('data-current-drag-row', rowIndex.toString());
-                        
-                        // Add visual highlight for better row targeting
-                        const highlightClass = `row-${rowIndex}-highlight`;
-                        
-                        // First, remove all row highlight classes
-                        for (let i = 0; i < 4; i++) {
-                          e.currentTarget.classList.remove(`row-${i}-highlight`);
-                        }
-                        
-                        // Add highlight for current row
-                        e.currentTarget.classList.add(highlightClass);
-                        
-                        // Remove previous drag-hover class from all cells
-                        document.querySelectorAll('.drag-hover').forEach(el => {
-                          el.classList.remove('drag-hover');
-                        });
-                        
-                        // Add drag-hover class to this cell
-                        e.currentTarget.classList.add('drag-hover');
-                        
-                        // Call the main handler
-                        handleDragOver(e, bay.id, index, rowIndex);
+                      className="today-marker absolute top-0 bottom-0 w-[2px] bg-red-500 z-10" 
+                      style={{ 
+                        left: `${todayPosition}px`,
+                        height: '100%'
                       }}
-                      onDragEnter={(e) => {
-                        e.preventDefault();
-                        // Visualize the specific week cell being targeted
-                        e.currentTarget.classList.add('drag-hover');
-                        
-                        // Log week info for debugging
-                        const weekNumber = format(slot.date, 'w');
-                        console.log(`Entering week ${weekNumber} (index ${index}) in bay ${bay.id}`);
-                      }}
-                      onDragLeave={(e) => {
-                        // Remove visual feedback when leaving cell
-                        e.currentTarget.classList.remove('bg-primary/10', 'drag-hover');
-                        
-                        // Remove all row highlight classes
-                        for (let i = 0; i < 4; i++) {
-                          e.currentTarget.classList.remove(`row-${i}-highlight`);
-                        }
-                        
-                        // Reset data attributes
-                        e.currentTarget.removeAttribute('data-target-row');
-                        e.currentTarget.removeAttribute('data-week-number');
-                      }}
-                      onDrop={(e) => {
-                        // Calculate which row within the cell the cursor is over
-                        const cellHeight = e.currentTarget.clientHeight;
-                        const relativeY = e.nativeEvent.offsetY;
-                        const rowIndex = Math.floor((relativeY / cellHeight) * 4);
-                        
-                        // CRITICAL: Update global data attribute with current row
-                        // This ensures the drop handler can use the current row where the mouse is
-                        document.body.setAttribute('data-current-drag-row', rowIndex.toString());
-                        
-                        // Remove all highlight classes
-                        for (let i = 0; i < 4; i++) {
-                          e.currentTarget.classList.remove(`row-${i}-highlight`);
-                        }
-                        e.currentTarget.classList.remove('drag-hover', 'active-drop-target');
-                        
-                        // Reset data attributes
-                        e.currentTarget.removeAttribute('data-target-row');
-                        e.currentTarget.removeAttribute('data-week-number');
-                        
-                        // Handle the drop with the specific row
-                        handleDrop(e, bay.id, index, rowIndex);
-                        
-                        // Log the exact cell location for debugging
-                        const weekStartDate = format(slot.date, 'yyyy-MM-dd');
-                        console.log(`Project dropped at Bay ${bay.id}, Week ${index} (${weekStartDate}), Row ${rowIndex}`);
-                      }}
-                    />
-                  ))}
-                </div>
+                    >
+                      <div className="bg-red-500 text-white text-xs py-1 px-2 rounded absolute top-0 -translate-x-1/2">
+                        TODAY
+                      </div>
+                    </div>
+                  );
+                }
                 
-                {/* Row dividers with visible action buttons */}
-                {(() => {
-                  // IMPORTANT UPDATE: Use bay NUMBER (7 or 8) to determine if we should use multi-row
-                  // This ensures ANY bay with ID 7 or 8 will get 20 rows, regardless of name
-                  // This is necessary to handle cases like "TCV Line" which is bay number 7
-                  const isMultiRowBay = bay.id === 7 || bay.id === 8 || bay.bayNumber === 7 || bay.bayNumber === 8;
+                // If we found the slot but it's out of range, break the loop
+                break;
+              }
+            }
+            
+            // If we're in week view mode, calculate position within the week
+            if (viewMode === 'week') {
+              // Find the Monday of the current week for slot matching
+              const mondayOfWeek = startOfWeek(today, { weekStartsOn: 1 });
+              
+              for (let i = 0; i < slots.length; i++) {
+                const slot = slots[i];
+                
+                // Check if this slot is the Monday of our target week
+                if (slot.date.getFullYear() === mondayOfWeek.getFullYear() &&
+                    slot.date.getMonth() === mondayOfWeek.getMonth() &&
+                    slot.date.getDate() === mondayOfWeek.getDate()) {
                   
-                  // Add debug logging to troubleshoot the issue
-                  console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${getBayRowCount(bay.id, bay.name)}, bayNumber=${bay.bayNumber}`);
-                  return isMultiRowBay;
-                })() ? (
-                  // Use MultiRowBayContent for Team 7 & 8 which needs 20 rows
-                  <MultiRowBayContent
-                    bay={bay}
-                    weekSlots={slots}
-                    scheduleBars={scheduleBars}
-                    projects={projects}
-                    handleDragOver={(e, bayId, weekIndex, rowIndex) => handleDragOver(e, bayId, weekIndex, rowIndex)}
-                    handleDrop={(e, bayId, weekIndex, rowIndex) => handleDrop(e, bayId, weekIndex || 0, rowIndex)}
-                    setRowToDelete={setRowToDelete}
-                    setDeleteRowDialogOpen={setDeleteRowDialogOpen}
-                    handleRowDelete={handleDeleteRow}
-                    handleRowAdd={handleRowAdd}
-                    rowCount={getBayRowCount(bay.id, bay.name)}
-                  />
-                ) : (
-                  // Standard 4-row layout for other bays
-                  <div className="absolute inset-0 flex flex-col">
-                  {/* Row 1 */}
-                  <div 
-                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
-                    onDragOver={(e) => {
-                      // Add strong visual indicator for this row
-                      e.currentTarget.classList.add('row-target-highlight', 'row-0-target');
-                      handleDragOver(e, bay.id, 0, 0);
-                    }}
-                    onDragLeave={(e) => {
-                      // Remove the highlight when leaving this row
-                      e.currentTarget.classList.remove('row-target-highlight', 'row-0-target');
-                    }}
-                    onDrop={(e) => {
-                      // Set global row data attribute to row 0
-                      document.body.setAttribute('data-current-drag-row', '0');
-                      handleDrop(e, bay.id, 0, 0);
-                    }}
-                  >
-                    {/* Row number indicator */}
-                    <div className="absolute -left-6 top-0 h-full opacity-70 pointer-events-none flex items-center justify-center">
-                      <div className="bg-primary/20 rounded-md px-2 py-0.5 text-xs font-bold text-primary">
-                        1
-                      </div>
-                    </div>
-                    
-                    {/* Visible action buttons at row divider */}
-                    <div className="row-management-buttons">
-                      {/* Delete row button */}
-                      <div
-                        className="row-delete-button"
-                        title="Delete Row"
-                        onClick={() => {
-                          // Get projects in this row
-                          const projectsInRow = scheduleBars
-                            .filter(bar => bar.bayId === bay.id && bar.row === 0)
-                            .map(bar => {
-                              const project = projects.find(p => p.id === bar.projectId);
-                              return {
-                                id: bar.id,
-                                projectId: bar.projectId,
-                                projectName: project?.name || 'Unknown Project',
-                                projectNumber: project?.projectNumber || 'Unknown'
-                              };
-                            });
-                          
-                          // If projects are found, show confirmation dialog
-                          if (projectsInRow.length > 0) {
-                            setConfirmRowDelete({
-                              bayId: bay.id,
-                              rowIndex: 0,
-                              bayName: bay.name,
-                              rowNumber: 1,
-                              affectedProjects: projectsInRow
-                            });
-                          } else {
-                            // If no projects, proceed with deletion
-                            handleDeleteRow(bay.id, 0);
-                          }
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </div>
-                      
-                      {/* Add row button */}
-                      <div
-                        className="row-add-button"
-                        title="Add Row Below"
-                        onClick={() => {
-                          // Handle adding a new row
-                          console.log(`Adding new row after row 0 in bay ${bay.id}`);
-                          toast({
-                            title: "Row Added",
-                            description: `New row added below row 1 in ${bay.name}`,
-                          });
-                        }}
-                      >
-                        <PlusIcon className="h-3 w-3" />
-                      </div>
-                    </div>
-                    {/* Row 1 label */}
-                    <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
-                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
-                        1
-                      </div>
-                    </div>
-                    
-                    {/* Row 1 cell markers */}
-                    <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
-                      {slots.map((slot, index) => (
-                        <div 
-                          key={`sub-cell-r0-${index}`} 
-                          className="relative h-full border-r border-gray-700/30"
-                          data-row="0"
-                          data-slot-index={index}
-                          data-date={format(slot.date, 'yyyy-MM-dd')}
-                          data-bay-id={bay.id}
-                          data-row-index="0"
-                          onDragOver={(e) => {
-                            // Prevent event from propagating to parent elements
-                            e.stopPropagation();
-                            
-                            // Store the row index and bay id in body attributes for the drop handler
-                            document.body.setAttribute('data-current-drag-row', '0');
-                            document.body.setAttribute('data-current-drag-bay', bay.id.toString());
-                            
-                            // Make sure the element has the correct bay ID
-                            if (e.currentTarget instanceof HTMLElement) {
-                              e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
-                            }
-                            
-                            // Add highlight classes
-                            e.currentTarget.classList.add('cell-highlight', 'row-0-highlight');
-                            
-                            // Call the main handler
-                            handleDragOver(e, bay.id, index, 0);
-                          }}
-                          onDragLeave={(e) => {
-                            e.currentTarget.classList.remove('cell-highlight', 'row-0-highlight');
-                          }}
-                        >
-                          <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  {/* Row 2 */}
-                  <div 
-                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
-                    onDragOver={(e) => {
-                      // Add strong visual indicator for this row
-                      e.currentTarget.classList.add('row-target-highlight', 'row-1-target');
-                      handleDragOver(e, bay.id, 0, 1);
-                    }}
-                    onDragLeave={(e) => {
-                      // Remove the highlight when leaving this row
-                      e.currentTarget.classList.remove('row-target-highlight', 'row-1-target');
-                    }}
-                    onDrop={(e) => {
-                      // Set global row data attribute to row 1
-                      document.body.setAttribute('data-current-drag-row', '1');
-                      handleDrop(e, bay.id, 0, 1);
-                    }}
-                  >
-                    {/* Row number indicator */}
-                    <div className="absolute -left-6 top-0 h-full opacity-70 pointer-events-none flex items-center justify-center">
-                      <div className="bg-primary/20 rounded-md px-2 py-0.5 text-xs font-bold text-primary">
-                        2
-                      </div>
-                    </div>
-                    
-                    {/* Visible action buttons at row divider */}
-                    <div className="row-management-buttons">
-                      {/* Delete row button */}
-                      <div
-                        className="row-delete-button"
-                        title="Delete Row"
-                        onClick={() => {
-                          // Get projects in this row
-                          const projectsInRow = scheduleBars
-                            .filter(bar => bar.bayId === bay.id && bar.row === 1)
-                            .map(bar => {
-                              const project = projects.find(p => p.id === bar.projectId);
-                              return {
-                                id: bar.id,
-                                projectId: bar.projectId,
-                                projectName: project?.name || 'Unknown Project',
-                                projectNumber: project?.projectNumber || 'Unknown'
-                              };
-                            });
-                          
-                          // If projects are found, show confirmation dialog
-                          if (projectsInRow.length > 0) {
-                            setConfirmRowDelete({
-                              bayId: bay.id,
-                              rowIndex: 1,
-                              bayName: bay.name,
-                              rowNumber: 2,
-                              affectedProjects: projectsInRow
-                            });
-                          } else {
-                            // If no projects, proceed with deletion
-                            handleDeleteRow(bay.id, 1);
-                          }
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </div>
-                      
-                      {/* Add row button */}
-                      <div
-                        className="row-add-button"
-                        title="Add Row Below"
-                        onClick={() => {
-                          // Handle adding a new row
-                          console.log(`Adding new row after row 1 in bay ${bay.id}`);
-                          toast({
-                            title: "Row Added",
-                            description: `New row added below row 2 in ${bay.name}`,
-                          });
-                        }}
-                      >
-                        <PlusIcon className="h-3 w-3" />
-                      </div>
-                    </div>
-                    {/* Row 2 label */}
-                    <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
-                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
-                        2
-                      </div>
-                    </div>
-                    
-                    {/* Row 2 cell markers */}
-                    <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
-                      {slots.map((slot, index) => (
-                        <div 
-                          key={`sub-cell-r1-${index}`} 
-                          className="relative h-full border-r border-gray-700/30"
-                          data-row="1"
-                          data-slot-index={index}
-                          data-date={format(slot.date, 'yyyy-MM-dd')}
-                          data-bay-id={bay.id}
-                          data-row-index="1"
-                          onDragOver={(e) => {
-                            // Prevent event from propagating to parent elements
-                            e.stopPropagation();
-                            
-                            // Store the row index and bay ID in body attributes for the drop handler
-                            document.body.setAttribute('data-current-drag-row', '1');
-                            document.body.setAttribute('data-current-drag-bay', bay.id.toString());
-                            
-                            // Ensure the element has the correct bay ID attribute
-                            if (e.currentTarget instanceof HTMLElement) {
-                              e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
-                            }
-                            
-                            // Add highlight classes
-                            e.currentTarget.classList.add('cell-highlight', 'row-1-highlight');
-                            
-                            // Call the main handler
-                            handleDragOver(e, bay.id, index, 1);
-                          }}
-                          onDragLeave={(e) => {
-                            e.currentTarget.classList.remove('cell-highlight', 'row-1-highlight');
-                          }}
-                        >
-                          <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div 
-                    className="border-b border-gray-700/50 h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative group" 
-                    onDragOver={(e) => {
-                      // Add strong visual indicator for this row
-                      e.currentTarget.classList.add('row-target-highlight', 'row-2-target');
-                      handleDragOver(e, bay.id, 0, 2);
-                    }}
-                    onDragLeave={(e) => {
-                      // Remove the highlight when leaving this row
-                      e.currentTarget.classList.remove('row-target-highlight', 'row-2-target');
-                    }}
-                    onDrop={(e) => {
-                      // Set global row data attribute to row 2
-                      document.body.setAttribute('data-current-drag-row', '2');
-                      handleDrop(e, bay.id, 0, 2);
-                    }}
-                  >
-                    {/* Row action buttons - Made always visible at the divider */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-70 transition-opacity z-50 flex space-x-1">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700 hover:opacity-100"
-                        title="Add Row Below"
-                        onClick={() => {
-                          // Handle adding a new row
-                          console.log(`Adding new row after row 2 in bay ${bay.id}`);
-                          toast({
-                            title: "Row Added",
-                            description: `New row added below row 3 in ${bay.name}`,
-                          });
-                        }}
-                      >
-                        <PlusIcon className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700 hover:opacity-100"
-                        title="Delete Row"
-                        onClick={() => {
-                          // Get projects in this row
-                          const projectsInRow = scheduleBars
-                            .filter(bar => bar.bayId === bay.id && bar.row === 2)
-                            .map(bar => {
-                              const project = projects.find(p => p.id === bar.projectId);
-                              return {
-                                id: bar.id,
-                                projectId: bar.projectId,
-                                projectName: project?.name || 'Unknown Project',
-                                projectNumber: project?.projectNumber || 'Unknown'
-                              };
-                            });
-                          
-                          // If projects are found, show confirmation dialog
-                          if (projectsInRow.length > 0) {
-                            setConfirmRowDelete({
-                              bayId: bay.id,
-                              rowIndex: 2,
-                              bayName: bay.name,
-                              rowNumber: 3,
-                              affectedProjects: projectsInRow
-                            });
-                          } else {
-                            // If no projects, proceed with deletion
-                            handleDeleteRow(bay.id, 2);
-                          }
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    
-                    {/* Row number indicator */}
-                    <div className="absolute -left-6 top-0 h-full opacity-60 pointer-events-none">
-                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
-                        3
-                      </div>
-                    </div>
-                    {/* Row 3 label */}
-                    <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
-                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
-                        3
-                      </div>
-                    </div>
-                    
-                    {/* Row 3 cell markers */}
-                    <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
-                      {slots.map((slot, index) => (
-                        <div 
-                          key={`sub-cell-r2-${index}`} 
-                          className="relative h-full border-r border-gray-700/30"
-                          data-row="2"
-                          data-slot-index={index}
-                          data-date={format(slot.date, 'yyyy-MM-dd')}
-                          data-bay-id={bay.id}
-                          data-row-index="2"
-                          onDragOver={(e) => {
-                            // Prevent event from propagating to parent elements
-                            e.stopPropagation();
-                            
-                            // Store the row index and bay ID in body attributes for the drop handler
-                            document.body.setAttribute('data-current-drag-row', '2');
-                            document.body.setAttribute('data-current-drag-bay', bay.id.toString());
-                            
-                            // Ensure the element has the correct bay ID attribute
-                            if (e.currentTarget instanceof HTMLElement) {
-                              e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
-                            }
-                            
-                            // Add highlight classes
-                            e.currentTarget.classList.add('cell-highlight', 'row-2-highlight');
-                            
-                            // Call the main handler
-                            handleDragOver(e, bay.id, index, 2);
-                          }}
-                          onDragLeave={(e) => {
-                            e.currentTarget.classList.remove('cell-highlight', 'row-2-highlight');
-                          }}
-                        >
-                          <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div 
-                    className="h-1/4 bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative group" 
-                    onDragOver={(e) => {
-                      // Add strong visual indicator for this row
-                      e.currentTarget.classList.add('row-target-highlight', 'row-3-target');
-                      handleDragOver(e, bay.id, 0, 3);
-                    }}
-                    onDragLeave={(e) => {
-                      // Remove the highlight when leaving this row
-                      e.currentTarget.classList.remove('row-target-highlight', 'row-3-target');
-                    }}
-                    onDrop={(e) => {
-                      // Set global row data attribute to row 3
-                      document.body.setAttribute('data-current-drag-row', '3');
-                      handleDrop(e, bay.id, 0, 3);
-                    }}
-                  >
-                    {/* Row action buttons - Made always visible at the divider */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-70 transition-opacity z-50 flex space-x-1">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-primary text-primary hover:bg-gray-700 hover:opacity-100"
-                        title="Add Row Below"
-                        onClick={() => {
-                          // Handle adding a new row
-                          console.log(`Adding new row after row 3 in bay ${bay.id}`);
-                          toast({
-                            title: "Row Added",
-                            description: `New row added below row 4 in ${bay.name}`,
-                          });
-                        }}
-                      >
-                        <PlusIcon className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-5 w-5 rounded-full bg-gray-800 border-destructive text-destructive hover:bg-gray-700 hover:opacity-100"
-                        title="Delete Row"
-                        onClick={() => {
-                          // Get projects in this row
-                          const projectsInRow = scheduleBars
-                            .filter(bar => bar.bayId === bay.id && bar.row === 3)
-                            .map(bar => {
-                              const project = projects.find(p => p.id === bar.projectId);
-                              return {
-                                id: bar.id,
-                                projectId: bar.projectId,
-                                projectName: project?.name || 'Unknown Project',
-                                projectNumber: project?.projectNumber || 'Unknown'
-                              };
-                            });
-                          
-                          // If projects are found, show confirmation dialog
-                          if (projectsInRow.length > 0) {
-                            setConfirmRowDelete({
-                              bayId: bay.id,
-                              rowIndex: 3,
-                              bayName: bay.name,
-                              rowNumber: 4,
-                              affectedProjects: projectsInRow
-                            });
-                          } else {
-                            // If no projects, proceed with deletion
-                            handleDeleteRow(bay.id, 3);
-                          }
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    
-                    {/* Row number indicator */}
-                    <div className="absolute -left-6 top-0 h-full opacity-60 pointer-events-none">
-                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
-                        4
-                      </div>
-                    </div>
-                    {/* Row 4 label */}
-                    <div className="absolute -left-6 top-0 h-full opacity-0 dragging-active:opacity-100 pointer-events-none">
-                      <div className="flex items-center justify-center h-full text-xs font-bold text-primary">
-                        4
-                      </div>
-                    </div>
-                    
-                    {/* Row 4 cell markers */}
-                    <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
-                      {slots.map((slot, index) => (
-                        <div 
-                          key={`sub-cell-r3-${index}`} 
-                          className="relative h-full border-r border-gray-700/30"
-                          data-row="3"
-                          data-slot-index={index}
-                          data-date={format(slot.date, 'yyyy-MM-dd')}
-                          data-bay-id={bay.id}
-                          data-row-index="3"
-                          onDragOver={(e) => {
-                            // Prevent event from propagating to parent elements
-                            e.stopPropagation();
-                            
-                            // Store the row index and bay ID in body attributes for the drop handler
-                            document.body.setAttribute('data-current-drag-row', '3');
-                            document.body.setAttribute('data-current-drag-bay', bay.id.toString());
-                            
-                            // Ensure the element has the correct bay ID attribute
-                            if (e.currentTarget instanceof HTMLElement) {
-                              e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
-                            }
-                            
-                            // Add highlight classes
-                            e.currentTarget.classList.add('cell-highlight', 'row-3-highlight');
-                            
-                            // Call the main handler
-                            handleDragOver(e, bay.id, index, 3);
-                          }}
-                          onDragLeave={(e) => {
-                            e.currentTarget.classList.remove('cell-highlight', 'row-3-highlight');
-                          }}
-                        >
-                          <div className="absolute inset-0 border-b border-dashed border-gray-700/20"></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                )}
-                
-                {/* Schedule bars */}
-                {scheduleBars
-                  .filter(bar => bar.bayId === bay.id)
-                  .map(bar => {
-                    // Use row-specific classes for positioning instead of top style
-                    const rowIndex = bar.row || 0;
-                    const rowClass = `row-${rowIndex}-bar`;
-                    
-                    // For Team 7 & 8, calculate height based on rowCount (20 rows = 5% each)
-                    // Find the bay object using bayId
-                    const currentBay = bays.find(b => b.id === bar.bayId);
-                    const bayName = currentBay ? currentBay.name : '';
-                    
-                    // Check for EXACT matches like "Team 7" or "Team 8" 
-                    const isMultiRowBay = bayName && 
-                      (bayName.trim() === 'Team 7' || 
-                       bayName.trim() === 'Team 8' || 
-                       bayName.trim() === 'Team7' || 
-                       bayName.trim() === 'Team8');
-                    const rowHeight = isMultiRowBay 
-                      ? { height: `${100 / getBayRowCount(bar.bayId, bayName)}%`, top: `${rowIndex * (100 / getBayRowCount(bar.bayId, bayName))}%` } 
-                      : {}; // Default styling for standard bays
-                    
+                  // Found the slot - now calculate position within the week
+                  let todayPosition = i * slotWidth; // Start of the week
+                  
+                  // Calculate actual day offset within the week (0 = Monday, 6 = Sunday)
+                  const dayOfWeek = (today.getDay() + 6) % 7; // Convert from Sunday-based to Monday-based
+                  const dayOffset = (dayOfWeek / 7) * slotWidth;
+                  todayPosition += dayOffset;
+                  
+                  console.log(`Found TODAY's week at slot ${i}, day ${dayOfWeek}, position: ${todayPosition}px`);
+                  
+                  // Only show if today is within visible range
+                  if (todayPosition >= 0) {
                     return (
-                      <div
-                        key={bar.id}
-                        data-schedule-id={bar.id}
-                        data-bay-id={bar.bayId}
-                        data-row-index={rowIndex}
-                        className={`absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all big-project-bar schedule-bar ${rowClass}`}
-                        style={{
-                          left: bar.left + 'px',
-                          width: bar.width + 'px',  // Removed the -4px to ensure chevrons align with full bar width
-                          backgroundColor: 'transparent', // Make background transparent since we're using department phases
-                          opacity: draggingSchedule?.id === bar.id ? 0.5 : 1,
-                          ...(isMultiRowBay ? rowHeight : {}) // Apply custom row height for multi-row bays
-                        }}
-                        draggable={typeof document !== 'undefined' && document.body.classList.contains('resizing-mode') ? false : true}
-                        onDragStart={(e) => {
-                          // Skip if we're in resize mode
-                          if ((typeof document !== 'undefined' && document.body.classList.contains('resizing-mode')) || 
-                              (e.target instanceof HTMLElement && e.target.closest('.resize-handle'))) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            return false;
-                          }
-                          
-                          // Otherwise proceed with drag
-                          handleDragStart(e, 'existing', {
-                            id: bar.id,
-                            projectId: bar.projectId,
-                            projectName: bar.projectName,
-                            projectNumber: bar.projectNumber,
-                            totalHours: bar.totalHours,
-                            bayId: bar.bayId
-                          });
+                      <div 
+                        className="today-marker absolute top-0 bottom-0 w-[2px] bg-red-500 z-10" 
+                        style={{ 
+                          left: `${todayPosition}px`,
+                          height: '100%'
                         }}
                       >
-                        {/* Left Resize Handle - Enhanced */}
-                        <div 
-                          className="resize-handle resize-handle-left"
-                          onMouseDown={(e) => {
-                            // Prevent other mouse events from interfering
-                            e.stopPropagation();
-                            e.preventDefault();
-                            // Call the original handler
-                            handleResizeStart(e, bar.id, 'left', bar.projectId, bar.bayId);
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          onDragStart={(e) => e.preventDefault()} /* Prevent unwanted drag */
-                          draggable="false" /* Explicitly prevent dragging */
-                          title="Drag to change project start date"
-                        >
-                          <div className="h-full w-full flex items-center justify-center bg-black bg-opacity-60 rounded-l-sm">
-                            <ChevronLeft className="h-5 w-5 text-white drop-shadow-md" />
-                          </div>
-                        </div>
-                        
-                        {/* Right Resize Handle - Enhanced */}
-                        <div 
-                          className="resize-handle resize-handle-right"
-                          onMouseDown={(e) => {
-                            // Prevent other mouse events from interfering
-                            e.stopPropagation();
-                            e.preventDefault();
-                            // Call the original handler
-                            handleResizeStart(e, bar.id, 'right', bar.projectId, bar.bayId);
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          onDragStart={(e) => e.preventDefault()} /* Prevent unwanted drag */
-                          draggable="false" /* Explicitly prevent dragging */
-                          title="Drag to change project end date"
-                        >
-                          <div className="h-full w-full flex items-center justify-center bg-black bg-opacity-60 rounded-r-sm">
-                            <ChevronRight className="h-5 w-5 text-white drop-shadow-md" />
-                          </div>
-                        </div>
-                        {/* Department phases */}
-                        {/* FAB phase */}
-                        {bar.fabWidth && bar.fabWidth > 0 && (
-                          <div
-                            className="dept-phase dept-fab-phase rounded-l-sm"
-                            style={{
-                              width: bar.fabWidth + 'px'
-                            }}
-                            title={`FAB: ${bar.fabPercentage}% (${Math.round(bar.totalHours * bar.fabPercentage / 100)}h)`}
-                          >
-                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
-                              {bar.fabWidth < 30 ? 
-                                <span className="vertical-text text-[8px] transform rotate-90">FAB</span> : 
-                                "FAB"
-                              }
-                            </span>
-                          </div>
-                        )}
-                        
-                        {/* PAINT phase */}
-                        {bar.paintWidth && bar.paintWidth > 0 && (
-                          <div
-                            className="dept-phase dept-paint-phase"
-                            style={{
-                              left: (bar.fabWidth || 0) + 'px',
-                              width: bar.paintWidth + 'px'
-                            }}
-                            title={`PAINT: ${bar.paintPercentage}% (${Math.round(bar.totalHours * bar.paintPercentage / 100)}h)`}
-                          >
-                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
-                              {bar.paintWidth < 30 ? 
-                                <span className="vertical-text text-[8px] transform rotate-90">PAINT</span> : 
-                                <span className="text-[10px]">PAINT</span>
-                              }
-                            </span>
-                          </div>
-                        )}
-                        
-                        {/* PRODUCTION phase */}
-                        {bar.productionWidth && bar.productionWidth > 0 && (
-                          <div
-                            className="dept-phase dept-production-phase dept-prod-phase"
-                            style={{
-                              left: ((bar.fabWidth || 0) + (bar.paintWidth || 0)) + 'px',
-                              width: bar.productionWidth + 'px'
-                            }}
-                            title={`PRODUCTION: ${bar.productionPercentage}% (${Math.round(bar.totalHours * bar.productionPercentage / 100)}h)`}
-                          >
-                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
-                              {bar.productionWidth < 30 ? 
-                                <span className="vertical-text text-[8px] transform rotate-90">PROD</span> : 
-                                "PROD"
-                              }
-                            </span>
-                          </div>
-                        )}
-                        
-                        {/* IT phase */}
-                        {bar.itWidth && bar.itWidth > 0 && (
-                          <div
-                            className="dept-phase dept-it-phase"
-                            style={{
-                              left: ((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0)) + 'px',
-                              width: bar.itWidth + 'px'
-                            }}
-                            title={`IT: ${bar.itPercentage}% (${Math.round(bar.totalHours * bar.itPercentage / 100)}h)`}
-                          >
-                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
-                              {bar.itWidth < 30 ? 
-                                <span className="vertical-text text-[8px] transform rotate-90">IT</span> : 
-                                <span className="text-[10px]">IT</span>
-                              }
-                            </span>
-                          </div>
-                        )}
-                        
-                        {/* NTC phase */}
-                        {bar.ntcWidth && bar.ntcWidth > 0 && (
-                          <div
-                            className="dept-phase dept-ntc-phase"
-                            style={{
-                              left: ((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0)) + 'px',
-                              width: bar.ntcWidth + 'px'
-                            }}
-                            title={`NTC: ${bar.ntcPercentage}% (${Math.round(bar.totalHours * bar.ntcPercentage / 100)}h)`}
-                          >
-                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
-                              {bar.ntcWidth < 30 ? 
-                                <span className="vertical-text text-[8px] transform rotate-90">NTC</span> : 
-                                <span className="text-[10px]">NTC</span>
-                              }
-                            </span>
-                          </div>
-                        )}
-                        
-                        {/* QC phase */}
-                        {bar.qcWidth && bar.qcWidth > 0 && (
-                          <div
-                            className="dept-phase dept-qc-phase rounded-r-sm"
-                            style={{
-                              left: ((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0)) + 'px',
-                              width: bar.qcWidth + 'px'
-                            }}
-                            title={`QC: ${bar.qcPercentage}% (${Math.round(bar.totalHours * bar.qcPercentage / 100)}h)`}
-                          >
-                            <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium whitespace-nowrap overflow-hidden px-1 z-10">
-                              {bar.qcWidth < 30 ? 
-                                <span className="vertical-text text-[8px] transform rotate-90">QC</span> : 
-                                <span className="text-[10px]">QC</span>
-                              }
-                            </span>
-                          </div>
-                        )}
-                        
-                        {/* Content - displayed on top of the phases */}
-                        <div className="absolute inset-0 flex items-start justify-between px-2 text-white font-semibold text-shadow-sm z-10">
-                          <div className="font-medium text-xs flex flex-col pt-1 w-full">
-                            <span className="whitespace-nowrap overflow-hidden text-ellipsis w-full">
-                              {bar.projectNumber}: {bar.projectName || ''}
-                            </span>
-                            <span className="font-normal text-[10px]">{bar.totalHours}h</span>
-                          </div>
-                          {/* Hours removed from here and placed under project number */}
-                        </div>
-                        
-                        {/* Hover info overlay - extends to the full calculated width of the bar */}
-                        <div className="absolute top-0 bottom-0 left-0 opacity-0 group-hover:opacity-100 bg-black/70 transition-opacity z-20 rounded-sm" style={{ width: bar.width + 'px' }}>
-                          <div className="text-white text-xs p-2 h-full flex items-center justify-center">
-                            <div>
-                              <div className="font-bold">{bar.projectNumber}</div>
-                              <div className="truncate w-full max-w-[180px]">{bar.projectName}</div>
-                              <div className="mt-1 flex gap-1 items-center">
-                                <ClockIcon className="h-3 w-3" /> {bar.totalHours}h
-                              </div>
-                              <div className="mt-1 text-[9px] grid grid-cols-2 gap-x-2 gap-y-1">
-                                <div className="flex items-center">
-                                  <div className="w-2 h-2 rounded-full bg-blue-600 mr-1"></div>
-                                  <span className="percentage-label">FAB: {bar.fabPercentage}%</span>
-                                </div>
-                                <div className="flex items-center">
-                                  <div className="w-2 h-2 rounded-full bg-violet-600 mr-1"></div>
-                                  <span className="percentage-label">PAINT: {bar.paintPercentage}%</span>
-                                </div>
-                                <div className="flex items-center">
-                                  <div className="w-2 h-2 rounded-full bg-emerald-600 mr-1"></div>
-                                  <span className="percentage-label">PROD: {bar.productionPercentage}%</span>
-                                </div>
-                                <div className="flex items-center">
-                                  <div className="w-2 h-2 rounded-full bg-amber-600 mr-1"></div>
-                                  <span className="percentage-label">IT: {bar.itPercentage}%</span>
-                                </div>
-                                <div className="flex items-center">
-                                  <div className="w-2 h-2 rounded-full bg-red-600 mr-1"></div>
-                                  <span className="percentage-label">NTC: {bar.ntcPercentage}%</span>
-                                </div>
-                                <div className="flex items-center">
-                                  <div className="w-2 h-2 rounded-full bg-purple-700 mr-1"></div>
-                                  <span className="percentage-label">QC: {bar.qcPercentage}%</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Edit button (appears on hover) */}
-                        <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-30">
-                          <a 
-                            href={`/project/${bar.projectId}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center justify-center w-4 h-4 bg-white/20 hover:bg-white/30 rounded-bl text-white"
-                          >
-                            <PencilIcon className="h-2.5 w-2.5" />
-                          </a>
+                        <div className="bg-red-500 text-white text-xs py-1 px-2 rounded absolute top-0 -translate-x-1/2">
+                          TODAY
                         </div>
                       </div>
                     );
-                  })
+                  }
+                  
+                  break;
                 }
-                
-                {/* Bay name badge removed - now only shown in sidebar */}
-              </div>
-            ))}
+              }
+            }
             
-            {/* Empty bay placeholders - 4 rows for regular bays, 20 rows for Team 7 & 8 */}
-            {Array.from({ length: Math.max(0, 8 - bays.length) }).map((_, index) => {
-              const virtualBayId = bays.length + index + 1;
-              // Check if this should be Team 7 or 8 with 20 rows
-              const isTeam7Or8 = virtualBayId === 7 || virtualBayId === 8;
-              const rowHeight = isTeam7Or8 ? 600 : 64; // Height for 20 rows vs 4 rows
-              
-              return (
-                <div 
-                  key={`empty-bay-grid-${index}`} 
-                  className="relative border-b border-gray-700"
-                  style={{ width: totalViewWidth, height: `${rowHeight}px` }}
-                >
-                  {/* Grid columns */}
-                  <div 
-                    className="absolute inset-0 grid bay-container" 
-                    style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}
-                  >
-                    {slots.map((slot, slotIndex) => (
-                      <div 
-                        key={slotIndex}
-                        className={`border-r border-gray-700 h-full ${
-                          slot.isWeekend ? 'bg-gray-800/20' : ''
-                        } ${isSameDay(slot.date, new Date()) ? 'bg-blue-900/20' : ''}`}
-                      />
-                    ))}
+            return null;
+          })()}
+          
+          {/* Timeline Header */}
+          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex" 
+            style={{ 
+              marginLeft: "0px",  // Removed the ml-32 class and set to 0px
+              width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
+            }}>
+            {slots.map((slot, index) => (
+              <div
+                key={`header-${index}`}
+                className={`
+                  timeline-slot border-r flex-shrink-0
+                  ${slot.isStartOfMonth ? 'bg-gray-800 border-r-2 border-r-blue-500' : ''}
+                  ${slot.isStartOfWeek ? 'bg-gray-850 border-r border-r-gray-600' : ''}
+                  ${!slot.isBusinessDay ? 'bg-gray-850/70' : ''}
+                `}
+                style={{ width: `${slotWidth}px`, height: '40px' }}
+              >
+                <div className="text-xs text-center w-full flex flex-col justify-center h-full">
+                  {slot.isStartOfMonth && (
+                    <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
+                      {slot.monthName} {format(slot.date, 'yyyy')}
+                    </div>
+                  )}
+                  {/* Always show week numbers - one cell = one week */}
+                  <div className="text-gray-400 mt-1 text-[10px] font-semibold">
+                    Week {Math.ceil(differenceInDays(slot.date, new Date(slot.date.getFullYear(), 0, 1)) / 7)}
                   </div>
-                  
-                  {/* Row dividers - dynamic based on bay type */}
-                  <div className="absolute inset-0 flex flex-col pointer-events-none">
-                    {(() => {
-                      const rowCount = isTeam7Or8 ? 20 : 4;
-                      const rowHeight = 100 / rowCount; // % height for each row
-                      
-                      return Array.from({ length: rowCount }).map((_, i) => (
-                        <div 
-                          key={`empty-row-${virtualBayId}-${i}`}
-                          className={`${i < rowCount - 1 ? 'border-b' : ''} border-gray-700/50 bay-row transition-colors`}
-                          style={{ height: `${rowHeight}%` }}
-                        ></div>
-                      ));
-                    })()}
-                  </div>
-                  
-                  {/* Empty indicator */}
-                  <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-xs">
-                    {isTeam7Or8 ? 
-                      <div className="flex flex-col items-center">
-                        <span className="font-semibold text-blue-400">Team {virtualBayId}</span>
-                        <span className="text-gray-500">(20 rows capacity)</span>
-                      </div> 
-                      : 
-                      <div className="flex flex-col items-center">
-                        <span className="font-semibold text-gray-400">Bay {virtualBayId}</span>
-                        <span className="text-gray-500">(4 rows capacity)</span>
-                      </div>
-                    }
+                  <div className="text-gray-400 text-[10px]">
+                    {format(slot.date, 'MM/dd')}
                   </div>
                 </div>
-              );
-            })}
-            
-            {/* Add Team button */}
-            <div className="mt-4 flex justify-center">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  // Create a new team with default values
-                  const newBayNumber = bays.length + 1;
-                  
-                  // Determine if this will be Team 7 or 8 (need special styling)
-                  const isTeam7Or8 = newBayNumber === 7 || newBayNumber === 8;
-                  // Special note for Team 7 & 8 to indicate 20-row capacity
-                  const description = isTeam7Or8 ? 
-                    "Team with 20-row capacity (special configuration)" : 
-                    null;
-                    
-                  setEditingBay({
-                    id: 0, // Will be assigned by server
-                    bayNumber: newBayNumber,
-                    name: `Team ${newBayNumber}`,
-                    description: description,
-                    equipment: null,
-                    team: null,
-                    // Team 7 & 8 have more staff due to increased row capacity
-                    staffCount: isTeam7Or8 ? 10 : 3,
-                    assemblyStaffCount: isTeam7Or8 ? 6 : 2,
-                    electricalStaffCount: isTeam7Or8 ? 4 : 1,
-                    hoursPerPersonPerWeek: 32,
-                    isActive: true,
-                    createdAt: null
-                  });
-                }}
-                className="flex items-center gap-1"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                <span>Add New Team</span>
-              </Button>
+              </div>
+            ))}
+          </div>
+          
+          {/* Today indicator */}
+          <div className="today-indicator absolute top-0 bottom-0 border-r-2 border-red-500 z-20 pointer-events-none">
+            <div className="today-label bg-red-500 text-white text-xs px-1 py-0.5 absolute top-0 -left-10 whitespace-nowrap">
+              Today
             </div>
           </div>
-        </div>
-      </div>
-      
-      {/* Sidebar toggle button */}
-      <button 
-        className="fixed right-0 top-1/2 transform -translate-y-1/2 z-50 bg-gray-800 hover:bg-gray-700 p-2 rounded-l-lg shadow-xl transition-colors border-l border-t border-b border-gray-700"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-      >
-        {sidebarOpen ? 
-          <ChevronRight className="h-5 w-5" /> : 
-          <ChevronLeft className="h-5 w-5" />
-        }
-      </button>
-      
-      {/* Collapsible unassigned projects sidebar */}
-      <div 
-        className={`fixed right-0 top-0 bottom-0 bg-gray-800 z-40 w-80 shadow-xl transition-all duration-300 transform ${
-          sidebarOpen ? 'translate-x-0' : 'translate-x-full'
-        } overflow-auto border-l border-gray-700`}
-        onDragOver={(e) => {
-          // Always allow drop attempts - our handler will validate the data
-          e.preventDefault();
-          e.stopPropagation();
-          // Add visual indicator that this is a valid drop target
-          const target = e.currentTarget.querySelector('.unassigned-drop-area');
-          if (target && !target.classList.contains('bg-primary/20')) {
-            target.classList.add('bg-primary/20', 'border-primary', 'border-dashed');
-          }
-        }}
-        onDragLeave={(e) => {
-          // Remove visual indicator when dragging leaves the area
-          const target = e.currentTarget.querySelector('.unassigned-drop-area');
-          if (target) {
-            target.classList.remove('bg-primary/20', 'border-primary', 'border-dashed');
-          }
-        }}
-        onDrop={handleDropOnUnassigned}
-      >
-        <div className="p-4 border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Unassigned Projects</h3>
-            <button 
-              onClick={() => setSidebarOpen(false)}
-              className="p-1 rounded-full hover:bg-gray-700"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <p className="text-sm text-gray-400">
-            {projects.filter(project => !schedules.some(schedule => schedule.projectId === project.id)).length} projects available
-          </p>
-        </div>
-        
-        {/* Drop area for moving projects back to unassigned */}
-        <div 
-          className="unassigned-drop-area mx-4 mt-4 p-3 border-2 border-dashed border-gray-600 rounded-md text-center text-gray-400 transition-colors"
-        >
-          <p>Drop projects here to unassign</p>
-        </div>
-        
-        <div className="p-4 space-y-3">
-          {projects
-            .filter(project => !schedules.some(schedule => schedule.projectId === project.id))
-            // Sort projects by project number (highest first)
-            .sort((a, b) => {
-              // Extract numeric values from project numbers
-              const aNum = parseInt(a.projectNumber.replace(/[^0-9]/g, '')) || 0;
-              const bNum = parseInt(b.projectNumber.replace(/[^0-9]/g, '')) || 0;
-              
-              // Sort descending (highest first)
-              return bNum - aNum;
-            })
-            .map(project => (
-              <div
-                key={project.id}
-                className="p-3 bg-gray-700 rounded-md shadow hover:shadow-md hover:bg-gray-600 transition cursor-grab"
-                draggable
-                onDragStart={(e) => handleDragStart(e, 'new', {
-                  projectId: project.id,
-                  projectName: project.name,
-                  projectNumber: project.projectNumber,
-                  totalHours: project.totalHours || 1000
-                })}
-                onDragEnd={() => {
-                  // Reset drag state when drag operation completes or is canceled
-                  setDraggingSchedule(null);
-                  setDropTarget(null);
-                }}
-              >
-                <div className="font-medium mb-1">{project.projectNumber}: {project.name}</div>
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center text-xs text-gray-400">
-                    <ClockIcon className="h-3 w-3 mr-1" />
-                    <span>{project.totalHours || 1000} hours</span>
-                  </div>
-                  <a 
-                    href={`/project/${project.id}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-gray-400 hover:text-white"
+          
+          {/* Manufacturing Bays */}
+          <div className="manufacturing-bays mt-2">
+            {bayTeams
+              .filter(team => {
+                // Only show teams with a valid name (not auto-generated "Team X:" names)
+                const teamName = team[0]?.team;
+                if (!teamName) return false;
+                return !teamName.match(/^Team \d+:?/);
+              })
+              .map((team, teamIndex) => (
+              <div 
+                key={`team-${teamIndex}`} 
+                className="team-container mb-5 relative"
+                data-team-section={team[0]?.team ? `${team[0].team}::${team.map(bay => bay.id).join(',')}` : ''}
+                style={{
+                  minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
+                }}>
+                <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex shadow-md" style={{ position: 'relative' }}>
+                  <div 
+                    className="flex items-center"
+                    style={{
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 40,
+                      backgroundColor: '#1e3a8a',
+                      paddingRight: '15px'
+                    }}
                   >
-                    <PencilIcon className="h-3.5 w-3.5" />
-                  </a>
+                    <div className="flex items-center">
+                      {/* Team Name with Description */}
+                      <div className="flex items-center">
+                        {/* Always show team name and description, even for static teams */}
+                        <span 
+                          className="font-bold text-lg bay-header-team-name" 
+                          data-team={team[0]?.team || `${team.map(b => b.name).join(' & ')}`}
+                          data-bay-id={team.map(bay => bay.id).join(',')}
+                        >
+                          {team[0]?.team || `${team.map(b => b.name).join(' & ')}`}
+                        </span>
+                        
+                        {/* Team Description (shown as smaller text to the right) */}
+                        <span 
+                          className="text-sm ml-2 font-light text-blue-100 italic truncate max-w-[200px] bay-header-team-description" 
+                          data-team={team[0]?.team || `${team.map(b => b.name).join(' & ')}`}
+                          data-bay-id={team.map(bay => bay.id).join(',')}
+                        >
+                          {team[0]?.description || 'Production Bay'}
+                        </span>
+                        
+                        {/* Team hours per week information */}
+                        <span className="text-sm ml-4 font-medium text-blue-50 bg-blue-700 px-3 py-1 rounded-full flex items-center">
+                          <Clock className="h-3.5 w-3.5 mr-1.5" />
+                          {(() => {
+                            // Get hours per week from the first bay of the team
+                            // This is the total hours for the entire team, regardless of bay count
+                            const firstBay = team[0];
+                            
+                            // Calculate hours based on staff count and hours per person
+                            const assemblyStaff = firstBay.assemblyStaffCount || 0;
+                            const electricalStaff = firstBay.electricalStaffCount || 0;
+                            const hoursPerPerson = firstBay.hoursPerPersonPerWeek || 40;
+                            const teamHoursPerWeek = (assemblyStaff + electricalStaff) * hoursPerPerson;
+                            
+                            return `${teamHoursPerWeek} hrs/week`;
+                          })()}
+                        </span>
+                      </div>
+                      
+                      {/* Team Management Controls - Show for all team sections */}
+                      {true && (
+                        <div className="flex items-center space-x-1">
+                          {/* Edit Button (Gear Icon) */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button 
+                                  className="ml-2 p-1 bg-blue-700 hover:bg-blue-600 rounded-full text-white flex items-center justify-center"
+                                  onClick={() => {
+                                    // Create a team name from the display if none exists
+                                    const teamName = team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`;
+                                    const teamBayIds = team.map(bay => bay.id).join(',');
+                                    
+                                    // Set selected team with the specific bay IDs this team represents
+                                    setSelectedTeam(`${teamName}::${teamBayIds}`);
+                                    setTeamDialogOpen(true);
+                                  }}
+                                >
+                                  <Wrench className="h-4 w-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit this {team[0].team} section</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          {/* Delete Button (For Team 5: & Team 6 and any other team) */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button 
+                                  className="p-1 bg-red-700 hover:bg-red-600 rounded-full text-white flex items-center justify-center ml-1"
+                                  onClick={() => {
+                                    // Set up delete confirmation with specific team info
+                                    setTeamDeleteConfirm({
+                                      isOpen: true,
+                                      teamName: team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`,
+                                      bayIds: team.map(bay => bay.id)
+                                    });
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Delete team</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          {/* Print Button */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button 
+                                  className="p-1 bg-purple-700 hover:bg-purple-600 rounded-full text-white flex items-center justify-center ml-1"
+                                  onClick={() => {
+                                    const teamName = team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`;
+                                    generateTeamSchedulePDF(teamName, team);
+                                  }}
+                                >
+                                  <Printer className="h-4 w-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Print team schedule to PDF</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          {/* Add Bay Button */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button 
+                                  className="p-1 bg-green-700 hover:bg-green-600 rounded-full text-white flex items-center justify-center ml-1"
+                                  onClick={() => {
+                                    // Get the first team bay to copy its properties
+                                    const firstBay = team[0];
+                                    
+                                    // Create a row number for the new bay (in this team)
+                                    const bayCount = team.length;
+                                    
+                                    // CRITICAL: For consistent bay naming, use the existing bay name format
+                                    // But preserve any team prefix that might be in the name
+                                    let teamPrefix = '';
+                                    let numericSuffix = '';
+                                    
+                                    // Extract team prefix from the bay name pattern
+                                    const bayNameMatch = firstBay.name.match(/(.*?)\s*(\d+)$/);
+                                    
+                                    if (bayNameMatch) {
+                                      // Bay has a numeric suffix like "Team 1"
+                                      teamPrefix = bayNameMatch[1].trim();
+                                      numericSuffix = (bayCount + 1).toString();
+                                    } else {
+                                      // No numeric suffix, use the entire name as prefix
+                                      teamPrefix = firstBay.name;
+                                      numericSuffix = (bayCount + 1).toString();
+                                    }
+                                    
+                                    // Create a new bay name following the team's pattern
+                                    const newBayName = `${teamPrefix} ${numericSuffix}`;
+                                    
+                                    // Find highest bay number for the new bay
+                                    const highestBayNumber = Math.max(...bays.map(b => b.bayNumber));
+                                    
+                                    console.log(`Creating new bay row with team: "${firstBay.team}" and name: "${newBayName}"`);
+                                    
+                                    // Store the original first bay's team name for debugging
+                                    const originalTeamName = firstBay.team;
+                                    
+                                    // Create bay with EXACTLY the same team name and other properties
+                                    // This ensures it's displayed in the same team group
+                                    const newBay: Partial<ManufacturingBay> = {
+                                      name: newBayName,
+                                      bayNumber: highestBayNumber + 1,
+                                      // Critical - use the EXACT same team value from the first bay in the team
+                                      team: firstBay.team,
+                                      // Copy other properties exactly as they are in the first bay
+                                      description: firstBay.description,
+                                      assemblyStaffCount: firstBay.assemblyStaffCount, 
+                                      electricalStaffCount: firstBay.electricalStaffCount,
+                                      hoursPerPersonPerWeek: firstBay.hoursPerPersonPerWeek
+                                    };
+                                    
+                                    // Call the onBayCreate function
+                                    if (onBayCreate) {
+                                      onBayCreate(newBay);
+                                      
+                                      // Success notification
+                                      toast({
+                                        title: "New bay row added",
+                                        description: `Added row to ${firstBay.team || firstBay.name}`
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <PlusCircle className="h-4 w-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Add bay to team</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          {/* Remove Bay Button (only shown if team has more than 1 bay) */}
+                          {team.length > 1 && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button 
+                                    className="p-1 bg-orange-700 hover:bg-orange-600 rounded-full text-white flex items-center justify-center ml-1"
+                                    onClick={() => {
+                                      // Get the team name
+                                      const teamName = team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`;
+                                      
+                                      // Get the last bay in this team
+                                      const lastBay = team[team.length - 1];
+                                      
+                                      // Call the onBayDelete function for the last bay
+                                      if (onBayDelete && lastBay) {
+                                        onBayDelete(lastBay.id);
+                                        
+                                        toast({
+                                          title: "Bay removed",
+                                          description: `Removed ${lastBay.name} from ${teamName}`
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    <MinusCircle className="h-4 w-4" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Remove last bay from team</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Info bubbles RIGHT NEXT to team name - CURRENT WEEK ONLY */}
+                    <div className="flex items-center ml-3">
+                      <div className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full flex items-center mr-2">
+                        <Users className="h-3.5 w-3.5 mr-1" />
+                        <span>
+                          {(() => {
+                            // Get current week's start and end date using real current date
+                            const today = new Date(); // Current real date
+                            const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday as start of week
+                            const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
+                            
+                            // Count projects active in current week only
+                            const currentWeekProjects = scheduleBars.filter(bar => {
+                              // Check if team owns this bay
+                              const isTeamBay = team.some(b => b.id === bar.bayId);
+                              if (!isTeamBay) return false;
+                              
+                              // Check if schedule overlaps with current week
+                              const scheduleStart = new Date(bar.startDate);
+                              const scheduleEnd = new Date(bar.endDate);
+                              return (
+                                (scheduleStart <= currentWeekEnd && scheduleEnd >= currentWeekStart)
+                              );
+                            }).length;
+                            
+                            return `${currentWeekProjects} projects`;
+                          })()}
+                        </span>
+                      </div>
+                      <div className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full flex items-center">
+                        <BarChart2 className="h-3.5 w-3.5 mr-1" />
+                        <span>
+                          {(() => {
+                            // Get current week's start and end date
+                            const today = new Date(); // Current real date
+                            const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+                            const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
+                            
+                            // Count projects active in current week only
+                            const currentWeekProjects = scheduleBars.filter(bar => {
+                              // Check if team owns this bay
+                              const isTeamBay = team.some(b => b.id === bar.bayId);
+                              if (!isTeamBay) return false;
+                              
+                              // Check if schedule overlaps with current week
+                              const scheduleStart = new Date(bar.startDate);
+                              const scheduleEnd = new Date(bar.endDate);
+                              return (
+                                (scheduleStart <= currentWeekEnd && scheduleEnd >= currentWeekStart)
+                              );
+                            }).length;
+                            
+                            // Enhanced phase-based utilization calculation
+                            const TODAY = new Date(); // Current real date
+                            
+                            // Count projects in each phase on current date
+                            let prodPhaseProjects = 0;
+                            let itNtcQcPhaseProjects = 0;
+                            let fabPaintPhaseProjects = 0;
+                            
+                            // Process each project to determine which phase it's in on the current date
+                            scheduleBars.forEach(bar => {
+                              // Skip if not part of this team
+                              const isTeamBay = team.some(b => b.id === bar.bayId);
+                              if (!isTeamBay) return;
+                              
+                              // Skip if project is not active on the current date
+                              const scheduleStart = new Date(bar.startDate);
+                              const scheduleEnd = new Date(bar.endDate);
+                              if (TODAY < scheduleStart || TODAY > scheduleEnd) return;
+                              
+                              // Calculate phase date ranges
+                              const totalDays = differenceInDays(scheduleEnd, scheduleStart) + 1;
+                              
+                              // Use the bar's actual phase percentages or default if undefined
+                              const fabPercent = bar.fabPercentage || 27;
+                              const paintPercent = bar.paintPercentage || 7;
+                              const prodPercent = bar.productionPercentage || 60;
+                              const itPercent = bar.itPercentage || 7;
+                              const ntcPercent = bar.ntcPercentage || 7;
+                              const qcPercent = bar.qcPercentage || 7;
+                              
+                              // Calculate phase durations in days
+                              const fabDays = Math.ceil(totalDays * (fabPercent / 100));
+                              const paintDays = Math.ceil(totalDays * (paintPercent / 100));
+                              const prodDays = Math.ceil(totalDays * (prodPercent / 100));
+                              const itDays = Math.ceil(totalDays * (itPercent / 100));
+                              const ntcDays = Math.ceil(totalDays * (ntcPercent / 100));
+                              const qcDays = Math.ceil(totalDays * (qcPercent / 100));
+                              
+                              // Calculate phase start dates
+                              let currentDate = new Date(scheduleStart);
+                              
+                              // FAB phase
+                              const fabStart = new Date(currentDate);
+                              const fabEnd = addDays(new Date(currentDate), fabDays);
+                              currentDate = addDays(currentDate, fabDays);
+                              
+                              // PAINT phase
+                              const paintStart = new Date(currentDate);
+                              const paintEnd = addDays(new Date(currentDate), paintDays);
+                              currentDate = addDays(currentDate, paintDays);
+                              
+                              // PRODUCTION phase
+                              const prodStart = new Date(currentDate);
+                              const prodEnd = addDays(new Date(currentDate), prodDays);
+                              currentDate = addDays(currentDate, prodDays);
+                              
+                              // IT phase
+                              const itStart = new Date(currentDate);
+                              const itEnd = addDays(new Date(currentDate), itDays);
+                              currentDate = addDays(currentDate, itDays);
+                              
+                              // NTC phase
+                              const ntcStart = new Date(currentDate);
+                              const ntcEnd = addDays(new Date(currentDate), ntcDays);
+                              currentDate = addDays(currentDate, ntcDays);
+                              
+                              // QC phase
+                              const qcStart = new Date(currentDate);
+                              const qcEnd = addDays(new Date(currentDate), qcDays);
+                              
+                              // Determine which phase the current date falls into
+                              if (TODAY >= fabStart && TODAY <= fabEnd) {
+                                fabPaintPhaseProjects++;
+                              } else if (TODAY >= paintStart && TODAY <= paintEnd) {
+                                fabPaintPhaseProjects++;
+                              } else if (TODAY >= prodStart && TODAY <= prodEnd) {
+                                prodPhaseProjects++;
+                              } else if ((TODAY >= itStart && TODAY <= itEnd) || 
+                                         (TODAY >= ntcStart && TODAY <= ntcEnd) ||
+                                         (TODAY >= qcStart && TODAY <= qcEnd)) {
+                                itNtcQcPhaseProjects++;
+                              }
+                            });
+                            
+                            // Calculate utilization based on phase rules
+                            const baseCapacity = team.length * 2; // 2 projects per bay = 100%
+                            
+                            let utilizationPercentage = 0;
+                            
+                            // PROD phase: 100% capacity is 2 projects, 50% per project
+                            if (prodPhaseProjects > 0) {
+                              // Each project takes 50% of capacity (100% capacity = 2 projects)
+                              utilizationPercentage += (prodPhaseProjects * 50);
+                            }
+                            
+                            // IT/NTC/QC phases: 50% capacity per project
+                            if (itNtcQcPhaseProjects > 0) {
+                              utilizationPercentage += (itNtcQcPhaseProjects * 50);
+                            }
+                            
+                            // FAB/PAINT phases: 0% capacity (no effect on utilization)
+                            // No calculation needed for these phases
+                            
+                            // Ensure we don't exceed sensible limits
+                            const cappedPercentage = Math.min(utilizationPercentage, 200);
+                            
+                            return `${cappedPercentage}% utilization`;
+                          })()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* This div remains empty but keeps the layout clean */}
+                  <div className="ml-auto">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <div className="capacity-indicator flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                            <Users className="h-3 w-3 mr-1" />
+                            <span>
+                              {(() => {
+                                // Get current week's start and end date
+                                const today = new Date();
+                                const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });  // Monday as start of week
+                                const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
+                                
+                                // Count projects active in current week only
+                                return scheduleBars.filter(bar => {
+                                  // Check if team owns this bay
+                                  const isTeamBay = team.some(b => b.id === bar.bayId);
+                                  if (!isTeamBay) return false;
+                                  
+                                  // Check if schedule overlaps with current week
+                                  const scheduleStart = new Date(bar.startDate);
+                                  const scheduleEnd = new Date(bar.endDate);
+                                  return (
+                                    (scheduleStart <= currentWeekEnd && scheduleEnd >= currentWeekStart)
+                                  );
+                                }).length;
+                              })()} projects this week
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Number of projects active for this team in the current week</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <div className="utilization-indicator flex items-center text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                            <Zap className="h-3 w-3 mr-1" />
+                            <span>
+                              {(() => {
+                                // Get current week's start and end date
+                                const today = new Date();
+                                const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+                                const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
+                                
+                                // Count projects active in current week only
+                                const currentWeekProjects = scheduleBars.filter(bar => {
+                                  // Check if team owns this bay
+                                  const isTeamBay = team.some(b => b.id === bar.bayId);
+                                  if (!isTeamBay) return false;
+                                  
+                                  // Check if schedule overlaps with current week
+                                  const scheduleStart = new Date(bar.startDate);
+                                  const scheduleEnd = new Date(bar.endDate);
+                                  return (
+                                    (scheduleStart <= currentWeekEnd && scheduleEnd >= currentWeekStart)
+                                  );
+                                }).length;
+                                
+                                // Calculate utilization percentage based on team capacity
+                                // Use team length as base capacity (1 project per bay)
+                                const teamCapacity = team.length;
+                                const percentage = teamCapacity > 0 ? Math.min(
+                                  Math.round(
+                                    (currentWeekProjects / teamCapacity) * 100
+                                  ), 
+                                  100
+                                ) : 0;
+                                
+                                return `${currentWeekProjects} projects, ${percentage}% utilization`;
+                              })()}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Team capacity utilization percentage for the current week</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
+                
+                {/* Week header row for this team */}
+                <div 
+                  className="team-week-header h-8 border-b border-gray-200 dark:border-gray-700 grid overflow-hidden mb-2" 
+                  style={{ 
+                    gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
+                    width: `${Math.max(10000, slots.length * slotWidth)}px`
+                  }}
+                >
+                  {slots.map((slot, index) => (
+                    <div
+                      key={`team-${teamIndex}-header-${index}`}
+                      className={`
+                        timeline-slot border-r flex-shrink-0
+                        ${slot.isStartOfMonth ? 'bg-gray-800 border-r-2 border-r-blue-500' : ''}
+                        ${slot.isStartOfWeek ? 'bg-gray-850 border-r border-r-gray-600' : ''}
+                        ${!slot.isBusinessDay ? 'bg-gray-850/70' : ''}
+                      `}
+                      style={{ height: '100%' }}
+                    >
+                      <div className="text-xs text-center w-full h-full flex flex-col justify-center">
+                        {slot.isStartOfMonth && (
+                          <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
+                            {format(slot.date, 'MMM')}
+                          </div>
+                        )}
+                        <div className="text-gray-400 text-[10px]">
+                          {format(slot.date, 'MM/dd')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {team.map((bay) => {
+                  // Get all schedules for this bay
+                  const baySchedules = scheduleBars.filter(bar => bar.bayId === bay.id);
+                  
+                  // Log row count for this bay
+                  // In our simplified single-row model, we still maintain special treatment for TCV line
+                  // BUT all bays use the single-row standard layout
+                  const isMultiRowBay = false; // Always use single-row layout regardless of bay type
+                  const rowCount = getBayRowCount(bay.id, bay.name);
+                  console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${rowCount}, bayNumber=${bay.bayNumber}`);
+                  
+                  return (
+                    <div 
+                      key={`bay-${bay.id}`} 
+                      className="bay-container relative mb-2 border rounded-md overflow-hidden"
+                      style={{ 
+                        height: `${36 * rowCount}px`, // Fixed height: 36px per row (reduced from 60px)
+                        backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
+                      }}
+                    >
+                      
+                      
+                      {/* Bay content area - FULL WIDTH to extend to end of timeline (2030) */}
+                      <div className="bay-content absolute top-0 bottom-0"
+                        style={{ 
+                          left: '240px', // 240px offset to compensate for removed bay details white box (4 weeks worth)
+                          width: `${Math.max(8000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
+                        }}>
+                        {isMultiRowBay ? (
+                          <MultiRowBayContent 
+                            timeSlots={slots} 
+                            slotWidth={slotWidth}
+                            bay={bay}
+                            handleDragOver={handleDragOver}
+                            handleDrop={handleDrop}
+                            handleSlotDragOver={handleSlotDragOver}
+                            handleSlotDrop={handleSlotDrop}
+                            setDeleteRowDialogOpen={setDeleteRowDialogOpen}
+                            handleRowDelete={handleDeleteRow}
+                            handleRowAdd={handleRowAdd}
+                            rowCount={getBayRowCount(bay.id, bay.name)}
+                          />
+                        ) : (
+                          // SIMPLIFIED SINGLE-ROW LAYOUT - EACH BAY IS ONE ROW
+                          <div className="absolute inset-0 flex flex-col">
+                            {/* Single row per bay - simplified drop zone */}
+                            <div 
+                              className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative droppable-area" 
+                              onDragOver={(e) => {
+                                // Must prevent default to enable drop
+                                e.preventDefault();
+                                
+                                // Set the correct drop effect based on the drag type
+                                if (document.body.classList.contains('dragging-unassigned-project')) {
+                                  e.dataTransfer.dropEffect = 'copy'; // New project
+                                } else {
+                                  e.dataTransfer.dropEffect = 'move'; // Existing project
+                                }
+                                
+                                // Add strong visual indicator for this bay's single row
+                                e.currentTarget.classList.add('row-target-highlight', 'bay-highlight');
+                                
+                                // Always use row 0 for consistent placement
+                                handleDragOver(e, bay.id, 0, 0);
+                              }}
+                              onDragLeave={(e) => {
+                                // Remove the highlight when leaving this bay
+                                e.currentTarget.classList.remove('row-target-highlight', 'bay-highlight');
+                              }}
+                              onDrop={(e) => {
+                                // Prevent default browser handling
+                                e.preventDefault();
+                                
+                                // ENSURE PIXEL-PERFECT POSITIONING IN SIMPLIFIED LAYOUT
+                                // Guaranteed to place project exactly where user dropped it
+                                const mouseX = e.clientX;
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const exactPosition = mouseX - rect.left;
+                                
+                                // Enhanced debugging with precise position data
+                                console.log(`🎯 EXACT DROP: BAY ${bay.id} (${bay.name})`);
+                                console.log(`🎯 Pixel position: x=${exactPosition}px from bay left edge`);
+                                console.log(`🎯 Using single-row layout, placing in row 0`);
+                                console.log(`⚠️ NO AUTO-ADJUSTMENT: Projects will stay EXACTLY where dropped`);
+                                console.log(`⚠️ OVERLAP ALLOWED: Multiple projects can occupy the same space`);
+                                
+                                // Always use row 0 in the single-row team-based layout
+                                const targetRow = 0;
+                                
+                                // Set data attributes for debugging
+                                document.body.setAttribute('data-exact-pixel-position', exactPosition.toString());
+                                document.body.setAttribute('data-drop-bay', bay.id.toString());
+                                document.body.setAttribute('data-drop-row', '0');
+                                
+                                // Add visual indicator for debugging and user feedback
+                                const indicator = document.createElement('div');
+                                indicator.className = 'absolute bg-green-500/30 border border-green-500 px-2 py-1 text-xs font-bold text-white z-50 rounded';
+                                indicator.style.top = '5px';
+                                indicator.style.left = '5px';
+                                indicator.textContent = `EXACT PLACEMENT: Bay ${bay.id} - Will NOT be auto-adjusted`;
+                                e.currentTarget.appendChild(indicator);
+                                
+                                // Create placement marker at exact drop location
+                                const marker = document.createElement('div');
+                                marker.className = 'absolute w-2 h-10 bg-green-600 z-40 rounded';
+                                marker.style.left = `${exactPosition}px`;
+                                marker.style.top = '0px';
+                                e.currentTarget.appendChild(marker);
+                                
+                                // Remove indicators after 2 seconds
+                                setTimeout(() => {
+                                  if (indicator.parentNode) indicator.parentNode.removeChild(indicator);
+                                  if (marker.parentNode) marker.parentNode.removeChild(marker);
+                                }, 2000);
+                                
+                                // Call handleDrop with the calculated parameters
+                                // CRITICAL: This ensures exact placement with no auto-adjustment
+                                handleDrop(e, bay.id, 0, targetRow);
+                              }}
+                            >
+                              {/* Bay indicator */}
+                              <div className="absolute -left-6 top-0 h-full opacity-70 pointer-events-none flex items-center justify-center">
+                                <div className="bg-primary/20 rounded-md px-2 py-0.5 text-xs font-bold text-primary">
+                                  B{bay.bayNumber}
+                                </div>
+                              </div>
+                              
+                              {/* Cell grid for this bay - EXTENDED TO 2030 PROPERLY */}
+                              <div className="absolute inset-0 grid" 
+                                style={{ 
+                                  gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
+                                  minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px` 
+                                }}>
+                                {slots.map((slot, index) => (
+                                  <div 
+                                    key={`bay-${bay.id}-slot-${index}`} 
+                                    className="relative h-full border-r border-gray-200/50 dark:border-gray-700/30"
+                                    data-row="0"
+                                    data-slot-index={index}
+                                    data-date={format(slot.date, 'yyyy-MM-dd')}
+                                    data-start-date={format(slot.date, 'yyyy-MM-dd')}
+                                    data-bay-id={bay.id}
+                                    data-row-index="0"
+                                    data-exact-week="true"
+                                    draggable={false}
+                                    onDragEnter={(e) => {
+                                      // CRITICAL: Always prevent default to be a valid drop target
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      
+                                      // Force visual feedback
+                                      e.currentTarget.classList.add('drop-target');
+                                      e.currentTarget.classList.add('cell-highlight');
+                                      
+                                      console.log(`✅ CELL READY FOR DROP: Bay ${bay.id}, Row 0, Date ${format(slot.date, 'yyyy-MM-dd')}`);
+                                    }}
+                                    onDragOver={(e) => {
+                                      // CRITICAL: Always prevent default to allow dropping
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      
+                                      // Set appropriate drop effect based on what's being dragged
+                                      if (e.dataTransfer) {
+                                        // Check if this is a new project (unassigned) or an existing one
+                                        const isUnassignedProject = document.body.classList.contains('dragging-unassigned-project');
+                                        // Use 'copy' for new projects, 'move' for existing ones
+                                        e.dataTransfer.dropEffect = isUnassignedProject ? 'copy' : 'move';
+                                      }
+                                      
+                                      // Store the row index and bay id in body attributes
+                                      document.body.setAttribute('data-current-drag-row', '0');
+                                      document.body.setAttribute('data-current-drag-bay', bay.id.toString());
+                                      
+                                      // Force the element to accept drops
+                                      if (e.currentTarget instanceof HTMLElement) {
+                                        e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
+                                        e.currentTarget.setAttribute('data-accept-drops', 'true');
+                                        e.currentTarget.setAttribute('data-overlap-allowed', 'true');
+                                      }
+                                      
+                                      // Visual indication
+                                      e.currentTarget.classList.add('cell-highlight');
+                                      e.currentTarget.classList.add('drop-target');
+                                      
+                                      // Apply handler
+                                      handleSlotDragOver(e, bay.id, 0, slot.date);
+                                    }}
+                                    onDragLeave={(e) => {
+                                      // Remove highlight when leaving
+                                      e.currentTarget.classList.remove('cell-highlight');
+                                    }}
+                                    onDrop={(e) => {
+                                      // CRITICAL: Always prevent default to accept the drop
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      
+                                      // Clear any visual indication
+                                      e.currentTarget.classList.remove('cell-highlight');
+                                      e.currentTarget.classList.remove('drop-target');
+                                      
+                                      console.log(`🎯 DROP HAPPENING NOW: Bay ${bay.id}, Row 0, Date ${format(slot.date, 'yyyy-MM-dd')}`);
+                                      
+                                      // Call the handler with EXACT placement info
+                                      // Enhanced debug for precise drop location
+                                      console.log(`🎯 PRECISE DROP: Using exact date ${format(slot.date, 'yyyy-MM-dd')} from cell data`);
+                                      console.log(`🎯 PIXEL-PERFECT: Project will start EXACTLY at this cell date`);
+                                      
+                                      // Create visual marker at the drop position for feedback
+                                      const marker = document.createElement('div');
+                                      marker.className = 'absolute w-1 h-10 bg-green-500 z-50';
+                                      marker.style.left = '0px'; 
+                                      marker.style.top = '0px';
+                                      e.currentTarget.appendChild(marker);
+                                      
+                                      // Remove marker after 1 second
+                                      setTimeout(() => {
+                                        if (marker.parentNode) marker.parentNode.removeChild(marker);
+                                      }, 1000);
+                                      
+                                      // Call handler with EXACT cell date for precise placement
+                                      handleSlotDrop(e, bay.id, 0, slot.date);
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Schedule Bars - these are positioned absolutely over the bays */}
+                        {baySchedules.map(bar => {
+                          // Verify row values are within valid range
+                          const maxRowIndex = getBayRowCount(bay.id, bay.name) - 1;
+                          if (bar.row !== undefined && bar.row > maxRowIndex) {
+                            console.warn(`⚠️ Schedule ${bar.id} row value ${bar.row} is outside expected range 0-${maxRowIndex}, but keeping as-is per user request`);
+                            // We will NOT reposition to a different row - user wants exact positioning
+                          }
+                          
+                          // Get bay row count for positioning
+                          const rowCount = getBayRowCount(bay.id, bay.name);
+                          
+                          // Log bar positioning for debugging
+                          if (bay.id === bar.bayId) {
+                            console.log(`🔒 POSITIONING BAR ${bar.id} in ${bay.name}`);
+                            if (isMultiRowBay) {
+                              console.log(`  - Row: ${bar.row} of ${rowCount} rows (multi-row bay)`);
+                            } else {
+                              console.log(`  - Row: ${bar.row} of ${rowCount} rows (standard bay)`);
+                            }
+                            console.log(`  - Database values: projectId=${bar.projectId}, bayId=${bar.bayId}, row=${bar.row}`);
+                            console.log(`🔍 COMPLETE BAR DATA:`, JSON.stringify(bar, null, 2));
+                          }
+                          
+                          // Find the project for this bar to check if it's a sales estimate
+                          const project = projects.find(p => p.id === bar.projectId);
+                          const isSalesEstimate = project?.isSalesEstimate;
+                          
+                          return bar.bayId === bay.id && (
+                            <div
+                              key={`schedule-bar-${bar.id}`}
+                              className={`schedule-bar absolute p-1 text-white text-xs rounded cursor-grab z-20 row-${bar.row}-bar ${isSalesEstimate ? 'animate-pulse' : ''}`}
+                              style={{
+                                left: `${bar.left}px`,
+                                width: `${Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0))}px`, // Ensure width accommodates all phases
+                                height: '72px', // Exact height to match gray row
+                                backgroundColor: isSalesEstimate ? '#fbbf2460' : `${bar.color}25`, // Yellow background for sales estimates
+                                boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : 'none', // Yellow glow for sales estimates
+                                border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : 'none', // Yellow border for sales estimates
+                                // Position at the top of the row
+                                top: '0', // Aligned with top of row
+                                // Set data attributes for department phase percentages 
+                                // Store important info for drag/resize operations
+                              }}
+                              data-schedule-id={bar.id}
+                              data-project-id={bar.projectId}
+                              data-bay-id={bar.bayId}
+                              data-row-index={bar.row}
+                              data-fab-percentage={bar.fabPercentage}
+                              data-paint-percentage={bar.paintPercentage}
+                              data-production-percentage={bar.productionPercentage}
+                              data-it-percentage={bar.itPercentage}
+                              data-ntc-percentage={bar.ntcPercentage}
+                              data-qc-percentage={bar.qcPercentage}
+                              draggable
+                              onDragStart={(e) => {
+                                setIsDragging(true);
+                                handleDragStart(e, bar.id);
+                              }}
+                              onDragEnd={() => {
+                                setIsDragging(false);
+                                stopAutoScroll();
+                              }}
+                            >
+                              {/* Milestone Icons - Rendered above department phases */}
+                              {(() => {
+                                // Get milestone icons for this project
+                                const projectMilestones = allMilestoneIcons.filter(m => m.projectId === bar.projectId && m.isEnabled);
+                                
+                                return projectMilestones.map((milestone) => {
+                                  // Calculate milestone position based on phase timing
+                                  let milestonePosition = 0;
+                                  
+                                  // Calculate the total project duration in days
+                                  const projectStart = new Date(bar.startDate);
+                                  const projectEnd = new Date(bar.endDate);
+                                  const totalProjectDays = Math.abs((projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24));
+                                  
+                                  // Calculate pixels per day based on total bar width and project duration
+                                  const pixelsPerDay = bar.width / totalProjectDays;
+                                  
+                                  if (milestone.phase === 'production' && milestone.daysBefore) {
+                                    // MECH SHOP: Position 30 days before PRODUCTION phase starts
+                                    const productionStartPixel = (bar.fabWidth || 0) + (bar.paintWidth || 0);
+                                    milestonePosition = productionStartPixel - (milestone.daysBefore * pixelsPerDay);
+                                  } else if (milestone.phase === 'qc' && milestone.daysBefore) {
+                                    // GRAPHICS: Position 7 days before QC phase starts
+                                    const qcStartPixel = (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0);
+                                    milestonePosition = qcStartPixel - (milestone.daysBefore * pixelsPerDay);
+                                  }
+                                  
+                                  // Debug logging
+                                  console.log(`🎯 MILESTONE DEBUG for ${milestone.name}:`, {
+                                    phase: milestone.phase,
+                                    daysBefore: milestone.daysBefore,
+                                    totalProjectDays: totalProjectDays,
+                                    pixelsPerDay: pixelsPerDay,
+                                    calculatedPosition: milestonePosition,
+                                    barWidth: bar.width,
+                                    phases: {
+                                      fabWidth: bar.fabWidth,
+                                      paintWidth: bar.paintWidth,
+                                      productionWidth: bar.productionWidth,
+                                      itWidth: bar.itWidth,
+                                      ntcWidth: bar.ntcWidth,
+                                      qcWidth: bar.qcWidth
+                                    }
+                                  });
+                                  
+                                  // Only show milestone if position is within reasonable bounds
+                                  if (milestonePosition >= -50 && milestonePosition <= bar.width + 50) {
+                                    // Calculate top position based on milestone type
+                                    const topPosition = milestone.icon === 'car' ? '92px' : '35px'; // Car icon lower, star icon positioned lower
+                                    
+                                    return (
+                                      <div
+                                        key={`milestone-${milestone.id}`}
+                                        className="absolute flex items-center justify-center"
+                                        style={{
+                                          left: `${milestonePosition}px`,
+                                          top: topPosition,
+                                          width: '24px',
+                                          height: '24px',
+                                          zIndex: 50, // High z-index to appear above project bars
+                                        }}
+                                        title={`${milestone.name} - ${milestone.daysBefore} days before ${milestone.phase}`}
+                                      >
+                                        <div className="bg-white/60 border-2 border-gray-600 rounded-full p-1 shadow-lg backdrop-blur-sm">
+                                          {milestone.icon === 'car' && <span className="text-lg">🚗</span>}
+                                          {milestone.icon === 'paintBucket' && <span className="text-lg">🎨</span>}
+                                          {milestone.icon === 'wrench' && <span className="text-lg">🔧</span>}
+                                          {milestone.icon === 'clock' && <span className="text-lg">⏰</span>}
+                                          {milestone.icon === 'flag' && <span className="text-lg">🏁</span>}
+                                          {milestone.icon === 'star' && <span className="text-lg">⭐</span>}
+                                          {milestone.icon === 'warning' && <span className="text-lg">⚠️</span>}
+                                          {milestone.icon === 'check' && <span className="text-lg">✅</span>}
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                });
+                              })()}
+
+                              {/* Department phases visualization - COMPLETELY INTEGRATED DESIGN */}
+                              <div className="phases-container w-full h-full">
+                                <div className="all-phases-container w-full h-full relative">
+                                  {/* Top row of phases (production through QC) */}
+                                  <div className="top-phases w-full h-[52px] absolute left-0" style={{ top: '50px' }}>
+                                    {/* Production phase (positioned after FAB and PAINT) */}
+                                    {bar.productionWidth && bar.productionWidth > 0 && (
+                                      <div className="production-phase bg-yellow-700 h-full absolute" 
+                                           style={{ 
+                                             width: `${bar.productionWidth}px`,
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px`, // Position after FAB and PAINT
+                                             zIndex: 10
+                                           }}>
+                                        <span className="text-xs font-bold text-gray-800 h-full w-full flex items-center justify-center">PROD</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* IT phase */}
+                                    {bar.itWidth && bar.itWidth > 0 && (
+                                      <div className="it-phase bg-purple-700 h-full absolute" 
+                                           style={{ 
+                                             width: `${bar.itWidth}px`,
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0)}px`, // Position after PROD
+                                             zIndex: 10
+                                           }}>
+                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">IT</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* NTC phase */}
+                                    {bar.ntcWidth && bar.ntcWidth > 0 && (
+                                      <div className="ntc-phase bg-cyan-700 h-full absolute" 
+                                           style={{ 
+                                             width: `${bar.ntcWidth}px`,
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0)}px`, // Position after PROD and IT
+                                             zIndex: 10
+                                           }}>
+                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">NTC</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* QC phase */}
+                                    {bar.qcWidth && bar.qcWidth > 0 && (
+                                      <div className="qc-phase bg-pink-700 h-full absolute" 
+                                           style={{ 
+                                             width: `${bar.qcWidth}px`,
+                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0)}px`, // Position after all other phases
+                                             zIndex: 10
+                                           }}>
+                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">QC</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Bottom row of phases (FAB and PAINT) */}
+                                  <div className="bottom-phases w-full h-[48px] absolute left-0" style={{ bottom: '-90px' }}>
+                                    {/* FAB phase (starts from left) */}
+                                    {bar.fabWidth && bar.fabWidth > 0 && (
+                                      <div className="fab-phase bg-blue-700 h-full absolute left-0" 
+                                           style={{ width: `${bar.fabWidth}px`, zIndex: 10 }}>
+                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">FAB</span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* PAINT phase (follows FAB) */}
+                                    {bar.paintWidth && bar.paintWidth > 0 && (
+                                      <div className="paint-phase bg-green-700 h-full absolute" 
+                                           style={{ 
+                                             width: `${bar.paintWidth}px`,
+                                             left: `${bar.fabWidth || 0}px`,
+                                             zIndex: 10
+                                           }}>
+                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">PAINT</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                {/* Project information display positioned under the PROD phase */}
+                                <div className="project-info absolute flex items-center justify-center"
+                                     style={{
+                                       left: `${((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) / 2) - 150}px`, /* Center under PROD phase with wider area */
+                                       top: '120px', /* Position it right under the bottom phases (moved down 50px total) */
+                                       width: '300px', /* Increased width to accommodate longer names */
+                                       pointerEvents: 'auto', /* Enable clicks */
+                                       zIndex: 9999 /* Much higher z-index so it appears above all project bars but below popups */
+                                     }}>
+                                  <div className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center shadow-md border border-gray-300" style={{minWidth: "200px", maxWidth: "400px", position: 'relative', whiteSpace: 'nowrap', overflow: 'visible'}}>
+                                    <a 
+                                      href={`/project/${bar.projectId}`}
+                                      className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.location.href = `/project/${bar.projectId}`;
+                                      }}
+                                    >
+                                      {bar.projectNumber}
+                                    </a>
+                                    <br />
+                                    <span style={{whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'unset'}}>{bar.projectName}</span>
+                                  </div>
+                                </div>
+                                
+                                {/* Connection line (vertical segment that connects PAINT to PROD) */}
+                                {bar.paintWidth && bar.paintWidth > 0 && bar.fabWidth && bar.fabWidth > 0 && (
+                                  <div className="connector-line" 
+                                       style={{ 
+                                         position: 'absolute',
+                                         left: `${bar.fabWidth + bar.paintWidth - 3}px`, 
+                                         top: '30%',
+                                         height: '40%',
+                                         width: '3px',
+                                         backgroundColor: '#16a34a', // Green color to match paint
+                                         zIndex: 5
+                                       }}>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Delete button (appears on hover) */}
+                              <button
+                                className="delete-button p-1 bg-red-500 hover:bg-red-600 rounded text-white pointer-events-auto opacity-0 hover:opacity-100 transition-opacity absolute top-4 right-1 z-20"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteSchedule(bar.id);
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                              
+                              {/* Removed resize handles from inside project container to fix z-index issues */}
+                            </div>
+                          );
+                        })}
+                        
+                        {/* RESIZE HANDLES - Rendered OUTSIDE project containers to fix z-index layering */}
+                        {scheduleBars.map((bar) => {
+                          return bar.bayId === bay.id && (
+                            <React.Fragment key={`handles-${bar.id}`}>
+                              {/* Left resize handle */}
+                              <div 
+                                className="absolute cursor-ew-resize resize-handle flex items-center justify-center"
+                                style={{ 
+                                  left: `${bar.left - 12}px`,
+                                  top: '120px',
+                                  width: '24px',
+                                  height: '32px',
+                                  backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                                  zIndex: 10000,
+                                  pointerEvents: 'auto',
+                                  transition: 'all 0.2s ease',
+                                  border: '1px solid rgba(148, 163, 184, 0.6)',
+                                  borderRadius: '4px',
+                                  fontSize: '16px',
+                                  color: 'white'
+                                }}
+                                onMouseDown={(e) => handleResizeStart(e, bar, 'start')}
+                                onMouseEnter={(e) => {
+                                  const target = e.target as HTMLElement;
+                                  target.style.backgroundColor = '#1e40af';
+                                  target.style.border = '2px solid white';
+                                  target.style.boxShadow = '0 0 16px rgba(59, 130, 246, 0.8)';
+                                  target.style.transform = 'scale(1.2)';
+                                  target.style.zIndex = '20000';
+                                }}
+                                onMouseLeave={(e) => {
+                                  const target = e.target as HTMLElement;
+                                  target.style.backgroundColor = 'rgba(15, 23, 42, 0.8)';
+                                  target.style.border = '1px solid rgba(148, 163, 184, 0.6)';
+                                  target.style.boxShadow = 'none';
+                                  target.style.transform = 'scale(1)';
+                                  target.style.zIndex = '10000';
+                                }}
+                              >
+                                ‹
+                              </div>
+                              
+                              {/* Right resize handle */}
+                              <div 
+                                className="absolute cursor-ew-resize resize-handle flex items-center justify-center"
+                                style={{ 
+                                  left: `${bar.left + Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0)) - 12}px`,
+                                  top: '65px',
+                                  width: '24px',
+                                  height: '32px',
+                                  backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                                  zIndex: 10000,
+                                  pointerEvents: 'auto',
+                                  transition: 'all 0.2s ease',
+                                  border: '1px solid rgba(148, 163, 184, 0.6)',
+                                  borderRadius: '4px',
+                                  fontSize: '16px',
+                                  color: 'white'
+                                }}
+                                onMouseDown={(e) => handleResizeStart(e, bar, 'end')}
+                                onMouseEnter={(e) => {
+                                  const target = e.target as HTMLElement;
+                                  target.style.backgroundColor = '#1e40af';
+                                  target.style.border = '2px solid white';
+                                  target.style.boxShadow = '0 0 16px rgba(59, 130, 246, 0.8)';
+                                  target.style.transform = 'scale(1.2)';
+                                  target.style.zIndex = '20000';
+                                }}
+                                onMouseLeave={(e) => {
+                                  const target = e.target as HTMLElement;
+                                  target.style.backgroundColor = 'rgba(15, 23, 42, 0.8)';
+                                  target.style.border = '1px solid rgba(148, 163, 184, 0.6)';
+                                  target.style.boxShadow = 'none';
+                                  target.style.transform = 'scale(1)';
+                                  target.style.zIndex = '10000';
+                                }}
+                              >
+                                ›
+                              </div>
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ))}
+          </div>
         </div>
       </div>
-
-      {/* Row deletion confirmation dialog */}
-      {confirmRowDelete && (
-        <AlertDialog open={!!confirmRowDelete} onOpenChange={() => setConfirmRowDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Row {confirmRowDelete.rowNumber}</AlertDialogTitle>
-              <AlertDialogDescription>
-                <p>Are you sure you want to delete row {confirmRowDelete.rowNumber} from {confirmRowDelete.bayName}?</p>
+      
+      {/* Add Schedule Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-xl md:max-w-2xl w-[650px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Schedule</DialogTitle>
+            <DialogDescription>
+              Assign a project to a bay for a specific time period.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="project" className="text-right">
+                Project
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="project-search"
+                  placeholder="Search projects..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="mb-2"
+                />
                 
-                {confirmRowDelete.affectedProjects.length > 0 && (
-                  <>
-                    <p className="mt-4 mb-2 font-semibold">The following projects will be affected:</p>
-                    <ul className="list-disc pl-5 space-y-1">
-                      {confirmRowDelete.affectedProjects.map(project => (
-                        <li key={project.id}>
-                          {project.projectNumber} - {project.projectName}
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="mt-4 text-amber-600 dark:text-amber-400">
-                      <AlertTriangle className="w-4 h-4 inline mr-1" />
-                      Current and future projects will be moved to the unassigned section.
-                    </p>
-                  </>
+                {filteredProjects.length > 0 && (
+                  <ScrollArea className="h-32 border rounded-md p-2">
+                    {filteredProjects.map((project) => (
+                      <div
+                        key={project.id}
+                        className={`py-1 px-2 cursor-pointer rounded hover:bg-gray-100 ${
+                          currentProject === project.id ? 'bg-primary text-primary-foreground' : ''
+                        }`}
+                        onClick={() => setCurrentProject(project.id)}
+                      >
+                        <div className="font-medium">{project.projectNumber}</div>
+                        <div className="text-sm">{project.name}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Total Hours: {project.totalHours || "N/A"}
+                        </div>
+                      </div>
+                    ))}
+                  </ScrollArea>
                 )}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive hover:bg-destructive/90"
-                onClick={() => handleDeleteRow(confirmRowDelete.bayId, confirmRowDelete.rowIndex)}
-              >
-                Delete Row
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-
-      {/* Team Edit Dialog */}
-      {editingBay && (
-        <EditBayDialog
-          bay={editingBay}
-          isOpen={!!editingBay}
-          onClose={() => setEditingBay(null)}
-          onSave={handleSaveBayEdit}
+              </div>
+            </div>
+            
+            {/* Show selected project hours */}
+            {currentProject && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">
+                  Total Hours
+                </Label>
+                <div className="col-span-3">
+                  <div className="bg-blue-100 text-blue-900 rounded px-3 py-2 text-sm font-medium">
+                    {projects.find(p => p.id === currentProject)?.totalHours || "N/A"} hours
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bay" className="text-right">
+                Bay
+              </Label>
+              <div className="col-span-3">
+                <ScrollArea className="h-72 border rounded-md p-2">
+                  {/* Group bays by team */}
+                  {(() => {
+                    // Group bays by team name
+                    const baysByTeam = bays.reduce((groups, bay) => {
+                      const teamName = bay.team || 'Unassigned';
+                      if (!groups[teamName]) {
+                        groups[teamName] = [];
+                      }
+                      groups[teamName].push(bay);
+                      return groups;
+                    }, {} as Record<string, ManufacturingBay[]>);
+                    
+                    // Sort team names alphabetically, but put "Unassigned" at the end
+                    const sortedTeamNames = Object.keys(baysByTeam).sort((a, b) => {
+                      if (a === 'Unassigned') return 1;
+                      if (b === 'Unassigned') return -1;
+                      return a.localeCompare(b);
+                    });
+                    
+                    return sortedTeamNames.map(teamName => (
+                      <div key={teamName} className="mb-3 last:mb-0">
+                        {/* Team header */}
+                        <div className="bg-blue-900 text-white text-sm font-bold py-1 px-2 rounded-t mb-1">
+                          {teamName}
+                        </div>
+                        
+                        {/* Bays within this team */}
+                        {baysByTeam[teamName].map((bay) => (
+                          <div
+                            key={bay.id}
+                            className={`py-1 px-2 cursor-pointer rounded hover:bg-gray-100 ${
+                              targetBay === bay.id ? 'bg-primary text-primary-foreground' : ''
+                            } ${bay.status === 'maintenance' ? 'opacity-50' : ''}`}
+                            onClick={() => {
+                              if (bay.status === 'maintenance') return;
+                              
+                              // Set the target bay
+                              setTargetBay(bay.id);
+                              
+                              // Calculate recommended duration if we have both project and bay selected
+                              if (currentProject) {
+                                const selectedProject = projects.find(p => p.id === currentProject);
+                                if (selectedProject && selectedProject.totalHours) {
+                                  // Calculate team's capacity (hours per week)
+                                  const teamCapacity = (
+                                    (bay.assemblyStaffCount || 4) + 
+                                    (bay.electricalStaffCount || 2)
+                                  ) * (bay.hoursPerPersonPerWeek || 40);
+                                  
+                                  // Calculate recommended duration in weeks
+                                  const totalHours = selectedProject.totalHours;
+                                  const recommendedWeeks = Math.ceil(totalHours / teamCapacity);
+                                  
+                                  // Update the duration field
+                                  setScheduleDuration(recommendedWeeks > 0 ? recommendedWeeks : 4);
+                                  
+                                  // Update end date if start date is set
+                                  if (targetStartDate) {
+                                    setTargetEndDate(addWeeks(targetStartDate, recommendedWeeks > 0 ? recommendedWeeks : 4));
+                                  }
+                                }
+                              }
+                            }}
+                          >
+                            <div className="font-medium">{bay.name}</div>
+                            <div className="text-xs flex justify-between">
+                              <span>Bay #{bay.bayNumber}</span>
+                              {bay.description && (
+                                <span className="italic text-gray-500">{bay.description}</span>
+                              )}
+                            </div>
+                            {bay.status === 'maintenance' && (
+                              <Badge variant="destructive" className="mt-1 text-[10px]">
+                                Maintenance
+                              </Badge>
+                            )}
+                            <div className="text-xs text-blue-600 mt-1">
+                              Capacity: {((bay.assemblyStaffCount || 4) + (bay.electricalStaffCount || 2)) * (bay.hoursPerPersonPerWeek || 40)} hrs/week
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ));
+                  })()}
+                </ScrollArea>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="startDate" className="text-right">
+                Start Date
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={targetStartDate ? format(targetStartDate, 'yyyy-MM-dd') : ''}
+                  onChange={(e) => {
+                    const newStartDate = e.target.value ? new Date(e.target.value) : null;
+                    setTargetStartDate(newStartDate);
+                    
+                    // Immediately update end date when start date changes
+                    if (newStartDate) {
+                      // Always calculate the end date based on the duration or minimum of 13 weeks
+                      const duration = scheduleDuration > 0 ? scheduleDuration : 13;
+                      const newEndDate = addWeeks(newStartDate, duration);
+                      console.log('Auto-updating end date based on start date change:', format(newEndDate, 'yyyy-MM-dd'));
+                      setTargetEndDate(newEndDate);
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="duration" className="text-right">
+                Duration (Weeks)
+              </Label>
+              <div className="col-span-3">
+                {/* Check if we have both project and bay selected */}
+                {currentProject && targetBay && (
+                  <div className="mb-2">
+                    <div className="mb-2 bg-blue-50 p-3 rounded-md border border-blue-200">
+                      <DurationCalculator 
+                        projectId={currentProject} 
+                        bayId={targetBay} 
+                        projects={projects}
+                        bays={bays}
+                        onDurationCalculated={(weeks, endDate) => {
+                          // Store recommended duration but don't automatically apply it
+                          if (weeks > 0) {
+                            // Set recommended duration in component state to be applied when button is clicked
+                            setRecommendedDuration(weeks);
+                          }
+                        }}
+                      />
+                      
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="w-full mt-2 bg-blue-600 text-white hover:bg-blue-700"
+                        onClick={() => {
+                          // Apply the recommended duration when this button is clicked
+                          if (recommendedDuration > 0 && targetStartDate) {
+                            // Set the duration field
+                            setScheduleDuration(recommendedDuration);
+                            
+                            // Calculate and set the end date based on the recommended duration
+                            const calculatedEndDate = addWeeks(targetStartDate, recommendedDuration);
+                            setTargetEndDate(calculatedEndDate);
+                            
+                            // Provide user feedback
+                            toast({
+                              title: "Recommendation Applied",
+                              description: `Schedule duration set to ${recommendedDuration} weeks, ending on ${format(calculatedEndDate, 'MMM d, yyyy')}`
+                            });
+                          } else {
+                            toast({
+                              title: "Cannot Apply Recommendation",
+                              description: "Please ensure you have selected a project, bay, and start date",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                      >
+                        Apply Recommendation
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                <Input
+                  id="duration"
+                  type="number"
+                  min="1"
+                  max="52"
+                  value={scheduleDuration}
+                  onChange={(e) => {
+                    const duration = parseInt(e.target.value);
+                    setScheduleDuration(duration);
+                    
+                    // Update end date based on duration
+                    if (targetStartDate) {
+                      setTargetEndDate(addWeeks(targetStartDate, duration));
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="endDate" className="text-right">
+                End Date
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={targetEndDate ? format(targetEndDate, 'yyyy-MM-dd') : ''}
+                  onChange={(e) => setTargetEndDate(e.target.value ? new Date(e.target.value) : null)}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleAddSchedule}>
+              Add Schedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Bay Edit/Create Dialog */}
+      <Dialog open={newBayDialog} onOpenChange={setNewBayDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingBay && editingBay.id > 0 
+                ? 'Edit Bay' 
+                : editingBay?.team 
+                  ? 'Create New Team' 
+                  : 'Create Bay'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingBay && editingBay.id > 0 
+                ? 'Update the bay information.' 
+                : editingBay?.team 
+                  ? 'Create a new manufacturing team with initial bay' 
+                  : 'Add a new manufacturing bay to the schedule.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            {/* Team section - only show when creating a new team */}
+            {editingBay && !editingBay.id && editingBay.team !== undefined && (
+              <div className="bg-blue-900/20 p-3 rounded-md border border-blue-800 mb-2">
+                <h3 className="text-blue-100 font-medium mb-2">Team Information</h3>
+                <div className="grid grid-cols-4 items-center gap-4 mb-3">
+                  <Label htmlFor="teamName" className="text-right text-blue-100">
+                    Team Name
+                  </Label>
+                  <div className="col-span-3">
+                    <Input
+                      id="teamName"
+                      placeholder="Enter team name"
+                      value={editingBay.team || ''}
+                      onChange={(e) => setEditingBay(prev => prev ? {...prev, team: e.target.value} : null)}
+                      className="border-blue-700 bg-blue-950/50"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="teamDescription" className="text-right text-blue-100">
+                    Description
+                  </Label>
+                  <div className="col-span-3">
+                    <Input
+                      id="teamDescription"
+                      placeholder="Team description"
+                      value={editingBay.description || ''}
+                      onChange={(e) => setEditingBay(prev => prev ? {...prev, description: e.target.value} : null)}
+                      className="border-blue-700 bg-blue-950/50"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4 mt-3">
+                  <Label htmlFor="assemblyStaff" className="text-right text-blue-100">
+                    Assembly Staff
+                  </Label>
+                  <div className="col-span-3">
+                    <Input
+                      id="assemblyStaff"
+                      type="number"
+                      placeholder="Number of assembly staff"
+                      value={editingBay.assemblyStaffCount || 4}
+                      onChange={(e) => setEditingBay(prev => prev ? {...prev, assemblyStaffCount: parseInt(e.target.value)} : null)}
+                      className="border-blue-700 bg-blue-950/50"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4 mt-3">
+                  <Label htmlFor="electricalStaff" className="text-right text-blue-100">
+                    Electrical Staff
+                  </Label>
+                  <div className="col-span-3">
+                    <Input
+                      id="electricalStaff"
+                      type="number"
+                      placeholder="Number of electrical staff"
+                      value={editingBay.electricalStaffCount || 2}
+                      onChange={(e) => setEditingBay(prev => prev ? {...prev, electricalStaffCount: parseInt(e.target.value)} : null)}
+                      className="border-blue-700 bg-blue-950/50"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4 mt-3">
+                  <Label htmlFor="hoursPerWeek" className="text-right text-blue-100">
+                    Hours/Week
+                  </Label>
+                  <div className="col-span-3">
+                    <Input
+                      id="hoursPerWeek"
+                      type="number"
+                      placeholder="Hours per person per week"
+                      value={editingBay.hoursPerPersonPerWeek || 40}
+                      onChange={(e) => setEditingBay(prev => prev ? {...prev, hoursPerPersonPerWeek: parseInt(e.target.value)} : null)}
+                      className="border-blue-700 bg-blue-950/50"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Bay section - Always show */}
+            <h3 className="text-gray-300 font-medium">
+              {editingBay && !editingBay.id && editingBay.team 
+                ? 'Initial Bay Settings' 
+                : 'Bay Information'}
+            </h3>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bayName" className="text-right">
+                Name
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="bayName"
+                  value={editingBay?.name || ''}
+                  onChange={(e) => setEditingBay(prev => prev ? {...prev, name: e.target.value} : null)}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bayNumber" className="text-right">
+                Bay #
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="bayNumber"
+                  type="number"
+                  min="1"
+                  value={editingBay?.bayNumber || 1}
+                  onChange={(e) => setEditingBay(prev => prev ? {...prev, bayNumber: parseInt(e.target.value)} : null)}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bayStatus" className="text-right">
+                Status
+              </Label>
+              <div className="col-span-3">
+                <select
+                  id="bayStatus"
+                  className="border rounded-md p-2 w-full"
+                  value={editingBay?.status || 'active'}
+                  onChange={(e) => setEditingBay(prev => prev ? {...prev, status: e.target.value as any} : null)}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="maintenance">Maintenance</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bayLocation" className="text-right">
+                Location
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="bayLocation"
+                  value={editingBay?.location || ''}
+                  onChange={(e) => setEditingBay(prev => prev ? {...prev, location: e.target.value} : null)}
+                />
+              </div>
+            </div>
+            
+            {/* Only show Team field if not creating a team */}
+            {(!editingBay?.team || editingBay.id > 0) && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="bayTeam" className="text-right">
+                  Team
+                </Label>
+                <div className="col-span-3">
+                  <Input
+                    id="bayTeam"
+                    value={editingBay?.team || ''}
+                    onChange={(e) => setEditingBay(prev => prev ? {...prev, team: e.target.value} : null)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setNewBayDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              type="button" 
+              onClick={editingBay?.id > 0 ? handleSaveBayEdit : handleCreateBay}
+            >
+              {editingBay?.id > 0 
+                ? 'Save Changes' 
+                : editingBay?.team 
+                  ? 'Create Team' 
+                  : 'Create Bay'
+              }
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Row Confirmation Dialog */}
+      <Dialog open={deleteRowDialogOpen && !!confirmRowDelete} onOpenChange={setDeleteRowDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Row</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete row {confirmRowDelete?.rowNumber} in {confirmRowDelete?.bayName}?
+              {confirmRowDelete?.affectedProjects.length > 0 && (
+                <div className="mt-2 text-destructive">
+                  Warning: The following projects will be deleted from the schedule:
+                  <ul className="list-disc pl-5 mt-1">
+                    {confirmRowDelete?.affectedProjects.map(project => (
+                      <li key={project.id}>{project.projectNumber} - {project.projectName}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="secondary" 
+              onClick={() => {
+                setDeleteRowDialogOpen(false);
+                setConfirmRowDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="button" 
+              variant="destructive"
+              onClick={() => {
+                if (confirmRowDelete) {
+                  handleDeleteRow(confirmRowDelete.bayId, confirmRowDelete.rowIndex);
+                  setDeleteRowDialogOpen(false);
+                  setConfirmRowDelete(null);
+                }
+              }}
+            >
+              Delete Row
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Team Management Dialog */}
+      <TeamManagementDialog 
+        open={teamDialogOpen}
+        onOpenChange={setTeamDialogOpen}
+        teamName={selectedTeam}
+        bays={bays}
+        onTeamUpdate={async (teamName, newTeamName, description, assemblyStaff, electricalStaff, hoursPerWeek) => {
+          // Update team description in our local state to show in the header bar
+          handleTeamUpdate(teamName, newTeamName, description, assemblyStaff, electricalStaff, hoursPerWeek);
+          
+          // After team capacity is updated, refresh the schedule data
+          toast({
+            title: "Team updated",
+            description: `Team ${newTeamName} has been updated with ${assemblyStaff} assembly and ${electricalStaff} electrical staff.`
+          });
+          
+          // Refresh schedule bars to reflect the new capacity settings
+          // This would trigger a re-calculation of phase widths based on the new capacity
+          const updatedScheduleBars = [...scheduleBars].map(bar => {
+            // Update production phase width calculations for affected bars
+            const bayBelongsToUpdatedTeam = bays.some(b => b.team === teamName && b.id === bar.bayId);
+            if (bayBelongsToUpdatedTeam) {
+              // Recalculate production phase width based on new capacity
+              return {
+                ...bar,
+                // Flag for re-rendering and width recalculation
+                normalizeFactor: Math.random()
+              };
+            }
+            return bar;
+          });
+          
+          setScheduleBars(updatedScheduleBars);
+        }}
+      />
+      
+      {/* Team Delete Confirmation Dialog - Fixed for proper DOM nesting */}
+      <Dialog 
+        open={teamDeleteConfirm.isOpen} 
+        onOpenChange={(isOpen) => setTeamDeleteConfirm(prev => ({...prev, isOpen}))}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Trash2 className="h-5 w-5 mr-2 text-red-600" />
+              <span>Delete Team</span>
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div>
+                <p>Are you sure you want to delete the team "{teamDeleteConfirm.teamName}"?</p>
+                <div className="mt-2 mb-2 p-2 bg-amber-50 border border-amber-200 rounded-md text-amber-800">
+                  <AlertTriangle className="h-4 w-4 inline-block mr-1" /> 
+                  This will remove the team association from {teamDeleteConfirm.bayIds.length} bay(s).
+                </div>
+                <div className="mt-1 text-sm text-gray-600">
+                  The bay itself will remain, but the team information and settings will be removed.
+                </div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setTeamDeleteConfirm(prev => ({...prev, isOpen: false}))}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => handleTeamDelete(teamDeleteConfirm.teamName, teamDeleteConfirm.bayIds)}
+            >
+              Delete Team
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Financial Impact Popup */}
+      {showFinancialImpact && financialImpactData && (
+        <FinancialImpactPopup
+          isOpen={showFinancialImpact}
+          onClose={() => setShowFinancialImpact(false)}
+          projectId={financialImpactData.projectId}
+          originalStartDate={financialImpactData.originalStartDate}
+          originalEndDate={financialImpactData.originalEndDate}
+          newStartDate={financialImpactData.newStartDate}
+          newEndDate={financialImpactData.newEndDate}
+          onConfirm={handleFinancialImpactConfirm}
+          onCancel={handleFinancialImpactCancel}
         />
       )}
+      </div>
     </div>
   );
-};
+}
 
-export default ResizableBaySchedule;
+// For handleResizeStart
+let initialStartDate: Date;
+let initialEndDate: Date;
