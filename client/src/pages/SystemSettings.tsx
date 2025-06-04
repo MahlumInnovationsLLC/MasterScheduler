@@ -13,6 +13,11 @@ import {
   UserCheck, 
   UserX, 
   RefreshCw,
+  ArchiveRestore,
+  MoveRight,
+  ArrowUpCircle,
+  Database,
+  Loader2
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import RolePermissionsManager from "@/components/RolePermissionsManager";
@@ -93,245 +98,378 @@ const SystemSettings = () => {
     setIsAdmin(true);
   }, []);
   
-  // Get system storage info
-  const {
-    data: storageInfo = { totalStorageUsed: 0 },
-    isLoading: storageInfoLoading,
-    error: storageInfoError
-  } = useQuery({
-    queryKey: ['/api/system/storage-info'],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/system/storage-info');
-        if (!response.ok) {
-          return { totalStorageUsed: 0 };
+  // Backup functionality removed
+  
+  // Restore database from backup
+  const handleRestoreDatabase = async (filename: string) => {
+    // Show confirmation dialog
+    if (!confirm("Are you sure you want to restore the database from backup? This will replace all current data.")) {
+      return;
+    }
+    
+    setIsRestoreLoading(true);
+    try {
+      const response = await fetch('/api/system/restore-database', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ filename })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          toast({
+            title: "Success",
+            description: "Database restored successfully",
+          });
+          // Refresh all data
+          queryClient.invalidateQueries();
+        } else {
+          toast({
+            title: "Error",
+            description: data.message || "Failed to restore database",
+            variant: "destructive"
+          });
         }
-        return await response.json();
-      } catch (error) {
-        // Silently fail but with a fallback value
-        console.error("Error fetching storage info:", error);
-        return { totalStorageUsed: 0 };
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to restore database",
+          variant: "destructive"
+        });
       }
-    },
-    retry: false // Don't retry if it fails
+    } catch (error) {
+      console.error('Error restoring database:', error);
+      toast({
+        title: "Error",
+        description: "Failed to restore database",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRestoreLoading(false);
+    }
+  };
+
+  // User audit logs query
+  const {
+    data: userAuditLogs = [],
+    isLoading: userAuditLogsLoading,
+    error: userAuditLogsError
+  } = useQuery({
+    queryKey: ['/api/user-audit-logs'],
+    queryFn: getQueryFn({})
   });
 
-  const restoreProjectMutation = useMutation({
-    mutationFn: async (projectId: number) => {
-      const response = await fetch(`/api/projects/${projectId}/restore`, {
+  const handleDeleteAllProjects = async () => {
+    setIsDeleting(true);
+    
+    try {
+      const response = await fetch('/api/reset-all-projects', {
+        method: 'DELETE',
+      });
+      
+      const result = await response.json();
+      
+      setDeleteResult({
+        success: result.success,
+        message: result.message,
+        totalDeleted: result.totalDeleted
+      });
+      
+      toast({
+        title: result.success ? "Projects Deleted" : "Deletion Failed",
+        description: result.message,
+        variant: result.success ? "default" : "destructive"
+      });
+    } catch (error) {
+      setDeleteResult({
+        success: false,
+        message: "Error deleting projects: " + (error as Error).message
+      });
+      
+      toast({
+        title: "Error",
+        description: "Failed to delete projects: " + (error as Error).message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const [newNotification, setNewNotification] = useState({
+    title: '',
+    message: '',
+    priority: 'normal',
+    type: 'system',
+  });
+
+  const createNotificationMutation = useMutation({
+    mutationFn: async (notification: any) => {
+      const response = await fetch('/api/notifications', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(notification),
       });
       
       if (!response.ok) {
-        throw new Error('Failed to restore project');
+        throw new Error('Failed to create notification');
       }
       
       return await response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Project Restored",
-        description: "Project has been successfully restored",
+        title: "Notification Created",
+        description: "Your notification has been successfully created and sent to all users.",
+        variant: "default"
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/projects/archived'] });
+      setShowNotificationForm(false);
+      setNewNotification({
+        title: '',
+        message: '',
+        priority: 'normal',
+        type: 'system',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
     },
-    onError: () => {
+    onError: (error) => {
       toast({
-        title: "Restore Failed",
-        description: "Failed to restore project",
+        title: "Error",
+        description: "Failed to create notification: " + (error as Error).message,
         variant: "destructive"
       });
     }
   });
-  
-  // Fetch data for charts and stats
-  const { data: users = [] } = useQuery({
+
+  const handleCreateNotification = (e: React.FormEvent) => {
+    e.preventDefault();
+    createNotificationMutation.mutate(newNotification);
+  };
+
+  // Email allowed domains management
+  const [newEmailPattern, setNewEmailPattern] = useState({
+    emailPattern: '',
+    autoApprove: true,
+    defaultRole: 'viewer',
+  });
+
+  // Get users for user management
+  const {
+    data: users = [],
+    isLoading: usersLoading,
+    error: usersError
+  } = useQuery<any[]>({
     queryKey: ['/api/users'],
     queryFn: getQueryFn({}),
   });
-  
-  const { data: userAuditLogs = [] } = useQuery({
-    queryKey: ['/api/user-audit-logs'],
-    queryFn: getQueryFn({}),
-  });
-  
-  const { data: rolePermissions = [] } = useQuery({
-    queryKey: ['/api/role-permissions'],
-    queryFn: getQueryFn({}),
-  });
-  
-  const { data: allowedEmails = [] } = useQuery({
+
+  // Get email patterns
+  const {
+    data: allowedEmails = [],
+    isLoading: allowedEmailsLoading,
+    error: allowedEmailsError
+  } = useQuery<any[]>({
     queryKey: ['/api/allowed-emails'],
     queryFn: getQueryFn({}),
   });
-  
-  const { data: projects = [] } = useQuery({
-    queryKey: ['/api/projects'],
-    queryFn: getQueryFn({}),
-  });
-  
-  // Active projects (not archived)
-  const activeProjects = projects.filter((project: any) => project.status !== 'archived');
-  
-  // Archived projects
-  const { data: archivedProjects = [] } = useQuery({
-    queryKey: ['/api/projects/archived'],
-    queryFn: getQueryFn({}),
-  });
-  
-  const handleCreateAllowedEmail = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const emailPattern = formData.get('emailPattern')?.toString() || '';
-    const defaultRole = formData.get('defaultRole')?.toString() || 'viewer';
-    const autoApprove = formData.get('autoApprove') === 'on';
-    
-    if (!emailPattern) return;
-    
-    try {
+
+  // Create email pattern mutation
+  const createEmailPatternMutation = useMutation({
+    mutationFn: async (emailPattern: any) => {
       const response = await fetch('/api/allowed-emails', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          emailPattern,
-          defaultRole,
-          autoApprove
-        })
+        body: JSON.stringify(emailPattern),
       });
       
-      if (response.ok) {
-        toast({
-          title: "Email Pattern Added",
-          description: `${emailPattern} has been added to allowed emails`,
-        });
-        queryClient.invalidateQueries({ queryKey: ['/api/allowed-emails'] });
-        
-        // Reset form
-        e.currentTarget.reset();
-      } else {
-        toast({
-          title: "Failed to Add",
-          description: "There was an error adding the email pattern",
-          variant: "destructive"
-        });
+      if (!response.ok) {
+        throw new Error('Failed to create email pattern');
       }
-    } catch (error) {
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Email Pattern Added",
+        description: "The email pattern has been successfully added to the allowed list.",
+        variant: "default"
+      });
+      setNewEmailPattern({
+        emailPattern: '',
+        autoApprove: true,
+        defaultRole: 'viewer',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/allowed-emails'] });
+    },
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "There was an error adding the email pattern",
+        description: "Failed to add email pattern: " + (error as Error).message,
         variant: "destructive"
       });
     }
-  };
-  
-  const handleDeleteAllowedEmail = async (id: number) => {
-    try {
+  });
+
+  // Delete email pattern mutation
+  const deleteEmailPatternMutation = useMutation({
+    mutationFn: async (id: number) => {
       const response = await fetch(`/api/allowed-emails/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
       
-      if (response.ok) {
-        toast({
-          title: "Email Pattern Deleted",
-          description: "The email pattern has been removed",
-        });
-        queryClient.invalidateQueries({ queryKey: ['/api/allowed-emails'] });
-      } else {
-        toast({
-          title: "Failed to Delete",
-          description: "There was an error removing the email pattern",
-          variant: "destructive"
-        });
+      if (!response.ok) {
+        throw new Error('Failed to delete email pattern');
       }
-    } catch (error) {
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Email Pattern Deleted",
+        description: "The email pattern has been successfully removed from the allowed list.",
+        variant: "default"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/allowed-emails'] });
+    },
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "There was an error removing the email pattern",
+        description: "Failed to delete email pattern: " + (error as Error).message,
         variant: "destructive"
       });
     }
-  };
-  
-  // Get user names for audit logs
-  const getUserName = (userId: string) => {
-    const user = users.find((u: any) => u.id === userId);
-    return user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
-  };
-  
-  // Handle approval of a user
-  const handleApproveUser = async (userId: string) => {
-    try {
+  });
+
+  // Update user role mutation
+  const updateUserRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string, role: string }) => {
+      const response = await fetch(`/api/users/${userId}/role`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update user role');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "User Role Updated",
+        description: "The user's role has been successfully updated.",
+        variant: "default"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update user role: " + (error as Error).message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Approve user mutation
+  const approveUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
       const response = await fetch(`/api/users/${userId}/approve`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+        method: 'PATCH',
       });
       
-      if (response.ok) {
-        toast({
-          title: "User Approved",
-          description: "User has been approved for access",
-          variant: "success"
-        });
-        
-        // Refresh user list
-        queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      } else {
-        toast({
-          title: "Approval Failed",
-          description: "There was an error approving the user",
-          variant: "destructive"
-        });
+      if (!response.ok) {
+        throw new Error('Failed to approve user');
       }
-    } catch (error) {
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "User Approved",
+        description: "The user has been successfully approved and can now access the system.",
+        variant: "default"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+    },
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "There was an error approving the user",
+        description: "Failed to approve user: " + (error as Error).message,
         variant: "destructive"
       });
     }
-  };
+  });
   
-  // Handle rejection/revocation of a user
-  const handleRejectUser = async (userId: string) => {
-    try {
+  // Reject user mutation (also handles revoking access for approved users)
+  const rejectUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
       const response = await fetch(`/api/users/${userId}/reject`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+        method: 'PATCH',
       });
       
-      if (response.ok) {
-        toast({
-          title: "User Rejected",
-          description: "User access has been rejected/revoked",
-        });
-        
-        // Refresh user list
-        queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      } else {
-        toast({
-          title: "Rejection Failed",
-          description: "There was an error rejecting the user",
-          variant: "destructive"
-        });
+      if (!response.ok) {
+        throw new Error('Failed to reject user');
       }
-    } catch (error) {
+      
+      return await response.json();
+    },
+    onSuccess: (data, variables) => {
+      // Find the user to determine if they were approved or pending
+      const user = users.find(u => u.id === variables);
+      const wasApproved = user?.isApproved;
+      
+      toast({
+        title: wasApproved ? "Access Revoked" : "User Rejected",
+        description: wasApproved 
+          ? "User access has been successfully revoked." 
+          : "The user request has been rejected.",
+        variant: "default"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+    },
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "There was an error rejecting the user",
+        description: "Failed to reject user: " + (error as Error).message,
         variant: "destructive"
       });
     }
+  });
+
+  const handleCreateEmailPattern = (e: React.FormEvent) => {
+    e.preventDefault();
+    createEmailPatternMutation.mutate(newEmailPattern);
+  };
+
+  const handleDeleteEmailPattern = (id: number) => {
+    deleteEmailPatternMutation.mutate(id);
+  };
+
+  const handleUpdateUserRole = (userId: string, role: string) => {
+    updateUserRoleMutation.mutate({ userId, role });
+  };
+
+  const handleApproveUser = (userId: string) => {
+    approveUserMutation.mutate(userId);
   };
   
-  // Handle edit user
-  const handleEditUser = (user: any) => {
+  const handleRejectUser = (userId: string) => {
+    rejectUserMutation.mutate(userId);
+  };
+  
+  // Handle edit user button click
+  const handleEditUserClick = (user: any) => {
     setEditingUser(user);
     setEditUserForm({
       firstName: user.firstName || '',
@@ -343,6 +481,60 @@ const SystemSettings = () => {
     setIsEditDialogOpen(true);
   };
   
+  // User sorting function
+  const handleSort = (column: string) => {
+    setUserSort(prev => ({
+      column,
+      direction: prev.column === column && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Get sorted users
+  const getSortedUsers = () => {
+    if (!users || users.length === 0) return [];
+    
+    return [...users].sort((a, b) => {
+      // Handle special cases based on column
+      if (userSort.column === 'lastName') {
+        const aValue = `${a.lastName || ''} ${a.firstName || ''}`.toLowerCase();
+        const bValue = `${b.lastName || ''} ${b.firstName || ''}`.toLowerCase();
+        return userSort.direction === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      if (userSort.column === 'department') {
+        const aValue = (a.department || 'zzz').toLowerCase(); // 'zzz' to sort empty values last
+        const bValue = (b.department || 'zzz').toLowerCase();
+        return userSort.direction === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      if (userSort.column === 'createdAt' || userSort.column === 'lastLogin') {
+        const aDate = a[userSort.column] ? new Date(a[userSort.column]) : new Date(0);
+        const bDate = b[userSort.column] ? new Date(b[userSort.column]) : new Date(0);
+        return userSort.direction === 'asc' 
+          ? aDate.getTime() - bDate.getTime()
+          : bDate.getTime() - aDate.getTime();
+      }
+      
+      if (userSort.column === 'isApproved') {
+        // Sort by approval status (boolean)
+        return userSort.direction === 'asc'
+          ? (a.isApproved === b.isApproved ? 0 : a.isApproved ? 1 : -1)
+          : (a.isApproved === b.isApproved ? 0 : a.isApproved ? -1 : 1);
+      }
+      
+      // Default sort for other columns
+      const aValue = (a[userSort.column] || '').toString().toLowerCase();
+      const bValue = (b[userSort.column] || '').toString().toLowerCase();
+      return userSort.direction === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    });
+  };
+
   // Handle user form submission
   const handleEditUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -370,56 +562,142 @@ const SystemSettings = () => {
       .then(() => {
         toast({
           title: "User Updated",
-          description: "User information has been updated",
+          description: "User information has been successfully updated."
         });
         setIsEditDialogOpen(false);
+        queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       })
       .catch(error => {
-        console.error("Error updating user:", error);
         toast({
-          title: "Update Failed",
-          description: "There was an error updating the user",
+          title: "Error",
+          description: "Failed to update user: " + error.message,
           variant: "destructive"
         });
       });
   };
+
+  // Handle tab change
+  const [currentTab, setCurrentTab] = useState('accessControl');
+
+  // For system maintenance stats
+  const {
+    data: activeProjects = [],
+    isLoading: activeProjectsLoading,
+    error: activeProjectsError
+  } = useQuery({
+    queryKey: ['/api/projects'],
+    queryFn: getQueryFn({}),
+  });
+
+  // For archive management
+  const {
+    data: archivedProjects = [],
+    isLoading: archivedProjectsLoading,
+    error: archivedProjectsError
+  } = useQuery({
+    queryKey: ['/api/projects/archived'],
+    queryFn: getQueryFn({}),
+  });
   
-  // Function to sort users
-  const sortUsers = (users: any[], column: string, direction: 'asc' | 'desc') => {
-    return [...users].sort((a, b) => {
-      let aValue = a[column];
-      let bValue = b[column];
+  // Get system storage info
+  const {
+    data: storageInfo = { totalStorageUsed: 0 },
+    isLoading: storageInfoLoading,
+    error: storageInfoError
+  } = useQuery({
+    queryKey: ['/api/system/storage-info'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/system/storage-info');
+        if (!response.ok) {
+          return { totalStorageUsed: 0 };
+        }
+        return await response.json();
+      } catch (error) {
+        // Silently fail but with a fallback value
+        console.error("Error fetching storage info:", error);
+        return { totalStorageUsed: 0 };
+      }
+    },
+    retry: false // Don't retry if it fails
+  });
+
+  const restoreProjectMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      const response = await fetch(`/api/projects/${projectId}/restore`, {
+        method: 'PATCH',
+      });
       
-      // Special handling for nested properties
-      if (column.includes('.')) {
-        const [parent, child] = column.split('.');
-        aValue = a[parent] ? a[parent][child] : '';
-        bValue = b[parent] ? b[parent][child] : '';
+      if (!response.ok) {
+        throw new Error('Failed to restore project');
       }
       
-      // Convert to lowercase for string comparison
-      if (typeof aValue === 'string') aValue = aValue.toLowerCase();
-      if (typeof bValue === 'string') bValue = bValue.toLowerCase();
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Project Restored",
+        description: "The project has been successfully restored from the archive.",
+        variant: "default"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects/archived'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to restore project: " + (error as Error).message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const permanentDeleteProjectMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      const response = await fetch(`/api/projects/${projectId}/permanent-delete`, {
+        method: 'DELETE',
+      });
       
-      // Handle undefined or null values
-      if (aValue === undefined || aValue === null) aValue = '';
-      if (bValue === undefined || bValue === null) bValue = '';
+      if (!response.ok) {
+        throw new Error('Failed to permanently delete project');
+      }
       
-      return direction === 'asc' 
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
-    });
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Project Deleted",
+        description: "The project has been permanently deleted.",
+        variant: "default"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects/archived'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete project: " + (error as Error).message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleRestoreProject = (projectId: number) => {
+    restoreProjectMutation.mutate(projectId);
+  };
+
+  const handlePermanentDeleteProject = (projectId: number) => {
+    permanentDeleteProjectMutation.mutate(projectId);
   };
 
   return (
-    <div className="container mx-auto py-10 space-y-8">
+    <div className="container mx-auto py-6 px-6 md:px-8 space-y-8">
       {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
-              Update user information and role.
+              Update user information and department settings.
             </DialogDescription>
           </DialogHeader>
           
@@ -455,6 +733,7 @@ const SystemSettings = () => {
                 </Label>
                 <Input
                   id="email"
+                  type="email"
                   value={editUserForm.email}
                   onChange={(e) => setEditUserForm({...editUserForm, email: e.target.value})}
                   className="col-span-3"
@@ -470,8 +749,8 @@ const SystemSettings = () => {
                   value={editUserForm.role} 
                   onValueChange={(value) => setEditUserForm({...editUserForm, role: value})}
                 >
-                  <SelectTrigger id="role" className="col-span-3">
-                    <SelectValue placeholder="Select a role" />
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="viewer">Viewer</SelectItem>
@@ -515,528 +794,838 @@ const SystemSettings = () => {
           </p>
         </div>
       </div>
-      
-      <Tabs defaultValue="access-control" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="access-control">Access Control</TabsTrigger>
-          <TabsTrigger value="user-management">User Management</TabsTrigger>
+
+      <Tabs defaultValue="accessControl" className="w-full space-y-6" onValueChange={setCurrentTab}>
+        <TabsList className="grid grid-cols-4 w-full">
+          <TabsTrigger value="accessControl">Access Control</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="archiveManagement">Archive Management</TabsTrigger>
           <TabsTrigger value="maintenance">System Maintenance</TabsTrigger>
-          <TabsTrigger value="logs">Audit Logs</TabsTrigger>
         </TabsList>
-        
+
         {/* Access Control Tab */}
-        <TabsContent value="access-control" className="space-y-6">
+        <TabsContent value="accessControl" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Role Permissions</CardTitle>
-              <CardDescription>
-                Configure what each role can access and modify in the system.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RolePermissionsManager 
-                rolePermissions={rolePermissions} 
-                isAdmin={isAdmin}
-                onSave={() => {
-                  queryClient.invalidateQueries({ queryKey: ['/api/role-permissions'] });
-                }}
-              />
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Email Access Control</CardTitle>
-              <CardDescription>
-                Control which email domains can access the system, their default role, and auto-approval settings.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleCreateAllowedEmail} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="emailPattern">Email Pattern</Label>
-                    <Input 
-                      id="emailPattern" 
-                      name="emailPattern" 
-                      placeholder="*@example.com" 
-                      required 
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Use * as wildcard. Example: *@nomadgcs.com
+              <CardHeader>
+                <CardTitle>Role Permissions</CardTitle>
+                <CardDescription>
+                  Customize what each role (Viewer, Editor, Admin) can access and modify in the system.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="viewer" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="viewer">Viewer Permissions</TabsTrigger>
+                    <TabsTrigger value="editor">Editor Permissions</TabsTrigger>
+                    <TabsTrigger value="admin">Admin Permissions</TabsTrigger>
+                  </TabsList>
+                  
+                  {/* Viewer Permissions Tab */}
+                  <TabsContent value="viewer" className="pt-4">
+                    <RolePermissionsManager role="viewer" isReadOnly={!isAdmin} />
+                  </TabsContent>
+                  
+                  {/* Editor Permissions Tab */}
+                  <TabsContent value="editor" className="pt-4">
+                    <RolePermissionsManager role="editor" isReadOnly={!isAdmin} />
+                  </TabsContent>
+                  
+                  {/* Admin Permissions Tab */}
+                  <TabsContent value="admin" className="pt-4">
+                    <RolePermissionsManager role="admin" isReadOnly={!isAdmin} />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Email Access Control</CardTitle>
+                <CardDescription>
+                  Configure email patterns for automatic user approval and default role assignment.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Add New Email Pattern</h3>
+                    <p className="text-sm text-gray-500">
+                      Add patterns like 'user@example.com' for exact match or '*@example.com' for all emails from a domain.
                     </p>
+                    
+                    <form onSubmit={handleCreateEmailPattern} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="md:col-span-2">
+                        <Label htmlFor="emailPattern">Email Pattern</Label>
+                        <Input 
+                          id="emailPattern" 
+                          placeholder="*@company.com or user@example.com"
+                          value={newEmailPattern.emailPattern}
+                          onChange={(e) => setNewEmailPattern({...newEmailPattern, emailPattern: e.target.value})}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="defaultRole">Default Role</Label>
+                        <Select 
+                          value={newEmailPattern.defaultRole}
+                          onValueChange={(value) => setNewEmailPattern({...newEmailPattern, defaultRole: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="viewer">Viewer</SelectItem>
+                            <SelectItem value="editor">Editor</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="autoApprove" className="block mb-5">Auto Approve</Label>
+                        <Switch 
+                          id="autoApprove"
+                          checked={newEmailPattern.autoApprove}
+                          onCheckedChange={(checked) => setNewEmailPattern({...newEmailPattern, autoApprove: checked})}
+                        />
+                      </div>
+                      <div className="md:col-span-4 flex justify-end">
+                        <Button type="submit" disabled={createEmailPatternMutation.isPending}>
+                          {createEmailPatternMutation.isPending ? (
+                            <>
+                              <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
+                              Adding...
+                            </>
+                          ) : (
+                            <>Add Email Pattern</>
+                          )}
+                        </Button>
+                      </div>
+                    </form>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="defaultRole">Default Role</Label>
-                    <Select name="defaultRole" defaultValue="viewer">
-                      <SelectTrigger id="defaultRole">
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="viewer">Viewer</SelectItem>
-                        <SelectItem value="editor">Editor</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Separator />
                   
-                  <div className="space-y-2 flex items-end">
-                    <div className="flex items-center space-x-2">
-                      <Switch id="autoApprove" name="autoApprove" />
-                      <Label htmlFor="autoApprove">Auto Approve</Label>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Email Patterns</h3>
+                    {allowedEmailsLoading ? (
+                      <div className="flex justify-center p-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      </div>
+                    ) : allowedEmailsError ? (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>Failed to load email patterns</AlertDescription>
+                      </Alert>
+                    ) : allowedEmails.length === 0 ? (
+                      <div className="text-center p-4 border rounded-md">
+                        <p className="text-muted-foreground">No email patterns configured yet.</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Email Pattern</TableHead>
+                              <TableHead>Default Role</TableHead>
+                              <TableHead>Auto Approve</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {allowedEmails.map((pattern) => (
+                              <TableRow key={pattern.id}>
+                                <TableCell>{pattern.emailPattern}</TableCell>
+                                <TableCell>
+                                  <Badge variant={pattern.defaultRole === 'admin' ? 'default' : pattern.defaultRole === 'editor' ? 'secondary' : 'outline'}>
+                                    {pattern.defaultRole.charAt(0).toUpperCase() + pattern.defaultRole.slice(1)}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {pattern.autoApprove ? (
+                                    <Badge variant="success" className="bg-green-500">Yes</Badge>
+                                  ) : (
+                                    <Badge variant="outline">No</Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/20">
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete Email Pattern</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to delete the pattern '{pattern.emailPattern}'? 
+                                          This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction 
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                          onClick={() => handleDeleteEmailPattern(pattern.id)}
+                                        >
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>
+                  Manage user access and roles. Approve pending users or modify existing user permissions.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {usersLoading ? (
+                    <div className="flex justify-center p-4">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-end">
-                    <Button type="submit" className="w-full">
-                      Add Email Pattern
+                  ) : usersError ? (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>Failed to load users</AlertDescription>
+                    </Alert>
+                  ) : users.length === 0 ? (
+                    <div className="text-center p-4 border rounded-md">
+                      <p className="text-muted-foreground">No users found.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead onClick={() => handleSort('lastName')} className="cursor-pointer hover:bg-slate-100">
+                              User {userSort.column === 'lastName' && (userSort.direction === 'asc' ? '↑' : '↓')}
+                            </TableHead>
+                            <TableHead onClick={() => handleSort('role')} className="cursor-pointer hover:bg-slate-100">
+                              Role {userSort.column === 'role' && (userSort.direction === 'asc' ? '↑' : '↓')}
+                            </TableHead>
+                            <TableHead onClick={() => handleSort('department')} className="cursor-pointer hover:bg-slate-100">
+                              Department {userSort.column === 'department' && (userSort.direction === 'asc' ? '↑' : '↓')}
+                            </TableHead>
+                            <TableHead onClick={() => handleSort('isApproved')} className="cursor-pointer hover:bg-slate-100">
+                              Status {userSort.column === 'isApproved' && (userSort.direction === 'asc' ? '↑' : '↓')}
+                            </TableHead>
+                            <TableHead onClick={() => handleSort('createdAt')} className="cursor-pointer hover:bg-slate-100">
+                              Created {userSort.column === 'createdAt' && (userSort.direction === 'asc' ? '↑' : '↓')}
+                            </TableHead>
+                            <TableHead onClick={() => handleSort('lastLogin')} className="cursor-pointer hover:bg-slate-100">
+                              Last Login {userSort.column === 'lastLogin' && (userSort.direction === 'asc' ? '↑' : '↓')}
+                            </TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {getSortedUsers().map((user) => (
+                            <TableRow key={user.id}>
+                              <TableCell>
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                                    {user.firstName ? user.firstName.charAt(0) : user.username?.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <div className="font-medium">{user.firstName} {user.lastName}</div>
+                                    <div className="text-sm text-muted-foreground">{user.email || user.username}</div>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Select 
+                                  defaultValue={user.role} 
+                                  onValueChange={(value) => handleUpdateUserRole(user.id, value)}
+                                  disabled={!isAdmin}
+                                >
+                                  <SelectTrigger className="w-[110px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="viewer">Viewer</SelectItem>
+                                    <SelectItem value="editor">Editor</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                {user.department || 'Not assigned'}
+                              </TableCell>
+                              <TableCell>
+                                {user.isApproved ? (
+                                  <Badge className="bg-green-500">Approved</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="border-amber-500 text-amber-500">Pending</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end space-x-2">
+                                  {!user.isApproved && (
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      className="text-green-600 hover:text-green-700 hover:bg-green-100 flex items-center"
+                                      onClick={() => handleApproveUser(user.id)}
+                                      disabled={!isAdmin || approveUserMutation.isPending}
+                                    >
+                                      <UserCheck className="h-4 w-4 mr-1" />
+                                      Approve
+                                    </Button>
+                                  )}
+                                  
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-100 flex items-center"
+                                        disabled={!isAdmin}
+                                      >
+                                        <UserX className="h-4 w-4 mr-1" />
+                                        Reject
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                          {user.isApproved ? 'Revoke User Access' : 'Reject User'}
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to {user.isApproved ? 'revoke access for' : 'reject'} {user.firstName} {user.lastName}? 
+                                          {user.isApproved ? 
+                                            ' This will prevent them from accessing the system.' : 
+                                            ' Their account request will be denied.'}
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction 
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                          onClick={() => handleRejectUser(user.id)}
+                                        >
+                                          {user.isApproved ? 'Revoke Access' : 'Reject'}
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                  
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    title="Edit User"
+                                    onClick={() => handleEditUserClick(user)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Notifications Tab */}
+          <TabsContent value="notifications" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>System Notifications</CardTitle>
+                <CardDescription>
+                  Create and manage system-wide notifications for all users.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={() => setShowNotificationForm(!showNotificationForm)}
+                      className="flex items-center space-x-2"
+                    >
+                      {showNotificationForm ? 'Cancel' : 'Create Notification'}
                     </Button>
                   </div>
-                </div>
-                
-                <Separator className="my-6" />
-                
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Email Pattern</TableHead>
-                        <TableHead>Default Role</TableHead>
-                        <TableHead>Auto Approve</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {allowedEmails.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
-                            No email patterns configured
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        allowedEmails.map((email: any) => (
-                          <TableRow key={email.id}>
-                            <TableCell>{email.emailPattern}</TableCell>
-                            <TableCell>
-                              <Badge className="capitalize">
-                                {email.defaultRole}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {email.autoApprove ? (
-                                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                              ) : (
-                                <AlertCircle className="h-5 w-5 text-amber-500" />
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => handleDeleteAllowedEmail(email.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* User Management Tab */}
-        <TabsContent value="user-management" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>
-                Manage user access and roles. Approve pending users or modify existing user permissions.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="cursor-pointer" onClick={() => setUserSort({
-                        column: 'firstName',
-                        direction: userSort.column === 'firstName' && userSort.direction === 'asc' ? 'desc' : 'asc'
-                      })}>
-                        User {userSort.column === 'firstName' && (userSort.direction === 'asc' ? '↑' : '↓')}
-                      </TableHead>
-                      <TableHead className="cursor-pointer" onClick={() => setUserSort({
-                        column: 'department',
-                        direction: userSort.column === 'department' && userSort.direction === 'asc' ? 'desc' : 'asc'
-                      })}>
-                        Department {userSort.column === 'department' && (userSort.direction === 'asc' ? '↑' : '↓')}
-                      </TableHead>
-                      <TableHead className="cursor-pointer" onClick={() => setUserSort({
-                        column: 'role',
-                        direction: userSort.column === 'role' && userSort.direction === 'asc' ? 'desc' : 'asc'
-                      })}>
-                        Role {userSort.column === 'role' && (userSort.direction === 'asc' ? '↑' : '↓')}
-                      </TableHead>
-                      <TableHead className="cursor-pointer" onClick={() => setUserSort({
-                        column: 'status',
-                        direction: userSort.column === 'status' && userSort.direction === 'asc' ? 'desc' : 'asc'
-                      })}>
-                        Status {userSort.column === 'status' && (userSort.direction === 'asc' ? '↑' : '↓')}
-                      </TableHead>
-                      <TableHead className="cursor-pointer" onClick={() => setUserSort({
-                        column: 'createdAt',
-                        direction: userSort.column === 'createdAt' && userSort.direction === 'asc' ? 'desc' : 'asc'
-                      })}>
-                        Created {userSort.column === 'createdAt' && (userSort.direction === 'asc' ? '↑' : '↓')}
-                      </TableHead>
-                      <TableHead className="cursor-pointer" onClick={() => setUserSort({
-                        column: 'lastLogin',
-                        direction: userSort.column === 'lastLogin' && userSort.direction === 'asc' ? 'desc' : 'asc'
-                      })}>
-                        Last Login {userSort.column === 'lastLogin' && (userSort.direction === 'asc' ? '↑' : '↓')}
-                      </TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
-                          No users found
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      sortUsers(users, userSort.column, userSort.direction).map((user: any) => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex flex-col">
-                              <span className="font-semibold">{user.firstName} {user.lastName}</span>
-                              <span className="text-xs text-muted-foreground">{user.email}</span>
+                  
+                  {showNotificationForm && (
+                    <Card className="border border-primary/20 bg-primary/5">
+                      <CardHeader>
+                        <CardTitle>Create New Notification</CardTitle>
+                        <CardDescription>
+                          This notification will be sent to all users immediately.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={handleCreateNotification} className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="title">Title</Label>
+                              <Input 
+                                id="title" 
+                                value={newNotification.title}
+                                onChange={(e) => setNewNotification({...newNotification, title: e.target.value})}
+                                placeholder="Notification Title"
+                                required
+                              />
                             </div>
-                          </TableCell>
-                          <TableCell>{user.department || 'Not assigned'}</TableCell>
-                          <TableCell>
-                            <Badge className="capitalize">
-                              {user.role || 'viewer'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {user.status === 'approved' ? (
-                              <Badge variant="success" className="bg-green-500 hover:bg-green-600">Approved</Badge>
-                            ) : user.status === 'pending' ? (
-                              <Badge variant="outline" className="bg-amber-500/20 text-amber-700 border-amber-500">Pending</Badge>
-                            ) : user.status === 'rejected' ? (
-                              <Badge variant="destructive">Rejected</Badge>
-                            ) : (
-                              <Badge variant="outline">Unknown</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Never'}
-                          </TableCell>
-                          <TableCell>
-                            {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end space-x-1">
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => handleEditUser(user)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              
-                              {/* If the user is pending, show approve button */}
-                              {user.status === 'pending' && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon"
-                                  className="text-green-600 hover:text-green-700 hover:bg-green-100"
-                                  onClick={() => handleApproveUser(user.id)}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="priority">Priority</Label>
+                                <Select 
+                                  value={newNotification.priority}
+                                  onValueChange={(value) => setNewNotification({...newNotification, priority: value})}
                                 >
-                                  <UserCheck className="h-4 w-4" />
-                                </Button>
-                              )}
-                              
-                              {/* For all users, show reject/revoke button */}
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="text-red-600 hover:text-red-700 hover:bg-red-100"
-                                onClick={() => handleRejectUser(user.id)}
-                              >
-                                <UserX className="h-4 w-4" />
-                              </Button>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select priority" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="low">Low</SelectItem>
+                                    <SelectItem value="normal">Normal</SelectItem>
+                                    <SelectItem value="high">High</SelectItem>
+                                    <SelectItem value="urgent">Urgent</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="type">Type</Label>
+                                <Select 
+                                  value={newNotification.type}
+                                  onValueChange={(value) => setNewNotification({...newNotification, type: value})}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="system">System</SelectItem>
+                                    <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                                    <SelectItem value="project">Project</SelectItem>
+                                    <SelectItem value="billing">Billing</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="message">Message</Label>
+                            <textarea 
+                              id="message" 
+                              value={newNotification.message}
+                              onChange={(e) => setNewNotification({...newNotification, message: e.target.value})}
+                              placeholder="Notification message..."
+                              className="w-full h-24 px-3 py-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                              required
+                            />
+                          </div>
+                          
+                          <div className="flex justify-end space-x-2">
+                            <Button type="button" variant="outline" onClick={() => setShowNotificationForm(false)}>
+                              Cancel
+                            </Button>
+                            <Button type="submit" disabled={createNotificationMutation.isPending}>
+                              {createNotificationMutation.isPending ? (
+                                <>
+                                  <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
+                                  Sending...
+                                </>
+                              ) : (
+                                <>Send Notification</>
+                              )}
+                            </Button>
+                          </div>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">User Activity Logs</h3>
+                    
+                    {userAuditLogsLoading ? (
+                      <div className="flex justify-center p-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      </div>
+                    ) : userAuditLogsError ? (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>Failed to load user audit logs</AlertDescription>
+                      </Alert>
+                    ) : userAuditLogs && userAuditLogs.length === 0 ? (
+                      <div className="text-center p-4 border rounded-md">
+                        <p className="text-muted-foreground">No user activity logs found.</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>User</TableHead>
+                              <TableHead>Action</TableHead>
+                              <TableHead>Details</TableHead>
+                              <TableHead>Timestamp</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {userAuditLogs.map((log: any) => (
+                              <TableRow key={log.id}>
+                                <TableCell>{log.username || log.userId || 'System'}</TableCell>
+                                <TableCell>
+                                  <Badge variant={log.action === 'login' ? 'outline' : log.action === 'create' ? 'default' : log.action === 'update' ? 'secondary' : 'destructive'}>
+                                    {log.action}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>{log.details}</TableCell>
+                                <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* System Maintenance Tab */}
-        <TabsContent value="maintenance" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Database Maintenance</CardTitle>
-              <CardDescription>
-                Perform database maintenance tasks. Warning: These actions can be destructive.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <Alert className="bg-amber-500/20 border-amber-500">
-                  <AlertTriangle className="h-5 w-5 text-amber-500" />
-                  <AlertTitle>Warning: Destructive Actions</AlertTitle>
-                  <AlertDescription>
-                    The operations in this section can permanently delete data. Proceed with caution.
-                  </AlertDescription>
-                </Alert>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card className="border border-destructive/40">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">Reset All Projects</CardTitle>
-                      <CardDescription>
-                        Delete all projects and related data from the system.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-2">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive" className="w-full">
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Reset Projects Data
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete all projects, schedules, milestones, and related data from the system.
-                              This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
-                              className="bg-destructive"
-                              onClick={() => {
-                                setIsDeleting(true);
-                                fetch('/api/maintenance/reset-projects', {
-                                  method: 'POST',
-                                })
-                                  .then(response => response.json())
-                                  .then(data => {
-                                    setDeleteResult(data);
-                                    queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-                                    toast({
-                                      title: "Reset Complete",
-                                      description: `Successfully reset the project data. Deleted ${data.totalDeleted} items.`,
-                                    });
-                                  })
-                                  .catch(() => {
-                                    toast({
-                                      title: "Reset Failed",
-                                      description: "Failed to reset project data.",
-                                      variant: "destructive"
-                                    });
-                                  })
-                                  .finally(() => {
-                                    setIsDeleting(false);
-                                  });
-                              }}
-                            >
-                              Delete All Projects
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-            
-          <Card>
-            <CardHeader>
-              <CardTitle>System Information</CardTitle>
-              <CardDescription>
-                View system information and statistics.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground">Application Version</h3>
-                    <p className="text-lg font-semibold">v1.0.0</p>
                   </div>
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-muted-foreground">Database Status</h3>
-                    <div className="flex items-center space-x-2">
-                      <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                      <p className="text-lg font-semibold">Connected</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Archive Management Tab */}
+          <TabsContent value="archiveManagement" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Archive Management</CardTitle>
+                <CardDescription>
+                  Restore or permanently delete archived projects, milestones, and other items.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Archived Projects</h3>
+                    
+                    {archivedProjectsLoading ? (
+                      <div className="flex justify-center p-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      </div>
+                    ) : archivedProjectsError ? (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>Failed to load archived projects</AlertDescription>
+                      </Alert>
+                    ) : archivedProjects && archivedProjects.length === 0 ? (
+                      <div className="text-center p-4 border rounded-md">
+                        <p className="text-muted-foreground">No archived projects found.</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Project</TableHead>
+                              <TableHead>Project Number</TableHead>
+                              <TableHead>Archived Date</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {archivedProjects && archivedProjects.map((project: any) => (
+                              <TableRow key={project.id}>
+                                <TableCell>{project.name}</TableCell>
+                                <TableCell>{project.projectNumber}</TableCell>
+                                <TableCell>{new Date(project.updatedAt).toLocaleDateString()}</TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end space-x-1">
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm" 
+                                          className="flex items-center space-x-1"
+                                        >
+                                          <ArchiveRestore className="h-4 w-4 mr-1" />
+                                          Restore
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Restore Project</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to restore project '{project.name}'? 
+                                            It will be moved back to active projects.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction 
+                                            onClick={() => handleRestoreProject(project.id)}
+                                          >
+                                            Restore
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                    
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="text-destructive hover:text-destructive hover:bg-destructive/20 flex items-center space-x-1"
+                                        >
+                                          <Trash2 className="h-4 w-4 mr-1" />
+                                          Delete
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Permanently Delete Project</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to permanently delete project '{project.name}'? 
+                                            This action cannot be undone and all associated data will be lost forever.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction 
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            onClick={() => handlePermanentDeleteProject(project.id)}
+                                          >
+                                            Permanently Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* System Maintenance Tab */}
+          <TabsContent value="maintenance" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Database Maintenance</CardTitle>
+                <CardDescription>
+                  Perform database maintenance tasks. Warning: These actions can be destructive.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <Alert className="bg-amber-500/20 border-amber-500">
+                    <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    <AlertTitle>Warning: Destructive Actions</AlertTitle>
+                    <AlertDescription>
+                      The operations in this section can permanently delete data. Proceed with caution.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card className="border border-destructive/40">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Reset All Projects</CardTitle>
+                        <CardDescription>
+                          Delete all projects and related data from the system.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-2">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="w-full">
+                              Reset All Projects
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete All Projects</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete ALL projects and related data from the system.
+                                This action cannot be undone. Are you absolutely sure?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={handleDeleteAllProjects}
+                              >
+                                {isDeleting ? (
+                                  <>
+                                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
+                                    Deleting...
+                                  </>
+                                ) : (
+                                  <>Delete All Projects</>
+                                )}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        
+                        {deleteResult && (
+                          <div className="mt-4">
+                            <Alert variant={deleteResult.success ? "default" : "destructive"}>
+                              {deleteResult.success ? (
+                                <CheckCircle2 className="h-4 w-4" />
+                              ) : (
+                                <AlertCircle className="h-4 w-4" />
+                              )}
+                              <AlertTitle>{deleteResult.success ? "Success" : "Error"}</AlertTitle>
+                              <AlertDescription>
+                                {deleteResult.message}
+                                {deleteResult.totalDeleted !== undefined && (
+                                  <div className="mt-2">
+                                    <Badge variant="outline">
+                                      {deleteResult.totalDeleted} projects deleted
+                                    </Badge>
+                                  </div>
+                                )}
+                              </AlertDescription>
+                            </Alert>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Database Backup</CardTitle>
+                        <CardDescription>
+                          Create a backup of the current database.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-2">
+                        <Button className="w-full" variant="outline">
+                          Backup Database
+                        </Button>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Database Restore</CardTitle>
+                        <CardDescription>
+                          Restore the database from a backup file.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-2">
+                        <Button className="w-full" variant="outline">
+                          Restore Database
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>System Information</CardTitle>
+                <CardDescription>
+                  View system information and statistics.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Application Version</h3>
+                      <p className="text-lg font-semibold">v1.0.0</p>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Database Status</h3>
+                      <div className="flex items-center space-x-2">
+                        <div className="h-3 w-3 rounded-full bg-green-500"></div>
+                        <p className="text-lg font-semibold">Connected</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Last Backup</h3>
+                      <p className="text-lg font-semibold">
+                        Never
+                      </p>
                     </div>
                   </div>
+                  
+                  <Separator className="my-6" />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-center">
+                          <h3 className="text-lg font-semibold">{users ? users.length : 0}</h3>
+                          <p className="text-sm text-muted-foreground">Total Users</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-center">
+                          <h3 className="text-lg font-semibold">{activeProjects ? activeProjects.length : 0}</h3>
+                          <p className="text-sm text-muted-foreground">Active Projects</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-center">
+                          <h3 className="text-lg font-semibold">{archivedProjects ? archivedProjects.length : 0}</h3>
+                          <p className="text-sm text-muted-foreground">Archived Projects</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-center">
+                          <h3 className="text-lg font-semibold">{storageInfo ? storageInfo.totalStorageUsed : 28}</h3>
+                          <p className="text-sm text-muted-foreground">Storage Used (MB)</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
-                
-                <Separator className="my-6" />
-                
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-center">
-                        <h3 className="text-lg font-semibold">{users ? users.length : 0}</h3>
-                        <p className="text-sm text-muted-foreground">Total Users</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-center">
-                        <h3 className="text-lg font-semibold">{activeProjects ? activeProjects.length : 0}</h3>
-                        <p className="text-sm text-muted-foreground">Active Projects</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-center">
-                        <h3 className="text-lg font-semibold">{archivedProjects ? archivedProjects.length : 0}</h3>
-                        <p className="text-sm text-muted-foreground">Archived Projects</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-center">
-                        <h3 className="text-lg font-semibold">
-                          {storageInfo?.totalStorageUsed
-                            ? Math.round(storageInfo.totalStorageUsed / (1024 * 1024))
-                            : 0} MB
-                        </h3>
-                        <p className="text-sm text-muted-foreground">Storage Used</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Archived Projects</CardTitle>
-              <CardDescription>
-                View and manage archived projects.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[200px]">Project</TableHead>
-                      <TableHead>Number</TableHead>
-                      <TableHead>Date Archived</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {archivedProjects.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
-                          No archived projects found
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      archivedProjects.map((project: any) => (
-                        <TableRow key={project.id}>
-                          <TableCell className="font-medium">{project.name}</TableCell>
-                          <TableCell>{project.projectNumber}</TableCell>
-                          <TableCell>
-                            {new Date(project.archivedAt || project.updatedAt).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => restoreProjectMutation.mutate(project.id)}
-                              disabled={restoreProjectMutation.isPending}
-                            >
-                              <ArchiveRestore className="h-4 w-4 mr-2" />
-                              Restore
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Audit Logs Tab */}
-        <TabsContent value="logs" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Activity Logs</CardTitle>
-              <CardDescription>
-                View audit logs of user activities in the system.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[200px]">User</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>Details</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {userAuditLogs.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
-                          No audit logs found
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      userAuditLogs.map((log: any) => (
-                        <TableRow key={log.id}>
-                          <TableCell className="font-medium">{getUserName(log.userId)}</TableCell>
-                          <TableCell>{log.actionType}</TableCell>
-                          <TableCell>{log.details}</TableCell>
-                          <TableCell>{new Date(log.createdAt).toLocaleString()}</TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
 };
+
+
 
 export default SystemSettings;
