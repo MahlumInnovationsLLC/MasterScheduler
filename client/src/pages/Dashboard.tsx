@@ -62,8 +62,8 @@ const Dashboard = () => {
                 </p>
               </div>
 
-              <h1 className="text-2xl font-bold mb-4 text-white">Login Required</h1>
-              <p className="text-gray-300 mb-8 leading-relaxed">
+              <h1 className="text-2xl font-bold mb-4 text-white dark:text-white">Login Required</h1>
+              <p className="text-gray-300 dark:text-gray-300 mb-8 leading-relaxed">
                 Please sign in to access your manufacturing dashboard and project management tools.
               </p>
 
