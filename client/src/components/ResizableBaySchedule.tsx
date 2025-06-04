@@ -1481,6 +1481,45 @@ export default function ResizableBaySchedule({
     
     setFilteredProjects(sorted);
   }, [searchTerm, projects, schedules]);
+
+  // Effect to cleanup persistent tooltips and manage tooltip behavior
+  useEffect(() => {
+    const hideAllTooltips = () => {
+      console.log('🧹 Cleaning up all tooltips');
+      document.querySelectorAll('[id^="tooltip-"]').forEach(tooltip => {
+        (tooltip as HTMLElement).style.opacity = '0';
+      });
+    };
+    
+    // Hide all tooltips when component updates
+    hideAllTooltips();
+    
+    // Add a global click handler to hide tooltips when clicking elsewhere
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[id^="tooltip-"]') && !target.closest('a[href^="/project/"]')) {
+        console.log('🧹 Global click detected, hiding tooltips');
+        hideAllTooltips();
+      }
+    };
+    
+    // Add escape key handler to hide tooltips
+    const handleEscapeKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        console.log('🧹 Escape key pressed, hiding tooltips');
+        hideAllTooltips();
+      }
+    };
+    
+    document.addEventListener('click', handleGlobalClick);
+    document.addEventListener('keydown', handleEscapeKey);
+    
+    return () => {
+      document.removeEventListener('click', handleGlobalClick);
+      document.removeEventListener('keydown', handleEscapeKey);
+      hideAllTooltips();
+    };
+  }, [scheduleBars]);
   
   // Auto-scroll to center the red TODAY line in the viewport by finding it visually
   useEffect(() => {
@@ -4290,18 +4329,30 @@ export default function ResizableBaySchedule({
                                               e.stopPropagation();
                                               window.location.href = `/project/${bar.projectId}`;
                                             }}
-                                            onMouseEnter={() => {
+                                            onMouseEnter={(e) => {
+                                              console.log(`🎯 Mouse ENTER on project ${bar.projectNumber} (ID: ${bar.id})`);
                                               // Hide all other tooltips first
                                               document.querySelectorAll('[id^="tooltip-"]').forEach(tooltip => {
                                                 (tooltip as HTMLElement).style.opacity = '0';
                                               });
                                               // Show this tooltip
                                               const tooltip = document.getElementById(`tooltip-${bar.id}`);
-                                              if (tooltip) tooltip.style.opacity = '1';
+                                              if (tooltip) {
+                                                tooltip.style.opacity = '1';
+                                                console.log(`✅ Showing tooltip for project ${bar.projectNumber}`);
+                                              } else {
+                                                console.log(`❌ Tooltip not found for project ${bar.projectNumber}`);
+                                              }
                                             }}
-                                            onMouseLeave={() => {
+                                            onMouseLeave={(e) => {
+                                              console.log(`🎯 Mouse LEAVE on project ${bar.projectNumber} (ID: ${bar.id})`);
                                               const tooltip = document.getElementById(`tooltip-${bar.id}`);
-                                              if (tooltip) tooltip.style.opacity = '0';
+                                              if (tooltip) {
+                                                tooltip.style.opacity = '0';
+                                                console.log(`✅ Hiding tooltip for project ${bar.projectNumber}`);
+                                              } else {
+                                                console.log(`❌ Tooltip not found for hiding project ${bar.projectNumber}`);
+                                              }
                                             }}
                                           >
                                             {bar.projectNumber}
