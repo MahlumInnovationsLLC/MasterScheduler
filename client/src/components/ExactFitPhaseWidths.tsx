@@ -18,12 +18,12 @@ export const calculateExactFitPhaseWidths = (
   defaultNormalizeFactor: number = 1
 ) => {
   // Use project-specific phase percentages or fallback to company standard defaults
-  const fabPercentage = project ? (parseFloat(project.fabPercentage as any) || 27) : 27;
-  const paintPercentage = project ? (parseFloat(project.paintPercentage as any) || 7) : 7; 
-  const productionPercentage = project ? (parseFloat(project.productionPercentage as any) || 60) : 60;
-  const itPercentage = project ? (parseFloat(project.itPercentage as any) || 7) : 7;
-  const ntcPercentage = project ? (parseFloat(project.ntcPercentage as any) || 7) : 7;
-  const qcPercentage = project ? (parseFloat(project.qcPercentage as any) || 7) : 7;
+  const fabPercentage = project && project.fabPercentage !== undefined && project.fabPercentage !== null ? Number(project.fabPercentage) : 27;
+  const paintPercentage = project && project.paintPercentage !== undefined && project.paintPercentage !== null ? Number(project.paintPercentage) : 7; 
+  const productionPercentage = project && project.productionPercentage !== undefined && project.productionPercentage !== null ? Number(project.productionPercentage) : 60;
+  const itPercentage = project && project.itPercentage !== undefined && project.itPercentage !== null ? Number(project.itPercentage) : 7;
+  const ntcPercentage = project && project.ntcPercentage !== undefined && project.ntcPercentage !== null ? Number(project.ntcPercentage) : 7;
+  const qcPercentage = project && project.qcPercentage !== undefined && project.qcPercentage !== null ? Number(project.qcPercentage) : 7;
   
   // Calculate the total percentage and normalization factor
   const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
