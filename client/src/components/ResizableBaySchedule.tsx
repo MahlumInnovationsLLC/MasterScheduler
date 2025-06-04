@@ -4278,8 +4278,19 @@ export default function ResizableBaySchedule({
                                     ].filter(item => item.value !== 'Not Set') : [];
 
                                     return (
-                                      <div className="relative group">
-                                        <div className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center shadow-md border border-gray-300" style={{minWidth: "200px", maxWidth: "400px", position: 'relative', whiteSpace: 'nowrap', overflow: 'visible'}}>
+                                      <div className="relative">
+                                        <div 
+                                          className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center shadow-md border border-gray-300 hover-trigger" 
+                                          style={{minWidth: "200px", maxWidth: "400px", position: 'relative', whiteSpace: 'nowrap', overflow: 'visible'}}
+                                          onMouseEnter={() => {
+                                            const tooltip = document.getElementById(`tooltip-${bar.id}`);
+                                            if (tooltip) tooltip.style.opacity = '1';
+                                          }}
+                                          onMouseLeave={() => {
+                                            const tooltip = document.getElementById(`tooltip-${bar.id}`);
+                                            if (tooltip) tooltip.style.opacity = '0';
+                                          }}
+                                        >
                                           <a 
                                             href={`/project/${bar.projectId}`}
                                             className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
@@ -4294,9 +4305,19 @@ export default function ResizableBaySchedule({
                                           <span style={{whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'unset'}}>{bar.projectName}</span>
                                         </div>
                                         
-                                        {/* Timeline Tooltip - appears on hover */}
+                                        {/* Timeline Tooltip - appears on hover with JS control */}
                                         {timelineDates.length > 0 && (
-                                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" style={{ zIndex: 99999 }}>
+                                          <div 
+                                            id={`tooltip-${bar.id}`}
+                                            className="fixed pointer-events-none transition-opacity duration-200"
+                                            style={{ 
+                                              opacity: 0,
+                                              zIndex: 999999,
+                                              left: '50%',
+                                              top: '20%',
+                                              transform: 'translateX(-50%)'
+                                            }}
+                                          >
                                             <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[300px] max-w-[400px]">
                                               <div className="font-semibold text-blue-300 mb-2 text-center border-b border-gray-700 pb-1">
                                                 Project Timeline Dates
