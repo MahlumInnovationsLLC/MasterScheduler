@@ -3009,6 +3009,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route to get user module visibility settings
+  app.get("/api/users/:id/module-visibility", simpleAuth, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const visibilitySettings = await storage.getUserModuleVisibility(userId);
+      res.json(visibilitySettings);
+    } catch (error) {
+      console.error("Error fetching user module visibility:", error);
+      res.status(500).json({ message: "Error fetching module visibility" });
+    }
+  });
+
   // Route to reset user password (admin only)
   app.patch("/api/users/:id/reset-password", simpleAuth, async (req, res) => {
     try {

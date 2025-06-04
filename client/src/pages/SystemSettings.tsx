@@ -78,6 +78,9 @@ const SystemSettings = () => {
     column: 'lastName',
     direction: 'asc'
   });
+
+  // User module visibility state
+  const [userModuleVisibility, setUserModuleVisibility] = useState<Record<string, Record<string, boolean>>>({});
   
   // User edit dialog state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -97,6 +100,28 @@ const SystemSettings = () => {
     console.log('Development mode detected, enabling admin capabilities');
     setIsAdmin(true);
   }, []);
+
+  // Load user module visibility settings
+  const loadUserModuleVisibility = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/users/${userId}/module-visibility`);
+      if (response.ok) {
+        const data = await response.json();
+        const visibilityMap: Record<string, boolean> = {};
+        data.forEach((item: any) => {
+          visibilityMap[item.module] = item.is_visible;
+        });
+        setUserModuleVisibility(prev => ({
+          ...prev,
+          [userId]: visibilityMap
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading user module visibility:', error);
+    }
+  };
+
+
   
   // Backup functionality temporarily disabled
   
@@ -219,6 +244,15 @@ const SystemSettings = () => {
     queryKey: ['/api/users'],
     queryFn: getQueryFn({}),
   });
+
+  // Load module visibility for all users when users data changes
+  useEffect(() => {
+    if (users && users.length > 0) {
+      users.forEach(user => {
+        loadUserModuleVisibility(user.id);
+      });
+    }
+  }, [users]);
 
   // Get email patterns
   const {
@@ -1119,8 +1153,15 @@ const SystemSettings = () => {
                               { id: 'export-reports', name: 'Export Reports', description: 'Export reports and data' },
                               { id: 'system-settings', name: 'System Settings', description: 'Access system configuration' }
                             ].map((module) => {
-                              // Default permissions based on role
-                              const getDefaultChecked = () => {
+                              // Get saved visibility state or default based on role
+                              const getSavedOrDefaultChecked = () => {
+                                // Check if we have saved visibility data for this user and module
+                                const savedVisibility = userModuleVisibility[user.id]?.[module.id];
+                                if (savedVisibility !== undefined) {
+                                  return savedVisibility;
+                                }
+                                
+                                // Fallback to role-based defaults
                                 if (user.role === 'admin') return true;
                                 if (user.role === 'editor') return !['system-settings', 'import'].includes(module.id);
                                 if (user.role === 'viewer') return !['sales-forecast', 'bay-scheduling', 'system-settings', 'import'].includes(module.id);
@@ -1135,7 +1176,7 @@ const SystemSettings = () => {
                                       <div className="text-xs text-muted-foreground">{module.description}</div>
                                     </div>
                                     <Switch 
-                                      defaultChecked={getDefaultChecked()}
+                                      checked={getSavedOrDefaultChecked()}
                                       disabled={!isAdmin}
                                       onCheckedChange={async (checked) => {
                                         console.log(`User ${user.firstName} ${user.lastName} - ${module.name} visibility:`, checked);
