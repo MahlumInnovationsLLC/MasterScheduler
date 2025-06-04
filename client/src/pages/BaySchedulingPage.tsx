@@ -257,36 +257,117 @@ const BaySchedulingPage = () => {
         return false;
       }
       
-      // Target the exact container using the same selector as forceScrollToToday
-      const scrollContainer = document.querySelector('.p-4.overflow-x-auto');
+      console.log(`Found project ${targetProject.projectNumber} scheduled in bay ${projectSchedule.bayId}`);
+      
+      // Try multiple possible scroll container selectors
+      let scrollContainer = document.querySelector('.p-4.overflow-x-auto') ||
+                          document.querySelector('[class*="overflow-x-auto"]') ||
+                          document.querySelector('.manufacturing-schedule') ||
+                          document.querySelector('[data-testid="schedule-container"]');
+      
+      // If no container found, try the ResizableBaySchedule component container
+      if (!scrollContainer) {
+        const allScrollableElements = document.querySelectorAll('*');
+        for (const element of allScrollableElements) {
+          const styles = window.getComputedStyle(element);
+          if (styles.overflowX === 'auto' || styles.overflowX === 'scroll') {
+            if (element.scrollWidth > element.clientWidth) {
+              scrollContainer = element;
+              break;
+            }
+          }
+        }
+      }
       
       if (!scrollContainer) {
-        console.error("Schedule container not found - cannot scroll to project");
-        throw new Error("Schedule container not found");
+        console.error("No scrollable container found - searching for project bar directly");
+        
+        // Try to find the project bar element directly and scroll its parent
+        const projectBars = document.querySelectorAll('[data-project-id], .schedule-bar, .project-bar');
+        for (const bar of projectBars) {
+          const barText = bar.textContent || '';
+          if (barText.includes(targetProject.projectNumber)) {
+            console.log(`Found project bar for ${targetProject.projectNumber}`);
+            // Scroll the closest scrollable parent
+            let parent = bar.parentElement;
+            while (parent) {
+              const styles = window.getComputedStyle(parent);
+              if (styles.overflowX === 'auto' || styles.overflowX === 'scroll') {
+                scrollContainer = parent;
+                break;
+              }
+              parent = parent.parentElement;
+            }
+            break;
+          }
+        }
       }
+      
+      if (!scrollContainer) {
+        throw new Error("Could not find any scrollable container");
+      }
+      
+      console.log(`Using scroll container:`, scrollContainer);
       
       // Calculate the project's position based on its start date
       const projectStartDate = new Date(projectSchedule.startDate);
-      const startOfYear = new Date(2025, 0, 1);
+      const startOfYear = new Date(2024, 0, 1); // Use 2024 as the base year to match the dateRange
       const millisecondsPerDay = 24 * 60 * 60 * 1000;
-      const daysSinceJan1 = Math.floor((projectStartDate.getTime() - startOfYear.getTime()) / millisecondsPerDay);
+      const daysSinceStart = Math.floor((projectStartDate.getTime() - startOfYear.getTime()) / millisecondsPerDay);
       
-      // Week view calculations (144px per week, divided by 7 days)
+      // Week view calculations - adjust based on actual layout
       const pixelsPerDay = 144 / 7; // ~20.6px per day in week view
-      const bayColumnWidth = 343; // Bay column width
+      const bayColumnWidth = 200; // Reduced estimate for bay column width
       
-      // Calculate target position (days * pixels per day) + bay column width
-      // Center the viewport on the project by subtracting half the viewport width
+      // Calculate target position
+      const projectPixelPosition = daysSinceStart * pixelsPerDay;
       const viewportWidth = scrollContainer.clientWidth;
-      const targetPosition = (daysSinceJan1 * pixelsPerDay) + bayColumnWidth - (viewportWidth / 2);
+      const targetPosition = projectPixelPosition + bayColumnWidth - (viewportWidth / 2);
       
       // Ensure we don't scroll before the beginning
       const finalPosition = Math.max(0, targetPosition);
       
-      // Force scroll using scrollLeft property
-      (scrollContainer as HTMLElement).scrollLeft = finalPosition;
+      console.log(`Project calculation:
+        - Start date: ${projectStartDate.toISOString()}
+        - Days since 2024-01-01: ${daysSinceStart}
+        - Pixel position: ${projectPixelPosition}
+        - Bay column width: ${bayColumnWidth}
+        - Viewport width: ${viewportWidth}
+        - Target scroll position: ${finalPosition}`);
       
-      console.log(`Scrolled to project ${targetProject.projectNumber} at ${finalPosition}px (${daysSinceJan1} days since Jan 1)`);
+      // Force scroll using scrollLeft property with smooth behavior
+      (scrollContainer as HTMLElement).scrollTo({
+        left: finalPosition,
+        behavior: 'smooth'
+      });
+      
+      // Also try direct scrollLeft assignment as fallback
+      setTimeout(() => {
+        (scrollContainer as HTMLElement).scrollLeft = finalPosition;
+      }, 100);
+      
+      console.log(`Scrolled to project ${targetProject.projectNumber} at position ${finalPosition}px`);
+      
+      // Also scroll vertically to the bay if needed
+      const activeBays = isSandboxMode ? sandboxBays : manufacturingBays;
+      const targetBay = activeBays.find(bay => bay.id === projectSchedule.bayId);
+      if (targetBay) {
+        // Try to find the bay element and scroll it into view
+        setTimeout(() => {
+          const bayElements = document.querySelectorAll(`[data-bay-id="${targetBay.id}"], .bay-row, .manufacturing-bay`);
+          for (const bayElement of bayElements) {
+            const bayText = bayElement.textContent || '';
+            if (bayText.includes(targetBay.name) || bayText.includes(`Bay ${targetBay.bayNumber}`)) {
+              bayElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center',
+                inline: 'nearest'
+              });
+              break;
+            }
+          }
+        }, 500);
+      }
       
       // Success message
       toast({
