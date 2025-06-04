@@ -464,35 +464,33 @@ select:focus {
   box-shadow: 0 2px 8px rgba(156, 163, 175, 0.3);
 }
 
-/* Light mode overrides for location blocks - higher specificity */
-:root:not(.dark) .location-block,
-:root:not(.dark) .data-table td[data-location],
-:root:not(.dark) .table-cell-location,
-:root:not(.dark) .data-table td:first-child,
-:root:not(.dark) .data-table th:first-child,
-:root:not(.dark) .data-table td:first-child > div,
-:root:not(.dark) .data-table td:first-child .location-block {
+/* Light mode overrides for location blocks */
+.light .location-block,
+.light .data-table td[data-location],
+.light .table-cell-location,
+.light .data-table td:first-child,
+.light .data-table th:first-child {
   background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%) !important;
   color: #ffffff !important;
-  border: 1px solid #d1d5db !important;
+  border: 1px solid #d1d5db;
 }
 
-/* Light mode text color fixes - only for white text elements, but exclude location blocks */
-:root:not(.dark) .text-white:not(.location-block):not([class*="location"]):not([data-location]),
-:root:not(.dark) [style*="color: white"]:not(.location-block):not([class*="location"]):not([data-location]),
-:root:not(.dark) [style*="color: #ffffff"]:not(.location-block):not([class*="location"]):not([data-location]),
-:root:not(.dark) [style*="color: #fff"]:not(.location-block):not([class*="location"]):not([data-location]),
-:root:not(.dark) [style*="color:white"]:not(.location-block):not([class*="location"]):not([data-location]),
-:root:not(.dark) [style*="color:#ffffff"]:not(.location-block):not([class*="location"]):not([data-location]),
-:root:not(.dark) [style*="color:#fff"]:not(.location-block):not([class*="location"]):not([data-location]) {
+/* Light mode text color fixes - only for white text elements */
+:root:not(.dark) .text-white,
+:root:not(.dark) [style*="color: white"],
+:root:not(.dark) [style*="color: #ffffff"],
+:root:not(.dark) [style*="color: #fff"],
+:root:not(.dark) [style*="color:white"],
+:root:not(.dark) [style*="color:#ffffff"],
+:root:not(.dark) [style*="color:#fff"] {
   color: #374151 !important;
 }
 
-/* Light mode table content - only override white text, but exclude location blocks */
-:root:not(.dark) .data-table th:where([style*="color: white"], [style*="color: #fff"]):not(.location-block):not([class*="location"]):not([data-location]),
-:root:not(.dark) .data-table td:where([style*="color: white"], [style*="color: #fff"]):not(.location-block):not([class*="location"]):not([data-location]),
-:root:not(.dark) table th:where([style*="color: white"], [style*="color: #fff"]):not(.location-block):not([class*="location"]):not([data-location]),
-:root:not(.dark) table td:where([style*="color: white"], [style*="color: #fff"]):not(.location-block):not([class*="location"]):not([data-location]) {
+/* Light mode table content - only override white text */
+:root:not(.dark) .data-table th:where([style*="color: white"], [style*="color: #fff"]),
+:root:not(.dark) .data-table td:where([style*="color: white"], [style*="color: #fff"]),
+:root:not(.dark) table th:where([style*="color: white"], [style*="color: #fff"]),
+:root:not(.dark) table td:where([style*="color: white"], [style*="color: #fff"]) {
   color: #374151 !important;
 }
 
@@ -566,8 +564,7 @@ select:focus {
 }
 
 /* Projects module location styling - match Dashboard styling */
-.data-table td div[style*="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"],
-.data-table td div[style*="linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"] {
+.data-table td div[style*="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"] {
   background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%) !important;
   color: #ffffff !important;
   font-weight: 500;
@@ -575,27 +572,10 @@ select:focus {
   box-shadow: 0 2px 8px rgba(156, 163, 175, 0.3);
 }
 
-:root:not(.dark) .data-table td div[style*="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"],
-:root:not(.dark) .data-table td div[style*="linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"] {
+.light .data-table td div[style*="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%)"] {
   background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%) !important;
   color: #ffffff !important;
-  border: 1px solid #d1d5db !important;
-}
-
-/* More specific targeting for Projects module location cells */
-.data-table tbody tr td .px-3.py-1.rounded[style*="linear-gradient"] {
-  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%) !important;
-  color: #ffffff !important;
-  font-weight: 500;
   border: 1px solid #d1d5db;
-  box-shadow: 0 2px 8px rgba(156, 163, 175, 0.3);
-}
-
-:root:not(.dark) .data-table tbody tr td .px-3.py-1.rounded[style*="linear-gradient"] {
-  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%) !important;
-  color: #ffffff !important;
-  border: 1px solid #d1d5db !important;
-  font-weight: 500;
 }
 
 /* Chart styles */
