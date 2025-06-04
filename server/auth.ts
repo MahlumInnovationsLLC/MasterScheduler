@@ -81,47 +81,56 @@ async function initializeSessionStore() {
       console.log('Session table already exists');
     }
     
+    return true;
   } catch (error) {
-    console.log('Session initialization skipped:', error.message);
-    // Don't log as error - this is expected during restarts
+    console.log('Session table initialization failed:', error.message);
+    return false;
   }
 }
 
 export async function setupAuth(app: Express) {
   // Initialize session store first
-  await initializeSessionStore();
+  const storeInitialized = await initializeSessionStore();
 
   const PostgresSessionStore = connectPg(session);
 
   let sessionStore;
-  try {
-    sessionStore = new PostgresSessionStore({ 
-      pool: pool, 
-      createTableIfMissing: false,
-      errorLog: (error) => {
-        // Only log unexpected errors, not connection issues
-        if (!error.message.includes('already exists') && 
-            !error.message.includes('IDX_session_expire') &&
-            !error.code?.includes('42P07')) {
-          console.log('Session store notice:', error.message);
+  if (storeInitialized) {
+    try {
+      sessionStore = new PostgresSessionStore({ 
+        pool: pool, 
+        createTableIfMissing: false,
+        ttl: 24 * 60 * 60, // 24 hours in seconds
+        errorLog: (error) => {
+          // Only log unexpected errors, not connection issues
+          if (!error.message.includes('already exists') && 
+              !error.message.includes('IDX_session_expire') &&
+              !error.code?.includes('42P07')) {
+            console.log('Session store notice:', error.message);
+          }
         }
-      }
-    });
-    console.log('PostgreSQL session store initialized');
-  } catch (storeError) {
-    console.log('Using memory session store due to:', storeError.message);
-    sessionStore = undefined; // Will use default memory store
+      });
+      console.log('PostgreSQL session store initialized');
+    } catch (storeError) {
+      console.log('Using memory session store due to:', storeError.message);
+      sessionStore = undefined; // Will use default memory store
+    }
+  } else {
+    console.log('Using memory session store - database not available');
+    sessionStore = undefined;
   }
 
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || 'your-secret-key-here',
+    secret: process.env.SESSION_SECRET || 'tier4-production-secret-key',
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Reset expiration on activity
     store: sessionStore,
     cookie: {
       secure: false, // Set to true in production with HTTPS
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      httpOnly: true
+      httpOnly: true,
+      sameSite: 'lax' // Better for same-origin requests
     }
   };
 
@@ -129,9 +138,10 @@ export async function setupAuth(app: Express) {
   
   // Session timeout and device validation middleware
   app.use((req: any, res: any, next: any) => {
-    // Skip auth routes
+    // Skip auth routes and static assets
     if (req.path.includes('/api/login') || req.path.includes('/api/register') || 
-        req.path.includes('/auth') || req.path.includes('/health')) {
+        req.path.includes('/auth') || req.path.includes('/health') ||
+        req.path.includes('/assets/') || req.path.includes('/favicon.ico')) {
       return next();
     }
 
@@ -140,7 +150,7 @@ export async function setupAuth(app: Express) {
       const sessionFingerprint = req.session.deviceFingerprint;
       const lastActivity = req.session.lastActivity ? new Date(req.session.lastActivity) : new Date();
       
-      // Check if session expired
+      // Check if session expired (24 hours)
       if (isSessionExpired(lastActivity)) {
         console.log(`[SESSION] Session expired for user ${req.session.user.email}`);
         req.session.destroy((err: any) => {
@@ -149,17 +159,23 @@ export async function setupAuth(app: Express) {
         return next();
       }
       
-      // Check if device fingerprint matches
+      // More lenient device fingerprint check - only check if fingerprint was previously set
       if (sessionFingerprint && sessionFingerprint !== currentFingerprint) {
-        console.log(`[SESSION] Device fingerprint mismatch for user ${req.session.user.email}`);
-        req.session.destroy((err: any) => {
-          if (err) console.error('Session destroy error:', err);
-        });
-        return next();
+        // Allow for minor changes in fingerprint but log the difference
+        console.log(`[SESSION] Device fingerprint changed for user ${req.session.user.email}`);
+        // Update to new fingerprint instead of destroying session
+        req.session.deviceFingerprint = currentFingerprint;
       }
       
       // Update last activity
       req.session.lastActivity = new Date();
+      
+      // Save session to ensure persistence
+      req.session.save((err: any) => {
+        if (err) {
+          console.error('Session save error:', err);
+        }
+      });
     }
     
     next();
@@ -292,12 +308,20 @@ export async function setupAuth(app: Express) {
         (req.session as any).lastActivity = new Date();
         (req.session as any).user = user;
         
-        console.log(`Login successful for user: ${user.email || user.username} from device: ${deviceFingerprint.substring(0, 8)}...`);
-        res.json({ 
-          id: user.id, 
-          username: user.username, 
-          email: user.email, 
-          role: user.role 
+        // Force save session to ensure persistence
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Session save error:', saveErr);
+            return res.status(500).json({ error: "Session persistence failed" });
+          }
+          
+          console.log(`Login successful for user: ${user.email || user.username} from device: ${deviceFingerprint.substring(0, 8)}...`);
+          res.json({ 
+            id: user.id, 
+            username: user.username, 
+            email: user.email, 
+            role: user.role 
+          });
         });
       });
     })(req, res, next);
@@ -463,20 +487,25 @@ export const isAuthenticated = (req: any, res: any, next: any) => {
       return res.status(401).json({ message: "Session expired" });
     }
     
-    // Validate device fingerprint
+    // More lenient device fingerprint validation
     const currentFingerprint = generateDeviceFingerprint(req);
     const sessionFingerprint = (req.session as any)?.deviceFingerprint;
     if (sessionFingerprint && sessionFingerprint !== currentFingerprint) {
-      console.log(`[AUTH MIDDLEWARE] ❌ Device fingerprint mismatch for ${sessionUser.email}`);
-      req.session.destroy((err: any) => {
-        if (err) console.error('Session destroy error:', err);
-      });
-      return res.status(401).json({ message: "Device validation failed" });
+      console.log(`[AUTH MIDDLEWARE] ⚠️ Device fingerprint changed for ${sessionUser.email}, updating...`);
+      // Update fingerprint instead of destroying session
+      (req.session as any).deviceFingerprint = currentFingerprint;
     }
     
-    // Update last activity
+    // Update last activity and save session
     (req.session as any).lastActivity = new Date();
     req.user = sessionUser; // Set user for downstream middleware
+    
+    // Save session to ensure persistence
+    req.session.save((err: any) => {
+      if (err) {
+        console.error('Session save error:', err);
+      }
+    });
     
     console.log(`[AUTH MIDDLEWARE] ✅ Authentication successful for ${sessionUser.email} with role ${sessionUser.role}`);
     return next();

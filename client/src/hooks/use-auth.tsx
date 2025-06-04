@@ -87,12 +87,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return failureCount < 2;
     },
     retryDelay: 1000,
-    staleTime: 2 * 60 * 1000, // 2 minutes (shorter to check session more frequently)
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes (less frequent checks)
+    gcTime: 30 * 60 * 1000, // 30 minutes
     refetchOnWindowFocus: true, // Check session when window regains focus
     refetchOnMount: true,
     refetchOnReconnect: true,
-    refetchInterval: 5 * 60 * 1000, // Check session every 5 minutes
+    refetchInterval: 15 * 60 * 1000, // Check session every 15 minutes (less frequent)
   });
 
   const loginMutation = useMutation({
@@ -121,10 +121,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (data) => {
       console.log("✅ AUTH: Login successful, user data:", data);
-      // Invalidate and refetch user data immediately
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      // Force a refetch to ensure fresh data
-      refetch();
+      // Set user data immediately to avoid delay
+      queryClient.setQueryData(["/api/user"], data);
+      // Invalidate to ensure fresh data on next request
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      }, 100);
     },
     onError: (error) => {
       console.log("❌ AUTH: Login error:", error);
