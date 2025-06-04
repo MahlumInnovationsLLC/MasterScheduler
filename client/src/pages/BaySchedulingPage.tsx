@@ -66,7 +66,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 })();
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { addDays, addWeeks, addMonths, format } from 'date-fns';
-import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown, Upload, Shuffle, X, Save, Play } from 'lucide-react';
+import { Calendar, Filter, ArrowLeft, ArrowRight, ChevronDown, Upload, Shuffle, X, Save, Play, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, calculateBayUtilization } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -212,8 +212,106 @@ const BaySchedulingPage = () => {
     return forceScrollToToday();
   };
   
+  // Function to scroll to a specific project number
+  const scrollToProject = (projectNumber: string) => {
+    if (!projectNumber.trim()) {
+      toast({
+        title: "Search Error",
+        description: "Please enter a project number to search for",
+        variant: "destructive",
+        duration: 3000
+      });
+      return false;
+    }
+    
+    try {
+      // Find the project in our data
+      const targetProject = projects.find(project => 
+        project.projectNumber?.toLowerCase().includes(projectNumber.toLowerCase())
+      );
+      
+      if (!targetProject) {
+        toast({
+          title: "Project Not Found",
+          description: `No project found with number containing "${projectNumber}"`,
+          variant: "destructive",
+          duration: 3000
+        });
+        return false;
+      }
+      
+      // Find the schedule for this project
+      const activeSchedules = isSandboxMode ? sandboxSchedules : manufacturingSchedules;
+      const projectSchedule = activeSchedules.find(schedule => 
+        schedule.projectId === targetProject.id
+      );
+      
+      if (!projectSchedule) {
+        toast({
+          title: "Project Not Scheduled",
+          description: `Project "${targetProject.projectNumber}" (${targetProject.name}) is not currently scheduled`,
+          variant: "destructive",
+          duration: 4000
+        });
+        return false;
+      }
+      
+      // Target the exact container using the same selector as forceScrollToToday
+      const scrollContainer = document.querySelector('.p-4.overflow-x-auto');
+      
+      if (!scrollContainer) {
+        console.error("Schedule container not found - cannot scroll to project");
+        throw new Error("Schedule container not found");
+      }
+      
+      // Calculate the project's position based on its start date
+      const projectStartDate = new Date(projectSchedule.startDate);
+      const startOfYear = new Date(2025, 0, 1);
+      const millisecondsPerDay = 24 * 60 * 60 * 1000;
+      const daysSinceJan1 = Math.floor((projectStartDate.getTime() - startOfYear.getTime()) / millisecondsPerDay);
+      
+      // Week view calculations (144px per week, divided by 7 days)
+      const pixelsPerDay = 144 / 7; // ~20.6px per day in week view
+      const bayColumnWidth = 343; // Bay column width
+      
+      // Calculate target position (days * pixels per day) + bay column width
+      // Center the viewport on the project by subtracting half the viewport width
+      const viewportWidth = scrollContainer.clientWidth;
+      const targetPosition = (daysSinceJan1 * pixelsPerDay) + bayColumnWidth - (viewportWidth / 2);
+      
+      // Ensure we don't scroll before the beginning
+      const finalPosition = Math.max(0, targetPosition);
+      
+      // Force scroll using scrollLeft property
+      (scrollContainer as HTMLElement).scrollLeft = finalPosition;
+      
+      console.log(`Scrolled to project ${targetProject.projectNumber} at ${finalPosition}px (${daysSinceJan1} days since Jan 1)`);
+      
+      // Success message
+      toast({
+        title: "Found Project",
+        description: `Scrolled to project ${targetProject.projectNumber} (${targetProject.name})`,
+        duration: 3000
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Project search scrolling failed:", error);
+      toast({
+        title: "Search Failed", 
+        description: "Could not scroll to the project",
+        variant: "destructive",
+        duration: 3000
+      });
+      return false;
+    }
+  };
+  
   // Filter states
   const [filterTeam, setFilterTeam] = useState<string | null>(null);
+  
+  // Project search state
+  const [searchProjectNumber, setSearchProjectNumber] = useState<string>('');
   
   // Fetch data with proper typing
   const { data: manufacturingBays = [], refetch: refetchBays } = useQuery<ManufacturingBay[]>({
@@ -1224,6 +1322,33 @@ const BaySchedulingPage = () => {
           <h2 className="text-lg font-semibold">Manufacturing Schedule</h2>
           
           <div className="flex items-center gap-4">
+            {/* Project Search */}
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search project number..."
+                  value={searchProjectNumber}
+                  onChange={(e) => setSearchProjectNumber(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      scrollToProject(searchProjectNumber);
+                    }
+                  }}
+                  className="pl-10 pr-4 py-2 w-48 text-sm"
+                />
+              </div>
+              <Button
+                onClick={() => scrollToProject(searchProjectNumber)}
+                variant="outline"
+                size="sm"
+                className="whitespace-nowrap"
+              >
+                Find Project
+              </Button>
+            </div>
+            
             {/* Day/Week/Month view options removed as requested */}
             <div className="flex items-center gap-2 mr-4">
               <Switch 
