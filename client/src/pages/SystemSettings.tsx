@@ -547,7 +547,7 @@ const SystemSettings = () => {
     isLoading: archivedProjectsLoading,
     error: archivedProjectsError
   } = useQuery({
-    queryKey: ['/api/projects/archived'],
+    queryKey: ['/api/archived-projects'],
     queryFn: getQueryFn({}),
   });
   
@@ -1311,7 +1311,60 @@ const SystemSettings = () => {
                                 </TableCell>
                                 <TableCell>
                                   <div className="font-medium text-sm">
-                                    {log.entityType ? `${log.entityType}${log.entityId ? ` #${log.entityId}` : ''}` : 'Unknown'}
+                                    {(() => {
+                                      // Parse details to extract entity information
+                                      if (log.details) {
+                                        if (log.details.includes('project')) {
+                                          const match = log.details.match(/project\s+([#\w\d-]+)|Project\s+([#\w\d-]+)/i);
+                                          if (match) {
+                                            return `Project ${match[1] || match[2]}`;
+                                          }
+                                        }
+                                        if (log.details.includes('user')) {
+                                          const match = log.details.match(/user\s+([#\w\d-@.]+)/i);
+                                          if (match) {
+                                            return `User ${match[1]}`;
+                                          }
+                                        }
+                                        if (log.details.includes('bay')) {
+                                          const match = log.details.match(/bay\s+([#\w\d-]+)/i);
+                                          if (match) {
+                                            return `Bay ${match[1]}`;
+                                          }
+                                        }
+                                        if (log.details.includes('milestone')) {
+                                          const match = log.details.match(/milestone\s+([#\w\d-]+)/i);
+                                          if (match) {
+                                            return `Milestone ${match[1]}`;
+                                          }
+                                        }
+                                      }
+                                      
+                                      // Try extracting from entityType/entityId
+                                      if (log.entityType) {
+                                        return `${log.entityType}${log.entityId ? ` #${log.entityId}` : ''}`;
+                                      }
+                                      
+                                      // Extract from new_data or previous_data
+                                      try {
+                                        const newData = log.new_data ? JSON.parse(log.new_data) : null;
+                                        const prevData = log.previous_data ? JSON.parse(log.previous_data) : null;
+                                        
+                                        if (newData?.projectNumber) {
+                                          return `Project ${newData.projectNumber}`;
+                                        }
+                                        if (newData?.name && log.action === 'create') {
+                                          return `${log.action === 'create' ? 'New Item' : 'Item'}: ${newData.name}`;
+                                        }
+                                        if (prevData?.projectNumber) {
+                                          return `Project ${prevData.projectNumber}`;
+                                        }
+                                      } catch (e) {
+                                        // Ignore parsing errors
+                                      }
+                                      
+                                      return 'System';
+                                    })()}
                                   </div>
                                   {log.entityName && (
                                     <div className="text-xs text-muted-foreground">{log.entityName}</div>
