@@ -62,11 +62,13 @@ const Header = () => {
             <>
               <NotificationBell />
               
-              <Button variant="ghost" size="icon" asChild>
-                <Link href="/settings/system">
-                  <Settings className="h-5 w-5 text-muted-foreground" />
-                </Link>
-              </Button>
+              {typedUser?.role === 'admin' && (
+                <Button variant="ghost" size="icon" asChild>
+                  <Link href="/system-settings">
+                    <Settings className="h-5 w-5 text-muted-foreground" />
+                  </Link>
+                </Button>
+              )}
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

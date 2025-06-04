@@ -22,7 +22,7 @@ import CalendarPage from "@/pages/Calendar";
 import Reports from "@/pages/Reports";
 import ExportReports from "@/pages/ExportReports";
 import ImportData from "@/pages/ImportData";
-// import SystemSettings from "@/pages/SystemSettings";
+import SystemSettings from "@/pages/SystemSettings";
 import UserPreferences from "@/pages/UserPreferences";
 import SalesForecast from "@/pages/SalesForecast";
 import SalesDealEdit from "@/pages/SalesDealEdit";
@@ -164,9 +164,9 @@ function MainContent() {
             <ProtectedRoute path="/import" component={ImportData} />
             <ProtectedRoute path="/supply-chain" component={SupplyChain} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
-            {/* <AdminRoute path="/settings/system" component={SystemSettings} />
+            <AdminRoute path="/settings/system" component={SystemSettings} />
             <AdminRoute path="/system-settings" component={SystemSettings} />
-            <AdminRoute path="/settings" component={SystemSettings} /> */}
+            <AdminRoute path="/settings" component={SystemSettings} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
             <Route path="/auth" component={AuthPage} />
             <Route component={NotFound} />
