@@ -4296,7 +4296,7 @@ export default function ResizableBaySchedule({
                                         
                                         {/* Timeline Tooltip - appears on hover */}
                                         {timelineDates.length > 0 && (
-                                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" style={{ zIndex: 99999 }}>
                                             <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[300px] max-w-[400px]">
                                               <div className="font-semibold text-blue-300 mb-2 text-center border-b border-gray-700 pb-1">
                                                 Project Timeline Dates
