@@ -636,6 +636,37 @@ select:focus {
   letter-spacing: 0.05em;
 }
 
+/* Silver gradient for sidebar module text on hover (non-active only) */
+.sidebar-nav-item:not(.active):hover span {
+  background: linear-gradient(135deg, #e5e7eb 0%, #9ca3af 50%, #d1d5db 100%) !important;
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gold gradient for sidebar icons on hover */
+.sidebar-nav-item:hover svg {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%) !important;
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.3));
+}
+
+/* Ensure active icons don't get the gold gradient */
+.sidebar-nav-item.active:hover svg {
+  background: none !important;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: initial;
+  background-clip: initial;
+  filter: none;
+  color: #9ca3af !important;
+}
+
 /* Hide unwanted checkbox elements that appear next to Switch components */
 [data-radix-collection-item] input[type="checkbox"],
 button[role="switch"] input[type="checkbox"] {
