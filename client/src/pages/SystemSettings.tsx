@@ -748,8 +748,9 @@ const SystemSettings = () => {
       </div>
 
       <Tabs defaultValue="accessControl" className="w-full space-y-6" onValueChange={setCurrentTab}>
-        <TabsList className="grid grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="accessControl">Access Control</TabsTrigger>
+          <TabsTrigger value="moduleVisibility">Module Visibility</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="archiveManagement">Archive Management</TabsTrigger>
           <TabsTrigger value="maintenance">System Maintenance</TabsTrigger>
@@ -1002,20 +1003,9 @@ const SystemSettings = () => {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <Select 
-                                  defaultValue={user.role} 
-                                  onValueChange={(value) => handleUpdateUserRole(user.id, value)}
-                                  disabled={!isAdmin}
-                                >
-                                  <SelectTrigger className="w-[110px]">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="viewer">Viewer</SelectItem>
-                                    <SelectItem value="editor">Editor</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                <Badge variant={user.role === 'admin' ? 'default' : user.role === 'editor' ? 'secondary' : 'outline'}>
+                                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                </Badge>
                               </TableCell>
                               <TableCell>
                                 {user.department || 'Not assigned'}
