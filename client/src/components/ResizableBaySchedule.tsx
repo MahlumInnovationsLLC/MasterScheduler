@@ -3415,6 +3415,28 @@ export default function ResizableBaySchedule({
                             </Tooltip>
                           </TooltipProvider>
                           
+                          {/* Add Project to Team Button */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button 
+                                  className="p-1 bg-blue-700 hover:bg-blue-600 rounded-full text-white flex items-center justify-center ml-1"
+                                  onClick={() => {
+                                    // Open the schedule dialog with the first bay of this team pre-selected
+                                    const firstBay = team[0];
+                                    setTargetBay(firstBay.id);
+                                    setDialogOpen(true);
+                                  }}
+                                >
+                                  <PlusIcon className="h-4 w-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Add project to this team</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
                           {/* Remove Bay Button (only shown if team has more than 1 bay) */}
                           {team.length > 1 && (
                             <TooltipProvider>
@@ -4343,9 +4365,12 @@ export default function ResizableBaySchedule({
           <DialogHeader>
             <DialogTitle>Add Schedule</DialogTitle>
             <DialogDescription>
-              Assign a project to a bay for a specific time period.
+              {targetBay 
+                ? `Assign a project to ${bays.find(b => b.id === targetBay)?.team || bays.find(b => b.id === targetBay)?.name || 'selected bay'} for a specific time period.`
+                : 'Assign a project to a bay for a specific time period.'
+              }
             </DialogDescription>
-          </DialogHeader>
+          </DialogHeader></old_str>
           
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -4434,8 +4459,8 @@ export default function ResizableBaySchedule({
                           <div
                             key={bay.id}
                             className={`py-1 px-2 cursor-pointer rounded hover:bg-gray-100 ${
-                              targetBay === bay.id ? 'bg-primary text-primary-foreground' : ''
-                            } ${bay.status === 'maintenance' ? 'opacity-50' : ''}`}
+                              targetBay === bay.id ? 'bg-primary text-primary-foreground ring-2 ring-blue-400' : ''
+                            } ${bay.status === 'maintenance' ? 'opacity-50' : ''}`}</old_str>
                             onClick={() => {
                               if (bay.status === 'maintenance') return;
                               
@@ -4609,13 +4634,19 @@ export default function ResizableBaySchedule({
           </div>
           
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)}>
+            <Button type="button" variant="secondary" onClick={() => {
+              setDialogOpen(false);
+              // Reset pre-selected bay when canceling
+              if (targetBay && !currentProject) {
+                setTargetBay(null);
+              }
+            }}>
               Cancel
             </Button>
             <Button type="button" onClick={handleAddSchedule}>
               Add Schedule
             </Button>
-          </DialogFooter>
+          </DialogFooter></old_str>
         </DialogContent>
       </Dialog>
       
