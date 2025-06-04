@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import MultiRowBayContent from './MultiRowBayContent';
-import { useAuth } from "@/hooks/use-auth";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   format, 
   addDays, 
@@ -14,17 +12,10 @@ import {
   endOfMonth, 
   startOfWeek, 
   endOfWeek,
-  getDaysInMonth,
-  isWithinInterval,
-  parseISO,
-  subDays
+  getDaysInMonth
 } from 'date-fns';
 import { updatePhaseWidthsWithExactFit, calculateExactFitPhaseWidths, applyPhaseWidthsToDom } from './ExactFitPhaseWidths';
-import DurationCalculator from './DurationCalculator';
 import { isBusinessDay, adjustToNextBusinessDay, adjustToPreviousBusinessDay } from '@shared/utils/date-utils';
-// Function will be defined inside the component
-import { TeamManagementDialog } from './TeamManagementDialog';
-import FinancialImpactPopup from './FinancialImpactPopup';
 import { 
   PlusCircle, 
   GripVertical, 
@@ -35,9 +26,7 @@ import {
   PencilIcon, 
   PlusIcon, 
   MinusIcon,
-  MinusCircle, // Added for remove bay button
   Users, 
-  UserPlus,
   Zap, 
   Wrench, // Replacing Tool with Wrench
   Clock,
@@ -45,22 +34,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
-  Trash2, // For delete icon
-  Truck,
-  BarChart2, // Added for utilization icon
-  Calculator, // Added for duration calculation
-  DollarSign, // Added for financial impact
-  Printer, // Added for print functionality
-  Car,
-  Package,
-  PaintBucket,
-  Settings,
-  CheckCircle,
-  Flag,
-  Star,
-  Diamond,
-  Circle,
-  Square
+  Truck
 } from 'lucide-react';
 import {
   Dialog,
@@ -70,16 +44,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -94,10 +58,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useApiRequest } from '@/lib/queryClient';
-import { useQuery } from '@tanstack/react-query';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { type ProjectMilestoneIcon } from '@shared/schema';
 
 interface ManufacturingBay {
   id: number;
@@ -114,10 +74,6 @@ interface ManufacturingBay {
   teamId: number | null;
   createdAt: Date | null;
   updatedAt: Date | null;
-  // Team capacity management properties
-  assemblyStaffCount?: number | null;
-  electricalStaffCount?: number | null;
-  hoursPerPersonPerWeek?: number | null;
 }
 
 interface Project {
@@ -130,7 +86,6 @@ interface Project {
   createdAt: Date | null;
   startDate: Date | null;
   shipDate: Date | null;
-  totalHours?: number; // Added project total hours field
   // And other project fields
 }
 
@@ -158,8 +113,6 @@ interface ResizableBayScheduleProps {
   onBayDelete?: (id: number) => Promise<any>;
   dateRange: { start: Date, end: Date };
   viewMode: 'day' | 'week' | 'month' | 'quarter';
-  enableFinancialImpact?: boolean;
-  isSandboxMode?: boolean;
 }
 
 interface ScheduleBar {
@@ -243,25 +196,6 @@ const PROJECT_COLORS = [
   'rgb(239, 68, 68)',  // red-500
 ];
 
-// Milestone icon mapping
-const iconMap = {
-  car: Car,
-  truck: Truck,
-  box: Package,
-  paintBucket: PaintBucket,
-  wrench: Wrench,
-  gear: Settings,
-  calendar: Calendar,
-  clock: Clock,
-  checkmark: CheckCircle,
-  warning: AlertTriangle,
-  flag: Flag,
-  star: Star,
-  diamond: Diamond,
-  circle: Circle,
-  square: Square,
-};
-
 // Multi-bay teams now have a single row per bay (simplified layout)
 // This makes bays work like horizontal tracks with NO multi-row complexity
 const getBayRowCount = (bayId: number, bayName: string) => {
@@ -274,32 +208,11 @@ const getBayRowCount = (bayId: number, bayName: string) => {
   return 1; // Always return 1 row for the simplified single-row layout
 };
 
-// REAL-TIME DATE DISPLAY: No offsets or calibrations
 const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day' | 'week' | 'month' | 'quarter') => {
   const slots: TimeSlot[] = [];
-  
-  // Use the actual date range provided with no adjustments
-  // This ensures what you see is exactly what you get
   let currentDate = new Date(dateRange.start);
   
-  // Zero out time component for consistent day boundaries
-  currentDate.setHours(0, 0, 0, 0);
-  
-  // If viewing by week, adjust to start on Monday
-  if (viewMode === 'week' && currentDate.getDay() !== 1) {
-    // Find the previous Monday
-    const daysToSubtract = currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1;
-    currentDate = addDays(currentDate, -daysToSubtract);
-  }
-  
-  // Use the actual end date from the range with reasonable limit
-  const endDate = new Date(2030, 11, 31); // Far future end date for scrolling
-  
-  console.log(`⏱️ USING ACTUAL DATES: ${format(currentDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
-  console.log(`NO CALIBRATION: All dates shown are actual calendar dates with no offsets`);
-  
-  // Loop until we reach the end date
-  while (currentDate <= endDate) {
+  while (currentDate <= dateRange.end) {
     const isStartOfMonth = currentDate.getDate() === 1;
     const isStartOfWeek = currentDate.getDay() === 1; // Monday as start of week
     const isCurrentDateBusinessDay = isBusinessDay(currentDate);
@@ -316,8 +229,13 @@ const generateTimeSlots = (dateRange: { start: Date, end: Date }, viewMode: 'day
     if (viewMode === 'day') {
       currentDate = addDays(currentDate, 1);
     } else if (viewMode === 'week') {
-      // Always move exactly 7 days for week view to ensure ONE CELL = ONE WEEK
-      currentDate = addDays(currentDate, 7);
+      if (isStartOfWeek || slots.length === 0) {
+        currentDate = addDays(currentDate, 1);
+      } else {
+        // Move to next Monday
+        const daysUntilMonday = (8 - currentDate.getDay()) % 7;
+        currentDate = addDays(currentDate, daysUntilMonday > 0 ? daysUntilMonday : 7);
+      }
     } else if (viewMode === 'month') {
       if (isStartOfMonth || slots.length === 0) {
         currentDate = addDays(currentDate, 1);
@@ -369,106 +287,21 @@ const BayCapacityInfo = ({ bay, allSchedules, projects, bays }: { bay: Manufactu
     statusIcon = <Clock3 className="h-4 w-4 text-white" />;
   }
   
-  // Calculate team capacity - look for assembly/electrical staff counts on this bay
-  const assemblyStaff = bay.assemblyStaffCount || 1;
-  const electricalStaff = bay.electricalStaffCount || 1;
-  const hoursPerWeek = bay.hoursPerPersonPerWeek || 29;
-  const totalStaff = assemblyStaff + electricalStaff;
-  const totalCapacity = totalStaff * hoursPerWeek;
-  
-  // Find other bays in same team to calculate team capacity
-  let teamCapacity = totalCapacity;
-  if (bay.team) {
-    const teamBays = bays.filter(b => b.team === bay.team);
-    if (teamBays.length > 0) {
-      // Sum up assembly and electrical staff from all bays in team
-      let teamAssemblyStaff = 0;
-      let teamElectricalStaff = 0;
-      let teamHoursPerWeek = hoursPerWeek; // Use the same hours per week value across team
-      
-      teamBays.forEach(b => {
-        if (b.assemblyStaffCount) teamAssemblyStaff += b.assemblyStaffCount;
-        if (b.electricalStaffCount) teamElectricalStaff += b.electricalStaffCount;
-        if (b.hoursPerPersonPerWeek) teamHoursPerWeek = b.hoursPerPersonPerWeek;
-      });
-      
-      const teamTotalStaff = teamAssemblyStaff + teamElectricalStaff;
-      teamCapacity = teamTotalStaff * teamHoursPerWeek;
-    }
-  }
-  
   console.log(`Bay ${bay.name} at ${capacityPercentage}% capacity with ${activeProjects === 0 ? 'no projects' : activeProjects + ' project' + (activeProjects > 1 ? 's' : '')}`);
   console.log(`Bay ${bay.name} final status: ${statusText} with ${activeProjects} active project${activeProjects !== 1 ? 's' : ''}`);
   
   return (
-    <div className="bay-capacity-info absolute right-2 top-2 flex flex-col items-end gap-1">
-      <div className="flex items-center space-x-2">
-        <div className={`status-indicator ${statusBg} text-white text-xs px-2 py-0.5 rounded-full flex items-center`}>
-          {statusIcon}
-          <span className="ml-1">{statusText}</span>
-        </div>
-        <div className="project-count bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded-full">
-          {activeProjects} project{activeProjects !== 1 ? 's' : ''}
-        </div>
+    <div className="bay-capacity-info absolute right-2 top-2 flex items-center space-x-2">
+      <div className={`status-indicator ${statusBg} text-white text-xs px-2 py-0.5 rounded-full flex items-center`}>
+        {statusIcon}
+        <span className="ml-1">{statusText}</span>
       </div>
-      
-      {bay.team && (
-        <div className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 mt-1">
-          <Users className="h-3 w-3" />
-          <span>Team: {teamCapacity} hrs/wk</span>
-        </div>
-      )}
-      
-      <div className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full text-xs flex items-center gap-1 mt-1">
-        <UserPlus className="h-3 w-3" />
-        <span>{assemblyStaff}A + {electricalStaff}E</span>
+      <div className="project-count bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded-full">
+        {activeProjects} project{activeProjects !== 1 ? 's' : ''}
       </div>
     </div>
   );
 };
-
-// CRITICAL FIX: Global handler to ensure multiple projects can be placed in the same row
-function initializeGlobalDragDropFix() {
-  // Enable dropping anywhere by preventing default on all dragover events
-  const handleGlobalDragOver = (e: DragEvent) => {
-    e.preventDefault();
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'move';
-    }
-  };
-  
-  // Add a global handler for drops outside target areas
-  const handleGlobalDrop = (e: DragEvent) => {
-    const isOverDropTarget = 
-      e.target instanceof Element && 
-      (e.target.closest('.bay-row') || 
-       e.target.closest('.week-cell') || 
-       e.target.closest('.unassigned-drop-container') ||
-       e.target.closest('.droppable-slot'));
-       
-    if (!isOverDropTarget) {
-      e.preventDefault();
-      console.log('Global drop handler caught a drop outside of designated drop zones');
-    }
-  };
-  
-  // Add global listeners
-  document.addEventListener('dragover', handleGlobalDragOver, true);
-  document.addEventListener('drop', handleGlobalDrop, false);
-  
-  // Enable special styling
-  document.body.classList.add('allow-multiple-projects');
-  document.body.classList.add('force-accept-drop');
-  
-  console.log('🔒 MAXIMUM DRAG-DROP OVERRIDE ACTIVE - Projects can now be placed anywhere without restrictions');
-  
-  return () => {
-    document.removeEventListener('dragover', handleGlobalDragOver, true);
-    document.removeEventListener('drop', handleGlobalDrop, false);
-    document.body.classList.remove('allow-multiple-projects');
-    document.body.classList.remove('force-accept-drop');
-  };
-}
 
 export default function ResizableBaySchedule({
   schedules,
@@ -481,8 +314,7 @@ export default function ResizableBaySchedule({
   onBayUpdate,
   onBayDelete,
   dateRange,
-  viewMode,
-  enableFinancialImpact = true
+  viewMode
 }: ResizableBayScheduleProps) {
   const { toast } = useToast();
   const apiRequest = useApiRequest();
@@ -491,603 +323,10 @@ export default function ResizableBaySchedule({
   const [scheduleBars, setScheduleBars] = useState<ScheduleBar[]>([]);
   const [draggingSchedule, setDraggingSchedule] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{ bayId: number, rowIndex: number } | null>(null);
-  
-  // Fetch all milestone icons for all projects
-  const { data: allMilestoneIcons = [] } = useQuery({
-    queryKey: ['/api/milestone-icons'],
-    enabled: true,
-  });
-  
-  // Auto-scroll state for drag operations
-  const autoScrollRef = useRef<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  
-  // Auto-scroll functionality for drag operations
-  const startAutoScroll = useCallback((direction: 'up' | 'down') => {
-    if (autoScrollRef.current) return; // Already scrolling
-    
-    const SCROLL_SPEED = 8; // pixels per frame
-    const scroll = () => {
-      const scrollAmount = direction === 'up' ? -SCROLL_SPEED : SCROLL_SPEED;
-      window.scrollBy(0, scrollAmount);
-      autoScrollRef.current = requestAnimationFrame(scroll);
-    };
-    
-    autoScrollRef.current = requestAnimationFrame(scroll);
-  }, []);
-  
-  const stopAutoScroll = useCallback(() => {
-    if (autoScrollRef.current) {
-      cancelAnimationFrame(autoScrollRef.current);
-      autoScrollRef.current = null;
-    }
-  }, []);
-  
-  // Handle global mouse movement during drag for auto-scrolling
-  const handleDragMove = useCallback((e: MouseEvent) => {
-    if (!isDragging) return;
-    
-    const SCROLL_ZONE = 100; // pixels from edge to trigger scroll
-    const viewportHeight = window.innerHeight;
-    
-    if (e.clientY < SCROLL_ZONE) {
-      // Near top edge - scroll up
-      startAutoScroll('up');
-    } else if (e.clientY > viewportHeight - SCROLL_ZONE) {
-      // Near bottom edge - scroll down
-      startAutoScroll('down');
-    } else {
-      // In safe zone - stop scrolling
-      stopAutoScroll();
-    }
-  }, [isDragging, startAutoScroll, stopAutoScroll]);
-  
-  // Global drag end handler
-  const handleDragEndGlobal = useCallback(() => {
-    setIsDragging(false);
-    stopAutoScroll();
-  }, [stopAutoScroll]);
-  
-  // Set up global event listeners for drag operations
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleDragMove);
-      document.addEventListener('dragend', handleDragEndGlobal);
-      document.addEventListener('drop', handleDragEndGlobal);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleDragMove);
-        document.removeEventListener('dragend', handleDragEndGlobal);
-        document.removeEventListener('drop', handleDragEndGlobal);
-        stopAutoScroll();
-      };
-    }
-  }, [isDragging, handleDragMove, handleDragEndGlobal, stopAutoScroll]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newBayDialog, setNewBayDialog] = useState(false);
   const [editingBay, setEditingBay] = useState<ManufacturingBay | null>(null);
-  const [teamDialogOpen, setTeamDialogOpen] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [deleteRowDialogOpen, setDeleteRowDialogOpen] = useState(false);
-  
-  // Team name inline editing states
-  const [editingTeamId, setEditingTeamId] = useState<string>('');
-  const [editingTeamName, setEditingTeamName] = useState<string>('');
-  
-  // State for team deletion confirmation
-  const [teamDeleteConfirm, setTeamDeleteConfirm] = useState<{isOpen: boolean; teamName: string; bayIds: number[]}>({
-    isOpen: false,
-    teamName: '',
-    bayIds: []
-  });
-  
-  // Map of team descriptions (could be fetched from API in real app)
-  const [teamDescriptions, setTeamDescriptions] = useState<Record<string, string>>({
-    'General': 'Main production team',
-    'ISG': 'Integrated Systems Group',
-    'TCV': 'Tactical Combat Vehicles',
-    'Electrical': 'Power and electrical systems',
-    'Assembly': 'Final assembly and testing',
-    'Bay 1 & 2 & Bay 3 & 4': 'General production and testing',
-    'Bay 5 & 6': 'Vehicle interiors and electrical systems',
-    'Bay 7 & 8': 'Military vehicle conversions',
-    'Bay 9 & 10 (ISG)': 'Advanced systems integration',
-    'Bay 11 & 12': 'Quality control and finalization',
-    'TCV Line': 'Tactical vehicle production line',
-    'TCV Line 2': 'Second tactical vehicle line'
-  });
-  
-  // Handler function to update team names
-  const handleTeamNameUpdate = async (oldTeamName: string, newTeamName: string) => {
-    if (oldTeamName === newTeamName || !newTeamName.trim()) {
-      // No change or empty name, just exit
-      return;
-    }
-    
-    try {
-      // Keep track of the team description
-      const description = teamDescriptions[oldTeamName] || '';
-      
-      // Update all bays with this team name
-      const updatedBays = await Promise.all(
-        bays.filter(bay => bay.team === oldTeamName).map(async (bay) => {
-          // Call the API to update each bay
-          const updatedBay = await onBayUpdate?.(bay.id, {
-            ...bay,
-            team: newTeamName
-          });
-          return updatedBay;
-        })
-      );
-      
-      // Update the team description in our local state
-      setTeamDescriptions(prev => {
-        const newDescriptions = {...prev};
-        if (oldTeamName in newDescriptions) {
-          // Transfer the description to the new team name
-          newDescriptions[newTeamName] = description;
-          // Remove the old team name if it's different
-          if (oldTeamName !== newTeamName) {
-            delete newDescriptions[oldTeamName];
-          }
-        }
-        return newDescriptions;
-      });
-      
-      // Show success toast
-      toast({
-        title: "Team Updated",
-        description: `Team name changed from "${oldTeamName}" to "${newTeamName}"`,
-      });
-      
-      // Force a refresh of the UI
-      setForceUpdate(Date.now());
-      
-    } catch (error) {
-      console.error('Error updating team name:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update team name",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  // Function to handle team deletion
-  const handleTeamDelete = async (teamName: string, bayIds: number[]) => {
-    try {
-      console.log(`Deleting team "${teamName}" from bays: ${bayIds.join(', ')}`);
-      
-      // For direct UI feedback, hide the team section immediately by adding a class
-      // This provides visual feedback before the actual database update completes
-      const teamSectionSelector = `[data-team-section="${teamName}::${bayIds.join(',')}"]`;
-      const teamSectionElement = document.querySelector(teamSectionSelector);
-      
-      if (teamSectionElement) {
-        // Mark for deletion with a style effect
-        teamSectionElement.classList.add('opacity-50', 'relative');
-        const overlay = document.createElement('div');
-        overlay.className = 'absolute inset-0 bg-red-500 bg-opacity-20 z-50';
-        teamSectionElement.appendChild(overlay);
-      }
-      
-      // Track success of each bay update
-      let successCount = 0;
-      
-      try {
-        // Perform the actual database updates directly with individual requests
-        for (const bayId of bayIds) {
-          console.log(`Removing team "${teamName}" from bay ${bayId}`);
-          
-          try {
-            // Clear the team field for this bay
-            const response = await fetch(`/api/manufacturing-bays/${bayId}`, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                team: null,
-                description: null
-              })
-            });
-            
-            if (response.ok) {
-              successCount++;
-              console.log(`Successfully updated bay ${bayId}`);
-            } else {
-              console.error(`Failed to update bay ${bayId}: ${response.statusText}`);
-            }
-          } catch (err) {
-            console.error(`Error updating bay ${bayId}:`, err);
-          }
-          
-          // Small delay between requests
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-        
-        // Remove from team descriptions
-        setTeamDescriptions(prev => {
-          const newDescriptions = {...prev};
-          if (teamName in newDescriptions) {
-            delete newDescriptions[teamName];
-          }
-          return newDescriptions;
-        });
-        
-        // If we've updated at least one bay successfully, consider it a success
-        if (successCount > 0) {
-          toast({
-            title: "Team Deleted",
-            description: `Successfully removed "${teamName}" team from ${successCount} bay(s)`,
-          });
-          
-          // Close the dialog
-          setTeamDeleteConfirm({
-            isOpen: false,
-            teamName: '',
-            bayIds: []
-          });
-          
-          // Now reload the page for a complete refresh - this is the most reliable way
-          // to ensure the UI fully reflects the database state
-          console.log("Scheduling page reload after team deletion...");
-          setTimeout(() => {
-            window.location.href = window.location.href;
-          }, 1200);
-        } else {
-          // No bays were updated successfully
-          throw new Error("Failed to update any bays");
-        }
-      } catch (apiError) {
-        console.error('API error when deleting team:', apiError);
-        throw apiError;
-      }
-    } catch (error) {
-      console.error('Error deleting team:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete team. Please try again.",
-        variant: "destructive"
-      });
-      
-      // Reset delete confirmation dialog
-      setTeamDeleteConfirm({
-        isOpen: false,
-        teamName: '',
-        bayIds: []
-      });
-    }
-  };
-  
-  // Handler function for when team data is updated from TeamManagementDialog
-  const handleTeamUpdate = async (teamName: string, newTeamName: string, description: string, assemblyStaff: number, electricalStaff: number, hoursPerWeek: number) => {
-    try {
-      console.log(`Updating team from "${teamName}" to "${newTeamName}" with description: "${description}"`);
-      
-      // Update team descriptions immediately in local state
-      const newDescriptions = {...teamDescriptions};
-      newDescriptions[newTeamName] = description; 
-      
-      // If team name changed, remove old entry
-      if (teamName !== newTeamName && teamName in newDescriptions) {
-        delete newDescriptions[teamName];
-      }
-      
-      // Update state with new values
-      setTeamDescriptions(newDescriptions);
-      
-      // Always reload fresh data from API after any team update
-      try {
-        console.log("Fetching fresh bay data after team update");
-        const response = await fetch('/api/manufacturing-bays');
-        if (response.ok) {
-          const freshBays = await response.json();
-          console.log("Received fresh bay data:", freshBays.length, "bays after team update");
-          
-          // Always force a full page refresh after team updates
-          // This ensures all UI elements are properly updated with the latest data
-          console.log("Forcing page refresh to update UI with latest team data");
-          setTimeout(() => {
-            window.location.reload();
-          }, 500);
-        }
-      } catch (err) {
-        console.error("Error refreshing bay data:", err);
-        // Force refresh even if API fetch failed as a fallback
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-      }
-    } catch (error) {
-      console.error('Error in handleTeamUpdate:', error);
-      // Show error toast
-      toast({
-        title: "Update failed",
-        description: "There was an error updating the team. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-  // Add forceUpdate state to force re-rendering when needed
-  const [forceUpdate, setForceUpdate] = useState<number>(Date.now());
-  
-  // PDF generation function for team schedules with project bar visualization
-  const generateTeamSchedulePDF = (teamName: string, teamBays: ManufacturingBay[]) => {
-    try {
-      console.log('Starting PDF generation for team:', teamName);
-      console.log('Team bays:', teamBays);
-      console.log('Available scheduleBars:', scheduleBars?.length || 0);
-      console.log('Available projects:', projects?.length || 0);
-      
-      // Get all projects scheduled for this team
-      const teamProjects = scheduleBars.filter(bar => 
-        teamBays.some(bay => bay.id === bar.bayId)
-      );
-      
-      console.log('Team projects found:', teamProjects.length);
-      
-      // Sort projects by start date
-      teamProjects.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-      
-      // Calculate realistic team capacity - use conservative defaults per bay
-      const totalAssemblyStaff = teamBays.reduce((sum, bay) => 
-        sum + (bay.assemblyStaffCount && bay.assemblyStaffCount <= 5 ? bay.assemblyStaffCount : 2), 0
-      );
-      const totalElectricalStaff = teamBays.reduce((sum, bay) => 
-        sum + (bay.electricalStaffCount && bay.electricalStaffCount <= 3 ? bay.electricalStaffCount : 1), 0
-      );
-      const totalStaff = totalAssemblyStaff + totalElectricalStaff;
-      
-      // Use realistic 40 hours per person per week
-      const weeklyCapacity = totalStaff * 40;
-      
-      // Create new PDF document in landscape orientation
-      console.log('Creating jsPDF instance...');
-      const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4'
-      });
-      console.log('jsPDF instance created successfully');
-      
-      const pageWidth = 297; // A4 landscape width in mm
-      const pageHeight = 210; // A4 landscape height in mm
-      const margin = 15;
-      const usableWidth = pageWidth - (margin * 2);
-      
-      // Create professional Nomad GCS header
-      doc.setFillColor(41, 128, 185); // Professional blue background
-      doc.rect(0, 0, pageWidth, 35, 'F');
-      
-      // Company name
-      doc.setTextColor(255, 255, 255); // White text
-      doc.setFontSize(18);
-      doc.setFont('helvetica', 'bold');
-      doc.text('NOMAD GCS', margin, 20);
-      
-      // Subtitle
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Manufacturing Schedule Report', margin, 28);
-      
-      // Generation date aligned to right
-      doc.setFontSize(10);
-      const dateText = `Generated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`;
-      const dateWidth = doc.getTextWidth(dateText);
-      doc.text(dateText, pageWidth - margin - dateWidth, 20);
-      
-      // Team name aligned to right
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      const teamWidth = doc.getTextWidth(teamName);
-      doc.text(teamName, pageWidth - margin - teamWidth, 28);
-      
-      // Reset text color for content
-      doc.setTextColor(0, 0, 0);
-      
-      // Initialize currentY at the proper scope
-      let currentY = 85;
-      
-      // Calculate timeline for project bars - start from today and filter future projects
-      if (teamProjects.length > 0) {
-        const today = new Date();
-        
-        // Filter projects that start today or in the future
-        const futureProjects = teamProjects.filter(p => new Date(p.startDate) >= today);
-        
-        if (futureProjects.length > 0) {
-          const latestEnd = new Date(Math.max(...futureProjects.map(p => new Date(p.endDate).getTime())));
-          const totalDays = differenceInDays(latestEnd, today);
-          
-          // Start project bar visualization
-          const barHeight = 12;
-          const projectRowHeight = 18;
-          const timelineHeight = 20;
-          
-          // Add timeline header
-          doc.setFontSize(12);
-          doc.setFont('helvetica', 'bold');
-          doc.text('Project Timeline (From Today Forward):', margin, currentY);
-          currentY += 10;
-          
-          // Draw unified timeline scale
-          const scaleY = currentY;
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'normal');
-          
-          // Draw month markers
-          const timelineWidth = usableWidth - 60;
-          const pixelsPerDay = timelineWidth / totalDays;
-          
-          let currentMonth = new Date(today);
-          while (currentMonth <= latestEnd) {
-            const monthOffset = differenceInDays(currentMonth, today) * pixelsPerDay;
-            const monthX = margin + 60 + monthOffset;
-            
-            if (monthX <= margin + usableWidth - 20) {
-              doc.line(monthX, scaleY, monthX, scaleY + 5);
-              doc.text(format(currentMonth, 'MMM'), monthX - 5, scaleY - 2);
-            }
-            
-            currentMonth = addMonths(currentMonth, 1);
-          }
-          
-          currentY += 20;
-          
-          // Draw all future projects in a unified timeline (no bay grouping)
-          futureProjects.forEach((project, index) => {
-            // Check if we need a new page
-            if (currentY + projectRowHeight > pageHeight - margin) {
-              doc.addPage();
-              currentY = margin + 20; // Leave space for timeline if needed
-            }
-            
-            const projectData = projects.find(p => p.id === project.projectId);
-            const bay = teamBays.find(b => b.id === project.bayId);
-            const startOffset = differenceInDays(new Date(project.startDate), today) * pixelsPerDay;
-            const duration = differenceInDays(new Date(project.endDate), new Date(project.startDate));
-            const barWidth = Math.max(duration * pixelsPerDay, 5); // Minimum 5mm width
-            
-            const barX = margin + 60 + startOffset;
-            const barY = currentY;
-            
-            // Ensure bar doesn't exceed page width
-            const actualBarWidth = Math.min(barWidth, usableWidth - (barX - margin));
-            
-            // Draw project bar with phase colors
-            const phases = [
-              { name: 'FAB', percentage: project.fabPercentage || 27, color: [255, 165, 0] }, // Orange
-              { name: 'PAINT', percentage: project.paintPercentage || 7, color: [255, 69, 0] }, // Red-orange
-              { name: 'PROD', percentage: project.productionPercentage || 60, color: [34, 139, 34] }, // Green
-              { name: 'IT', percentage: project.itPercentage || 7, color: [30, 144, 255] }, // Blue
-              { name: 'NTC', percentage: project.ntcPercentage || 7, color: [138, 43, 226] }, // Purple
-              { name: 'QC', percentage: project.qcPercentage || 7, color: [220, 20, 60] } // Crimson
-            ];
-            
-            let phaseStartX = barX;
-            phases.forEach(phase => {
-              const phaseWidth = (actualBarWidth * phase.percentage) / 100;
-              
-              if (phaseWidth > 0.5) { // Only draw if visible
-                doc.setFillColor(phase.color[0], phase.color[1], phase.color[2]);
-                doc.rect(phaseStartX, barY, phaseWidth, barHeight, 'F');
-                phaseStartX += phaseWidth;
-              }
-            });
-            
-            // Add project label with bay info
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'normal');
-            const projectLabel = `${projectData?.projectNumber || project.projectId} - ${(projectData?.name || project.projectName).substring(0, 25)}`;
-            const bayLabel = `(${bay?.name || 'Bay ' + project.bayId})`;
-            
-            // Project number and name
-            doc.text(projectLabel, margin + 5, barY + 8);
-            // Bay assignment
-            doc.setFontSize(7);
-            doc.text(bayLabel, margin + 5, barY + 14);
-            
-            currentY += projectRowHeight;
-            
-            // If project bar extends beyond page width, continue on next page
-            if (barX + barWidth > usableWidth + margin) {
-              doc.addPage();
-              currentY = margin;
-              
-              // Continue drawing the remaining part of the bar
-              const remainingWidth = barWidth - actualBarWidth;
-              if (remainingWidth > 5) {
-                doc.text(`${projectLabel} (continued)`, margin, currentY + 8);
-                currentY += 15;
-                
-                // Draw remaining phases
-                let remainingPhaseStartX = margin;
-                
-                phases.forEach(phase => {
-                  const totalPhaseWidth = (barWidth * phase.percentage) / 100;
-                  const usedPhaseWidth = (actualBarWidth * phase.percentage) / 100;
-                  const remainingPhaseWidth = totalPhaseWidth - usedPhaseWidth;
-                  
-                  if (remainingPhaseWidth > 0.5) {
-                    doc.setFillColor(phase.color[0], phase.color[1], phase.color[2]);
-                    doc.rect(remainingPhaseStartX, currentY, Math.min(remainingPhaseWidth, usableWidth - remainingPhaseStartX), barHeight, 'F');
-                    remainingPhaseStartX += remainingPhaseWidth;
-                  }
-                });
-                
-                currentY += projectRowHeight;
-              }
-            }
-          });
-        } else {
-          // No future projects
-          doc.setFontSize(12);
-          doc.setFont('helvetica', 'bold');
-          doc.text('No future projects scheduled for this team.', margin, 85);
-        }
-        
-        // Add legend for phases
-        if (currentY + 40 > pageHeight - margin) {
-          doc.addPage();
-          currentY = margin;
-        }
-        
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Phase Legend:', margin, currentY);
-        currentY += 10;
-        
-        const legendPhases = [
-          { name: 'FAB', color: [255, 165, 0] },
-          { name: 'PAINT', color: [255, 69, 0] },
-          { name: 'PRODUCTION', color: [34, 139, 34] },
-          { name: 'IT', color: [30, 144, 255] },
-          { name: 'NTC', color: [138, 43, 226] },
-          { name: 'QC', color: [220, 20, 60] }
-        ];
-        
-        legendPhases.forEach((phase, index) => {
-          const legendX = margin + (index * 45);
-          doc.setFillColor(phase.color[0], phase.color[1], phase.color[2]);
-          doc.rect(legendX, currentY, 8, 6, 'F');
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'normal');
-          doc.text(phase.name, legendX + 10, currentY + 4);
-        });
-      }
-      
-      // Add footer with page numbers
-      const pageCount = doc.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.text(`Page ${i} of ${pageCount}`, pageWidth - 30, pageHeight - 10);
-        doc.text(`${teamName} - Generated ${format(new Date(), 'MMM dd, yyyy')}`, margin, pageHeight - 10);
-      }
-      
-      // Save the PDF
-      const fileName = `${teamName.replace(/[^a-zA-Z0-9]/g, '_')}_Schedule_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
-      doc.save(fileName);
-      
-      // Show success toast
-      toast({
-        title: "PDF Generated",
-        description: `Schedule for ${teamName} has been downloaded with project timeline visualization`,
-      });
-      
-    } catch (error) {
-      console.error('Detailed PDF generation error:', error);
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-      console.error('Error message:', error instanceof Error ? error.message : String(error));
-      
-      toast({
-        title: "PDF Generation Failed",
-        description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}. Check console for details.`,
-        variant: "destructive",
-      });
-    }
-  };
   const [confirmRowDelete, setConfirmRowDelete] = useState<{
     bayId: number;
     rowIndex: number;
@@ -1101,100 +340,14 @@ export default function ResizableBaySchedule({
     }[];
   } | null>(null);
   const [currentProject, setCurrentProject] = useState<number | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true); // For collapsible sidebar
   const [targetBay, setTargetBay] = useState<number | null>(null);
   const [targetStartDate, setTargetStartDate] = useState<Date | null>(null);
   const [targetEndDate, setTargetEndDate] = useState<Date | null>(null);
   const [scheduleDuration, setScheduleDuration] = useState(4); // in weeks
-  const [recommendedDuration, setRecommendedDuration] = useState(0); // Stores the recommended duration from calculator
-  const [rowHeight, setRowHeight] = useState(36); // Height of each row in pixels (reduced by 40% from 60px)
-  const [slotWidth, setSlotWidth] = useState(60); // Increased slot width for better visibility
+  const [rowHeight, setRowHeight] = useState(60); // Height of each row in pixels
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [slotWidth, setSlotWidth] = useState(20); // Default slot width
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Financial Impact Popup State
-  const [showFinancialImpact, setShowFinancialImpact] = useState(false);
-  const [financialImpactData, setFinancialImpactData] = useState<{
-    scheduleId: number;
-    projectId: number;
-    bayId: number;
-    originalStartDate: string;
-    originalEndDate: string;
-    newStartDate: string;
-    newEndDate: string;
-    totalHours?: number;
-    rowIndex?: number;
-  } | null>(null);
-  
-  // Handler for when user confirms schedule changes in the financial impact popup
-  const handleFinancialImpactConfirm = async () => {
-    if (!financialImpactData) return;
-    
-    try {
-      // Update the schedule with the confirmed changes
-      await onScheduleChange(
-        financialImpactData.scheduleId,
-        financialImpactData.bayId,
-        financialImpactData.newStartDate,
-        financialImpactData.newEndDate,
-        financialImpactData.totalHours,
-        financialImpactData.rowIndex
-      );
-      
-      // Show success toast
-      toast({
-        title: "Schedule updated",
-        description: `Project schedule has been updated with financial impact considered.`,
-      });
-      
-      // Close the financial impact popup
-      setShowFinancialImpact(false);
-      setFinancialImpactData(null);
-    } catch (error) {
-      console.error('Error updating schedule after financial impact assessment:', error);
-      
-      toast({
-        title: "Update failed",
-        description: "There was an error updating the schedule. Please try again.",
-        variant: "destructive",
-      });
-      
-      // Close the financial impact popup
-      setShowFinancialImpact(false);
-      setFinancialImpactData(null);
-    }
-  };
-  
-  // Handler for when user cancels schedule changes in the financial impact popup
-  const handleFinancialImpactCancel = () => {
-    // Reset any visual changes to the affected schedule bar
-    const barElement = document.querySelector(`.schedule-bar[data-schedule-id="${financialImpactData?.scheduleId}"]`) as HTMLElement;
-    if (barElement) {
-      // Find the original position and size
-      const originalStartDate = parseISO(financialImpactData?.originalStartDate || '');
-      const originalEndDate = parseISO(financialImpactData?.originalEndDate || '');
-      
-      // Calculate original position in pixels
-      const { left, width } = calculateBarPosition(originalStartDate, originalEndDate) || {};
-      
-      if (left !== undefined && width !== undefined) {
-        // Revert the element to its original position and size
-        barElement.style.left = `${left}px`;
-        barElement.style.width = `${width}px`;
-        
-        // Update department phase widths based on original width
-        updateDepartmentPhaseWidths(barElement, width);
-      }
-    }
-    
-    // Close the financial impact popup without making any changes
-    setShowFinancialImpact(false);
-    setFinancialImpactData(null);
-    
-    toast({
-      title: "Changes cancelled",
-      description: "Schedule changes have been cancelled."
-    });
-  };
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [showAddMultipleWarning, setShowAddMultipleWarning] = useState(false);
   const [showQcDaysWarning, setShowQcDaysWarning] = useState(false);
@@ -1206,113 +359,21 @@ export default function ResizableBaySchedule({
   const viewportRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   
-  // Navigation state
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-  
-  // Update scroll button states based on viewport position
-  const updateScrollButtons = useCallback(() => {
-    if (!viewportRef.current) return;
-    
-    const viewport = viewportRef.current;
-    const scrollLeft = viewport.scrollLeft;
-    const scrollWidth = viewport.scrollWidth;
-    const clientWidth = viewport.clientWidth;
-    
-    setCanScrollLeft(scrollLeft > 0);
-    setCanScrollRight(scrollLeft < scrollWidth - clientWidth);
-  }, []);
-  
-  // Handle left navigation
-  const handleScrollLeft = useCallback(() => {
-    if (!viewportRef.current) return;
-    
-    const scrollAmount = viewportRef.current.clientWidth * 0.375; // Scroll 37.5% of viewport width
-    viewportRef.current.scrollBy({
-      left: -scrollAmount,
-      behavior: 'smooth'
-    });
-  }, []);
-  
-  // Handle right navigation
-  const handleScrollRight = useCallback(() => {
-    if (!viewportRef.current) return;
-    
-    const scrollAmount = viewportRef.current.clientWidth * 0.375; // Scroll 37.5% of viewport width
-    viewportRef.current.scrollBy({
-      left: scrollAmount,
-      behavior: 'smooth'
-    });
-  }, []);
-  
-  // Add scroll event listener to update button states
-  useEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-    
-    const handleScroll = () => {
-      updateScrollButtons();
-    };
-    
-    viewport.addEventListener('scroll', handleScroll);
-    // Initial check
-    updateScrollButtons();
-    
-    return () => {
-      viewport.removeEventListener('scroll', handleScroll);
-    };
-  }, [updateScrollButtons]);
-  
-  // Update end date whenever start date or duration changes
-  useEffect(() => {
-    if (targetStartDate && scheduleDuration > 0) {
-      setTargetEndDate(addWeeks(targetStartDate, scheduleDuration));
-    }
-  }, [targetStartDate, scheduleDuration]);
-  
-  // Group bays by team name - this is the key to preventing duplicate blue headers
+  // Group bays into teams (2 bays = 1 team)
   const bayTeams = useMemo(() => {
-    // First sort all bays by their bay number
     const sortedBays = [...bays].sort((a, b) => a.bayNumber - b.bayNumber);
     
-    // Group bays by their team property using a string key in a dictionary
-    const teamMap: Record<string, ManufacturingBay[]> = {};
+    // Group bays into teams of 2
+    const teams: ManufacturingBay[][] = [];
     
-    // ONLY include bays that have an actual team assigned 
-    // This completely eliminates phantom teams from the UI
-    const assignedTeamBays = sortedBays.filter(bay => 
-      bay.team !== null && 
-      bay.team !== undefined && 
-      bay.team !== '' && 
-      // Specifically filter out any bays with auto-generated "Team X:" names
-      !bay.team.match(/^Team \d+:?/)
-    );
-    
-    // Process each bay with a valid team and group it
-    assignedTeamBays.forEach(bay => {
-      // Use the team name as the key for grouping
-      const teamKey = bay.team || '';
-      
-      // Initialize the array for this team if it doesn't exist yet
-      if (!teamMap[teamKey]) {
-        teamMap[teamKey] = [];
+    // For each pair of bays, create a team
+    for (let i = 0; i < sortedBays.length; i += 2) {
+      const team = [sortedBays[i]];
+      if (i + 1 < sortedBays.length) {
+        team.push(sortedBays[i + 1]);
       }
-      
-      // Add this bay to its team group
-      teamMap[teamKey].push(bay);
-    });
-    
-    // Convert the team map to an array of bay arrays (each sub-array = one team)
-    const teams = Object.values(teamMap);
-    
-    // Sort teams by the lowest bay number in each team (for consistent ordering)
-    teams.sort((a, b) => {
-      const minBayNumberA = Math.min(...a.map(bay => bay.bayNumber));
-      const minBayNumberB = Math.min(...b.map(bay => bay.bayNumber));
-      return minBayNumberA - minBayNumberB;
-    });
-    
-    console.log("Active teams found:", teams.map(team => team[0]?.team).join(", "));
+      teams.push(team);
+    }
     
     return teams;
   }, [bays]);
@@ -1324,7 +385,7 @@ export default function ResizableBaySchedule({
   
   // Calculate schedule bars positions based on the schedules data
   useEffect(() => {
-    console.log('Recalculating schedule bars with phase visibility support');
+    console.log('Recalculating schedule bars (version 3): ensuring NO automatic adjustments');
     
     if (!schedules.length || !projects.length) return;
     
@@ -1340,58 +401,13 @@ export default function ResizableBaySchedule({
         return null;
       }
       
-      // IMPORTANT FIX: Explicitly handle each date format possibility
-      // This ensures schedules appear in their correct position on the timeline
-      let startDate: Date, endDate: Date;
+      // Get start and end dates
+      const startDate = new Date(schedule.startDate);
+      const endDate = new Date(schedule.endDate);
       
-      // Start date handling
-      if (typeof schedule.startDate === 'string') {
-        // For string dates, parse without timezone influence
-        startDate = parseISO(schedule.startDate.split('T')[0]);
-      } else if (schedule.startDate instanceof Date) {
-        // For Date objects, create a new date to avoid reference issues
-        startDate = new Date(schedule.startDate.getFullYear(), schedule.startDate.getMonth(), schedule.startDate.getDate());
-      } else {
-        // Fallback for any other case
-        console.warn(`Unusual date format for schedule ${schedule.id}, using current date as fallback`);
-        startDate = new Date();
-      }
-      
-      // End date handling with the same careful approach
-      if (typeof schedule.endDate === 'string') {
-        endDate = parseISO(schedule.endDate.split('T')[0]);
-      } else if (schedule.endDate instanceof Date) {
-        endDate = new Date(schedule.endDate.getFullYear(), schedule.endDate.getMonth(), schedule.endDate.getDate());
-      } else {
-        // Fallback case
-        console.warn(`Unusual end date format for schedule ${schedule.id}, using start date + 30 days as fallback`);
-        endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + 30);
-      }
-      
-      console.log(`Parsing schedule ${schedule.id} dates (fixed version):`, {
-        originalStartDate: schedule.startDate,
-        originalEndDate: schedule.endDate,
-        fixedStartDate: format(startDate, 'yyyy-MM-dd'),
-        fixedEndDate: format(endDate, 'yyyy-MM-dd')
-      });
-      
-      // FIXED DATE POSITION CALCULATION - Direct fix for date alignment
-      // Instead of calculating based on dateRange.start, use our known starting position
-      // This ensures the dates in UI match the database dates exactly
-      
-      // DIRECT DATE POSITIONING: Use actual dates with no offset
-      // Calculate position from the current view's start date
+      // Calculate left position based on date range start
       const daysFromStart = differenceInDays(startDate, dateRange.start);
-      
-      // No offsets, no adjustments - use the actual date position
       const left = daysFromStart * pixelsPerDay;
-      
-      console.log(`Schedule ${schedule.id} position:`, {
-        date: format(startDate, 'yyyy-MM-dd'),
-        daysFromStart: daysFromStart,
-        pixelPosition: left
-      });
       
       // Calculate width based on duration
       const durationDays = differenceInDays(endDate, startDate) + 1; // +1 to include the end date
@@ -1415,39 +431,28 @@ export default function ResizableBaySchedule({
         color,
         row: schedule.row !== undefined ? schedule.row : 0, // Use the explicit row from database
         
-        // Use project's actual phase percentages from the project data, but only if the phase is visible
-        fabPercentage: (project as any).showFabPhase ? (Number((project as any).fabPercentage) || 27) : 0,
-        paintPercentage: (project as any).showPaintPhase ? (Number((project as any).paintPercentage) || 7) : 0,
-        productionPercentage: (project as any).showProductionPhase ? (Number((project as any).productionPercentage) || 60) : 0,
-        itPercentage: (project as any).showItPhase ? (Number((project as any).itPercentage) || 7) : 0,
-        ntcPercentage: (project as any).showNtcPhase ? (Number((project as any).ntcPercentage) || 7) : 0,
-        qcPercentage: (project as any).showQcPhase ? (Number((project as any).qcPercentage) || 7) : 0,
+        // Department phase percentages (default values)
+        fabPercentage: 27,
+        paintPercentage: 7,
+        productionPercentage: 60,
+        itPercentage: 7,
+        ntcPercentage: 7,
+        qcPercentage: 7,
         
         // Default fab weeks
         fabWeeks: 4
       };
       
-      // Bar object is created but phase widths aren't calculated yet
-      return bar;
+      // Calculate exact fit phase widths
+      const withPhaseWidths = calculateExactFitPhaseWidths(bar);
+      
+      return withPhaseWidths;
     }).filter((bar): bar is ScheduleBar => bar !== null);
     
     // Important: NO automatic row assignment or repositioning
     // Bars will be positioned exactly where they are in the database
     
-    // Convert manufacturing bays to the Bay type needed for capacity calculations
-    const capacityBays = bays.map(bay => ({
-      id: bay.id,
-      team: bay.team,
-      assemblyStaffCount: bay.assemblyStaffCount || 1, 
-      electricalStaffCount: bay.electricalStaffCount || 1,
-      hoursPerPersonPerWeek: bay.hoursPerPersonPerWeek || 29 // Default 29 hours per week
-    }));
-    
-    // Apply team capacity-based calculations to all schedule bars
-    const barsWithCapacityCalculation = updatePhaseWidthsWithExactFit(bars, capacityBays);
-    console.log('Applied capacity-based calculations for production phase widths');
-    
-    setScheduleBars(barsWithCapacityCalculation);
+    setScheduleBars(bars);
   }, [schedules, projects, dateRange, viewMode, slotWidth]);
   
   // Filter projects when search term changes
@@ -1482,182 +487,53 @@ export default function ResizableBaySchedule({
     setFilteredProjects(sorted);
   }, [searchTerm, projects, schedules]);
   
-  // Auto-scroll to center the red TODAY line in the viewport by finding it visually
+  // Auto-scroll to current day on initial render
   useEffect(() => {
-    // Wait for rendering to complete
-    const scrollTimeout = setTimeout(() => {
-      // Get the viewport element
-      const viewportEl = viewportRef.current;
-      
-      if (!viewportEl) {
-        console.error('Could not find viewport element');
-        return;
-      }
-      
-      try {
-        // Find the red TODAY line directly in the DOM
-        // This looks for any element with 'today-line' or 'today-marker' class
-        // or any element with red background color that might be the marker
-        const findTodayLine = () => {
-          // Try different selectors to find the today line
-          const selectors = [
-            '.today-line', 
-            '.today-marker', 
-            '.today-indicator',
-            '[data-today="true"]', 
-            '.timeline-container [style*="background-color: rgba(239, 68, 68"]',
-            '.timeline-container [style*="background: rgba(239, 68, 68"]',
-            '.timeline-container [style*="background-color: rgb(239, 68, 68"]',
-            '.timeline-container [style*="background: rgb(239, 68, 68"]',
-            '.today'
-          ];
-          
-          // Try each selector
-          for (const selector of selectors) {
-            const element = document.querySelector(selector);
-            if (element) {
-              console.log(`Found today line using selector: ${selector}`);
-              return element;
-            }
-          }
-          
-          // If we couldn't find it with selectors, look for any red element
-          const allElements = document.querySelectorAll('*');
-          for (let i = 0; i < allElements.length; i++) {
-            const el = allElements[i];
-            if (el instanceof HTMLElement) {
-              const style = window.getComputedStyle(el);
-              const bgColor = style.backgroundColor;
-              // Check if it's a red element (rough check for red-ish colors)
-              if (
-                (bgColor.includes('rgb(239, 68, 68)') || 
-                bgColor.includes('rgb(255, 0, 0)') || 
-                bgColor.includes('rgb(220, 38, 38)') ||
-                el.classList.contains('bg-red-500')) &&
-                el.offsetHeight > 40 // Likely a vertical line
-              ) {
-                console.log('Found today line by color analysis');
-                return el;
-              }
-            }
-          }
-          
-          return null;
-        };
-        
-        // Find the today line
-        const todayLine = findTodayLine();
-        
-        if (todayLine) {
-          // Get the position of the today line
-          const rect = todayLine.getBoundingClientRect();
-          const containerRect = viewportEl.getBoundingClientRect();
-          
-          // Calculate the today line's position relative to the viewport
-          const todayPosition = rect.left + viewportEl.scrollLeft - containerRect.left;
-          
-          console.log(`Found Today line at position: ${todayPosition}px`);
-          
-          // Center it in the viewport
-          const viewportWidth = viewportEl.clientWidth;
-          const scrollPosition = Math.max(0, todayPosition - (viewportWidth / 2));
-          
-          console.log(`Auto-scrolling to position ${scrollPosition}px to center the today line`);
-          
-          // Smooth scroll to center the today line
-          viewportEl.scrollTo({
-            left: Math.floor(scrollPosition),
-            behavior: 'smooth'
-          });
-          
-          // Enhance visibility of today line
-          if (todayLine instanceof HTMLElement) {
-            todayLine.style.boxShadow = '0 0 12px 3px rgba(239, 68, 68, 0.8)';
-            todayLine.style.zIndex = '1000';
-            todayLine.style.transition = 'all 0.3s ease-in-out';
-            
-            // Quick pulsing animation to draw attention
-            setTimeout(() => {
-              if (todayLine instanceof HTMLElement) {
-                todayLine.style.boxShadow = '0 0 20px 5px rgba(239, 68, 68, 0.9)';
-                setTimeout(() => {
-                  todayLine.style.boxShadow = '0 0 8px 2px rgba(239, 68, 68, 0.7)';
-                }, 500);
-              }
-            }, 300);
-            
-            console.log('Successfully centered and highlighted the TODAY line');
-          }
-        } else {
-          // Fallback: If we can't find the today line, calculate dynamically
-          const currentDate = new Date();
-          console.log(`Couldn't find today line visually, calculating position for current date: ${format(currentDate, 'yyyy-MM-dd')}`);
-          
-          // Calculate week number from start of year
-          const startOfYear = new Date(dateRange.start.getFullYear(), 0, 1);
-          const dayOfYear = differenceInDays(currentDate, startOfYear);
-          const weekIndex = Math.floor(dayOfYear / 7);
-          const dayOfWeek = (currentDate.getDay() + 6) % 7; // Convert to Monday-based
-          
-          // Calculate position based on week and day
-          const todayPosition = (weekIndex * slotWidth) + ((dayOfWeek/7) * slotWidth) + 200;
-          
-          const viewportWidth = viewportEl.clientWidth;
-          const scrollPosition = Math.max(0, todayPosition - (viewportWidth / 2));
-          
-          viewportEl.scrollTo({
-            left: Math.floor(scrollPosition),
-            behavior: 'smooth'
-          });
-        }
-      } catch (error) {
-        console.error('Error during auto-scroll:', error);
-      }
-    }, 1000); // Longer timeout to ensure everything is rendered
+    const viewportEl = viewportRef.current;
+    const timelineEl = timelineRef.current;
     
-    return () => clearTimeout(scrollTimeout);
-  }, [viewportRef, slotWidth]);
+    if (!viewportEl || !timelineEl) return;
+    
+    // Find today's position in the timeline
+    const today = new Date();
+    
+    // Calculate days since the start of our date range
+    const daysFromStart = differenceInDays(today, dateRange.start);
+    
+    // Calculate the position to scroll to based on slot width
+    // Use viewMode to determine pixels per day
+    const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
+    const scrollPosition = daysFromStart * pixelsPerDay;
+    
+    // Adjust for centering by subtracting half the viewport width
+    const adjustedPosition = Math.max(0, scrollPosition - viewportEl.clientWidth / 2);
+    
+    // Scroll to position
+    console.log('Auto-scrolling to current week');
+    try {
+      if (viewportEl.scrollTo) {
+        const weekPosition = Math.floor(adjustedPosition);
+        console.log(`Auto-scrolled to current week position: ${scrollPosition}px (week ${Math.floor(daysFromStart / 7)} of ${today.getFullYear()}) centered at ${adjustedPosition}px`);
+        viewportEl.scrollTo({ left: weekPosition, behavior: 'smooth' });
+      } else {
+        console.log('USING EMERGENCY SCROLLING METHOD');
+        // Fallback for older browsers
+        viewportEl.scrollLeft = adjustedPosition;
+        console.log(`Forced scroll to ${adjustedPosition}px (${daysFromStart} days since Jan 1, ${pixelsPerDay}px per day)`);
+      }
+    } catch (e) {
+      console.error('Error during auto-scroll:', e);
+    }
+  }, [dateRange, viewMode, slotWidth]);
   
   // Drag handling functions
   const handleDragStart = (e: React.DragEvent, scheduleId: number) => {
-    // Find the specific schedule bar to get its details
-    const bar = scheduleBars.find((b) => b.id === scheduleId);
-    if (!bar) {
-      console.error('Could not find schedule bar with ID', scheduleId);
-      return;
-    }
-
-    // Store the schedule ID as plain text (primary data)
     e.dataTransfer.setData('text/plain', scheduleId.toString());
-    
-    // Also store as JSON with complete data (enhanced data)
-    const dragData = {
-      scheduleId: bar.id,
-      projectId: bar.projectId,
-      bayId: bar.bayId,
-      startDate: format(bar.startDate, 'yyyy-MM-dd'),
-      endDate: format(bar.endDate, 'yyyy-MM-dd'),
-      totalHours: bar.totalHours,
-      projectName: bar.projectName,
-      projectNumber: bar.projectNumber
-    };
-    
-    e.dataTransfer.setData('application/json', JSON.stringify(dragData));
     e.dataTransfer.effectAllowed = 'move';
     
-    // Set global state
-    setDraggingSchedule(scheduleId);
-    
-    // CRITICAL FIX: Add enhanced visual feedback AND disable other project bars
+    // Add some visual feedback
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.classList.add('dragging');
-      document.body.classList.add('dragging-active');
-      
-      // CRITICAL: Set the global drag state to hide all OTHER project bars
-      document.body.setAttribute('data-drag-in-progress', 'true');
-      document.body.classList.add('global-drag-active');
-      
-      console.log(`🚀 EXISTING PROJECT DRAG: ${bar.projectNumber} - ALL OTHER PROJECT BARS NOW HIDDEN`);
       
       // Create a custom drag image that looks like the actual bar
       const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
@@ -1682,178 +558,57 @@ export default function ResizableBaySchedule({
   };
   
   const handleDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, slotIndex: number) => {
-    // Always prevent default to allow dropping
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
     
-    // Set appropriate drop effect based on what's being dragged
-    try {
-      const dataString = e.dataTransfer.getData('text/plain');
-      if (dataString.startsWith('-') || document.body.classList.contains('dragging-unassigned-project')) {
-        // This is an unassigned project
-        e.dataTransfer.dropEffect = 'copy';
-      } else {
-        // This is an existing schedule being moved
-        e.dataTransfer.dropEffect = 'move';
-      }
-    } catch (err) {
-      // Default to move if we can't determine
-      e.dataTransfer.dropEffect = 'move';
-    }
-    
-    // Update the drop target for visual feedback
     setDropTarget({ bayId, rowIndex });
-    
-    // Add visual indicator for drop target
-    if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.classList.add('drop-target-active');
-      
-      // Find parent bay container for additional highlighting
-      let parent = e.currentTarget.parentElement;
-      while (parent && !parent.classList.contains('bay-container')) {
-        parent = parent.parentElement;
-      }
-      
-      if (parent) {
-        parent.classList.add('active-drop-area');
-      }
-    }
   };
   
   const handleSlotDragOver = (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
-    // CRITICAL: Always call preventDefault() to allow dropping
     e.preventDefault();
-    
-    // FORCE-ACCEPT ALL DROPS
-    e.stopPropagation();
-    
-    // Force the cursor to always show "move" and never "no-drop"
     e.dataTransfer.dropEffect = 'move';
-    
-    console.log(`✅ DRAG OVER: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
-    console.log(`✅ DROP TARGET ACTIVE: Cell accepting drop`);
     
     // Update drop target info
     setDropTarget({ bayId, rowIndex });
     
     // Visually highlight the drop zone
     if (e.currentTarget instanceof HTMLElement) {
-      // Add highlight classes
       e.currentTarget.classList.add('drop-target');
-      e.currentTarget.classList.add('force-accept-drop');
-      
-      // Set critical data attributes needed for drop acceptance
-      e.currentTarget.setAttribute('data-drop-enabled', 'true');
-      e.currentTarget.setAttribute('data-overlap-allowed', 'true');
-      e.currentTarget.setAttribute('data-bay-id', bayId.toString());
-      e.currentTarget.setAttribute('data-row-index', rowIndex.toString());
-      
-      // Force the parent elements to accept drops too
-      let parent = e.currentTarget.parentElement;
-      while (parent) {
-        parent.classList.add('force-accept-drop');
-        parent.setAttribute('data-drop-enabled', 'true');
-        parent = parent.parentElement;
-      }
-      
-      // Ensure the body has the special class for CSS rules
-      document.body.classList.add('allow-multiple-projects');
-      document.body.classList.add('force-accept-drop');
     }
   };
   
-  // Drag end cleanup is now handled by the useCallback above
+  const handleDragEnd = (e: React.DragEvent) => {
+    // Reset dragging state
+    setDraggingSchedule(null);
+    setDropTarget(null);
+    
+    // Remove any visual feedback
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.classList.remove('dragging');
+    }
+    
+    // Remove highlights from all potential drop targets
+    document.querySelectorAll('.drop-target').forEach((el) => {
+      el.classList.remove('drop-target');
+    });
+  };
   
   const handleDrop = async (e: React.DragEvent, bayId: number, slotIndex: number, rowIndex: number) => {
     e.preventDefault();
     console.log(`DROP DEBUG: handleDrop called with bayId=${bayId}, slotIndex=${slotIndex}, rowIndex=${rowIndex}`);
     
-    // Try to get the data in both formats - we support both scheduled items and unassigned projects
-    const dataString = e.dataTransfer.getData('text/plain');
-    const jsonData = e.dataTransfer.getData('application/json');
+    // Get the schedule ID from the drag data
+    const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    console.log(`DROP DEBUG: Moving schedule ID ${scheduleId}`);
+    
+    // Find the schedule bar being moved
+    const bar = scheduleBars.find((b) => b.id === scheduleId);
+    if (!bar) {
+      console.error('DROP ERROR: Could not find schedule bar with ID', scheduleId);
+      return;
+    }
     
     try {
-      // First, check if this is an unassigned project (identifier starts with -)
-      if (dataString.startsWith('-')) {
-        // Handle drop of an unassigned project
-        const projectId = parseInt(dataString.substring(1), 10);
-        console.log(`DROP DEBUG: Adding NEW project ID ${projectId} to schedule in bay ${bayId}`);
-        
-        // Find the project to get its details
-        const project = projects.find(p => p.id === projectId);
-        if (!project) {
-          console.error('DROP ERROR: Could not find project with ID', projectId);
-          return;
-        }
-        
-        // Get date at drop position
-        const targetDate = getDateFromDropPosition(e, bayId, rowIndex);
-        if (!targetDate) {
-          console.error('DROP ERROR: Could not determine target date for drop');
-          return;
-        }
-        
-        // Calculate default duration (4 weeks for new projects)
-        const defaultDuration = scheduleDuration || 4; // in weeks
-        const endDate = addWeeks(targetDate, defaultDuration);
-        
-        // Default hours calculation (use project.totalHours if available, otherwise estimate)
-        const totalHours = project.totalHours || 1200; // Default to 1200 hours if not set
-        
-        // Format dates for API
-        const formattedStartDate = format(targetDate, 'yyyy-MM-dd');
-        const formattedEndDate = format(endDate, 'yyyy-MM-dd');
-        
-        console.log(`⚠️ CREATING NEW SCHEDULE: Project ${project.name}`);
-        console.log(`⚠️ Bay: ${bayId}, Row: ${rowIndex}`);
-        console.log(`⚠️ Dates: ${formattedStartDate} to ${formattedEndDate}`);
-        
-        // Create a new schedule with the project
-        await onScheduleCreate(
-          projectId,
-          bayId,
-          formattedStartDate,
-          formattedEndDate,
-          totalHours,
-          rowIndex
-        );
-        
-        // Show success toast
-        toast({
-          title: "Project scheduled",
-          description: `${project.name} added to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
-        });
-        
-        return;
-      }
-      
-      // If it's not an unassigned project, it must be an existing schedule being moved
-      let scheduleId: number;
-      let bar: ScheduleBar | undefined;
-      
-      // Try to get complete data from JSON if available
-      if (jsonData) {
-        try {
-          const parsedData = JSON.parse(jsonData);
-          scheduleId = parsedData.scheduleId;
-          console.log('Using complete JSON data for drag operation:', parsedData);
-        } catch (e) {
-          // Fallback to text data if JSON parsing fails
-          scheduleId = parseInt(dataString, 10);
-        }
-      } else {
-        // Use plain text data
-        scheduleId = parseInt(dataString, 10);
-      }
-      
-      console.log(`DROP DEBUG: Moving EXISTING schedule ID ${scheduleId}`);
-      
-      // Find the schedule bar being moved
-      bar = scheduleBars.find((b) => b.id === scheduleId);
-      if (!bar) {
-        console.error('DROP ERROR: Could not find schedule bar with ID', scheduleId);
-        return;
-      }
-      
       // Determine the new start and end dates based on drop position
       const targetDate = getDateFromDropPosition(e, bayId, rowIndex);
       if (!targetDate) {
@@ -1905,113 +660,14 @@ export default function ResizableBaySchedule({
   };
   
   const handleSlotDrop = async (e: React.DragEvent, bayId: number, rowIndex: number, date: Date) => {
-    // This is critical - ALWAYS prevent default to allow the drop
     e.preventDefault();
     
-    // STOP PROPAGATION to ensure no parent elements interfere
-    e.stopPropagation();
+    console.log(`🎯 PRECISE DROP: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
     
-    // Clear any drag state from the document
-    document.body.removeAttribute('data-drag-in-progress');
-    document.body.classList.remove('global-drag-active');
+    // Get the schedule ID from the drag data
+    const scheduleId = parseInt(e.dataTransfer.getData('text/plain'), 10);
     
-    // Get data from the drop event
-    const dataString = e.dataTransfer.getData('text/plain');
-    console.log(`📦 RAW DRAG DATA: "${dataString}"`);
-    
-    // EXTENDED DEBUG LOGGING - to track exactly what's happening
-    console.log(`🎯 DROP SUCCESSFUL: Bay ${bayId}, Row ${rowIndex}, Date ${format(date, 'yyyy-MM-dd')}`);
-    console.log(`🎯 DROP TARGET: BAY ${bayId} (${bays.find(b => b.id === bayId)?.name})`);
-    console.log(`🎯 EXACT COORDINATES: x=${e.nativeEvent.offsetX}px, y=${e.nativeEvent.offsetY}px`);
-    console.log(`🎯 PLACEMENT: Row ${rowIndex} - NO POSITION RESTRICTIONS`);
-    console.log(`⚠️ CRITICAL POLICY: Projects placed EXACTLY where dropped - NO AUTO-ADJUSTMENT`);
-    console.log(`⚠️ CRITICAL POLICY: Multiple projects ALLOWED in same row - OVERLAPS PERMITTED`);
-    
-    // Check for unassigned project identifier format (begins with a minus sign)
-    const isNegativeFormat = dataString.startsWith('-');
-    const scheduleId = parseInt(dataString, 10);
-    
-    // Check if this is a NEW project being created (negative ID) or existing schedule
-    const isNewProject = isNegativeFormat || scheduleId < 0;
-    
-    if (isNewProject) {
-      // This is a new project being added from the unassigned projects list
-      const projectId = Math.abs(scheduleId);
-      console.log(`🆕 Creating NEW SCHEDULE for project ID ${projectId} in bay ${bayId} at row ${rowIndex}`);
-      
-      // Find the project data
-      const project = projects.find(p => p.id === projectId);
-      if (!project) {
-        // Attempt to recover from sessionStorage if project data is not found
-        try {
-          const storedProject = JSON.parse(sessionStorage.getItem('dragging_project') || '{}');
-          if (storedProject && storedProject.id === projectId) {
-            console.log(`🔄 Recovered project data from session storage: ${storedProject.name}`);
-            // Use the stored project data
-            // Continue with the scheduling creation
-          } else {
-            console.error('❌ Cannot find project with ID', projectId);
-            return;
-          }
-        } catch (error) {
-          console.error('❌ Cannot find project with ID', projectId);
-          return;
-        }
-      }
-      
-      // Get phase percentages from the project or use defaults
-      const fabPercent = project && project.fabPercentage ? Number(project.fabPercentage) : 27;
-      const paintPercent = project && project.paintPercentage ? Number(project.paintPercentage) : 7;
-      
-      // Calculate how many days before the PRODUCTION phase
-      // Default duration is 4 weeks if not specified
-      const totalDuration = scheduleDuration * 7; // Convert weeks to days
-      const fabAndPaintDays = Math.ceil(totalDuration * ((fabPercent + paintPercent) / 100));
-      
-      console.log(`Starting project from PRODUCTION phase - adjusting drop date:`);
-      console.log(`- Initial drop date: ${format(date, 'yyyy-MM-dd')}`);
-      console.log(`- Fab+Paint %: ${fabPercent + paintPercent}% = ${fabAndPaintDays} days`);
-      
-      // Adjust startDate backwards to account for fab and paint phases
-      // This makes the PRODUCTION phase start at the drop point
-      const adjustedStartDate = subDays(date, fabAndPaintDays);
-      console.log(`- Adjusted start date: ${format(adjustedStartDate, 'yyyy-MM-dd')} (backing up ${fabAndPaintDays} days for fab+paint)`);
-      
-      // End date stays as originally calculated from the drop point + duration
-      const endDate = addWeeks(date, scheduleDuration - (fabAndPaintDays / 7));
-      
-      // Format adjusted dates for API
-      const formattedStartDate = format(adjustedStartDate, 'yyyy-MM-dd');
-      const formattedEndDate = format(endDate, 'yyyy-MM-dd');
-      
-      try {
-        // Create a new schedule with the projectId, bayId, and dates
-        await onScheduleCreate(
-          projectId,
-          bayId,
-          formattedStartDate,
-          formattedEndDate,
-          scheduleDuration * 40, // 40 hours per week default
-          rowIndex // Exact row placement
-        );
-        
-        toast({
-          title: "Schedule created",
-          description: `Added ${project?.name || 'Project'} to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
-        });
-      } catch (error) {
-        console.error('Error creating schedule:', error);
-        toast({
-          title: "Failed to create schedule",
-          description: "There was an error creating the schedule. Please try again.",
-          variant: "destructive",
-        });
-      }
-      
-      return;
-    }
-    
-    // Handle existing schedule being moved
+    // Find the schedule bar being moved
     const bar = scheduleBars.find((b) => b.id === scheduleId);
     if (!bar) {
       console.error('DROP ERROR: Could not find schedule bar with ID', scheduleId);
@@ -2064,65 +720,7 @@ export default function ResizableBaySchedule({
       const formattedStartDate = format(date, 'yyyy-MM-dd');
       const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
       
-      // Check if a significant date change occurred
-      const originalStartDate = format(bar.startDate, 'yyyy-MM-dd');
-      const originalEndDate = format(bar.endDate, 'yyyy-MM-dd');
-      
-      const isSignificantChange = 
-        Math.abs(differenceInDays(date, bar.startDate)) > 0 || 
-        Math.abs(differenceInDays(newEndDate, bar.endDate)) > 0 ||
-        bayId !== bar.bayId; // Bay change is always significant
-        
-      if (isSignificantChange) {
-        if (enableFinancialImpact) {
-          // Show financial impact popup before committing changes if enabled
-          setFinancialImpactData({
-            scheduleId: scheduleId,
-            projectId: bar.projectId,
-            bayId: bayId,
-            originalStartDate: originalStartDate,
-            originalEndDate: originalEndDate,
-            newStartDate: formattedStartDate,
-            newEndDate: formattedEndDate,
-            totalHours: bar.totalHours,
-            rowIndex: rowIndex
-          });
-          setShowFinancialImpact(true);
-          
-          // Note: Changes will be committed when user confirms in the popup
-          return;
-        } else {
-          // When financial impact analysis is disabled, directly apply the changes
-          try {
-            // Update the schedule without showing financial impact
-            await onScheduleChange(
-              scheduleId,
-              bayId,
-              formattedStartDate,
-              formattedEndDate,
-              bar.totalHours,
-              rowIndex
-            );
-            
-            // Show success toast
-            toast({
-              title: "Schedule updated",
-              description: `${bar.projectName} moved to ${bays.find(b => b.id === bayId)?.name || 'Bay ' + bayId}`,
-            });
-            return;
-          } catch (error) {
-            console.error('Error updating schedule:', error);
-            toast({
-              title: 'Update failed',
-              description: 'There was an error updating the schedule.',
-              variant: 'destructive',
-            });
-            return;
-          }
-        }
-      }
-      
-      // If no significant change, update directly
+      // Update the schedule with EXACT row position
       await onScheduleChange(
         scheduleId,
         bayId,
@@ -2189,34 +787,6 @@ export default function ResizableBaySchedule({
       // Get the timeline bounding rect
       const timelineRect = timelineEl.getBoundingClientRect();
       
-      // Find the closest date column based on mouse position
-      const allDateCells = document.querySelectorAll(`[data-bay-id="${bayId}"][data-date]`);
-      if (allDateCells && allDateCells.length > 0) {
-        // Find the closest date cell to the drop position
-        let closestCell = null;
-        let minDistance = Infinity;
-        
-        allDateCells.forEach(cell => {
-          const cellRect = (cell as HTMLElement).getBoundingClientRect();
-          const cellCenterX = cellRect.left + (cellRect.width / 2);
-          const distance = Math.abs(e.clientX - cellCenterX);
-          
-          if (distance < minDistance) {
-            minDistance = distance;
-            closestCell = cell;
-          }
-        });
-        
-        if (closestCell) {
-          const dateAttr = closestCell.getAttribute('data-date');
-          if (dateAttr) {
-            console.log(`🎯 DROP DEBUG: Using date from closest cell: ${dateAttr} (distance: ${minDistance}px)`);
-            return new Date(dateAttr);
-          }
-        }
-      }
-      
-      // Fall back to pixel-based calculation if no cells found
       // Get the offset from the start of the timeline (left edge) 
       const timelineX = e.clientX - timelineRect.left - 32; // Adjust for bay label width
       
@@ -2228,11 +798,11 @@ export default function ResizableBaySchedule({
       
       // Calculate the day offset based on pixels
       const dayOffset = adjustedX / dayWidth;
-      console.log(`📏 DROP DEBUG: Improved calculation - timelineX: ${timelineX}px, adjustedX: ${adjustedX}px, dayWidth: ${dayWidth}px, dayOffset: ${dayOffset} days`);
+      console.log(`DROP DEBUG: Improved calculation - timelineX: ${timelineX}px, adjustedX: ${adjustedX}px, dayWidth: ${dayWidth}px, dayOffset: ${dayOffset} days`);
       
       // Get the exact date
       const exactDate = addDays(dateRange.start, Math.floor(dayOffset));
-      console.log(`📅 DROP DEBUG: Target date: ${format(exactDate, 'yyyy-MM-dd')}`);
+      console.log(`DROP DEBUG: Target date: ${format(exactDate, 'yyyy-MM-dd')}`);
       
       return exactDate;
     } catch (error) {
@@ -2301,22 +871,6 @@ export default function ResizableBaySchedule({
     }
     
     try {
-      // Check if the project is already scheduled anywhere
-      const existingSchedule = schedules.find(s => s.projectId === currentProject);
-      
-      if (existingSchedule) {
-        // Project is already scheduled - show error and don't allow duplicate
-        const existingBay = bays.find(b => b.id === existingSchedule.bayId);
-        const projectDetails = projects.find(p => p.id === currentProject);
-        
-        toast({
-          title: "Duplicate Project Schedule",
-          description: `Project ${projectDetails?.projectNumber} is already scheduled in ${existingBay?.name || 'Bay ' + existingSchedule.bayId}. Please remove the existing schedule before adding a new one.`,
-          variant: "destructive",
-        });
-        return;
-      }
-      
       // Format dates for the API
       const formattedStartDate = format(targetStartDate, 'yyyy-MM-dd');
       const formattedEndDate = format(targetEndDate, 'yyyy-MM-dd');
@@ -2405,63 +959,17 @@ export default function ResizableBaySchedule({
     if (!editingBay || !onBayCreate) return;
     
     try {
-      // Check if we're creating a team (has team name and no ID)
-      const isTeamCreation = editingBay.team && !editingBay.id;
+      await onBayCreate(editingBay);
       
-      // Make sure we have valid staff counts
-      const updatedData = {
-        ...editingBay,
-        staffCount: (editingBay.assemblyStaffCount || 0) + (editingBay.electricalStaffCount || 0),
-      };
-      
-      console.log('Creating bay/team with data:', updatedData);
-      
-      // Create the bay using the parent component's callback
-      const newBay = await onBayCreate(updatedData);
-      
-      // Show appropriate success toast
-      if (isTeamCreation) {
-        toast({
-          title: "Team created",
-          description: `Team "${editingBay.team}" with bay "${editingBay.name}" has been created.`,
-        });
-        
-        // If we created a team, update team descriptions
-        if (editingBay.team && editingBay.description) {
-          const newDescriptions = {...teamDescriptions};
-          newDescriptions[editingBay.team] = editingBay.description;
-          setTeamDescriptions(newDescriptions);
-        }
-      } else {
-        toast({
-          title: "Bay created",
-          description: `${editingBay.name} has been created.`,
-        });
-      }
+      // Show success toast
+      toast({
+        title: "Bay created",
+        description: `${editingBay.name} has been created.`,
+      });
       
       // Reset dialog state
       setNewBayDialog(false);
       setEditingBay(null);
-      
-      // Fetch fresh data from API
-      console.log("Fetching fresh bay data after creation");
-      try {
-        const response = await fetch('/api/manufacturing-bays');
-        if (response.ok) {
-          const freshBays = await response.json();
-          
-          // Update bays with fresh data
-          console.log("Received fresh bay data:", freshBays.length, "bays");
-          
-          // Force a full page refresh to ensure proper rendering
-          // This is more reliable than trying to update state directly
-          setTimeout(() => {
-            window.location.reload();
-          }, 500);
-        }
-      } catch (err) {
-        console.error("Error refreshing bay data:", err);
-      }
     } catch (error) {
       console.error('Error creating bay:', error);
       toast({
@@ -2529,7 +1037,7 @@ export default function ResizableBaySchedule({
     const ntcWidth = Math.round(totalWidth * (ntcPercent / 100));
     const qcWidth = Math.round(totalWidth * (qcPercent / 100));
     
-    // Find and update the phase elements with just width (positions are handled by CSS)
+    // Find and update the phase elements
     const fabPhase = bar.querySelector('.fab-phase') as HTMLElement;
     const paintPhase = bar.querySelector('.paint-phase') as HTMLElement;
     const prodPhase = bar.querySelector('.production-phase') as HTMLElement;
@@ -2537,7 +1045,6 @@ export default function ResizableBaySchedule({
     const ntcPhase = bar.querySelector('.ntc-phase') as HTMLElement;
     const qcPhase = bar.querySelector('.qc-phase') as HTMLElement;
     
-    // Update only widths - let CSS handle positioning to stay contained
     if (fabPhase) fabPhase.style.width = `${fabWidth}px`;
     if (paintPhase) paintPhase.style.width = `${paintWidth}px`;
     if (prodPhase) prodPhase.style.width = `${prodWidth}px`;
@@ -2551,12 +1058,9 @@ export default function ResizableBaySchedule({
     e.preventDefault();
     e.stopPropagation();
     
-    // Find the project bar element by its data attribute since handles are now outside containers
-    const element = document.querySelector(`[data-schedule-id="${bar.id}"]`) as HTMLElement;
-    if (!element) {
-      console.error('Could not find project bar element for resize');
-      return;
-    }
+    // Save current values to be restored if needed
+    const element = e.currentTarget.closest('.schedule-bar') as HTMLElement;
+    if (!element) return;
     
     // Track initial position and size
     const initialRect = element.getBoundingClientRect();
@@ -2582,45 +1086,24 @@ export default function ResizableBaySchedule({
       
       // Update the bar style based on resize direction
       if (resizeMode === 'start') {
-        // CRITICAL FIX: When resizing from left (start), keep the right edge fixed
-        const rightEdgePosition = initialLeft + initialWidth; // This should remain constant
-
-        // Calculate new left position with constraints
-        const newLeft = Math.min(
-          Math.max(initialLeft + deltaX, 0), // Don't go below 0
-          rightEdgePosition - 40 // Don't make the bar too small
-        );
-        
-        // Calculate new width based on fixed right edge
-        const newWidth = rightEdgePosition - newLeft;
+        // Determine the new left position, but don't allow it to go beyond the end
+        const newLeft = Math.min(initialLeft + deltaX, initialLeft + initialWidth - 40); // Keep a minimum width
+        const newWidth = initialWidth - (newLeft - initialLeft);
         
         // Convert to date range
         const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
         const daysOffset = Math.round((newLeft - initialLeft) / pixelsPerDay);
         const newStartDate = addDays(initialStartDate, daysOffset);
         
-        // Update the visual bar - adjust position relative to parent
-        const parentOffset = element.parentElement!.getBoundingClientRect().left;
-        element.style.left = `${newLeft - parentOffset}px`;
+        // Update the visual bar
+        element.style.left = `${newLeft - element.parentElement!.getBoundingClientRect().left}px`;
         element.style.width = `${newWidth}px`;
         
-        // Log for debugging
-        console.log('Left resize: Fixed right edge at', rightEdgePosition, 'New left:', newLeft, 'New width:', newWidth);
-        
-        // Update department phase widths in real-time
+        // Update department phase widths
         updateDepartmentPhaseWidths(element, newWidth);
         
-        // Also update the resize handles positions
-        const rightHandle = document.querySelector(`[data-schedule-id="${bar.id}"] + div + div`) as HTMLElement;
-        if (rightHandle) {
-          rightHandle.style.left = `${newLeft + newWidth + 4}px`;
-        }
-        
       } else { // end resize
-        // CRITICAL FIX: When resizing from right (end), keep the left edge fixed
-        // This means we only adjust the width, not the left position
-        
-        // Calculate the new width with minimum constraint
+        // Calculate the new width
         const newWidth = Math.max(40, initialWidth + deltaX); // Ensure a minimum width
         
         // Convert to date range
@@ -2628,20 +1111,11 @@ export default function ResizableBaySchedule({
         const daysExtended = Math.round(deltaX / pixelsPerDay);
         const newEndDate = addDays(initialEndDate, daysExtended);
         
-        // Update the visual bar - only change width, not left position
+        // Update the visual bar
         element.style.width = `${newWidth}px`;
         
-        // Log for debugging
-        console.log('Right resize: Fixed left edge at', initialLeft, 'New width:', newWidth);
-        
-        // Update department phase widths in real-time
+        // Update department phase widths  
         updateDepartmentPhaseWidths(element, newWidth);
-        
-        // Also update the right resize handle position
-        const rightHandle = document.querySelector(`[data-schedule-id="${bar.id}"] + div + div`) as HTMLElement;
-        if (rightHandle) {
-          rightHandle.style.left = `${initialLeft + newWidth + 4}px`;
-        }
       }
     };
     
@@ -2673,61 +1147,8 @@ export default function ResizableBaySchedule({
       const formattedStartDate = format(newStartDate, 'yyyy-MM-dd');
       const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
       
-      // Check if dates changed significantly (more than a day)
-      const isSignificantChange = 
-        Math.abs(differenceInDays(newStartDate, initialStartDate)) > 0 || 
-        Math.abs(differenceInDays(newEndDate, initialEndDate)) > 0;
-        
-      if (isSignificantChange) {
-        if (enableFinancialImpact) {
-          // Show financial impact popup before committing changes when the feature is enabled
-          setFinancialImpactData({
-            scheduleId: bar.id,
-            projectId: bar.projectId,
-            bayId: bar.bayId,
-            originalStartDate: format(initialStartDate, 'yyyy-MM-dd'),
-            originalEndDate: format(initialEndDate, 'yyyy-MM-dd'),
-            newStartDate: formattedStartDate,
-            newEndDate: formattedEndDate,
-            totalHours: bar.totalHours,
-            rowIndex: bar.row
-          });
-          setShowFinancialImpact(true);
-          
-          // Note: Changes will be committed when user confirms in the popup
-          return;
-        } else {
-          // When financial impact analysis is disabled, directly apply the changes
-          try {
-            // Update the schedule without showing financial impact
-            await onScheduleChange(
-              bar.id,
-              bar.bayId,
-              formattedStartDate,
-              formattedEndDate,
-              bar.totalHours,
-              bar.row
-            );
-            
-            toast({
-              title: "Schedule updated",
-              description: "Project schedule has been updated.",
-            });
-            return;
-          } catch (error) {
-            console.error('Error updating schedule:', error);
-            toast({
-              title: 'Update failed',
-              description: 'There was an error updating the schedule.',
-              variant: 'destructive',
-            });
-            return;
-          }
-        }
-      }
-      
       try {
-        // Update the schedule (for non-significant changes)
+        // Update the schedule
         await onScheduleChange(
           bar.id,
           bar.bayId,
@@ -2795,24 +1216,17 @@ export default function ResizableBaySchedule({
   };
   
   // Find unassigned projects that don't have any schedules
-  // When forceUpdate changes, this will recalculate and update the UI
-  const unassignedProjects = useMemo(() => {
-    console.log('⚡ Recalculating unassigned projects list');
-    // Make sure projects array exists before filtering
-    if (!projects || !Array.isArray(projects)) return [];
-    
-    return projects.filter(project => 
-      !schedules.some(schedule => schedule.projectId === project.id)
-    );
-  }, [projects, schedules, forceUpdate]);
+  const unassignedProjects = projects.filter(project => 
+    !schedules.some(schedule => schedule.projectId === project.id)
+  );
   
   return (
     <div className="resizable-bay-schedule relative flex flex-col h-full dark">
       {/* Header Bar */}
-      <div className="schedule-header sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="schedule-header sticky top-0 z-10 bg-gray-900 border-b border-gray-700 shadow-sm">
         <div className="flex justify-between items-center p-2">
           <div className="flex items-center space-x-2">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Manufacturing Schedule</h2>
+            <h2 className="text-lg font-semibold text-white">Manufacturing Schedule</h2>
             <Badge variant="secondary" className="ml-2">
               {viewMode.charAt(0).toUpperCase() + viewMode.slice(1)} View
             </Badge>
@@ -2820,348 +1234,109 @@ export default function ResizableBaySchedule({
           
           <div className="flex items-center space-x-2">
             <button 
-              className="bg-gray-700 hover:bg-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600 p-1 rounded"
+              className="bg-gray-700 hover:bg-gray-600 p-1 rounded"
               onClick={() => setDialogOpen(true)}
             >
               <PlusCircle className="h-5 w-5 text-white" />
             </button>
             
             <button
-              className="bg-blue-700 hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600 p-1 rounded"
+              className="bg-gray-700 hover:bg-gray-600 p-1 rounded"
               onClick={() => {
-                // Set up a new team creation dialog
-                const teamName = "New Team";
-                const highestBayNumber = Math.max(...bays.map(b => b.bayNumber));
-                
-                // Create a new bay with the team name
                 setNewBayDialog(true);
                 setEditingBay({
                   id: 0,
-                  name: `${teamName} Bay 1`,
-                  bayNumber: highestBayNumber + 1,
+                  name: '',
+                  bayNumber: bays.length + 1,
                   status: 'active',
-                  description: 'Manufacturing Team',
+                  description: null,
                   location: null,
-                  team: teamName, // Important - this assigns the bay to the new team
+                  team: null,
                   capacityTonn: null,
                   maxWidth: null,
                   maxHeight: null,
                   maxLength: null,
                   teamId: null,
                   createdAt: null,
-                  updatedAt: null,
-                  assemblyStaffCount: 4,
-                  electricalStaffCount: 2,
-                  hoursPerPersonPerWeek: 40
+                  updatedAt: null
                 });
               }}
             >
-              <div className="flex items-center text-white">
-                <PlusIcon className="h-4 w-4" />
-                <span className="text-sm ml-1">Team</span>
+              <div className="flex items-center">
+                <PlusIcon className="h-4 w-4 text-gray-700" />
+                <span className="text-sm">Bay</span>
               </div>
             </button>
           </div>
         </div>
       </div>
       
-      <div className="flex flex-row flex-1 h-full relative">
-        {/* Left Navigation Chevron */}
-        {canScrollLeft && (
-          <button
-            onClick={handleScrollLeft}
-            className="fixed left-72 top-1/2 transform -translate-y-1/2 z-50 bg-black/60 hover:bg-black/80 text-white rounded-full p-3 transition-all duration-200 shadow-lg backdrop-blur-sm border border-white/20"
-            style={{ marginLeft: sidebarOpen ? '0' : '-240px' }}
-            aria-label="Scroll timeline left"
-          >
-            <ChevronLeft size={32} />
-          </button>
-        )}
-        
-        {/* Right Navigation Chevron */}
-        {canScrollRight && (
-          <button
-            onClick={handleScrollRight}
-            className="fixed right-8 top-1/2 transform -translate-y-1/2 z-50 bg-black/60 hover:bg-black/80 text-white rounded-full p-3 transition-all duration-200 shadow-lg backdrop-blur-sm border border-white/20"
-            aria-label="Scroll timeline right"
-          >
-            <ChevronRight size={32} />
-          </button>
-        )}
-
-        {/* Unassigned Projects Sidebar - Collapsible with Drop Zone */}
-        <div 
-          className={`unassigned-projects-sidebar border-r border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-900 flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 p-4' : 'w-10 p-2'}`}
-          style={{ 
-            transitionProperty: 'width, padding', 
-            height: '100%', // Changed from fixed height to 100% to fill parent container
-            position: 'sticky', // Make it sticky so it stays in view while scrolling
-            top: '0',
-            left: '0',
-            zIndex: 30 // Ensure it stays above other elements
-          }}
-        >
-          <div className="flex items-center justify-between mb-4 flex-shrink-0">
-            <h3 className={`font-bold text-gray-900 dark:text-white ${!sidebarOpen ? 'hidden' : 'block'}`}>Unassigned Projects</h3>
-            <button 
-              onClick={() => {
-                console.log("Toggling sidebar from", sidebarOpen, "to", !sidebarOpen);
-                setSidebarOpen(!sidebarOpen);
-                // Save to localStorage to persist between page reloads
-                localStorage.setItem('sidebarOpen', String(!sidebarOpen));
-              }} 
-              className="p-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-full transition-colors flex items-center justify-center"
-              title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-            >
-              {sidebarOpen ? <ChevronLeft className="h-4 w-4 text-gray-600 dark:text-gray-300" /> : <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-300" />}
-            </button>
-          </div>
+      <div className="flex flex-row flex-1 h-full">
+        {/* Unassigned Projects Sidebar */}
+        <div className="unassigned-projects-sidebar w-64 border-r border-gray-700 flex-shrink-0 overflow-y-auto bg-gray-900 p-4">
+          <h3 className="font-bold text-white mb-4">Unassigned Projects</h3>
           
-          {sidebarOpen && (
-            <div 
-              className="flex flex-col flex-grow overflow-hidden"
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                e.currentTarget.classList.add('drop-zone-active');
-              }}
-              onDragLeave={(e) => {
-                // Only remove the highlight if we're not dragging over a child element
-                if (!e.currentTarget.contains(e.relatedTarget)) {
-                  e.currentTarget.classList.remove('drop-zone-active');
-                }
-              }}
-              onDrop={async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                e.currentTarget.classList.remove('drop-zone-active');
-                
-                document.body.classList.remove('global-drag-active');
-                
-                try {
-                  const dataString = e.dataTransfer.getData('text/plain');
-                  console.log(`📦 UNASSIGNED DROP ANYWHERE: "${dataString}"`);
-                  
-                  const scheduleId = parseInt(dataString, 10);
-                  
-                  if (scheduleId > 0) {
-                    console.log(`🔄 Returning schedule ${scheduleId} to unassigned section`);
+          {unassignedProjects.length === 0 ? (
+            <div className="text-sm text-gray-400 italic">No unassigned projects</div>
+          ) : (
+            <div className="space-y-3">
+              {unassignedProjects.map(project => (
+                <div 
+                  key={`unassigned-${project.id}`}
+                  className="unassigned-project-card bg-gray-800 p-3 rounded border border-gray-700 shadow-sm cursor-grab hover:bg-gray-700 transition-colors"
+                  draggable
+                  onDragStart={(e) => {
+                    // Create dummy schedule to use the existing drag logic
+                    const dummySchedule = {
+                      id: -project.id, // Negative ID to mark as new
+                      projectId: project.id,
+                      bayId: 0,
+                      startDate: new Date(),
+                      endDate: addWeeks(new Date(), 4),
+                      totalHours: 160,
+                      row: 0
+                    };
                     
-                    const schedule = schedules.find(s => s.id === scheduleId);
-                    if (schedule && onScheduleDelete) {
-                      await onScheduleDelete(scheduleId);
-                      
-                      // CRITICAL FIX: Update local state to reflect the deletion
-                      setScheduleBars(prevBars => prevBars.filter(bar => bar.id !== scheduleId));
-                      
-                      toast({
-                        title: "Project unassigned",
-                        description: "Project moved back to unassigned list",
-                      });
-                      
-                      // Force a rerender by updating a timestamp
-                      setForceUpdate(Date.now());
-                    }
-                  }
-                } catch (error) {
-                  console.error('Error processing drop on unassigned section:', error);
-                }
-              }}
-            >
-              {/* Visual drop zone indicator - fixed height, doesn't scroll, but entire column is a drop zone */}
-              <div className="unassigned-drop-container min-h-[80px] rounded-md border-2 border-dashed border-gray-300 dark:border-gray-700 mb-4 p-2 flex-shrink-0">
-                <div className="text-sm text-gray-400 italic p-2 text-center flex items-center justify-center">
-                  Drop projects anywhere in this column to unassign them
-                </div>
-              </div>
-              
-              {/* Scrollable Unassigned Projects List - takes remaining space and scrolls */}
-              <div className="overflow-y-auto flex-grow" style={{ maxHeight: 'calc(100% - 100px)' }}>
-                {unassignedProjects.length === 0 ? (
-                  <div className="text-sm text-gray-400 italic">No unassigned projects</div>
-                ) : (
-                  <div className="space-y-3 pb-2 pr-1">
-                    {unassignedProjects.map(project => (
-                      <div 
-                        key={`unassigned-${project.id}`}
-                        className="unassigned-project-card bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 shadow-sm cursor-grab hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                        draggable={true}
-                        onDragStart={(e) => {
-                          // Store project ID with special prefix to identify unassigned projects
-                          const projectIdentifier = `-${project.id}`;
-                          e.dataTransfer.setData('text/plain', projectIdentifier);
-                          
-                          // Also store complete project data as JSON for enhanced drop handlers
-                          const projectData = {
-                            projectId: project.id,
-                            name: project.name,
-                            projectNumber: project.projectNumber,
-                            isUnassigned: true // Flag to identify this as an unassigned project
-                          };
-                          e.dataTransfer.setData('application/json', JSON.stringify(projectData));
-                          
-                          // Set visual indicators
-                          document.body.setAttribute('data-drag-in-progress', 'true');
-                          document.body.classList.add('global-drag-active');
-                          document.body.classList.add('dragging-unassigned-project');
-                          
-                          console.log(`🔄 Dragging unassigned project ${project.id}: ${project.name}`);
-                          
-                          // Set copy effect for new project assignment
-                          e.dataTransfer.effectAllowed = 'copy';
-                          e.currentTarget.classList.add('opacity-50');
-                          
-                          // Store project data in session storage as backup
-                          sessionStorage.setItem('dragging_project', JSON.stringify({
-                            id: project.id,
-                            name: project.name,
-                            projectNumber: project.projectNumber
-                          }));
-                          
-                          // Create custom drag image
-                          const dragImage = document.createElement('div');
-                          dragImage.className = 'bg-blue-600 text-white p-2 rounded opacity-80 pointer-events-none fixed -left-full';
-                          dragImage.textContent = `${project.projectNumber}: ${project.name}`;
-                          document.body.appendChild(dragImage);
-                          e.dataTransfer.setDragImage(dragImage, 10, 10);
-                          
-                          setTimeout(() => {
-                            if (dragImage.parentNode) {
-                              dragImage.parentNode.removeChild(dragImage);
-                            }
-                          }, 100);
-                        }}
-                        onDragEnd={(e) => {
-                          e.currentTarget.classList.remove('opacity-50');
-                          document.body.removeAttribute('data-drag-in-progress');
-                          document.body.classList.remove('global-drag-active');
-                          document.body.classList.remove('dragging-unassigned-project');
-                          
-                          // Clean up any session storage
-                          sessionStorage.removeItem('dragging_project');
-                          
-                          // Clean up any highlights
-                          document.querySelectorAll('.row-target-highlight, .bay-highlight, .drop-target').forEach((el) => {
-                            el.classList.remove('row-target-highlight', 'bay-highlight', 'drop-target');
-                          });
-                          
-                          console.log('Unassigned project drag operation completed - cleaned up states');
-                        }}
-                      >
-                        <div className="font-medium text-gray-900 dark:text-white text-sm mb-1 truncate">{project.projectNumber}: {project.name}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 truncate">{project.status}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex items-center">
-                          <span className="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
-                          {project.team || 'No Team'}
-                        </div>
-                      </div>
-                    ))}
+                    // Set drag data
+                    e.dataTransfer.setData('text/plain', String(dummySchedule.id));
+                    e.dataTransfer.effectAllowed = 'copy';
+                    
+                    // Visual feedback
+                    e.currentTarget.classList.add('opacity-50');
+                    
+                    // Create custom drag image
+                    const dragImage = document.createElement('div');
+                    dragImage.className = 'bg-blue-600 text-white p-2 rounded opacity-80 pointer-events-none fixed -left-full';
+                    dragImage.textContent = `${project.projectNumber}: ${project.name}`;
+                    document.body.appendChild(dragImage);
+                    e.dataTransfer.setDragImage(dragImage, 10, 10);
+                    
+                    // Add to temporary data to be accessed by drop handlers
+                    (window as any).draggedProject = project;
+                    console.log(`Dragging unassigned project ${project.projectNumber}: ${project.name}`);
+                  }}
+                  onDragEnd={(e) => {
+                    e.currentTarget.classList.remove('opacity-50');
+                    const dragImages = document.querySelectorAll('div.pointer-events-none.fixed.-left-full');
+                    dragImages.forEach(el => el.remove());
+                  }}
+                >
+                  <div className="font-medium text-white text-sm mb-1 truncate">{project.projectNumber}: {project.name}</div>
+                  <div className="text-xs text-gray-400 truncate">{project.status}</div>
+                  <div className="text-xs text-gray-400 mt-1 flex items-center">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
+                    {project.team || 'No Team'}
                   </div>
-                )}
-              </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
         
-        <div className="bay-schedule-viewport flex-grow overflow-auto relative" ref={viewportRef}>
+        <div className="bay-schedule-viewport flex-grow overflow-auto" ref={viewportRef}>
           <div className="bay-schedule-container relative" ref={timelineRef}>
-          {/* Today Line marker - positioned absolutely */}
-          {(() => {
-            // Use the current real date for TODAY marker
-            const today = new Date(); // Current date
-            
-            console.log(`Calculating TODAY line position for: ${format(today, 'yyyy-MM-dd')}`);
-                
-            // Find the current date in our slots array
-            for (let i = 0; i < slots.length; i++) {
-              const slot = slots[i];
-              
-              // Check if this slot matches today's date exactly
-              if (slot.date.getFullYear() === today.getFullYear() &&
-                  slot.date.getMonth() === today.getMonth() &&
-                  slot.date.getDate() === today.getDate()) {
-                
-                // Found the exact slot for today
-                let todayPosition = i * slotWidth;
-                
-                console.log(`Found TODAY at slot ${i} (${format(slot.date, 'yyyy-MM-dd')}), position: ${todayPosition}px`);
-                
-                // Only show if today is within visible range
-                if (todayPosition >= 0) {
-                  return (
-                    <div 
-                      className="today-marker absolute top-0 bottom-0 w-[2px] bg-red-500 z-10" 
-                      style={{ 
-                        left: `${todayPosition}px`,
-                        height: '100%'
-                      }}
-                    >
-                      <div className="bg-red-500 text-white text-xs py-1 px-2 rounded absolute top-0 -translate-x-1/2">
-                        TODAY
-                      </div>
-                    </div>
-                  );
-                }
-                
-                // If we found the slot but it's out of range, break the loop
-                break;
-              }
-            }
-            
-            // If we're in week view mode, calculate position within the week
-            if (viewMode === 'week') {
-              // Find the Monday of the current week for slot matching
-              const mondayOfWeek = startOfWeek(today, { weekStartsOn: 1 });
-              
-              for (let i = 0; i < slots.length; i++) {
-                const slot = slots[i];
-                
-                // Check if this slot is the Monday of our target week
-                if (slot.date.getFullYear() === mondayOfWeek.getFullYear() &&
-                    slot.date.getMonth() === mondayOfWeek.getMonth() &&
-                    slot.date.getDate() === mondayOfWeek.getDate()) {
-                  
-                  // Found the slot - now calculate position within the week
-                  let todayPosition = i * slotWidth; // Start of the week
-                  
-                  // Calculate actual day offset within the week (0 = Monday, 6 = Sunday)
-                  const dayOfWeek = (today.getDay() + 6) % 7; // Convert from Sunday-based to Monday-based
-                  const dayOffset = (dayOfWeek / 7) * slotWidth;
-                  todayPosition += dayOffset;
-                  
-                  console.log(`Found TODAY's week at slot ${i}, day ${dayOfWeek}, position: ${todayPosition}px`);
-                  
-                  // Only show if today is within visible range
-                  if (todayPosition >= 0) {
-                    return (
-                      <div 
-                        className="today-marker absolute top-0 bottom-0 w-[2px] bg-red-500 z-10" 
-                        style={{ 
-                          left: `${todayPosition}px`,
-                          height: '100%'
-                        }}
-                      >
-                        <div className="bg-red-500 text-white text-xs py-1 px-2 rounded absolute top-0 -translate-x-1/2">
-                          TODAY
-                        </div>
-                      </div>
-                    );
-                  }
-                  
-                  break;
-                }
-              }
-            }
-            
-            return null;
-          })()}
-          
           {/* Timeline Header */}
-          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex" 
-            style={{ 
-              marginLeft: "0px",  // Removed the ml-32 class and set to 0px
-              width: `${Math.max(10000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
-            }}>
+          <div className="timeline-header sticky top-0 z-10 bg-gray-900 shadow-sm flex ml-32">
             {slots.map((slot, index) => (
               <div
                 key={`header-${index}`}
@@ -3173,19 +1348,17 @@ export default function ResizableBaySchedule({
                 `}
                 style={{ width: `${slotWidth}px`, height: '40px' }}
               >
-                <div className="text-xs text-center w-full flex flex-col justify-center h-full">
+                <div className="text-xs text-center w-full">
                   {slot.isStartOfMonth && (
                     <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
-                      {slot.monthName} {format(slot.date, 'yyyy')}
+                      {slot.monthName}
                     </div>
                   )}
-                  {/* Always show week numbers - one cell = one week */}
-                  <div className="text-gray-400 mt-1 text-[10px] font-semibold">
-                    Week {Math.ceil(differenceInDays(slot.date, new Date(slot.date.getFullYear(), 0, 1)) / 7)}
-                  </div>
-                  <div className="text-gray-400 text-[10px]">
-                    {format(slot.date, 'MM/dd')}
-                  </div>
+                  {slot.isStartOfWeek && (
+                    <div className="text-gray-400 mt-1 text-[10px]">
+                      Week {slot.weekNumber}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -3200,457 +1373,27 @@ export default function ResizableBaySchedule({
           
           {/* Manufacturing Bays */}
           <div className="manufacturing-bays mt-2">
-            {bayTeams
-              .filter(team => {
-                // Only show teams with a valid name (not auto-generated "Team X:" names)
-                const teamName = team[0]?.team;
-                if (!teamName) return false;
-                return !teamName.match(/^Team \d+:?/);
-              })
-              .map((team, teamIndex) => (
-              <div 
-                key={`team-${teamIndex}`} 
-                className="team-container mb-5 relative"
-                data-team-section={team[0]?.team ? `${team[0].team}::${team.map(bay => bay.id).join(',')}` : ''}
-                style={{
-                  minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`
-                }}>
-                <div className="team-header bg-blue-900 text-white py-2 px-3 rounded-md mb-2 flex shadow-md" style={{ position: 'relative' }}>
-                  <div 
-                    className="flex items-center"
-                    style={{
-                      position: 'sticky',
-                      left: 0,
-                      zIndex: 40,
-                      backgroundColor: '#1e3a8a',
-                      paddingRight: '15px'
-                    }}
-                  >
-                    <div className="flex items-center">
-                      {/* Team Name with Description */}
-                      <div className="flex items-center">
-                        {/* Always show team name and description, even for static teams */}
-                        <span 
-                          className="font-bold text-lg bay-header-team-name" 
-                          data-team={team[0]?.team || `${team.map(b => b.name).join(' & ')}`}
-                          data-bay-id={team.map(bay => bay.id).join(',')}
-                        >
-                          {team[0]?.team || `${team.map(b => b.name).join(' & ')}`}
-                        </span>
-                        
-                        {/* Team Description (shown as smaller text to the right) */}
-                        <span 
-                          className="text-sm ml-2 font-light text-blue-100 italic truncate max-w-[200px] bay-header-team-description" 
-                          data-team={team[0]?.team || `${team.map(b => b.name).join(' & ')}`}
-                          data-bay-id={team.map(bay => bay.id).join(',')}
-                        >
-                          {team[0]?.description || 'Production Bay'}
-                        </span>
-                        
-                        {/* Team hours per week information */}
-                        <span className="text-sm ml-4 font-medium text-blue-50 bg-blue-700 px-3 py-1 rounded-full flex items-center">
-                          <Clock className="h-3.5 w-3.5 mr-1.5" />
-                          {(() => {
-                            // Get hours per week from the first bay of the team
-                            // This is the total hours for the entire team, regardless of bay count
-                            const firstBay = team[0];
-                            
-                            // Calculate hours based on staff count and hours per person
-                            const assemblyStaff = firstBay.assemblyStaffCount || 0;
-                            const electricalStaff = firstBay.electricalStaffCount || 0;
-                            const hoursPerPerson = firstBay.hoursPerPersonPerWeek || 40;
-                            const teamHoursPerWeek = (assemblyStaff + electricalStaff) * hoursPerPerson;
-                            
-                            return `${teamHoursPerWeek} hrs/week`;
-                          })()}
-                        </span>
-                      </div>
-                      
-                      {/* Team Management Controls - Show for all team sections */}
-                      {true && (
-                        <div className="flex items-center space-x-1">
-                          {/* Edit Button (Gear Icon) */}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button 
-                                  className="ml-2 p-1 bg-blue-700 hover:bg-blue-600 rounded-full text-white flex items-center justify-center"
-                                  onClick={() => {
-                                    // Create a team name from the display if none exists
-                                    const teamName = team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`;
-                                    const teamBayIds = team.map(bay => bay.id).join(',');
-                                    
-                                    // Set selected team with the specific bay IDs this team represents
-                                    setSelectedTeam(`${teamName}::${teamBayIds}`);
-                                    setTeamDialogOpen(true);
-                                  }}
-                                >
-                                  <Wrench className="h-4 w-4" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Edit this {team[0].team} section</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          
-                          {/* Delete Button (For Team 5: & Team 6 and any other team) */}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button 
-                                  className="p-1 bg-red-700 hover:bg-red-600 rounded-full text-white flex items-center justify-center ml-1"
-                                  onClick={() => {
-                                    // Set up delete confirmation with specific team info
-                                    setTeamDeleteConfirm({
-                                      isOpen: true,
-                                      teamName: team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`,
-                                      bayIds: team.map(bay => bay.id)
-                                    });
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Delete team</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          
-                          {/* Print Button */}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button 
-                                  className="p-1 bg-purple-700 hover:bg-purple-600 rounded-full text-white flex items-center justify-center ml-1"
-                                  onClick={() => {
-                                    const teamName = team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`;
-                                    generateTeamSchedulePDF(teamName, team);
-                                  }}
-                                >
-                                  <Printer className="h-4 w-4" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Print team schedule to PDF</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          
-                          {/* Add Bay Button */}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button 
-                                  className="p-1 bg-green-700 hover:bg-green-600 rounded-full text-white flex items-center justify-center ml-1"
-                                  onClick={() => {
-                                    // Get the first team bay to copy its properties
-                                    const firstBay = team[0];
-                                    
-                                    // Create a row number for the new bay (in this team)
-                                    const bayCount = team.length;
-                                    
-                                    // CRITICAL: For consistent bay naming, use the existing bay name format
-                                    // But preserve any team prefix that might be in the name
-                                    let teamPrefix = '';
-                                    let numericSuffix = '';
-                                    
-                                    // Extract team prefix from the bay name pattern
-                                    const bayNameMatch = firstBay.name.match(/(.*?)\s*(\d+)$/);
-                                    
-                                    if (bayNameMatch) {
-                                      // Bay has a numeric suffix like "Team 1"
-                                      teamPrefix = bayNameMatch[1].trim();
-                                      numericSuffix = (bayCount + 1).toString();
-                                    } else {
-                                      // No numeric suffix, use the entire name as prefix
-                                      teamPrefix = firstBay.name;
-                                      numericSuffix = (bayCount + 1).toString();
-                                    }
-                                    
-                                    // Create a new bay name following the team's pattern
-                                    const newBayName = `${teamPrefix} ${numericSuffix}`;
-                                    
-                                    // Find highest bay number for the new bay
-                                    const highestBayNumber = Math.max(...bays.map(b => b.bayNumber));
-                                    
-                                    console.log(`Creating new bay row with team: "${firstBay.team}" and name: "${newBayName}"`);
-                                    
-                                    // Store the original first bay's team name for debugging
-                                    const originalTeamName = firstBay.team;
-                                    
-                                    // Create bay with EXACTLY the same team name and other properties
-                                    // This ensures it's displayed in the same team group
-                                    const newBay: Partial<ManufacturingBay> = {
-                                      name: newBayName,
-                                      bayNumber: highestBayNumber + 1,
-                                      // Critical - use the EXACT same team value from the first bay in the team
-                                      team: firstBay.team,
-                                      // Copy other properties exactly as they are in the first bay
-                                      description: firstBay.description,
-                                      assemblyStaffCount: firstBay.assemblyStaffCount, 
-                                      electricalStaffCount: firstBay.electricalStaffCount,
-                                      hoursPerPersonPerWeek: firstBay.hoursPerPersonPerWeek
-                                    };
-                                    
-                                    // Call the onBayCreate function
-                                    if (onBayCreate) {
-                                      onBayCreate(newBay);
-                                      
-                                      // Success notification
-                                      toast({
-                                        title: "New bay row added",
-                                        description: `Added row to ${firstBay.team || firstBay.name}`
-                                      });
-                                    }
-                                  }}
-                                >
-                                  <PlusCircle className="h-4 w-4" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Add bay to team</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          
-                          {/* Remove Bay Button (only shown if team has more than 1 bay) */}
-                          {team.length > 1 && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button 
-                                    className="p-1 bg-orange-700 hover:bg-orange-600 rounded-full text-white flex items-center justify-center ml-1"
-                                    onClick={() => {
-                                      // Get the team name
-                                      const teamName = team[0]?.team || `Team ${teamIndex + 1}: ${team.map(b => b.name).join(' & ')}`;
-                                      
-                                      // Get the last bay in this team
-                                      const lastBay = team[team.length - 1];
-                                      
-                                      // Call the onBayDelete function for the last bay
-                                      if (onBayDelete && lastBay) {
-                                        onBayDelete(lastBay.id);
-                                        
-                                        toast({
-                                          title: "Bay removed",
-                                          description: `Removed ${lastBay.name} from ${teamName}`
-                                        });
-                                      }
-                                    }}
-                                  >
-                                    <MinusCircle className="h-4 w-4" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Remove last bay from team</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Info bubbles RIGHT NEXT to team name - CURRENT WEEK ONLY */}
-                    <div className="flex items-center ml-3">
-                      <div className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full flex items-center mr-2">
-                        <Users className="h-3.5 w-3.5 mr-1" />
-                        <span>
-                          {(() => {
-                            // Get current week's start and end date using real current date
-                            const today = new Date(); // Current real date
-                            const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday as start of week
-                            const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
-                            
-                            // Count projects active in current week only
-                            const currentWeekProjects = scheduleBars.filter(bar => {
-                              // Check if team owns this bay
-                              const isTeamBay = team.some(b => b.id === bar.bayId);
-                              if (!isTeamBay) return false;
-                              
-                              // Check if schedule overlaps with current week
-                              const scheduleStart = new Date(bar.startDate);
-                              const scheduleEnd = new Date(bar.endDate);
-                              return (
-                                (scheduleStart <= currentWeekEnd && scheduleEnd >= currentWeekStart)
-                              );
-                            }).length;
-                            
-                            return `${currentWeekProjects} projects`;
-                          })()}
-                        </span>
-                      </div>
-                      <div className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full flex items-center">
-                        <BarChart2 className="h-3.5 w-3.5 mr-1" />
-                        <span>
-                          {(() => {
-                            // Get current week's start and end date
-                            const today = new Date(); // Current real date
-                            const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-                            const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
-                            
-                            // Count projects active in current week only
-                            const currentWeekProjects = scheduleBars.filter(bar => {
-                              // Check if team owns this bay
-                              const isTeamBay = team.some(b => b.id === bar.bayId);
-                              if (!isTeamBay) return false;
-                              
-                              // Check if schedule overlaps with current week
-                              const scheduleStart = new Date(bar.startDate);
-                              const scheduleEnd = new Date(bar.endDate);
-                              return (
-                                (scheduleStart <= currentWeekEnd && scheduleEnd >= currentWeekStart)
-                              );
-                            }).length;
-                            
-                            // Enhanced phase-based utilization calculation
-                            const TODAY = new Date(); // Current real date
-                            
-                            // Count projects in each phase on current date
-                            let prodPhaseProjects = 0;
-                            let itNtcQcPhaseProjects = 0;
-                            let fabPaintPhaseProjects = 0;
-                            
-                            // Process each project to determine which phase it's in on the current date
-                            scheduleBars.forEach(bar => {
-                              // Skip if not part of this team
-                              const isTeamBay = team.some(b => b.id === bar.bayId);
-                              if (!isTeamBay) return;
-                              
-                              // Skip if project is not active on the current date
-                              const scheduleStart = new Date(bar.startDate);
-                              const scheduleEnd = new Date(bar.endDate);
-                              if (TODAY < scheduleStart || TODAY > scheduleEnd) return;
-                              
-                              // Calculate phase date ranges
-                              const totalDays = differenceInDays(scheduleEnd, scheduleStart) + 1;
-                              
-                              // Use the bar's actual phase percentages or default if undefined
-                              const fabPercent = bar.fabPercentage || 27;
-                              const paintPercent = bar.paintPercentage || 7;
-                              const prodPercent = bar.productionPercentage || 60;
-                              const itPercent = bar.itPercentage || 7;
-                              const ntcPercent = bar.ntcPercentage || 7;
-                              const qcPercent = bar.qcPercentage || 7;
-                              
-                              // Calculate phase durations in days
-                              const fabDays = Math.ceil(totalDays * (fabPercent / 100));
-                              const paintDays = Math.ceil(totalDays * (paintPercent / 100));
-                              const prodDays = Math.ceil(totalDays * (prodPercent / 100));
-                              const itDays = Math.ceil(totalDays * (itPercent / 100));
-                              const ntcDays = Math.ceil(totalDays * (ntcPercent / 100));
-                              const qcDays = Math.ceil(totalDays * (qcPercent / 100));
-                              
-                              // Calculate phase start dates
-                              let currentDate = new Date(scheduleStart);
-                              
-                              // FAB phase
-                              const fabStart = new Date(currentDate);
-                              const fabEnd = addDays(new Date(currentDate), fabDays);
-                              currentDate = addDays(currentDate, fabDays);
-                              
-                              // PAINT phase
-                              const paintStart = new Date(currentDate);
-                              const paintEnd = addDays(new Date(currentDate), paintDays);
-                              currentDate = addDays(currentDate, paintDays);
-                              
-                              // PRODUCTION phase
-                              const prodStart = new Date(currentDate);
-                              const prodEnd = addDays(new Date(currentDate), prodDays);
-                              currentDate = addDays(currentDate, prodDays);
-                              
-                              // IT phase
-                              const itStart = new Date(currentDate);
-                              const itEnd = addDays(new Date(currentDate), itDays);
-                              currentDate = addDays(currentDate, itDays);
-                              
-                              // NTC phase
-                              const ntcStart = new Date(currentDate);
-                              const ntcEnd = addDays(new Date(currentDate), ntcDays);
-                              currentDate = addDays(currentDate, ntcDays);
-                              
-                              // QC phase
-                              const qcStart = new Date(currentDate);
-                              const qcEnd = addDays(new Date(currentDate), qcDays);
-                              
-                              // Determine which phase the current date falls into
-                              if (TODAY >= fabStart && TODAY <= fabEnd) {
-                                fabPaintPhaseProjects++;
-                              } else if (TODAY >= paintStart && TODAY <= paintEnd) {
-                                fabPaintPhaseProjects++;
-                              } else if (TODAY >= prodStart && TODAY <= prodEnd) {
-                                prodPhaseProjects++;
-                              } else if ((TODAY >= itStart && TODAY <= itEnd) || 
-                                         (TODAY >= ntcStart && TODAY <= ntcEnd) ||
-                                         (TODAY >= qcStart && TODAY <= qcEnd)) {
-                                itNtcQcPhaseProjects++;
-                              }
-                            });
-                            
-                            // Calculate utilization based on phase rules
-                            const baseCapacity = team.length * 2; // 2 projects per bay = 100%
-                            
-                            let utilizationPercentage = 0;
-                            
-                            // PROD phase: 100% capacity is 2 projects, 50% per project
-                            if (prodPhaseProjects > 0) {
-                              // Each project takes 50% of capacity (100% capacity = 2 projects)
-                              utilizationPercentage += (prodPhaseProjects * 50);
-                            }
-                            
-                            // IT/NTC/QC phases: 50% capacity per project
-                            if (itNtcQcPhaseProjects > 0) {
-                              utilizationPercentage += (itNtcQcPhaseProjects * 50);
-                            }
-                            
-                            // FAB/PAINT phases: 0% capacity (no effect on utilization)
-                            // No calculation needed for these phases
-                            
-                            // Ensure we don't exceed sensible limits
-                            const cappedPercentage = Math.min(utilizationPercentage, 200);
-                            
-                            return `${cappedPercentage}% utilization`;
-                          })()}
-                        </span>
-                      </div>
-                    </div>
+            {bayTeams.map((team, teamIndex) => (
+              <div key={`team-${teamIndex}`} className="team-container mb-5 relative">
+                <div className="team-header bg-slate-100 py-2 px-3 rounded-md mb-2 flex justify-between items-center shadow-sm">
+                  <div className="team-name font-medium">
+                    Team {teamIndex + 1}: {team.map(b => b.name).join(' & ')}
                   </div>
                   
-                  {/* This div remains empty but keeps the layout clean */}
-                  <div className="ml-auto">
+                  {/* Team capacity indicators */}
+                  <div className="team-capacity-indicators flex items-center space-x-2">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger>
                           <div className="capacity-indicator flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
                             <Users className="h-3 w-3 mr-1" />
                             <span>
-                              {(() => {
-                                // Get current week's start and end date
-                                const today = new Date();
-                                const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });  // Monday as start of week
-                                const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
-                                
-                                // Count projects active in current week only
-                                return scheduleBars.filter(bar => {
-                                  // Check if team owns this bay
-                                  const isTeamBay = team.some(b => b.id === bar.bayId);
-                                  if (!isTeamBay) return false;
-                                  
-                                  // Check if schedule overlaps with current week
-                                  const scheduleStart = new Date(bar.startDate);
-                                  const scheduleEnd = new Date(bar.endDate);
-                                  return (
-                                    (scheduleStart <= currentWeekEnd && scheduleEnd >= currentWeekStart)
-                                  );
-                                }).length;
-                              })()} projects this week
+                              {scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length} projects
                             </span>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Number of projects active for this team in the current week</p>
+                          <p>Number of projects assigned to this team</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -3661,80 +1404,22 @@ export default function ResizableBaySchedule({
                           <div className="utilization-indicator flex items-center text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
                             <Zap className="h-3 w-3 mr-1" />
                             <span>
-                              {(() => {
-                                // Get current week's start and end date
-                                const today = new Date();
-                                const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-                                const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
-                                
-                                // Count projects active in current week only
-                                const currentWeekProjects = scheduleBars.filter(bar => {
-                                  // Check if team owns this bay
-                                  const isTeamBay = team.some(b => b.id === bar.bayId);
-                                  if (!isTeamBay) return false;
-                                  
-                                  // Check if schedule overlaps with current week
-                                  const scheduleStart = new Date(bar.startDate);
-                                  const scheduleEnd = new Date(bar.endDate);
-                                  return (
-                                    (scheduleStart <= currentWeekEnd && scheduleEnd >= currentWeekStart)
-                                  );
-                                }).length;
-                                
-                                // Calculate utilization percentage based on team capacity
-                                // Use team length as base capacity (1 project per bay)
-                                const teamCapacity = team.length;
-                                const percentage = teamCapacity > 0 ? Math.min(
-                                  Math.round(
-                                    (currentWeekProjects / teamCapacity) * 100
-                                  ), 
-                                  100
-                                ) : 0;
-                                
-                                return `${currentWeekProjects} projects, ${percentage}% utilization`;
-                              })()}
+                              {Math.min(
+                                Math.round(
+                                  (scheduleBars.filter(bar => team.some(b => b.id === bar.bayId)).length / 
+                                  (team.length * 2)) * 100
+                                ), 
+                                100
+                              )}% utilization
                             </span>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Team capacity utilization percentage for the current week</p>
+                          <p>Team capacity utilization percentage</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                </div>
-                
-                {/* Week header row for this team */}
-                <div 
-                  className="team-week-header h-8 border-b border-gray-200 dark:border-gray-700 grid overflow-hidden mb-2" 
-                  style={{ 
-                    gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
-                    width: `${Math.max(10000, slots.length * slotWidth)}px`
-                  }}
-                >
-                  {slots.map((slot, index) => (
-                    <div
-                      key={`team-${teamIndex}-header-${index}`}
-                      className={`
-                        timeline-slot border-r flex-shrink-0
-                        ${slot.isStartOfMonth ? 'bg-gray-800 border-r-2 border-r-blue-500' : ''}
-                        ${slot.isStartOfWeek ? 'bg-gray-850 border-r border-r-gray-600' : ''}
-                        ${!slot.isBusinessDay ? 'bg-gray-850/70' : ''}
-                      `}
-                      style={{ height: '100%' }}
-                    >
-                      <div className="text-xs text-center w-full h-full flex flex-col justify-center">
-                        {slot.isStartOfMonth && (
-                          <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
-                            {format(slot.date, 'MMM')}
-                          </div>
-                        )}
-                        <div className="text-gray-400 text-[10px]">
-                          {format(slot.date, 'MM/dd')}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
                 </div>
                 
                 {team.map((bay) => {
@@ -3749,56 +1434,53 @@ export default function ResizableBaySchedule({
                   console.log(`Bay ${bay.id} (${bay.name}): isMultiRowBay=${isMultiRowBay}, rowCount=${rowCount}, bayNumber=${bay.bayNumber}`);
                   
                   return (
-                    <React.Fragment key={`bay-fragment-${bay.id}`}>
-                      {/* Weekly header row for this individual bay */}
+                    <div 
+                      key={`bay-${bay.id}`} 
+                      className="bay-container relative mb-2 border rounded-md overflow-hidden"
+                      style={{ 
+                        height: `${rowHeight * rowCount}px`,
+                        backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
+                      }}
+                    >
+                      {/* Bay Label */}
                       <div 
-                        className="bay-week-header h-8 border-b border-gray-200 dark:border-gray-700 grid overflow-hidden mb-1" 
-                        style={{ 
-                          gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
-                          width: `${Math.max(10000, slots.length * slotWidth)}px`,
-                          marginLeft: '240px' // Align with bay content
-                        }}
+                        className="bay-label absolute top-0 left-0 w-32 h-full bg-gray-100 border-r flex flex-col justify-center px-2 z-10"
                       >
-                        {slots.map((slot, index) => (
-                          <div
-                            key={`bay-${bay.id}-header-${index}`}
-                            className={`
-                              timeline-slot border-r flex-shrink-0
-                              ${slot.isStartOfMonth ? 'bg-gray-800 border-r-2 border-r-blue-500' : ''}
-                              ${slot.isStartOfWeek ? 'bg-gray-850 border-r border-r-gray-600' : ''}
-                              ${!slot.isBusinessDay ? 'bg-gray-850/70' : ''}
-                            `}
-                            style={{ height: '100%' }}
+                        <div className="font-medium text-sm">{bay.name}</div>
+                        <div className="text-xs text-gray-500">Bay #{bay.bayNumber}</div>
+                        
+                        {bay.status === 'maintenance' && (
+                          <Badge variant="destructive" className="mt-1 text-[10px]">Maintenance</Badge>
+                        )}
+                        
+                        {/* Edit and delete buttons */}
+                        <div className="bay-actions mt-2 flex space-x-1">
+                          <button 
+                            className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-700"
+                            onClick={() => {
+                              setEditingBay({...bay});
+                              setNewBayDialog(true);
+                            }}
                           >
-                            <div className="text-xs text-center w-full h-full flex flex-col justify-center">
-                              {slot.isStartOfMonth && (
-                                <div className="font-semibold text-gray-300 whitespace-nowrap overflow-hidden">
-                                  {format(slot.date, 'MMM')}
-                                </div>
-                              )}
-                              <div className="text-gray-400 text-[10px]">
-                                {format(slot.date, 'MM/dd')}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                            <PencilIcon className="h-3 w-3" />
+                          </button>
+                          
+                          {onBayDelete && (
+                            <button 
+                              className="p-1 bg-red-100 hover:bg-red-200 rounded text-red-700"
+                              onClick={() => handleDeleteBay(bay.id)}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-
-                      <div 
-                        className="bay-container relative mb-2 border rounded-md overflow-hidden"
-                        style={{ 
-                          height: `${36 * rowCount}px`, // Fixed height: 36px per row (reduced from 60px)
-                          backgroundColor: bay.status === 'maintenance' ? 'rgba(250, 200, 200, 0.2)' : 'white'
-                        }}
-                      >
                       
+                      {/* Bay capacity information */}
+                      <BayCapacityInfo bay={bay} allSchedules={schedules} projects={projects} bays={bays} />
                       
-                      {/* Bay content area - FULL WIDTH to extend to end of timeline (2030) */}
-                      <div className="bay-content absolute top-0 bottom-0"
-                        style={{ 
-                          left: '240px', // 240px offset to compensate for removed bay details white box (4 weeks worth)
-                          width: `${Math.max(8000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px`,
-                        }}>
+                      {/* Bay content area */}
+                      <div className="bay-content absolute left-32 right-0 top-0 bottom-0">
                         {isMultiRowBay ? (
                           <MultiRowBayContent 
                             timeSlots={slots} 
@@ -3818,21 +1500,10 @@ export default function ResizableBaySchedule({
                           <div className="absolute inset-0 flex flex-col">
                             {/* Single row per bay - simplified drop zone */}
                             <div 
-                              className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative droppable-area" 
+                              className="h-full bay-row transition-colors hover:bg-gray-700/10 cursor-pointer relative" 
                               onDragOver={(e) => {
-                                // Must prevent default to enable drop
-                                e.preventDefault();
-                                
-                                // Set the correct drop effect based on the drag type
-                                if (document.body.classList.contains('dragging-unassigned-project')) {
-                                  e.dataTransfer.dropEffect = 'copy'; // New project
-                                } else {
-                                  e.dataTransfer.dropEffect = 'move'; // Existing project
-                                }
-                                
                                 // Add strong visual indicator for this bay's single row
                                 e.currentTarget.classList.add('row-target-highlight', 'bay-highlight');
-                                
                                 // Always use row 0 for consistent placement
                                 handleDragOver(e, bay.id, 0, 0);
                               }}
@@ -3898,16 +1569,12 @@ export default function ResizableBaySchedule({
                                 </div>
                               </div>
                               
-                              {/* Cell grid for this bay - EXTENDED TO 2030 PROPERLY */}
-                              <div className="absolute inset-0 grid" 
-                                style={{ 
-                                  gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)`,
-                                  minWidth: `${Math.max(12000, differenceInDays(new Date(2030, 11, 31), dateRange.start) * (viewMode === 'day' ? slotWidth : slotWidth / 7))}px` 
-                                }}>
+                              {/* Cell grid for this bay */}
+                              <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${slots.length}, ${slotWidth}px)` }}>
                                 {slots.map((slot, index) => (
                                   <div 
                                     key={`bay-${bay.id}-slot-${index}`} 
-                                    className="relative h-full border-r border-gray-200/50 dark:border-gray-700/30"
+                                    className="relative h-full border-r border-gray-700/30"
                                     data-row="0"
                                     data-slot-index={index}
                                     data-date={format(slot.date, 'yyyy-MM-dd')}
@@ -3915,47 +1582,22 @@ export default function ResizableBaySchedule({
                                     data-bay-id={bay.id}
                                     data-row-index="0"
                                     data-exact-week="true"
-                                    draggable={false}
-                                    onDragEnter={(e) => {
-                                      // CRITICAL: Always prevent default to be a valid drop target
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      
-                                      // Force visual feedback
-                                      e.currentTarget.classList.add('drop-target');
-                                      e.currentTarget.classList.add('cell-highlight');
-                                      
-                                      console.log(`✅ CELL READY FOR DROP: Bay ${bay.id}, Row 0, Date ${format(slot.date, 'yyyy-MM-dd')}`);
-                                    }}
                                     onDragOver={(e) => {
-                                      // CRITICAL: Always prevent default to allow dropping
-                                      e.preventDefault();
+                                      // Prevent event from propagating to parent elements
                                       e.stopPropagation();
                                       
-                                      // Set appropriate drop effect based on what's being dragged
-                                      if (e.dataTransfer) {
-                                        // Check if this is a new project (unassigned) or an existing one
-                                        const isUnassignedProject = document.body.classList.contains('dragging-unassigned-project');
-                                        // Use 'copy' for new projects, 'move' for existing ones
-                                        e.dataTransfer.dropEffect = isUnassignedProject ? 'copy' : 'move';
-                                      }
-                                      
-                                      // Store the row index and bay id in body attributes
+                                      // Store the row index and bay id in body attributes for the drop handler
                                       document.body.setAttribute('data-current-drag-row', '0');
                                       document.body.setAttribute('data-current-drag-bay', bay.id.toString());
                                       
-                                      // Force the element to accept drops
+                                      // Make sure the element has the correct bay ID
                                       if (e.currentTarget instanceof HTMLElement) {
                                         e.currentTarget.setAttribute('data-bay-id', bay.id.toString());
-                                        e.currentTarget.setAttribute('data-accept-drops', 'true');
-                                        e.currentTarget.setAttribute('data-overlap-allowed', 'true');
                                       }
                                       
-                                      // Visual indication
+                                      // Add highlight classes
                                       e.currentTarget.classList.add('cell-highlight');
-                                      e.currentTarget.classList.add('drop-target');
                                       
-                                      // Apply handler
                                       handleSlotDragOver(e, bay.id, 0, slot.date);
                                     }}
                                     onDragLeave={(e) => {
@@ -3963,34 +1605,7 @@ export default function ResizableBaySchedule({
                                       e.currentTarget.classList.remove('cell-highlight');
                                     }}
                                     onDrop={(e) => {
-                                      // CRITICAL: Always prevent default to accept the drop
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      
-                                      // Clear any visual indication
-                                      e.currentTarget.classList.remove('cell-highlight');
-                                      e.currentTarget.classList.remove('drop-target');
-                                      
-                                      console.log(`🎯 DROP HAPPENING NOW: Bay ${bay.id}, Row 0, Date ${format(slot.date, 'yyyy-MM-dd')}`);
-                                      
-                                      // Call the handler with EXACT placement info
-                                      // Enhanced debug for precise drop location
-                                      console.log(`🎯 PRECISE DROP: Using exact date ${format(slot.date, 'yyyy-MM-dd')} from cell data`);
-                                      console.log(`🎯 PIXEL-PERFECT: Project will start EXACTLY at this cell date`);
-                                      
-                                      // Create visual marker at the drop position for feedback
-                                      const marker = document.createElement('div');
-                                      marker.className = 'absolute w-1 h-10 bg-green-500 z-50';
-                                      marker.style.left = '0px'; 
-                                      marker.style.top = '0px';
-                                      e.currentTarget.appendChild(marker);
-                                      
-                                      // Remove marker after 1 second
-                                      setTimeout(() => {
-                                        if (marker.parentNode) marker.parentNode.removeChild(marker);
-                                      }, 1000);
-                                      
-                                      // Call handler with EXACT cell date for precise placement
+                                      // Use the data stored on the element for drop handling
                                       handleSlotDrop(e, bay.id, 0, slot.date);
                                     }}
                                   />
@@ -4024,23 +1639,17 @@ export default function ResizableBaySchedule({
                             console.log(`🔍 COMPLETE BAR DATA:`, JSON.stringify(bar, null, 2));
                           }
                           
-                          // Find the project for this bar to check if it's a sales estimate
-                          const project = projects.find(p => p.id === bar.projectId);
-                          const isSalesEstimate = project?.isSalesEstimate;
-                          
                           return bar.bayId === bay.id && (
                             <div
                               key={`schedule-bar-${bar.id}`}
-                              className={`schedule-bar absolute p-1 text-white text-xs rounded cursor-grab z-20 row-${bar.row}-bar ${isSalesEstimate ? 'animate-pulse' : ''}`}
+                              className={`schedule-bar absolute p-1 text-white text-xs rounded cursor-grab z-20 row-${bar.row}-bar`}
                               style={{
                                 left: `${bar.left}px`,
-                                width: `${Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0))}px`, // Ensure width accommodates all phases
-                                height: '72px', // Exact height to match gray row
-                                backgroundColor: isSalesEstimate ? '#fbbf2460' : `${bar.color}25`, // Yellow background for sales estimates
-                                boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : 'none', // Yellow glow for sales estimates
-                                border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : 'none', // Yellow border for sales estimates
-                                // Position at the top of the row
-                                top: '0', // Aligned with top of row
+                                width: `${bar.width}px`,
+                                height: '90%',
+                                backgroundColor: `${bar.color}90`,
+                                // Adjust vertical positioning for row layout
+                                top: '5%',
                                 // Set data attributes for department phase percentages 
                                 // Store important info for drag/resize operations
                               }}
@@ -4055,315 +1664,52 @@ export default function ResizableBaySchedule({
                               data-ntc-percentage={bar.ntcPercentage}
                               data-qc-percentage={bar.qcPercentage}
                               draggable
-                              onDragStart={(e) => {
-                                setIsDragging(true);
-                                handleDragStart(e, bar.id);
-                              }}
-                              onDragEnd={() => {
-                                setIsDragging(false);
-                                stopAutoScroll();
-                              }}
+                              onDragStart={(e) => handleDragStart(e, bar.id)}
+                              onDragEnd={handleDragEnd}
                             >
-                              {/* Milestone Icons - Rendered above department phases */}
-                              {(() => {
-                                // Get milestone icons for this project
-                                const projectMilestones = allMilestoneIcons.filter(m => m.projectId === bar.projectId && m.isEnabled);
-                                
-                                return projectMilestones.map((milestone) => {
-                                  // Calculate milestone position based on phase timing
-                                  let milestonePosition = 0;
-                                  
-                                  // Calculate the total project duration in days
-                                  const projectStart = new Date(bar.startDate);
-                                  const projectEnd = new Date(bar.endDate);
-                                  const totalProjectDays = Math.abs((projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24));
-                                  
-                                  // Calculate pixels per day based on total bar width and project duration
-                                  const pixelsPerDay = bar.width / totalProjectDays;
-                                  
-                                  if (milestone.phase === 'production' && milestone.daysBefore) {
-                                    // MECH SHOP: Position 30 days before PRODUCTION phase starts
-                                    const productionStartPixel = (bar.fabWidth || 0) + (bar.paintWidth || 0);
-                                    milestonePosition = productionStartPixel - (milestone.daysBefore * pixelsPerDay);
-                                  } else if (milestone.phase === 'qc' && milestone.daysBefore) {
-                                    // GRAPHICS: Position 7 days before QC phase starts
-                                    const qcStartPixel = (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0);
-                                    milestonePosition = qcStartPixel - (milestone.daysBefore * pixelsPerDay);
-                                  }
-                                  
-                                  // Debug logging
-                                  console.log(`🎯 MILESTONE DEBUG for ${milestone.name}:`, {
-                                    phase: milestone.phase,
-                                    daysBefore: milestone.daysBefore,
-                                    totalProjectDays: totalProjectDays,
-                                    pixelsPerDay: pixelsPerDay,
-                                    calculatedPosition: milestonePosition,
-                                    barWidth: bar.width,
-                                    phases: {
-                                      fabWidth: bar.fabWidth,
-                                      paintWidth: bar.paintWidth,
-                                      productionWidth: bar.productionWidth,
-                                      itWidth: bar.itWidth,
-                                      ntcWidth: bar.ntcWidth,
-                                      qcWidth: bar.qcWidth
-                                    }
-                                  });
-                                  
-                                  // Only show milestone if position is within reasonable bounds
-                                  if (milestonePosition >= -50 && milestonePosition <= bar.width + 50) {
-                                    // Calculate top position based on milestone type
-                                    const topPosition = milestone.icon === 'car' ? '92px' : '35px'; // Car icon lower, star icon positioned lower
-                                    
-                                    return (
-                                      <div
-                                        key={`milestone-${milestone.id}`}
-                                        className="absolute flex items-center justify-center"
-                                        style={{
-                                          left: `${milestonePosition}px`,
-                                          top: topPosition,
-                                          width: '24px',
-                                          height: '24px',
-                                          zIndex: 50, // High z-index to appear above project bars
-                                        }}
-                                        title={`${milestone.name} - ${milestone.daysBefore} days before ${milestone.phase}`}
-                                      >
-                                        <div className="bg-white/60 border-2 border-gray-600 rounded-full p-1 shadow-lg backdrop-blur-sm">
-                                          {milestone.icon === 'car' && <span className="text-lg">🚗</span>}
-                                          {milestone.icon === 'paintBucket' && <span className="text-lg">🎨</span>}
-                                          {milestone.icon === 'wrench' && <span className="text-lg">🔧</span>}
-                                          {milestone.icon === 'clock' && <span className="text-lg">⏰</span>}
-                                          {milestone.icon === 'flag' && <span className="text-lg">🏁</span>}
-                                          {milestone.icon === 'star' && <span className="text-lg">⭐</span>}
-                                          {milestone.icon === 'warning' && <span className="text-lg">⚠️</span>}
-                                          {milestone.icon === 'check' && <span className="text-lg">✅</span>}
-                                        </div>
-                                      </div>
-                                    );
-                                  }
-                                  return null;
-                                });
-                              })()}
-
-                              {/* Department phases visualization - COMPLETELY INTEGRATED DESIGN */}
-                              <div className="phases-container w-full h-full">
-                                <div className="all-phases-container w-full h-full relative">
-                                  {/* Top row of phases (production through QC) */}
-                                  <div className="top-phases w-full h-[52px] absolute left-0" style={{ top: '50px' }}>
-                                    {/* Production phase (positioned after FAB and PAINT) */}
-                                    {bar.productionWidth && bar.productionWidth > 0 && (
-                                      <div className="production-phase bg-yellow-700 h-full absolute" 
-                                           style={{ 
-                                             width: `${bar.productionWidth}px`,
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0)}px`, // Position after FAB and PAINT
-                                             zIndex: 10
-                                           }}>
-                                        <span className="text-xs font-bold text-gray-800 h-full w-full flex items-center justify-center">PROD</span>
-                                      </div>
-                                    )}
-                                    
-                                    {/* IT phase */}
-                                    {bar.itWidth && bar.itWidth > 0 && (
-                                      <div className="it-phase bg-purple-700 h-full absolute" 
-                                           style={{ 
-                                             width: `${bar.itWidth}px`,
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0)}px`, // Position after PROD
-                                             zIndex: 10
-                                           }}>
-                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">IT</span>
-                                      </div>
-                                    )}
-                                    
-                                    {/* NTC phase */}
-                                    {bar.ntcWidth && bar.ntcWidth > 0 && (
-                                      <div className="ntc-phase bg-cyan-700 h-full absolute" 
-                                           style={{ 
-                                             width: `${bar.ntcWidth}px`,
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0)}px`, // Position after PROD and IT
-                                             zIndex: 10
-                                           }}>
-                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">NTC</span>
-                                      </div>
-                                    )}
-                                    
-                                    {/* QC phase */}
-                                    {bar.qcWidth && bar.qcWidth > 0 && (
-                                      <div className="qc-phase bg-pink-700 h-full absolute" 
-                                           style={{ 
-                                             width: `${bar.qcWidth}px`,
-                                             left: `${(bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0)}px`, // Position after all other phases
-                                             zIndex: 10
-                                           }}>
-                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">QC</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  {/* Bottom row of phases (FAB and PAINT) */}
-                                  <div className="bottom-phases w-full h-[48px] absolute left-0" style={{ bottom: '-90px' }}>
-                                    {/* FAB phase (starts from left) */}
-                                    {bar.fabWidth && bar.fabWidth > 0 && (
-                                      <div className="fab-phase bg-blue-700 h-full absolute left-0" 
-                                           style={{ width: `${bar.fabWidth}px`, zIndex: 10 }}>
-                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">FAB</span>
-                                      </div>
-                                    )}
-                                    
-                                    {/* PAINT phase (follows FAB) */}
-                                    {bar.paintWidth && bar.paintWidth > 0 && (
-                                      <div className="paint-phase bg-green-700 h-full absolute" 
-                                           style={{ 
-                                             width: `${bar.paintWidth}px`,
-                                             left: `${bar.fabWidth || 0}px`,
-                                             zIndex: 10
-                                           }}>
-                                        <span className="text-xs font-bold text-white h-full w-full flex items-center justify-center">PAINT</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                                
-                                {/* Project information display positioned under the PROD phase */}
-                                <div className="project-info absolute flex items-center justify-center"
-                                     style={{
-                                       left: `${((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) / 2) - 150}px`, /* Center under PROD phase with wider area */
-                                       top: '120px', /* Position it right under the bottom phases (moved down 50px total) */
-                                       width: '300px', /* Increased width to accommodate longer names */
-                                       pointerEvents: 'auto', /* Enable clicks */
-                                       zIndex: 9999 /* Much higher z-index so it appears above all project bars but below popups */
-                                     }}>
-                                  <div className="text-xs font-bold text-gray-900 bg-white bg-opacity-95 px-2 py-0.5 rounded-md text-center shadow-md border border-gray-300" style={{minWidth: "200px", maxWidth: "400px", position: 'relative', whiteSpace: 'nowrap', overflow: 'visible'}}>
-                                    <a 
-                                      href={`/project/${bar.projectId}`}
-                                      className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        window.location.href = `/project/${bar.projectId}`;
-                                      }}
-                                    >
-                                      {bar.projectNumber}
-                                    </a>
-                                    <br />
-                                    <span style={{whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'unset'}}>{bar.projectName}</span>
-                                  </div>
-                                </div>
-                                
-                                {/* Connection line (vertical segment that connects PAINT to PROD) */}
-                                {bar.paintWidth && bar.paintWidth > 0 && bar.fabWidth && bar.fabWidth > 0 && (
-                                  <div className="connector-line" 
-                                       style={{ 
-                                         position: 'absolute',
-                                         left: `${bar.fabWidth + bar.paintWidth - 3}px`, 
-                                         top: '30%',
-                                         height: '40%',
-                                         width: '3px',
-                                         backgroundColor: '#16a34a', // Green color to match paint
-                                         zIndex: 5
-                                       }}>
-                                  </div>
-                                )}
+                              {/* Department phases visualization */}
+                              <div className="phases-container flex h-full w-full absolute top-0 left-0 overflow-hidden rounded">
+                                <div className="fab-phase bg-blue-700 h-full" style={{ width: `${bar.fabWidth}px` }}></div>
+                                <div className="paint-phase bg-green-700 h-full" style={{ width: `${bar.paintWidth}px` }}></div>
+                                <div className="production-phase bg-yellow-700 h-full" style={{ width: `${bar.productionWidth}px` }}></div>
+                                <div className="it-phase bg-purple-700 h-full" style={{ width: `${bar.itWidth}px` }}></div>
+                                <div className="ntc-phase bg-cyan-700 h-full" style={{ width: `${bar.ntcWidth}px` }}></div>
+                                <div className="qc-phase bg-pink-700 h-full" style={{ width: `${bar.qcWidth}px` }}></div>
                               </div>
                               
-                              {/* Delete button (appears on hover) */}
-                              <button
-                                className="delete-button p-1 bg-red-500 hover:bg-red-600 rounded text-white pointer-events-auto opacity-0 hover:opacity-100 transition-opacity absolute top-4 right-1 z-20"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteSchedule(bar.id);
-                                }}
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
+                              {/* Project information overlay */}
+                              <div className="project-info relative z-10 flex justify-between items-start h-full pointer-events-none">
+                                <div className="ml-1 mt-1">
+                                  <div className="font-bold truncate max-w-[120px]">{bar.projectNumber}</div>
+                                  <div className="truncate max-w-[200px]">{bar.projectName}</div>
+                                </div>
+                                
+                                {/* Delete button (appears on hover) */}
+                                <button
+                                  className="delete-button p-1 bg-red-500 hover:bg-red-600 rounded text-white pointer-events-auto opacity-0 hover:opacity-100 transition-opacity absolute top-1 right-1"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteSchedule(bar.id);
+                                  }}
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
                               
-                              {/* Removed resize handles from inside project container to fix z-index issues */}
-                            </div>
-                          );
-                        })}
-                        
-                        {/* RESIZE HANDLES - Rendered OUTSIDE project containers to fix z-index layering */}
-                        {scheduleBars.map((bar) => {
-                          return bar.bayId === bay.id && (
-                            <React.Fragment key={`handles-${bar.id}`}>
-                              {/* Left resize handle */}
+                              {/* Resize handles */}
                               <div 
-                                className="absolute cursor-ew-resize resize-handle flex items-center justify-center"
-                                style={{ 
-                                  left: `${bar.left - 12}px`,
-                                  top: '120px',
-                                  width: '24px',
-                                  height: '32px',
-                                  backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                                  zIndex: 10000,
-                                  pointerEvents: 'auto',
-                                  transition: 'all 0.2s ease',
-                                  border: '1px solid rgba(148, 163, 184, 0.6)',
-                                  borderRadius: '4px',
-                                  fontSize: '16px',
-                                  color: 'white'
-                                }}
+                                className="resize-handle-start absolute top-0 left-0 w-2 h-full cursor-ew-resize bg-blue-900/30 hover:bg-blue-900/50"
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'start')}
-                                onMouseEnter={(e) => {
-                                  const target = e.target as HTMLElement;
-                                  target.style.backgroundColor = '#1e40af';
-                                  target.style.border = '2px solid white';
-                                  target.style.boxShadow = '0 0 16px rgba(59, 130, 246, 0.8)';
-                                  target.style.transform = 'scale(1.2)';
-                                  target.style.zIndex = '20000';
-                                }}
-                                onMouseLeave={(e) => {
-                                  const target = e.target as HTMLElement;
-                                  target.style.backgroundColor = 'rgba(15, 23, 42, 0.8)';
-                                  target.style.border = '1px solid rgba(148, 163, 184, 0.6)';
-                                  target.style.boxShadow = 'none';
-                                  target.style.transform = 'scale(1)';
-                                  target.style.zIndex = '10000';
-                                }}
-                              >
-                                ‹
-                              </div>
-                              
-                              {/* Right resize handle */}
+                              ></div>
                               <div 
-                                className="absolute cursor-ew-resize resize-handle flex items-center justify-center"
-                                style={{ 
-                                  left: `${bar.left + Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0)) - 12}px`,
-                                  top: '65px',
-                                  width: '24px',
-                                  height: '32px',
-                                  backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                                  zIndex: 10000,
-                                  pointerEvents: 'auto',
-                                  transition: 'all 0.2s ease',
-                                  border: '1px solid rgba(148, 163, 184, 0.6)',
-                                  borderRadius: '4px',
-                                  fontSize: '16px',
-                                  color: 'white'
-                                }}
+                                className="resize-handle-end absolute top-0 right-0 w-2 h-full cursor-ew-resize bg-blue-900/30 hover:bg-blue-900/50"
                                 onMouseDown={(e) => handleResizeStart(e, bar, 'end')}
-                                onMouseEnter={(e) => {
-                                  const target = e.target as HTMLElement;
-                                  target.style.backgroundColor = '#1e40af';
-                                  target.style.border = '2px solid white';
-                                  target.style.boxShadow = '0 0 16px rgba(59, 130, 246, 0.8)';
-                                  target.style.transform = 'scale(1.2)';
-                                  target.style.zIndex = '20000';
-                                }}
-                                onMouseLeave={(e) => {
-                                  const target = e.target as HTMLElement;
-                                  target.style.backgroundColor = 'rgba(15, 23, 42, 0.8)';
-                                  target.style.border = '1px solid rgba(148, 163, 184, 0.6)';
-                                  target.style.boxShadow = 'none';
-                                  target.style.transform = 'scale(1)';
-                                  target.style.zIndex = '10000';
-                                }}
-                              >
-                                ›
-                              </div>
-                            </React.Fragment>
+                              ></div>
+                            </div>
                           );
                         })}
                       </div>
                     </div>
-                    </React.Fragment>
                   );
                 })}
               </div>
@@ -4374,7 +1720,7 @@ export default function ResizableBaySchedule({
       
       {/* Add Schedule Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-xl md:max-w-2xl w-[650px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Schedule</DialogTitle>
             <DialogDescription>
@@ -4408,9 +1754,6 @@ export default function ResizableBaySchedule({
                       >
                         <div className="font-medium">{project.projectNumber}</div>
                         <div className="text-sm">{project.name}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Total Hours: {project.totalHours || "N/A"}
-                        </div>
                       </div>
                     ))}
                   </ScrollArea>
@@ -4418,110 +1761,27 @@ export default function ResizableBaySchedule({
               </div>
             </div>
             
-            {/* Show selected project hours */}
-            {currentProject && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">
-                  Total Hours
-                </Label>
-                <div className="col-span-3">
-                  <div className="bg-blue-100 text-blue-900 rounded px-3 py-2 text-sm font-medium">
-                    {projects.find(p => p.id === currentProject)?.totalHours || "N/A"} hours
-                  </div>
-                </div>
-              </div>
-            )}
-            
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="bay" className="text-right">
                 Bay
               </Label>
               <div className="col-span-3">
-                <ScrollArea className="h-72 border rounded-md p-2">
-                  {/* Group bays by team */}
-                  {(() => {
-                    // Group bays by team name
-                    const baysByTeam = bays.reduce((groups, bay) => {
-                      const teamName = bay.team || 'Unassigned';
-                      if (!groups[teamName]) {
-                        groups[teamName] = [];
-                      }
-                      groups[teamName].push(bay);
-                      return groups;
-                    }, {} as Record<string, ManufacturingBay[]>);
-                    
-                    // Sort team names alphabetically, but put "Unassigned" at the end
-                    const sortedTeamNames = Object.keys(baysByTeam).sort((a, b) => {
-                      if (a === 'Unassigned') return 1;
-                      if (b === 'Unassigned') return -1;
-                      return a.localeCompare(b);
-                    });
-                    
-                    return sortedTeamNames.map(teamName => (
-                      <div key={teamName} className="mb-3 last:mb-0">
-                        {/* Team header */}
-                        <div className="bg-blue-900 text-white text-sm font-bold py-1 px-2 rounded-t mb-1">
-                          {teamName}
-                        </div>
-                        
-                        {/* Bays within this team */}
-                        {baysByTeam[teamName].map((bay) => (
-                          <div
-                            key={bay.id}
-                            className={`py-1 px-2 cursor-pointer rounded hover:bg-gray-100 ${
-                              targetBay === bay.id ? 'bg-primary text-primary-foreground' : ''
-                            } ${bay.status === 'maintenance' ? 'opacity-50' : ''}`}
-                            onClick={() => {
-                              if (bay.status === 'maintenance') return;
-                              
-                              // Set the target bay
-                              setTargetBay(bay.id);
-                              
-                              // Calculate recommended duration if we have both project and bay selected
-                              if (currentProject) {
-                                const selectedProject = projects.find(p => p.id === currentProject);
-                                if (selectedProject && selectedProject.totalHours) {
-                                  // Calculate team's capacity (hours per week)
-                                  const teamCapacity = (
-                                    (bay.assemblyStaffCount || 4) + 
-                                    (bay.electricalStaffCount || 2)
-                                  ) * (bay.hoursPerPersonPerWeek || 40);
-                                  
-                                  // Calculate recommended duration in weeks
-                                  const totalHours = selectedProject.totalHours;
-                                  const recommendedWeeks = Math.ceil(totalHours / teamCapacity);
-                                  
-                                  // Update the duration field
-                                  setScheduleDuration(recommendedWeeks > 0 ? recommendedWeeks : 4);
-                                  
-                                  // Update end date if start date is set
-                                  if (targetStartDate) {
-                                    setTargetEndDate(addWeeks(targetStartDate, recommendedWeeks > 0 ? recommendedWeeks : 4));
-                                  }
-                                }
-                              }
-                            }}
-                          >
-                            <div className="font-medium">{bay.name}</div>
-                            <div className="text-xs flex justify-between">
-                              <span>Bay #{bay.bayNumber}</span>
-                              {bay.description && (
-                                <span className="italic text-gray-500">{bay.description}</span>
-                              )}
-                            </div>
-                            {bay.status === 'maintenance' && (
-                              <Badge variant="destructive" className="mt-1 text-[10px]">
-                                Maintenance
-                              </Badge>
-                            )}
-                            <div className="text-xs text-blue-600 mt-1">
-                              Capacity: {((bay.assemblyStaffCount || 4) + (bay.electricalStaffCount || 2)) * (bay.hoursPerPersonPerWeek || 40)} hrs/week
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ));
-                  })()}
+                <ScrollArea className="h-24 border rounded-md p-2">
+                  {bays.map((bay) => (
+                    <div
+                      key={bay.id}
+                      className={`py-1 px-2 cursor-pointer rounded hover:bg-gray-100 ${
+                        targetBay === bay.id ? 'bg-primary text-primary-foreground' : ''
+                      } ${bay.status === 'maintenance' ? 'opacity-50' : ''}`}
+                      onClick={() => bay.status !== 'maintenance' && setTargetBay(bay.id)}
+                    >
+                      <div className="font-medium">{bay.name}</div>
+                      <div className="text-sm">Bay #{bay.bayNumber}</div>
+                      {bay.status === 'maintenance' && (
+                        <Badge variant="destructive" className="mt-1">Maintenance</Badge>
+                      )}
+                    </div>
+                  ))}
                 </ScrollArea>
               </div>
             </div>
@@ -4535,19 +1795,7 @@ export default function ResizableBaySchedule({
                   id="startDate"
                   type="date"
                   value={targetStartDate ? format(targetStartDate, 'yyyy-MM-dd') : ''}
-                  onChange={(e) => {
-                    const newStartDate = e.target.value ? new Date(e.target.value) : null;
-                    setTargetStartDate(newStartDate);
-                    
-                    // Immediately update end date when start date changes
-                    if (newStartDate) {
-                      // Always calculate the end date based on the duration or minimum of 13 weeks
-                      const duration = scheduleDuration > 0 ? scheduleDuration : 13;
-                      const newEndDate = addWeeks(newStartDate, duration);
-                      console.log('Auto-updating end date based on start date change:', format(newEndDate, 'yyyy-MM-dd'));
-                      setTargetEndDate(newEndDate);
-                    }
-                  }}
+                  onChange={(e) => setTargetStartDate(e.target.value ? new Date(e.target.value) : null)}
                 />
               </div>
             </div>
@@ -4557,58 +1805,6 @@ export default function ResizableBaySchedule({
                 Duration (Weeks)
               </Label>
               <div className="col-span-3">
-                {/* Check if we have both project and bay selected */}
-                {currentProject && targetBay && (
-                  <div className="mb-2">
-                    <div className="mb-2 bg-blue-50 p-3 rounded-md border border-blue-200">
-                      <DurationCalculator 
-                        projectId={currentProject} 
-                        bayId={targetBay} 
-                        projects={projects}
-                        bays={bays}
-                        onDurationCalculated={(weeks, endDate) => {
-                          // Store recommended duration but don't automatically apply it
-                          if (weeks > 0) {
-                            // Set recommended duration in component state to be applied when button is clicked
-                            setRecommendedDuration(weeks);
-                          }
-                        }}
-                      />
-                      
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        className="w-full mt-2 bg-blue-600 text-white hover:bg-blue-700"
-                        onClick={() => {
-                          // Apply the recommended duration when this button is clicked
-                          if (recommendedDuration > 0 && targetStartDate) {
-                            // Set the duration field
-                            setScheduleDuration(recommendedDuration);
-                            
-                            // Calculate and set the end date based on the recommended duration
-                            const calculatedEndDate = addWeeks(targetStartDate, recommendedDuration);
-                            setTargetEndDate(calculatedEndDate);
-                            
-                            // Provide user feedback
-                            toast({
-                              title: "Recommendation Applied",
-                              description: `Schedule duration set to ${recommendedDuration} weeks, ending on ${format(calculatedEndDate, 'MMM d, yyyy')}`
-                            });
-                          } else {
-                            toast({
-                              title: "Cannot Apply Recommendation",
-                              description: "Please ensure you have selected a project, bay, and start date",
-                              variant: "destructive"
-                            });
-                          }
-                        }}
-                      >
-                        Apply Recommendation
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                
                 <Input
                   id="duration"
                   type="number"
@@ -4658,110 +1854,15 @@ export default function ResizableBaySchedule({
       <Dialog open={newBayDialog} onOpenChange={setNewBayDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {editingBay && editingBay.id > 0 
-                ? 'Edit Bay' 
-                : editingBay?.team 
-                  ? 'Create New Team' 
-                  : 'Create Bay'}
-            </DialogTitle>
+            <DialogTitle>{editingBay && editingBay.id > 0 ? 'Edit Bay' : 'Create Bay'}</DialogTitle>
             <DialogDescription>
               {editingBay && editingBay.id > 0 
                 ? 'Update the bay information.' 
-                : editingBay?.team 
-                  ? 'Create a new manufacturing team with initial bay' 
-                  : 'Add a new manufacturing bay to the schedule.'}
+                : 'Add a new manufacturing bay to the schedule.'}
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
-            {/* Team section - only show when creating a new team */}
-            {editingBay && !editingBay.id && editingBay.team !== undefined && (
-              <div className="bg-blue-900/20 p-3 rounded-md border border-blue-800 mb-2">
-                <h3 className="text-blue-100 font-medium mb-2">Team Information</h3>
-                <div className="grid grid-cols-4 items-center gap-4 mb-3">
-                  <Label htmlFor="teamName" className="text-right text-blue-100">
-                    Team Name
-                  </Label>
-                  <div className="col-span-3">
-                    <Input
-                      id="teamName"
-                      placeholder="Enter team name"
-                      value={editingBay.team || ''}
-                      onChange={(e) => setEditingBay(prev => prev ? {...prev, team: e.target.value} : null)}
-                      className="border-blue-700 bg-blue-950/50"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="teamDescription" className="text-right text-blue-100">
-                    Description
-                  </Label>
-                  <div className="col-span-3">
-                    <Input
-                      id="teamDescription"
-                      placeholder="Team description"
-                      value={editingBay.description || ''}
-                      onChange={(e) => setEditingBay(prev => prev ? {...prev, description: e.target.value} : null)}
-                      className="border-blue-700 bg-blue-950/50"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4 mt-3">
-                  <Label htmlFor="assemblyStaff" className="text-right text-blue-100">
-                    Assembly Staff
-                  </Label>
-                  <div className="col-span-3">
-                    <Input
-                      id="assemblyStaff"
-                      type="number"
-                      placeholder="Number of assembly staff"
-                      value={editingBay.assemblyStaffCount || 4}
-                      onChange={(e) => setEditingBay(prev => prev ? {...prev, assemblyStaffCount: parseInt(e.target.value)} : null)}
-                      className="border-blue-700 bg-blue-950/50"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4 mt-3">
-                  <Label htmlFor="electricalStaff" className="text-right text-blue-100">
-                    Electrical Staff
-                  </Label>
-                  <div className="col-span-3">
-                    <Input
-                      id="electricalStaff"
-                      type="number"
-                      placeholder="Number of electrical staff"
-                      value={editingBay.electricalStaffCount || 2}
-                      onChange={(e) => setEditingBay(prev => prev ? {...prev, electricalStaffCount: parseInt(e.target.value)} : null)}
-                      className="border-blue-700 bg-blue-950/50"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4 mt-3">
-                  <Label htmlFor="hoursPerWeek" className="text-right text-blue-100">
-                    Hours/Week
-                  </Label>
-                  <div className="col-span-3">
-                    <Input
-                      id="hoursPerWeek"
-                      type="number"
-                      placeholder="Hours per person per week"
-                      value={editingBay.hoursPerPersonPerWeek || 40}
-                      onChange={(e) => setEditingBay(prev => prev ? {...prev, hoursPerPersonPerWeek: parseInt(e.target.value)} : null)}
-                      className="border-blue-700 bg-blue-950/50"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Bay section - Always show */}
-            <h3 className="text-gray-300 font-medium">
-              {editingBay && !editingBay.id && editingBay.team 
-                ? 'Initial Bay Settings' 
-                : 'Bay Information'}
-            </h3>
-            
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="bayName" className="text-right">
                 Name
@@ -4809,6 +1910,19 @@ export default function ResizableBaySchedule({
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bayDescription" className="text-right">
+                Description
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="bayDescription"
+                  value={editingBay?.description || ''}
+                  onChange={(e) => setEditingBay(prev => prev ? {...prev, description: e.target.value} : null)}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="bayLocation" className="text-right">
                 Location
               </Label>
@@ -4821,21 +1935,18 @@ export default function ResizableBaySchedule({
               </div>
             </div>
             
-            {/* Only show Team field if not creating a team */}
-            {(!editingBay?.team || editingBay.id > 0) && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="bayTeam" className="text-right">
-                  Team
-                </Label>
-                <div className="col-span-3">
-                  <Input
-                    id="bayTeam"
-                    value={editingBay?.team || ''}
-                    onChange={(e) => setEditingBay(prev => prev ? {...prev, team: e.target.value} : null)}
-                  />
-                </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bayTeam" className="text-right">
+                Team
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="bayTeam"
+                  value={editingBay?.team || ''}
+                  onChange={(e) => setEditingBay(prev => prev ? {...prev, team: e.target.value} : null)}
+                />
               </div>
-            )}
+            </div>
           </div>
           
           <DialogFooter>
@@ -4846,12 +1957,7 @@ export default function ResizableBaySchedule({
               type="button" 
               onClick={editingBay?.id > 0 ? handleSaveBayEdit : handleCreateBay}
             >
-              {editingBay?.id > 0 
-                ? 'Save Changes' 
-                : editingBay?.team 
-                  ? 'Create Team' 
-                  : 'Create Bay'
-              }
+              {editingBay?.id > 0 ? 'Save Changes' : 'Create Bay'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -4904,99 +2010,6 @@ export default function ResizableBaySchedule({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Team Management Dialog */}
-      <TeamManagementDialog 
-        open={teamDialogOpen}
-        onOpenChange={setTeamDialogOpen}
-        teamName={selectedTeam}
-        bays={bays}
-        onTeamUpdate={async (teamName, newTeamName, description, assemblyStaff, electricalStaff, hoursPerWeek) => {
-          // Update team description in our local state to show in the header bar
-          handleTeamUpdate(teamName, newTeamName, description, assemblyStaff, electricalStaff, hoursPerWeek);
-          
-          // After team capacity is updated, refresh the schedule data
-          toast({
-            title: "Team updated",
-            description: `Team ${newTeamName} has been updated with ${assemblyStaff} assembly and ${electricalStaff} electrical staff.`
-          });
-          
-          // Refresh schedule bars to reflect the new capacity settings
-          // This would trigger a re-calculation of phase widths based on the new capacity
-          const updatedScheduleBars = [...scheduleBars].map(bar => {
-            // Update production phase width calculations for affected bars
-            const bayBelongsToUpdatedTeam = bays.some(b => b.team === teamName && b.id === bar.bayId);
-            if (bayBelongsToUpdatedTeam) {
-              // Recalculate production phase width based on new capacity
-              return {
-                ...bar,
-                // Flag for re-rendering and width recalculation
-                normalizeFactor: Math.random()
-              };
-            }
-            return bar;
-          });
-          
-          setScheduleBars(updatedScheduleBars);
-        }}
-      />
-      
-      {/* Team Delete Confirmation Dialog - Fixed for proper DOM nesting */}
-      <Dialog 
-        open={teamDeleteConfirm.isOpen} 
-        onOpenChange={(isOpen) => setTeamDeleteConfirm(prev => ({...prev, isOpen}))}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <Trash2 className="h-5 w-5 mr-2 text-red-600" />
-              <span>Delete Team</span>
-            </DialogTitle>
-            <DialogDescription asChild>
-              <div>
-                <p>Are you sure you want to delete the team "{teamDeleteConfirm.teamName}"?</p>
-                <div className="mt-2 mb-2 p-2 bg-amber-50 border border-amber-200 rounded-md text-amber-800">
-                  <AlertTriangle className="h-4 w-4 inline-block mr-1" /> 
-                  This will remove the team association from {teamDeleteConfirm.bayIds.length} bay(s).
-                </div>
-                <div className="mt-1 text-sm text-gray-600">
-                  The bay itself will remain, but the team information and settings will be removed.
-                </div>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setTeamDeleteConfirm(prev => ({...prev, isOpen: false}))}
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive"
-              className="bg-red-600 hover:bg-red-700 text-white"
-              onClick={() => handleTeamDelete(teamDeleteConfirm.teamName, teamDeleteConfirm.bayIds)}
-            >
-              Delete Team
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Financial Impact Popup */}
-      {showFinancialImpact && financialImpactData && (
-        <FinancialImpactPopup
-          isOpen={showFinancialImpact}
-          onClose={() => setShowFinancialImpact(false)}
-          projectId={financialImpactData.projectId}
-          originalStartDate={financialImpactData.originalStartDate}
-          originalEndDate={financialImpactData.originalEndDate}
-          newStartDate={financialImpactData.newStartDate}
-          newEndDate={financialImpactData.newEndDate}
-          onConfirm={handleFinancialImpactConfirm}
-          onCancel={handleFinancialImpactCancel}
-        />
-      )}
       </div>
     </div>
   );
