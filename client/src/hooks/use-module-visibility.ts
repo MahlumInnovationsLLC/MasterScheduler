@@ -32,28 +32,28 @@ export const useModuleVisibility = () => {
   });
 
   const isModuleVisible = (moduleId: string): boolean => {
-    // If we have saved visibility data, use it
+    // If we have saved visibility data, use it (explicit override)
     if (moduleVisibility[moduleId] !== undefined) {
       return moduleVisibility[moduleId];
     }
     
     // Fallback to role-based defaults if no saved data
-    if (!user?.role) return false;
+    if (!user?.role) return true; // Default to visible if no user
     
-    // Admin can see everything
+    // Admin can see everything by default
     if (user.role === 'admin') return true;
     
-    // Editor defaults - can't see system-settings or import
+    // Editor defaults - can see everything except system-settings and import
     if (user.role === 'editor') {
       return !['system-settings', 'import'].includes(moduleId);
     }
     
-    // Viewer defaults - can't see sales-forecast, bay-scheduling, system-settings, or import
+    // Viewer defaults - can see everything except sales-forecast, bay-scheduling, system-settings, and import
     if (user.role === 'viewer') {
       return !['sales-forecast', 'bay-scheduling', 'system-settings', 'import'].includes(moduleId);
     }
     
-    return false;
+    return true; // Default to visible for any other case
   };
 
   return {
