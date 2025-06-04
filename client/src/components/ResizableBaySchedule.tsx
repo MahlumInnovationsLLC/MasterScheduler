@@ -1324,7 +1324,7 @@ export default function ResizableBaySchedule({
   
   // Calculate schedule bars positions based on the schedules data
   useEffect(() => {
-    console.log('Recalculating schedule bars (version 3): ensuring NO automatic adjustments');
+    console.log('Recalculating schedule bars with phase visibility support');
     
     if (!schedules.length || !projects.length) return;
     

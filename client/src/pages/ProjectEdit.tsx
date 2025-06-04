@@ -419,6 +419,7 @@ function ProjectEdit() {
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: [`/api/projects/${projectId}`]});
       queryClient.invalidateQueries({queryKey: ['/api/projects']});
+      queryClient.invalidateQueries({queryKey: ['/api/manufacturing-schedules']});
       toast({
         title: 'Project updated',
         description: 'The project has been updated successfully',

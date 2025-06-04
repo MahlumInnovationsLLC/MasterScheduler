@@ -1,18 +1,20 @@
-/**
- * ExactFitPhaseWidths.tsx
- * 
- * Helper functions to ensure phase widths exactly match total bar width.
- * These utilities ensure that all phase widths sum up exactly to the total width,
- * with the last phase adjusted to fill any remaining pixels.
- */
 
-import { Project } from "@shared/schema";
+import { Project } from '@shared/schema';
+
+export interface PhaseWidths {
+  fabWidth: number;
+  paintWidth: number;
+  prodWidth: number;
+  itWidth: number;
+  ntcWidth: number;
+  qcWidth: number;
+  visiblePhases: string[];
+}
 
 /**
- * Calculates exact-fit phase widths from project percentages
- * ensuring they sum exactly to totalWidth
+ * Calculate exact-fit phase widths with proper redistribution when phases are hidden
  */
-export const calculateExactFitPhaseWidths = (totalWidth: number, project: Project | null) => {
+export const calculateExactFitPhaseWidths = (totalWidth: number, project: Project | null | undefined): PhaseWidths => {
   if (!project || totalWidth <= 0) {
     return {
       fabWidth: 0,
@@ -25,28 +27,63 @@ export const calculateExactFitPhaseWidths = (totalWidth: number, project: Projec
     };
   }
 
-  // Check which phases are visible
-  const showFab = project.showFabPhase !== false;
+  // Check phase visibility settings from the project
+  const showFab = project.showFabPhase !== false; // Default to true if undefined
   const showPaint = project.showPaintPhase !== false;
   const showProduction = project.showProductionPhase !== false;
   const showIt = project.showItPhase !== false;
   const showNtc = project.showNtcPhase !== false;
   const showQc = project.showQcPhase !== false;
 
-  // Get percentages from project data with proper fallbacks
-  const fabPercentage = showFab ? (parseFloat(project.fabPercentage as any) || 27) : 0;
-  const paintPercentage = showPaint ? (parseFloat(project.paintPercentage as any) || 7) : 0;
-  const productionPercentage = showProduction ? (parseFloat(project.productionPercentage as any) || 60) : 0;
-  const itPercentage = showIt ? (parseFloat(project.itPercentage as any) || 7) : 0;
-  const ntcPercentage = showNtc ? (parseFloat(project.ntcPercentage as any) || 7) : 0;
-  const qcPercentage = showQc ? (parseFloat(project.qcPercentage as any) || 7) : 0;
+  console.log(`Phase visibility for project ${project.projectNumber}:`, {
+    fab: showFab,
+    paint: showPaint,
+    production: showProduction,
+    it: showIt,
+    ntc: showNtc,
+    qc: showQc
+  });
 
-  // Calculate the total percentage and normalization factor (only for visible phases)
-  const totalPercentages = fabPercentage + paintPercentage + productionPercentage + 
-                          itPercentage + ntcPercentage + qcPercentage;
+  // Get original percentages from project data with proper fallbacks
+  const originalFabPercentage = parseFloat(project.fabPercentage as any) || 27;
+  const originalPaintPercentage = parseFloat(project.paintPercentage as any) || 7;
+  const originalProductionPercentage = parseFloat(project.productionPercentage as any) || 60;
+  const originalItPercentage = parseFloat(project.itPercentage as any) || 7;
+  const originalNtcPercentage = parseFloat(project.ntcPercentage as any) || 7;
+  const originalQcPercentage = parseFloat(project.qcPercentage as any) || 7;
+
+  // Calculate which phases are visible and their percentages
+  const visiblePhases = [];
+  let visiblePercentageSum = 0;
+
+  if (showFab) {
+    visiblePhases.push('fab');
+    visiblePercentageSum += originalFabPercentage;
+  }
+  if (showPaint) {
+    visiblePhases.push('paint');
+    visiblePercentageSum += originalPaintPercentage;
+  }
+  if (showProduction) {
+    visiblePhases.push('production');
+    visiblePercentageSum += originalProductionPercentage;
+  }
+  if (showIt) {
+    visiblePhases.push('it');
+    visiblePercentageSum += originalItPercentage;
+  }
+  if (showNtc) {
+    visiblePhases.push('ntc');
+    visiblePercentageSum += originalNtcPercentage;
+  }
+  if (showQc) {
+    visiblePhases.push('qc');
+    visiblePercentageSum += originalQcPercentage;
+  }
 
   // If no phases are visible, return zeros
-  if (totalPercentages === 0) {
+  if (visiblePhases.length === 0 || visiblePercentageSum === 0) {
+    console.log('No visible phases or zero percentage sum');
     return {
       fabWidth: 0,
       paintWidth: 0,
@@ -58,27 +95,44 @@ export const calculateExactFitPhaseWidths = (totalWidth: number, project: Projec
     };
   }
 
-  const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
+  // Calculate redistribution factor to make visible phases add up to 100%
+  const redistributionFactor = 100 / visiblePercentageSum;
+
+  console.log(`Redistribution calculation:`, {
+    visiblePercentageSum,
+    redistributionFactor,
+    visiblePhases
+  });
+
+  // Apply redistribution to visible phases only
+  const fabPercentage = showFab ? (originalFabPercentage * redistributionFactor) : 0;
+  const paintPercentage = showPaint ? (originalPaintPercentage * redistributionFactor) : 0;
+  const productionPercentage = showProduction ? (originalProductionPercentage * redistributionFactor) : 0;
+  const itPercentage = showIt ? (originalItPercentage * redistributionFactor) : 0;
+  const ntcPercentage = showNtc ? (originalNtcPercentage * redistributionFactor) : 0;
+  const qcPercentage = showQc ? (originalQcPercentage * redistributionFactor) : 0;
 
   // Calculate exact phase widths (floor + remainder method) - only for visible phases
-  const fabWidth = showFab ? Math.floor(totalWidth * (fabPercentage * normalizeFactor / 100)) : 0;
-  const paintWidth = showPaint ? Math.floor(totalWidth * (paintPercentage * normalizeFactor / 100)) : 0;
-  const prodWidth = showProduction ? Math.floor(totalWidth * (productionPercentage * normalizeFactor / 100)) : 0;
-  const itWidth = showIt ? Math.floor(totalWidth * (itPercentage * normalizeFactor / 100)) : 0;
-  const ntcWidth = showNtc ? Math.floor(totalWidth * (ntcPercentage * normalizeFactor / 100)) : 0;
+  const fabWidth = showFab ? Math.floor(totalWidth * (fabPercentage / 100)) : 0;
+  const paintWidth = showPaint ? Math.floor(totalWidth * (paintPercentage / 100)) : 0;
+  const prodWidth = showProduction ? Math.floor(totalWidth * (productionPercentage / 100)) : 0;
+  const itWidth = showIt ? Math.floor(totalWidth * (itPercentage / 100)) : 0;
+  const ntcWidth = showNtc ? Math.floor(totalWidth * (ntcPercentage / 100)) : 0;
 
   // The last visible phase gets the remainder to ensure exact fit
   const usedWidth = fabWidth + paintWidth + prodWidth + itWidth + ntcWidth;
   const qcWidth = showQc ? (totalWidth - usedWidth) : 0;
 
-  // Track which phases are visible for rendering logic
-  const visiblePhases = [];
-  if (showFab) visiblePhases.push('fab');
-  if (showPaint) visiblePhases.push('paint');
-  if (showProduction) visiblePhases.push('production');
-  if (showIt) visiblePhases.push('it');
-  if (showNtc) visiblePhases.push('ntc');
-  if (showQc) visiblePhases.push('qc');
+  console.log(`Final phase widths for project ${project.projectNumber}:`, {
+    totalWidth,
+    fabWidth,
+    paintWidth,
+    prodWidth,
+    itWidth,
+    ntcWidth,
+    qcWidth,
+    totalUsed: fabWidth + paintWidth + prodWidth + itWidth + ntcWidth + qcWidth
+  });
 
   return {
     fabWidth,
@@ -92,10 +146,10 @@ export const calculateExactFitPhaseWidths = (totalWidth: number, project: Projec
 };
 
 /**
- * Directly applies calculated phase widths to DOM elements
+ * Apply calculated phase widths to DOM elements with proper positioning
  */
 export const applyPhaseWidthsToDom = (
-  phaseWidths: ReturnType<typeof calculateExactFitPhaseWidths>,
+  phaseWidths: PhaseWidths,
   elements: {
     fabPhase: HTMLElement;
     paintPhase: HTMLElement;
@@ -105,29 +159,77 @@ export const applyPhaseWidthsToDom = (
     qcPhase: HTMLElement;
   }
 ) => {
-  const { fabWidth, paintWidth, prodWidth, itWidth, ntcWidth, qcWidth } = phaseWidths;
   const { fabPhase, paintPhase, prodPhase, itPhase, ntcPhase, qcPhase } = elements;
+  const { fabWidth, paintWidth, prodWidth, itWidth, ntcWidth, qcWidth, visiblePhases } = phaseWidths;
 
-  // Apply width and position changes directly to DOM elements
-  fabPhase.style.width = `${fabWidth}px`;
+  let currentLeft = 0;
 
-  paintPhase.style.left = `${fabWidth}px`;
-  paintPhase.style.width = `${paintWidth}px`;
+  // Apply FAB phase
+  if (visiblePhases.includes('fab')) {
+    fabPhase.style.display = 'block';
+    fabPhase.style.left = `${currentLeft}px`;
+    fabPhase.style.width = `${fabWidth}px`;
+    currentLeft += fabWidth;
+  } else {
+    fabPhase.style.display = 'none';
+    fabPhase.style.width = '0px';
+  }
 
-  prodPhase.style.left = `${fabWidth + paintWidth}px`;
-  prodPhase.style.width = `${prodWidth}px`;
+  // Apply PAINT phase
+  if (visiblePhases.includes('paint')) {
+    paintPhase.style.display = 'block';
+    paintPhase.style.left = `${currentLeft}px`;
+    paintPhase.style.width = `${paintWidth}px`;
+    currentLeft += paintWidth;
+  } else {
+    paintPhase.style.display = 'none';
+    paintPhase.style.width = '0px';
+  }
 
-  itPhase.style.left = `${fabWidth + paintWidth + prodWidth}px`;
-  itPhase.style.width = `${itWidth}px`;
+  // Apply PRODUCTION phase
+  if (visiblePhases.includes('production')) {
+    prodPhase.style.display = 'block';
+    prodPhase.style.left = `${currentLeft}px`;
+    prodPhase.style.width = `${prodWidth}px`;
+    currentLeft += prodWidth;
+  } else {
+    prodPhase.style.display = 'none';
+    prodPhase.style.width = '0px';
+  }
 
-  ntcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth}px`;
-  ntcPhase.style.width = `${ntcWidth}px`;
+  // Apply IT phase
+  if (visiblePhases.includes('it')) {
+    itPhase.style.display = 'block';
+    itPhase.style.left = `${currentLeft}px`;
+    itPhase.style.width = `${itWidth}px`;
+    currentLeft += itWidth;
+  } else {
+    itPhase.style.display = 'none';
+    itPhase.style.width = '0px';
+  }
 
-  qcPhase.style.left = `${fabWidth + paintWidth + prodWidth + itWidth + ntcWidth}px`;
-  qcPhase.style.width = `${qcWidth}px`;
+  // Apply NTC phase
+  if (visiblePhases.includes('ntc')) {
+    ntcPhase.style.display = 'block';
+    ntcPhase.style.left = `${currentLeft}px`;
+    ntcPhase.style.width = `${ntcWidth}px`;
+    currentLeft += ntcWidth;
+  } else {
+    ntcPhase.style.display = 'none';
+    ntcPhase.style.width = '0px';
+  }
 
-  // Return true if successfully applied
-  return true;
+  // Apply QC phase
+  if (visiblePhases.includes('qc')) {
+    qcPhase.style.display = 'block';
+    qcPhase.style.left = `${currentLeft}px`;
+    qcPhase.style.width = `${qcWidth}px`;
+  } else {
+    qcPhase.style.display = 'none';
+    qcPhase.style.width = '0px';
+  }
+
+  console.log('Applied phase widths to DOM elements with visibility controls');
 };
 
 /**
@@ -142,7 +244,7 @@ export const updatePhaseWidthsWithExactFit = (
     // Find all phase elements
     const fabPhase = barElement.querySelector('.dept-fab-phase') as HTMLElement;
     const paintPhase = barElement.querySelector('.dept-paint-phase') as HTMLElement;
-    const prodPhase = barElement.querySelector('.dept-prod-phase') as HTMLElement;
+    const prodPhase = barElement.querySelector('.dept-prod-phase, .dept-production-phase') as HTMLElement;
     const itPhase = barElement.querySelector('.dept-it-phase') as HTMLElement;
     const ntcPhase = barElement.querySelector('.dept-ntc-phase') as HTMLElement;
     const qcPhase = barElement.querySelector('.dept-qc-phase') as HTMLElement;
@@ -160,16 +262,9 @@ export const updatePhaseWidthsWithExactFit = (
       fabPhase, paintPhase, prodPhase, itPhase, ntcPhase, qcPhase
     });
 
-    // Add debugging attributes
-    barElement.setAttribute('data-phases-updated', 'exact-fit');
-    barElement.setAttribute('data-phase-sum', 
-      (phaseWidths.fabWidth + phaseWidths.paintWidth + phaseWidths.prodWidth + 
-       phaseWidths.itWidth + phaseWidths.ntcWidth + phaseWidths.qcWidth).toString());
-    barElement.setAttribute('data-exact-match', phaseWidths.exactMatch.toString());
-
     return true;
   } catch (error) {
-    console.error("Error applying exact fit phase widths:", error);
+    console.error('Error updating phase widths:', error);
     return false;
   }
 };
