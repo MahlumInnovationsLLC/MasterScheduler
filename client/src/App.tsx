@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -33,6 +33,8 @@ import ResetPasswordPage from "@/pages/reset-password-page";
 import NotFound from "@/pages/not-found";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import { MobileHeader } from "@/components/MobileHeader";
+import { MobileSidebar } from "@/components/MobileSidebar";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AdminRoute } from "@/lib/admin-route";
@@ -40,6 +42,7 @@ import { ViewerRestrictedRoute } from "@/lib/viewer-restricted-route";
 // Import SidebarContext and SidebarProvider for managing sidebar state
 import { SidebarProvider, SidebarContext } from "@/context/SidebarContext";
 import { useContext } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 function Router() {
   const [location] = useLocation();
@@ -68,9 +71,75 @@ function Router() {
 // Separate component to use the sidebar context
 function MainContent() {
   const { isCollapsed } = useContext(SidebarContext);
+  const isMobile = useIsMobile();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Get page title based on current route
+  const [location] = useLocation();
+  const getPageTitle = () => {
+    if (location === '/') return 'Dashboard';
+    if (location === '/projects') return 'Projects';
+    if (location === '/bay-scheduling') return 'Bay Scheduling';
+    if (location === '/billing') return 'Billing';
+    if (location === '/manufacturing') return 'Manufacturing';
+    if (location === '/on-time-delivery') return 'On-Time Delivery';
+    if (location === '/calendar') return 'Calendar';
+    if (location === '/sales-forecast') return 'Sales Forecast';
+    if (location === '/reports') return 'Reports';
+    if (location === '/export-reports') return 'Export Reports';
+    if (location === '/import') return 'Import Data';
+    if (location === '/supply-chain') return 'Supply Chain';
+    if (location === '/archived-projects') return 'Archived Projects';
+    if (location === '/delivered-projects') return 'Delivered Projects';
+    if (location === '/settings/user') return 'Settings';
+    return 'Manufacturing';
+  };
+
+  if (isMobile) {
+    // Mobile Layout
+    return (
+      <div className="min-h-screen bg-darkBg text-white">
+        <MobileHeader 
+          onMenuClick={() => setMobileMenuOpen(true)}
+          title={getPageTitle()}
+        />
+        <MobileSidebar 
+          isOpen={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+        />
+        <main className="mobile-main-content">
+          <Switch>
+            <ProtectedRoute path="/" component={Dashboard} />
+            <ProtectedRoute path="/projects" component={ProjectStatus} />
+            <ProtectedRoute path="/projects/new" component={ProjectCreate} />
+            <ProtectedRoute path="/project/:id" component={ProjectDetails} />
+            <ProtectedRoute path="/project/:id/edit" component={ProjectEdit} />
+            <ProtectedRoute path="/archived-projects" component={ArchivedProjects} />
+            <ProtectedRoute path="/delivered-projects" component={DeliveredProjects} />
+            <ProtectedRoute path="/billing" component={BillingMilestones} />
+            <ProtectedRoute path="/manufacturing" component={ManufacturingBay} />
+            <ViewerRestrictedRoute path="/bay-scheduling" component={BaySchedulingPage} redirectPath="/" />
+            <ProtectedRoute path="/on-time-delivery" component={OnTimeDelivery} />
+            <ProtectedRoute path="/calendar" component={CalendarPage} />
+            <ProtectedRoute path="/sales-forecast" component={SalesForecast} />
+            <ProtectedRoute path="/sales-deal/:id/edit" component={SalesDealEdit} />
+            <ProtectedRoute path="/reports" component={Reports} />
+            <ProtectedRoute path="/export-reports" component={ExportReports} />
+            <ProtectedRoute path="/import" component={ImportData} />
+            <ProtectedRoute path="/supply-chain" component={SupplyChain} />
+            <ProtectedRoute path="/role-test" component={RoleTestPage} />
+            <ProtectedRoute path="/settings/user" component={UserPreferences} />
+            <Route path="/auth" component={AuthPage} />
+            <Route component={NotFound} />
+          </Switch>
+        </main>
+      </div>
+    );
+  }
+
+  // Desktop Layout (unchanged)
   return (
-    <div className="min-h-screen flex flex-col bg-darkBg text-white">
+    <div className="min-h-screen flex flex-col bg-darkBg text-white desktop-layout">
       <Header />
       <div className="flex flex-1 h-[calc(100vh-64px)]">
         <Sidebar />

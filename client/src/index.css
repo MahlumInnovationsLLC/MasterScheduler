@@ -464,6 +464,374 @@ select:focus {
   box-shadow: 0 2px 8px rgba(156, 163, 175, 0.3);
 }
 
+/* Mobile-first responsive design - MOBILE ONLY STYLES */
+/* These styles only apply on mobile and will not affect desktop */
+
+/* Mobile detection and base styles */
+@media screen and (max-width: 768px) {
+  /* Mobile-specific body adjustments */
+  body {
+    font-size: 14px;
+    touch-action: pan-x pan-y;
+  }
+
+  /* Mobile navigation adjustments */
+  .mobile-nav-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: #111827;
+    border-bottom: 1px solid #374151;
+  }
+
+  /* Mobile sidebar overlay */
+  .mobile-sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    backdrop-filter: blur(2px);
+  }
+
+  /* Mobile sidebar drawer */
+  .mobile-sidebar-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    background: #111827;
+    z-index: 1001;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    border-right: 1px solid #374151;
+  }
+
+  .mobile-sidebar-drawer.open {
+    transform: translateX(0);
+  }
+
+  /* Mobile main content */
+  .mobile-main-content {
+    padding-top: 60px; /* Account for fixed mobile header */
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+    width: 100%;
+    min-height: calc(100vh - 60px);
+  }
+
+  /* Mobile bay schedule container */
+  .mobile-bay-schedule {
+    padding: 8px;
+    overflow-x: auto;
+    overflow-y: auto;
+  }
+
+  /* Mobile bay grid */
+  .mobile-bay-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 100%;
+  }
+
+  /* Mobile bay card */
+  .mobile-bay-card {
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 120px;
+  }
+
+  /* Mobile bay header */
+  .mobile-bay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* Mobile project items */
+  .mobile-project-item {
+    background: #374151;
+    border: 1px solid #4b5563;
+    border-radius: 6px;
+    padding: 8px;
+    margin: 4px 0;
+    font-size: 12px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .mobile-project-item:active {
+    background: #4b5563;
+    transform: scale(0.98);
+  }
+
+  /* Mobile timeline */
+  .mobile-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    background: #111827;
+    border-radius: 8px;
+    margin-top: 12px;
+  }
+
+  /* Mobile timeline header */
+  .mobile-timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #1f2937;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* Mobile view mode switcher */
+  .mobile-view-switcher {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: #1f2937;
+    border-radius: 6px;
+  }
+
+  .mobile-view-button {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 11px;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    border-radius: 4px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .mobile-view-button.active {
+    background: #374151;
+    color: #f9fafb;
+  }
+
+  /* Mobile action buttons */
+  .mobile-action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px;
+    background: #111827;
+    border-top: 1px solid #374151;
+    z-index: 998;
+    display: flex;
+    gap: 8px;
+  }
+
+  .mobile-action-button {
+    flex: 1;
+    padding: 12px 8px;
+    font-size: 12px;
+    border-radius: 6px;
+    border: 1px solid #374151;
+    background: #1f2937;
+    color: #f9fafb;
+    cursor: pointer;
+    touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .mobile-action-button:active {
+    background: #374151;
+    transform: scale(0.98);
+  }
+
+  /* Mobile cards and content */
+  .mobile-card {
+    margin: 8px;
+    padding: 12px;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 8px;
+  }
+
+  .mobile-card-header {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #f9fafb;
+  }
+
+  .mobile-card-content {
+    font-size: 12px;
+    color: #d1d5db;
+    line-height: 1.4;
+  }
+
+  /* Mobile forms and inputs */
+  .mobile-form {
+    padding: 12px;
+  }
+
+  .mobile-input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    background: #1f2937;
+    color: #f9fafb;
+    margin-bottom: 12px;
+  }
+
+  .mobile-input:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+
+  /* Mobile tables */
+  .mobile-table-wrapper {
+    overflow-x: auto;
+    margin: 8px;
+    border-radius: 8px;
+    border: 1px solid #374151;
+  }
+
+  .mobile-table {
+    width: 100%;
+    min-width: 600px; /* Ensure table doesn't get too cramped */
+    font-size: 12px;
+  }
+
+  .mobile-table th,
+  .mobile-table td {
+    padding: 8px 6px;
+    white-space: nowrap;
+  }
+
+  /* Mobile schedule bars */
+  .mobile-schedule-bar {
+    height: 24px;
+    border-radius: 4px;
+    margin: 2px 0;
+    position: relative;
+    cursor: pointer;
+    touch-action: manipulation;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+  }
+
+  .mobile-schedule-bar:active {
+    transform: scale(0.98);
+  }
+
+  /* Mobile phases */
+  .mobile-phase {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Mobile utilities */
+  .mobile-hide {
+    display: none !important;
+  }
+
+  .mobile-show {
+    display: block !important;
+  }
+
+  .mobile-flex {
+    display: flex !important;
+  }
+
+  /* Mobile scrollable areas */
+  .mobile-scroll-x {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-scroll-y {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    max-height: calc(100vh - 140px);
+  }
+
+  /* Mobile touch improvements */
+  .mobile-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Mobile spacing adjustments */
+  .mobile-p-2 {
+    padding: 8px !important;
+  }
+
+  .mobile-p-4 {
+    padding: 16px !important;
+  }
+
+  .mobile-m-2 {
+    margin: 8px !important;
+  }
+
+  .mobile-text-xs {
+    font-size: 10px !important;
+  }
+
+  .mobile-text-sm {
+    font-size: 12px !important;
+  }
+}
+
+/* Tablet-specific adjustments (between mobile and desktop) */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  .tablet-sidebar {
+    width: 200px;
+  }
+
+  .tablet-main-content {
+    margin-left: 200px;
+  }
+
+  .tablet-schedule-grid {
+    gap: 8px;
+  }
+}
+
+/* Ensure desktop styles remain unchanged */
+@media screen and (min-width: 1025px) {
+  /* Desktop-only classes to ensure no mobile interference */
+  .desktop-layout {
+    /* All existing desktop styles remain exactly the same */
+  }
+}
+
 /* Light mode overrides for location blocks */
 .light .location-block,
 .light .data-table td[data-location],
