@@ -4383,17 +4383,17 @@ export default function ResizableBaySchedule({
                                               visibility: 'hidden',
                                               zIndex: 1000,
                                               right: '100%',
-                                              top: '-210px',
+                                              top: '-160px',
                                               marginRight: '8px',
                                               display: 'none',
                                               width: 'auto'
                                             }}
                                           >
-                                            <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[400px] max-w-[600px] relative">
+                                            <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[600px] max-w-[800px] relative">
                                               <div className="font-semibold text-blue-300 mb-2 text-center border-b border-gray-700 pb-1">
                                                 Project Timeline Dates - {bar.projectNumber}
                                               </div>
-                                              <div className="grid grid-cols-2 gap-x-4 gap-y-1 max-h-[200px] overflow-y-auto">
+                                              <div className="grid grid-cols-3 gap-x-4 gap-y-1">
                                                 {timelineDates.map((item, index) => (
                                                   <div key={index} className="flex flex-col py-1">
                                                     <span className="text-gray-300 font-medium text-xs">{item.label}:</span>
