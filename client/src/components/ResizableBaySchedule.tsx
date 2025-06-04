@@ -4382,7 +4382,7 @@ export default function ResizableBaySchedule({
                                               visibility: 'hidden',
                                               zIndex: 1000,
                                               right: '100%',
-                                              top: '-85px',
+                                              top: '-105px',
                                               marginRight: '8px',
                                               display: 'none',
                                               width: 'auto'
