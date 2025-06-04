@@ -1188,8 +1188,8 @@ const SystemSettings = () => {
                                               'Content-Type': 'application/json',
                                             },
                                             body: JSON.stringify({
-                                              moduleId: module.id,
-                                              visible: checked
+                                              module: module.id,
+                                              is_visible: checked
                                             }),
                                           });
 
@@ -1207,7 +1207,7 @@ const SystemSettings = () => {
                                           }));
 
                                           // Invalidate module visibility cache to trigger refetch
-                                          queryClient.invalidateQueries({ queryKey: ['module-visibility'] });
+                                          queryClient.invalidateQueries({ queryKey: ['module-visibility', user.id] });
 
                                           toast({
                                             title: "Module Visibility Updated",

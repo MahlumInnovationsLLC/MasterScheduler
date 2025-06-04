@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
+import { usePermissions } from "@/components/PermissionsManager";
+import { useModuleVisibility } from "@/hooks/use-module-visibility";
+import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -13,29 +17,36 @@ interface MobileSidebarProps {
 
 export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   const [location] = useLocation();
-  const { user } = useAuth();
+  const { hasAccess } = usePermissions();
+  const { isModuleVisible } = useModuleVisibility();
 
   const navigationItems = [
-    { icon: Home, label: 'Dashboard', path: '/' },
-    { icon: FolderOpen, label: 'Projects', path: '/projects' },
-    { icon: Building2, label: 'Bay Scheduling', path: '/bay-scheduling' },
-    { icon: DollarSign, label: 'Billing', path: '/billing' },
-    { icon: Package, label: 'Manufacturing', path: '/manufacturing' },
-    { icon: Clock, label: 'On-Time Delivery', path: '/on-time-delivery' },
-    { icon: Calendar, label: 'Calendar', path: '/calendar' },
-    { icon: TrendingUp, label: 'Sales Forecast', path: '/sales-forecast' },
-    { icon: BarChart3, label: 'Reports', path: '/reports' },
-    { icon: FileText, label: 'Export Reports', path: '/export-reports' },
-    { icon: Package2, label: 'Import Data', path: '/import' },
-    { icon: Truck, label: 'Supply Chain', path: '/supply-chain' },
-    { icon: Archive, label: 'Archived Projects', path: '/archived-projects' },
-    { icon: CheckCircle, label: 'Delivered Projects', path: '/delivered-projects' },
+    { id: "dashboard", icon: Home, label: 'Dashboard', path: '/' },
+    { id: "projects", icon: FolderOpen, label: 'Projects', path: '/projects' },
+    { id: "bay-scheduling", icon: Building2, label: 'Bay Scheduling', path: '/bay-scheduling' },
+    { id: "billing", icon: DollarSign, label: 'Billing', path: '/billing' },
+    { id: "manufacturing", icon: Package, label: 'Manufacturing', path: '/manufacturing' },
+    { id: "on-time-delivery", icon: Clock, label: 'On-Time Delivery', path: '/on-time-delivery' },
+    { id: "calendar", icon: Calendar, label: 'Calendar', path: '/calendar' },
+    { id: "sales-forecast", icon: TrendingUp, label: 'Sales Forecast', path: '/sales-forecast' },
+    { id: "reports", icon: BarChart3, label: 'Reports', path: '/reports' },
+    { id: "export-reports", icon: FileText, label: 'Export Reports', path: '/export-reports' },
+    { id: "import", icon: Package2, label: 'Import Data', path: '/import' },
+    { id: "supply-chain", icon: Truck, label: 'Supply Chain', path: '/supply-chain' },
+    { id: "archived-projects", icon: Archive, label: 'Archived Projects', path: '/archived-projects' },
+    { id: "delivered-projects", icon: CheckCircle, label: 'Delivered Projects', path: '/delivered-projects' },
   ];
 
   const isActive = (path: string) => {
     if (path === '/') return location === '/';
     return location.startsWith(path);
   };
+
+  const filteredNavItems = navigationItems.filter(item => {
+    const hasPermission = hasAccess(item.permission || 'read', item.resource || 'general');
+    const isVisible = isModuleVisible(item.id);
+    return hasPermission && isVisible;
+  });
 
   return (
     <>
@@ -91,7 +102,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
         {/* Navigation */}
         <ScrollArea className="flex-1 px-2 py-4">
           <div className="space-y-1">
-            {navigationItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
 

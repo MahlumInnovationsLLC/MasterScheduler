@@ -2978,14 +2978,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/users/:id/module-visibility", simpleAuth, async (req, res) => {
     try {
       const userId = req.params.id;
-      const { moduleId, visible } = req.body;
+      const { module, is_visible } = req.body;
       
-      if (!moduleId || typeof visible !== 'boolean') {
-        return res.status(400).json({ message: "moduleId and visible are required" });
+      if (!module || typeof is_visible !== 'boolean') {
+        return res.status(400).json({ message: "module and is_visible are required" });
       }
       
       // Update module visibility in database
-      await storage.updateUserModuleVisibility(userId, moduleId, visible);
+      await storage.updateUserModuleVisibility(userId, module, is_visible);
       
       // Get user info for audit log
       const user = await storage.getUser(userId);
@@ -2998,8 +2998,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         "MODULE_VISIBILITY_UPDATE",
         performedBy,
-        { moduleId, visible },
-        `${performedByName} updated module visibility: ${moduleId} set to ${visible ? 'visible' : 'hidden'}`
+        { module, is_visible },
+        `${performedByName} updated module visibility: ${module} set to ${is_visible ? 'visible' : 'hidden'}`
       );
       
       res.json({ success: true, message: "Module visibility updated" });
