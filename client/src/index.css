@@ -475,45 +475,22 @@ select:focus {
   border: 1px solid #6b7280;
 }
 
-/* Light mode text color fixes for all elements */
-:root:not(.dark) body,
-:root:not(.dark) h1,
-:root:not(.dark) h2,
-:root:not(.dark) h3,
-:root:not(.dark) h4,
-:root:not(.dark) h5,
-:root:not(.dark) h6,
-:root:not(.dark) p,
-:root:not(.dark) span,
-:root:not(.dark) div,
-:root:not(.dark) th,
-:root:not(.dark) td,
-:root:not(.dark) .text-foreground,
-:root:not(.dark) .font-semibold,
-:root:not(.dark) .font-bold,
-:root:not(.dark) .text-lg,
-:root:not(.dark) .text-sm {
-  color: hsl(240 10% 3.9%) !important;
-}
-
-/* Light mode table header fixes */
-:root:not(.dark) .data-table th,
-:root:not(.dark) table th,
-:root:not(.dark) thead th {
-  color: #1f2937 !important;
-  background-color: #f3f4f6 !important;
-}
-
-/* Light mode table cell fixes */
-:root:not(.dark) .data-table td,
-:root:not(.dark) table td,
-:root:not(.dark) tbody td {
+/* Light mode text color fixes - only for white text elements */
+:root:not(.dark) .text-white,
+:root:not(.dark) [style*="color: white"],
+:root:not(.dark) [style*="color: #ffffff"],
+:root:not(.dark) [style*="color: #fff"],
+:root:not(.dark) [style*="color:white"],
+:root:not(.dark) [style*="color:#ffffff"],
+:root:not(.dark) [style*="color:#fff"] {
   color: #374151 !important;
 }
 
-/* Light mode card and container text */
-:root:not(.dark) .card,
-:root:not(.dark) .bg-card {
+/* Light mode table content - only override white text */
+:root:not(.dark) .data-table th:where([style*="color: white"], [style*="color: #fff"]),
+:root:not(.dark) .data-table td:where([style*="color: white"], [style*="color: #fff"]),
+:root:not(.dark) table th:where([style*="color: white"], [style*="color: #fff"]),
+:root:not(.dark) table td:where([style*="color: white"], [style*="color: #fff"]) {
   color: #374151 !important;
 }
 
