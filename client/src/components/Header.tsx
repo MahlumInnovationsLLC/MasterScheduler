@@ -37,7 +37,7 @@ const Header = () => {
   };
   
   return (
-    <header className="bg-darkCard border-b border-border px-6 py-3 fixed top-0 left-0 right-0 z-20">
+    <header className="bg-white dark:bg-gray-900 border-b border-border px-6 py-3 fixed top-0 left-0 right-0 z-20">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/" className="text-primary font-bold text-2xl font-sans">
