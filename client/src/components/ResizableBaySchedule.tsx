@@ -4375,15 +4375,16 @@ export default function ResizableBaySchedule({
                                         {timelineDates.length > 0 && (
                                           <div 
                                             id={`tooltip-${bar.id}`}
-                                            className="fixed pointer-events-none transition-opacity duration-200"
+                                            className="absolute pointer-events-auto transition-opacity duration-200"
                                             style={{ 
                                               opacity: 0,
                                               visibility: 'hidden',
-                                              zIndex: 999999,
+                                              zIndex: 9999999,
                                               left: '50%',
-                                              top: '15%',
+                                              bottom: '100%',
                                               transform: 'translateX(-50%)',
-                                              display: 'none'
+                                              display: 'none',
+                                              marginBottom: '8px'
                                             }}
                                           >
                                             <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[300px] max-w-[400px]">
