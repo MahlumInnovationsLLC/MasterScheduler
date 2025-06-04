@@ -4375,19 +4375,37 @@ export default function ResizableBaySchedule({
                                         {timelineDates.length > 0 && (
                                           <div 
                                             id={`tooltip-${bar.id}`}
-                                            className="absolute pointer-events-auto transition-opacity duration-200"
+                                            className="fixed pointer-events-auto transition-opacity duration-200"
                                             style={{ 
                                               opacity: 0,
                                               visibility: 'hidden',
-                                              zIndex: 9999999,
+                                              zIndex: 99999999,
                                               left: '50%',
                                               bottom: '100%',
                                               transform: 'translateX(-50%)',
                                               display: 'none',
                                               marginBottom: '8px'
                                             }}
+                                            onMouseEnter={() => {
+                                              console.log(`🎯 Mouse ENTER on tooltip for project ${bar.projectNumber}`);
+                                              const tooltip = document.getElementById(`tooltip-${bar.id}`);
+                                              if (tooltip) {
+                                                tooltip.style.display = 'block';
+                                                tooltip.style.visibility = 'visible';
+                                                tooltip.style.opacity = '1';
+                                              }
+                                            }}
+                                            onMouseLeave={() => {
+                                              console.log(`🎯 Mouse LEAVE on tooltip for project ${bar.projectNumber}`);
+                                              const tooltip = document.getElementById(`tooltip-${bar.id}`);
+                                              if (tooltip) {
+                                                tooltip.style.opacity = '0';
+                                                tooltip.style.visibility = 'hidden';
+                                                tooltip.style.display = 'none';
+                                              }
+                                            }}
                                           >
-                                            <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[300px] max-w-[400px]">
+                                            <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700 min-w-[300px] max-w-[400px] relative" style={{ zIndex: 99999999 }}>
                                               <div className="font-semibold text-blue-300 mb-2 text-center border-b border-gray-700 pb-1">
                                                 Project Timeline Dates - {bar.projectNumber}
                                               </div>
