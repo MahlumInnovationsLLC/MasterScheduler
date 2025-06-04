@@ -1197,6 +1197,15 @@ const SystemSettings = () => {
                                             throw new Error('Failed to update module visibility');
                                           }
 
+                                          // Update local state to reflect the change
+                                          setUserModuleVisibility(prev => ({
+                                            ...prev,
+                                            [user.id]: {
+                                              ...prev[user.id],
+                                              [module.id]: checked
+                                            }
+                                          }));
+
                                           toast({
                                             title: "Module Visibility Updated",
                                             description: `${module.name} visibility for ${user.firstName} ${user.lastName} has been updated.`,
