@@ -355,12 +355,67 @@ function ProjectEdit() {
     setTotalPercentage(total);
     return total;
   };
+
+  // Function to calculate redistributed percentages when phases are hidden
+  const getRedistributedPercentages = () => {
+    // Get current visibility settings
+    const showFab = form.watch('showFabPhase');
+    const showPaint = form.watch('showPaintPhase');
+    const showProduction = form.watch('showProductionPhase');
+    const showIt = form.watch('showItPhase');
+    const showNtc = form.watch('showNtcPhase');
+    const showQc = form.watch('showQcPhase');
+
+    // Get original percentages
+    const originalFabPercent = form.watch('fabricationPercent') || 0;
+    const originalPaintPercent = form.watch('paintPercent') || 0;
+    const originalAssemblyPercent = form.watch('assemblyPercent') || 0;
+    const originalItPercent = form.watch('itPercent') || 0;
+    const originalNtcPercent = form.watch('ntcTestingPercent') || 0;
+    const originalQcPercent = form.watch('qcPercent') || 0;
+
+    // Calculate sum of visible phase percentages
+    let visibleSum = 0;
+    if (showFab) visibleSum += originalFabPercent;
+    if (showPaint) visibleSum += originalPaintPercent;
+    if (showProduction) visibleSum += originalAssemblyPercent;
+    if (showIt) visibleSum += originalItPercent;
+    if (showNtc) visibleSum += originalNtcPercent;
+    if (showQc) visibleSum += originalQcPercent;
+
+    // If no phases are visible or sum is 0, return zeros
+    if (visibleSum === 0) {
+      return {
+        fabricationPercent: 0,
+        paintPercent: 0,
+        assemblyPercent: 0,
+        itPercent: 0,
+        ntcTestingPercent: 0,
+        qcPercent: 0
+      };
+    }
+
+    // Calculate redistribution factor
+    const redistributionFactor = 100 / visibleSum;
+
+    // Return redistributed percentages (0 for hidden phases)
+    return {
+      fabricationPercent: showFab ? Math.round(originalFabPercent * redistributionFactor * 100) / 100 : 0,
+      paintPercent: showPaint ? Math.round(originalPaintPercent * redistributionFactor * 100) / 100 : 0,
+      assemblyPercent: showProduction ? Math.round(originalAssemblyPercent * redistributionFactor * 100) / 100 : 0,
+      itPercent: showIt ? Math.round(originalItPercent * redistributionFactor * 100) / 100 : 0,
+      ntcTestingPercent: showNtc ? Math.round(originalNtcPercent * redistributionFactor * 100) / 100 : 0,
+      qcPercent: showQc ? Math.round(originalQcPercent * redistributionFactor * 100) / 100 : 0
+    };
+  };
   
-  // Watch for changes in percentage fields
+  // Watch for changes in percentage fields and phase visibility
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (['fabricationPercent', 'paintPercent', 'assemblyPercent', 
-           'itPercent', 'ntcTestingPercent', 'qcPercent'].includes(name as string)) {
+           'itPercent', 'ntcTestingPercent', 'qcPercent',
+           'showFabPhase', 'showPaintPhase', 'showProductionPhase', 
+           'showItPhase', 'showNtcPhase', 'showQcPhase'].includes(name as string)) {
         calculateTotalPercentage();
       }
     });
@@ -709,23 +764,91 @@ function ProjectEdit() {
                     
                     <div className="flex justify-between items-center mt-4 mb-2">
                       <h3 className="text-md font-medium">Department Allocation Percentages</h3>
-                      <div className={`px-3 py-1 rounded-md text-sm font-medium flex gap-1 items-center ${
-                        totalPercentage > 100 
-                          ? 'bg-red-950/30 text-red-300 border border-red-800' 
-                          : totalPercentage === 100 
-                            ? 'bg-green-950/30 text-green-300 border border-green-800'
-                            : 'bg-yellow-950/30 text-yellow-300 border border-yellow-800'
-                      }`}>
-                        Total: <span className="font-bold">{totalPercentage}%</span>
+                      <div className="flex gap-2">
+                        <div className={`px-3 py-1 rounded-md text-sm font-medium flex gap-1 items-center ${
+                          totalPercentage > 100 
+                            ? 'bg-red-950/30 text-red-300 border border-red-800' 
+                            : totalPercentage === 100 
+                              ? 'bg-green-950/30 text-green-300 border border-green-800'
+                              : 'bg-yellow-950/30 text-yellow-300 border border-yellow-800'
+                        }`}>
+                          Original: <span className="font-bold">{totalPercentage}%</span>
+                        </div>
+                        <div className="px-3 py-1 rounded-md text-sm font-medium bg-blue-950/30 text-blue-300 border border-blue-800">
+                          Redistributed: <span className="font-bold">
+                            {(() => {
+                              const redistributed = getRedistributedPercentages();
+                              const redistributedTotal = redistributed.fabricationPercent + redistributed.paintPercent + 
+                                redistributed.assemblyPercent + redistributed.itPercent + 
+                                redistributed.ntcTestingPercent + redistributed.qcPercent;
+                              return redistributedTotal.toFixed(1);
+                            })()}%
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    
+                    <div className="mb-4 p-3 bg-blue-950/20 border border-blue-800 rounded-md">
+                      <h4 className="text-sm font-medium text-blue-300 mb-2">Effective Percentages (After Phase Redistribution):</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                        {(() => {
+                          const redistributed = getRedistributedPercentages();
+                          return (
+                            <>
+                              <div className="flex justify-between">
+                                <span>Fabrication:</span>
+                                <span className={`font-medium ${form.watch('showFabPhase') ? 'text-blue-300' : 'text-gray-500'}`}>
+                                  {redistributed.fabricationPercent.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Paint:</span>
+                                <span className={`font-medium ${form.watch('showPaintPhase') ? 'text-blue-300' : 'text-gray-500'}`}>
+                                  {redistributed.paintPercent.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Assembly:</span>
+                                <span className={`font-medium ${form.watch('showProductionPhase') ? 'text-blue-300' : 'text-gray-500'}`}>
+                                  {redistributed.assemblyPercent.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>IT:</span>
+                                <span className={`font-medium ${form.watch('showItPhase') ? 'text-blue-300' : 'text-gray-500'}`}>
+                                  {redistributed.itPercent.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>NTC:</span>
+                                <span className={`font-medium ${form.watch('showNtcPhase') ? 'text-blue-300' : 'text-gray-500'}`}>
+                                  {redistributed.ntcTestingPercent.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>QC:</span>
+                                <span className={`font-medium ${form.watch('showQcPhase') ? 'text-blue-300' : 'text-gray-500'}`}>
+                                  {redistributed.qcPercent.toFixed(1)}%
+                                </span>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
                         name="fabricationPercent"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Fabrication %</FormLabel>
+                          <FormItem className={!form.watch('showFabPhase') ? 'opacity-50' : ''}>
+                            <FormLabel className="flex items-center gap-2">
+                              Fabrication %
+                              {!form.watch('showFabPhase') && (
+                                <span className="text-xs text-red-400 bg-red-950/30 px-1 rounded">HIDDEN</span>
+                              )}
+                            </FormLabel>
                             <div className="grid grid-cols-[1fr_50px] gap-2">
                               <FormControl>
                                 <Slider 
@@ -734,6 +857,7 @@ function ProjectEdit() {
                                   max={100} 
                                   step={1}
                                   onValueChange={(vals) => field.onChange(vals[0])}
+                                  disabled={!form.watch('showFabPhase')}
                                 />
                               </FormControl>
                               <Input 
@@ -746,10 +870,14 @@ function ProjectEdit() {
                                   }
                                 }} 
                                 className="w-[60px]"
+                                disabled={!form.watch('showFabPhase')}
                               />
                             </div>
                             <FormDescription className="text-xs">
-                              Fabrication phase percentage
+                              {form.watch('showFabPhase') 
+                                ? `Fabrication phase percentage (Effective: ${getRedistributedPercentages().fabricationPercent.toFixed(1)}%)`
+                                : 'Phase is hidden - will not appear in schedule'
+                              }
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -760,8 +888,13 @@ function ProjectEdit() {
                         control={form.control}
                         name="paintPercent"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Paint %</FormLabel>
+                          <FormItem className={!form.watch('showPaintPhase') ? 'opacity-50' : ''}>
+                            <FormLabel className="flex items-center gap-2">
+                              Paint %
+                              {!form.watch('showPaintPhase') && (
+                                <span className="text-xs text-red-400 bg-red-950/30 px-1 rounded">HIDDEN</span>
+                              )}
+                            </FormLabel>
                             <div className="grid grid-cols-[1fr_50px] gap-2">
                               <FormControl>
                                 <Slider 
@@ -770,6 +903,7 @@ function ProjectEdit() {
                                   max={100} 
                                   step={1}
                                   onValueChange={(vals) => field.onChange(vals[0])}
+                                  disabled={!form.watch('showPaintPhase')}
                                 />
                               </FormControl>
                               <Input 
@@ -782,10 +916,14 @@ function ProjectEdit() {
                                   }
                                 }} 
                                 className="w-[60px]"
+                                disabled={!form.watch('showPaintPhase')}
                               />
                             </div>
                             <FormDescription className="text-xs">
-                              Paint phase percentage
+                              {form.watch('showPaintPhase') 
+                                ? `Paint phase percentage (Effective: ${getRedistributedPercentages().paintPercent.toFixed(1)}%)`
+                                : 'Phase is hidden - will not appear in schedule'
+                              }
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -796,8 +934,13 @@ function ProjectEdit() {
                         control={form.control}
                         name="assemblyPercent"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Assembly %</FormLabel>
+                          <FormItem className={!form.watch('showProductionPhase') ? 'opacity-50' : ''}>
+                            <FormLabel className="flex items-center gap-2">
+                              Assembly %
+                              {!form.watch('showProductionPhase') && (
+                                <span className="text-xs text-red-400 bg-red-950/30 px-1 rounded">HIDDEN</span>
+                              )}
+                            </FormLabel>
                             <div className="grid grid-cols-[1fr_50px] gap-2">
                               <FormControl>
                                 <Slider 
@@ -806,6 +949,7 @@ function ProjectEdit() {
                                   max={100} 
                                   step={1}
                                   onValueChange={(vals) => field.onChange(vals[0])}
+                                  disabled={!form.watch('showProductionPhase')}
                                 />
                               </FormControl>
                               <Input 
@@ -818,10 +962,14 @@ function ProjectEdit() {
                                   }
                                 }} 
                                 className="w-[60px]"
+                                disabled={!form.watch('showProductionPhase')}
                               />
                             </div>
                             <FormDescription className="text-xs">
-                              Assembly phase percentage
+                              {form.watch('showProductionPhase') 
+                                ? `Assembly phase percentage (Effective: ${getRedistributedPercentages().assemblyPercent.toFixed(1)}%)`
+                                : 'Phase is hidden - will not appear in schedule'
+                              }
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -832,8 +980,13 @@ function ProjectEdit() {
                         control={form.control}
                         name="itPercent"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>IT %</FormLabel>
+                          <FormItem className={!form.watch('showItPhase') ? 'opacity-50' : ''}>
+                            <FormLabel className="flex items-center gap-2">
+                              IT %
+                              {!form.watch('showItPhase') && (
+                                <span className="text-xs text-red-400 bg-red-950/30 px-1 rounded">HIDDEN</span>
+                              )}
+                            </FormLabel>
                             <div className="grid grid-cols-[1fr_50px] gap-2">
                               <FormControl>
                                 <Slider 
@@ -842,6 +995,7 @@ function ProjectEdit() {
                                   max={100} 
                                   step={1}
                                   onValueChange={(vals) => field.onChange(vals[0])}
+                                  disabled={!form.watch('showItPhase')}
                                 />
                               </FormControl>
                               <Input 
@@ -854,10 +1008,14 @@ function ProjectEdit() {
                                   }
                                 }} 
                                 className="w-[60px]"
+                                disabled={!form.watch('showItPhase')}
                               />
                             </div>
                             <FormDescription className="text-xs">
-                              IT phase percentage
+                              {form.watch('showItPhase') 
+                                ? `IT phase percentage (Effective: ${getRedistributedPercentages().itPercent.toFixed(1)}%)`
+                                : 'Phase is hidden - will not appear in schedule'
+                              }
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -868,8 +1026,13 @@ function ProjectEdit() {
                         control={form.control}
                         name="ntcTestingPercent"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>NTC Testing %</FormLabel>
+                          <FormItem className={!form.watch('showNtcPhase') ? 'opacity-50' : ''}>
+                            <FormLabel className="flex items-center gap-2">
+                              NTC Testing %
+                              {!form.watch('showNtcPhase') && (
+                                <span className="text-xs text-red-400 bg-red-950/30 px-1 rounded">HIDDEN</span>
+                              )}
+                            </FormLabel>
                             <div className="grid grid-cols-[1fr_50px] gap-2">
                               <FormControl>
                                 <Slider 
@@ -878,6 +1041,7 @@ function ProjectEdit() {
                                   max={100} 
                                   step={1}
                                   onValueChange={(vals) => field.onChange(vals[0])}
+                                  disabled={!form.watch('showNtcPhase')}
                                 />
                               </FormControl>
                               <Input 
@@ -890,10 +1054,14 @@ function ProjectEdit() {
                                   }
                                 }} 
                                 className="w-[60px]"
+                                disabled={!form.watch('showNtcPhase')}
                               />
                             </div>
                             <FormDescription className="text-xs">
-                              NTC Testing phase percentage
+                              {form.watch('showNtcPhase') 
+                                ? `NTC Testing phase percentage (Effective: ${getRedistributedPercentages().ntcTestingPercent.toFixed(1)}%)`
+                                : 'Phase is hidden - will not appear in schedule'
+                              }
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -904,8 +1072,13 @@ function ProjectEdit() {
                         control={form.control}
                         name="qcPercent"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>QC %</FormLabel>
+                          <FormItem className={!form.watch('showQcPhase') ? 'opacity-50' : ''}>
+                            <FormLabel className="flex items-center gap-2">
+                              QC %
+                              {!form.watch('showQcPhase') && (
+                                <span className="text-xs text-red-400 bg-red-950/30 px-1 rounded">HIDDEN</span>
+                              )}
+                            </FormLabel>
                             <div className="grid grid-cols-[1fr_50px] gap-2">
                               <FormControl>
                                 <Slider 
@@ -914,6 +1087,7 @@ function ProjectEdit() {
                                   max={100} 
                                   step={1}
                                   onValueChange={(vals) => field.onChange(vals[0])}
+                                  disabled={!form.watch('showQcPhase')}
                                 />
                               </FormControl>
                               <Input 
@@ -926,10 +1100,14 @@ function ProjectEdit() {
                                   }
                                 }} 
                                 className="w-[60px]"
+                                disabled={!form.watch('showQcPhase')}
                               />
                             </div>
                             <FormDescription className="text-xs">
-                              QC phase percentage
+                              {form.watch('showQcPhase') 
+                                ? `QC phase percentage (Effective: ${getRedistributedPercentages().qcPercent.toFixed(1)}%)`
+                                : 'Phase is hidden - will not appear in schedule'
+                              }
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
