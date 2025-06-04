@@ -14,7 +14,9 @@ import {
   Plus,
   Filter,
   SortDesc,
-  ArrowUpRight
+  ArrowUpRight,
+  Shield,
+  LogIn
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
@@ -27,13 +29,67 @@ import { ProjectStatusBreakdownCard } from '@/components/ProjectStatusBreakdownC
 import { HighRiskProjectsCard } from '@/components/HighRiskProjectsCard';
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
 
-  // If not authenticated, redirect to auth page
+  // If not authenticated, show login required message
   if (!authLoading && !user) {
-    return <Redirect to="/" />;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <Card className="border-border bg-darkCard/80 backdrop-blur-sm">
+            <CardContent className="p-8 text-center">
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <Shield className="h-16 w-16 text-blue-500 opacity-20" />
+                  <LogIn className="h-8 w-8 text-blue-400 absolute top-4 left-4" />
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <div className="text-primary font-bold text-3xl font-sans mb-2">
+                  <span>TIER</span>
+                  <span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">IV</span>
+                  <span className="text-xs align-top ml-1 bg-gradient-to-r from-gray-300 via-gray-100 to-gray-400 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">PRO</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Manufacturing Management Platform
+                </p>
+              </div>
+
+              <h1 className="text-2xl font-bold mb-4 text-white">Login Required</h1>
+              <p className="text-gray-300 mb-8 leading-relaxed">
+                Please sign in to access your manufacturing dashboard and project management tools.
+              </p>
+
+              <div className="space-y-4">
+                <Link href="/auth">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Sign In to Continue
+                  </Button>
+                </Link>
+
+                <div className="grid grid-cols-2 gap-3 text-xs text-gray-400">
+                  <div className="bg-darkBg/50 p-3 rounded border border-border/30">
+                    <Building2 className="h-4 w-4 mx-auto mb-1 text-blue-400" />
+                    <div className="font-medium">Project Management</div>
+                  </div>
+                  <div className="bg-darkBg/50 p-3 rounded border border-border/30">
+                    <BarChart3 className="h-4 w-4 mx-auto mb-1 text-green-400" />
+                    <div className="font-medium">Analytics & Reports</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   // Show loading if auth is still loading
