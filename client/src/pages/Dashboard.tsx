@@ -850,13 +850,13 @@ const Dashboard = () => {
                   .bay-schedule-readonly .row-management-buttons {
                     display: none !important;
                   }
-                  /* Hide ONLY the "+" icon and "+ Team" button in top right corner */
-                  .bay-schedule-readonly button:has(.lucide-plus-circle),
-                  .bay-schedule-readonly .lucide-plus-circle {
-                    display: none !important;
-                  }
-                  /* Hide specific action buttons containing "Team" text */
-                  .bay-schedule-readonly button:has(span:contains("Team")) {
+                  /* Hide ONLY the "+" icon and team management buttons */
+                  .bay-schedule-readonly .bg-green-700,
+                  .bay-schedule-readonly .bg-blue-700,
+                  .bay-schedule-readonly .bg-orange-700,
+                  .bay-schedule-readonly .bg-purple-700,
+                  .bay-schedule-readonly .bg-red-500,
+                  .bay-schedule-readonly .bg-gray-700:not([aria-label]) {
                     display: none !important;
                   }
                   /* Ensure phases (FAB, PROD, NTC, QC) remain visible */
