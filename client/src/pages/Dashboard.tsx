@@ -856,22 +856,42 @@ const Dashboard = () => {
                   .bay-schedule-readonly .bg-gray-700:has(.h-5) {
                     display: none !important;
                   }
-                  /* Hide all team action buttons by background colors */
-                  .bay-schedule-readonly .bg-green-700,
-                  .bay-schedule-readonly .bg-orange-700,
-                  .bay-schedule-readonly .bg-purple-700,
-                  .bay-schedule-readonly .bg-red-500,
-                  .bay-schedule-readonly .bg-destructive,
-                  .bay-schedule-readonly .bg-blue-700 {
+                  /* Hide team action buttons by specific context, but preserve phases */
+                  .bay-schedule-readonly .team-header .bg-green-700,
+                  .bay-schedule-readonly .team-header .bg-orange-700,
+                  .bay-schedule-readonly .team-header .bg-purple-700,
+                  .bay-schedule-readonly .team-header .bg-red-500,
+                  .bay-schedule-readonly .team-header .bg-destructive,
+                  .bay-schedule-readonly .team-header .bg-blue-700 {
                     display: none !important;
                   }
-                  /* Hide all plus and minus icons except scroll arrows */
+                  /* Hide the "+" icon in top right corner specifically */
+                  .bay-schedule-readonly .bg-gray-700:has(.lucide-plus-circle) {
+                    display: none !important;
+                  }
+                  /* Hide specific action icons but preserve phase display */
                   .bay-schedule-readonly .lucide-plus-circle,
-                  .bay-schedule-readonly .lucide-plus,
-                  .bay-schedule-readonly .lucide-minus,
                   .bay-schedule-readonly .lucide-trash-2,
                   .bay-schedule-readonly .lucide-printer {
                     display: none !important;
+                  }
+                  /* Ensure phases (FAB, PROD, NTC, QC) remain visible */
+                  .bay-schedule-readonly .dept-fab-phase,
+                  .bay-schedule-readonly .dept-prod-phase,
+                  .bay-schedule-readonly .dept-production-phase,
+                  .bay-schedule-readonly .dept-ntc-phase,
+                  .bay-schedule-readonly .dept-qc-phase,
+                  .bay-schedule-readonly .dept-paint-phase,
+                  .bay-schedule-readonly .dept-it-phase,
+                  .bay-schedule-readonly .fab-phase,
+                  .bay-schedule-readonly .production-phase,
+                  .bay-schedule-readonly .ntc-phase,
+                  .bay-schedule-readonly .qc-phase,
+                  .bay-schedule-readonly .paint-phase,
+                  .bay-schedule-readonly .it-phase {
+                    display: block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
                   }
                   .search-highlighted {
                     box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.8) !important;
