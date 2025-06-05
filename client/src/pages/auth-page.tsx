@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -209,11 +209,13 @@ export default function AuthPage() {
                         </Button>
                         
                         <div className="text-center">
-                          <Link href="/forgot-password">
-                            <a className="text-sm text-blue-600 hover:text-blue-800 underline">
-                              Forgot your password?
-                            </a>
-                          </Link>
+                          <button 
+                            type="button"
+                            onClick={() => setLocation('/forgot-password')}
+                            className="text-sm text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer"
+                          >
+                            Forgot your password?
+                          </button>
                         </div>
                       </div>
                     </form>
