@@ -808,7 +808,7 @@ const Dashboard = () => {
 
       <Card className="bg-darkCard border-gray-800">
         <CardContent className="p-0">
-          <div className="h-[600px] w-full overflow-auto">
+          <div className="h-[1200px] w-full overflow-auto">
             {manufacturingSchedules && manufacturingBays && projects ? (
               <div 
                 className="bay-schedule-readonly min-w-full"
