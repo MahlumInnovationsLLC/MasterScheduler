@@ -716,25 +716,27 @@ const Dashboard = () => {
         <CardContent className="p-0">
           <ScrollArea className="h-[600px] w-full">
             {manufacturingSchedules && manufacturingBays && projects ? (
-              <div className="p-4">
-                <ResizableBaySchedule
-                  schedules={manufacturingSchedules}
-                  projects={projects}
-                  bays={manufacturingBays}
-                  onScheduleChange={async () => {}} // Read-only - no editing
-                  onScheduleCreate={async () => {}} // Read-only - no editing
-                  onScheduleDelete={async () => {}} // Read-only - no editing
-                  onBayCreate={async () => {}} // Read-only - no editing
-                  onBayUpdate={async () => {}} // Read-only - no editing
-                  onBayDelete={async () => {}} // Read-only - no editing
-                  dateRange={{
-                    start: new Date(),
-                    end: new Date(new Date().setMonth(new Date().getMonth() + 3))
-                  }}
-                  viewMode="month"
-                  enableFinancialImpact={false}
-                  isSandboxMode={false}
-                />
+              <div className="p-4 pointer-events-none select-none" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+                <div className="overflow-auto" style={{ pointerEvents: 'auto' }}>
+                  <ResizableBaySchedule
+                    schedules={manufacturingSchedules}
+                    projects={projects}
+                    bays={manufacturingBays}
+                    onScheduleChange={async () => {}} // Read-only - no editing
+                    onScheduleCreate={async () => {}} // Read-only - no editing
+                    onScheduleDelete={async () => {}} // Read-only - no editing
+                    onBayCreate={async () => {}} // Read-only - no editing
+                    onBayUpdate={async () => {}} // Read-only - no editing
+                    onBayDelete={async () => {}} // Read-only - no editing
+                    dateRange={{
+                      start: new Date(),
+                      end: new Date(new Date().setMonth(new Date().getMonth() + 2))
+                    }}
+                    viewMode="week"
+                    enableFinancialImpact={false}
+                    isSandboxMode={true}
+                  />
+                </div>
               </div>
             ) : (
               <div className="flex items-center justify-center h-32">
