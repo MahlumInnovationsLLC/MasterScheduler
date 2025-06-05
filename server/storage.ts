@@ -123,6 +123,7 @@ export interface IStorage {
   updateUserRole(id: string, role: string, isApproved: boolean): Promise<User | undefined>;
   updateUserLastLogin(id: string): Promise<User | undefined>;
   updateUser(id: string, userData: Partial<User>): Promise<User | undefined>;
+  updateUserPassword(id: string, hashedPassword: string): Promise<User | undefined>;
 
   // Role permissions methods
   getRolePermissions(role?: string): Promise<RolePermission[]>;
@@ -769,6 +770,24 @@ export class DatabaseStorage implements IStorage {
       return updatedUser;
     } catch (error) {
       console.error(`Error updating user ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async updateUserPassword(id: string, hashedPassword: string): Promise<User | undefined> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          password: hashedPassword,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, id))
+        .returning();
+
+      return updatedUser;
+    } catch (error) {
+      console.error(`Error updating password for user ${id}:`, error);
       return undefined;
     }
   }

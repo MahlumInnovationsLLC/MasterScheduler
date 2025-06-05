@@ -24,6 +24,7 @@ import {
 } from "@shared/schema";
 
 import { exportReport } from "./routes/export";
+import { hashPassword } from "./auth";
 // Removed Replit auth - using simple local auth bypass
 
 import { 
@@ -4139,6 +4140,37 @@ Response format:
     } catch (error) {
       console.error("Error deleting milestone icon:", error);
       res.status(500).json({ message: "Error deleting milestone icon" });
+    }
+  });
+
+  // Admin password reset endpoint
+  app.post("/api/admin/reset-password", requireAdmin, async (req, res) => {
+    try {
+      const { userId, newPassword } = req.body;
+      
+      if (!userId || !newPassword) {
+        return res.status(400).json({ message: "Missing userId or newPassword" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      }
+
+      // Hash the new password using scrypt
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Update the user's password in the database
+      await storage.updateUserPassword(userId, hashedPassword);
+      
+      console.log(`🔐 Admin password reset: Password updated for user ${userId} by admin ${req.user.email}`);
+      
+      res.json({ 
+        success: true, 
+        message: "Password reset successfully" 
+      });
+    } catch (error) {
+      console.error("Error resetting user password:", error);
+      res.status(500).json({ message: "Error resetting password" });
     }
   });
 
