@@ -824,6 +824,18 @@ const Dashboard = () => {
                     pointer-events: none !important;
                     cursor: default !important;
                   }
+                  /* Enable only left/right scroll navigation buttons */
+                  .bay-schedule-readonly button[aria-label="Scroll timeline left"],
+                  .bay-schedule-readonly button[aria-label="Scroll timeline right"] {
+                    pointer-events: auto !important;
+                    cursor: pointer !important;
+                  }
+                  .bay-schedule-readonly button[aria-label="Scroll timeline left"]:hover,
+                  .bay-schedule-readonly button[aria-label="Scroll timeline right"]:hover {
+                    pointer-events: auto !important;
+                    cursor: pointer !important;
+                    background-color: rgba(0, 0, 0, 0.8) !important;
+                  }
                   .bay-schedule-readonly .drag-handle {
                     display: none !important;
                   }
