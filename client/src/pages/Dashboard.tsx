@@ -120,19 +120,62 @@ const Dashboard = () => {
         return false;
       }
 
-      // Find the project bar in the DOM
-      const projectBars = document.querySelectorAll('.project-bar');
+      // Find the project bar in the DOM - multiple selectors to catch different structures
+      const possibleSelectors = [
+        '.project-bar',
+        '[data-project-number]',
+        '[data-project-id]',
+        '.schedule-bar',
+        '.manufacturing-bar',
+        '.project-timeline-bar'
+      ];
+
       let targetBar = null;
 
-      for (let i = 0; i < projectBars.length; i++) {
-        const bar = projectBars[i];
-        const barProjectNumber = bar.getAttribute('data-project-number') || '';
-        const barProjectName = bar.getAttribute('data-project-name') || '';
+      for (const selector of possibleSelectors) {
+        const elements = document.querySelectorAll(selector);
         
-        if (barProjectNumber.toLowerCase().includes(searchTerm) || 
-            barProjectName.toLowerCase().includes(searchTerm)) {
-          targetBar = bar;
-          break;
+        for (let i = 0; i < elements.length; i++) {
+          const bar = elements[i];
+          const barProjectNumber = bar.getAttribute('data-project-number') || 
+                                  bar.getAttribute('data-project-id') || 
+                                  bar.textContent || '';
+          const barProjectName = bar.getAttribute('data-project-name') || 
+                                bar.getAttribute('title') || 
+                                bar.textContent || '';
+          
+          if (barProjectNumber.toLowerCase().includes(searchTerm) || 
+              barProjectName.toLowerCase().includes(searchTerm)) {
+            targetBar = bar;
+            break;
+          }
+        }
+        
+        if (targetBar) break;
+      }
+
+      // If still not found, try searching by visible text content
+      if (!targetBar) {
+        const allElements = document.querySelectorAll('*');
+        for (let i = 0; i < allElements.length; i++) {
+          const element = allElements[i];
+          const textContent = element.textContent || '';
+          
+          if (textContent.includes(targetProject.projectNumber) || 
+              textContent.includes(targetProject.name)) {
+            // Find the closest parent that looks like a project bar
+            let parent = element;
+            while (parent && parent !== document.body) {
+              if (parent.classList.contains('project-bar') || 
+                  parent.style.backgroundColor || 
+                  parent.style.width) {
+                targetBar = parent;
+                break;
+              }
+              parent = parent.parentElement;
+            }
+            if (targetBar) break;
+          }
         }
       }
 
@@ -994,12 +1037,20 @@ const Dashboard = () => {
                   .bay-schedule-readonly .resize-handle {
                     display: none !important;
                   }
-                  /* Hide specific delete buttons with X icons */
+                  /* Hide specific delete buttons with X icons and trash can icons */
                   .bay-schedule-readonly .delete-button,
                   .bay-schedule-readonly button[title="Delete Row"],
                   .bay-schedule-readonly button[title="Add Row"],
                   .bay-schedule-readonly .row-delete-button,
-                  .bay-schedule-readonly .row-management-buttons {
+                  .bay-schedule-readonly .row-management-buttons,
+                  .bay-schedule-readonly button[title*="Delete"],
+                  .bay-schedule-readonly button[title*="Remove"],
+                  .bay-schedule-readonly .trash-icon,
+                  .bay-schedule-readonly [data-testid*="delete"],
+                  .bay-schedule-readonly [data-testid*="trash"],
+                  .bay-schedule-readonly svg[class*="trash"],
+                  .bay-schedule-readonly .lucide-trash,
+                  .bay-schedule-readonly .lucide-trash-2 {
                     display: none !important;
                   }
                   /* Hide ONLY the "+" icon and team management buttons */
