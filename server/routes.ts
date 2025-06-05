@@ -1603,6 +1603,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // First create the schedule
       const schedule = await storage.createManufacturingSchedule(data);
       
+      // COMMENTED OUT: Automatic project date updates when creating new schedules
+      // This functionality has been disabled to keep schedule and project dates separate
+      /*
       // Then update the project's dates to match the schedule
       if (schedule && data.projectId) {
         try {
@@ -1756,6 +1759,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Don't fail the request if project update fails - still return the created schedule
         }
       }
+      */
       
       res.status(201).json(schedule);
     } catch (error) {
@@ -1849,6 +1853,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         match: schedule.row === finalRow ? "✅ EXACT MATCH" : "❌ ROW MISMATCH"
       });
       
+      // COMMENTED OUT: Automatic project date updates when moving schedule bars
+      // This functionality has been disabled to keep schedule and project dates separate
+      /* 
       // Then update the project's dates to match the schedule
       try {
         const projectId = originalSchedule.projectId;
@@ -2002,6 +2009,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Error updating project dates:", projectUpdateError);
         // Don't fail the request if project update fails - still return the updated schedule
       }
+      */
       
       // Create enhanced response with explicit row information for testing and verification
       const enhancedResponse = {
