@@ -192,18 +192,31 @@ const Dashboard = () => {
     };
   }, [projects, manufacturingSchedules]);
 
-  // Auto-snap to today on component mount and data load (horizontal only)
+  // Auto-snap to today on component mount and data load (horizontal only, no vertical scroll)
   useEffect(() => {
     if (manufacturingSchedules && manufacturingBays && projects) {
       // Wait for the schedule to render, then snap to today
       const timer = setTimeout(() => {
         const todayMarker = document.querySelector('.today-marker');
         if (todayMarker) {
-          todayMarker.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'nearest', // Don't change vertical position
-            inline: 'center'   // Center horizontally only
-          });
+          // Get the parent scrollable container
+          const scrollContainer = todayMarker.closest('.overflow-auto');
+          if (scrollContainer) {
+            const markerRect = todayMarker.getBoundingClientRect();
+            const containerRect = scrollContainer.getBoundingClientRect();
+            
+            // Calculate horizontal scroll position to center the today marker
+            const markerLeft = todayMarker.offsetLeft;
+            const containerWidth = scrollContainer.clientWidth;
+            const scrollLeft = markerLeft - (containerWidth / 2);
+            
+            // Scroll horizontally only, preserve current vertical position
+            scrollContainer.scrollTo({
+              left: Math.max(0, scrollLeft),
+              top: scrollContainer.scrollTop, // Keep current vertical position
+              behavior: 'smooth'
+            });
+          }
         }
       }, 1000); // Give the component time to render
       
