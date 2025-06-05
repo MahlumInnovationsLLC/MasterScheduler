@@ -74,6 +74,111 @@ const Dashboard = () => {
     milestones: any[];
   } | null>(null);
 
+  // Project scroll function - same logic as bay scheduling module
+  const scrollToProject = (searchQuery) => {
+    if (!searchQuery.trim()) {
+      toast({
+        title: "Search Required",
+        description: "Please enter a project number to search",
+        variant: "destructive",
+        duration: 3000
+      });
+      return false;
+    }
+
+    try {
+      const searchTerm = searchQuery.toLowerCase().trim();
+      
+      // Find the project in data first
+      const targetProject = (projects || []).find(project => 
+        project.projectNumber.toLowerCase().includes(searchTerm) ||
+        project.name.toLowerCase().includes(searchTerm)
+      );
+
+      if (!targetProject) {
+        toast({
+          title: "Project Not Found",
+          description: `No project found matching "${searchQuery}"`,
+          variant: "destructive",
+          duration: 3000
+        });
+        return false;
+      }
+
+      // Find the project schedule
+      const projectSchedule = (manufacturingSchedules || []).find(schedule => 
+        schedule.projectId === targetProject.id
+      );
+
+      if (!projectSchedule) {
+        toast({
+          title: "Project Not Scheduled",
+          description: `Project ${targetProject.projectNumber} is not currently scheduled in any bay`,
+          variant: "destructive",
+          duration: 3000
+        });
+        return false;
+      }
+
+      // Find the project bar in the DOM
+      const projectBars = document.querySelectorAll('.project-bar');
+      let targetBar = null;
+
+      for (let i = 0; i < projectBars.length; i++) {
+        const bar = projectBars[i];
+        const barProjectNumber = bar.getAttribute('data-project-number') || '';
+        const barProjectName = bar.getAttribute('data-project-name') || '';
+        
+        if (barProjectNumber.toLowerCase().includes(searchTerm) || 
+            barProjectName.toLowerCase().includes(searchTerm)) {
+          targetBar = bar;
+          break;
+        }
+      }
+
+      if (!targetBar) {
+        toast({
+          title: "Project Bar Not Found",
+          description: "Project found but not visible in current schedule view",
+          variant: "destructive",
+          duration: 3000
+        });
+        return false;
+      }
+
+      // Scroll to the project bar
+      targetBar.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center',
+        inline: 'center'
+      });
+
+      // Add highlight effect
+      targetBar.classList.add('search-highlighted');
+      setTimeout(() => {
+        targetBar.classList.remove('search-highlighted');
+      }, 3000);
+
+      // Success message
+      toast({
+        title: "Found Project",
+        description: `Scrolled to project ${targetProject.projectNumber} (${targetProject.name})`,
+        duration: 3000
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Project search scrolling failed:", error);
+      toast({
+        title: "Search Failed", 
+        description: "Could not scroll to the project",
+        variant: "destructive",
+        duration: 3000
+      });
+      return false;
+    }
+  };
+
   // Show the top 10 projects that are ready to ship next with enhanced date calculations
   useEffect(() => {
     if (!projects) return;
@@ -805,55 +910,33 @@ const Dashboard = () => {
 
       {/* Project Search for Bay Schedule */}
       <div className="mb-6 flex items-center gap-4">
-        <div className="flex-1 max-w-md">
-          <Input
-            placeholder="Search projects in schedule (e.g., project number, name)..."
-            value={projectSearchQuery}
-            onChange={(e) => {
-              setProjectSearchQuery(e.target.value);
-              // Trigger search highlighting in the schedule
-              if (e.target.value.trim()) {
-                setTimeout(() => {
-                  const searchTerm = e.target.value.toLowerCase();
-                  const projectBars = document.querySelectorAll('.project-bar');
-                  projectBars.forEach((bar) => {
-                    const projectNumber = bar.getAttribute('data-project-number') || '';
-                    const projectName = bar.getAttribute('data-project-name') || '';
-                    if (projectNumber.toLowerCase().includes(searchTerm) || 
-                        projectName.toLowerCase().includes(searchTerm)) {
-                      bar.classList.add('search-highlighted');
-                      bar.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    } else {
-                      bar.classList.remove('search-highlighted');
-                    }
-                  });
-                }, 100);
-              } else {
-                // Clear highlights when search is empty
-                const projectBars = document.querySelectorAll('.project-bar');
-                projectBars.forEach((bar) => {
-                  bar.classList.remove('search-highlighted');
-                });
-              }
-            }}
-            className="bg-darkCard border-gray-700 text-white placeholder-gray-400"
-          />
-        </div>
-        {projectSearchQuery && (
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-gray-400" />
+            </div>
+            <Input
+              type="text"
+              placeholder="Search project number..."
+              value={projectSearchQuery}
+              onChange={(e) => setProjectSearchQuery(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  scrollToProject(projectSearchQuery);
+                }
+              }}
+              className="pl-10 pr-4 py-2 w-48 text-sm bg-white text-gray-900 placeholder-gray-500 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
           <Button
-            variant="ghost"
+            onClick={() => scrollToProject(projectSearchQuery)}
+            variant="outline"
             size="sm"
-            onClick={() => {
-              setProjectSearchQuery('');
-              const projectBars = document.querySelectorAll('.project-bar');
-              projectBars.forEach((bar) => {
-                bar.classList.remove('search-highlighted');
-              });
-            }}
+            className="whitespace-nowrap"
           >
-            Clear
+            Find Project
           </Button>
-        )}
+        </div>
       </div>
 
       <Card className="bg-darkCard border-gray-800">
