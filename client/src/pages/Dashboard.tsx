@@ -39,9 +39,11 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from "@/components/ui/input";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
+  const [projectSearchQuery, setProjectSearchQuery] = useState('');
 
   // If not authenticated, show login required message
   if (!authLoading && !user) {
@@ -702,41 +704,166 @@ const Dashboard = () => {
       </div>
 
       {/* Mini Bay Schedule Viewer */}
-      <div className="mb-6 flex justify-between items-center">
+      <div className="mb-4 flex justify-between items-start">
         <h2 className="text-xl font-sans font-bold">Manufacturing Bay Schedule Snapshot</h2>
-        <Link href="/bay-scheduling">
-          <Button variant="outline" size="sm">
-            <Eye className="h-4 w-4 mr-2" />
-            Open Full Schedule
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              // Snap to today functionality
+              const todayMarker = document.querySelector('.today-marker');
+              if (todayMarker) {
+                todayMarker.scrollIntoView({ 
+                  behavior: 'smooth', 
+                  block: 'center', 
+                  inline: 'center' 
+                });
+              }
+            }}
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Today
           </Button>
-        </Link>
+          <Link href="/bay-scheduling">
+            <Button variant="outline" size="sm">
+              <Eye className="h-4 w-4 mr-2" />
+              Open Full Schedule
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Project Search for Bay Schedule */}
+      <div className="mb-6 flex items-center gap-4">
+        <div className="flex-1 max-w-md">
+          <Input
+            placeholder="Search projects in schedule (e.g., project number, name)..."
+            value={projectSearchQuery}
+            onChange={(e) => {
+              setProjectSearchQuery(e.target.value);
+              // Trigger search highlighting in the schedule
+              if (e.target.value.trim()) {
+                setTimeout(() => {
+                  const searchTerm = e.target.value.toLowerCase();
+                  const projectBars = document.querySelectorAll('.project-bar');
+                  projectBars.forEach((bar) => {
+                    const projectNumber = bar.getAttribute('data-project-number') || '';
+                    const projectName = bar.getAttribute('data-project-name') || '';
+                    if (projectNumber.toLowerCase().includes(searchTerm) || 
+                        projectName.toLowerCase().includes(searchTerm)) {
+                      bar.classList.add('search-highlighted');
+                      bar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } else {
+                      bar.classList.remove('search-highlighted');
+                    }
+                  });
+                }, 100);
+              } else {
+                // Clear highlights when search is empty
+                const projectBars = document.querySelectorAll('.project-bar');
+                projectBars.forEach((bar) => {
+                  bar.classList.remove('search-highlighted');
+                });
+              }
+            }}
+            className="bg-darkCard border-gray-700 text-white placeholder-gray-400"
+          />
+        </div>
+        {projectSearchQuery && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setProjectSearchQuery('');
+              const projectBars = document.querySelectorAll('.project-bar');
+              projectBars.forEach((bar) => {
+                bar.classList.remove('search-highlighted');
+              });
+            }}
+          >
+            Clear
+          </Button>
+        )}
       </div>
 
       <Card className="bg-darkCard border-gray-800">
         <CardContent className="p-0">
-          <ScrollArea className="h-[600px] w-full">
+          <div className="h-[600px] w-full overflow-auto">
             {manufacturingSchedules && manufacturingBays && projects ? (
-              <div className="p-4 pointer-events-none select-none" style={{ pointerEvents: 'none', userSelect: 'none' }}>
-                <div className="overflow-auto" style={{ pointerEvents: 'auto' }}>
-                  <ResizableBaySchedule
-                    schedules={manufacturingSchedules}
-                    projects={projects}
-                    bays={manufacturingBays}
-                    onScheduleChange={async () => {}} // Read-only - no editing
-                    onScheduleCreate={async () => {}} // Read-only - no editing
-                    onScheduleDelete={async () => {}} // Read-only - no editing
-                    onBayCreate={async () => {}} // Read-only - no editing
-                    onBayUpdate={async () => {}} // Read-only - no editing
-                    onBayDelete={async () => {}} // Read-only - no editing
-                    dateRange={{
-                      start: new Date(),
-                      end: new Date(new Date().setMonth(new Date().getMonth() + 2))
-                    }}
-                    viewMode="week"
-                    enableFinancialImpact={false}
-                    isSandboxMode={true}
-                  />
-                </div>
+              <div 
+                className="bay-schedule-readonly min-w-full"
+                style={{
+                  pointerEvents: 'none',
+                  userSelect: 'none',
+                  cursor: 'default'
+                }}
+                onMouseDown={(e) => e.preventDefault()}
+                onContextMenu={(e) => e.preventDefault()}
+                onDragStart={(e) => e.preventDefault()}
+                onDrop={(e) => e.preventDefault()}
+              >
+                <style>{`
+                  .bay-schedule-readonly * {
+                    pointer-events: none !important;
+                    user-select: none !important;
+                    cursor: default !important;
+                  }
+                  .bay-schedule-readonly .scrollable-area {
+                    pointer-events: auto !important;
+                    overflow: auto !important;
+                  }
+                  .bay-schedule-readonly .project-bar {
+                    cursor: default !important;
+                  }
+                  .bay-schedule-readonly .project-bar:hover {
+                    cursor: default !important;
+                    transform: none !important;
+                  }
+                  .bay-schedule-readonly button {
+                    pointer-events: none !important;
+                    cursor: default !important;
+                  }
+                  .bay-schedule-readonly .drag-handle {
+                    display: none !important;
+                  }
+                  .bay-schedule-readonly .resize-handle {
+                    display: none !important;
+                  }
+                  .search-highlighted {
+                    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.8) !important;
+                    border: 2px solid #22c55e !important;
+                    z-index: 1000 !important;
+                    position: relative !important;
+                    animation: highlightPulse 2s ease-in-out !important;
+                  }
+                  @keyframes highlightPulse {
+                    0%, 100% { 
+                      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.8);
+                    }
+                    50% { 
+                      box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.4);
+                    }
+                  }
+                `}</style>
+                <ResizableBaySchedule
+                  schedules={manufacturingSchedules}
+                  projects={projects}
+                  bays={manufacturingBays}
+                  onScheduleChange={async () => {}} // Read-only - no editing
+                  onScheduleCreate={async () => {}} // Read-only - no editing
+                  onScheduleDelete={async () => {}} // Read-only - no editing
+                  onBayCreate={async () => {}} // Read-only - no editing
+                  onBayUpdate={async () => {}} // Read-only - no editing
+                  onBayDelete={async () => {}} // Read-only - no editing
+                  dateRange={{
+                    start: new Date(new Date().setMonth(new Date().getMonth() - 1)),
+                    end: new Date(new Date().setMonth(new Date().getMonth() + 3))
+                  }}
+                  viewMode="week"
+                  enableFinancialImpact={false}
+                  isSandboxMode={true}
+                />
               </div>
             ) : (
               <div className="flex items-center justify-center h-32">
@@ -746,7 +873,7 @@ const Dashboard = () => {
                 </div>
               </div>
             )}
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
     </div>
