@@ -192,20 +192,31 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={authLoginMutation?.isPending}
-                      >
-                        {authLoginMutation?.isPending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Signing in...
-                          </>
-                        ) : (
-                          "Sign In"
-                        )}
-                      </Button>
+                      <div className="space-y-3">
+                        <Button 
+                          type="submit" 
+                          className="w-full" 
+                          disabled={authLoginMutation?.isPending}
+                        >
+                          {authLoginMutation?.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Signing in...
+                            </>
+                          ) : (
+                            "Sign In"
+                          )}
+                        </Button>
+                        
+                        <div className="text-center">
+                          <a 
+                            href="/forgot-password" 
+                            className="text-sm text-blue-600 hover:text-blue-800 underline"
+                          >
+                            Forgot your password?
+                          </a>
+                        </div>
+                      </div>
                     </form>
                   </Form>
                 </TabsContent>

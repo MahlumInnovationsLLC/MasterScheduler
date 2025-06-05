@@ -25,6 +25,8 @@ import {
 
 import { exportReport } from "./routes/export";
 import { hashPassword } from "./auth";
+import { sendEmail, generatePasswordResetEmail } from "./email";
+import { randomBytes } from "crypto";
 // Removed Replit auth - using simple local auth bypass
 
 import { 
@@ -4170,6 +4172,93 @@ Response format:
       });
     } catch (error) {
       console.error("Error resetting user password:", error);
+      res.status(500).json({ message: "Error resetting password" });
+    }
+  });
+
+  // Forgot password endpoint
+  app.post("/api/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if email exists - always return success
+        return res.json({ 
+          success: true, 
+          message: "If an account with that email exists, a password reset link has been sent." 
+        });
+      }
+
+      // Generate reset token
+      const resetToken = randomBytes(32).toString('hex');
+      const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+      // Save reset token to database
+      await storage.setPasswordResetToken(email, resetToken, resetExpires);
+
+      // Generate reset link
+      const resetLink = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`;
+
+      // Send email
+      const emailHtml = generatePasswordResetEmail(resetLink, user.firstName);
+      await sendEmail({
+        to: email,
+        subject: "Password Reset Request - NOMAD Manufacturing",
+        html: emailHtml
+      });
+
+      console.log(`📧 Password reset email sent to: ${email}`);
+      
+      res.json({ 
+        success: true, 
+        message: "If an account with that email exists, a password reset link has been sent." 
+      });
+    } catch (error) {
+      console.error("Error in forgot password:", error);
+      res.status(500).json({ message: "Error processing password reset request" });
+    }
+  });
+
+  // Reset password with token endpoint
+  app.post("/api/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token and new password are required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      }
+
+      // Find user by reset token
+      const user = await storage.getUserByPasswordResetToken(token);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      // Hash the new password
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Update user's password and clear reset token
+      await storage.updateUserPassword(user.id, hashedPassword);
+      await storage.clearPasswordResetToken(user.id);
+      
+      console.log(`🔐 Password reset completed for user: ${user.email}`);
+      
+      res.json({ 
+        success: true, 
+        message: "Password has been reset successfully. You can now log in with your new password." 
+      });
+    } catch (error) {
+      console.error("Error resetting password:", error);
       res.status(500).json({ message: "Error resetting password" });
     }
   });

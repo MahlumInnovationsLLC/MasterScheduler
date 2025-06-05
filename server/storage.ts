@@ -795,6 +795,64 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async setPasswordResetToken(email: string, token: string, expires: Date): Promise<User | undefined> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          passwordResetToken: token,
+          passwordResetExpires: expires,
+          updatedAt: new Date()
+        })
+        .where(eq(users.email, email))
+        .returning();
+
+      return updatedUser;
+    } catch (error) {
+      console.error(`Error setting password reset token for ${email}:`, error);
+      return undefined;
+    }
+  }
+
+  async getUserByPasswordResetToken(token: string): Promise<User | undefined> {
+    try {
+      const user = await safeSingleQuery<User>(() =>
+        db.select().from(users).where(eq(users.passwordResetToken, token))
+      );
+
+      // Check if token has expired
+      if (user && user.passwordResetExpires && new Date() > user.passwordResetExpires) {
+        // Clear expired token
+        await this.clearPasswordResetToken(user.id);
+        return undefined;
+      }
+
+      return user;
+    } catch (error) {
+      console.error("Error getting user by password reset token:", error);
+      return undefined;
+    }
+  }
+
+  async clearPasswordResetToken(id: string): Promise<User | undefined> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          passwordResetToken: null,
+          passwordResetExpires: null,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, id))
+        .returning();
+
+      return updatedUser;
+    } catch (error) {
+      console.error(`Error clearing password reset token for user ${id}:`, error);
+      return undefined;
+    }
+  }
+
   // User archiving and audit logs methods
   async updateUserStatus(id: string, status: string, performedBy: string, details: string): Promise<User | undefined> {
     try {
