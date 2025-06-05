@@ -100,54 +100,29 @@ const Dashboard = () => {
       };
     });
 
-    // Filter for projects with valid ship dates and sort by earliest ship date
-    const now = new Date();
-    const upcomingProjects = enhancedProjects
-      .filter(p => {
-        const shipDate = getValidDate(p.shipDate);
-        return shipDate && shipDate >= now;
-      })
+    // Sort ALL projects by ship date (including past due, critical, etc.) - exact same as Projects page
+    const sortedByShipDate = enhancedProjects
       .sort((a, b) => {
         const dateA = getValidDate(a.shipDate);
         const dateB = getValidDate(b.shipDate);
-        if (!dateA) return 1;
-        if (!dateB) return -1;
-        return dateA.getTime() - dateB.getTime(); // Sort by earliest ship date first
+        
+        // Projects with ship dates come first, sorted by earliest date
+        if (dateA && dateB) {
+          return dateA.getTime() - dateB.getTime();
+        }
+        
+        // Projects with ship dates come before those without
+        if (dateA && !dateB) return -1;
+        if (!dateA && dateB) return 1;
+        
+        // For projects without ship dates, sort by project number (most recent first)
+        const numA = parseInt(a.projectNumber.replace(/\D/g, '')) || 0;
+        const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
+        return numB - numA;
       });
 
-    // Show up to 10 projects ready to ship next
-    if (upcomingProjects.length > 0) {
-      setFilteredProjects(upcomingProjects.slice(0, 10));
-    } else {
-      // If no upcoming ship dates, show most recent active projects
-      const activeProjects = enhancedProjects
-        .filter(p => p.status === 'active' || p.status === 'delayed' || p.status === 'critical')
-        .sort((a, b) => {
-          // First sort by creation date (most recent first)
-          const dateA = getValidDate(a.createdAt) || new Date(0);
-          const dateB = getValidDate(b.createdAt) || new Date(0);
-          if (dateA.getTime() !== dateB.getTime()) {
-            return dateB.getTime() - dateA.getTime();
-          }
-          // Then by project number (higher numbers are more recent)
-          const numA = parseInt(a.projectNumber.replace(/\D/g, '')) || 0;
-          const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
-          return numB - numA;
-        });
-
-      if (activeProjects.length > 0) {
-        setFilteredProjects(activeProjects.slice(0, 10));
-      } else {
-        // If no active projects either, show most recent projects
-        const sortedProjects = enhancedProjects
-          .sort((a, b) => {
-            const dateA = getValidDate(a.createdAt) || new Date(0);
-            const dateB = getValidDate(b.createdAt) || new Date(0);
-            return dateB.getTime() - dateA.getTime();
-          });
-        setFilteredProjects(sortedProjects.slice(0, 10));
-      }
-    }
+    // Take exactly the top 10 projects (same logic as Projects page)
+    setFilteredProjects(sortedByShipDate.slice(0, 10));
   }, [projects]);
 
   // Calculate project stats
