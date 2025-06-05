@@ -179,6 +179,8 @@ function MainContent() {
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
             <Route path="/auth" component={AuthPage} />
+            <Route path="/forgot-password" component={ForgotPasswordPage} />
+            <Route path="/reset-password" component={ResetPasswordPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
@@ -220,6 +222,8 @@ function MainContent() {
             <AdminRoute path="/settings" component={SystemSettings} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
             <Route path="/auth" component={AuthPage} />
+            <Route path="/forgot-password" component={ForgotPasswordPage} />
+            <Route path="/reset-password" component={ResetPasswordPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
