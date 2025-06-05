@@ -174,6 +174,12 @@ const SystemSettings = () => {
     role: '',
     department: ''
   });
+
+  // Password reset dialog state
+  const [isPasswordResetDialogOpen, setIsPasswordResetDialogOpen] = useState(false);
+  const [passwordResetUser, setPasswordResetUser] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   
   // In a production environment, we would check the user's role here
   // For now, since we're in development mode, we'll always have admin rights
@@ -659,6 +665,74 @@ const SystemSettings = () => {
     });
     setIsEditDialogOpen(true);
   };
+
+  // Handle password reset button click
+  const handlePasswordResetClick = (user: any) => {
+    setPasswordResetUser(user);
+    setNewPassword('');
+    setConfirmPassword('');
+    setIsPasswordResetDialogOpen(true);
+  };
+
+  // Handle password reset submission
+  const handlePasswordResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!passwordResetUser) return;
+    
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Passwords do not match. Please try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          userId: passwordResetUser.id,
+          newPassword: newPassword
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reset password');
+      }
+
+      toast({
+        title: "Password Reset Successful",
+        description: `Password has been reset for ${passwordResetUser.firstName} ${passwordResetUser.lastName}.`
+      });
+      
+      setIsPasswordResetDialogOpen(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordResetUser(null);
+      
+    } catch (error) {
+      toast({
+        title: "Password Reset Failed",
+        description: "Failed to reset user password. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
   
   // User sorting function
   const handleSort = (column: string) => {
@@ -959,6 +1033,65 @@ const SystemSettings = () => {
               </Button>
               <Button type="submit">
                 Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={isPasswordResetDialogOpen} onOpenChange={setIsPasswordResetDialogOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle>Reset User Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {passwordResetUser?.firstName} {passwordResetUser?.lastName} ({passwordResetUser?.email}).
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handlePasswordResetSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="newPassword" className="text-right">
+                  New Password
+                </Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="col-span-3"
+                  placeholder="Enter new password"
+                  required
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="confirmPassword" className="text-right">
+                  Confirm Password
+                </Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="col-span-3"
+                  placeholder="Confirm new password"
+                  required
+                />
+              </div>
+
+              <div className="col-span-4 text-sm text-muted-foreground">
+                Password must be at least 6 characters long.
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="secondary" onClick={() => setIsPasswordResetDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="destructive">
+                Reset Password
               </Button>
             </DialogFooter>
           </form>
@@ -1298,6 +1431,16 @@ const SystemSettings = () => {
                                       </AlertDialogFooter>
                                     </AlertDialogContent>
                                   </AlertDialog>
+
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    title="Reset Password"
+                                    onClick={() => handlePasswordResetClick(user)}
+                                    disabled={!isAdmin}
+                                  >
+                                    <Lock className="h-4 w-4" />
+                                  </Button>
 
                                   <Button 
                                     variant="ghost" 
