@@ -816,8 +816,9 @@ const SystemSettings = () => {
       </div>
 
       <Tabs defaultValue="accessControl" className="w-full space-y-6" onValueChange={setCurrentTab}>
-        <TabsList className="grid grid-cols-5 w-full">
+        <TabsList className="grid grid-cols-6 w-full">
           <TabsTrigger value="accessControl">Access Control</TabsTrigger>
+          <TabsTrigger value="roleControls">Role Controls</TabsTrigger>
           <TabsTrigger value="moduleVisibility">Module Visibility</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="archiveManagement">Archive Management</TabsTrigger>
@@ -1155,6 +1156,332 @@ const SystemSettings = () => {
                       </Table>
                     </div>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Role Controls Tab */}
+          <TabsContent value="roleControls" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Role Controls Overview</CardTitle>
+                <CardDescription>
+                  View current permission settings for each role (Viewer, Editor, Admin). This shows what modules and features each role can access by default.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-8">
+                  {/* Admin Role */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Shield className="h-5 w-5 text-green-600" />
+                      <h3 className="text-lg font-semibold">Admin Role</h3>
+                      <Badge variant="default" className="bg-green-100 text-green-800">Full Access</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <Card className="p-4 border-green-200">
+                        <h4 className="font-medium mb-2">Module Access</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span>Project Management</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Sales Forecast</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Bay Scheduling</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Billing Management</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Reports</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Import/Export</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>System Settings</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                        </div>
+                      </Card>
+                      <Card className="p-4 border-green-200">
+                        <h4 className="font-medium mb-2">Data Permissions</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span>View All Data</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Create Records</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Edit Records</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Delete Records</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Import Data</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Export Data</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                        </div>
+                      </Card>
+                      <Card className="p-4 border-green-200">
+                        <h4 className="font-medium mb-2">System Controls</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span>User Management</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Role Assignment</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Module Visibility</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>System Maintenance</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Backup & Archive</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Editor Role */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Edit className="h-5 w-5 text-blue-600" />
+                      <h3 className="text-lg font-semibold">Editor Role</h3>
+                      <Badge variant="outline" className="border-blue-200 text-blue-800">Limited Access</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <Card className="p-4 border-blue-200">
+                        <h4 className="font-medium mb-2">Module Access</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span>Project Management</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Sales Forecast</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Bay Scheduling</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Billing Management</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Reports</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Import/Export</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>System Settings</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                        </div>
+                      </Card>
+                      <Card className="p-4 border-blue-200">
+                        <h4 className="font-medium mb-2">Data Permissions</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span>View All Data</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Create Records</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Edit Records</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Delete Records</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Import Data</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Export Data</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                        </div>
+                      </Card>
+                      <Card className="p-4 border-blue-200">
+                        <h4 className="font-medium mb-2">System Controls</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>User Management</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Role Assignment</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Module Visibility</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>System Maintenance</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Backup & Archive</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Viewer Role */}
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <UserCheck className="h-5 w-5 text-amber-600" />
+                      <h3 className="text-lg font-semibold">Viewer Role</h3>
+                      <Badge variant="outline" className="border-amber-200 text-amber-800">Read-Only Access</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <Card className="p-4 border-amber-200">
+                        <h4 className="font-medium mb-2">Module Access</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span>Project Management</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Sales Forecast</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Bay Scheduling</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Billing Management</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Reports</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Import/Export</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>System Settings</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                        </div>
+                      </Card>
+                      <Card className="p-4 border-amber-200">
+                        <h4 className="font-medium mb-2">Data Permissions</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span>View All Data</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Create Records</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Edit Records</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Delete Records</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Import Data</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Export Data</span>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                        </div>
+                      </Card>
+                      <Card className="p-4 border-amber-200">
+                        <h4 className="font-medium mb-2">System Controls</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>User Management</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Role Assignment</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Module Visibility</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>System Maintenance</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>Backup & Archive</span>
+                            <UserX className="h-4 w-4 text-red-500" />
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-blue-900">Current Role Controls</h4>
+                      <p className="text-sm text-blue-700 mt-1">
+                        These are the default permission settings currently active in the system. Individual user access can be customized through the Module Visibility tab. 
+                        Future updates will allow editing these default role permissions directly from this interface.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
