@@ -2406,30 +2406,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verify password if provided
       if (password && user.password) {
+        let passwordMatch = false;
+        
         if (user.password.includes('.')) {
-          // Use scrypt-based password verification (consistent with auth.ts)
-          const crypto = await import('crypto');
-          const { promisify } = await import('util');
-          const scryptAsync = promisify(crypto.scrypt);
-          
-          try {
-            const [hashedPassword, salt] = user.password.split('.');
-            const hashedBuf = Buffer.from(hashedPassword, "hex");
-            const suppliedBuf = (await scryptAsync(password, salt, 64)) as Buffer;
-            const passwordMatch = crypto.timingSafeEqual(hashedBuf, suppliedBuf);
+          const parts = user.password.split('.');
+          if (parts.length === 2) {
+            // Try scrypt-based password verification first (new format)
+            const crypto = await import('crypto');
+            const { promisify } = await import('util');
+            const scryptAsync = promisify(crypto.scrypt);
             
-            if (!passwordMatch) {
-              console.log("❌ Password verification failed (scrypt)");
-              return res.status(401).json({ message: "Invalid email or password" });
+            try {
+              const [hashedPassword, salt] = parts;
+              const hashedBuf = Buffer.from(hashedPassword, "hex");
+              const suppliedBuf = (await scryptAsync(password, salt, 64)) as Buffer;
+              passwordMatch = crypto.timingSafeEqual(hashedBuf, suppliedBuf);
+              console.log("🔐 Using scrypt password verification:", passwordMatch);
+            } catch (scryptError) {
+              console.log("❌ Scrypt verification failed, trying SHA-512 fallback");
+              // Fall back to SHA-512 for backward compatibility
+              try {
+                const crypto = await import('crypto');
+                const [storedHash, salt] = parts;
+                const testHash = crypto.createHash('sha512').update(password + salt).digest('hex');
+                passwordMatch = storedHash === testHash;
+                console.log("🔐 Using SHA-512 fallback verification:", passwordMatch);
+              } catch (sha512Error) {
+                console.log("❌ SHA-512 fallback also failed:", sha512Error);
+                passwordMatch = false;
+              }
             }
-          } catch (scryptError) {
-            console.log("❌ Password verification error:", scryptError);
-            return res.status(401).json({ message: "Invalid email or password" });
           }
-        } else if (user.password !== password) {
-          console.log("❌ Plain password verification failed");
+        } else if (user.password === password) {
+          // Plain text password (should not happen in production)
+          console.log("⚠️ Plain text password verification");
+          passwordMatch = true;
+        }
+        
+        if (!passwordMatch) {
+          console.log("❌ Password verification failed for user:", loginEmail);
           return res.status(401).json({ message: "Invalid email or password" });
         }
+        
+        console.log("✅ Password verification successful for user:", loginEmail);
       } else if (password && !user.password) {
         console.log("❌ Password provided but user has no password set");
         return res.status(401).json({ message: "Invalid email or password" });
@@ -2489,11 +2508,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User with this email already exists" });
       }
 
-      // Hash password
+      // Hash password using scrypt (consistent with auth.ts)
       const crypto = await import('crypto');
+      const { promisify } = await import('util');
+      const scryptAsync = promisify(crypto.scrypt);
       const salt = crypto.randomBytes(16).toString("hex");
-      const hash = crypto.createHash('sha512').update(password + salt).digest('hex');
-      const hashedPassword = `${hash}.${salt}`;
+      const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+      const hashedPassword = `${buf.toString("hex")}.${salt}`;
 
       // Create user with pending approval (not approved by default)
       const newUser = await storage.createUser({
