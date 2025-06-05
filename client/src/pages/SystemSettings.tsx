@@ -82,6 +82,88 @@ const SystemSettings = () => {
   // User module visibility state
   const [userModuleVisibility, setUserModuleVisibility] = useState<Record<string, Record<string, boolean>>>({});
   
+  // Role controls state for editing permissions
+  const [rolePermissions, setRolePermissions] = useState({
+    admin: {
+      modules: {
+        'project-management': true,
+        'sales-forecast': true,
+        'bay-scheduling': true,
+        'billing-management': true,
+        'reports': true,
+        'import-export': true,
+        'system-settings': true
+      },
+      data: {
+        'view-data': true,
+        'create-records': true,
+        'edit-records': true,
+        'delete-records': true,
+        'import-data': true,
+        'export-data': true
+      },
+      system: {
+        'user-management': true,
+        'role-assignment': true,
+        'module-visibility': true,
+        'system-maintenance': true,
+        'backup-archive': true
+      }
+    },
+    editor: {
+      modules: {
+        'project-management': true,
+        'sales-forecast': true,
+        'bay-scheduling': true,
+        'billing-management': true,
+        'reports': true,
+        'import-export': false,
+        'system-settings': false
+      },
+      data: {
+        'view-data': true,
+        'create-records': true,
+        'edit-records': true,
+        'delete-records': true,
+        'import-data': false,
+        'export-data': true
+      },
+      system: {
+        'user-management': false,
+        'role-assignment': false,
+        'module-visibility': false,
+        'system-maintenance': false,
+        'backup-archive': false
+      }
+    },
+    viewer: {
+      modules: {
+        'project-management': true,
+        'sales-forecast': false,
+        'bay-scheduling': false,
+        'billing-management': true,
+        'reports': true,
+        'import-export': false,
+        'system-settings': false
+      },
+      data: {
+        'view-data': true,
+        'create-records': false,
+        'edit-records': false,
+        'delete-records': false,
+        'import-data': false,
+        'export-data': true
+      },
+      system: {
+        'user-management': false,
+        'role-assignment': false,
+        'module-visibility': false,
+        'system-maintenance': false,
+        'backup-archive': false
+      }
+    }
+  });
+  
   // User edit dialog state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -486,6 +568,43 @@ const SystemSettings = () => {
 
   const handleDeleteUser = (userId: string) => {
     deleteUserMutation.mutate(userId);
+  };
+
+  // Handle role permission changes
+  const handleRolePermissionChange = (role: 'admin' | 'editor' | 'viewer', category: 'modules' | 'data' | 'system', permission: string, value: boolean) => {
+    setRolePermissions(prev => ({
+      ...prev,
+      [role]: {
+        ...prev[role],
+        [category]: {
+          ...prev[role][category],
+          [permission]: value
+        }
+      }
+    }));
+
+    // Show toast notification
+    toast({
+      title: "Permission Updated",
+      description: `${role.charAt(0).toUpperCase() + role.slice(1)} role ${permission.replace('-', ' ')} permission ${value ? 'enabled' : 'disabled'}.`,
+      variant: "default"
+    });
+  };
+
+  // Create permission render function
+  const renderPermissionItem = (role: 'admin' | 'editor' | 'viewer', category: 'modules' | 'data' | 'system', permission: string, label: string) => {
+    const isEnabled = (rolePermissions[role][category] as any)[permission] || false;
+    
+    return (
+      <div key={permission} className="flex items-center justify-between">
+        <span>{label}</span>
+        <Switch 
+          checked={isEnabled}
+          disabled={!isAdmin}
+          onCheckedChange={(checked) => handleRolePermissionChange(role, category, permission, checked)}
+        />
+      </div>
+    );
   };
   
   // Handle edit user button click
@@ -1165,9 +1284,9 @@ const SystemSettings = () => {
           <TabsContent value="roleControls" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Role Controls Overview</CardTitle>
+                <CardTitle>Role Controls Management</CardTitle>
                 <CardDescription>
-                  View current permission settings for each role (Viewer, Editor, Admin). This shows what modules and features each role can access by default.
+                  Configure default permission settings for each role (Viewer, Editor, Admin). Changes apply to new users and serve as fallback defaults when individual permissions aren't set.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1183,88 +1302,34 @@ const SystemSettings = () => {
                       <Card className="p-4 border-green-200">
                         <h4 className="font-medium mb-2">Module Access</h4>
                         <div className="space-y-1 text-sm">
-                          <div className="flex items-center justify-between">
-                            <span>Project Management</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Sales Forecast</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Bay Scheduling</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Billing Management</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Reports</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Import/Export</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>System Settings</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
+                          {renderPermissionItem('admin', 'modules', 'project-management', 'Project Management')}
+                          {renderPermissionItem('admin', 'modules', 'sales-forecast', 'Sales Forecast')}
+                          {renderPermissionItem('admin', 'modules', 'bay-scheduling', 'Bay Scheduling')}
+                          {renderPermissionItem('admin', 'modules', 'billing-management', 'Billing Management')}
+                          {renderPermissionItem('admin', 'modules', 'reports', 'Reports')}
+                          {renderPermissionItem('admin', 'modules', 'import-export', 'Import/Export')}
+                          {renderPermissionItem('admin', 'modules', 'system-settings', 'System Settings')}
                         </div>
                       </Card>
                       <Card className="p-4 border-green-200">
                         <h4 className="font-medium mb-2">Data Permissions</h4>
                         <div className="space-y-1 text-sm">
-                          <div className="flex items-center justify-between">
-                            <span>View All Data</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Create Records</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Edit Records</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Delete Records</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Import Data</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Export Data</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
+                          {renderPermissionItem('admin', 'data', 'view-data', 'View All Data')}
+                          {renderPermissionItem('admin', 'data', 'create-records', 'Create Records')}
+                          {renderPermissionItem('admin', 'data', 'edit-records', 'Edit Records')}
+                          {renderPermissionItem('admin', 'data', 'delete-records', 'Delete Records')}
+                          {renderPermissionItem('admin', 'data', 'import-data', 'Import Data')}
+                          {renderPermissionItem('admin', 'data', 'export-data', 'Export Data')}
                         </div>
                       </Card>
                       <Card className="p-4 border-green-200">
                         <h4 className="font-medium mb-2">System Controls</h4>
                         <div className="space-y-1 text-sm">
-                          <div className="flex items-center justify-between">
-                            <span>User Management</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Role Assignment</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Module Visibility</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>System Maintenance</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Backup & Archive</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
+                          {renderPermissionItem('admin', 'system', 'user-management', 'User Management')}
+                          {renderPermissionItem('admin', 'system', 'role-assignment', 'Role Assignment')}
+                          {renderPermissionItem('admin', 'system', 'module-visibility', 'Module Visibility')}
+                          {renderPermissionItem('admin', 'system', 'system-maintenance', 'System Maintenance')}
+                          {renderPermissionItem('admin', 'system', 'backup-archive', 'Backup & Archive')}
                         </div>
                       </Card>
                     </div>
@@ -1283,88 +1348,34 @@ const SystemSettings = () => {
                       <Card className="p-4 border-blue-200">
                         <h4 className="font-medium mb-2">Module Access</h4>
                         <div className="space-y-1 text-sm">
-                          <div className="flex items-center justify-between">
-                            <span>Project Management</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Sales Forecast</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Bay Scheduling</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Billing Management</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Reports</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Import/Export</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>System Settings</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
+                          {renderPermissionItem('editor', 'modules', 'project-management', 'Project Management')}
+                          {renderPermissionItem('editor', 'modules', 'sales-forecast', 'Sales Forecast')}
+                          {renderPermissionItem('editor', 'modules', 'bay-scheduling', 'Bay Scheduling')}
+                          {renderPermissionItem('editor', 'modules', 'billing-management', 'Billing Management')}
+                          {renderPermissionItem('editor', 'modules', 'reports', 'Reports')}
+                          {renderPermissionItem('editor', 'modules', 'import-export', 'Import/Export')}
+                          {renderPermissionItem('editor', 'modules', 'system-settings', 'System Settings')}
                         </div>
                       </Card>
                       <Card className="p-4 border-blue-200">
                         <h4 className="font-medium mb-2">Data Permissions</h4>
                         <div className="space-y-1 text-sm">
-                          <div className="flex items-center justify-between">
-                            <span>View All Data</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Create Records</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Edit Records</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Delete Records</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Import Data</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Export Data</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
+                          {renderPermissionItem('editor', 'data', 'view-data', 'View All Data')}
+                          {renderPermissionItem('editor', 'data', 'create-records', 'Create Records')}
+                          {renderPermissionItem('editor', 'data', 'edit-records', 'Edit Records')}
+                          {renderPermissionItem('editor', 'data', 'delete-records', 'Delete Records')}
+                          {renderPermissionItem('editor', 'data', 'import-data', 'Import Data')}
+                          {renderPermissionItem('editor', 'data', 'export-data', 'Export Data')}
                         </div>
                       </Card>
                       <Card className="p-4 border-blue-200">
                         <h4 className="font-medium mb-2">System Controls</h4>
                         <div className="space-y-1 text-sm">
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>User Management</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Role Assignment</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Module Visibility</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>System Maintenance</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Backup & Archive</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
+                          {renderPermissionItem('editor', 'system', 'user-management', 'User Management')}
+                          {renderPermissionItem('editor', 'system', 'role-assignment', 'Role Assignment')}
+                          {renderPermissionItem('editor', 'system', 'module-visibility', 'Module Visibility')}
+                          {renderPermissionItem('editor', 'system', 'system-maintenance', 'System Maintenance')}
+                          {renderPermissionItem('editor', 'system', 'backup-archive', 'Backup & Archive')}
                         </div>
                       </Card>
                     </div>
@@ -1383,88 +1394,34 @@ const SystemSettings = () => {
                       <Card className="p-4 border-amber-200">
                         <h4 className="font-medium mb-2">Module Access</h4>
                         <div className="space-y-1 text-sm">
-                          <div className="flex items-center justify-between">
-                            <span>Project Management</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Sales Forecast</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Bay Scheduling</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Billing Management</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Reports</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Import/Export</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>System Settings</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
+                          {renderPermissionItem('viewer', 'modules', 'project-management', 'Project Management')}
+                          {renderPermissionItem('viewer', 'modules', 'sales-forecast', 'Sales Forecast')}
+                          {renderPermissionItem('viewer', 'modules', 'bay-scheduling', 'Bay Scheduling')}
+                          {renderPermissionItem('viewer', 'modules', 'billing-management', 'Billing Management')}
+                          {renderPermissionItem('viewer', 'modules', 'reports', 'Reports')}
+                          {renderPermissionItem('viewer', 'modules', 'import-export', 'Import/Export')}
+                          {renderPermissionItem('viewer', 'modules', 'system-settings', 'System Settings')}
                         </div>
                       </Card>
                       <Card className="p-4 border-amber-200">
                         <h4 className="font-medium mb-2">Data Permissions</h4>
                         <div className="space-y-1 text-sm">
-                          <div className="flex items-center justify-between">
-                            <span>View All Data</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Create Records</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Edit Records</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Delete Records</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Import Data</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Export Data</span>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
+                          {renderPermissionItem('viewer', 'data', 'view-data', 'View All Data')}
+                          {renderPermissionItem('viewer', 'data', 'create-records', 'Create Records')}
+                          {renderPermissionItem('viewer', 'data', 'edit-records', 'Edit Records')}
+                          {renderPermissionItem('viewer', 'data', 'delete-records', 'Delete Records')}
+                          {renderPermissionItem('viewer', 'data', 'import-data', 'Import Data')}
+                          {renderPermissionItem('viewer', 'data', 'export-data', 'Export Data')}
                         </div>
                       </Card>
                       <Card className="p-4 border-amber-200">
                         <h4 className="font-medium mb-2">System Controls</h4>
                         <div className="space-y-1 text-sm">
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>User Management</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Role Assignment</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Module Visibility</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>System Maintenance</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
-                          <div className="flex items-center justify-between text-muted-foreground">
-                            <span>Backup & Archive</span>
-                            <UserX className="h-4 w-4 text-red-500" />
-                          </div>
+                          {renderPermissionItem('viewer', 'system', 'user-management', 'User Management')}
+                          {renderPermissionItem('viewer', 'system', 'role-assignment', 'Role Assignment')}
+                          {renderPermissionItem('viewer', 'system', 'module-visibility', 'Module Visibility')}
+                          {renderPermissionItem('viewer', 'system', 'system-maintenance', 'System Maintenance')}
+                          {renderPermissionItem('viewer', 'system', 'backup-archive', 'Backup & Archive')}
                         </div>
                       </Card>
                     </div>
