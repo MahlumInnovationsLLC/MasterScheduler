@@ -21,7 +21,8 @@ import {
   Eye,
   Hammer,
   Wrench,
-  Clock
+  Clock,
+  CheckCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
@@ -70,7 +71,7 @@ const Dashboard = () => {
     milestones: any[];
   } | null>(null);
 
-  // Show the top 10 projects that are ready to ship next
+  // Show the top 10 projects that are ready to ship next with enhanced date calculations
   useEffect(() => {
     if (!projects) return;
 
@@ -81,9 +82,27 @@ const Dashboard = () => {
       return isNaN(date.getTime()) ? null : date;
     };
 
+    // Calculate NTC Test and QC Start dates based on ship date
+    const calculatePhaseDate = (shipDate, daysBeforeShip) => {
+      if (!shipDate) return null;
+      const date = new Date(shipDate);
+      date.setDate(date.getDate() - daysBeforeShip);
+      return date.toISOString();
+    };
+
+    // Enhance projects with calculated phase dates
+    const enhancedProjects = projects.map(p => {
+      const shipDate = getValidDate(p.shipDate);
+      return {
+        ...p,
+        ntcTestStart: p.ntcTestStart || calculatePhaseDate(shipDate, 14), // 2 weeks before ship
+        qcStart: p.qcStart || calculatePhaseDate(shipDate, 7) // 1 week before ship
+      };
+    });
+
     // Filter for projects with valid ship dates and sort by earliest ship date
     const now = new Date();
-    const upcomingProjects = projects
+    const upcomingProjects = enhancedProjects
       .filter(p => {
         const shipDate = getValidDate(p.shipDate);
         return shipDate && shipDate >= now;
@@ -100,20 +119,33 @@ const Dashboard = () => {
     if (upcomingProjects.length > 0) {
       setFilteredProjects(upcomingProjects.slice(0, 10));
     } else {
-      // If no upcoming ship dates, show active projects instead
-      const activeProjects = projects
+      // If no upcoming ship dates, show most recent active projects
+      const activeProjects = enhancedProjects
         .filter(p => p.status === 'active' || p.status === 'delayed' || p.status === 'critical')
         .sort((a, b) => {
+          // First sort by creation date (most recent first)
+          const dateA = getValidDate(a.createdAt) || new Date(0);
+          const dateB = getValidDate(b.createdAt) || new Date(0);
+          if (dateA.getTime() !== dateB.getTime()) {
+            return dateB.getTime() - dateA.getTime();
+          }
+          // Then by project number (higher numbers are more recent)
           const numA = parseInt(a.projectNumber.replace(/\D/g, '')) || 0;
           const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
-          return numB - numA; // Most recent numbers first
+          return numB - numA;
         });
 
       if (activeProjects.length > 0) {
         setFilteredProjects(activeProjects.slice(0, 10));
       } else {
-        // If no active projects either, show any projects
-        setFilteredProjects(projects.slice(0, 10));
+        // If no active projects either, show most recent projects
+        const sortedProjects = enhancedProjects
+          .sort((a, b) => {
+            const dateA = getValidDate(a.createdAt) || new Date(0);
+            const dateB = getValidDate(b.createdAt) || new Date(0);
+            return dateB.getTime() - dateA.getTime();
+          });
+        setFilteredProjects(sortedProjects.slice(0, 10));
       }
     }
   }, [projects]);
@@ -486,6 +518,30 @@ const Dashboard = () => {
           <Wrench className="h-4 w-4 text-green-400" />
           <div className="text-sm">
             {formatDate(row.original.assemblyStart)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'ntcTestStart',
+      header: 'NTC Test',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <CheckCircle className="h-4 w-4 text-orange-400" />
+          <div className="text-sm">
+            {formatDate(row.original.ntcTestStart)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'qcStart',
+      header: 'QC Start',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Shield className="h-4 w-4 text-purple-400" />
+          <div className="text-sm">
+            {formatDate(row.original.qcStart)}
           </div>
         </div>
       ),
