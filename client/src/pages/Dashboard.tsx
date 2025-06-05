@@ -196,12 +196,6 @@ const Dashboard = () => {
         inline: 'center'
       });
 
-      // Add highlight effect
-      targetBar.classList.add('search-highlighted');
-      setTimeout(() => {
-        targetBar.classList.remove('search-highlighted');
-      }, 3000);
-
       // Success message
       toast({
         title: "Found Project",
@@ -1102,47 +1096,7 @@ const Dashboard = () => {
                     opacity: 1 !important;
                     pointer-events: none !important;
                   }
-                  .search-highlighted {
-                    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.8) !important;
-                    border: 2px solid #22c55e !important;
-                    z-index: 1000 !important;
-                    position: relative !important;
-                    animation: highlightPulse 2s ease-in-out !important;
-                    min-height: 80px !important; /* Double height to encompass top and bottom phases */
-                    height: auto !important;
-                  }
-                  /* Enhanced search highlight for multi-row projects */
-                  .search-highlighted::before {
-                    content: '';
-                    position: absolute;
-                    top: -15px;
-                    left: -10px;
-                    right: -10px;
-                    bottom: -15px;
-                    background: rgba(34, 197, 94, 0.1);
-                    border: 3px solid #22c55e;
-                    border-radius: 6px;
-                    z-index: -1;
-                    animation: highlightGlow 2s ease-in-out;
-                  }
-                  @keyframes highlightPulse {
-                    0%, 100% { 
-                      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.8);
-                    }
-                    50% { 
-                      box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.4);
-                    }
-                  }
-                  @keyframes highlightGlow {
-                    0%, 100% { 
-                      opacity: 0.6;
-                      transform: scale(1);
-                    }
-                    50% { 
-                      opacity: 0.8;
-                      transform: scale(1.02);
-                    }
-                  }
+
                 `}</style>
                 <ResizableBaySchedule
                   schedules={manufacturingSchedules}
