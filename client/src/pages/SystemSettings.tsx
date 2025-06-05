@@ -679,7 +679,7 @@ const SystemSettings = () => {
     <div className="container mx-auto py-6 px-6 md:px-8 space-y-8">
       {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] z-40">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
@@ -738,7 +738,7 @@ const SystemSettings = () => {
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-50">
                     <SelectItem value="viewer">Viewer</SelectItem>
                     <SelectItem value="editor">Editor</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
