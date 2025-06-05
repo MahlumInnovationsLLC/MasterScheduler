@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { 
@@ -17,7 +17,11 @@ import {
   ArrowUpRight,
   Shield,
   LogIn,
-  BarChart3
+  BarChart3,
+  Eye,
+  Hammer,
+  Wrench,
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
@@ -33,6 +37,8 @@ import { Redirect } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+import ResizableBaySchedule from '@/components/ResizableBaySchedule';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const Dashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -125,7 +131,7 @@ const Dashboard = () => {
     milestones: any[];
   } | null>(null);
 
-  // Show the top 5 projects that are ready to ship next
+  // Show the top 10 projects that are ready to ship next
   useEffect(() => {
     if (!projects) return;
 
@@ -151,9 +157,9 @@ const Dashboard = () => {
         return dateA.getTime() - dateB.getTime(); // Sort by earliest ship date first
       });
 
-    // Show up to 5 projects ready to ship next
+    // Show up to 10 projects ready to ship next
     if (upcomingProjects.length > 0) {
-      setFilteredProjects(upcomingProjects.slice(0, 5));
+      setFilteredProjects(upcomingProjects.slice(0, 10));
     } else {
       // If no upcoming ship dates, show active projects instead
       const activeProjects = projects
@@ -165,10 +171,10 @@ const Dashboard = () => {
         });
 
       if (activeProjects.length > 0) {
-        setFilteredProjects(activeProjects.slice(0, 5));
+        setFilteredProjects(activeProjects.slice(0, 10));
       } else {
         // If no active projects either, show any projects
-        setFilteredProjects(projects.slice(0, 5));
+        setFilteredProjects(projects.slice(0, 10));
       }
     }
   }, [projects]);
@@ -382,90 +388,129 @@ const Dashboard = () => {
     });
   };
 
-  // Project table columns
+  // Enhanced project table columns matching Projects Module exactly
   const projectColumns = [
     {
       accessorKey: 'projectNumber',
       header: 'Project',
-      cell: ({ row }) => (
-        <div className="flex items-center">
-          <div className="ml-2">
-            <div className="text-sm font-medium text-white">{row.original.projectNumber}</div>
-            <div className="text-xs text-gray-400">{row.original.name}</div>
+      cell: ({ row }) => {
+        const isPastDue = row.original.shipDate ? new Date(row.original.shipDate) < new Date() : false;
+        const isSalesEstimate = row.original.isSalesEstimate;
+        
+        return (
+          <div className={`flex items-center ${isPastDue ? 'bg-red-900/30 rounded' : isSalesEstimate ? 'bg-yellow-500/10 rounded' : ''}`}>
+            <div className="ml-2 p-1">
+              <div className={`text-sm font-medium ${isPastDue ? 'text-red-500' : isSalesEstimate ? 'text-yellow-400' : 'text-white'} whitespace-normal`}>
+                <Link to={`/project/${row.original.id}`} className={`${isPastDue ? 'text-red-500 font-bold' : isSalesEstimate ? 'text-yellow-400 font-semibold' : 'text-primary'} hover:underline`}>
+                  {isSalesEstimate && <span className="text-xs bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded mr-2">PROPOSED</span>}
+                  {row.original.projectNumber}
+                </Link>
+              </div>
+              <div 
+                className={`text-xs ${isSalesEstimate ? 'text-yellow-400/70' : 'text-gray-400'} line-clamp-2 overflow-hidden`}
+                title={row.original.name}
+              >
+                {row.original.name}
+              </div>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       accessorKey: 'location',
       header: 'Location',
       cell: ({ row }) => (
         <div className="flex items-center">
-          <div className="px-3 py-1 rounded location-block font-medium">
+          <div className="px-3 py-1 rounded font-medium text-white border border-gray-500 shadow-lg" 
+               style={{ 
+                 background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
+                 boxShadow: '0 2px 8px rgba(107, 114, 128, 0.3)'
+               }}>
             {row.original.location || 'N/A'}
           </div>
         </div>
       ),
     },
-
     {
-      accessorKey: 'ntcTestingDate',
-      header: 'NTC Testing',
+      accessorKey: 'fabricationStart',
+      header: 'FAB Start',
       cell: ({ row }) => (
-        <div className="text-sm">
-          {formatDate(row.original.ntcTestingDate)}
+        <div className="flex items-center gap-1">
+          <Hammer className="h-4 w-4 text-blue-400" />
+          <div className="text-sm">
+            {formatDate(row.original.fabricationStart)}
+          </div>
         </div>
       ),
     },
     {
-      accessorKey: 'qcDate',
-      header: 'QC Date',
+      accessorKey: 'assemblyStart',
+      header: 'Production Start',
       cell: ({ row }) => (
-        <div className="text-sm">
-          {formatDate(row.original.qcDate)}
+        <div className="flex items-center gap-1">
+          <Wrench className="h-4 w-4 text-green-400" />
+          <div className="text-sm">
+            {formatDate(row.original.assemblyStart)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'contractDate',
+      header: 'Contract Date',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Clock className="h-4 w-4 text-blue-500" />
+          <div className="text-sm">
+            {formatDate(row.original.contractDate)}
+          </div>
         </div>
       ),
     },
     {
       accessorKey: 'shipDate',
       header: 'Ship Date',
-      cell: ({ row }) => (
-        <div className="text-sm">
-          {formatDate(row.original.shipDate)}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const isPastDue = row.original.shipDate ? new Date(row.original.shipDate) < new Date() : false;
+        return (
+          <div className={`text-sm ${isPastDue ? 'text-red-400 font-semibold' : ''}`}>
+            {formatDate(row.original.shipDate)}
+          </div>
+        );
+      },
     },
     {
-      accessorKey: 'pmOwnerId',
+      accessorKey: 'pmOwner',
       header: 'PM Owner',
       cell: ({ row }) => <div className="text-sm">{row.original.pmOwner || 'Unassigned'}</div>,
     },
     {
       accessorKey: 'percentComplete',
       header: 'Progress',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <div className="w-full bg-gray-800 rounded-full h-2.5">
-            <div 
-              className="bg-success h-2.5 rounded-full" 
-              style={{ width: `${row.original.percentComplete}%` }}
-            ></div>
+      cell: ({ row }) => {
+        const percentValue = typeof row.original.percentComplete === 'string' ? parseFloat(row.original.percentComplete) : Number(row.original.percentComplete);
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-full bg-gray-800 rounded-full h-2.5">
+              <div 
+                className="bg-success h-2.5 rounded-full" 
+                style={{ width: `${percentValue}%` }}
+              ></div>
+            </div>
+            <span className="text-xs font-medium">{percentValue}%</span>
           </div>
-          <span className="text-xs font-medium">{row.original.percentComplete}%</span>
-        </div>
-      ),
+        );
+      },
     },
     {
       accessorKey: 'status',
       header: 'Status',
       cell: ({ row }) => {
-        // Get the project health status (Active, Critical, Delayed, etc.)
         const { status } = getProjectStatusColor(
           row.original.percentComplete,
           row.original.estimatedCompletionDate
         );
-
-        // Get the manufacturing schedule state (Unscheduled, Scheduled, In Progress, Complete)
         const scheduleState = getProjectScheduleState(manufacturingSchedules, row.original.id);
 
         return (
@@ -485,7 +530,6 @@ const Dashboard = () => {
         );
       },
     },
-
   ];
 
   if (isLoadingProjects || isLoadingBillingMilestones || isLoadingManufacturing || isLoadingBays) {
@@ -640,21 +684,69 @@ const Dashboard = () => {
 
       {/* Projects Table */}
       <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-xl font-sans font-bold">Next Projects Ready to Ship</h2>
-        <Link href="/projects">
+        <h2 className="text-xl font-sans font-bold">Next Projects Ready to Ship (Top 10)</h2>
+        <Link href="/project-status">
           <Button variant="outline" size="sm">
+            <ArrowUpRight className="h-4 w-4 mr-2" />
             View All Projects
           </Button>
         </Link>
       </div>
 
-      <div className="w-full">
+      <div className="w-full mb-8">
         <DashboardTable
           columns={projectColumns}
           data={filteredProjects}
           showPagination={false}
         />
       </div>
+
+      {/* Mini Bay Schedule Viewer */}
+      <div className="mb-6 flex justify-between items-center">
+        <h2 className="text-xl font-sans font-bold">Manufacturing Bay Schedule Snapshot</h2>
+        <Link href="/bay-scheduling">
+          <Button variant="outline" size="sm">
+            <Eye className="h-4 w-4 mr-2" />
+            Open Full Schedule
+          </Button>
+        </Link>
+      </div>
+
+      <Card className="bg-darkCard border-gray-800">
+        <CardContent className="p-0">
+          <ScrollArea className="h-[600px] w-full">
+            {manufacturingSchedules && manufacturingBays && projects ? (
+              <div className="p-4">
+                <ResizableBaySchedule
+                  schedules={manufacturingSchedules}
+                  projects={projects}
+                  bays={manufacturingBays}
+                  onScheduleChange={async () => {}} // Read-only - no editing
+                  onScheduleCreate={async () => {}} // Read-only - no editing
+                  onScheduleDelete={async () => {}} // Read-only - no editing
+                  onBayCreate={async () => {}} // Read-only - no editing
+                  onBayUpdate={async () => {}} // Read-only - no editing
+                  onBayDelete={async () => {}} // Read-only - no editing
+                  dateRange={{
+                    start: new Date(),
+                    end: new Date(new Date().setMonth(new Date().getMonth() + 3))
+                  }}
+                  viewMode="month"
+                  enableFinancialImpact={false}
+                  isSandboxMode={false}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-center text-gray-400">
+                  <Building2 className="h-8 w-8 mx-auto mb-2" />
+                  <p>Loading bay schedule data...</p>
+                </div>
+              </div>
+            )}
+          </ScrollArea>
+        </CardContent>
+      </Card>
     </div>
   );
 };
