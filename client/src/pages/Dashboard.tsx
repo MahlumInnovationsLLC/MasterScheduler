@@ -850,29 +850,13 @@ const Dashboard = () => {
                   .bay-schedule-readonly .row-management-buttons {
                     display: none !important;
                   }
-                  /* Hide Add Team button by targeting the exact structure */
-                  .bay-schedule-readonly button:has(span:contains("Team")),
-                  .bay-schedule-readonly .bg-blue-700:has(.h-4),
-                  .bay-schedule-readonly .bg-gray-700:has(.h-5) {
+                  /* Hide ONLY the "+" icon and "+ Team" button in top right corner */
+                  .bay-schedule-readonly button:has(.lucide-plus-circle),
+                  .bay-schedule-readonly .lucide-plus-circle {
                     display: none !important;
                   }
-                  /* Hide team action buttons by specific context, but preserve phases */
-                  .bay-schedule-readonly .team-header .bg-green-700,
-                  .bay-schedule-readonly .team-header .bg-orange-700,
-                  .bay-schedule-readonly .team-header .bg-purple-700,
-                  .bay-schedule-readonly .team-header .bg-red-500,
-                  .bay-schedule-readonly .team-header .bg-destructive,
-                  .bay-schedule-readonly .team-header .bg-blue-700 {
-                    display: none !important;
-                  }
-                  /* Hide the "+" icon in top right corner specifically */
-                  .bay-schedule-readonly .bg-gray-700:has(.lucide-plus-circle) {
-                    display: none !important;
-                  }
-                  /* Hide specific action icons but preserve phase display */
-                  .bay-schedule-readonly .lucide-plus-circle,
-                  .bay-schedule-readonly .lucide-trash-2,
-                  .bay-schedule-readonly .lucide-printer {
+                  /* Hide specific action buttons containing "Team" text */
+                  .bay-schedule-readonly button:has(span:contains("Team")) {
                     display: none !important;
                   }
                   /* Ensure phases (FAB, PROD, NTC, QC) remain visible */
