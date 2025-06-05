@@ -124,6 +124,9 @@ export interface IStorage {
   updateUserLastLogin(id: string): Promise<User | undefined>;
   updateUser(id: string, userData: Partial<User>): Promise<User | undefined>;
   updateUserPassword(id: string, hashedPassword: string): Promise<User | undefined>;
+  setPasswordResetToken(email: string, token: string, expires: Date): Promise<User | undefined>;
+  getUserByPasswordResetToken(token: string): Promise<User | undefined>;
+  clearPasswordResetToken(id: string): Promise<User | undefined>;
 
   // Role permissions methods
   getRolePermissions(role?: string): Promise<RolePermission[]>;
