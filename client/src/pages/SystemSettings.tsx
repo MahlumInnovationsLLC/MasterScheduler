@@ -738,7 +738,7 @@ const SystemSettings = () => {
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[10001]">
                     <SelectItem value="viewer">Viewer</SelectItem>
                     <SelectItem value="editor">Editor</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
