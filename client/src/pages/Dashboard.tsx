@@ -75,18 +75,18 @@ const Dashboard = () => {
   useEffect(() => {
     if (!projects) return;
 
-    // Helper to get valid dates and handle null/invalid dates
+    // Helper to get valid dates and handle null/invalid dates with UTC
     const getValidDate = (dateStr) => {
       if (!dateStr) return null;
       const date = new Date(dateStr);
       return isNaN(date.getTime()) ? null : date;
     };
 
-    // Calculate NTC Test and QC Start dates based on ship date
+    // Calculate NTC Test and QC Start dates based on ship date using UTC
     const calculatePhaseDate = (shipDate, daysBeforeShip) => {
       if (!shipDate) return null;
       const date = new Date(shipDate);
-      date.setDate(date.getDate() - daysBeforeShip);
+      date.setUTCDate(date.getUTCDate() - daysBeforeShip);
       return date.toISOString();
     };
 
@@ -442,15 +442,18 @@ const Dashboard = () => {
     );
   }
 
-  // Helper function to format dates consistently
+  // Helper function to format dates consistently without timezone issues
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return 'N/A';
+    
+    // Use UTC methods to avoid timezone issues
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'UTC'
     });
   };
 
