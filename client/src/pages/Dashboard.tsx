@@ -22,7 +22,8 @@ import {
   Hammer,
   Wrench,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectStatsCard } from '@/components/ProjectStatusCard';
@@ -41,10 +42,12 @@ import { Loader2 } from "lucide-react";
 import ResizableBaySchedule from '@/components/ResizableBaySchedule';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
   const [projectSearchQuery, setProjectSearchQuery] = useState('');
+  const { toast } = useToast();
 
   // All hooks must be called before any conditional returns
   const { data: projects, isLoading: isLoadingProjects } = useQuery({
