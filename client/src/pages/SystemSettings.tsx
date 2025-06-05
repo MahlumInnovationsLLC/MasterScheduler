@@ -678,28 +678,8 @@ const SystemSettings = () => {
   return (
     <div className="container mx-auto py-6 px-6 md:px-8 space-y-8">
       {/* Edit User Dialog */}
-      <Dialog 
-        open={isEditDialogOpen} 
-        onOpenChange={(open) => {
-          console.log('🔧 Dialog onOpenChange:', open);
-          if (open) {
-            setTimeout(() => {
-              const dialog = document.querySelector('[role="dialog"]');
-              if (dialog) {
-                console.log('🔧 Dialog element found:', dialog);
-                console.log('🔧 Dialog z-index:', window.getComputedStyle(dialog).zIndex);
-                console.log('🔧 Dialog position:', window.getComputedStyle(dialog).position);
-                console.log('🔧 Dialog backdrop element:', document.querySelector('[data-radix-dialog-overlay]'));
-              }
-            }, 100);
-          }
-          setIsEditDialogOpen(open);
-        }}
-      >
-        <DialogContent 
-          className="sm:max-w-[500px]"
-          onOpenAutoFocus={() => console.log('🔧 Dialog content focused')}
-        >
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
@@ -753,42 +733,15 @@ const SystemSettings = () => {
                 </Label>
                 <Select 
                   value={editUserForm.role} 
-                  onValueChange={(value) => {
-                    console.log('🔧 Role select onValueChange triggered:', value);
-                    setEditUserForm({...editUserForm, role: value});
-                  }}
-                  onOpenChange={(open) => {
-                    console.log('🔧 Role select onOpenChange triggered:', open);
-                    if (open) {
-                      console.log('🔧 Dialog z-index when select opens:', window.getComputedStyle(document.querySelector('[role="dialog"]')).zIndex);
-                      setTimeout(() => {
-                        const selectContent = document.querySelector('[role="listbox"]');
-                        if (selectContent) {
-                          console.log('🔧 SelectContent found:', selectContent);
-                          console.log('🔧 SelectContent z-index:', window.getComputedStyle(selectContent).zIndex);
-                          console.log('🔧 SelectContent position:', window.getComputedStyle(selectContent).position);
-                          console.log('🔧 SelectContent visibility:', window.getComputedStyle(selectContent).visibility);
-                          console.log('🔧 SelectContent opacity:', window.getComputedStyle(selectContent).opacity);
-                          console.log('🔧 SelectContent display:', window.getComputedStyle(selectContent).display);
-                        } else {
-                          console.log('❌ SelectContent not found in DOM');
-                          const allListboxes = document.querySelectorAll('[role="listbox"]');
-                          console.log('🔧 All listboxes found:', allListboxes.length);
-                        }
-                      }, 100);
-                    }
-                  }}
+                  onValueChange={(value) => setEditUserForm({...editUserForm, role: value})}
                 >
-                  <SelectTrigger 
-                    className="col-span-3"
-                    onClick={() => console.log('🔧 SelectTrigger clicked')}
-                  >
+                  <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
-                  <SelectContent className="z-[9999] !z-[9999]" style={{ zIndex: 9999 }}>
-                    <SelectItem value="viewer" onClick={() => console.log('🔧 Viewer clicked')}>Viewer</SelectItem>
-                    <SelectItem value="editor" onClick={() => console.log('🔧 Editor clicked')}>Editor</SelectItem>
-                    <SelectItem value="admin" onClick={() => console.log('🔧 Admin clicked')}>Admin</SelectItem>
+                  <SelectContent>
+                    <SelectItem value="viewer">Viewer</SelectItem>
+                    <SelectItem value="editor">Editor</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
