@@ -3956,8 +3956,38 @@ Response format:
   // Supply Chain Routes
   app.use('/api', supplyChainRoutes);
   
-  // Role Permissions Routes
-  app.use('/api/role-permissions', rolePermissionsRouter);
+  // Role Permissions API endpoint
+  app.post("/api/role-permissions", requireAdmin, async (req, res) => {
+    try {
+      const { role, category, permission, enabled } = req.body;
+      
+      if (!role || !category || !permission || typeof enabled !== 'boolean') {
+        return res.status(400).json({ message: "Invalid role permission data" });
+      }
+      
+      // Store the permission change in the database
+      await storage.updateRolePermission(role, category, permission, enabled);
+      
+      res.json({ 
+        success: true, 
+        message: `Role permission updated: ${role} ${category} ${permission} = ${enabled}` 
+      });
+    } catch (error) {
+      console.error("Error updating role permission:", error);
+      res.status(500).json({ message: "Error updating role permission" });
+    }
+  });
+  
+  // Get role permissions
+  app.get("/api/role-permissions", requireAuth, async (req, res) => {
+    try {
+      const permissions = await storage.getAllRolePermissions();
+      res.json(permissions);
+    } catch (error) {
+      console.error("Error fetching role permissions:", error);
+      res.status(500).json({ message: "Error fetching role permissions" });
+    }
+  });
   
   // User Permissions Routes
   app.get("/api/user-permissions/:userId", requireAdmin, async (req, res) => {

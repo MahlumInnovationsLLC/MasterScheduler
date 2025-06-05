@@ -2920,6 +2920,38 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
+
+  // Role Permission Management (for auto-save functionality)
+  async updateRolePermission(role: string, category: string, permission: string, enabled: boolean): Promise<void> {
+    try {
+      // Use raw SQL to handle dynamic permission updates
+      await db.execute(sql`
+        INSERT INTO role_permissions (role, category, permission, enabled, created_at, updated_at)
+        VALUES (${role}, ${category}, ${permission}, ${enabled}, NOW(), NOW())
+        ON CONFLICT (role, category, permission)
+        DO UPDATE SET 
+          enabled = ${enabled},
+          updated_at = NOW()
+      `);
+    } catch (error) {
+      console.error("Error updating role permission:", error);
+      throw error;
+    }
+  }
+
+  async getAllRolePermissions(): Promise<any[]> {
+    try {
+      const result = await db.execute(sql`
+        SELECT role, category, permission, enabled, created_at, updated_at
+        FROM role_permissions
+        ORDER BY role, category, permission
+      `);
+      return result.rows;
+    } catch (error) {
+      console.error("Error fetching all role permissions:", error);
+      return [];
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

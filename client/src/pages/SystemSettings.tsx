@@ -571,7 +571,8 @@ const SystemSettings = () => {
   };
 
   // Handle role permission changes
-  const handleRolePermissionChange = (role: 'admin' | 'editor' | 'viewer', category: 'modules' | 'data' | 'system', permission: string, value: boolean) => {
+  const handleRolePermissionChange = async (role: 'admin' | 'editor' | 'viewer', category: 'modules' | 'data' | 'system', permission: string, value: boolean) => {
+    // Update local state immediately for instant UI feedback
     setRolePermissions(prev => ({
       ...prev,
       [role]: {
@@ -583,12 +584,51 @@ const SystemSettings = () => {
       }
     }));
 
-    // Show toast notification
-    toast({
-      title: "Permission Updated",
-      description: `${role.charAt(0).toUpperCase() + role.slice(1)} role ${permission.replace('-', ' ')} permission ${value ? 'enabled' : 'disabled'}.`,
-      variant: "default"
-    });
+    try {
+      // Save to backend immediately (auto-save)
+      const response = await fetch('/api/role-permissions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          role,
+          category,
+          permission,
+          enabled: value
+        }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save permission change');
+      }
+
+      // Show success toast notification
+      toast({
+        title: "Permission Auto-Saved",
+        description: `${role.charAt(0).toUpperCase() + role.slice(1)} role ${permission.replace('-', ' ')} permission ${value ? 'enabled' : 'disabled'} and saved instantly.`,
+        variant: "default"
+      });
+    } catch (error) {
+      // Revert local state on error
+      setRolePermissions(prev => ({
+        ...prev,
+        [role]: {
+          ...prev[role],
+          [category]: {
+            ...prev[role][category],
+            [permission]: !value // Revert to previous state
+          }
+        }
+      }));
+
+      toast({
+        title: "Auto-Save Failed",
+        description: "Failed to save permission change. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Create permission render function
@@ -1424,19 +1464,6 @@ const SystemSettings = () => {
                           {renderPermissionItem('viewer', 'system', 'backup-archive', 'Backup & Archive')}
                         </div>
                       </Card>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-start space-x-2">
-                    <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-blue-900">Current Role Controls</h4>
-                      <p className="text-sm text-blue-700 mt-1">
-                        These are the default permission settings currently active in the system. Individual user access can be customized through the Module Visibility tab. 
-                        Future updates will allow editing these default role permissions directly from this interface.
-                      </p>
                     </div>
                   </div>
                 </div>
