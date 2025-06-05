@@ -192,7 +192,7 @@ const Dashboard = () => {
     };
   }, [projects, manufacturingSchedules]);
 
-  // Auto-snap to today on component mount and data load
+  // Auto-snap to today on component mount and data load (horizontal only)
   useEffect(() => {
     if (manufacturingSchedules && manufacturingBays && projects) {
       // Wait for the schedule to render, then snap to today
@@ -201,8 +201,8 @@ const Dashboard = () => {
         if (todayMarker) {
           todayMarker.scrollIntoView({ 
             behavior: 'smooth', 
-            block: 'center', 
-            inline: 'center' 
+            block: 'nearest', // Don't change vertical position
+            inline: 'center'   // Center horizontally only
           });
         }
       }, 1000); // Give the component time to render
