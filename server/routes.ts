@@ -4162,7 +4162,7 @@ Response format:
       // Update the user's password in the database
       await storage.updateUserPassword(userId, hashedPassword);
       
-      console.log(`🔐 Admin password reset: Password updated for user ${userId} by admin ${req.user.email}`);
+      console.log(`🔐 Admin password reset: Password updated for user ${userId} by admin ${req.user?.email}`);
       
       res.json({ 
         success: true, 
