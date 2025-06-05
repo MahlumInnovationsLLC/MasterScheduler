@@ -920,8 +920,8 @@ const Dashboard = () => {
                   onBayUpdate={async () => {}} // Read-only - no editing
                   onBayDelete={async () => {}} // Read-only - no editing
                   dateRange={{
-                    start: new Date(new Date().setMonth(new Date().getMonth() - 1)),
-                    end: new Date(new Date().setMonth(new Date().getMonth() + 3))
+                    start: new Date(2025, 0, 1), // January 1, 2025
+                    end: new Date(new Date().setMonth(new Date().getMonth() + 6))
                   }}
                   viewMode="week"
                   enableFinancialImpact={false}
