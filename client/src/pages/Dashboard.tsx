@@ -842,6 +842,37 @@ const Dashboard = () => {
                   .bay-schedule-readonly .resize-handle {
                     display: none !important;
                   }
+                  /* Hide specific delete buttons with X icons */
+                  .bay-schedule-readonly .delete-button,
+                  .bay-schedule-readonly button[title="Delete Row"],
+                  .bay-schedule-readonly button[title="Add Row"],
+                  .bay-schedule-readonly .row-delete-button,
+                  .bay-schedule-readonly .row-management-buttons {
+                    display: none !important;
+                  }
+                  /* Hide Add Team button by targeting the exact structure */
+                  .bay-schedule-readonly button:has(span:contains("Team")),
+                  .bay-schedule-readonly .bg-blue-700:has(.h-4),
+                  .bay-schedule-readonly .bg-gray-700:has(.h-5) {
+                    display: none !important;
+                  }
+                  /* Hide all team action buttons by background colors */
+                  .bay-schedule-readonly .bg-green-700,
+                  .bay-schedule-readonly .bg-orange-700,
+                  .bay-schedule-readonly .bg-purple-700,
+                  .bay-schedule-readonly .bg-red-500,
+                  .bay-schedule-readonly .bg-destructive,
+                  .bay-schedule-readonly .bg-blue-700 {
+                    display: none !important;
+                  }
+                  /* Hide all plus and minus icons except scroll arrows */
+                  .bay-schedule-readonly .lucide-plus-circle,
+                  .bay-schedule-readonly .lucide-plus,
+                  .bay-schedule-readonly .lucide-minus,
+                  .bay-schedule-readonly .lucide-trash-2,
+                  .bay-schedule-readonly .lucide-printer {
+                    display: none !important;
+                  }
                   .search-highlighted {
                     box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.8) !important;
                     border: 2px solid #22c55e !important;
