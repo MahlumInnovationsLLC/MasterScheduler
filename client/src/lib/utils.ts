@@ -34,6 +34,22 @@ export function formatDate(dateInput: string | Date | null | undefined): string 
     if (!/^\d{4}-\d{2}-\d{2}/.test(dateInput) && isNaN(Date.parse(dateInput))) {
       return dateInput; // Return as-is if it's not a recognizable date format
     }
+
+    // Special handling for YYYY-MM-DD format to avoid timezone shifts
+    if (dateInput.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = dateInput.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      
+      if (isNaN(date.getTime())) {
+        return dateInput; // Return original if invalid
+      }
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
   }
 
   try {
