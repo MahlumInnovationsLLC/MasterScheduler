@@ -192,6 +192,25 @@ const Dashboard = () => {
     };
   }, [projects, manufacturingSchedules]);
 
+  // Auto-snap to today on component mount and data load
+  useEffect(() => {
+    if (manufacturingSchedules && manufacturingBays && projects) {
+      // Wait for the schedule to render, then snap to today
+      const timer = setTimeout(() => {
+        const todayMarker = document.querySelector('.today-marker');
+        if (todayMarker) {
+          todayMarker.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center', 
+            inline: 'center' 
+          });
+        }
+      }, 1000); // Give the component time to render
+      
+      return () => clearTimeout(timer);
+    }
+  }, [manufacturingSchedules, manufacturingBays, projects]);
+
   // Calculate billing stats with revenue forecast
   const billingStats = React.useMemo(() => {
     if (!billingMilestones || billingMilestones.length === 0) return null;
@@ -855,8 +874,11 @@ const Dashboard = () => {
                   .bay-schedule-readonly .bg-blue-700,
                   .bay-schedule-readonly .bg-orange-700,
                   .bay-schedule-readonly .bg-purple-700,
-                  .bay-schedule-readonly .bg-red-500,
                   .bay-schedule-readonly .bg-gray-700:not([aria-label]) {
+                    display: none !important;
+                  }
+                  /* Keep red elements visible except for the buttons we want to hide */
+                  .bay-schedule-readonly .bg-red-500:not(.today-marker):not([class*="today"]) {
                     display: none !important;
                   }
                   /* Ensure phases (FAB, PROD, NTC, QC) remain visible */
@@ -876,6 +898,14 @@ const Dashboard = () => {
                     display: block !important;
                     visibility: visible !important;
                     opacity: 1 !important;
+                  }
+                  /* Ensure TODAY marker remains visible */
+                  .bay-schedule-readonly .today-marker,
+                  .bay-schedule-readonly .bg-red-500 {
+                    display: block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    pointer-events: none !important;
                   }
                   .search-highlighted {
                     box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.8) !important;
