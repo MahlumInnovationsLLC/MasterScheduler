@@ -148,6 +148,8 @@ export interface IStorage {
   getUserPreferences(userId: string): Promise<UserPreference | undefined>;
   createUserPreferences(preferences: InsertUserPreference): Promise<UserPreference>;
   updateUserPreferences(userId: string, preferences: Partial<InsertUserPreference>): Promise<UserPreference | undefined>;
+  deleteUser(userId: string): Promise<boolean>;
+  deleteUserPreferences(userId: string): Promise<boolean>;
 
   // Access Control - Allowed Emails
   getAllowedEmails(): Promise<AllowedEmail[]>;
@@ -999,6 +1001,38 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error updating user preferences:", error);
       return undefined;
+    }
+  }
+
+  async deleteUser(userId: string): Promise<boolean> {
+    try {
+      console.log(`STORAGE: Deleting user ${userId}`);
+      
+      const result = await db
+        .delete(users)
+        .where(eq(users.id, userId));
+
+      console.log("STORAGE: User deleted successfully");
+      return true;
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      throw error;
+    }
+  }
+
+  async deleteUserPreferences(userId: string): Promise<boolean> {
+    try {
+      console.log(`STORAGE: Deleting preferences for user ${userId}`);
+      
+      const result = await db
+        .delete(userPreferences)
+        .where(eq(userPreferences.userId, userId));
+
+      console.log("STORAGE: User preferences deleted successfully");
+      return true;
+    } catch (error) {
+      console.error("Error deleting user preferences:", error);
+      throw error;
     }
   }
 

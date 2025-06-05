@@ -453,6 +453,40 @@ const SystemSettings = () => {
   const handleRejectUser = (userId: string) => {
     rejectUserMutation.mutate(userId);
   };
+
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete user');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "User Deleted",
+        description: "User has been permanently deleted from the system.",
+        variant: "default"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete user: " + (error as Error).message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleDeleteUser = (userId: string) => {
+    deleteUserMutation.mutate(userId);
+  };
   
   // Handle edit user button click
   const handleEditUserClick = (user: any) => {
@@ -1073,6 +1107,38 @@ const SystemSettings = () => {
                                     </AlertDialogContent>
                                   </AlertDialog>
                                   
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-100"
+                                        title="Delete User"
+                                        disabled={!isAdmin}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to permanently delete {user.firstName} {user.lastName}? 
+                                          This action cannot be undone and will remove all user data from the system.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction 
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                          onClick={() => handleDeleteUser(user.id)}
+                                        >
+                                          Delete User
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 

@@ -2912,6 +2912,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error updating user status" });
     }
   });
+
+  // Route to delete a user
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const performedBy = req.user?.id || "system";
+      
+      // Check if user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Prevent self-deletion
+      if (req.user && req.user.id === userId) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+      
+      // Create audit log before deletion
+      await storage.createUserAuditLog(
+        userId,
+        "USER_DELETE",
+        performedBy,
+        { 
+          firstName: user.firstName, 
+          lastName: user.lastName, 
+          email: user.email, 
+          role: user.role 
+        },
+        {},
+        `User ${user.firstName} ${user.lastName} (${user.email}) permanently deleted`
+      );
+      
+      // Delete user preferences first (foreign key constraint)
+      try {
+        await storage.deleteUserPreferences(userId);
+      } catch (error) {
+        console.log("No preferences to delete for user:", userId);
+      }
+      
+      // Delete the user
+      await storage.deleteUser(userId);
+      
+      res.json({ 
+        success: true, 
+        message: `User ${user.firstName} ${user.lastName} has been permanently deleted` 
+      });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Error deleting user" });
+    }
+  });
   
   // Route to approve a user
   app.patch("/api/users/:id/approve", async (req, res) => {
