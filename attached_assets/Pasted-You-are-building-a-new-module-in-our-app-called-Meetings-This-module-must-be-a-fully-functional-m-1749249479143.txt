@@ -1,0 +1,96 @@
+You are building a new module in our app called “Meetings”. This module must be a fully functional meeting minutes manager and task organizer, designed to be extremely user-friendly, allowing team members to create meetings, capture notes and action items live, assign tasks, and export professional reports in either Word or PDF format.
+
+🔧 Functional Requirements:
+1. Create and Manage Meetings
+Allow users to create a new meeting entry with the following fields:
+
+Meeting Title
+
+Date and Time
+
+Location or Virtual Link
+
+Organizer (auto-filled from logged-in user)
+
+Attendees (dropdown or type-ahead select from user list)
+
+Agenda Items (add multiple)
+
+2. Live Meeting Interface
+After a meeting is created, users can enter a “Live Meeting View” where they can:
+
+Check off agenda items as discussed
+
+Add meeting notes under each agenda item
+
+Add real-time action items with:
+
+Task Description
+
+Assigned To (dropdown from user list)
+
+Due Date
+
+Priority Tag (High, Medium, Low)
+
+Status (Pending, In Progress, Done)
+
+3. Post-Meeting Summary & Export
+After the meeting ends, generate a summary view with:
+
+Meeting metadata (title, time, attendees)
+
+Agenda with discussion notes
+
+Task list with assigned users and deadlines
+
+Add button options:
+
+“Export as Word”
+
+“Export as PDF”
+
+“Send Summary via Email” (optional, if SendGrid or similar email API is integrated)
+
+4. Dashboard for Meeting Management
+Create a Meetings Dashboard to:
+
+View all upcoming and past meetings
+
+Filter/sort by organizer, date, or status
+
+Search functionality for meetings
+
+Quick access to meeting summaries and exports
+
+Display badge counters for meetings with open action items
+
+📦 Technical and Storage Instructions
+Database: Use Replit’s Neon/PostgreSQL or Replit DB to store:
+
+meetings table: title, datetime, location, organizer, attendees, agenda
+
+meeting_notes table: meeting_id, agenda_item, notes
+
+tasks table: meeting_id, task_description, assigned_to, due_date, priority, status
+
+Frontend:
+
+Build clean, card-based UI using React (Tailwind preferred)
+
+Rich text input for notes (use Quill.js or similar)
+
+Use modals or collapsible sections for editing tasks inline
+
+📤 Word & PDF Export Instructions
+Use a library like docx or jsPDF to convert meeting summaries into downloadable files.
+
+Format should be clean and branded:
+
+Header with Meeting Info
+
+Sectioned agenda with notes
+
+Section for Action Items with columns for Task, Assignee, Due Date, and Status
+
+Add download buttons: Download as Word (.docx) and Download as PDF (.pdf)
