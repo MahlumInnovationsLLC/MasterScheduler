@@ -166,7 +166,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
             No active projects or upcoming ship dates
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Active Projects with NTC/QC Columns */}
             {activeCount > 0 && (
               <div>
@@ -193,16 +193,16 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                 
                 <div className="bg-card/50 rounded-lg p-3">
                   {/* Column Headers */}
-                  <div className="grid grid-cols-4 gap-3 text-xs font-medium text-muted-foreground mb-3 px-2 border-b border-border pb-2">
+                  <div className="grid grid-cols-4 gap-2 text-xs font-medium text-muted-foreground mb-3 px-2 border-b border-border pb-2">
                     <div className="col-span-2">Project</div>
-                    <div className="text-center">Days to NTC</div>
-                    <div className="text-center">Days to QC</div>
+                    <div className="text-center">NTC</div>
+                    <div className="text-center">QC</div>
                   </div>
                   
                   {/* Project Rows */}
                   <div className="space-y-2">
                     {getDisplayedActiveProjects().map((project: any) => (
-                      <div key={project.id} className="grid grid-cols-4 gap-3 items-center py-2 px-2 rounded-md bg-background/60 hover:bg-background/80 transition-colors">
+                      <div key={project.id} className="grid grid-cols-4 gap-2 items-center py-2 px-2 rounded-md bg-background/60 hover:bg-background/80 transition-colors">
                         <div className="col-span-2 flex flex-col min-w-0">
                           <p className="text-sm font-medium truncate">
                             {project.projectNumber}
@@ -214,8 +214,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                         
                         <div className="text-center">
                           {project.ntcTestingDate ? (
-                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded dark:bg-orange-500/20 bg-orange-100 dark:text-orange-500 text-orange-800 border border-orange-300">
-                              <Clock className="h-3 w-3 mr-1" />
+                            <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded dark:bg-orange-500/20 bg-orange-100 dark:text-orange-500 text-orange-800 border border-orange-300">
                               {getDaysUntilDate(project.ntcTestingDate)}
                             </span>
                           ) : (
@@ -225,8 +224,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                         
                         <div className="text-center">
                           {project.qcStartDate ? (
-                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded dark:bg-rose-500/20 bg-rose-100 dark:text-rose-500 text-rose-800 border border-rose-300">
-                              <Clock className="h-3 w-3 mr-1" />
+                            <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded dark:bg-rose-500/20 bg-rose-100 dark:text-rose-500 text-rose-800 border border-rose-300">
                               {getDaysUntilDate(project.qcStartDate)}
                             </span>
                           ) : (
@@ -266,15 +264,15 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                 
                 <div className="bg-card/50 rounded-lg p-3">
                   {/* Column Headers */}
-                  <div className="grid grid-cols-3 gap-3 text-xs font-medium text-muted-foreground mb-3 px-2 border-b border-border pb-2">
+                  <div className="grid grid-cols-3 gap-2 text-xs font-medium text-muted-foreground mb-3 px-2 border-b border-border pb-2">
                     <div className="col-span-2">Project</div>
-                    <div className="text-center">Days to Ship</div>
+                    <div className="text-center">Ship</div>
                   </div>
                   
                   {/* Project Rows */}
                   <div className="space-y-2">
                     {getDisplayedUpcomingProjects().map((project: Project) => (
-                      <div key={project.id} className="grid grid-cols-3 gap-3 items-center py-2 px-2 rounded-md bg-background/60 hover:bg-background/80 transition-colors">
+                      <div key={project.id} className="grid grid-cols-3 gap-2 items-center py-2 px-2 rounded-md bg-background/60 hover:bg-background/80 transition-colors">
                         <div className="col-span-2 flex flex-col min-w-0">
                           <p className="text-sm font-medium truncate">
                             {project.projectNumber}
@@ -286,8 +284,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                         
                         <div className="text-center">
                           {project.shipDate ? (
-                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded dark:bg-blue-500/20 bg-blue-100 dark:text-blue-500 text-blue-800 border border-blue-300">
-                              <Calendar className="h-3 w-3 mr-1" />
+                            <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded dark:bg-blue-500/20 bg-blue-100 dark:text-blue-500 text-blue-800 border border-blue-300">
                               {getDaysUntilDate(project.shipDate)}
                             </span>
                           ) : (
