@@ -9,7 +9,7 @@ interface EmailOptions {
 
 // Create SMTP transporter using MailPro credentials
 const createTransporter = () => {
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     host: 'smtp.mailpro.com',
     port: 587, // STARTTLS port
     secure: false, // Use STARTTLS
