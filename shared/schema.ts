@@ -1349,6 +1349,38 @@ export const meetingTasks = pgTable("meeting_tasks", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Meeting Templates
+export const meetingTemplates = pgTable("meeting_templates", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  defaultDuration: integer("default_duration").default(60), // in minutes
+  agendaItems: text("agenda_items").array(),
+  defaultAttendees: text("default_attendees").array(), // user IDs
+  reminderSettings: jsonb("reminder_settings").default({
+    email: true,
+    daysBefore: [1, 7],
+    hoursBefore: [2]
+  }),
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Email Notifications
+export const meetingEmailNotifications = pgTable("meeting_email_notifications", {
+  id: serial("id").primaryKey(),
+  meetingId: integer("meeting_id").references(() => meetings.id).notNull(),
+  type: emailNotificationTypeEnum("type").notNull(),
+  recipientEmail: varchar("recipient_email", { length: 255 }).notNull(),
+  sentAt: timestamp("sent_at"),
+  scheduledAt: timestamp("scheduled_at").notNull(),
+  status: emailNotificationStatusEnum("status").default("pending"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Meeting Relations
 export const meetingsRelations = relations(meetings, ({ one, many }) => ({
   organizer: one(users, {
@@ -1413,6 +1445,17 @@ export const insertMeetingTaskSchema = createInsertSchema(meetingTasks).omit({
   updatedAt: true,
 });
 
+export const insertMeetingTemplateSchema = createInsertSchema(meetingTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMeetingEmailNotificationSchema = createInsertSchema(meetingEmailNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Meeting Types
 export type Meeting = typeof meetings.$inferSelect;
 export type InsertMeeting = z.infer<typeof insertMeetingSchema>;
@@ -1422,3 +1465,7 @@ export type MeetingNote = typeof meetingNotes.$inferSelect;
 export type InsertMeetingNote = z.infer<typeof insertMeetingNoteSchema>;
 export type MeetingTask = typeof meetingTasks.$inferSelect;
 export type InsertMeetingTask = z.infer<typeof insertMeetingTaskSchema>;
+export type MeetingTemplate = typeof meetingTemplates.$inferSelect;
+export type InsertMeetingTemplate = z.infer<typeof insertMeetingTemplateSchema>;
+export type MeetingEmailNotification = typeof meetingEmailNotifications.$inferSelect;
+export type InsertMeetingEmailNotification = z.infer<typeof insertMeetingEmailNotificationSchema>;

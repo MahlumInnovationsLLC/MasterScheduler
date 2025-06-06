@@ -25,6 +25,8 @@ import {
   meetingAttendees,
   meetingNotes,
   meetingTasks,
+  meetingTemplates,
+  meetingEmailNotifications,
   type User,
   type InsertUser,
   type Project,
@@ -73,6 +75,10 @@ import {
   type InsertMeetingNote,
   type MeetingTask,
   type InsertMeetingTask,
+  type MeetingTemplate,
+  type InsertMeetingTemplate,
+  type MeetingEmailNotification,
+  type InsertMeetingEmailNotification,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or, inArray, ne } from "drizzle-orm";
