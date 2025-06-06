@@ -1,0 +1,71 @@
+To get access token you have to send the request data as form-url-encoded
+
+Method
+POST
+
+Endpoint
+https://api.mailpro.com/v3/token
+
+Sample Request
+
+private static string _accessToken, _refreshToken;
+private static DateTime _tokenExpiration;
+private static readonly HttpClient _client = new HttpClient();
+
+public static async Task GetTokenAsync()
+{
+    if (!string.IsNullOrEmpty(_accessToken) && DateTime.UtcNow < _tokenExpiration) return _accessToken;
+    if (!string.IsNullOrEmpty(_refreshToken) && await RefreshTokenAsync()) return _accessToken;
+    return await RequestNewTokenAsync();
+}
+
+private static async Task RequestNewTokenAsync()
+{
+    var request = new HttpRequestMessage(HttpMethod.Post, "https://api.mailpro.com/v3/token")
+    {
+        Headers = { { "accept", "application/json" } },
+        Content = new FormUrlEncodedContent(new Dictionary
+        {
+            { "grant_type", "password" },
+            { "username", "*your_username*" },
+            { "password", "*your_api_password*" }
+        })
+    };
+
+    var response = await _client.SendAsync(request);
+    response.EnsureSuccessStatusCode();
+    var json = JObject.Parse(await response.Content.ReadAsStringAsync());
+
+    _accessToken = json["access_token"]?.ToString();
+    _refreshToken = json["refresh_token"]?.ToString();
+    _tokenExpiration = DateTime.UtcNow.AddSeconds(json["expires_in"]?.ToObject() ?? 3600);
+
+    Debug.WriteLine($"New Token: {_accessToken}");
+    return _accessToken;
+}
+
+private static async Task RefreshTokenAsync()
+{
+    var request = new HttpRequestMessage(HttpMethod.Post, "https://api.mailpro.com/v3/token")
+    {
+        Headers = { { "accept", "application/json" } },
+        Content = new FormUrlEncodedContent(new Dictionary
+        {
+            { "grant_type", "refresh_token" },
+            { "refresh_token", _refreshToken }
+        })
+    };
+
+    var response = await _client.SendAsync(request);
+    if (!response.IsSuccessStatusCode) return false;
+
+    var json = JObject.Parse(await response.Content.ReadAsStringAsync());
+    _accessToken = json["access_token"]?.ToString();
+    _refreshToken = json["refresh_token"]?.ToString();
+    _tokenExpiration = DateTime.UtcNow.AddSeconds(json["expires_in"]?.ToObject() ?? 3600);
+
+    Debug.WriteLine($"Refreshed Token: {_accessToken}");
+    return true;
+}
+
+

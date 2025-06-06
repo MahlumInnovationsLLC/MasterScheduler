@@ -5,25 +5,69 @@ interface EmailOptions {
   from?: string;
 }
 
+// Cache for access token
+let accessToken: string | null = null;
+let tokenExpiration: Date | null = null;
+
+async function getAccessToken(): Promise<string> {
+  // Check if we have a valid token
+  if (accessToken && tokenExpiration && new Date() < tokenExpiration) {
+    return accessToken;
+  }
+
+  const username = process.env.NOMAD_MAILPRO_USERNAME;
+  const password = process.env.NOMAD_MAILPRO_API_KEY;
+
+  if (!username || !password) {
+    throw new Error('NOMAD_MAILPRO_USERNAME and NOMAD_MAILPRO_API_KEY are required');
+  }
+
+  // Request new token
+  const tokenResponse = await fetch('https://api.mailpro.com/v3/token', {
+    method: 'POST',
+    headers: {
+      'accept': 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      'grant_type': 'password',
+      'username': username,
+      'password': password,
+    }),
+  });
+
+  if (!tokenResponse.ok) {
+    const errorData = await tokenResponse.text();
+    throw new Error(`Token request failed: ${tokenResponse.status} - ${errorData}`);
+  }
+
+  const tokenData = await tokenResponse.json();
+  accessToken = tokenData.access_token;
+  const expiresIn = tokenData.expires_in || 3600;
+  tokenExpiration = new Date(Date.now() + (expiresIn * 1000));
+
+  console.log('📧 Successfully obtained MailPro access token');
+  return accessToken;
+}
+
 export async function sendEmail({ to, subject, html, from = 'noreply@nomadgcs.com' }: EmailOptions) {
   try {
-    const apiKey = process.env.NOMAD_MAILPRO_API_KEY;
     const apiEndpoint = process.env.NOMAD_MAILPRO_API_ENDPOINT;
     
-    if (!apiKey) {
-      throw new Error('NOMAD_MAILPRO_API_KEY is not configured');
-    }
-
     if (!apiEndpoint) {
       throw new Error('NOMAD_MAILPRO_API_ENDPOINT is not configured');
     }
 
-    // Use fetch to make HTTP request to NOMAD_MAILPRO API
+    // Get access token
+    const token = await getAccessToken();
+
+    // Send email using the access token
     const response = await fetch(apiEndpoint, {
       method: 'POST',
       headers: {
-        'X-API-Key': apiKey,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
+        'accept': 'application/json',
       },
       body: JSON.stringify({
         to,
