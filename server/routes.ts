@@ -4586,6 +4586,13 @@ Response format:
   app.post("/api/meeting-tasks", simpleAuth, validateRequest(insertMeetingTaskSchema), async (req, res) => {
     try {
       const task = await storage.createMeetingTask(req.body);
+
+      // Trigger project sync if meeting task is linked to a project
+      if (task.projectId) {
+        const { projectMeetingSyncService } = await import('./services/projectMeetingSync');
+        await projectMeetingSyncService.syncMeetingTaskToProject(task);
+      }
+      
       res.status(201).json(task);
     } catch (error) {
       console.error("Error creating meeting task:", error);
@@ -4596,10 +4603,17 @@ Response format:
   app.put("/api/meeting-tasks/:id", simpleAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      const oldTask = await storage.getMeetingTask(id);
       const task = await storage.updateMeetingTask(id, req.body);
       
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
+      }
+
+      // Trigger project sync if status changed and task is linked to a project
+      if (oldTask && task.projectId && oldTask.status !== task.status) {
+        const { projectMeetingSyncService } = await import('./services/projectMeetingSync');
+        await projectMeetingSyncService.handleMeetingTaskStatusChange(task.id, task.status);
       }
       
       res.json(task);

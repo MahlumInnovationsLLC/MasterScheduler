@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Edit, Save, Plus, X, CheckCircle, Circle, Calendar, Clock, MapPin, Users, FileText, Download } from "lucide-react";
+import { ArrowLeft, Edit, Save, Plus, X, CheckCircle, Circle, Calendar, Clock, MapPin, Users, FileText, Download, LinkIcon } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
+import { ProjectLinkDialog } from "@/components/meetings/ProjectLinkDialog";
+import type { Meeting, MeetingNote, MeetingTask, Project } from "@shared/schema";
 
 interface Meeting {
   id: number;
