@@ -21,6 +21,10 @@ import {
   projectMilestoneIcons,
   userModuleVisibility,
   projectForensics,
+  meetings,
+  meetingAttendees,
+  meetingNotes,
+  meetingTasks,
   type User,
   type InsertUser,
   type Project,
@@ -61,6 +65,14 @@ import {
   type InsertProjectSupplyChainBenchmark,
   type ProjectForensics,
   type InsertProjectForensics,
+  type Meeting,
+  type InsertMeeting,
+  type MeetingAttendee,
+  type InsertMeetingAttendee,
+  type MeetingNote,
+  type InsertMeetingNote,
+  type MeetingTask,
+  type InsertMeetingTask,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or, inArray, ne } from "drizzle-orm";
@@ -282,6 +294,33 @@ export interface IStorage {
   getProjectForensics(projectId: number, limit?: number, offset?: number): Promise<ProjectForensics[]>;
   getEntityForensics(projectId: number, entityType: string, entityId: number): Promise<ProjectForensics[]>;
   createProjectForensics(forensics: InsertProjectForensics): Promise<ProjectForensics>;
+
+  // Meeting methods
+  getMeetings(): Promise<Meeting[]>;
+  getMeeting(id: number): Promise<Meeting | undefined>;
+  createMeeting(meeting: InsertMeeting): Promise<Meeting>;
+  updateMeeting(id: number, meeting: Partial<InsertMeeting>): Promise<Meeting | undefined>;
+  deleteMeeting(id: number): Promise<boolean>;
+
+  // Meeting Attendees methods
+  getMeetingAttendees(meetingId: number): Promise<MeetingAttendee[]>;
+  addMeetingAttendee(attendee: InsertMeetingAttendee): Promise<MeetingAttendee>;
+  removeMeetingAttendee(meetingId: number, userId: string): Promise<boolean>;
+  updateAttendeeStatus(meetingId: number, userId: string, attended: boolean): Promise<MeetingAttendee | undefined>;
+
+  // Meeting Notes methods
+  getMeetingNotes(meetingId: number): Promise<MeetingNote[]>;
+  createMeetingNote(note: InsertMeetingNote): Promise<MeetingNote>;
+  updateMeetingNote(id: number, note: Partial<InsertMeetingNote>): Promise<MeetingNote | undefined>;
+  deleteMeetingNote(id: number): Promise<boolean>;
+
+  // Meeting Tasks methods
+  getMeetingTasks(meetingId?: number): Promise<MeetingTask[]>;
+  getMeetingTask(id: number): Promise<MeetingTask | undefined>;
+  createMeetingTask(task: InsertMeetingTask): Promise<MeetingTask>;
+  updateMeetingTask(id: number, task: Partial<InsertMeetingTask>): Promise<MeetingTask | undefined>;
+  deleteMeetingTask(id: number): Promise<boolean>;
+  getUserMeetingTasks(userId: string): Promise<MeetingTask[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3087,6 +3126,196 @@ export class DatabaseStorage implements IStorage {
       console.error("Error creating project forensics:", error);
       throw error;
     }
+  }
+
+  // Meeting methods implementation
+  async getMeetings(): Promise<Meeting[]> {
+    return await safeQuery<Meeting>(() =>
+      db.select().from(meetings).orderBy(desc(meetings.datetime))
+    );
+  }
+
+  async getMeeting(id: number): Promise<Meeting | undefined> {
+    return await safeSingleQuery<Meeting>(() =>
+      db.select().from(meetings).where(eq(meetings.id, id))
+    );
+  }
+
+  async createMeeting(meeting: InsertMeeting): Promise<Meeting> {
+    try {
+      const [newMeeting] = await db.insert(meetings).values(meeting).returning();
+      return newMeeting;
+    } catch (error) {
+      console.error("Error creating meeting:", error);
+      throw error;
+    }
+  }
+
+  async updateMeeting(id: number, meeting: Partial<InsertMeeting>): Promise<Meeting | undefined> {
+    try {
+      const [updatedMeeting] = await db.update(meetings)
+        .set({ ...meeting, updatedAt: new Date() })
+        .where(eq(meetings.id, id))
+        .returning();
+      return updatedMeeting;
+    } catch (error) {
+      console.error("Error updating meeting:", error);
+      return undefined;
+    }
+  }
+
+  async deleteMeeting(id: number): Promise<boolean> {
+    try {
+      // Delete related data first
+      await db.delete(meetingTasks).where(eq(meetingTasks.meetingId, id));
+      await db.delete(meetingNotes).where(eq(meetingNotes.meetingId, id));
+      await db.delete(meetingAttendees).where(eq(meetingAttendees.meetingId, id));
+      await db.delete(meetings).where(eq(meetings.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting meeting:", error);
+      return false;
+    }
+  }
+
+  // Meeting Attendees methods
+  async getMeetingAttendees(meetingId: number): Promise<MeetingAttendee[]> {
+    return await safeQuery<MeetingAttendee>(() =>
+      db.select().from(meetingAttendees).where(eq(meetingAttendees.meetingId, meetingId))
+    );
+  }
+
+  async addMeetingAttendee(attendee: InsertMeetingAttendee): Promise<MeetingAttendee> {
+    try {
+      const [newAttendee] = await db.insert(meetingAttendees).values(attendee).returning();
+      return newAttendee;
+    } catch (error) {
+      console.error("Error adding meeting attendee:", error);
+      throw error;
+    }
+  }
+
+  async removeMeetingAttendee(meetingId: number, userId: string): Promise<boolean> {
+    try {
+      await db.delete(meetingAttendees)
+        .where(and(eq(meetingAttendees.meetingId, meetingId), eq(meetingAttendees.userId, userId)));
+      return true;
+    } catch (error) {
+      console.error("Error removing meeting attendee:", error);
+      return false;
+    }
+  }
+
+  async updateAttendeeStatus(meetingId: number, userId: string, attended: boolean): Promise<MeetingAttendee | undefined> {
+    try {
+      const [updatedAttendee] = await db.update(meetingAttendees)
+        .set({ attended })
+        .where(and(eq(meetingAttendees.meetingId, meetingId), eq(meetingAttendees.userId, userId)))
+        .returning();
+      return updatedAttendee;
+    } catch (error) {
+      console.error("Error updating attendee status:", error);
+      return undefined;
+    }
+  }
+
+  // Meeting Notes methods
+  async getMeetingNotes(meetingId: number): Promise<MeetingNote[]> {
+    return await safeQuery<MeetingNote>(() =>
+      db.select().from(meetingNotes).where(eq(meetingNotes.meetingId, meetingId))
+        .orderBy(meetingNotes.createdAt)
+    );
+  }
+
+  async createMeetingNote(note: InsertMeetingNote): Promise<MeetingNote> {
+    try {
+      const [newNote] = await db.insert(meetingNotes).values(note).returning();
+      return newNote;
+    } catch (error) {
+      console.error("Error creating meeting note:", error);
+      throw error;
+    }
+  }
+
+  async updateMeetingNote(id: number, note: Partial<InsertMeetingNote>): Promise<MeetingNote | undefined> {
+    try {
+      const [updatedNote] = await db.update(meetingNotes)
+        .set({ ...note, updatedAt: new Date() })
+        .where(eq(meetingNotes.id, id))
+        .returning();
+      return updatedNote;
+    } catch (error) {
+      console.error("Error updating meeting note:", error);
+      return undefined;
+    }
+  }
+
+  async deleteMeetingNote(id: number): Promise<boolean> {
+    try {
+      await db.delete(meetingNotes).where(eq(meetingNotes.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting meeting note:", error);
+      return false;
+    }
+  }
+
+  // Meeting Tasks methods
+  async getMeetingTasks(meetingId?: number): Promise<MeetingTask[]> {
+    return await safeQuery<MeetingTask>(() => {
+      const query = db.select().from(meetingTasks);
+      if (meetingId) {
+        return query.where(eq(meetingTasks.meetingId, meetingId)).orderBy(meetingTasks.createdAt);
+      }
+      return query.orderBy(desc(meetingTasks.createdAt));
+    });
+  }
+
+  async getMeetingTask(id: number): Promise<MeetingTask | undefined> {
+    return await safeSingleQuery<MeetingTask>(() =>
+      db.select().from(meetingTasks).where(eq(meetingTasks.id, id))
+    );
+  }
+
+  async createMeetingTask(task: InsertMeetingTask): Promise<MeetingTask> {
+    try {
+      const [newTask] = await db.insert(meetingTasks).values(task).returning();
+      return newTask;
+    } catch (error) {
+      console.error("Error creating meeting task:", error);
+      throw error;
+    }
+  }
+
+  async updateMeetingTask(id: number, task: Partial<InsertMeetingTask>): Promise<MeetingTask | undefined> {
+    try {
+      const [updatedTask] = await db.update(meetingTasks)
+        .set({ ...task, updatedAt: new Date() })
+        .where(eq(meetingTasks.id, id))
+        .returning();
+      return updatedTask;
+    } catch (error) {
+      console.error("Error updating meeting task:", error);
+      return undefined;
+    }
+  }
+
+  async deleteMeetingTask(id: number): Promise<boolean> {
+    try {
+      await db.delete(meetingTasks).where(eq(meetingTasks.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting meeting task:", error);
+      return false;
+    }
+  }
+
+  async getUserMeetingTasks(userId: string): Promise<MeetingTask[]> {
+    return await safeQuery<MeetingTask>(() =>
+      db.select().from(meetingTasks)
+        .where(eq(meetingTasks.assignedToId, userId))
+        .orderBy(meetingTasks.dueDate, desc(meetingTasks.createdAt))
+    );
   }
 }
 

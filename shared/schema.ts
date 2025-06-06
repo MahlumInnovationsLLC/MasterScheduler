@@ -106,7 +106,25 @@ export const notificationPriorityEnum = pgEnum("notification_priority", [
   "critical",
 ]);
 
+// Meeting enums
+export const meetingStatusEnum = pgEnum("meeting_status", [
+  "scheduled",
+  "in_progress", 
+  "completed",
+  "cancelled",
+]);
 
+export const taskPriorityEnum = pgEnum("task_priority", [
+  "low",
+  "medium",
+  "high",
+]);
+
+export const taskStatusEnum = pgEnum("task_status", [
+  "pending",
+  "in_progress", 
+  "completed",
+]);
 
 export const delayResponsibilityEnum = pgEnum("delay_responsibility", [
   "nomad_fault",
@@ -1266,3 +1284,123 @@ export const insertProjectForensicsSchema = createInsertSchema(projectForensics)
 // Type definitions for project forensics
 export type ProjectForensics = typeof projectForensics.$inferSelect;
 export type InsertProjectForensics = z.infer<typeof insertProjectForensicsSchema>;
+
+// Meetings Module Tables
+export const meetings = pgTable("meetings", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  datetime: timestamp("datetime").notNull(),
+  location: text("location"),
+  virtualLink: text("virtual_link"),
+  organizerId: varchar("organizer_id").references(() => users.id).notNull(),
+  status: meetingStatusEnum("status").default("scheduled"),
+  agenda: text("agenda").array().default([]),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const meetingAttendees = pgTable("meeting_attendees", {
+  id: serial("id").primaryKey(),
+  meetingId: integer("meeting_id").references(() => meetings.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  attended: boolean("attended").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  unique().on(table.meetingId, table.userId)
+]);
+
+export const meetingNotes = pgTable("meeting_notes", {
+  id: serial("id").primaryKey(),
+  meetingId: integer("meeting_id").references(() => meetings.id).notNull(),
+  agendaItem: text("agenda_item").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const meetingTasks = pgTable("meeting_tasks", {
+  id: serial("id").primaryKey(),
+  meetingId: integer("meeting_id").references(() => meetings.id).notNull(),
+  description: text("description").notNull(),
+  assignedToId: varchar("assigned_to_id").references(() => users.id).notNull(),
+  dueDate: date("due_date"),
+  priority: taskPriorityEnum("priority").default("medium"),
+  status: taskStatusEnum("status").default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Meeting Relations
+export const meetingsRelations = relations(meetings, ({ one, many }) => ({
+  organizer: one(users, {
+    fields: [meetings.organizerId],
+    references: [users.id],
+  }),
+  attendees: many(meetingAttendees),
+  notes: many(meetingNotes),
+  tasks: many(meetingTasks),
+}));
+
+export const meetingAttendeesRelations = relations(meetingAttendees, ({ one }) => ({
+  meeting: one(meetings, {
+    fields: [meetingAttendees.meetingId],
+    references: [meetings.id],
+  }),
+  user: one(users, {
+    fields: [meetingAttendees.userId],
+    references: [users.id],
+  }),
+}));
+
+export const meetingNotesRelations = relations(meetingNotes, ({ one }) => ({
+  meeting: one(meetings, {
+    fields: [meetingNotes.meetingId],
+    references: [meetings.id],
+  }),
+}));
+
+export const meetingTasksRelations = relations(meetingTasks, ({ one }) => ({
+  meeting: one(meetings, {
+    fields: [meetingTasks.meetingId],
+    references: [meetings.id],
+  }),
+  assignedTo: one(users, {
+    fields: [meetingTasks.assignedToId],
+    references: [users.id],
+  }),
+}));
+
+// Meeting Insert Schemas
+export const insertMeetingSchema = createInsertSchema(meetings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMeetingAttendeeSchema = createInsertSchema(meetingAttendees).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMeetingNoteSchema = createInsertSchema(meetingNotes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMeetingTaskSchema = createInsertSchema(meetingTasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Meeting Types
+export type Meeting = typeof meetings.$inferSelect;
+export type InsertMeeting = z.infer<typeof insertMeetingSchema>;
+export type MeetingAttendee = typeof meetingAttendees.$inferSelect;
+export type InsertMeetingAttendee = z.infer<typeof insertMeetingAttendeeSchema>;
+export type MeetingNote = typeof meetingNotes.$inferSelect;
+export type InsertMeetingNote = z.infer<typeof insertMeetingNoteSchema>;
+export type MeetingTask = typeof meetingTasks.$inferSelect;
+export type InsertMeetingTask = z.infer<typeof insertMeetingTaskSchema>;
