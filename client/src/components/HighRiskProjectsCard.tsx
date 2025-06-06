@@ -377,17 +377,16 @@ function getCurrentPhase(project: any, today: Date): string {
     actualEndDate.setHours(0, 0, 0, 0);
     
     // Check if project hasn't started
-    if (today < startDate) return "Not Started";
+    if (today < startDate) return "Pre-Production";
     
     // Check if project has shipped
     if (today >= actualEndDate) return "Shipped";
     
-    // Calculate position within timeline (same logic as visual calculation)
-    const totalDays = (actualEndDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-    const daysSinceStart = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-    const progressPercent = (daysSinceStart / totalDays) * 100;
+    // Calculate the exact position of today within the project timeline (matching visual calculation)
+    const totalDays = Math.ceil((actualEndDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    // Use actual project percentages (matching visual timeline)
+    // Get phase percentages with normalization (matching visual timeline logic)
     const fabPercent = parseFloat(project.fabPercentage || '27');
     const paintPercent = parseFloat(project.paintPercentage || '7');
     const prodPercent = parseFloat(project.productionPercentage || '60');
@@ -395,23 +394,45 @@ function getCurrentPhase(project: any, today: Date): string {
     const ntcPercent = parseFloat(project.ntcPercentage || '7');
     const qcPercent = parseFloat(project.qcPercentage || '7');
     
-    let cumulativePercent = 0;
+    // Calculate total and normalize (matching visual calculation)
+    const totalPercentages = fabPercent + paintPercent + prodPercent + itPercent + ntcPercent + qcPercent;
+    const normalizeFactor = totalPercentages === 100 ? 1 : 100 / totalPercentages;
     
-    cumulativePercent += fabPercent;
-    if (progressPercent < cumulativePercent) return "Fabrication";
+    // Calculate phase durations in days (matching visual phase width calculation)
+    const fabDays = Math.floor(totalDays * ((fabPercent * normalizeFactor) / 100));
+    const paintDays = Math.floor(totalDays * ((paintPercent * normalizeFactor) / 100));
+    const prodDays = Math.floor(totalDays * ((prodPercent * normalizeFactor) / 100));
+    const itDays = Math.floor(totalDays * ((itPercent * normalizeFactor) / 100));
+    const ntcDays = Math.floor(totalDays * ((ntcPercent * normalizeFactor) / 100));
     
-    cumulativePercent += paintPercent;
-    if (progressPercent < cumulativePercent) return "Paint";
+    // QC gets the remainder (matching visual calculation)
+    const usedDays = fabDays + paintDays + prodDays + itDays + ntcDays;
+    const qcDays = totalDays - usedDays;
     
-    cumulativePercent += prodPercent;
-    if (progressPercent < cumulativePercent) return "Production";
+    // Determine which phase the current day falls into (matching visual positioning)
+    let cumulativeDays = 0;
     
-    cumulativePercent += itPercent;
-    if (progressPercent < cumulativePercent) return "IT Integration";
+    // FAB phase
+    cumulativeDays += fabDays;
+    if (daysSinceStart < cumulativeDays) return "Fabrication";
     
-    cumulativePercent += ntcPercent;
-    if (progressPercent < cumulativePercent) return "NTC Testing";
+    // PAINT phase
+    cumulativeDays += paintDays;
+    if (daysSinceStart < cumulativeDays) return "Paint";
     
+    // PRODUCTION phase
+    cumulativeDays += prodDays;
+    if (daysSinceStart < cumulativeDays) return "Production";
+    
+    // IT phase
+    cumulativeDays += itDays;
+    if (daysSinceStart < cumulativeDays) return "IT Integration";
+    
+    // NTC phase
+    cumulativeDays += ntcDays;
+    if (daysSinceStart < cumulativeDays) return "NTC Testing";
+    
+    // QC phase (everything else)
     return "QC";
   }
   
