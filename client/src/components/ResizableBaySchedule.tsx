@@ -4078,12 +4078,12 @@ export default function ResizableBaySchedule({
                               style={{
                                 left: `${bar.left}px`,
                                 width: `${Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0))}px`, // Ensure width accommodates all phases
-                                height: '72px', // Exact height to match gray row
+                                height: isSalesEstimate ? '190px' : '72px', // Extended height for sales estimates to cover all phases
                                 backgroundColor: isSalesEstimate ? '#fbbf2460' : `${bar.color}25`, // Yellow background for sales estimates
                                 boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : 'none', // Yellow glow for sales estimates
                                 border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : 'none', // Yellow border for sales estimates
-                                // Position at the top of the row
-                                top: '0', // Aligned with top of row
+                                // Position to cover both upper and lower phases for sales estimates
+                                top: isSalesEstimate ? '-90px' : '0', // Start from bottom phases for sales estimates
                                 // Set data attributes for department phase percentages 
                                 // Store important info for drag/resize operations
                               }}
