@@ -23,7 +23,7 @@ const createTransporter = () => {
   });
 };
 
-export async function sendEmail({ to, subject, html, from = 'US256790@smtp.mailpro.com' }: EmailOptions) {
+export async function sendEmail({ to, subject, html, from = 'colter@mahluminnovations.com' }: EmailOptions) {
   try {
     const transporter = createTransporter();
 
