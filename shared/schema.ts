@@ -744,6 +744,24 @@ export const moduleEnum = pgEnum("module", [
   "system-settings",
   "dashboard",
   "notifications",
+  "meetings",
+]);
+
+// Email notification type enum
+export const emailNotificationTypeEnum = pgEnum("email_notification_type", [
+  "reminder",
+  "invitation",
+  "update", 
+  "task_due",
+  "task_assigned",
+]);
+
+// Email notification status enum
+export const emailNotificationStatusEnum = pgEnum("email_notification_status", [
+  "pending",
+  "sent",
+  "failed",
+  "cancelled",
 ]);
 
 // User-specific permissions table - For per-user module access control
