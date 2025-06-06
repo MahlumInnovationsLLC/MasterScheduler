@@ -233,20 +233,6 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                           <p className="text-xs text-muted-foreground truncate">
                             {project.name}
                           </p>
-                          <div className="flex items-center mt-1">
-                            <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded 
-                            ${project.currentPhase === 'Pre-Production' || !project.currentPhase ? 'dark:bg-amber-500/20 bg-amber-100 dark:text-amber-500 text-amber-800' : 
-                              project.currentPhase === 'Fabrication' ? 'dark:bg-blue-500/20 bg-blue-100 dark:text-blue-500 text-blue-800' :
-                              project.currentPhase === 'Paint' ? 'dark:bg-purple-500/20 bg-purple-100 dark:text-purple-500 text-purple-800' :
-                              project.currentPhase === 'Production' ? 'dark:bg-green-500/20 bg-green-100 dark:text-green-500 text-green-800' :
-                              project.currentPhase === 'IT Integration' ? 'dark:bg-cyan-500/20 bg-cyan-100 dark:text-cyan-500 text-cyan-800' :
-                              project.currentPhase === 'NTC Testing' ? 'dark:bg-orange-500/20 bg-orange-100 dark:text-orange-500 text-orange-800' :
-                              project.currentPhase === 'QC' ? 'dark:bg-rose-500/20 bg-rose-100 dark:text-rose-500 text-rose-800' :
-                              'dark:bg-blue-500/20 bg-blue-100 dark:text-blue-500 text-blue-800'
-                            }`}>
-                              {project.currentPhase || 'Upcoming'}
-                            </span>
-                          </div>
                         </div>
                         
                         <div className="text-center">
