@@ -27,6 +27,7 @@ import { exportReport } from "./routes/export";
 import { hashPassword } from "./auth";
 import { sendEmail, generatePasswordResetEmail } from "./email";
 import { randomBytes } from "crypto";
+import { trackChanges, createForensicsRecord, getForensicsContext } from "./forensics";
 // Removed Replit auth - using simple local auth bypass
 
 import { 
