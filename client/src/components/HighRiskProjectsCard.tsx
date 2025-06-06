@@ -106,19 +106,29 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
     return sortedResults;
   }, [projects, manufacturingSchedules, manufacturingBays]);
   
-  // Upcoming NTC or QC dates in the next 2 weeks
+  // Upcoming NTC or QC dates in the next 2 weeks (filtered to exclude projects past QC)
   const upcomingNtcQcProjects = React.useMemo(() => {
     if (!projects) return [];
     
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const twoWeeksLater = new Date();
     twoWeeksLater.setDate(today.getDate() + 14);
+    twoWeeksLater.setHours(23, 59, 59, 999);
     
     // Filter projects with NTC testing or QC start dates in the next 2 weeks
     return projects
       .filter(project => {
         const ntcDate = project.ntcTestingDate ? new Date(project.ntcTestingDate) : null;
         const qcDate = project.qcStartDate ? new Date(project.qcStartDate) : null;
+        
+        // Filter out projects that are past their QC date
+        if (qcDate) {
+          qcDate.setHours(0, 0, 0, 0);
+          if (today > qcDate) {
+            return false; // Exclude projects past QC date
+          }
+        }
         
         return (
           (ntcDate && ntcDate >= today && ntcDate <= twoWeeksLater) ||
@@ -150,11 +160,11 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
 
   // Helper function to get displayed items
   const getDisplayedActiveProjects = () => {
-    return isActiveExpanded ? activeManufacturingProjects : activeManufacturingProjects.slice(0, 3);
+    return isActiveExpanded ? activeManufacturingProjects : activeManufacturingProjects.slice(0, 5);
   };
 
   const getDisplayedUpcomingProjects = () => {
-    return isUpcomingExpanded ? upcomingNtcQcProjects : upcomingNtcQcProjects.slice(0, 3);
+    return isUpcomingExpanded ? upcomingNtcQcProjects : upcomingNtcQcProjects.slice(0, 5);
   };
   
   return (
@@ -179,16 +189,16 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
             No active projects or upcoming NTC/QC dates
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Today's Active Projects Section */}
+          <div className="space-y-4">
+            {/* Active Projects with NTC/QC Columns */}
             {activeCount > 0 && (
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <h4 className="text-xs font-semibold text-muted-foreground flex items-center">
-                    <Wrench className="h-3 w-3 mr-1" /> 
-                    Active & Upcoming Projects (Next 14 Days)
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-muted-foreground flex items-center">
+                    <Wrench className="h-4 w-4 mr-2" /> 
+                    Active & Upcoming Projects ({activeCount})
                   </h4>
-                  {activeCount > 3 && (
+                  {activeCount > 5 && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -203,53 +213,79 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                     </Button>
                   )}
                 </div>
-                <ul className="divide-y divide-border">
-                  {getDisplayedActiveProjects().map((project: any) => (
-                    <li key={project.id} className="py-2">
-                      <div className="flex items-start">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium line-clamp-1">
+                
+                <div className="bg-card/50 rounded-lg p-3">
+                  {/* Column Headers */}
+                  <div className="grid grid-cols-4 gap-3 text-xs font-medium text-muted-foreground mb-3 px-2 border-b border-border pb-2">
+                    <div className="col-span-2">Project</div>
+                    <div className="text-center">Days to NTC</div>
+                    <div className="text-center">Days to QC</div>
+                  </div>
+                  
+                  {/* Project Rows */}
+                  <div className="space-y-2">
+                    {getDisplayedActiveProjects().map((project: any) => (
+                      <div key={project.id} className="grid grid-cols-4 gap-3 items-center py-2 px-2 rounded-md bg-background/60 hover:bg-background/80 transition-colors">
+                        <div className="col-span-2 flex flex-col min-w-0">
+                          <p className="text-sm font-medium truncate">
                             {project.projectNumber}
                           </p>
-                          <p className="text-xs text-muted-foreground line-clamp-1">
+                          <p className="text-xs text-muted-foreground truncate">
                             {project.name}
                           </p>
-                          <div className="flex items-center mt-1 text-xs dark:text-blue-500 text-blue-700">
-                            <LayoutGrid className="h-3 w-3 mr-1" />
-                            <span>{project.teamName || project.bayName}</span>
+                          <div className="flex items-center mt-1">
+                            <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded 
+                            ${project.currentPhase === 'Pre-Production' || !project.currentPhase ? 'dark:bg-amber-500/20 bg-amber-100 dark:text-amber-500 text-amber-800' : 
+                              project.currentPhase === 'Fabrication' ? 'dark:bg-blue-500/20 bg-blue-100 dark:text-blue-500 text-blue-800' :
+                              project.currentPhase === 'Paint' ? 'dark:bg-purple-500/20 bg-purple-100 dark:text-purple-500 text-purple-800' :
+                              project.currentPhase === 'Production' ? 'dark:bg-green-500/20 bg-green-100 dark:text-green-500 text-green-800' :
+                              project.currentPhase === 'IT Integration' ? 'dark:bg-cyan-500/20 bg-cyan-100 dark:text-cyan-500 text-cyan-800' :
+                              project.currentPhase === 'NTC Testing' ? 'dark:bg-orange-500/20 bg-orange-100 dark:text-orange-500 text-orange-800' :
+                              project.currentPhase === 'QC' ? 'dark:bg-rose-500/20 bg-rose-100 dark:text-rose-500 text-rose-800' :
+                              'dark:bg-blue-500/20 bg-blue-100 dark:text-blue-500 text-blue-800'
+                            }`}>
+                              {project.currentPhase || 'Upcoming'}
+                            </span>
                           </div>
                         </div>
-                        <div className="ml-2 flex items-center">
-                          <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded 
-                          ${project.currentPhase === 'Pre-Production' || !project.currentPhase ? 'dark:bg-amber-500/20 bg-amber-100 dark:text-amber-500 text-amber-800 border border-amber-300' : 
-                            project.currentPhase === 'Fabrication' ? 'dark:bg-blue-500/20 bg-blue-100 dark:text-blue-500 text-blue-800 border border-blue-300' :
-                            project.currentPhase === 'Paint' ? 'dark:bg-purple-500/20 bg-purple-100 dark:text-purple-500 text-purple-800 border border-purple-300' :
-                            project.currentPhase === 'Production' ? 'dark:bg-green-500/20 bg-green-100 dark:text-green-500 text-green-800 border border-green-300' :
-                            project.currentPhase === 'IT Integration' ? 'dark:bg-cyan-500/20 bg-cyan-100 dark:text-cyan-500 text-cyan-800 border border-cyan-300' :
-                            project.currentPhase === 'NTC Testing' ? 'dark:bg-orange-500/20 bg-orange-100 dark:text-orange-500 text-orange-800 border border-orange-300' :
-                            project.currentPhase === 'QC' ? 'dark:bg-rose-500/20 bg-rose-100 dark:text-rose-500 text-rose-800 border border-rose-300' :
-                            'dark:bg-blue-500/20 bg-blue-100 dark:text-blue-500 text-blue-800 border border-blue-300'
-                          }`}>
-                            <Activity className="h-3 w-3 mr-1" />
-                            {project.currentPhase || 'Upcoming'}
-                          </span>
+                        
+                        <div className="text-center">
+                          {project.ntcTestingDate ? (
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded dark:bg-orange-500/20 bg-orange-100 dark:text-orange-500 text-orange-800 border border-orange-300">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {getDaysUntilDate(project.ntcTestingDate)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </div>
+                        
+                        <div className="text-center">
+                          {project.qcStartDate ? (
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded dark:bg-rose-500/20 bg-rose-100 dark:text-rose-500 text-rose-800 border border-rose-300">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {getDaysUntilDate(project.qcStartDate)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
                         </div>
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
             
             {/* Upcoming NTC/QC Dates Section */}
             {upcomingCount > 0 && (
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <h4 className="text-xs font-semibold text-muted-foreground flex items-center">
-                    <Calendar className="h-3 w-3 mr-1" /> 
-                    Upcoming NTC/QC Dates (2 Weeks)
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-muted-foreground flex items-center">
+                    <Calendar className="h-4 w-4 mr-2" /> 
+                    Upcoming NTC/QC Dates ({upcomingCount})
                   </h4>
-                  {upcomingCount > 3 && (
+                  {upcomingCount > 5 && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -264,45 +300,53 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                     </Button>
                   )}
                 </div>
-                <ul className="divide-y divide-border">
-                  {getDisplayedUpcomingProjects().map((project: Project) => (
-                    <li key={project.id} className="py-2">
-                      <div className="flex items-start">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium line-clamp-1">
+                
+                <div className="bg-card/50 rounded-lg p-3">
+                  {/* Column Headers */}
+                  <div className="grid grid-cols-4 gap-3 text-xs font-medium text-muted-foreground mb-3 px-2 border-b border-border pb-2">
+                    <div className="col-span-2">Project</div>
+                    <div className="text-center">Days to NTC</div>
+                    <div className="text-center">Days to QC</div>
+                  </div>
+                  
+                  {/* Project Rows */}
+                  <div className="space-y-2">
+                    {getDisplayedUpcomingProjects().map((project: Project) => (
+                      <div key={project.id} className="grid grid-cols-4 gap-3 items-center py-2 px-2 rounded-md bg-background/60 hover:bg-background/80 transition-colors">
+                        <div className="col-span-2 flex flex-col min-w-0">
+                          <p className="text-sm font-medium truncate">
                             {project.projectNumber}
                           </p>
-                          <p className="text-xs text-muted-foreground line-clamp-1">
+                          <p className="text-xs text-muted-foreground truncate">
                             {project.name}
                           </p>
-                          <div className="flex items-center mt-1 text-xs dark:text-amber-500 text-amber-700">
-                            <Calendar className="h-3 w-3 mr-1" />
-                            <span>
-                              {project.ntcTestingDate && 
-                                isDateWithinRange(new Date(project.ntcTestingDate)) ? 
-                                `NTC: ${formatDate(project.ntcTestingDate)}` : ''}
-                              {project.ntcTestingDate && project.qcStartDate && 
-                                isDateWithinRange(new Date(project.qcStartDate)) ? 
-                                ' | ' : ''}
-                              {project.qcStartDate && 
-                                isDateWithinRange(new Date(project.qcStartDate)) ? 
-                                `QC: ${formatDate(project.qcStartDate)}` : ''}
-                            </span>
-                          </div>
                         </div>
-                        <div className="ml-2 flex flex-col items-end">
-                          <div className="text-[10px] font-light text-muted-foreground mb-1">
-                            Days Until Ship
-                          </div>
-                          <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded dark:bg-amber-500/20 bg-amber-100 dark:text-amber-500 text-amber-800 border border-amber-300">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {getDaysUntilDate(project.shipDate || project.ntcTestingDate || project.qcStartDate)} days
-                          </span>
+                        
+                        <div className="text-center">
+                          {project.ntcTestingDate && isDateWithinRange(new Date(project.ntcTestingDate)) ? (
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded dark:bg-orange-500/20 bg-orange-100 dark:text-orange-500 text-orange-800 border border-orange-300">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {getDaysUntilDate(project.ntcTestingDate)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </div>
+                        
+                        <div className="text-center">
+                          {project.qcStartDate && isDateWithinRange(new Date(project.qcStartDate)) ? (
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded dark:bg-rose-500/20 bg-rose-100 dark:text-rose-500 text-rose-800 border border-rose-300">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {getDaysUntilDate(project.qcStartDate)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
                         </div>
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
