@@ -32,6 +32,7 @@ import { MilestonesList } from '@/components/MilestonesList';
 import { BillingMilestonesList } from '@/components/BillingMilestonesList';
 import { ProjectCostsList } from '@/components/ProjectCostsList';
 import { ProjectPhaseInfo } from '@/components/ProjectPhaseInfo';
+import { ProjectForensicsWidget } from '@/components/ProjectForensicsWidget';
 import { 
   Dialog, 
   DialogContent, 

@@ -35,7 +35,6 @@ import { useRolePermissions } from '@/hooks/use-role-permissions';
 import { EnhancedDateField } from '@/components/EnhancedDateField';
 import { RoleBasedWrapper } from '@/components/RoleBasedWrapper';
 import { ProjectMilestoneIconsManager } from '@/components/ProjectMilestoneIconsManager';
-import { ProjectForensicsWidget } from '@/components/ProjectForensicsWidget';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -1974,14 +1973,7 @@ function ProjectEdit() {
           </AlertDialog>
         </form>
       </Form>
-      
-      {/* Project Forensics Widget */}
-      <div className="mt-8">
-        <ProjectForensicsWidget 
-          projectId={projectId} 
-          className="border-t pt-8"
-        />
-      </div>
+
     </div>
   );
 }
