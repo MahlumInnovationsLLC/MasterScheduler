@@ -31,11 +31,20 @@ export default function ForgotPasswordPage() {
 
   const forgotPasswordMutation = useMutation({
     mutationFn: async (data: ForgotPasswordForm) => {
-      const response = await apiRequest("/api/forgot-password", {
+      const response = await fetch("/api/forgot-password", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(data),
       });
-      return response;
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to send reset email");
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       setIsSubmitted(true);

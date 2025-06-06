@@ -212,7 +212,7 @@ export default function AuthPage() {
                           <button 
                             type="button"
                             onClick={() => setLocation('/forgot-password')}
-                            className="text-sm text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer"
+                            className="text-sm text-blue-500 hover:text-blue-400 underline bg-transparent border-none cursor-pointer font-medium"
                           >
                             Forgot your password?
                           </button>
