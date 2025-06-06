@@ -1314,6 +1314,7 @@ export const meetings = pgTable("meetings", {
   status: meetingStatusEnum("status").default("scheduled"),
   agenda: text("agenda").array().default([]),
   description: text("description"),
+  relatedProjects: integer("related_projects").array().default([]),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1345,6 +1346,8 @@ export const meetingTasks = pgTable("meeting_tasks", {
   dueDate: date("due_date"),
   priority: taskPriorityEnum("priority").default("medium"),
   status: taskStatusEnum("status").default("pending"),
+  projectId: integer("project_id").references(() => projects.id), // Link to project
+  syncedTaskId: integer("synced_task_id").references(() => tasks.id), // Link to project task
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

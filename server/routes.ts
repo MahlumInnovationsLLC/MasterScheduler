@@ -4864,6 +4864,79 @@ Response format:
     }
   });
 
+  // Project-Meeting Sync Routes
+  app.post("/api/meetings/:id/link-projects", simpleAuth, async (req, res) => {
+    try {
+      const meetingId = parseInt(req.params.id);
+      const { projectIds } = req.body;
+      
+      const { projectMeetingSyncService } = await import('./services/projectMeetingSync');
+      await projectMeetingSyncService.linkProjectToMeeting(meetingId, projectIds);
+      
+      res.json({ success: true, message: "Projects linked to meeting successfully" });
+    } catch (error) {
+      console.error("Error linking projects to meeting:", error);
+      res.status(500).json({ message: "Error linking projects to meeting" });
+    }
+  });
+
+  app.delete("/api/meetings/:meetingId/projects/:projectId", simpleAuth, async (req, res) => {
+    try {
+      const meetingId = parseInt(req.params.meetingId);
+      const projectId = parseInt(req.params.projectId);
+      
+      const { projectMeetingSyncService } = await import('./services/projectMeetingSync');
+      await projectMeetingSyncService.unlinkProjectFromMeeting(meetingId, projectId);
+      
+      res.json({ success: true, message: "Project unlinked from meeting successfully" });
+    } catch (error) {
+      console.error("Error unlinking project from meeting:", error);
+      res.status(500).json({ message: "Error unlinking project from meeting" });
+    }
+  });
+
+  app.get("/api/projects/:id/meetings", simpleAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      
+      const { projectMeetingSyncService } = await import('./services/projectMeetingSync');
+      const meetings = await projectMeetingSyncService.getProjectMeetings(projectId);
+      
+      res.json(meetings);
+    } catch (error) {
+      console.error("Error fetching project meetings:", error);
+      res.status(500).json({ message: "Error fetching project meetings" });
+    }
+  });
+
+  app.get("/api/projects/:id/meeting-tasks", simpleAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      
+      const { projectMeetingSyncService } = await import('./services/projectMeetingSync');
+      const tasks = await projectMeetingSyncService.getProjectMeetingTasks(projectId);
+      
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching project meeting tasks:", error);
+      res.status(500).json({ message: "Error fetching project meeting tasks" });
+    }
+  });
+
+  app.get("/api/projects/:id/activity-summary", simpleAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      
+      const { projectMeetingSyncService } = await import('./services/projectMeetingSync');
+      const summary = await projectMeetingSyncService.getProjectActivitySummary(projectId);
+      
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching project activity summary:", error);
+      res.status(500).json({ message: "Error fetching project activity summary" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

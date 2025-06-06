@@ -340,6 +340,11 @@ export interface IStorage {
   createMeetingEmailNotification(notification: InsertMeetingEmailNotification): Promise<MeetingEmailNotification>;
   updateMeetingEmailNotificationStatus(id: number, status: string, errorMessage?: string): Promise<MeetingEmailNotification | undefined>;
   getPendingEmailNotifications(): Promise<MeetingEmailNotification[]>;
+
+  // Project-Meeting Sync methods
+  getMeetingsByProject(projectId: number): Promise<Meeting[]>;
+  getMeetingTasksByProjectTask(projectTaskId: number): Promise<MeetingTask[]>;
+  updateMeeting(id: number, meeting: Partial<InsertMeeting>): Promise<Meeting | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3438,6 +3443,36 @@ export class DatabaseStorage implements IStorage {
         ))
         .orderBy(meetingEmailNotifications.scheduledAt)
     );
+  }
+
+  // Project-Meeting Sync methods implementation
+  async getMeetingsByProject(projectId: number): Promise<Meeting[]> {
+    return await safeQuery<Meeting>(() =>
+      db.select().from(meetings)
+        .where(sql`${projectId} = ANY(${meetings.relatedProjects})`)
+        .orderBy(desc(meetings.datetime))
+    );
+  }
+
+  async getMeetingTasksByProjectTask(projectTaskId: number): Promise<MeetingTask[]> {
+    return await safeQuery<MeetingTask>(() =>
+      db.select().from(meetingTasks)
+        .where(eq(meetingTasks.syncedTaskId, projectTaskId))
+        .orderBy(desc(meetingTasks.createdAt))
+    );
+  }
+
+  async updateMeeting(id: number, meeting: Partial<InsertMeeting>): Promise<Meeting | undefined> {
+    try {
+      const [updatedMeeting] = await db.update(meetings)
+        .set({ ...meeting, updatedAt: new Date() })
+        .where(eq(meetings.id, id))
+        .returning();
+      return updatedMeeting;
+    } catch (error) {
+      console.error("Error updating meeting:", error);
+      return undefined;
+    }
   }
 }
 
