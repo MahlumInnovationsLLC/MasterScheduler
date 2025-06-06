@@ -193,8 +193,8 @@ export function ProjectForensicsWidget({ projectId, className = '' }: ProjectFor
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Eye className="h-5 w-5" />
-            Project Forensics
+            <Eye className="h-5 w-5 text-gray-700" />
+            <span className="text-gray-900 font-semibold">Project Forensics</span>
             <Badge variant="outline" className="ml-2">
               {filteredRecords.length} changes
             </Badge>

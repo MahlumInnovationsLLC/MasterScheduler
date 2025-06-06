@@ -28,6 +28,36 @@ import { hashPassword } from "./auth";
 import { sendEmail, generatePasswordResetEmail } from "./email";
 import { randomBytes } from "crypto";
 import { trackChanges, createForensicsRecord, getForensicsContext } from "./forensics";
+
+// Helper functions for forensics tracking
+function normalizeValueForComparison(value: any): string {
+  if (value === null || value === undefined || value === '') {
+    return 'null';
+  }
+  
+  // Handle dates - convert to ISO string for comparison
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  
+  // Handle strings that might be dates
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+    try {
+      return new Date(value).toISOString();
+    } catch {
+      return String(value);
+    }
+  }
+  
+  return JSON.stringify(value);
+}
+
+function formatFieldNameForDisplay(fieldName: string): string {
+  return fieldName
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, str => str.toUpperCase())
+    .trim();
+}
 // Removed Replit auth - using simple local auth bypass
 
 import { 
@@ -672,18 +702,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Track changes for forensics after successful update
       try {
-        const changes = trackChanges(currentProject, updateData);
-        if (changes.length > 0) {
+        // Only track changes for fields that were actually modified
+        const actualChanges = [];
+        const fieldsToCheck = Object.keys(updateData);
+        
+        for (const field of fieldsToCheck) {
+          if (['updatedAt', 'createdAt', 'id'].includes(field)) continue;
+          
+          const oldValue = (currentProject as any)[field];
+          const newValue = updateData[field];
+          
+          // Normalize values for comparison
+          const oldNormalized = normalizeValueForComparison(oldValue);
+          const newNormalized = normalizeValueForComparison(newValue);
+          
+          if (oldNormalized !== newNormalized) {
+            actualChanges.push({
+              field,
+              previousValue: oldValue,
+              newValue: newValue,
+              displayName: formatFieldNameForDisplay(field)
+            });
+          }
+        }
+        
+        if (actualChanges.length > 0) {
           const forensicsContext = getForensicsContext(req, req.user);
           await createForensicsRecord(
             id,
             'project',
             id,
             'update',
-            changes,
+            actualChanges,
             forensicsContext
           );
-          console.log(`Forensics: Tracked ${changes.length} changes for project ${id}`);
+          console.log(`Forensics: Tracked ${actualChanges.length} actual changes for project ${id}`);
         }
       } catch (forensicsError) {
         console.error('Error creating forensics record:', forensicsError);
