@@ -149,13 +149,13 @@ export function ProjectForensicsWidget({ projectId, className = '' }: ProjectFor
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <div className="text-gray-500 text-xs mb-1">Previous:</div>
-                  <div className="bg-red-50 border border-red-200 rounded px-2 py-1 font-mono text-xs break-all">
+                  <div className="bg-red-50 border border-red-200 rounded px-2 py-1 font-mono text-xs break-all text-red-900">
                     {formatFieldValue(previousValue)}
                   </div>
                 </div>
                 <div>
                   <div className="text-gray-500 text-xs mb-1">New:</div>
-                  <div className="bg-green-50 border border-green-200 rounded px-2 py-1 font-mono text-xs break-all">
+                  <div className="bg-green-50 border border-green-200 rounded px-2 py-1 font-mono text-xs break-all text-green-900">
                     {formatFieldValue(newValue)}
                   </div>
                 </div>
@@ -193,8 +193,8 @@ export function ProjectForensicsWidget({ projectId, className = '' }: ProjectFor
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Eye className="h-5 w-5 text-gray-700" />
-            <span className="text-gray-900 font-semibold">Project Forensics</span>
+            <Eye className="h-5 w-5 text-gray-600" />
+            <span className="text-gray-800 font-semibold">Project Forensics</span>
             <Badge variant="outline" className="ml-2">
               {filteredRecords.length} changes
             </Badge>
