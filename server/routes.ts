@@ -670,6 +670,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Track changes for forensics after successful update
+      try {
+        const changes = trackChanges(currentProject, updateData);
+        if (changes.length > 0) {
+          const forensicsContext = getForensicsContext(req, req.user);
+          await createForensicsRecord(
+            id,
+            'project',
+            id,
+            'update',
+            changes,
+            forensicsContext
+          );
+          console.log(`Forensics: Tracked ${changes.length} changes for project ${id}`);
+        }
+      } catch (forensicsError) {
+        console.error('Error creating forensics record:', forensicsError);
+        // Don't fail the request if forensics fails
+      }
+      
       // Return the updated project
       res.json(project);
     } catch (error) {
