@@ -95,10 +95,16 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md bg-gray-900 border-gray-700">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-gray-900">Forgot Password</CardTitle>
-          <p className="text-gray-600 mt-2">
+          <div className="flex justify-center mb-6">
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg shadow-lg">
+              <div className="text-2xl font-bold">TierIV</div>
+              <div className="text-sm font-medium opacity-90">PRO</div>
+            </div>
+          </div>
+          <CardTitle className="text-2xl font-bold text-white">Forgot Password</CardTitle>
+          <p className="text-gray-200 mt-2 font-medium">
             Enter your email address and we'll send you a link to reset your password.
           </p>
         </CardHeader>
@@ -116,7 +122,7 @@ export default function ForgotPasswordPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Address</FormLabel>
+                    <FormLabel className="text-white">Email Address</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
