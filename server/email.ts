@@ -1,3 +1,5 @@
+import nodemailer from 'nodemailer';
+
 interface EmailOptions {
   to: string;
   subject: string;
@@ -5,100 +7,40 @@ interface EmailOptions {
   from?: string;
 }
 
-// Cache for access token
-let accessToken: string | null = null;
-let tokenExpiration: Date | null = null;
-
-async function getAccessToken(): Promise<string> {
-  // Check if we have a valid token
-  if (accessToken && tokenExpiration && new Date() < tokenExpiration) {
-    return accessToken;
-  }
-
-  const username = process.env.NOMAD_MAILPRO_USERNAME;
-  const password = process.env.NOMAD_MAILPRO_API_KEY;
-
-  if (!username || !password) {
-    throw new Error('NOMAD_MAILPRO_USERNAME and NOMAD_MAILPRO_API_KEY are required');
-  }
-
-  // Request new token
-  const tokenResponse = await fetch('https://api.mailpro.com/v3/token', {
-    method: 'POST',
-    headers: {
-      'accept': 'application/json',
-      'Content-Type': 'application/x-www-form-urlencoded',
+// Create SMTP transporter using MailPro credentials
+const createTransporter = () => {
+  return nodemailer.createTransporter({
+    host: 'smtp.mailpro.com',
+    port: 587, // STARTTLS port
+    secure: false, // Use STARTTLS
+    auth: {
+      user: 'US256790@smtp.mailpro.com',
+      pass: 'DBDvzl3T7i#1'
     },
-    body: new URLSearchParams({
-      'grant_type': 'password',
-      'username': username,
-      'password': password,
-    }),
+    tls: {
+      rejectUnauthorized: false
+    }
   });
+};
 
-  if (!tokenResponse.ok) {
-    const errorData = await tokenResponse.text();
-    throw new Error(`Token request failed: ${tokenResponse.status} - ${errorData}`);
-  }
-
-  const tokenData = await tokenResponse.json();
-  accessToken = tokenData.access_token;
-  const expiresIn = tokenData.expires_in || 3600;
-  tokenExpiration = new Date(Date.now() + (expiresIn * 1000));
-
-  console.log('📧 Successfully obtained MailPro access token');
-  return accessToken;
-}
-
-export async function sendEmail({ to, subject, html, from = 'noreply@nomadgcs.com' }: EmailOptions) {
+export async function sendEmail({ to, subject, html, from = 'US256790@smtp.mailpro.com' }: EmailOptions) {
   try {
-    const apiEndpoint = process.env.NOMAD_MAILPRO_API_ENDPOINT;
+    const transporter = createTransporter();
+
+    const mailOptions = {
+      from: from,
+      to: to,
+      subject: subject,
+      html: html
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log(`Email sent successfully to ${to} via MailPro SMTP`);
+    console.log(`Message ID: ${result.messageId}`);
     
-    if (!apiEndpoint) {
-      console.log('📧 NOMAD_MAILPRO_API_ENDPOINT not configured - simulating email send');
-      console.log(`📧 Would send to: ${to}`);
-      console.log(`📧 Subject: ${subject}`);
-      console.log(`📧 From: ${from}`);
-      return { success: true };
-    }
-
-    try {
-      // Get access token
-      const token = await getAccessToken();
-
-      // Send email using the access token
-      const response = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'accept': 'application/json',
-        },
-        body: JSON.stringify({
-          to,
-          from,
-          subject,
-          html,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`Email service error: ${response.status} - ${errorData}`);
-      }
-
-      console.log(`📧 Email sent successfully to ${to} via NOMAD_MAILPRO`);
-      return { success: true };
-    } catch (authError) {
-      console.log('📧 MailPro authentication failed - simulating email send for testing');
-      console.log(`📧 Would send to: ${to}`);
-      console.log(`📧 Subject: ${subject}`);
-      console.log(`📧 From: ${from}`);
-      console.log(`📧 Reset link would be included in email body`);
-      return { success: true };
-    }
+    return { success: true };
   } catch (error) {
-    console.error('📧 Email sending failed:', error);
+    console.error('Email sending failed:', error);
     throw error;
   }
 }
