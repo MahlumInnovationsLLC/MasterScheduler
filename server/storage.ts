@@ -20,6 +20,7 @@ import {
   userPermissions,
   projectMilestoneIcons,
   userModuleVisibility,
+  projectForensics,
   type User,
   type InsertUser,
   type Project,
@@ -58,6 +59,8 @@ import {
   type InsertSupplyChainBenchmark,
   type ProjectSupplyChainBenchmark,
   type InsertProjectSupplyChainBenchmark,
+  type ProjectForensics,
+  type InsertProjectForensics,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or, inArray, ne } from "drizzle-orm";
@@ -274,6 +277,11 @@ export interface IStorage {
   // Data migration methods
   updateDefaultProjectHours(): Promise<number>; // Returns count of updated records
   updateDefaultScheduleHours(): Promise<number>; // Returns count of updated records
+
+  // Forensics methods
+  getProjectForensics(projectId: number, limit?: number, offset?: number): Promise<ProjectForensics[]>;
+  getEntityForensics(projectId: number, entityType: string, entityId: number): Promise<ProjectForensics[]>;
+  createProjectForensics(forensics: InsertProjectForensics): Promise<ProjectForensics>;
 }
 
 export class DatabaseStorage implements IStorage {

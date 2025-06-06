@@ -115,6 +115,31 @@ export const delayResponsibilityEnum = pgEnum("delay_responsibility", [
   "not_applicable",
 ]);
 
+// Forensics enums for tracking data changes
+export const forensicsActionEnum = pgEnum("forensics_action", [
+  "create",
+  "update", 
+  "delete",
+  "archive",
+  "restore",
+  "import",
+  "export",
+  "bulk_update",
+]);
+
+export const forensicsEntityEnum = pgEnum("forensics_entity", [
+  "project",
+  "task",
+  "billing_milestone",
+  "manufacturing_schedule",
+  "manufacturing_bay",
+  "project_cost",
+  "delivery_tracking",
+  "sales_deal",
+  "supply_chain_benchmark",
+  "project_supply_chain_benchmark",
+]);
+
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const sessions = pgTable(
@@ -1189,3 +1214,55 @@ export const insertProjectMilestoneIconSchema = createInsertSchema(projectMilest
 // Type definitions for project milestone icons
 export type ProjectMilestoneIcon = typeof projectMilestoneIcons.$inferSelect;
 export type InsertProjectMilestoneIcon = z.infer<typeof insertProjectMilestoneIconSchema>;
+
+// Project Forensics Table - tracks all changes to project-related data
+export const projectForensics = pgTable("project_forensics", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .references(() => projects.id)
+    .notNull(),
+  entityType: forensicsEntityEnum("entity_type").notNull(),
+  entityId: integer("entity_id").notNull(), // ID of the specific entity that was changed
+  action: forensicsActionEnum("action").notNull(),
+  userId: varchar("user_id").references(() => users.id),
+  username: text("username"), // Store username for display even if user is deleted
+  
+  // Change tracking
+  changedFields: text("changed_fields").array(), // Array of field names that changed
+  previousValues: jsonb("previous_values"), // JSON object with previous field values
+  newValues: jsonb("new_values"), // JSON object with new field values
+  
+  // Context information
+  changeDescription: text("change_description"), // Human-readable description of what changed
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  source: text("source").default("manual"), // manual, import, api, bulk_update, etc.
+  
+  // Impact tracking
+  affectedEntities: jsonb("affected_entities"), // Other entities affected by this change
+  cascadeChanges: boolean("cascade_changes").default(false), // Whether this change triggered other changes
+  
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+// Project Forensics Relations
+export const projectForensicsRelations = relations(projectForensics, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectForensics.projectId],
+    references: [projects.id],
+  }),
+  user: one(users, {
+    fields: [projectForensics.userId],
+    references: [users.id],
+  }),
+}));
+
+// Create insert schema for project forensics
+export const insertProjectForensicsSchema = createInsertSchema(projectForensics).omit({
+  id: true,
+  timestamp: true,
+});
+
+// Type definitions for project forensics
+export type ProjectForensics = typeof projectForensics.$inferSelect;
+export type InsertProjectForensics = z.infer<typeof insertProjectForensicsSchema>;
