@@ -1,8 +1,3 @@
-import sgMail from '@sendgrid/mail';
-
-// Initialize SendGrid with the API key
-sgMail.setApiKey(process.env.NOMAD_MAILPRO_API_KEY || '');
-
 interface EmailOptions {
   to: string;
   subject: string;
@@ -12,15 +7,38 @@ interface EmailOptions {
 
 export async function sendEmail({ to, subject, html, from = 'noreply@nomadgcs.com' }: EmailOptions) {
   try {
-    const msg = {
-      to,
-      from,
-      subject,
-      html,
-    };
+    const apiKey = process.env.NOMAD_MAILPRO_API_KEY;
+    const apiEndpoint = process.env.NOMAD_MAILPRO_API_ENDPOINT;
+    
+    if (!apiKey) {
+      throw new Error('NOMAD_MAILPRO_API_KEY is not configured');
+    }
 
-    await sgMail.send(msg);
-    console.log(`📧 Email sent successfully to ${to}`);
+    if (!apiEndpoint) {
+      throw new Error('NOMAD_MAILPRO_API_ENDPOINT is not configured');
+    }
+
+    // Use fetch to make HTTP request to NOMAD_MAILPRO API
+    const response = await fetch(apiEndpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to,
+        from,
+        subject,
+        html,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`Email service error: ${response.status} - ${errorData}`);
+    }
+
+    console.log(`📧 Email sent successfully to ${to} via NOMAD_MAILPRO`);
     return { success: true };
   } catch (error) {
     console.error('📧 Email sending failed:', error);
