@@ -16,7 +16,8 @@ import {
   GanttChart,
   ChevronLeft,
   ChevronRight,
-  ShoppingCart
+  ShoppingCart,
+  MessageSquare
 } from 'lucide-react';
 import { SidebarContext } from '@/context/SidebarContext';
 import { usePermissions } from '@/components/PermissionsManager';
