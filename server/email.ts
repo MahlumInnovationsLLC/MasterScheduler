@@ -14,8 +14,8 @@ const createTransporter = () => {
     port: 587, // STARTTLS port
     secure: false, // Use STARTTLS
     auth: {
-      user: 'US256790@smtp.mailpro.com',
-      pass: 'DBDvzl3T7i#1'
+      user: process.env.MAILPRO_USER,
+      pass: process.env.MAILPRO_PASSWORD
     },
     tls: {
       rejectUnauthorized: false

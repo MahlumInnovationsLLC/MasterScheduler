@@ -25,7 +25,7 @@ import {
 
 import { exportReport } from "./routes/export";
 import { hashPassword } from "./auth";
-import { sendEmail, generatePasswordResetEmail } from "./email";
+import { sendPasswordResetEmail } from "./emailService";
 import { randomBytes } from "crypto";
 // Removed Replit auth - using simple local auth bypass
 
@@ -4205,13 +4205,13 @@ Response format:
       // Generate reset link
       const resetLink = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`;
 
-      // Send email
-      const emailHtml = generatePasswordResetEmail(resetLink, user.firstName);
-      await sendEmail({
-        to: email,
-        subject: "Password Reset Request - NOMAD Manufacturing",
-        html: emailHtml
-      });
+      // Send email using SendGrid
+      const emailSent = await sendPasswordResetEmail(email, resetLink);
+      
+      if (!emailSent) {
+        console.error(`Failed to send password reset email to: ${email}`);
+        return res.status(500).json({ message: "Error sending password reset email" });
+      }
 
       console.log(`📧 Password reset email sent to: ${email}`);
       
