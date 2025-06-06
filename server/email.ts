@@ -22,7 +22,7 @@ export async function sendEmail({ to, subject, html, from = 'noreply@nomadgcs.co
     const response = await fetch(apiEndpoint, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'X-API-Key': apiKey,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
