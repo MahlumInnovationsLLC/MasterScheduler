@@ -14,7 +14,7 @@ const createTransporter = () => {
     port: 587, // STARTTLS port
     secure: false, // Use STARTTLS
     auth: {
-      user: 'US256790@smtp.mailpro.com',
+      user: 'US256790', // Just the username part
       pass: 'DBDvzl3T7i#1'
     },
     tls: {
