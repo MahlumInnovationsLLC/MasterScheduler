@@ -106,8 +106,8 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
     return sortedResults;
   }, [projects, manufacturingSchedules, manufacturingBays]);
   
-  // Upcoming NTC or QC dates in the next 2 weeks (filtered to exclude projects past QC)
-  const upcomingNtcQcProjects = React.useMemo(() => {
+  // Upcoming ship dates in the next 2 weeks
+  const upcomingShipProjects = React.useMemo(() => {
     if (!projects) return [];
     
     const today = new Date();
@@ -116,47 +116,24 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
     twoWeeksLater.setDate(today.getDate() + 14);
     twoWeeksLater.setHours(23, 59, 59, 999);
     
-    // Filter projects with NTC testing or QC start dates in the next 2 weeks
+    // Filter projects with ship dates in the next 2 weeks
     return projects
       .filter(project => {
-        const ntcDate = project.ntcTestingDate ? new Date(project.ntcTestingDate) : null;
-        const qcDate = project.qcStartDate ? new Date(project.qcStartDate) : null;
+        const shipDate = project.shipDate ? new Date(project.shipDate) : null;
         
-        // Filter out projects that are past their QC date
-        if (qcDate) {
-          qcDate.setHours(0, 0, 0, 0);
-          if (today > qcDate) {
-            return false; // Exclude projects past QC date
-          }
-        }
-        
-        return (
-          (ntcDate && ntcDate >= today && ntcDate <= twoWeeksLater) ||
-          (qcDate && qcDate >= today && qcDate <= twoWeeksLater)
-        );
+        return shipDate && shipDate >= today && shipDate <= twoWeeksLater;
       })
       .sort((a, b) => {
-        // Get the earliest of NTC or QC date for each project
-        const getEarliestDate = (project: Project) => {
-          const ntcDate = project.ntcTestingDate ? new Date(project.ntcTestingDate) : null;
-          const qcDate = project.qcStartDate ? new Date(project.qcStartDate) : null;
-          
-          if (ntcDate && qcDate) {
-            return ntcDate < qcDate ? ntcDate : qcDate;
-          }
-          return ntcDate || qcDate || new Date();
-        };
+        const shipDateA = a.shipDate ? new Date(a.shipDate) : new Date();
+        const shipDateB = b.shipDate ? new Date(b.shipDate) : new Date();
         
-        const dateA = getEarliestDate(a);
-        const dateB = getEarliestDate(b);
-        
-        return dateA.getTime() - dateB.getTime();
-      }); // Remove the slice limit to allow expansion
+        return shipDateA.getTime() - shipDateB.getTime();
+      });
   }, [projects]);
   
   // Count for the badge
   const activeCount = activeManufacturingProjects.length;
-  const upcomingCount = upcomingNtcQcProjects.length;
+  const upcomingCount = upcomingShipProjects.length;
 
   // Helper function to get displayed items
   const getDisplayedActiveProjects = () => {
@@ -164,7 +141,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
   };
 
   const getDisplayedUpcomingProjects = () => {
-    return isUpcomingExpanded ? upcomingNtcQcProjects : upcomingNtcQcProjects.slice(0, 5);
+    return isUpcomingExpanded ? upcomingShipProjects : upcomingShipProjects.slice(0, 5);
   };
   
   return (
@@ -186,7 +163,7 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
       <div>
         {activeCount === 0 && upcomingCount === 0 ? (
           <div className="py-3 text-center text-muted-foreground text-sm">
-            No active projects or upcoming NTC/QC dates
+            No active projects or upcoming ship dates
           </div>
         ) : (
           <div className="space-y-4">
@@ -263,13 +240,13 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
               </div>
             )}
             
-            {/* Upcoming NTC/QC Dates Section */}
+            {/* Upcoming Ship Dates Section */}
             {upcomingCount > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-semibold text-muted-foreground flex items-center">
                     <Calendar className="h-4 w-4 mr-2" /> 
-                    Upcoming NTC/QC Dates ({upcomingCount})
+                    Upcoming Ship Dates ({upcomingCount})
                   </h4>
                   {upcomingCount > 5 && (
                     <Button
@@ -289,16 +266,15 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                 
                 <div className="bg-card/50 rounded-lg p-3">
                   {/* Column Headers */}
-                  <div className="grid grid-cols-4 gap-3 text-xs font-medium text-muted-foreground mb-3 px-2 border-b border-border pb-2">
+                  <div className="grid grid-cols-3 gap-3 text-xs font-medium text-muted-foreground mb-3 px-2 border-b border-border pb-2">
                     <div className="col-span-2">Project</div>
-                    <div className="text-center">Days to NTC</div>
-                    <div className="text-center">Days to QC</div>
+                    <div className="text-center">Days to Ship</div>
                   </div>
                   
                   {/* Project Rows */}
                   <div className="space-y-2">
                     {getDisplayedUpcomingProjects().map((project: Project) => (
-                      <div key={project.id} className="grid grid-cols-4 gap-3 items-center py-2 px-2 rounded-md bg-background/60 hover:bg-background/80 transition-colors">
+                      <div key={project.id} className="grid grid-cols-3 gap-3 items-center py-2 px-2 rounded-md bg-background/60 hover:bg-background/80 transition-colors">
                         <div className="col-span-2 flex flex-col min-w-0">
                           <p className="text-sm font-medium truncate">
                             {project.projectNumber}
@@ -309,21 +285,10 @@ export function HighRiskProjectsCard({ projects }: HighRiskProjectsCardProps) {
                         </div>
                         
                         <div className="text-center">
-                          {project.ntcTestingDate && isDateWithinRange(new Date(project.ntcTestingDate)) ? (
-                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded dark:bg-orange-500/20 bg-orange-100 dark:text-orange-500 text-orange-800 border border-orange-300">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {getDaysUntilDate(project.ntcTestingDate)}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">-</span>
-                          )}
-                        </div>
-                        
-                        <div className="text-center">
-                          {project.qcStartDate && isDateWithinRange(new Date(project.qcStartDate)) ? (
-                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded dark:bg-rose-500/20 bg-rose-100 dark:text-rose-500 text-rose-800 border border-rose-300">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {getDaysUntilDate(project.qcStartDate)}
+                          {project.shipDate ? (
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded dark:bg-blue-500/20 bg-blue-100 dark:text-blue-500 text-blue-800 border border-blue-300">
+                              <Calendar className="h-3 w-3 mr-1" />
+                              {getDaysUntilDate(project.shipDate)}
                             </span>
                           ) : (
                             <span className="text-xs text-muted-foreground">-</span>
