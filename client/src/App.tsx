@@ -174,6 +174,8 @@ function MainContent() {
             <ViewerRestrictedRoute path="/bay-scheduling" component={BaySchedulingPage} redirectPath="/" />
             <ProtectedRoute path="/on-time-delivery" component={OnTimeDelivery} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />
+            <ProtectedRoute path="/meetings" component={Meetings} />
+            <ProtectedRoute path="/meetings/:id" component={MeetingDetails} />
             <ProtectedRoute path="/sales-forecast" component={SalesForecast} />
             <ProtectedRoute path="/sales-deal/:id/edit" component={SalesDealEdit} />
             <ProtectedRoute path="/reports" component={Reports} />
@@ -212,6 +214,8 @@ function MainContent() {
             <ProtectedRoute path="/billing" component={BillingMilestones} />
             <ProtectedRoute path="/manufacturing" component={ManufacturingBay} />
             <ViewerRestrictedRoute path="/bay-scheduling" component={BaySchedulingPage} redirectPath="/" />
+            <ProtectedRoute path="/meetings" component={Meetings} />
+            <ProtectedRoute path="/meetings/:id" component={MeetingDetails} />
             <ProtectedRoute path="/on-time-delivery" component={OnTimeDelivery} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />
             <ProtectedRoute path="/sales-forecast" component={SalesForecast} />
