@@ -20,7 +20,11 @@ import {
   insertNotificationSchema,
   insertSalesDealSchema,
   insertProjectCostSchema,
-  insertProjectMilestoneIconSchema
+  insertProjectMilestoneIconSchema,
+  insertMeetingSchema,
+  insertMeetingAttendeeSchema,
+  insertMeetingNoteSchema,
+  insertMeetingTaskSchema
 } from "@shared/schema";
 
 import { exportReport } from "./routes/export";
@@ -4367,6 +4371,389 @@ Response format:
     } catch (error) {
       console.error("Error fetching entity forensics:", error);
       res.status(500).json({ message: "Error fetching entity forensics" });
+    }
+  });
+
+  // Meetings Module Routes
+  
+  // Get all meetings
+  app.get("/api/meetings", simpleAuth, async (req, res) => {
+    try {
+      const meetings = await storage.getMeetings();
+      res.json(meetings);
+    } catch (error) {
+      console.error("Error fetching meetings:", error);
+      res.status(500).json({ message: "Error fetching meetings" });
+    }
+  });
+
+  // Get single meeting
+  app.get("/api/meetings/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const meeting = await storage.getMeeting(id);
+      
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      res.json(meeting);
+    } catch (error) {
+      console.error("Error fetching meeting:", error);
+      res.status(500).json({ message: "Error fetching meeting" });
+    }
+  });
+
+  // Create meeting
+  app.post("/api/meetings", simpleAuth, validateRequest(insertMeetingSchema), async (req, res) => {
+    try {
+      const meetingData = {
+        ...req.body,
+        organizerId: req.user?.id || ""
+      };
+      const meeting = await storage.createMeeting(meetingData);
+      res.status(201).json(meeting);
+    } catch (error) {
+      console.error("Error creating meeting:", error);
+      res.status(500).json({ message: "Error creating meeting" });
+    }
+  });
+
+  // Update meeting
+  app.put("/api/meetings/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const meeting = await storage.updateMeeting(id, req.body);
+      
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      res.json(meeting);
+    } catch (error) {
+      console.error("Error updating meeting:", error);
+      res.status(500).json({ message: "Error updating meeting" });
+    }
+  });
+
+  // Delete meeting
+  app.delete("/api/meetings/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteMeeting(id);
+      res.json({ success: result });
+    } catch (error) {
+      console.error("Error deleting meeting:", error);
+      res.status(500).json({ message: "Error deleting meeting" });
+    }
+  });
+
+  // Meeting Attendees Routes
+  app.get("/api/meetings/:id/attendees", simpleAuth, async (req, res) => {
+    try {
+      const meetingId = parseInt(req.params.id);
+      const attendees = await storage.getMeetingAttendees(meetingId);
+      res.json(attendees);
+    } catch (error) {
+      console.error("Error fetching meeting attendees:", error);
+      res.status(500).json({ message: "Error fetching meeting attendees" });
+    }
+  });
+
+  app.post("/api/meetings/:id/attendees", simpleAuth, validateRequest(insertMeetingAttendeeSchema), async (req, res) => {
+    try {
+      const meetingId = parseInt(req.params.id);
+      const attendeeData = { ...req.body, meetingId };
+      const attendee = await storage.addMeetingAttendee(attendeeData);
+      res.status(201).json(attendee);
+    } catch (error) {
+      console.error("Error adding meeting attendee:", error);
+      res.status(500).json({ message: "Error adding meeting attendee" });
+    }
+  });
+
+  app.delete("/api/meetings/:id/attendees/:userId", simpleAuth, async (req, res) => {
+    try {
+      const meetingId = parseInt(req.params.id);
+      const userId = req.params.userId;
+      const result = await storage.removeMeetingAttendee(meetingId, userId);
+      res.json({ success: result });
+    } catch (error) {
+      console.error("Error removing meeting attendee:", error);
+      res.status(500).json({ message: "Error removing meeting attendee" });
+    }
+  });
+
+  app.patch("/api/meetings/:id/attendees/:userId", simpleAuth, async (req, res) => {
+    try {
+      const meetingId = parseInt(req.params.id);
+      const userId = req.params.userId;
+      const { attended } = req.body;
+      const attendee = await storage.updateAttendeeStatus(meetingId, userId, attended);
+      
+      if (!attendee) {
+        return res.status(404).json({ message: "Attendee not found" });
+      }
+      
+      res.json(attendee);
+    } catch (error) {
+      console.error("Error updating attendee status:", error);
+      res.status(500).json({ message: "Error updating attendee status" });
+    }
+  });
+
+  // Meeting Notes Routes
+  app.get("/api/meetings/:id/notes", simpleAuth, async (req, res) => {
+    try {
+      const meetingId = parseInt(req.params.id);
+      const notes = await storage.getMeetingNotes(meetingId);
+      res.json(notes);
+    } catch (error) {
+      console.error("Error fetching meeting notes:", error);
+      res.status(500).json({ message: "Error fetching meeting notes" });
+    }
+  });
+
+  app.post("/api/meetings/:id/notes", simpleAuth, validateRequest(insertMeetingNoteSchema), async (req, res) => {
+    try {
+      const meetingId = parseInt(req.params.id);
+      const noteData = { ...req.body, meetingId };
+      const note = await storage.createMeetingNote(noteData);
+      res.status(201).json(note);
+    } catch (error) {
+      console.error("Error creating meeting note:", error);
+      res.status(500).json({ message: "Error creating meeting note" });
+    }
+  });
+
+  app.put("/api/notes/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const note = await storage.updateMeetingNote(id, req.body);
+      
+      if (!note) {
+        return res.status(404).json({ message: "Note not found" });
+      }
+      
+      res.json(note);
+    } catch (error) {
+      console.error("Error updating meeting note:", error);
+      res.status(500).json({ message: "Error updating meeting note" });
+    }
+  });
+
+  app.delete("/api/notes/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteMeetingNote(id);
+      res.json({ success: result });
+    } catch (error) {
+      console.error("Error deleting meeting note:", error);
+      res.status(500).json({ message: "Error deleting meeting note" });
+    }
+  });
+
+  // Meeting Tasks Routes
+  app.get("/api/meeting-tasks", simpleAuth, async (req, res) => {
+    try {
+      const meetingId = req.query.meetingId ? parseInt(req.query.meetingId as string) : undefined;
+      const tasks = await storage.getMeetingTasks(meetingId);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching meeting tasks:", error);
+      res.status(500).json({ message: "Error fetching meeting tasks" });
+    }
+  });
+
+  app.get("/api/meeting-tasks/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const task = await storage.getMeetingTask(id);
+      
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      res.json(task);
+    } catch (error) {
+      console.error("Error fetching meeting task:", error);
+      res.status(500).json({ message: "Error fetching meeting task" });
+    }
+  });
+
+  app.post("/api/meeting-tasks", simpleAuth, validateRequest(insertMeetingTaskSchema), async (req, res) => {
+    try {
+      const task = await storage.createMeetingTask(req.body);
+      res.status(201).json(task);
+    } catch (error) {
+      console.error("Error creating meeting task:", error);
+      res.status(500).json({ message: "Error creating meeting task" });
+    }
+  });
+
+  app.put("/api/meeting-tasks/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const task = await storage.updateMeetingTask(id, req.body);
+      
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      res.json(task);
+    } catch (error) {
+      console.error("Error updating meeting task:", error);
+      res.status(500).json({ message: "Error updating meeting task" });
+    }
+  });
+
+  app.delete("/api/meeting-tasks/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteMeetingTask(id);
+      res.json({ success: result });
+    } catch (error) {
+      console.error("Error deleting meeting task:", error);
+      res.status(500).json({ message: "Error deleting meeting task" });
+    }
+  });
+
+  app.get("/api/users/:userId/meeting-tasks", simpleAuth, async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const tasks = await storage.getUserMeetingTasks(userId);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching user meeting tasks:", error);
+      res.status(500).json({ message: "Error fetching user meeting tasks" });
+    }
+  });
+
+  // Meeting export route for Word/PDF
+  app.post("/api/meetings/:id/export", simpleAuth, async (req, res) => {
+    try {
+      const meetingId = parseInt(req.params.id);
+      const { format } = req.body; // 'word' or 'pdf'
+      
+      const meeting = await storage.getMeeting(meetingId);
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      const attendees = await storage.getMeetingAttendees(meetingId);
+      const notes = await storage.getMeetingNotes(meetingId);
+      const tasks = await storage.getMeetingTasks(meetingId);
+      
+      if (format === 'word') {
+        // Generate Word document
+        const docx = require('docx');
+        const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell } = docx;
+        
+        const doc = new Document({
+          sections: [{
+            properties: {},
+            children: [
+              new Paragraph({
+                text: meeting.title,
+                heading: HeadingLevel.TITLE,
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Date: ", bold: true }),
+                  new TextRun(new Date(meeting.datetime).toLocaleDateString()),
+                ]
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Time: ", bold: true }),
+                  new TextRun(new Date(meeting.datetime).toLocaleTimeString()),
+                ]
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Location: ", bold: true }),
+                  new TextRun(meeting.location || meeting.virtualLink || "Not specified"),
+                ]
+              }),
+              new Paragraph({ text: "" }), // Empty line
+              new Paragraph({
+                text: "Agenda & Notes",
+                heading: HeadingLevel.HEADING_1,
+              }),
+              ...notes.map(note => new Paragraph({
+                children: [
+                  new TextRun({ text: note.agendaItem + ": ", bold: true }),
+                  new TextRun(note.notes || "No notes"),
+                ]
+              })),
+              new Paragraph({ text: "" }), // Empty line
+              new Paragraph({
+                text: "Action Items",
+                heading: HeadingLevel.HEADING_1,
+              }),
+              ...tasks.map(task => new Paragraph({
+                children: [
+                  new TextRun({ text: "• " + task.description, bold: true }),
+                  new TextRun(` (Due: ${task.dueDate || 'No due date'}, Priority: ${task.priority})`),
+                ]
+              })),
+            ],
+          }]
+        });
+        
+        const buffer = await Packer.toBuffer(doc);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        res.setHeader('Content-Disposition', `attachment; filename="meeting-${meetingId}-${meeting.title.replace(/[^a-zA-Z0-9]/g, '_')}.docx"`);
+        res.send(buffer);
+        
+      } else if (format === 'pdf') {
+        // Generate PDF document  
+        const PDFDocument = require('pdfkit');
+        const doc = new PDFDocument();
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="meeting-${meetingId}-${meeting.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`);
+        
+        doc.pipe(res);
+        
+        // Title
+        doc.fontSize(20).text(meeting.title, { align: 'center' });
+        doc.moveDown();
+        
+        // Meeting info
+        doc.fontSize(12);
+        doc.text(`Date: ${new Date(meeting.datetime).toLocaleDateString()}`);
+        doc.text(`Time: ${new Date(meeting.datetime).toLocaleTimeString()}`);
+        doc.text(`Location: ${meeting.location || meeting.virtualLink || "Not specified"}`);
+        doc.moveDown();
+        
+        // Agenda & Notes
+        doc.fontSize(16).text('Agenda & Notes', { underline: true });
+        doc.moveDown();
+        doc.fontSize(12);
+        notes.forEach(note => {
+          doc.text(`${note.agendaItem}: ${note.notes || 'No notes'}`, { indent: 20 });
+          doc.moveDown(0.5);
+        });
+        
+        // Action Items
+        doc.moveDown();
+        doc.fontSize(16).text('Action Items', { underline: true });
+        doc.moveDown();
+        doc.fontSize(12);
+        tasks.forEach(task => {
+          doc.text(`• ${task.description} (Due: ${task.dueDate || 'No due date'}, Priority: ${task.priority})`, { indent: 20 });
+          doc.moveDown(0.5);
+        });
+        
+        doc.end();
+      } else {
+        res.status(400).json({ message: "Invalid format. Use 'word' or 'pdf'" });
+      }
+      
+    } catch (error) {
+      console.error("Error exporting meeting:", error);
+      res.status(500).json({ message: "Error exporting meeting" });
     }
   });
 
