@@ -24,7 +24,9 @@ import {
   insertMeetingSchema,
   insertMeetingAttendeeSchema,
   insertMeetingNoteSchema,
-  insertMeetingTaskSchema
+  insertMeetingTaskSchema,
+  insertMeetingTemplateSchema,
+  insertMeetingEmailNotificationSchema
 } from "@shared/schema";
 
 import { exportReport } from "./routes/export";
@@ -4754,6 +4756,111 @@ Response format:
     } catch (error) {
       console.error("Error exporting meeting:", error);
       res.status(500).json({ message: "Error exporting meeting" });
+    }
+  });
+
+  // Meeting Templates Routes
+  app.get("/api/meeting-templates", simpleAuth, async (req, res) => {
+    try {
+      const templates = await storage.getMeetingTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching meeting templates:", error);
+      res.status(500).json({ message: "Error fetching meeting templates" });
+    }
+  });
+
+  app.get("/api/meeting-templates/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const template = await storage.getMeetingTemplate(id);
+      
+      if (!template) {
+        return res.status(404).json({ message: "Meeting template not found" });
+      }
+      
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching meeting template:", error);
+      res.status(500).json({ message: "Error fetching meeting template" });
+    }
+  });
+
+  app.post("/api/meeting-templates", simpleAuth, validateRequest(insertMeetingTemplateSchema), async (req, res) => {
+    try {
+      const templateData = req.body;
+      const template = await storage.createMeetingTemplate(templateData);
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Error creating meeting template:", error);
+      res.status(500).json({ message: "Error creating meeting template" });
+    }
+  });
+
+  app.patch("/api/meeting-templates/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const template = await storage.updateMeetingTemplate(id, req.body);
+      
+      if (!template) {
+        return res.status(404).json({ message: "Meeting template not found" });
+      }
+      
+      res.json(template);
+    } catch (error) {
+      console.error("Error updating meeting template:", error);
+      res.status(500).json({ message: "Error updating meeting template" });
+    }
+  });
+
+  app.delete("/api/meeting-templates/:id", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteMeetingTemplate(id);
+      res.json({ success: result });
+    } catch (error) {
+      console.error("Error deleting meeting template:", error);
+      res.status(500).json({ message: "Error deleting meeting template" });
+    }
+  });
+
+  // Meeting Email Notifications Routes
+  app.get("/api/meeting-email-notifications", simpleAuth, async (req, res) => {
+    try {
+      const meetingId = req.query.meetingId ? parseInt(req.query.meetingId as string) : undefined;
+      const notifications = await storage.getMeetingEmailNotifications(meetingId);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching meeting email notifications:", error);
+      res.status(500).json({ message: "Error fetching meeting email notifications" });
+    }
+  });
+
+  app.post("/api/meeting-email-notifications", simpleAuth, validateRequest(insertMeetingEmailNotificationSchema), async (req, res) => {
+    try {
+      const notificationData = req.body;
+      const notification = await storage.createMeetingEmailNotification(notificationData);
+      res.status(201).json(notification);
+    } catch (error) {
+      console.error("Error creating meeting email notification:", error);
+      res.status(500).json({ message: "Error creating meeting email notification" });
+    }
+  });
+
+  app.patch("/api/meeting-email-notifications/:id/status", simpleAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status, errorMessage } = req.body;
+      const notification = await storage.updateMeetingEmailNotificationStatus(id, status, errorMessage);
+      
+      if (!notification) {
+        return res.status(404).json({ message: "Email notification not found" });
+      }
+      
+      res.json(notification);
+    } catch (error) {
+      console.error("Error updating email notification status:", error);
+      res.status(500).json({ message: "Error updating email notification status" });
     }
   });
 
