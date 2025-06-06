@@ -152,6 +152,10 @@ app.use((req, res, next) => {
 (async () => {
   // Authentication removed - using simple bypass
   const server = await registerRoutes(app);
+  
+  // Start email scheduler service for MailPro integration
+  const { emailSchedulerService } = await import('./services/emailScheduler');
+  emailSchedulerService.start();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
