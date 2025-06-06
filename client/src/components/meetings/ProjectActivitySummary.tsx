@@ -105,7 +105,7 @@ export function ProjectActivitySummary({ projectId }: ProjectActivitySummaryProp
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <TaskIcon className="h-4 w-4 text-yellow-600" />
+              <ListTodoIcon className="h-4 w-4 text-yellow-600" />
               <div>
                 <div className="text-2xl font-bold text-yellow-600">{summary.pendingMeetingTasks}</div>
                 <div className="text-sm text-muted-foreground">Pending Tasks</div>

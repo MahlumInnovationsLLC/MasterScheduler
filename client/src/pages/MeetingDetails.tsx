@@ -17,41 +17,6 @@ import { format } from "date-fns";
 import { ProjectLinkDialog } from "@/components/meetings/ProjectLinkDialog";
 import type { Meeting, MeetingNote, MeetingTask, Project } from "@shared/schema";
 
-interface Meeting {
-  id: number;
-  title: string;
-  datetime: string;
-  location?: string;
-  virtualLink?: string;
-  organizerId: string;
-  status: "scheduled" | "in_progress" | "completed" | "cancelled";
-  agenda: string[];
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface MeetingNote {
-  id: number;
-  meetingId: number;
-  agendaItem: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface MeetingTask {
-  id: number;
-  meetingId: number;
-  description: string;
-  assignedToId: string;
-  dueDate?: string;
-  priority: "low" | "medium" | "high";
-  status: "pending" | "in_progress" | "completed";
-  createdAt: string;
-  updatedAt: string;
-}
-
 interface MeetingAttendee {
   id: number;
   meetingId: number;
