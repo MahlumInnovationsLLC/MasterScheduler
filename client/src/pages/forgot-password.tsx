@@ -62,15 +62,15 @@ export default function ForgotPasswordPage() {
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md bg-gray-900 border-gray-700">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
               <CheckCircle className="w-6 h-6 text-green-600" />
             </div>
-            <CardTitle className="text-2xl font-bold text-gray-900">Check Your Email</CardTitle>
+            <CardTitle className="text-2xl font-bold text-white">Check Your Email</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-center text-gray-600">
+            <div className="text-center text-gray-200">
               <p className="mb-4">
                 If an account with that email exists, we've sent you a password reset link.
               </p>
