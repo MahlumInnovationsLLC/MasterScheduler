@@ -97,10 +97,9 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-gray-900 border-gray-700">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-6">
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg shadow-lg">
-              <div className="text-2xl font-bold">TierIV</div>
-              <div className="text-sm font-medium opacity-90">PRO</div>
+          <div className="mx-auto mb-4">
+            <div className="text-primary font-bold text-3xl font-sans">
+              <span className="text-white">TIER</span><span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">IV</span><span className="text-xs align-top ml-1 bg-gradient-to-r from-gray-300 via-gray-100 to-gray-400 bg-clip-text text-transparent bg-[length:200%_200%] animate-[shimmer_2s_ease-in-out_infinite]">PRO</span>
             </div>
           </div>
           <CardTitle className="text-2xl font-bold text-white">Forgot Password</CardTitle>
