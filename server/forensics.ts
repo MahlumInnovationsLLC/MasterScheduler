@@ -83,10 +83,10 @@ export async function createForensicsRecord(
 export function trackChanges(oldData: any, newData: any, fieldMappings?: Record<string, string>): ChangeDetail[] {
   const changes: ChangeDetail[] = [];
   
-  // Get all unique keys from both objects
-  const allKeys = new Set([...Object.keys(oldData || {}), ...Object.keys(newData || {})]);
+  // Only check keys that are present in the new data (the update payload)
+  const keysToCheck = Object.keys(newData || {});
   
-  for (const key of allKeys) {
+  for (const key of keysToCheck) {
     const oldValue = oldData?.[key];
     const newValue = newData?.[key];
     
@@ -95,8 +95,12 @@ export function trackChanges(oldData: any, newData: any, fieldMappings?: Record<
       continue;
     }
     
-    // Check if values are different
-    if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+    // Normalize values for comparison (handle null vs undefined, string vs number dates)
+    const normalizedOldValue = normalizeValue(oldValue);
+    const normalizedNewValue = normalizeValue(newValue);
+    
+    // Check if values are actually different
+    if (normalizedOldValue !== normalizedNewValue) {
       changes.push({
         field: key,
         previousValue: oldValue,
@@ -107,6 +111,31 @@ export function trackChanges(oldData: any, newData: any, fieldMappings?: Record<
   }
   
   return changes;
+}
+
+/**
+ * Normalizes values for accurate comparison
+ */
+function normalizeValue(value: any): string {
+  if (value === null || value === undefined || value === '') {
+    return 'null';
+  }
+  
+  // Handle dates - convert to ISO string for comparison
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  
+  // Handle strings that might be dates
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+    try {
+      return new Date(value).toISOString();
+    } catch {
+      return String(value);
+    }
+  }
+  
+  return JSON.stringify(value);
 }
 
 /**
