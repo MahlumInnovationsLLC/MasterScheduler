@@ -3040,6 +3040,54 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
+
+  // Forensics methods
+  async getProjectForensics(projectId: number, limit: number = 50, offset: number = 0): Promise<ProjectForensics[]> {
+    try {
+      return await db
+        .select()
+        .from(projectForensics)
+        .where(eq(projectForensics.projectId, projectId))
+        .orderBy(desc(projectForensics.timestamp))
+        .limit(limit)
+        .offset(offset);
+    } catch (error) {
+      console.error("Error fetching project forensics:", error);
+      return [];
+    }
+  }
+
+  async getEntityForensics(projectId: number, entityType: string, entityId: number): Promise<ProjectForensics[]> {
+    try {
+      return await db
+        .select()
+        .from(projectForensics)
+        .where(
+          and(
+            eq(projectForensics.projectId, projectId),
+            eq(projectForensics.entityType, entityType as any),
+            eq(projectForensics.entityId, entityId)
+          )
+        )
+        .orderBy(desc(projectForensics.timestamp));
+    } catch (error) {
+      console.error("Error fetching entity forensics:", error);
+      return [];
+    }
+  }
+
+  async createProjectForensics(forensics: InsertProjectForensics): Promise<ProjectForensics> {
+    try {
+      const [result] = await db
+        .insert(projectForensics)
+        .values(forensics)
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error creating project forensics:", error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

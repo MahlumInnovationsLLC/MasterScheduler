@@ -74,6 +74,7 @@ import {
 import { getAIInsights } from "./routes/aiInsights";
 import supplyChainRoutes from "./routes/supply-chain";
 import systemRoutes from "./routes/system";
+import { createForensicsRecord, getForensicsContext, trackChanges } from "./forensics";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -4265,6 +4266,35 @@ Response format:
 
   // System Routes
   app.use('/api/system', systemRoutes);
+
+  // Forensics Routes
+  app.get("/api/projects/:id/forensics", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const forensics = await storage.getProjectForensics(projectId, limit, offset);
+      res.json(forensics);
+    } catch (error) {
+      console.error("Error fetching project forensics:", error);
+      res.status(500).json({ message: "Error fetching project forensics" });
+    }
+  });
+
+  app.get("/api/projects/:projectId/forensics/:entityType/:entityId", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const entityType = req.params.entityType;
+      const entityId = parseInt(req.params.entityId);
+      
+      const forensics = await storage.getEntityForensics(projectId, entityType, entityId);
+      res.json(forensics);
+    } catch (error) {
+      console.error("Error fetching entity forensics:", error);
+      res.status(500).json({ message: "Error fetching entity forensics" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
