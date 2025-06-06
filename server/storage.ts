@@ -327,6 +327,19 @@ export interface IStorage {
   updateMeetingTask(id: number, task: Partial<InsertMeetingTask>): Promise<MeetingTask | undefined>;
   deleteMeetingTask(id: number): Promise<boolean>;
   getUserMeetingTasks(userId: string): Promise<MeetingTask[]>;
+
+  // Meeting Templates methods
+  getMeetingTemplates(): Promise<MeetingTemplate[]>;
+  getMeetingTemplate(id: number): Promise<MeetingTemplate | undefined>;
+  createMeetingTemplate(template: InsertMeetingTemplate): Promise<MeetingTemplate>;
+  updateMeetingTemplate(id: number, template: Partial<InsertMeetingTemplate>): Promise<MeetingTemplate | undefined>;
+  deleteMeetingTemplate(id: number): Promise<boolean>;
+
+  // Meeting Email Notifications methods
+  getMeetingEmailNotifications(meetingId?: number): Promise<MeetingEmailNotification[]>;
+  createMeetingEmailNotification(notification: InsertMeetingEmailNotification): Promise<MeetingEmailNotification>;
+  updateMeetingEmailNotificationStatus(id: number, status: string, errorMessage?: string): Promise<MeetingEmailNotification | undefined>;
+  getPendingEmailNotifications(): Promise<MeetingEmailNotification[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3321,6 +3334,109 @@ export class DatabaseStorage implements IStorage {
       db.select().from(meetingTasks)
         .where(eq(meetingTasks.assignedToId, userId))
         .orderBy(meetingTasks.dueDate, desc(meetingTasks.createdAt))
+    );
+  }
+
+  // Meeting Templates methods
+  async getMeetingTemplates(): Promise<MeetingTemplate[]> {
+    return await safeQuery<MeetingTemplate>(() =>
+      db.select().from(meetingTemplates)
+        .where(eq(meetingTemplates.isActive, true))
+        .orderBy(desc(meetingTemplates.createdAt))
+    );
+  }
+
+  async getMeetingTemplate(id: number): Promise<MeetingTemplate | undefined> {
+    return await safeSingleQuery<MeetingTemplate>(() =>
+      db.select().from(meetingTemplates).where(eq(meetingTemplates.id, id))
+    );
+  }
+
+  async createMeetingTemplate(template: InsertMeetingTemplate): Promise<MeetingTemplate> {
+    try {
+      const [newTemplate] = await db.insert(meetingTemplates).values(template).returning();
+      return newTemplate;
+    } catch (error) {
+      console.error("Error creating meeting template:", error);
+      throw error;
+    }
+  }
+
+  async updateMeetingTemplate(id: number, template: Partial<InsertMeetingTemplate>): Promise<MeetingTemplate | undefined> {
+    try {
+      const [updatedTemplate] = await db.update(meetingTemplates)
+        .set({ ...template, updatedAt: new Date() })
+        .where(eq(meetingTemplates.id, id))
+        .returning();
+      return updatedTemplate;
+    } catch (error) {
+      console.error("Error updating meeting template:", error);
+      return undefined;
+    }
+  }
+
+  async deleteMeetingTemplate(id: number): Promise<boolean> {
+    try {
+      await db.update(meetingTemplates)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(meetingTemplates.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting meeting template:", error);
+      return false;
+    }
+  }
+
+  // Meeting Email Notifications methods
+  async getMeetingEmailNotifications(meetingId?: number): Promise<MeetingEmailNotification[]> {
+    return await safeQuery<MeetingEmailNotification>(() => {
+      let query = db.select().from(meetingEmailNotifications);
+      if (meetingId) {
+        query = query.where(eq(meetingEmailNotifications.meetingId, meetingId));
+      }
+      return query.orderBy(desc(meetingEmailNotifications.createdAt));
+    });
+  }
+
+  async createMeetingEmailNotification(notification: InsertMeetingEmailNotification): Promise<MeetingEmailNotification> {
+    try {
+      const [newNotification] = await db.insert(meetingEmailNotifications).values(notification).returning();
+      return newNotification;
+    } catch (error) {
+      console.error("Error creating meeting email notification:", error);
+      throw error;
+    }
+  }
+
+  async updateMeetingEmailNotificationStatus(id: number, status: string, errorMessage?: string): Promise<MeetingEmailNotification | undefined> {
+    try {
+      const updateData: any = { status };
+      if (status === 'sent') {
+        updateData.sentAt = new Date();
+      }
+      if (errorMessage) {
+        updateData.errorMessage = errorMessage;
+      }
+      
+      const [updatedNotification] = await db.update(meetingEmailNotifications)
+        .set(updateData)
+        .where(eq(meetingEmailNotifications.id, id))
+        .returning();
+      return updatedNotification;
+    } catch (error) {
+      console.error("Error updating meeting email notification status:", error);
+      return undefined;
+    }
+  }
+
+  async getPendingEmailNotifications(): Promise<MeetingEmailNotification[]> {
+    return await safeQuery<MeetingEmailNotification>(() =>
+      db.select().from(meetingEmailNotifications)
+        .where(and(
+          eq(meetingEmailNotifications.status, 'pending'),
+          lte(meetingEmailNotifications.scheduledAt, new Date())
+        ))
+        .orderBy(meetingEmailNotifications.scheduledAt)
     );
   }
 }
