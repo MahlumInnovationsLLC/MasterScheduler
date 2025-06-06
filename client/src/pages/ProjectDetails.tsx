@@ -1110,6 +1110,14 @@ const ProjectDetails = () => {
           </Card>
         </div>
       </div>
+      
+      {/* Project Forensics Widget */}
+      <div className="mt-6">
+        <ProjectForensicsWidget 
+          projectId={projectId} 
+          className="border-t pt-6"
+        />
+      </div>
 
       {/* Manufacturing Bay Assignment Dialog */}
       <Dialog open={isAssignBayDialogOpen} onOpenChange={setIsAssignBayDialogOpen}>
