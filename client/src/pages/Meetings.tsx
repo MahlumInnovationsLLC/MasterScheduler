@@ -254,7 +254,8 @@ export default function Meetings() {
       description: templateForm.description || undefined,
       agendaItems: agendaItems,
       defaultDuration: templateForm.defaultDuration,
-      isActive: true
+      isActive: true,
+      createdBy: currentUser?.id || 'system'
     });
   };
 
