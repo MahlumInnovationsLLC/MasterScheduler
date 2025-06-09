@@ -378,7 +378,7 @@ export default function MeetingView({}: MeetingViewProps) {
                           <SelectValue placeholder="Select agenda item" />
                         </SelectTrigger>
                         <SelectContent>
-                          {meeting.agenda?.map((item: string, index: number) => (
+                          {Array.isArray(meetingData.agenda) && meetingData.agenda.map((item: string, index: number) => (
                             <SelectItem key={index} value={item}>
                               {index + 1}. {item}
                             </SelectItem>
@@ -409,7 +409,7 @@ export default function MeetingView({}: MeetingViewProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {notes.map((note: any) => (
+                {Array.isArray(notes) && notes.map((note: any) => (
                   <div key={note.id} className="border rounded p-3">
                     <div className="flex items-center justify-between mb-2">
                       <Badge variant="outline">{note.agendaItem}</Badge>
@@ -420,7 +420,7 @@ export default function MeetingView({}: MeetingViewProps) {
                     <p className="text-sm">{note.notes}</p>
                   </div>
                 ))}
-                {notes.length === 0 && (
+                {(!Array.isArray(notes) || notes.length === 0) && (
                   <p className="text-sm text-muted-foreground text-center py-4">
                     No notes added yet
                   </p>
@@ -437,12 +437,12 @@ export default function MeetingView({}: MeetingViewProps) {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Users className="h-4 w-4 mr-2" />
-                Attendees ({attendees.length})
+                Attendees ({Array.isArray(attendees) ? attendees.length : 0})
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {attendees.map((attendee: any) => (
+                {Array.isArray(attendees) && attendees.map((attendee: any) => (
                   <div key={attendee.id} className="flex items-center space-x-3">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>
@@ -496,7 +496,7 @@ export default function MeetingView({}: MeetingViewProps) {
                           <SelectValue placeholder="Select assignee" />
                         </SelectTrigger>
                         <SelectContent>
-                          {users.map((user: any) => (
+                          {Array.isArray(users) && users.map((user: any) => (
                             <SelectItem key={user.id} value={user.id}>
                               {user.firstName} {user.lastName}
                             </SelectItem>
@@ -534,7 +534,7 @@ export default function MeetingView({}: MeetingViewProps) {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="">No project</SelectItem>
-                          {projects.map((project: any) => (
+                          {Array.isArray(projects) && projects.map((project: any) => (
                             <SelectItem key={project.id} value={project.id.toString()}>
                               {project.projectNumber} - {project.name}
                             </SelectItem>
@@ -556,7 +556,7 @@ export default function MeetingView({}: MeetingViewProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {tasks.map((task: any) => (
+                {Array.isArray(tasks) && tasks.map((task: any) => (
                   <div key={task.id} className="border rounded p-3 space-y-2">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-2">
@@ -607,7 +607,7 @@ export default function MeetingView({}: MeetingViewProps) {
                     </div>
                   </div>
                 ))}
-                {tasks.length === 0 && (
+                {(!Array.isArray(tasks) || tasks.length === 0) && (
                   <p className="text-sm text-muted-foreground text-center py-4">
                     No action items yet
                   </p>
