@@ -70,6 +70,11 @@ export default function Meetings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch current user
+  const { data: currentUser } = useQuery({
+    queryKey: ['/api/user'],
+  });
+
   // Fetch meetings
   const { data: meetings = [], isLoading: meetingsLoading } = useQuery({
     queryKey: ['/api/meetings'],
@@ -243,11 +248,11 @@ export default function Meetings() {
 
   // Template helper functions
   const handleCreateTemplate = () => {
-    const agendaItems = templateForm.agenda.filter(item => item.trim() !== "");
+    const agendaItems = templateForm.agendaItems.filter(item => item.trim() !== "");
     createTemplateMutation.mutate({
       name: templateForm.name,
       description: templateForm.description || undefined,
-      agenda: agendaItems,
+      agendaItems: agendaItems,
       defaultDuration: templateForm.defaultDuration,
       isActive: true
     });
@@ -258,7 +263,7 @@ export default function Meetings() {
     setTemplateForm({
       name: template.name,
       description: template.description || "",
-      agenda: template.agenda.length > 0 ? template.agenda : [""],
+      agendaItems: template.agendaItems && template.agendaItems.length > 0 ? template.agendaItems : [""],
       defaultDuration: template.defaultDuration
     });
     setShowCreateTemplateDialog(true);
@@ -266,13 +271,13 @@ export default function Meetings() {
 
   const handleUpdateTemplate = () => {
     if (!editingTemplate) return;
-    const agendaItems = templateForm.agenda.filter(item => item.trim() !== "");
+    const agendaItems = templateForm.agendaItems.filter(item => item.trim() !== "");
     updateTemplateMutation.mutate({
       id: editingTemplate.id,
       template: {
         name: templateForm.name,
         description: templateForm.description || undefined,
-        agenda: agendaItems,
+        agendaItems: agendaItems,
         defaultDuration: templateForm.defaultDuration
       }
     });
@@ -287,26 +292,26 @@ export default function Meetings() {
   const addAgendaItem = () => {
     setTemplateForm(prev => ({
       ...prev,
-      agenda: [...prev.agenda, ""]
+      agendaItems: [...prev.agendaItems, ""]
     }));
   };
 
   const updateAgendaItem = (index: number, value: string) => {
     setTemplateForm(prev => ({
       ...prev,
-      agenda: prev.agenda.map((item, i) => i === index ? value : item)
+      agendaItems: prev.agendaItems.map((item, i) => i === index ? value : item)
     }));
   };
 
   const removeAgendaItem = (index: number) => {
     setTemplateForm(prev => ({
       ...prev,
-      agenda: prev.agenda.filter((_, i) => i !== index)
+      agendaItems: prev.agendaItems.filter((_, i) => i !== index)
     }));
   };
 
   const resetTemplateForm = () => {
-    setTemplateForm({ name: "", description: "", agenda: [""], defaultDuration: 60 });
+    setTemplateForm({ name: "", description: "", agendaItems: [""], defaultDuration: 60 });
     setEditingTemplate(null);
     setShowCreateTemplateDialog(false);
   };
@@ -612,7 +617,7 @@ export default function Meetings() {
                       <div>
                         <p className="text-sm font-medium mb-1">Agenda Items:</p>
                         <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                          {template.agenda.map((item, index) => (
+                          {template.agendaItems && template.agendaItems.map((item, index) => (
                             <li key={index}>{item}</li>
                           ))}
                         </ul>
@@ -684,14 +689,14 @@ export default function Meetings() {
                 </Button>
               </div>
               <div className="space-y-2">
-                {templateForm.agenda.map((item, index) => (
+                {templateForm.agendaItems.map((item, index) => (
                   <div key={index} className="flex gap-2">
                     <Input
                       value={item}
                       onChange={(e) => updateAgendaItem(index, e.target.value)}
                       placeholder={`Agenda item ${index + 1}`}
                     />
-                    {templateForm.agenda.length > 1 && (
+                    {templateForm.agendaItems.length > 1 && (
                       <Button
                         type="button"
                         variant="outline"
