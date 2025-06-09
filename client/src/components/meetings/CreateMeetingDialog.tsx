@@ -89,7 +89,10 @@ export default function CreateMeetingDialog({ open, onOpenChange }: CreateMeetin
         datetime: new Date(data.datetime).toISOString(),
         location: data.location,
         agenda: agendaItems,
+        relatedProjects: [],
       };
+      
+      console.log("🚀 Sending meeting data:", JSON.stringify(meetingData, null, 2));
       
       const response = await fetch('/api/meetings', {
         method: 'POST',
@@ -100,7 +103,9 @@ export default function CreateMeetingDialog({ open, onOpenChange }: CreateMeetin
       });
       
       if (!response.ok) {
-        throw new Error('Failed to create meeting');
+        const errorData = await response.json();
+        console.error("❌ Meeting creation failed:", errorData);
+        throw new Error(errorData.message || 'Failed to create meeting');
       }
       
       return response.json();

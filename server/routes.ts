@@ -4430,17 +4430,35 @@ Response format:
   });
 
   // Create meeting
-  app.post("/api/meetings", simpleAuth, validateRequest(insertMeetingSchema), async (req, res) => {
+  app.post("/api/meetings", simpleAuth, async (req, res) => {
     try {
+      console.log("📝 Meeting creation request body:", JSON.stringify(req.body, null, 2));
+      
+      // Validate the request manually with better error logging
+      const validationResult = insertMeetingSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        console.error("❌ Meeting validation failed:", validationResult.error.errors);
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: validationResult.error.errors 
+        });
+      }
+      
       const meetingData = {
         ...req.body,
-        organizerId: req.user?.id || ""
+        organizerId: req.user?.id || "",
+        relatedProjects: req.body.relatedProjects || []
       };
+      
+      console.log("📝 Final meeting data before creation:", JSON.stringify(meetingData, null, 2));
+      
       const meeting = await storage.createMeeting(meetingData);
+      console.log("✅ Meeting created successfully:", meeting.id);
+      
       res.status(201).json(meeting);
     } catch (error) {
-      console.error("Error creating meeting:", error);
-      res.status(500).json({ message: "Error creating meeting" });
+      console.error("❌ Error creating meeting:", error);
+      res.status(500).json({ message: "Error creating meeting", error: error.message });
     }
   });
 
