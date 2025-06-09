@@ -849,8 +849,7 @@ const Dashboard = () => {
 
               setSelectedMonthData({
                 month: -1,
-```text
-        year: currentYear,
+                year: currentYear,
                 amount: ytdAmount,
                 milestones: ytdMilestones
               });
