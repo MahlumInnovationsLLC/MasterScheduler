@@ -1253,7 +1253,40 @@ export class DatabaseStorage implements IStorage {
 
   // Task methods
   async getTasks(projectId: number): Promise<Task[]> {
-    return await db.select().from(tasks).where(eq(tasks.projectId, projectId));
+    try {
+      // Get regular project tasks
+      const projectTasks = await db.select().from(tasks).where(eq(tasks.projectId, projectId));
+      
+      // Get meeting tasks linked to this project and convert them to Task format
+      const meetingTasksQuery = await db
+        .select({
+          id: meetingTasks.id,
+          title: meetingTasks.description,
+          description: meetingTasks.description,
+          projectId: meetingTasks.linkedProjectId,
+          assignedToId: meetingTasks.assignedToId,
+          dueDate: meetingTasks.dueDate,
+          priority: meetingTasks.priority,
+          status: meetingTasks.status,
+          createdAt: meetingTasks.createdAt,
+          updatedAt: meetingTasks.updatedAt
+        })
+        .from(meetingTasks)
+        .where(eq(meetingTasks.linkedProjectId, projectId));
+      
+      // Convert meeting tasks to match Task interface
+      const convertedMeetingTasks = meetingTasksQuery.map(task => ({
+        ...task,
+        title: `Meeting Task: ${task.description}`,
+        isMeetingTask: true // Add flag to identify meeting tasks
+      }));
+      
+      // Combine both arrays
+      return [...projectTasks, ...convertedMeetingTasks];
+    } catch (error) {
+      console.error("Error fetching tasks for project:", error);
+      return await db.select().from(tasks).where(eq(tasks.projectId, projectId));
+    }
   }
 
   async getTask(id: number): Promise<Task | undefined> {
