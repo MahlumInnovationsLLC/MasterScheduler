@@ -209,8 +209,43 @@ export default function MeetingView({}: MeetingViewProps) {
   // Safe access to meeting properties
   const meetingData = meeting as any;
 
-  const handleSaveMeeting = () => {
-    updateMeetingMutation.mutate(editedMeeting);
+  const handleSaveMeeting = async () => {
+    try {
+      // Update meeting details
+      await updateMeetingMutation.mutateAsync(editedMeeting);
+      
+      // Update attendees if they've changed
+      if (attendees && editedAttendees) {
+        const currentAttendeeIds = attendees.map((a: any) => a.userId);
+        const attendeesToAdd = editedAttendees.filter(id => !currentAttendeeIds.includes(id));
+        const attendeesToRemove = currentAttendeeIds.filter((id: string) => !editedAttendees.includes(id));
+        
+        // Add new attendees
+        for (const userId of attendeesToAdd) {
+          await fetch(`/api/meetings/${meetingId}/attendees`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+          });
+        }
+        
+        // Remove attendees
+        for (const userId of attendeesToRemove) {
+          const attendee = attendees.find((a: any) => a.userId === userId);
+          if (attendee) {
+            await fetch(`/api/meetings/${meetingId}/attendees/${attendee.id}`, {
+              method: 'DELETE'
+            });
+          }
+        }
+        
+        // Refresh attendees data
+        queryClient.invalidateQueries({ queryKey: [`/api/meetings/${meetingId}/attendees`] });
+      }
+    } catch (error) {
+      console.error('Error saving meeting:', error);
+      toast({ title: "Error saving meeting", variant: "destructive" });
+    }
   };
 
   const handleCreateNote = () => {
@@ -339,6 +374,31 @@ export default function MeetingView({}: MeetingViewProps) {
                       value={editedMeeting?.location || ""}
                       onChange={(e) => setEditedMeeting((prev: any) => ({ ...prev, location: e.target.value }))}
                     />
+                  </div>
+                  <div>
+                    <Label>Attendees</Label>
+                    <div className="space-y-2">
+                      {Array.isArray(users) && users.map((user: any) => (
+                        <div key={user.id} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`attendee-${user.id}`}
+                            checked={editedAttendees.includes(user.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEditedAttendees(prev => [...prev, user.id]);
+                              } else {
+                                setEditedAttendees(prev => prev.filter(id => id !== user.id));
+                              }
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <label htmlFor={`attendee-${user.id}`} className="text-sm">
+                            {user.firstName} {user.lastName} ({user.email})
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ) : (
