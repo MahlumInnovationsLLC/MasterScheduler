@@ -2774,10 +2774,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/tasks/:id", async (req, res) => {
+  app.put("/api/tasks/:id", requireAuth, async (req, res) => {
     try {
       const taskId = parseInt(req.params.id);
-      const updatedTask = await storage.updateTask(taskId, req.body);
+      const updateData = { ...req.body };
+      
+      // If task is being marked as completed, track WHO and WHEN
+      if (updateData.isCompleted === true) {
+        updateData.completedByUserId = req.user.id;
+        updateData.completedDate = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
+      } else if (updateData.isCompleted === false) {
+        // If task is being unmarked as completed, clear completion tracking
+        updateData.completedByUserId = null;
+        updateData.completedDate = null;
+      }
+      
+      const updatedTask = await storage.updateTask(taskId, updateData);
       if (!updatedTask) {
         return res.status(404).json({ message: "Task not found" });
       }

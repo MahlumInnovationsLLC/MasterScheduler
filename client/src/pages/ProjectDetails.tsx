@@ -806,8 +806,12 @@ const ProjectDetails = () => {
                           </div>
                           <div className="text-xs text-gray-400">
                             {task.isCompleted 
-                              ? `Completed on ${formatDate(task.completedDate)}` 
-                              : `Due ${formatDate(task.dueDate)}`}
+                              ? `Completed on ${formatDate(task.completedDate)}${task.completedByUser ? ` by ${task.completedByUser.firstName} ${task.completedByUser.lastName}` : ''}` 
+                              : task.assignedToUser 
+                                ? `Assigned to ${task.assignedToUser.firstName} ${task.assignedToUser.lastName}${task.dueDate ? ` • Due ${formatDate(task.dueDate)}` : ''}`
+                                : task.dueDate 
+                                  ? `Due ${formatDate(task.dueDate)}`
+                                  : 'No due date'}
                           </div>
                         </div>
                       </div>
