@@ -4089,9 +4089,7 @@ export default function ResizableBaySchedule({
                                 boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : isDelivered ? '0 0 8px rgba(34, 197, 94, 0.6)' : 'none', // Light green glow for delivered projects
                                 border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : isDelivered ? '2px solid rgba(34, 197, 94, 0.8)' : 'none', // Light green border for delivered projects
                                 // Position at the top of the row - don't move the container
-                                top: '0', // Keep at top of row, just make the yellow overlay taller
-                                // Set data attributes for department phase percentages 
-                                // Store important info for drag/resize operations
+                                top: '0' // Keep at top of row, just make the yellow overlay taller
                               }}
                               data-schedule-id={bar.id}
                               data-project-id={bar.projectId}
