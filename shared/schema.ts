@@ -511,6 +511,8 @@ export const tasks = pgTable("tasks", {
   startDate: date("start_date"),
   dueDate: date("due_date"),
   completedDate: date("completed_date"),
+  completedByUserId: varchar("completed_by_user_id").references(() => users.id),
+  assignedToUserId: varchar("assigned_to_user_id").references(() => users.id),
   isCompleted: boolean("is_completed").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -541,6 +543,14 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
   milestone: one(projectMilestones, {
     fields: [tasks.milestoneId],
     references: [projectMilestones.id],
+  }),
+  assignedToUser: one(users, {
+    fields: [tasks.assignedToUserId],
+    references: [users.id],
+  }),
+  completedByUser: one(users, {
+    fields: [tasks.completedByUserId],
+    references: [users.id],
   }),
 }));
 

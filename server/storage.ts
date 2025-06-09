@@ -1254,15 +1254,63 @@ export class DatabaseStorage implements IStorage {
   // Task methods
   async getTasks(projectId: number): Promise<Task[]> {
     try {
-      // Get regular project tasks
-      const projectTasks = await db.select().from(tasks).where(eq(tasks.projectId, projectId));
+      // Get regular project tasks with user information
+      const assignedUser = alias(users, 'assignedUser');
+      const completedUser = alias(users, 'completedUser');
       
-      // Get meeting tasks linked to this project
+      const projectTasks = await db
+        .select({
+          id: tasks.id,
+          name: tasks.name,
+          description: tasks.description,
+          projectId: tasks.projectId,
+          milestoneId: tasks.milestoneId,
+          startDate: tasks.startDate,
+          dueDate: tasks.dueDate,
+          completedDate: tasks.completedDate,
+          completedByUserId: tasks.completedByUserId,
+          assignedToUserId: tasks.assignedToUserId,
+          isCompleted: tasks.isCompleted,
+          createdAt: tasks.createdAt,
+          assignedToUser: {
+            id: assignedUser.id,
+            firstName: assignedUser.firstName,
+            lastName: assignedUser.lastName,
+            email: assignedUser.email,
+          },
+          completedByUser: {
+            id: completedUser.id,
+            firstName: completedUser.firstName,
+            lastName: completedUser.lastName,
+            email: completedUser.email,
+          },
+        })
+        .from(tasks)
+        .leftJoin(assignedUser, eq(tasks.assignedToUserId, assignedUser.id))
+        .leftJoin(completedUser, eq(tasks.completedByUserId, completedUser.id))
+        .where(eq(tasks.projectId, projectId));
+      
+      // Get meeting tasks linked to this project with user information
       let meetingTasksQuery = [];
       try {
         meetingTasksQuery = await db
-          .select()
+          .select({
+            id: meetingTasks.id,
+            description: meetingTasks.description,
+            projectId: meetingTasks.projectId,
+            dueDate: meetingTasks.dueDate,
+            status: meetingTasks.status,
+            createdAt: meetingTasks.createdAt,
+            assignedToId: meetingTasks.assignedToId,
+            assignedToUser: {
+              id: users.id,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              email: users.email,
+            },
+          })
           .from(meetingTasks)
+          .leftJoin(users, eq(meetingTasks.assignedToId, users.id))
           .where(eq(meetingTasks.projectId, projectId));
       } catch (meetingError) {
         console.warn('Could not fetch meeting tasks:', meetingError);
@@ -1279,8 +1327,12 @@ export class DatabaseStorage implements IStorage {
         startDate: null,
         dueDate: task.dueDate,
         completedDate: null,
+        completedByUserId: null,
+        assignedToUserId: task.assignedToId,
         isCompleted: task.status === 'completed',
         createdAt: task.createdAt,
+        assignedToUser: task.assignedToUser,
+        completedByUser: null,
         isMeetingTask: true // Add flag to identify meeting tasks
       }));
       
@@ -1288,7 +1340,7 @@ export class DatabaseStorage implements IStorage {
       return [...projectTasks, ...convertedMeetingTasks];
     } catch (error) {
       console.error("Error fetching tasks for project:", error);
-      // Fallback to just project tasks
+      // Fallback to just project tasks without user joins
       try {
         return await db.select().from(tasks).where(eq(tasks.projectId, projectId));
       } catch (fallbackError) {
