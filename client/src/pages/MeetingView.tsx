@@ -56,25 +56,30 @@ export default function MeetingView({}: MeetingViewProps) {
 
   // Fetch meeting details
   const { data: meeting, isLoading: meetingLoading } = useQuery({
-    queryKey: ["/api/meetings", meetingId],
+    queryKey: [`/api/meetings/${meetingId}`],
     enabled: !!meetingId
   });
 
   // Fetch meeting notes
   const { data: notes = [] } = useQuery({
-    queryKey: ["/api/meeting-notes", meetingId],
+    queryKey: [`/api/meeting-notes/${meetingId}`],
     enabled: !!meetingId
   });
 
   // Fetch meeting tasks
   const { data: tasks = [] } = useQuery({
-    queryKey: ["/api/meeting-tasks", meetingId],
+    queryKey: ["/api/meeting-tasks"],
+    queryFn: async () => {
+      const response = await fetch(`/api/meeting-tasks?meetingId=${meetingId}`);
+      if (!response.ok) throw new Error('Failed to fetch tasks');
+      return response.json();
+    },
     enabled: !!meetingId
   });
 
   // Fetch meeting attendees
   const { data: attendees = [] } = useQuery({
-    queryKey: ["/api/meetings", meetingId, "attendees"],
+    queryKey: [`/api/meetings/${meetingId}/attendees`],
     enabled: !!meetingId
   });
 
@@ -100,7 +105,8 @@ export default function MeetingView({}: MeetingViewProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/meetings", meetingId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/meetings/${meetingId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/meetings"] });
       setIsEditing(false);
       toast({ title: "Meeting updated successfully" });
     }
@@ -118,7 +124,7 @@ export default function MeetingView({}: MeetingViewProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/meeting-notes", meetingId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/meeting-notes/${meetingId}`] });
       setNewNote("");
       setSelectedAgendaItem("");
       setShowNoteDialog(false);
