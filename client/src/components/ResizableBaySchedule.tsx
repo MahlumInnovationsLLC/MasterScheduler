@@ -2693,54 +2693,83 @@ export default function ResizableBaySchedule({
       document.removeEventListener('mousemove', handleResizeMove);
       document.removeEventListener('mouseup', handleResizeEnd);
       
-      // Calculate the final dimensions
-      const finalRect = element.getBoundingClientRect();
-      const deltaLeft = finalRect.left - initialLeft;
-      const deltaWidth = finalRect.width - initialWidth;
+      // CRITICAL FIX: Get the current visual state from DOM instead of calculations
+      // This ensures we use the exact position the user sees
+      const currentRect = element.getBoundingClientRect();
+      const parentRect = element.parentElement!.getBoundingClientRect();
       
-      // Convert to dates
+      // Calculate relative position within parent
+      const currentLeft = currentRect.left - parentRect.left;
+      const currentWidth = currentRect.width;
+      
+      // Convert pixel positions back to dates using the same logic as positioning
       const pixelsPerDay = viewMode === 'day' ? slotWidth : slotWidth / 7;
-      let newStartDate = initialStartDate;
-      let newEndDate = initialEndDate;
+      
+      // Calculate new dates based on current DOM position
+      let newStartDate: Date;
+      let newEndDate: Date;
       
       if (resizeMode === 'start') {
-        const daysOffset = Math.round(deltaLeft / pixelsPerDay);
-        newStartDate = addDays(initialStartDate, daysOffset);
+        // For start resize, calculate new start date from current left position
+        const daysFromViewStart = Math.round(currentLeft / pixelsPerDay);
+        newStartDate = addDays(dateRange.start, daysFromViewStart);
+        newEndDate = initialEndDate; // Keep original end date
       } else {
-        const daysExtended = Math.round(deltaWidth / pixelsPerDay);
-        newEndDate = addDays(initialEndDate, daysExtended);
+        // For end resize, keep original start date and calculate new end date
+        newStartDate = initialStartDate;
+        const durationDays = Math.round(currentWidth / pixelsPerDay);
+        newEndDate = addDays(newStartDate, Math.max(1, durationDays - 1)); // Ensure at least 1 day duration
       }
       
       // Format dates for the API
       const formattedStartDate = format(newStartDate, 'yyyy-MM-dd');
       const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
       
-      // Check if dates changed significantly (more than a day)
-      const isSignificantChange = 
-        Math.abs(differenceInDays(newStartDate, initialStartDate)) > 0 || 
-        Math.abs(differenceInDays(newEndDate, initialEndDate)) > 0;
+      console.log('RESIZE END - Final dates:', {
+        originalStart: format(initialStartDate, 'yyyy-MM-dd'),
+        originalEnd: format(initialEndDate, 'yyyy-MM-dd'),
+        newStart: formattedStartDate,
+        newEnd: formattedEndDate,
+        pixelsPerDay,
+        currentLeft,
+        currentWidth
+      });
+      
+      // Check if dates changed
+      const startChanged = formattedStartDate !== format(initialStartDate, 'yyyy-MM-dd');
+      const endChanged = formattedEndDate !== format(initialEndDate, 'yyyy-MM-dd');
+      const isSignificantChange = startChanged || endChanged;
         
       if (isSignificantChange) {
-        if (enableFinancialImpact) {
-          // Show financial impact popup before committing changes when the feature is enabled
-          setFinancialImpactData({
-            scheduleId: bar.id,
-            projectId: bar.projectId,
-            bayId: bar.bayId,
-            originalStartDate: format(initialStartDate, 'yyyy-MM-dd'),
-            originalEndDate: format(initialEndDate, 'yyyy-MM-dd'),
-            newStartDate: formattedStartDate,
-            newEndDate: formattedEndDate,
-            totalHours: bar.totalHours,
-            rowIndex: bar.row
-          });
-          setShowFinancialImpact(true);
-          
-          // Note: Changes will be committed when user confirms in the popup
-          return;
-        } else {
-          // When financial impact analysis is disabled, directly apply the changes
-          try {
+        try {
+          if (enableFinancialImpact) {
+            // Show financial impact popup before committing changes when the feature is enabled
+            setFinancialImpactData({
+              scheduleId: bar.id,
+              projectId: bar.projectId,
+              bayId: bar.bayId,
+              originalStartDate: format(initialStartDate, 'yyyy-MM-dd'),
+              originalEndDate: format(initialEndDate, 'yyyy-MM-dd'),
+              newStartDate: formattedStartDate,
+              newEndDate: formattedEndDate,
+              totalHours: bar.totalHours,
+              rowIndex: bar.row
+            });
+            setShowFinancialImpact(true);
+            
+            // Note: Changes will be committed when user confirms in the popup
+            return;
+          } else {
+            // When financial impact analysis is disabled, directly apply the changes
+            console.log('APPLYING RESIZE CHANGES:', {
+              scheduleId: bar.id,
+              bayId: bar.bayId,
+              newStartDate: formattedStartDate,
+              newEndDate: formattedEndDate,
+              totalHours: bar.totalHours,
+              row: bar.row
+            });
+            
             // Update the schedule without showing financial impact
             await onScheduleChange(
               bar.id,
@@ -2753,54 +2782,30 @@ export default function ResizableBaySchedule({
             
             toast({
               title: "Schedule updated",
-              description: "Project schedule has been updated.",
-            });
-            return;
-          } catch (error) {
-            console.error('Error updating schedule:', error);
-            toast({
-              title: 'Update failed',
-              description: 'There was an error updating the schedule.',
-              variant: 'destructive',
+              description: `Project ${bar.projectNumber} has been resized.`,
             });
             return;
           }
+        } catch (error) {
+          console.error('Error updating schedule during resize:', error);
+          
+          // CRITICAL: Revert the visual changes if the API call fails
+          const originalPosition = calculateBarPosition(initialStartDate, initialEndDate);
+          if (originalPosition) {
+            element.style.left = `${originalPosition.left}px`;
+            element.style.width = `${originalPosition.width}px`;
+            updateDepartmentPhaseWidths(element, originalPosition.width);
+          }
+          
+          toast({
+            title: 'Resize failed',
+            description: 'Could not save the new schedule. The bar has been reverted.',
+            variant: 'destructive',
+          });
+          return;
         }
-      }
-      
-      try {
-        // Update the schedule (for non-significant changes)
-        await onScheduleChange(
-          bar.id,
-          bar.bayId,
-          formattedStartDate,
-          formattedEndDate,
-          bar.totalHours,
-          bar.row
-        );
-        
-        // Show success toast
-        toast({
-          title: "Schedule updated",
-          description: `${bar.projectName} has been resized.`,
-        });
-      } catch (error) {
-        console.error('Error updating schedule:', error);
-        
-        // Revert the visual changes
-        if (resizeMode === 'start') {
-          element.style.left = `${initialLeft - element.parentElement!.getBoundingClientRect().left}px`;
-        }
-        element.style.width = `${initialWidth}px`;
-        
-        // Update department phase widths to original size
-        updateDepartmentPhaseWidths(element, initialWidth);
-        
-        toast({
-          title: "Update failed",
-          description: "There was an error updating the schedule. Please try again.",
-          variant: "destructive",
-        });
+      } else {
+        console.log('No significant change detected, keeping current position');
       }
     };
     
@@ -4067,9 +4072,10 @@ export default function ResizableBaySchedule({
                             console.log(`🔍 COMPLETE BAR DATA:`, JSON.stringify(bar, null, 2));
                           }
                           
-                          // Find the project for this bar to check if it's a sales estimate
+                          // Find the project for this bar to check status and special styling
                           const project = projects.find(p => p.id === bar.projectId);
                           const isSalesEstimate = project?.isSalesEstimate;
+                          const isDelivered = project?.status === 'delivered';
                           
                           return bar.bayId === bay.id && (
                             <div
@@ -4079,9 +4085,9 @@ export default function ResizableBaySchedule({
                                 left: `${bar.left}px`,
                                 width: `${Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0))}px`, // Ensure width accommodates all phases
                                 height: isSalesEstimate ? '190px' : '72px', // Extended height for sales estimates to cover all phases
-                                backgroundColor: isSalesEstimate ? '#fbbf2460' : `${bar.color}25`, // Yellow background for sales estimates
-                                boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : 'none', // Yellow glow for sales estimates
-                                border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : 'none', // Yellow border for sales estimates
+                                backgroundColor: isSalesEstimate ? '#fbbf2460' : isDelivered ? `${bar.color}25` : `${bar.color}25`, // Keep same background for delivered
+                                boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : isDelivered ? '0 0 8px rgba(34, 197, 94, 0.6)' : 'none', // Light green glow for delivered projects
+                                border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : isDelivered ? '2px solid rgba(34, 197, 94, 0.8)' : 'none', // Light green border for delivered projects
                                 // Position at the top of the row - don't move the container
                                 top: '0', // Keep at top of row, just make the yellow overlay taller
                                 // Set data attributes for department phase percentages 
