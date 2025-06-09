@@ -4557,6 +4557,18 @@ Response format:
     }
   });
 
+  // Alternative endpoint for meeting notes (used by MeetingView)
+  app.get("/api/meeting-notes/:meetingId", simpleAuth, async (req, res) => {
+    try {
+      const meetingId = parseInt(req.params.meetingId);
+      const notes = await storage.getMeetingNotes(meetingId);
+      res.json(notes);
+    } catch (error) {
+      console.error("Error fetching meeting notes:", error);
+      res.status(500).json({ message: "Error fetching meeting notes" });
+    }
+  });
+
   app.post("/api/meetings/:id/notes", simpleAuth, validateRequest(insertMeetingNoteSchema), async (req, res) => {
     try {
       const meetingId = parseInt(req.params.id);
