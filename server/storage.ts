@@ -1258,17 +1258,23 @@ export class DatabaseStorage implements IStorage {
       const projectTasks = await db.select().from(tasks).where(eq(tasks.projectId, projectId));
       
       // Get meeting tasks linked to this project
-      const meetingTasksQuery = await db
-        .select()
-        .from(meetingTasks)
-        .where(eq(meetingTasks.linkedProjectId, projectId));
+      let meetingTasksQuery = [];
+      try {
+        meetingTasksQuery = await db
+          .select()
+          .from(meetingTasks)
+          .where(eq(meetingTasks.projectId, projectId));
+      } catch (meetingError) {
+        console.warn('Could not fetch meeting tasks:', meetingError);
+        meetingTasksQuery = [];
+      }
       
       // Convert meeting tasks to match Task interface
       const convertedMeetingTasks = meetingTasksQuery.map(task => ({
         id: task.id,
         name: `Meeting Task: ${task.description}`,
         description: task.description,
-        projectId: task.linkedProjectId,
+        projectId: task.projectId,
         milestoneId: null,
         startDate: null,
         dueDate: task.dueDate,
