@@ -82,6 +82,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or, inArray, ne } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import * as schemaBackup from "../shared/schema-backup";
 import { PgSelectBase } from "drizzle-orm/pg-core";
 
@@ -1260,8 +1261,8 @@ export class DatabaseStorage implements IStorage {
       // Get meeting tasks linked to this project with user information
       let meetingTasksQuery = [];
       try {
-        const assignedUser = users.as('assignedUser');
-        const completedUser = users.as('completedUser');
+        const assignedUser = alias(users, 'assignedUser');
+        const completedUser = alias(users, 'completedUser');
         
         meetingTasksQuery = await db
           .select({
