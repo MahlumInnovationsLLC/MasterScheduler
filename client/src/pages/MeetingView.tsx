@@ -144,7 +144,7 @@ export default function MeetingView({}: MeetingViewProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/meeting-tasks", meetingId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-tasks"] });
       setNewTask({
         description: "",
         assignedToId: "",
@@ -169,7 +169,7 @@ export default function MeetingView({}: MeetingViewProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/meeting-tasks", meetingId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/meeting-tasks"] });
       toast({ title: "Task updated successfully" });
     }
   });
@@ -192,8 +192,15 @@ export default function MeetingView({}: MeetingViewProps) {
     return <div>Meeting not found</div>;
   }
 
-  // Safe access to meeting properties
+  // Safe access to meeting properties with debugging
   const meetingData = meeting as any;
+  
+  // Debug meeting data
+  useEffect(() => {
+    if (meeting) {
+      console.log("🔍 Meeting data received:", JSON.stringify(meeting, null, 2));
+    }
+  }, [meeting]);
 
   const handleSaveMeeting = () => {
     updateMeetingMutation.mutate(editedMeeting);
