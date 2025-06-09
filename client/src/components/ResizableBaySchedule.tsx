@@ -1340,6 +1340,9 @@ export default function ResizableBaySchedule({
         return null;
       }
       
+      // CRITICAL FIX: Do NOT filter out delivered projects - they must stay visible on the schedule
+      // Delivered projects will be shown with a green glow instead of being hidden
+      
       // IMPORTANT FIX: Explicitly handle each date format possibility
       // This ensures schedules appear in their correct position on the timeline
       let startDate: Date, endDate: Date;
@@ -2720,56 +2723,34 @@ export default function ResizableBaySchedule({
         Math.abs(differenceInDays(newStartDate, initialStartDate)) > 0 || 
         Math.abs(differenceInDays(newEndDate, initialEndDate)) > 0;
         
-      if (isSignificantChange) {
-        if (enableFinancialImpact) {
-          // Show financial impact popup before committing changes when the feature is enabled
-          setFinancialImpactData({
-            scheduleId: bar.id,
-            projectId: bar.projectId,
-            bayId: bar.bayId,
-            originalStartDate: format(initialStartDate, 'yyyy-MM-dd'),
-            originalEndDate: format(initialEndDate, 'yyyy-MM-dd'),
-            newStartDate: formattedStartDate,
-            newEndDate: formattedEndDate,
-            totalHours: bar.totalHours,
-            rowIndex: bar.row
-          });
-          setShowFinancialImpact(true);
-          
-          // Note: Changes will be committed when user confirms in the popup
-          return;
-        } else {
-          // When financial impact analysis is disabled, directly apply the changes
-          try {
-            // Update the schedule without showing financial impact
-            await onScheduleChange(
-              bar.id,
-              bar.bayId,
-              formattedStartDate,
-              formattedEndDate,
-              bar.totalHours,
-              bar.row
-            );
-            
-            toast({
-              title: "Schedule updated",
-              description: "Project schedule has been updated.",
-            });
-            return;
-          } catch (error) {
-            console.error('Error updating schedule:', error);
-            toast({
-              title: 'Update failed',
-              description: 'There was an error updating the schedule.',
-              variant: 'destructive',
-            });
-            return;
-          }
-        }
+      if (isSignificantChange && enableFinancialImpact) {
+        // Show financial impact popup before committing changes when the feature is enabled
+        setFinancialImpactData({
+          scheduleId: bar.id,
+          projectId: bar.projectId,
+          bayId: bar.bayId,
+          originalStartDate: format(initialStartDate, 'yyyy-MM-dd'),
+          originalEndDate: format(initialEndDate, 'yyyy-MM-dd'),
+          newStartDate: formattedStartDate,
+          newEndDate: formattedEndDate,
+          totalHours: bar.totalHours,
+          rowIndex: bar.row
+        });
+        setShowFinancialImpact(true);
+        
+        // Note: Changes will be committed when user confirms in the popup
+        return;
       }
       
+      // CRITICAL FIX: Always update the database when financial impact is disabled OR for any change
+      // This ensures resize operations persist properly
+      
       try {
-        // Update the schedule (for non-significant changes)
+        // CRITICAL FIX: Always update the schedule, regardless of significance
+        // This ensures the resize operation persists to the database
+        console.log('🔧 RESIZE UPDATE: Applying resize changes to database');
+        console.log('🔧 New dates:', formattedStartDate, 'to', formattedEndDate);
+        
         await onScheduleChange(
           bar.id,
           bar.bayId,
@@ -2782,10 +2763,12 @@ export default function ResizableBaySchedule({
         // Show success toast
         toast({
           title: "Schedule updated",
-          description: `${bar.projectName} has been resized.`,
+          description: `${bar.projectName} has been resized to ${formattedStartDate} - ${formattedEndDate}.`,
         });
+        
+        console.log('✅ RESIZE SUCCESS: Database updated, bar should stay in new position');
       } catch (error) {
-        console.error('Error updating schedule:', error);
+        console.error('❌ RESIZE ERROR: Failed to update database:', error);
         
         // Revert the visual changes
         if (resizeMode === 'start') {
@@ -2798,7 +2781,7 @@ export default function ResizableBaySchedule({
         
         toast({
           title: "Update failed",
-          description: "There was an error updating the schedule. Please try again.",
+          description: "There was an error updating the schedule. Changes reverted.",
           variant: "destructive",
         });
       }
@@ -4067,21 +4050,22 @@ export default function ResizableBaySchedule({
                             console.log(`🔍 COMPLETE BAR DATA:`, JSON.stringify(bar, null, 2));
                           }
                           
-                          // Find the project for this bar to check if it's a sales estimate
+                          // Find the project for this bar to check if it's a sales estimate or delivered
                           const project = projects.find(p => p.id === bar.projectId);
                           const isSalesEstimate = project?.isSalesEstimate;
+                          const isDelivered = project?.status === 'delivered';
                           
                           return bar.bayId === bay.id && (
                             <div
                               key={`schedule-bar-${bar.id}`}
-                              className={`schedule-bar absolute p-1 text-white text-xs rounded cursor-grab z-20 row-${bar.row}-bar ${isSalesEstimate ? 'animate-pulse' : ''}`}
+                              className={`schedule-bar absolute p-1 text-white text-xs rounded cursor-grab z-20 row-${bar.row}-bar ${isSalesEstimate ? 'animate-pulse' : ''} ${isDelivered ? 'delivered-project' : ''}`}
                               style={{
                                 left: `${bar.left}px`,
                                 width: `${Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0))}px`, // Ensure width accommodates all phases
-                                height: isSalesEstimate ? '190px' : '72px', // Extended height for sales estimates to cover all phases
-                                backgroundColor: isSalesEstimate ? '#fbbf2460' : `${bar.color}25`, // Yellow background for sales estimates
-                                boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : 'none', // Yellow glow for sales estimates
-                                border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : 'none', // Yellow border for sales estimates
+                                height: (isSalesEstimate || isDelivered) ? '190px' : '72px', // Extended height for sales estimates and delivered projects
+                                backgroundColor: isSalesEstimate ? '#fbbf2460' : isDelivered ? '#22c55e30' : `${bar.color}25`, // Yellow for sales estimates, light green for delivered
+                                boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : isDelivered ? '0 0 8px rgba(34, 197, 94, 0.6)' : 'none', // Yellow glow for sales estimates, green glow for delivered
+                                border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : isDelivered ? '2px solid rgba(34, 197, 94, 0.8)' : 'none', // Yellow border for sales estimates, green for delivered
                                 // Position at the top of the row - don't move the container
                                 top: '0', // Keep at top of row, just make the yellow overlay taller
                                 // Set data attributes for department phase percentages 
