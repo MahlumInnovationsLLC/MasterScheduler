@@ -1358,6 +1358,8 @@ export const meetingTasks = pgTable("meeting_tasks", {
   status: taskStatusEnum("status").default("pending"),
   projectId: integer("project_id").references(() => projects.id), // Link to project
   syncedTaskId: integer("synced_task_id").references(() => tasks.id), // Link to project task
+  completedDate: date("completed_date"),
+  completedByUserId: varchar("completed_by_user_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

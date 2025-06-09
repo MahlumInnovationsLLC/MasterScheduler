@@ -4717,11 +4717,23 @@ Response format:
     }
   });
 
-  app.put("/api/meeting-tasks/:id", simpleAuth, async (req, res) => {
+  app.put("/api/meeting-tasks/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const oldTask = await storage.getMeetingTask(id);
-      const task = await storage.updateMeetingTask(id, req.body);
+      const updateData = { ...req.body };
+      
+      // If task is being marked as completed, track WHO and WHEN
+      if (updateData.status === 'completed' && oldTask?.status !== 'completed') {
+        updateData.completedByUserId = req.user.id;
+        updateData.completedDate = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
+      } else if (updateData.status !== 'completed' && oldTask?.status === 'completed') {
+        // If task is being unmarked as completed, clear completion tracking
+        updateData.completedByUserId = null;
+        updateData.completedDate = null;
+      }
+      
+      const task = await storage.updateMeetingTask(id, updateData);
       
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
