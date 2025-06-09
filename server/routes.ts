@@ -4693,7 +4693,7 @@ Response format:
       const task = await storage.createMeetingTask(validatedData);
 
       // Trigger project sync if meeting task is linked to a project
-      if (task.projectId) {
+      if (task.linkedProjectId) {
         const { projectMeetingSyncService } = await import('./services/projectMeetingSync');
         await projectMeetingSyncService.syncMeetingTaskToProject(task);
       }

@@ -8,15 +8,15 @@ class ProjectMeetingSyncService {
    * When a meeting task is created/updated with a project, create/update corresponding project task
    */
   async syncMeetingTaskToProject(meetingTask: MeetingTask): Promise<void> {
-    if (!meetingTask.projectId) {
-      console.log('Meeting task has no project ID, skipping sync');
+    if (!meetingTask.linkedProjectId) {
+      console.log('Meeting task has no linked project ID, skipping sync');
       return;
     }
 
     try {
-      const project = await storage.getProject(meetingTask.projectId);
+      const project = await storage.getProject(meetingTask.linkedProjectId);
       if (!project) {
-        console.error(`Project ${meetingTask.projectId} not found for meeting task ${meetingTask.id}`);
+        console.error(`Project ${meetingTask.linkedProjectId} not found for meeting task ${meetingTask.id}`);
         return;
       }
 
@@ -46,7 +46,7 @@ class ProjectMeetingSyncService {
         const newTask = await storage.createTask({
           title: `Meeting Task: ${meetingTask.description}`,
           description: `From meeting "${meeting.title}" on ${new Date(meeting.datetime).toLocaleDateString()}\n\n${meetingTask.description}`,
-          projectId: meetingTask.projectId,
+          projectId: meetingTask.linkedProjectId,
           assignedToId: meetingTask.assignedToId,
           dueDate: meetingTask.dueDate,
           priority: meetingTask.priority,

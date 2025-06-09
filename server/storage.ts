@@ -1257,27 +1257,24 @@ export class DatabaseStorage implements IStorage {
       // Get regular project tasks
       const projectTasks = await db.select().from(tasks).where(eq(tasks.projectId, projectId));
       
-      // Get meeting tasks linked to this project and convert them to Task format
+      // Get meeting tasks linked to this project
       const meetingTasksQuery = await db
-        .select({
-          id: meetingTasks.id,
-          title: meetingTasks.description,
-          description: meetingTasks.description,
-          projectId: meetingTasks.linkedProjectId,
-          assignedToId: meetingTasks.assignedToId,
-          dueDate: meetingTasks.dueDate,
-          priority: meetingTasks.priority,
-          status: meetingTasks.status,
-          createdAt: meetingTasks.createdAt,
-          updatedAt: meetingTasks.updatedAt
-        })
+        .select()
         .from(meetingTasks)
         .where(eq(meetingTasks.linkedProjectId, projectId));
       
       // Convert meeting tasks to match Task interface
       const convertedMeetingTasks = meetingTasksQuery.map(task => ({
-        ...task,
-        title: `Meeting Task: ${task.description}`,
+        id: task.id,
+        name: `Meeting Task: ${task.description}`,
+        description: task.description,
+        projectId: task.linkedProjectId,
+        milestoneId: null,
+        startDate: null,
+        dueDate: task.dueDate,
+        completedDate: null,
+        isCompleted: task.status === 'completed',
+        createdAt: task.createdAt,
         isMeetingTask: true // Add flag to identify meeting tasks
       }));
       
@@ -1285,7 +1282,13 @@ export class DatabaseStorage implements IStorage {
       return [...projectTasks, ...convertedMeetingTasks];
     } catch (error) {
       console.error("Error fetching tasks for project:", error);
-      return await db.select().from(tasks).where(eq(tasks.projectId, projectId));
+      // Fallback to just project tasks
+      try {
+        return await db.select().from(tasks).where(eq(tasks.projectId, projectId));
+      } catch (fallbackError) {
+        console.error("Error fetching fallback tasks:", fallbackError);
+        return [];
+      }
     }
   }
 
