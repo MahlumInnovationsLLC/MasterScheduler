@@ -186,6 +186,9 @@ export default function MeetingView({}: MeetingViewProps) {
     return <div>Meeting not found</div>;
   }
 
+  // Safe access to meeting properties
+  const meetingData = meeting as any;
+
   const handleSaveMeeting = () => {
     updateMeetingMutation.mutate(editedMeeting);
   };
@@ -242,21 +245,21 @@ export default function MeetingView({}: MeetingViewProps) {
             Back to Meetings
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">{meeting.title}</h1>
+            <h1 className="text-2xl font-bold">{meetingData.title || "Untitled Meeting"}</h1>
             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
               <div className="flex items-center">
                 <Calendar className="h-4 w-4 mr-1" />
-                {format(new Date(meeting.datetime), "PPP p")}
+                {meetingData.datetime ? format(new Date(meetingData.datetime), "PPP p") : "No date set"}
               </div>
-              {meeting.location && (
+              {meetingData.location && (
                 <div className="flex items-center">
                   <MapPin className="h-4 w-4 mr-1" />
-                  {meeting.location}
+                  {meetingData.location}
                 </div>
               )}
               <div className="flex items-center">
                 <Users className="h-4 w-4 mr-1" />
-                {attendees.length} attendees
+                {Array.isArray(attendees) ? attendees.length : 0} attendees
               </div>
             </div>
           </div>
@@ -298,7 +301,7 @@ export default function MeetingView({}: MeetingViewProps) {
                     <Input
                       id="title"
                       value={editedMeeting?.title || ""}
-                      onChange={(e) => setEditedMeeting(prev => ({ ...prev, title: e.target.value }))}
+                      onChange={(e) => setEditedMeeting((prev: any) => ({ ...prev, title: e.target.value }))}
                     />
                   </div>
                   <div>
@@ -306,7 +309,7 @@ export default function MeetingView({}: MeetingViewProps) {
                     <Textarea
                       id="description"
                       value={editedMeeting?.description || ""}
-                      onChange={(e) => setEditedMeeting(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={(e) => setEditedMeeting((prev: any) => ({ ...prev, description: e.target.value }))}
                     />
                   </div>
                   <div>
@@ -314,19 +317,19 @@ export default function MeetingView({}: MeetingViewProps) {
                     <Input
                       id="location"
                       value={editedMeeting?.location || ""}
-                      onChange={(e) => setEditedMeeting(prev => ({ ...prev, location: e.target.value }))}
+                      onChange={(e) => setEditedMeeting((prev: any) => ({ ...prev, location: e.target.value }))}
                     />
                   </div>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {meeting.description && (
+                  {meetingData.description && (
                     <div>
                       <Label>Description</Label>
-                      <p className="text-sm text-muted-foreground">{meeting.description}</p>
+                      <p className="text-sm text-muted-foreground">{meetingData.description}</p>
                     </div>
                   )}
-                  <Badge variant="outline">{meeting.status}</Badge>
+                  <Badge variant="outline">{meetingData.status || "scheduled"}</Badge>
                 </div>
               )}
             </CardContent>
@@ -339,12 +342,15 @@ export default function MeetingView({}: MeetingViewProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {meeting.agenda?.map((item: string, index: number) => (
+                {Array.isArray(meetingData.agenda) && meetingData.agenda.map((item: string, index: number) => (
                   <div key={index} className="flex items-center space-x-2 p-2 rounded border">
                     <span className="text-sm font-medium">{index + 1}.</span>
                     <span className="text-sm">{item}</span>
                   </div>
                 ))}
+                {!Array.isArray(meetingData.agenda) && (
+                  <p className="text-sm text-muted-foreground">No agenda items</p>
+                )}
               </div>
             </CardContent>
           </Card>
