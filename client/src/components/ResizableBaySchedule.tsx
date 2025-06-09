@@ -1490,12 +1490,30 @@ export default function ResizableBaySchedule({
     
     const searchTermLower = searchTerm.toLowerCase();
     
+    console.log(`🔍 SEARCHING for "${searchTerm}" in ${projects.length} total projects`);
+    console.log(`🔍 Available project numbers:`, projects.map(p => p.projectNumber).sort());
+    
     // Filter projects by name or number - include ALL projects (including delivered)
-    const filtered = projects.filter(
-      (project) =>
-        project.name.toLowerCase().includes(searchTermLower) ||
-        project.projectNumber.toLowerCase().includes(searchTermLower)
-    );
+    const filtered = projects.filter((project) => {
+      const matchesNumber = project.projectNumber.toLowerCase().includes(searchTermLower);
+      const matchesName = project.name.toLowerCase().includes(searchTermLower);
+      const matches = matchesNumber || matchesName;
+      
+      if (project.projectNumber === '804916') {
+        console.log(`🔍 Project 804916 check:`, {
+          projectNumber: project.projectNumber,
+          name: project.name,
+          status: project.status,
+          matchesNumber,
+          matchesName,
+          matches
+        });
+      }
+      
+      return matches;
+    });
+    
+    console.log(`🔍 FILTERED RESULTS: Found ${filtered.length} projects matching "${searchTerm}"`);
     
     // Get IDs of already scheduled projects
     const scheduledProjectIds = new Set(schedules.map((s) => s.projectId));
@@ -1519,7 +1537,7 @@ export default function ResizableBaySchedule({
       return a.projectNumber.localeCompare(b.projectNumber);
     });
     
-    console.log(`🔍 SEARCH RESULTS for "${searchTerm}":`, sorted.map(p => ({
+    console.log(`🔍 FINAL SEARCH RESULTS for "${searchTerm}":`, sorted.map(p => ({
       projectNumber: p.projectNumber,
       name: p.name,
       status: p.status,

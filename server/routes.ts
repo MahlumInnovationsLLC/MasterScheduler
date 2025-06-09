@@ -423,7 +423,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Project routes
   app.get("/api/projects", async (req, res) => {
     try {
-      const projects = await storage.getActiveProjects();
+      // Get ALL projects including delivered ones for the bay schedule
+      // This ensures delivered projects can still be found and re-scheduled if needed
+      const projects = await storage.getProjects();
+      
+      console.log(`📊 PROJECTS API: Returning ${projects.length} total projects (including delivered)`);
       
       // Calculate QC Days for each project based on qcStartDate and shipDate
       const projectsWithQcDays = projects.map(project => {
