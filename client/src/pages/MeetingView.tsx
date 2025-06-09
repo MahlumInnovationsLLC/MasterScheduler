@@ -649,7 +649,7 @@ export default function MeetingView({}: MeetingViewProps) {
                           <SelectValue placeholder="Select project" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No project</SelectItem>
+                          <SelectItem value="none">No project</SelectItem>
                           {Array.isArray(projects) && projects.map((project: any) => (
                             <SelectItem key={project.id} value={project.id.toString()}>
                               {project.projectNumber} - {project.name}

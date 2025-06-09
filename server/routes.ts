@@ -4585,13 +4585,25 @@ Response format:
     }
   });
 
-  app.post("/api/meetings/:id/notes", simpleAuth, validateRequest(insertMeetingNoteSchema), async (req, res) => {
+  app.post("/api/meetings/:id/notes", simpleAuth, async (req, res) => {
     try {
       const meetingId = parseInt(req.params.id);
-      const noteData = { ...req.body, meetingId };
-      const note = await storage.createMeetingNote(noteData);
+      const { agendaItem, notes } = req.body;
+      
+      if (!agendaItem) {
+        return res.status(400).json({ message: "Validation error", errors: [{ field: "agendaItem", message: "Agenda item is required" }] });
+      }
+      
+      const noteData = { meetingId, agendaItem, notes };
+      
+      // Validate the complete data now that we have meetingId
+      const validatedData = insertMeetingNoteSchema.parse(noteData);
+      const note = await storage.createMeetingNote(validatedData);
       res.status(201).json(note);
     } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
       console.error("Error creating meeting note:", error);
       res.status(500).json({ message: "Error creating meeting note" });
     }
