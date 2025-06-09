@@ -46,7 +46,7 @@ interface MeetingTemplate {
   id: number;
   name: string;
   description?: string;
-  agenda: string[];
+  agendaItems: string[];
   defaultDuration: number; // in minutes
   isActive: boolean;
   createdAt: string;
@@ -64,7 +64,7 @@ export default function Meetings() {
   const [templateForm, setTemplateForm] = useState({
     name: "",
     description: "",
-    agenda: [""],
+    agendaItems: [""],
     defaultDuration: 60
   });
   const { toast } = useToast();
@@ -87,7 +87,10 @@ export default function Meetings() {
 
   // Delete meeting mutation
   const deleteMeetingMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/meetings/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: number) => fetch(`/api/meetings/${id}`, { 
+      method: 'DELETE',
+      credentials: 'include'
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/meetings'] });
       toast({ title: "Meeting deleted successfully" });
@@ -130,14 +133,16 @@ export default function Meetings() {
   // Template mutations
   const createTemplateMutation = useMutation({
     mutationFn: (template: Omit<MeetingTemplate, 'id' | 'createdAt' | 'updatedAt'>) =>
-      apiRequest('/api/meeting-templates', {
+      fetch('/api/meeting-templates', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(template),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/meeting-templates'] });
       setShowCreateTemplateDialog(false);
-      setTemplateForm({ name: "", description: "", agenda: [""], defaultDuration: 60 });
+      setTemplateForm({ name: "", description: "", agendaItems: [""], defaultDuration: 60 });
       toast({ title: "Template created successfully" });
     },
     onError: () => {
@@ -147,8 +152,10 @@ export default function Meetings() {
 
   const updateTemplateMutation = useMutation({
     mutationFn: ({ id, template }: { id: number; template: Partial<MeetingTemplate> }) =>
-      apiRequest(`/api/meeting-templates/${id}`, {
+      fetch(`/api/meeting-templates/${id}`, {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(template),
       }),
     onSuccess: () => {
@@ -162,7 +169,10 @@ export default function Meetings() {
   });
 
   const deleteTemplateMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/meeting-templates/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: number) => fetch(`/api/meeting-templates/${id}`, { 
+      method: 'DELETE',
+      credentials: 'include'
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/meeting-templates'] });
       toast({ title: "Template deleted successfully" });
