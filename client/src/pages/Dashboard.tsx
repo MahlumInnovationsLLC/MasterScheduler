@@ -251,10 +251,10 @@ const Dashboard = () => {
         // FIRST PRIORITY: delivered projects always go to the bottom
         const aDelivered = a.status === 'delivered';
         const bDelivered = b.status === 'delivered';
-        
+
         if (aDelivered && !bDelivered) return 1;  // a goes to bottom
         if (!aDelivered && bDelivered) return -1; // b goes to bottom
-        
+
         // SECOND PRIORITY: for non-delivered projects, sort by ship date
         if (!aDelivered && !bDelivered) {
           const dateA = getValidDate(a.shipDate);
@@ -274,7 +274,7 @@ const Dashboard = () => {
           const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
           return numB - numA;
         }
-        
+
         // If both are delivered, maintain original order
         return 0;
       });
@@ -282,13 +282,13 @@ const Dashboard = () => {
     // Take exactly the top 10 projects (excluding delivered projects from the count)
     const nonDeliveredProjects = sortedByShipDate.filter(p => p.status !== 'delivered');
     const deliveredProjects = sortedByShipDate.filter(p => p.status === 'delivered');
-    
+
     // Take top 10 non-delivered projects, then add any delivered projects at the end
     const finalList = [
       ...nonDeliveredProjects.slice(0, 10),
       ...deliveredProjects
     ].slice(0, 10); // Still limit to 10 total but prioritize non-delivered
-    
+
     setFilteredProjects(finalList);
   }, [projects]);
 
