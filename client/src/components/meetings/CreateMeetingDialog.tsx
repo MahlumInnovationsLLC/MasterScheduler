@@ -129,6 +129,15 @@ export default function CreateMeetingDialog({ open, onOpenChange }: CreateMeetin
   };
 
   const applyTemplate = (templateId: string) => {
+    if (templateId === "none") {
+      // Clear form when "No template" is selected
+      form.setValue('title', '');
+      form.setValue('description', '');
+      setAgendaItems([]);
+      setSelectedTemplate("");
+      return;
+    }
+    
     const template = templates.find(t => t.id.toString() === templateId);
     if (template) {
       form.setValue('title', template.name);
@@ -208,7 +217,7 @@ export default function CreateMeetingDialog({ open, onOpenChange }: CreateMeetin
                   <SelectValue placeholder="Select a template to start from..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No template</SelectItem>
+                  <SelectItem value="none">No template</SelectItem>
                   {templates.map((template) => (
                     <SelectItem key={template.id} value={template.id.toString()}>
                       {template.name}
