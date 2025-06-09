@@ -2312,6 +2312,44 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async updateDeliveredProjectContractExtensions(projectId: number, contractExtensions: number): Promise<boolean> {
+    try {
+      console.log("🔥 STORAGE: Starting contract extensions update for project", projectId, "with value:", contractExtensions);
+
+      // First, verify the project exists
+      const existingProject = await this.getProject(projectId);
+      if (!existingProject) {
+        console.error("💥 STORAGE: Project not found with ID:", projectId);
+        return false;
+      }
+
+      console.log("🔥 STORAGE: Project exists, proceeding with update");
+
+      const [updatedProject] = await db.update(projects)
+        .set({ 
+          contractExtensions: contractExtensions,
+          updatedAt: new Date()
+        })
+        .where(eq(projects.id, projectId))
+        .returning();
+
+      if (updatedProject) {
+        console.log("🎉 STORAGE: Successfully updated contract extensions for project", projectId, "to:", contractExtensions);
+        return true;
+      } else {
+        console.log("💥 STORAGE: Update completed but no project returned");
+        return false;
+      }
+    } catch (error) {
+      console.error("💥 STORAGE CONTRACT EXTENSIONS ERROR:", error);
+      if (error instanceof Error) {
+        console.error("💥 Error message:", error.message);
+        console.error("💥 Error stack:", error.stack);
+      }
+      return false;
+    }
+  }
+
   // Delivery Tracking methods
   async getDeliveryTrackings(): Promise<DeliveryTracking[]> {
     return await safeQuery<DeliveryTracking>(() => 

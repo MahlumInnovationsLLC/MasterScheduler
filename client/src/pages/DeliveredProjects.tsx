@@ -92,7 +92,8 @@ const DeliveredProjects = () => {
         reason: '',
         lateDeliveryReason: '',
         delayResponsibility: 'not_applicable',
-        percentComplete: '100'
+        percentComplete: '100',
+        contractExtensions: 0
       });
       queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
       queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects/analytics'] });
@@ -601,9 +602,108 @@ const DeliveredProjects = () => {
       accessorKey: 'contractExtensions',
       header: 'Contract Extensions',
       cell: ({ row }) => {
+        const projectId = row.original.id;
         const extensions = row.original.contractExtensions || 0;
+        
+        // Local state for this specific cell
+        const [isEditing, setIsEditing] = useState(false);
+        const [extensionValue, setExtensionValue] = useState(extensions.toString());
+        const [isUpdating, setIsUpdating] = useState(false);
+        
+        const handleSave = async () => {
+          if (isUpdating) return;
+          
+          const numValue = parseInt(extensionValue);
+          if (isNaN(numValue) || numValue < 0) {
+            toast({
+              title: "Invalid Value",
+              description: "Contract extensions must be a non-negative number",
+              variant: "destructive"
+            });
+            return;
+          }
+          
+          setIsUpdating(true);
+          try {
+            console.log("💾 Updating contract extensions - Project:", projectId, "Extensions:", numValue);
+            
+            const response = await apiRequest('PATCH', `/api/delivered-projects/${projectId}/contract-extensions`, { 
+              contractExtensions: numValue 
+            });
+            
+            console.log("🎉 Contract extensions update response:", response);
+            
+            queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/delivered-projects/analytics'] });
+            toast({
+              title: "Success",
+              description: "Contract extensions updated successfully"
+            });
+            setIsEditing(false);
+          } catch (error) {
+            console.error("💥 Contract extensions update failed:", error);
+            toast({
+              title: "Error",
+              description: `Update failed: ${error?.message || 'Unknown error'}`,
+              variant: "destructive"
+            });
+          } finally {
+            setIsUpdating(false);
+          }
+        };
+        
+        const handleCancel = () => {
+          setExtensionValue(extensions.toString());
+          setIsEditing(false);
+        };
+        
+        if (isEditing) {
+          return (
+            <div className="min-w-24">
+              <Input
+                type="number"
+                min="0"
+                value={extensionValue}
+                onChange={(e) => setExtensionValue(e.target.value)}
+                className="w-full p-2 border rounded text-sm bg-gray-800 text-white border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                placeholder="0"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSave();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleCancel();
+                  }
+                }}
+                autoFocus
+                onFocus={(e) => e.target.select()}
+              />
+              <div className="flex gap-1 mt-1">
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={isUpdating}
+                  className="h-6 text-xs"
+                >
+                  {isUpdating ? 'Saving...' : 'Save'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isUpdating}
+                  className="h-6 text-xs"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          );
+        }
+        
         return (
-          <div className="text-center">
+          <div className="flex items-center justify-center gap-2 group">
             <span className={`px-2 py-1 rounded-full text-xs ${
               extensions === 0 ? 'bg-green-900 text-green-400' :
               extensions === 1 ? 'bg-yellow-900 text-yellow-400' :
@@ -611,6 +711,14 @@ const DeliveredProjects = () => {
             }`}>
               {extensions}
             </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
+              onClick={() => setIsEditing(true)}
+            >
+              <Edit2 className="h-3 w-3" />
+            </Button>
           </div>
         );
       }

@@ -965,6 +965,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update delivered project contract extensions
+  app.patch("/api/delivered-projects/:id/contract-extensions", simpleAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const { contractExtensions } = req.body;
+      
+      console.log("🔥 ROUTE: Updating contract extensions for project", projectId, "with value:", contractExtensions);
+      
+      const success = await storage.updateDeliveredProjectContractExtensions(projectId, contractExtensions);
+      
+      if (success) {
+        console.log("✅ ROUTE: Contract extensions update successful");
+        res.json({ success: true });
+      } else {
+        console.log("💥 ROUTE: Contract extensions update failed");
+        res.status(500).json({ message: "Failed to update contract extensions" });
+      }
+    } catch (error) {
+      console.error("💥 ROUTE ERROR:", error);
+      res.status(500).json({ message: "Error updating delivered project contract extensions" });
+    }
+  });
+
   // Get delivered projects analytics
   app.get("/api/delivered-projects/analytics", async (req, res) => {
     // Force no cache
