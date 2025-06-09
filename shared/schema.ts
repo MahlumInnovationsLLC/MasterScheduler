@@ -1431,6 +1431,7 @@ export const insertMeetingSchema = createInsertSchema(meetings).omit({
   updatedAt: true,
 }).extend({
   datetime: z.string().transform((str) => new Date(str)),
+  organizerId: z.string().optional(), // Make optional for validation, will be set in route
 });
 
 export const insertMeetingAttendeeSchema = createInsertSchema(meetingAttendees).omit({
