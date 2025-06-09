@@ -29,7 +29,7 @@ import SalesDealEdit from "@/pages/SalesDealEdit";
 import SupplyChain from "@/pages/SupplyChain";
 import RoleTestPage from "@/pages/RoleTestPage";
 import Meetings from "@/pages/Meetings";
-import MeetingDetails from "@/pages/MeetingDetails";
+import MeetingView from "@/pages/MeetingView";
 import AuthPage from "@/pages/auth-page";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import ResetPasswordPage from "@/pages/reset-password";
@@ -175,7 +175,7 @@ function MainContent() {
             <ProtectedRoute path="/on-time-delivery" component={OnTimeDelivery} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />
             <ProtectedRoute path="/meetings" component={Meetings} />
-            <ProtectedRoute path="/meetings/:id" component={MeetingDetails} />
+            <ProtectedRoute path="/meetings/:id" component={MeetingView} />
             <ProtectedRoute path="/sales-forecast" component={SalesForecast} />
             <ProtectedRoute path="/sales-deal/:id/edit" component={SalesDealEdit} />
             <ProtectedRoute path="/reports" component={Reports} />
@@ -215,7 +215,7 @@ function MainContent() {
             <ProtectedRoute path="/manufacturing" component={ManufacturingBay} />
             <ViewerRestrictedRoute path="/bay-scheduling" component={BaySchedulingPage} redirectPath="/" />
             <ProtectedRoute path="/meetings" component={Meetings} />
-            <ProtectedRoute path="/meetings/:id" component={MeetingDetails} />
+            <ProtectedRoute path="/meetings/:id" component={MeetingView} />
             <ProtectedRoute path="/on-time-delivery" component={OnTimeDelivery} />
             <ProtectedRoute path="/calendar" component={CalendarPage} />
             <ProtectedRoute path="/sales-forecast" component={SalesForecast} />
