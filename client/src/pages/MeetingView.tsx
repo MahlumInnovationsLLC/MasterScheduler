@@ -211,8 +211,27 @@ export default function MeetingView({}: MeetingViewProps) {
 
   const handleSaveMeeting = async () => {
     try {
+      // Prepare meeting data with proper datetime conversion
+      const meetingUpdateData = { ...editedMeeting };
+      
+      // Remove fields that shouldn't be updated
+      delete meetingUpdateData.id;
+      delete meetingUpdateData.createdAt;
+      delete meetingUpdateData.updatedAt;
+      delete meetingUpdateData.organizerId; // Don't change organizer
+      
+      // Ensure datetime is properly formatted as ISO string if it exists
+      if (meetingUpdateData.datetime) {
+        const dateValue = typeof meetingUpdateData.datetime === 'string' 
+          ? meetingUpdateData.datetime 
+          : new Date(meetingUpdateData.datetime).toISOString();
+        meetingUpdateData.datetime = dateValue;
+      }
+      
+      console.log('Sending meeting update:', meetingUpdateData);
+      
       // Update meeting details
-      await updateMeetingMutation.mutateAsync(editedMeeting);
+      await updateMeetingMutation.mutateAsync(meetingUpdateData);
       
       // Update attendees if they've changed
       if (attendees && editedAttendees) {
