@@ -144,17 +144,28 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     sortingFns: {
       customSort: (rowA, rowB, columnId) => {
+        // ALWAYS ensure delivered projects go to the bottom regardless of column
+        const statusA = rowA.original?.status;
+        const statusB = rowB.original?.status;
+
+        const isADelivered = statusA === 'delivered';
+        const isBDelivered = statusB === 'delivered';
+
+        if (isADelivered && !isBDelivered) return 1;  // A goes to bottom
+        if (!isADelivered && isBDelivered) return -1; // B goes to bottom
+
+        // If both or neither are delivered, proceed with normal sorting
         let valueA = rowA.getValue(columnId) as string | number | Date | null | undefined;
         let valueB = rowB.getValue(columnId) as string | number | Date | null | undefined;
 
-        // Check if either value is N/A or null
-        const isAEmpty = valueA === 'N/A' || valueA === null || valueA === undefined || valueA === '';
-        const isBEmpty = valueB === 'N/A' || valueB === null || valueB === undefined || valueB === '';
+        // Handle N/A values
+        const isANA = valueA === 'N/A' || valueA === null || valueA === undefined || valueA === '';
+        const isBNA = valueB === 'N/A' || valueB === null || valueB === undefined || valueB === '';
 
-        // Always move empty/N/A values to the bottom
-        if (isAEmpty && !isBEmpty) return 1;
-        if (!isAEmpty && isBEmpty) return -1;
-        if (isAEmpty && isBEmpty) return 0;
+        // N/A values go to the bottom (but after delivered projects)
+        if (isANA && !isBNA) return 1;
+        if (!isANA && isBNA) return -1;
+        if (isANA && isBNA) return 0;
 
         // Date comparison
         if (valueA instanceof Date && valueB instanceof Date) {

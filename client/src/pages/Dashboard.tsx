@@ -245,29 +245,51 @@ const Dashboard = () => {
       };
     });
 
-    // Sort ALL projects by ship date (including past due, critical, etc.) - exact same as Projects page
+    // Sort ALL projects by ship date but ensure delivered projects are always at the bottom
     const sortedByShipDate = enhancedProjects
       .sort((a, b) => {
-        const dateA = getValidDate(a.shipDate);
-        const dateB = getValidDate(b.shipDate);
+        // FIRST PRIORITY: delivered projects always go to the bottom
+        const aDelivered = a.status === 'delivered';
+        const bDelivered = b.status === 'delivered';
+        
+        if (aDelivered && !bDelivered) return 1;  // a goes to bottom
+        if (!aDelivered && bDelivered) return -1; // b goes to bottom
+        
+        // SECOND PRIORITY: for non-delivered projects, sort by ship date
+        if (!aDelivered && !bDelivered) {
+          const dateA = getValidDate(a.shipDate);
+          const dateB = getValidDate(b.shipDate);
 
-        // Projects with ship dates come first, sorted by earliest date
-        if (dateA && dateB) {
-          return dateA.getTime() - dateB.getTime();
+          // Projects with ship dates come first, sorted by earliest date
+          if (dateA && dateB) {
+            return dateA.getTime() - dateB.getTime();
+          }
+
+          // Projects with ship dates come before those without
+          if (dateA && !dateB) return -1;
+          if (!dateA && dateB) return 1;
+
+          // For projects without ship dates, sort by project number (most recent first)
+          const numA = parseInt(a.projectNumber.replace(/\D/g, '')) || 0;
+          const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
+          return numB - numA;
         }
-
-        // Projects with ship dates come before those without
-        if (dateA && !dateB) return -1;
-        if (!dateA && dateB) return 1;
-
-        // For projects without ship dates, sort by project number (most recent first)
-        const numA = parseInt(a.projectNumber.replace(/\D/g, '')) || 0;
-        const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
-        return numB - numA;
+        
+        // If both are delivered, maintain original order
+        return 0;
       });
 
-    // Take exactly the top 10 projects (same logic as Projects page)
-    setFilteredProjects(sortedByShipDate.slice(0, 10));
+    // Take exactly the top 10 projects (excluding delivered projects from the count)
+    const nonDeliveredProjects = sortedByShipDate.filter(p => p.status !== 'delivered');
+    const deliveredProjects = sortedByShipDate.filter(p => p.status === 'delivered');
+    
+    // Take top 10 non-delivered projects, then add any delivered projects at the end
+    const finalList = [
+      ...nonDeliveredProjects.slice(0, 10),
+      ...deliveredProjects
+    ].slice(0, 10); // Still limit to 10 total but prioritize non-delivered
+    
+    setFilteredProjects(finalList);
   }, [projects]);
 
   // Calculate project stats

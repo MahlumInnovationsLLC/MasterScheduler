@@ -675,7 +675,7 @@ const ProjectStatus = () => {
     };
     
     // Cast projects to ProjectWithRawData[] to ensure rawData is available
-    return (projects as ProjectWithRawData[]).filter((project: ProjectWithRawData) => {
+    const filtered = (projects as ProjectWithRawData[]).filter((project: ProjectWithRawData) => {
       // Now we'll only filter out archived projects if showArchived is false
       // This allows displaying all projects including archived ones when showArchived is true
       if (project.status === 'archived' && !showArchived) {
@@ -724,6 +724,19 @@ const ProjectStatus = () => {
       }
       
       return true;
+    });
+
+    // ALWAYS sort delivered projects to the bottom regardless of other sorting
+    return filtered.sort((a, b) => {
+      // First priority: delivered projects always go to the bottom
+      const aDelivered = a.status === 'delivered';
+      const bDelivered = b.status === 'delivered';
+      
+      if (aDelivered && !bDelivered) return 1;  // a goes to bottom
+      if (!aDelivered && bDelivered) return -1; // b goes to bottom
+      
+      // If both or neither are delivered, maintain existing order
+      return 0;
     });
   }, [projects, dateFilters, locationFilter, showArchived]);
   
