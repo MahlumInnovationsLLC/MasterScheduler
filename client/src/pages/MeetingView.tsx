@@ -54,6 +54,8 @@ export default function MeetingView({}: MeetingViewProps) {
   });
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [showNoteDialog, setShowNoteDialog] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [editingTask, setEditingTask] = useState<any>(null);
 
   // Fetch meeting details
   const { data: meeting, isLoading: meetingLoading } = useQuery({
@@ -158,22 +160,59 @@ export default function MeetingView({}: MeetingViewProps) {
     }
   });
 
-  // Update task status mutation
+  // Update task mutation (enhanced for full editing)
   const updateTaskMutation = useMutation({
-    mutationFn: async ({ taskId, status }: { taskId: number; status: string }) => {
-      const response = await fetch(`/api/meeting-tasks/${taskId}`, {
+    mutationFn: async (data: any) => {
+      const response = await fetch(`/api/meeting-tasks/${data.id || data.taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status })
+        body: JSON.stringify(data)
       });
       if (!response.ok) throw new Error("Failed to update task");
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/meeting-tasks"] });
+      setEditingTaskId(null);
+      setEditingTask(null);
       toast({ title: "Task updated successfully" });
     }
   });
+
+  const startEditingTask = (task: any) => {
+    setEditingTaskId(task.id);
+    setEditingTask({
+      description: task.description,
+      assignedToId: task.assignedToId,
+      priority: task.priority,
+      linkedProjectId: task.linkedProjectId?.toString() || "none",
+      dueDate: task.dueDate || "",
+      status: task.status
+    });
+  };
+
+  const saveTaskEdit = () => {
+    if (!editingTask || !editingTaskId) return;
+    
+    updateTaskMutation.mutate({
+      id: editingTaskId,
+      description: editingTask.description,
+      assignedToId: editingTask.assignedToId,
+      priority: editingTask.priority,
+      linkedProjectId: editingTask.linkedProjectId && editingTask.linkedProjectId !== "none" ? editingTask.linkedProjectId : null,
+      dueDate: editingTask.dueDate || null,
+      status: editingTask.status
+    });
+  };
+
+  const cancelTaskEdit = () => {
+    setEditingTaskId(null);
+    setEditingTask(null);
+  };
+
+  const updateTaskStatus = (taskId: number, status: string) => {
+    updateTaskMutation.mutate({ taskId, status });
+  };
 
   // Debug meeting data - moved before early returns
   useEffect(() => {
@@ -611,13 +650,23 @@ export default function MeetingView({}: MeetingViewProps) {
                           // Auto-link @ mentions for users
                           const userMentions = value.match(/@(\w+(?:\.\w+)?)/g);
                           if (userMentions && Array.isArray(users)) {
-                            const lastMention = userMentions[userMentions.length - 1].replace('@', '');
-                            const matchedUser = users.find((user: any) => 
-                              user.username?.toLowerCase() === lastMention.toLowerCase() ||
-                              user.email?.toLowerCase().includes(lastMention.toLowerCase()) ||
-                              `${user.firstName?.toLowerCase()}.${user.lastName?.toLowerCase()}` === lastMention.toLowerCase()
-                            );
-                            if (matchedUser && !newTask.assignedToId) {
+                            const lastMention = userMentions[userMentions.length - 1].replace('@', '').toLowerCase();
+                            const matchedUser = users.find((user: any) => {
+                              const firstName = user.firstName?.toLowerCase() || '';
+                              const lastName = user.lastName?.toLowerCase() || '';
+                              const username = user.username?.toLowerCase() || '';
+                              const email = user.email?.toLowerCase() || '';
+                              
+                              // Check various matching patterns
+                              return firstName === lastMention ||
+                                     lastName === lastMention ||
+                                     username === lastMention ||
+                                     `${firstName}.${lastName}` === lastMention ||
+                                     `${firstName}${lastName}` === lastMention ||
+                                     email.startsWith(lastMention + '@') ||
+                                     email.includes(lastMention);
+                            });
+                            if (matchedUser) {
                               setNewTask(prev => ({ ...prev, assignedToId: matchedUser.id }));
                             }
                           }
@@ -706,53 +755,207 @@ export default function MeetingView({}: MeetingViewProps) {
               <div className="space-y-3">
                 {Array.isArray(tasks) && tasks.map((task: any) => (
                   <div key={task.id} className="border rounded p-3 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-2">
-                        {getTaskStatusIcon(task.status)}
-                        <span className="text-sm font-medium">{task.description}</span>
+                    {editingTaskId === task.id ? (
+                      // Editing mode
+                      <div className="space-y-3">
+                        <div>
+                          <Label>Description</Label>
+                          <Textarea
+                            value={editingTask?.description || ""}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setEditingTask(prev => ({ ...prev, description: value }));
+                              
+                              // Auto-link @ mentions for users
+                              const userMentions = value.match(/@(\w+(?:\.\w+)?)/g);
+                              if (userMentions && Array.isArray(users)) {
+                                const lastMention = userMentions[userMentions.length - 1].replace('@', '').toLowerCase();
+                                const matchedUser = users.find((user: any) => {
+                                  const firstName = user.firstName?.toLowerCase() || '';
+                                  const lastName = user.lastName?.toLowerCase() || '';
+                                  const username = user.username?.toLowerCase() || '';
+                                  const email = user.email?.toLowerCase() || '';
+                                  
+                                  // Check various matching patterns
+                                  return firstName === lastMention ||
+                                         lastName === lastMention ||
+                                         username === lastMention ||
+                                         `${firstName}.${lastName}` === lastMention ||
+                                         `${firstName}${lastName}` === lastMention ||
+                                         email.startsWith(lastMention + '@') ||
+                                         email.includes(lastMention);
+                                });
+                                if (matchedUser) {
+                                  setEditingTask(prev => ({ ...prev, assignedToId: matchedUser.id }));
+                                }
+                              }
+                              
+                              // Auto-link project numbers
+                              const projectMentions = value.match(/@(\d{6})/g);
+                              if (projectMentions && Array.isArray(projects)) {
+                                const lastProjectMention = projectMentions[projectMentions.length - 1].replace('@', '');
+                                const matchedProject = projects.find((project: any) => 
+                                  project.projectNumber === lastProjectMention
+                                );
+                                if (matchedProject) {
+                                  setEditingTask(prev => ({ ...prev, linkedProjectId: matchedProject.id.toString() }));
+                                }
+                              }
+                            }}
+                            className="min-h-[80px]"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label>Assignee</Label>
+                            <Select 
+                              value={editingTask?.assignedToId || ""} 
+                              onValueChange={(value) => setEditingTask(prev => ({ ...prev, assignedToId: value }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select assignee" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Array.isArray(users) && users.map((user: any) => (
+                                  <SelectItem key={user.id} value={user.id}>
+                                    {user.firstName} {user.lastName}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>Priority</Label>
+                            <Select 
+                              value={editingTask?.priority || "medium"} 
+                              onValueChange={(value) => setEditingTask(prev => ({ ...prev, priority: value }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="low">Low</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="high">High</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label>Due Date</Label>
+                            <Input
+                              type="date"
+                              value={editingTask?.dueDate || ""}
+                              onChange={(e) => setEditingTask(prev => ({ ...prev, dueDate: e.target.value }))}
+                            />
+                          </div>
+                          <div>
+                            <Label>Status</Label>
+                            <Select 
+                              value={editingTask?.status || "pending"} 
+                              onValueChange={(value) => setEditingTask(prev => ({ ...prev, status: value }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="in_progress">In Progress</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Link to Project</Label>
+                          <Select 
+                            value={editingTask?.linkedProjectId || "none"} 
+                            onValueChange={(value) => setEditingTask(prev => ({ ...prev, linkedProjectId: value }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select project" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No project</SelectItem>
+                              {Array.isArray(projects) && projects.map((project: any) => (
+                                <SelectItem key={project.id} value={project.id.toString()}>
+                                  {project.projectNumber} - {project.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" size="sm" onClick={cancelTaskEdit}>
+                            Cancel
+                          </Button>
+                          <Button size="sm" onClick={saveTaskEdit} disabled={updateTaskMutation.isPending}>
+                            Save Changes
+                          </Button>
+                        </div>
                       </div>
-                      <Badge variant={getPriorityColor(task.priority)}>
-                        {task.priority}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                      <User className="h-3 w-3" />
-                      <span>{task.assignedTo?.firstName} {task.assignedTo?.lastName}</span>
-                      {task.dueDate && (
-                        <>
-                          <Separator orientation="vertical" className="h-3" />
-                          <Calendar className="h-3 w-3" />
-                          <span>{format(new Date(task.dueDate), "PP")}</span>
-                        </>
-                      )}
-                      {task.project && (
-                        <>
-                          <Separator orientation="vertical" className="h-3" />
-                          <LinkIcon className="h-3 w-3" />
-                          <span>{task.project.projectNumber}</span>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex space-x-1">
-                      {task.status !== "completed" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateTaskMutation.mutate({ taskId: task.id, status: "completed" })}
-                        >
-                          Mark Complete
-                        </Button>
-                      )}
-                      {task.status === "pending" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateTaskMutation.mutate({ taskId: task.id, status: "in_progress" })}
-                        >
-                          Start
-                        </Button>
-                      )}
-                    </div>
+                    ) : (
+                      // Display mode
+                      <>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center space-x-2">
+                            {getTaskStatusIcon(task.status)}
+                            <span className="text-sm font-medium">{task.description}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant={getPriorityColor(task.priority)}>
+                              {task.priority}
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => startEditingTask(task)}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                          <User className="h-3 w-3" />
+                          <span>{task.assignedTo?.firstName} {task.assignedTo?.lastName}</span>
+                          {task.dueDate && (
+                            <>
+                              <Separator orientation="vertical" className="h-3" />
+                              <Calendar className="h-3 w-3" />
+                              <span>{format(new Date(task.dueDate), "PP")}</span>
+                            </>
+                          )}
+                          {task.project && (
+                            <>
+                              <Separator orientation="vertical" className="h-3" />
+                              <LinkIcon className="h-3 w-3" />
+                              <span>{task.project.projectNumber}</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex space-x-1">
+                          {task.status !== "completed" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateTaskStatus(task.id, "completed")}
+                            >
+                              Mark Complete
+                            </Button>
+                          )}
+                          {task.status === "pending" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateTaskStatus(task.id, "in_progress")}
+                            >
+                              Start
+                            </Button>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
                 {(!Array.isArray(tasks) || tasks.length === 0) && (
