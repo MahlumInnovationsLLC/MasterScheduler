@@ -1394,7 +1394,7 @@ const ProjectDetails = () => {
                 id="taskName"
                 value={taskForm.name}
                 onChange={(e) => setTaskForm({...taskForm, name: e.target.value})}
-                className="bg-darkInput border-gray-800 text-white placeholder:text-gray-400"
+                className="bg-white border-gray-300 text-black placeholder:text-gray-500"
                 placeholder="Test Task"
               />
             </div>
@@ -1405,7 +1405,7 @@ const ProjectDetails = () => {
                 id="taskDescription"
                 value={taskForm.description}
                 onChange={(e) => setTaskForm({...taskForm, description: e.target.value})}
-                className="resize-none bg-darkInput border-gray-800 h-24 text-white placeholder:text-gray-400"
+                className="resize-none bg-white border-gray-300 h-24 text-black placeholder:text-gray-500"
                 placeholder="Enter task description"
               />
             </div>
@@ -1417,7 +1417,7 @@ const ProjectDetails = () => {
                 type="date"
                 value={taskForm.dueDate}
                 onChange={(e) => setTaskForm({...taskForm, dueDate: e.target.value})}
-                className="bg-darkInput border-gray-800 text-white"
+                className="bg-white border-gray-300 text-black"
               />
             </div>
           </div>
