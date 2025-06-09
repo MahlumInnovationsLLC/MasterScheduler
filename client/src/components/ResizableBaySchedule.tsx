@@ -487,6 +487,28 @@ export default function ResizableBaySchedule({
   const { toast } = useToast();
   const apiRequest = useApiRequest();
   
+  // Debug logging for project 804916
+  useEffect(() => {
+    const project804916 = projects.find(p => p.projectNumber === '804916');
+    const schedule804916 = schedules.find(s => {
+      const project = projects.find(p => p.id === s.projectId);
+      return project?.projectNumber === '804916';
+    });
+    
+    console.log('🔍 PROJECT 804916 DEBUG:');
+    console.log('  Project found:', project804916 ? 'YES' : 'NO');
+    if (project804916) {
+      console.log('  Project status:', project804916.status);
+      console.log('  Project data:', project804916);
+    }
+    console.log('  Schedule found:', schedule804916 ? 'YES' : 'NO');
+    if (schedule804916) {
+      console.log('  Schedule data:', schedule804916);
+    }
+    console.log('  Total schedules:', schedules.length);
+    console.log('  Total projects:', projects.length);
+  }, [schedules, projects]);
+  
   // State for managing UI
   const [scheduleBars, setScheduleBars] = useState<ScheduleBar[]>([]);
   const [draggingSchedule, setDraggingSchedule] = useState<number | null>(null);
@@ -1338,6 +1360,11 @@ export default function ResizableBaySchedule({
       if (!project) {
         console.warn(`Project not found for schedule: ${schedule.id}, projectId: ${schedule.projectId}`);
         return null;
+      }
+      
+      // Log delivered projects to ensure they're processed
+      if (project.status === 'delivered') {
+        console.log(`✅ DELIVERED PROJECT FOUND: ${project.projectNumber} - Will show with green glow`);
       }
       
       // CRITICAL FIX: Do NOT filter out delivered projects - they must stay visible on the schedule
@@ -4055,6 +4082,11 @@ export default function ResizableBaySchedule({
                           const isSalesEstimate = project?.isSalesEstimate;
                           const isDelivered = project?.status === 'delivered';
                           
+                          // Log delivered project rendering
+                          if (isDelivered) {
+                            console.log(`🟢 RENDERING DELIVERED PROJECT: ${bar.projectNumber} (${bar.projectName}) with green glow`);
+                          }
+                          
                           return bar.bayId === bay.id && (
                             <div
                               key={`schedule-bar-${bar.id}`}
@@ -4063,11 +4095,11 @@ export default function ResizableBaySchedule({
                                 left: `${bar.left}px`,
                                 width: `${Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0))}px`, // Ensure width accommodates all phases
                                 height: (isSalesEstimate || isDelivered) ? '190px' : '72px', // Extended height for sales estimates and delivered projects
-                                backgroundColor: isSalesEstimate ? '#fbbf2460' : isDelivered ? '#22c55e30' : `${bar.color}25`, // Yellow for sales estimates, light green for delivered
-                                boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : isDelivered ? '0 0 8px rgba(34, 197, 94, 0.6)' : 'none', // Yellow glow for sales estimates, green glow for delivered
-                                border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : isDelivered ? '2px solid rgba(34, 197, 94, 0.8)' : 'none', // Yellow border for sales estimates, green for delivered
+                                backgroundColor: isSalesEstimate ? '#fbbf2460' : isDelivered ? '#22c55e50' : `${bar.color}25`, // Increased opacity for delivered projects
+                                boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : isDelivered ? '0 0 12px rgba(34, 197, 94, 0.8), 0 0 24px rgba(34, 197, 94, 0.4)' : 'none', // Enhanced green glow for delivered
+                                border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : isDelivered ? '3px solid rgba(34, 197, 94, 1.0)' : 'none', // Stronger green border for delivered
                                 // Position at the top of the row - don't move the container
-                                top: '0', // Keep at top of row, just make the yellow overlay taller
+                                top: '0', // Keep at top of row, just make the overlay taller
                                 // Set data attributes for department phase percentages 
                                 // Store important info for drag/resize operations
                               }}
