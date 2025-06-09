@@ -4684,7 +4684,7 @@ Response format:
         description,
         assignedToId,
         priority: priority || "medium",
-        linkedProjectId: linkedProjectId && linkedProjectId !== "none" ? parseInt(linkedProjectId) : null,
+        projectId: linkedProjectId && linkedProjectId !== "none" ? parseInt(linkedProjectId) : null,
         dueDate: dueDate || null,
         status: "pending"
       };
@@ -4693,7 +4693,7 @@ Response format:
       const task = await storage.createMeetingTask(validatedData);
 
       // Trigger project sync if meeting task is linked to a project
-      if (task.linkedProjectId) {
+      if (task.projectId) {
         const { projectMeetingSyncService } = await import('./services/projectMeetingSync');
         await projectMeetingSyncService.syncMeetingTaskToProject(task);
       }
