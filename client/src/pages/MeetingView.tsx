@@ -273,6 +273,17 @@ export default function MeetingView({}: MeetingViewProps) {
     createNoteMutation.mutate({
       agendaItem: selectedAgendaItem,
       notes: newNote
+    }, {
+      onSuccess: () => {
+        setShowNoteDialog(false);
+        setSelectedAgendaItem("");
+        setNewNote("");
+        toast({ title: "Note added successfully" });
+      },
+      onError: (error) => {
+        console.error("Error creating note:", error);
+        toast({ title: "Error adding note", variant: "destructive" });
+      }
     });
   };
 
@@ -465,7 +476,7 @@ export default function MeetingView({}: MeetingViewProps) {
                     Add Note
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-xl">
                   <DialogHeader>
                     <DialogTitle>Add Meeting Note</DialogTitle>
                   </DialogHeader>
@@ -492,13 +503,19 @@ export default function MeetingView({}: MeetingViewProps) {
                         value={newNote}
                         onChange={(e) => setNewNote(e.target.value)}
                         placeholder="Enter your note..."
+                        rows={6}
+                        className="min-h-[120px]"
                       />
                     </div>
                     <div className="flex justify-end space-x-2">
-                      <Button variant="outline" onClick={() => setShowNoteDialog(false)}>
+                      <Button variant="outline" onClick={() => {
+                        setShowNoteDialog(false);
+                        setSelectedAgendaItem("");
+                        setNewNote("");
+                      }}>
                         Cancel
                       </Button>
-                      <Button onClick={handleCreateNote} disabled={createNoteMutation.isPending}>
+                      <Button onClick={handleCreateNote} disabled={createNoteMutation.isPending || !selectedAgendaItem || !newNote.trim()}>
                         Add Note
                       </Button>
                     </div>
