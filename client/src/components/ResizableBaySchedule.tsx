@@ -1367,8 +1367,9 @@ export default function ResizableBaySchedule({
         console.log(`✅ DELIVERED PROJECT FOUND: ${project.projectNumber} - Will show with green glow`);
       }
       
-      // CRITICAL FIX: Do NOT filter out delivered projects - they must stay visible on the schedule
+      // CRITICAL POLICY: Do NOT filter out delivered projects - they must stay visible on the schedule
       // Delivered projects will be shown with a green glow instead of being hidden
+      // This ensures we never lose track of delivered projects and can re-schedule them if needed
       
       // IMPORTANT FIX: Explicitly handle each date format possibility
       // This ensures schedules appear in their correct position on the timeline
@@ -1489,7 +1490,7 @@ export default function ResizableBaySchedule({
     
     const searchTermLower = searchTerm.toLowerCase();
     
-    // Filter projects by name or number
+    // Filter projects by name or number - include ALL projects (including delivered)
     const filtered = projects.filter(
       (project) =>
         project.name.toLowerCase().includes(searchTermLower) ||
@@ -1499,13 +1500,21 @@ export default function ResizableBaySchedule({
     // Get IDs of already scheduled projects
     const scheduledProjectIds = new Set(schedules.map((s) => s.projectId));
     
-    // Sort by whether they're already scheduled
+    // Sort by delivery status first, then by schedule status
     const sorted = [...filtered].sort((a, b) => {
+      const aDelivered = a.status === 'delivered';
+      const bDelivered = b.status === 'delivered';
       const aScheduled = scheduledProjectIds.has(a.id);
       const bScheduled = scheduledProjectIds.has(b.id);
       
+      // First priority: delivered projects go to bottom
+      if (aDelivered && !bDelivered) return 1;
+      if (!aDelivered && bDelivered) return -1;
+      
+      // Second priority: within same delivery status, unscheduled projects go first
       if (aScheduled && !bScheduled) return 1;
       if (!aScheduled && bScheduled) return -1;
+      
       return 0;
     });
     
@@ -4575,21 +4584,48 @@ export default function ResizableBaySchedule({
                 
                 {filteredProjects.length > 0 && (
                   <ScrollArea className="h-32 border rounded-md p-2">
-                    {filteredProjects.map((project) => (
-                      <div
-                        key={project.id}
-                        className={`py-1 px-2 cursor-pointer rounded hover:bg-gray-100 ${
-                          currentProject === project.id ? 'bg-primary text-primary-foreground' : ''
-                        }`}
-                        onClick={() => setCurrentProject(project.id)}
-                      >
-                        <div className="font-medium">{project.projectNumber}</div>
-                        <div className="text-sm">{project.name}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Total Hours: {project.totalHours || "N/A"}
+                    {filteredProjects.map((project) => {
+                      // Check if this project is already scheduled
+                      const isScheduled = schedules.some(s => s.projectId === project.id);
+                      const isDelivered = project.status === 'delivered';
+                      
+                      return (
+                        <div
+                          key={project.id}
+                          className={`py-1 px-2 cursor-pointer rounded transition-colors ${
+                            currentProject === project.id 
+                              ? 'bg-primary text-primary-foreground' 
+                              : isDelivered 
+                                ? 'bg-green-50 hover:bg-green-100 border border-green-200' 
+                                : 'hover:bg-gray-100'
+                          } ${isScheduled && !isDelivered ? 'opacity-60' : ''}`}
+                          onClick={() => setCurrentProject(project.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium">{project.projectNumber}</div>
+                            {isDelivered && (
+                              <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full font-bold">
+                                DELIVERED
+                              </span>
+                            )}
+                            {isScheduled && !isDelivered && (
+                              <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">
+                                SCHEDULED
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm">{project.name}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Total Hours: {project.totalHours || "N/A"}
+                            {isDelivered && (
+                              <span className="ml-2 text-green-600 font-medium">
+                                • Project delivered but can be re-scheduled if needed
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </ScrollArea>
                 )}
               </div>
