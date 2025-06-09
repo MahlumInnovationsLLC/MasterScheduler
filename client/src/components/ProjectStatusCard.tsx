@@ -51,12 +51,14 @@ interface ProjectStatsCardProps {
     scheduled: number;
     inProgress: number;
     complete: number;
+    delivered: number;
   };
   projectLists?: {
     unscheduled: ProjectInfo[];
     scheduled: ProjectInfo[];
     inProgress: ProjectInfo[];
     complete: ProjectInfo[];
+    delivered: ProjectInfo[];
   };
   className?: string;
 }
@@ -105,6 +107,14 @@ export function ProjectStatsCard({
       color: 'text-success',
       key: 'complete',
       projects: projectLists?.complete || []
+    },
+    {
+      status: 'Delivered',
+      count: stateBreakdown.delivered,
+      icon: <CheckCircle className="h-4 w-4 text-green-500" />,
+      color: 'text-green-500',
+      key: 'delivered',
+      projects: projectLists?.delivered || []
     }
   ] : [];
 
@@ -152,7 +162,7 @@ export function ProjectStatsCard({
       {stateBreakdown && (
         <div className="mt-4">
           <h4 className="text-xs text-gray-400 mb-2">Project State Breakdown</h4>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-5 gap-2"></div>
             {stateItems.map((item) => (
               <HoverCard key={item.status}>
                 <HoverCardTrigger asChild>

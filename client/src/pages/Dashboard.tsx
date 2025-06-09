@@ -88,7 +88,7 @@ const Dashboard = () => {
 
     try {
       const searchTerm = searchQuery.toLowerCase().trim();
-      
+
       // Find the project in data first
       const targetProject = (projects || []).find(project => 
         project.projectNumber.toLowerCase().includes(searchTerm) ||
@@ -134,7 +134,7 @@ const Dashboard = () => {
 
       for (const selector of possibleSelectors) {
         const elements = document.querySelectorAll(selector);
-        
+
         for (let i = 0; i < elements.length; i++) {
           const bar = elements[i];
           const barProjectNumber = bar.getAttribute('data-project-number') || 
@@ -143,14 +143,14 @@ const Dashboard = () => {
           const barProjectName = bar.getAttribute('data-project-name') || 
                                 bar.getAttribute('title') || 
                                 bar.textContent || '';
-          
+
           if (barProjectNumber.toLowerCase().includes(searchTerm) || 
               barProjectName.toLowerCase().includes(searchTerm)) {
             targetBar = bar;
             break;
           }
         }
-        
+
         if (targetBar) break;
       }
 
@@ -160,7 +160,7 @@ const Dashboard = () => {
         for (let i = 0; i < allElements.length; i++) {
           const element = allElements[i];
           const textContent = element.textContent || '';
-          
+
           if (textContent.includes(targetProject.projectNumber) || 
               textContent.includes(targetProject.name)) {
             // Find the closest parent that looks like a project bar
@@ -202,7 +202,7 @@ const Dashboard = () => {
         description: `Scrolled to project ${targetProject.projectNumber} (${targetProject.name})`,
         duration: 3000
       });
-      
+
       return true;
     } catch (error) {
       console.error("Project search scrolling failed:", error);
@@ -250,16 +250,16 @@ const Dashboard = () => {
       .sort((a, b) => {
         const dateA = getValidDate(a.shipDate);
         const dateB = getValidDate(b.shipDate);
-        
+
         // Projects with ship dates come first, sorted by earliest date
         if (dateA && dateB) {
           return dateA.getTime() - dateB.getTime();
         }
-        
+
         // Projects with ship dates come before those without
         if (dateA && !dateB) return -1;
         if (!dateA && dateB) return 1;
-        
+
         // For projects without ship dates, sort by project number (most recent first)
         const numA = parseInt(a.projectNumber.replace(/\D/g, '')) || 0;
         const numB = parseInt(b.projectNumber.replace(/\D/g, '')) || 0;
@@ -356,12 +356,12 @@ const Dashboard = () => {
           if (scrollContainer) {
             const markerRect = todayMarker.getBoundingClientRect();
             const containerRect = scrollContainer.getBoundingClientRect();
-            
+
             // Calculate horizontal scroll position to center the today marker
             const markerLeft = todayMarker.offsetLeft;
             const containerWidth = scrollContainer.clientWidth;
             const scrollLeft = markerLeft - (containerWidth / 2);
-            
+
             // Scroll horizontally only, preserve current vertical position
             scrollContainer.scrollTo({
               left: Math.max(0, scrollLeft),
@@ -371,7 +371,7 @@ const Dashboard = () => {
           }
         }
       }, 1000); // Give the component time to render
-      
+
       return () => clearTimeout(timer);
     }
   }, [manufacturingSchedules, manufacturingBays, projects]);
@@ -567,7 +567,7 @@ const Dashboard = () => {
     if (!dateStr) return 'N/A';
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return 'N/A';
-    
+
     // Use UTC methods to avoid timezone issues
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
@@ -585,7 +585,7 @@ const Dashboard = () => {
       cell: ({ row }) => {
         const isPastDue = row.original.shipDate ? new Date(row.original.shipDate) < new Date() : false;
         const isSalesEstimate = row.original.isSalesEstimate;
-        
+
         return (
           <div className={`flex items-center ${isPastDue ? 'bg-red-900/30 rounded' : isSalesEstimate ? 'bg-yellow-500/10 rounded' : ''}`}>
             <div className="ml-2 p-1">
@@ -827,7 +827,8 @@ const Dashboard = () => {
 
               setSelectedMonthData({
                 month: -1,
-                year: currentYear,
+```text
+        year: currentYear,
                 amount: ytdAmount,
                 milestones: ytdMilestones
               });
