@@ -82,27 +82,46 @@ export default function CreateMeetingDialog({ open, onOpenChange }: CreateMeetin
   });
 
   const createMeetingMutation = useMutation({
-    mutationFn: (data: CreateMeetingForm) => {
+    mutationFn: async (data: CreateMeetingForm) => {
       const meetingData = {
-        ...data,
-        agenda: agendaItems,
+        title: data.title,
+        description: data.description,
         datetime: new Date(data.datetime).toISOString(),
+        location: data.location,
+        agenda: agendaItems,
       };
-      return apiRequest('/api/meetings', {
+      
+      const response = await fetch('/api/meetings', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(meetingData),
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create meeting');
+      }
+      
+      return response.json();
     },
     onSuccess: async (meeting) => {
       // Add attendees
       if (selectedAttendees.length > 0) {
         await Promise.all(
-          selectedAttendees.map(userId =>
-            apiRequest(`/api/meetings/${meeting.id}/attendees`, {
+          selectedAttendees.map(async userId => {
+            const response = await fetch(`/api/meetings/${meeting.id}/attendees`, {
               method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
               body: JSON.stringify({ userId }),
-            })
-          )
+            });
+            if (!response.ok) {
+              console.error('Failed to add attendee:', userId);
+            }
+            return response.json();
+          })
         );
       }
       
