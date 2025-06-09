@@ -89,6 +89,19 @@ const ProjectDetails = () => {
     dueDate: new Date().toISOString().split('T')[0],
     milestoneId: 0
   });
+
+  // Reset task form when dialog closes
+  React.useEffect(() => {
+    if (!isTaskDialogOpen) {
+      setTaskForm({
+        name: '',
+        description: '',
+        dueDate: new Date().toISOString().split('T')[0],
+        milestoneId: 0
+      });
+      setEditTaskId(null);
+    }
+  }, [isTaskDialogOpen]);
   
   // Milestone editing state
   const [editMilestoneId, setEditMilestoneId] = useState<number | null>(null);
@@ -343,27 +356,48 @@ const ProjectDetails = () => {
 
   // Group tasks by milestone
   const milestones = React.useMemo(() => {
-    // Use actual tasks from the database - no mock data
-    const currentTasks = tasks || [];
+    const currentTasks = Array.isArray(tasks) ? tasks : [];
     
-    // Return empty array when no tasks exist - user should add their own milestones
     if (currentTasks.length === 0) {
       return [];
     }
     
-    // Simple grouping for existing tasks
     const milestoneGroups = [];
     
-    // Group tasks by date ranges or add logic to properly group tasks by milestones
-    // For now, return all tasks as ungrouped
-    if (currentTasks.length > 0) {
+    // Group tasks that have milestoneId assignments
+    const tasksWithMilestones = currentTasks.filter(task => task.milestoneId);
+    const standaloneTasks = currentTasks.filter(task => !task.milestoneId);
+    
+    // Create milestone groups for tasks with milestone assignments
+    const milestoneMap = new Map();
+    tasksWithMilestones.forEach(task => {
+      const milestoneId = task.milestoneId;
+      if (!milestoneMap.has(milestoneId)) {
+        milestoneMap.set(milestoneId, {
+          id: milestoneId,
+          name: `Milestone ${milestoneId}`,
+          status: 'Active',
+          date: 'Current',
+          tasks: [],
+          color: 'border-primary',
+          isCompleted: false
+        });
+      }
+      milestoneMap.get(milestoneId).tasks.push(task);
+    });
+    
+    // Add milestone groups to the result
+    milestoneGroups.push(...Array.from(milestoneMap.values()));
+    
+    // Add standalone tasks group if any exist
+    if (standaloneTasks.length > 0) {
       milestoneGroups.push({
-        id: 1,
-        name: 'Project Tasks',
+        id: 0,
+        name: 'Standalone Tasks',
         status: 'Active',
-        date: 'Current',
-        tasks: currentTasks,
-        color: 'border-primary',
+        date: 'No milestone',
+        tasks: standaloneTasks,
+        color: 'border-gray-500',
         isCompleted: false
       });
     }
@@ -1322,26 +1356,27 @@ const ProjectDetails = () => {
       
       {/* Task Dialog (Add/Edit) */}
       <Dialog open={isTaskDialogOpen} onOpenChange={setTaskDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-darkBg border-gray-800 text-white">
           <DialogHeader>
-            <DialogTitle>{editTaskId ? 'Edit Task' : 'Add Task'}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-white">{editTaskId ? 'Edit Task' : 'Add Task'}</DialogTitle>
+            <DialogDescription className="text-gray-400">
               {editTaskId ? 'Update the task details below.' : 'Add a new task to this project.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-4">
             <div className="space-y-2">
-              <Label htmlFor="taskMilestone">Milestone</Label>
+              <Label htmlFor="taskMilestone" className="text-white">Milestone (optional)</Label>
               <Select
-                value={taskForm.milestoneId?.toString()}
-                onValueChange={(value) => setTaskForm({...taskForm, milestoneId: parseInt(value)})}
+                value={taskForm.milestoneId?.toString() || ""}
+                onValueChange={(value) => setTaskForm({...taskForm, milestoneId: value ? parseInt(value) : 0})}
               >
-                <SelectTrigger className="bg-darkInput border-gray-800 w-full">
-                  <SelectValue placeholder="Select a milestone" />
+                <SelectTrigger className="bg-darkInput border-gray-800 w-full text-white">
+                  <SelectValue placeholder="Select a milestone (optional)" />
                 </SelectTrigger>
                 <SelectContent className="bg-darkInput border-gray-800">
+                  <SelectItem value="" className="text-white">No milestone (standalone task)</SelectItem>
                   {milestones.map((milestone) => (
-                    <SelectItem key={milestone.id} value={milestone.id.toString()}>
+                    <SelectItem key={milestone.id} value={milestone.id.toString()} className="text-white">
                       {milestone.name}
                     </SelectItem>
                   ))}
@@ -1350,35 +1385,35 @@ const ProjectDetails = () => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="taskName">Task Name</Label>
+              <Label htmlFor="taskName" className="text-white">Task Name</Label>
               <Input
                 id="taskName"
                 value={taskForm.name}
                 onChange={(e) => setTaskForm({...taskForm, name: e.target.value})}
-                className="bg-darkInput border-gray-800"
-                placeholder="Enter task name"
+                className="bg-darkInput border-gray-800 text-white placeholder:text-gray-400"
+                placeholder="Test Task"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="taskDescription">Description (optional)</Label>
+              <Label htmlFor="taskDescription" className="text-white">Description (optional)</Label>
               <Textarea
                 id="taskDescription"
                 value={taskForm.description}
                 onChange={(e) => setTaskForm({...taskForm, description: e.target.value})}
-                className="resize-none bg-darkInput border-gray-800 h-24"
+                className="resize-none bg-darkInput border-gray-800 h-24 text-white placeholder:text-gray-400"
                 placeholder="Enter task description"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="taskDueDate">Due Date</Label>
+              <Label htmlFor="taskDueDate" className="text-white">Due Date</Label>
               <Input
                 id="taskDueDate"
                 type="date"
                 value={taskForm.dueDate}
                 onChange={(e) => setTaskForm({...taskForm, dueDate: e.target.value})}
-                className="bg-darkInput border-gray-800"
+                className="bg-darkInput border-gray-800 text-white"
               />
             </div>
           </div>
@@ -1406,6 +1441,8 @@ const ProjectDetails = () => {
                 } else {
                   createTaskMutation.mutate({
                     ...taskForm,
+                    projectId,
+                    milestoneId: taskForm.milestoneId || null,
                     dueDate: new Date(taskForm.dueDate).toISOString()
                   });
                 }
@@ -1425,17 +1462,17 @@ const ProjectDetails = () => {
       
       {/* Delete Task Confirmation Dialog */}
       <Dialog open={isDeleteTaskDialogOpen} onOpenChange={setDeleteTaskDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-darkBg border-gray-800 text-white">
           <DialogHeader>
-            <DialogTitle>Delete Task</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-white">Delete Task</DialogTitle>
+            <DialogDescription className="text-gray-400">
               Are you sure you want to delete this task? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           {taskToDelete && (
             <div className="py-4">
               <div className="bg-darkInput rounded-lg p-3 mb-4">
-                <p className="font-medium">{taskToDelete.name}</p>
+                <p className="font-medium text-white">{taskToDelete.name}</p>
                 {taskToDelete.description && (
                   <p className="text-sm text-gray-400 mt-1">{taskToDelete.description}</p>
                 )}
