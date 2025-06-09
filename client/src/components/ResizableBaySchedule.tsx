@@ -1507,16 +1507,24 @@ export default function ResizableBaySchedule({
       const aScheduled = scheduledProjectIds.has(a.id);
       const bScheduled = scheduledProjectIds.has(b.id);
       
-      // First priority: delivered projects go to bottom
+      // First priority: unscheduled projects go first (regardless of delivery status)
+      if (!aScheduled && bScheduled) return -1;
+      if (aScheduled && !bScheduled) return 1;
+      
+      // Second priority: within same schedule status, delivered projects go to bottom
       if (aDelivered && !bDelivered) return 1;
       if (!aDelivered && bDelivered) return -1;
       
-      // Second priority: within same delivery status, unscheduled projects go first
-      if (aScheduled && !bScheduled) return 1;
-      if (!aScheduled && bScheduled) return -1;
-      
-      return 0;
+      // Third priority: sort by project number
+      return a.projectNumber.localeCompare(b.projectNumber);
     });
+    
+    console.log(`🔍 SEARCH RESULTS for "${searchTerm}":`, sorted.map(p => ({
+      projectNumber: p.projectNumber,
+      name: p.name,
+      status: p.status,
+      isScheduled: scheduledProjectIds.has(p.id)
+    })));
     
     setFilteredProjects(sorted);
   }, [searchTerm, projects, schedules]);
@@ -4576,11 +4584,23 @@ export default function ResizableBaySchedule({
               <div className="col-span-3">
                 <Input
                   id="project-search"
-                  placeholder="Search projects..."
+                  placeholder="Search by project number or name (e.g. 804916)..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="mb-2"
                 />
+                
+                {searchTerm && filteredProjects.length === 0 && (
+                  <div className="text-sm text-gray-500 italic mb-2">
+                    No projects found matching "{searchTerm}"
+                  </div>
+                )}
+                
+                {!searchTerm && (
+                  <div className="text-sm text-gray-500 italic mb-2">
+                    Start typing to search for projects...
+                  </div>
+                )}
                 
                 {filteredProjects.length > 0 && (
                   <ScrollArea className="h-32 border rounded-md p-2">
