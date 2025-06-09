@@ -1260,6 +1260,9 @@ export class DatabaseStorage implements IStorage {
       // Get meeting tasks linked to this project with user information
       let meetingTasksQuery = [];
       try {
+        const assignedUser = users.as('assignedUser');
+        const completedUser = users.as('completedUser');
+        
         meetingTasksQuery = await db
           .select({
             id: meetingTasks.id,
@@ -1269,15 +1272,24 @@ export class DatabaseStorage implements IStorage {
             status: meetingTasks.status,
             createdAt: meetingTasks.createdAt,
             assignedToId: meetingTasks.assignedToId,
+            completedDate: meetingTasks.completedDate,
+            completedByUserId: meetingTasks.completedByUserId,
             assignedToUser: {
-              id: users.id,
-              firstName: users.firstName,
-              lastName: users.lastName,
-              email: users.email,
+              id: assignedUser.id,
+              firstName: assignedUser.firstName,
+              lastName: assignedUser.lastName,
+              email: assignedUser.email,
+            },
+            completedByUser: {
+              id: completedUser.id,
+              firstName: completedUser.firstName,
+              lastName: completedUser.lastName,
+              email: completedUser.email,
             },
           })
           .from(meetingTasks)
-          .leftJoin(users, eq(meetingTasks.assignedToId, users.id))
+          .leftJoin(assignedUser, eq(meetingTasks.assignedToId, assignedUser.id))
+          .leftJoin(completedUser, eq(meetingTasks.completedByUserId, completedUser.id))
           .where(eq(meetingTasks.projectId, projectId));
       } catch (meetingError) {
         console.warn('Could not fetch meeting tasks:', meetingError);
@@ -1293,13 +1305,13 @@ export class DatabaseStorage implements IStorage {
         milestoneId: null,
         startDate: null,
         dueDate: task.dueDate,
-        completedDate: null,
-        completedByUserId: null,
+        completedDate: task.completedDate,
+        completedByUserId: task.completedByUserId,
         assignedToUserId: task.assignedToId,
         isCompleted: task.status === 'completed',
         createdAt: task.createdAt,
         assignedToUser: task.assignedToUser,
-        completedByUser: null,
+        completedByUser: task.completedByUser,
         isMeetingTask: true // Add flag to identify meeting tasks
       }));
       
