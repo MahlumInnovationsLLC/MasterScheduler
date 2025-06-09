@@ -67,6 +67,16 @@ export default function Meetings() {
     agendaItems: [""],
     defaultDuration: 60
   });
+  
+  const [meetingForm, setMeetingForm] = useState({
+    title: "",
+    datetime: "",
+    location: "",
+    virtualLink: "",
+    description: "",
+    agenda: [""],
+    selectedTemplate: ""
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -315,6 +325,53 @@ export default function Meetings() {
     setTemplateForm({ name: "", description: "", agendaItems: [""], defaultDuration: 60 });
     setEditingTemplate(null);
     setShowCreateTemplateDialog(false);
+  };
+
+  // Meeting helper functions
+  const handleApplyTemplate = (templateId: string) => {
+    const template = templates.find((t: any) => t.id.toString() === templateId);
+    if (template) {
+      setMeetingForm(prev => ({
+        ...prev,
+        title: template.name,
+        description: template.description || "",
+        agenda: template.agendaItems && template.agendaItems.length > 0 ? template.agendaItems : [""],
+        selectedTemplate: templateId
+      }));
+    }
+  };
+
+  const resetMeetingForm = () => {
+    setMeetingForm({
+      title: "",
+      datetime: "",
+      location: "",
+      virtualLink: "",
+      description: "",
+      agenda: [""],
+      selectedTemplate: ""
+    });
+  };
+
+  const addMeetingAgendaItem = () => {
+    setMeetingForm(prev => ({
+      ...prev,
+      agenda: [...prev.agenda, ""]
+    }));
+  };
+
+  const updateMeetingAgendaItem = (index: number, value: string) => {
+    setMeetingForm(prev => ({
+      ...prev,
+      agenda: prev.agenda.map((item, i) => i === index ? value : item)
+    }));
+  };
+
+  const removeMeetingAgendaItem = (index: number) => {
+    setMeetingForm(prev => ({
+      ...prev,
+      agenda: prev.agenda.filter((_, i) => i !== index)
+    }));
   };
 
   if (meetingsLoading || tasksLoading) {

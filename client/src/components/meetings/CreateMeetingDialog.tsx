@@ -39,16 +39,33 @@ interface User {
   email?: string;
 }
 
+interface MeetingTemplate {
+  id: number;
+  name: string;
+  description?: string;
+  agendaItems: string[];
+  defaultDuration: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function CreateMeetingDialog({ open, onOpenChange }: CreateMeetingDialogProps) {
   const [agendaItems, setAgendaItems] = useState<string[]>([]);
   const [newAgendaItem, setNewAgendaItem] = useState("");
   const [selectedAttendees, setSelectedAttendees] = useState<string[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch users for attendee selection
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ['/api/users'],
+  });
+
+  // Fetch meeting templates
+  const { data: templates = [] } = useQuery<MeetingTemplate[]>({
+    queryKey: ['/api/meeting-templates'],
   });
 
   const form = useForm<CreateMeetingForm>({
@@ -108,6 +125,17 @@ export default function CreateMeetingDialog({ open, onOpenChange }: CreateMeetin
     setAgendaItems([]);
     setNewAgendaItem("");
     setSelectedAttendees([]);
+    setSelectedTemplate("");
+  };
+
+  const applyTemplate = (templateId: string) => {
+    const template = templates.find(t => t.id.toString() === templateId);
+    if (template) {
+      form.setValue('title', template.name);
+      form.setValue('description', template.description || "");
+      setAgendaItems(template.agendaItems || []);
+      setSelectedTemplate(templateId);
+    }
   };
 
   const addAgendaItem = () => {
@@ -171,6 +199,29 @@ export default function CreateMeetingDialog({ open, onOpenChange }: CreateMeetin
                 </FormItem>
               )}
             />
+
+            {/* Template Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Use Template (Optional)</label>
+              <Select value={selectedTemplate} onValueChange={applyTemplate}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a template to start from..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No template</SelectItem>
+                  {templates.map((template) => (
+                    <SelectItem key={template.id} value={template.id.toString()}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedTemplate && (
+                <p className="text-xs text-muted-foreground">
+                  Template applied. You can modify the fields below as needed.
+                </p>
+              )}
+            </div>
 
             <FormField
               control={form.control}
