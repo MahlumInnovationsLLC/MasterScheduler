@@ -1429,6 +1429,8 @@ export const insertMeetingSchema = createInsertSchema(meetings).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  datetime: z.string().transform((str) => new Date(str)),
 });
 
 export const insertMeetingAttendeeSchema = createInsertSchema(meetingAttendees).omit({

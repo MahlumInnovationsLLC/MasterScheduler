@@ -4445,9 +4445,9 @@ Response format:
       }
       
       const meetingData = {
-        ...req.body,
+        ...validationResult.data,
         organizerId: req.user?.id || "",
-        relatedProjects: req.body.relatedProjects || []
+        relatedProjects: validationResult.data.relatedProjects || []
       };
       
       console.log("📝 Final meeting data before creation:", JSON.stringify(meetingData, null, 2));
