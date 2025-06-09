@@ -162,7 +162,7 @@ export function ProjectStatsCard({
       {stateBreakdown && (
         <div className="mt-4">
           <h4 className="text-xs text-gray-400 mb-2">Project State Breakdown</h4>
-          <div className="grid grid-cols-5 gap-2"></div>
+          <div className="grid grid-cols-5 gap-2">
             {stateItems.map((item) => (
               <HoverCard key={item.status}>
                 <HoverCardTrigger asChild>
