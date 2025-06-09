@@ -4664,9 +4664,33 @@ Response format:
     }
   });
 
-  app.post("/api/meeting-tasks", simpleAuth, validateRequest(insertMeetingTaskSchema), async (req, res) => {
+  app.post("/api/meeting-tasks", simpleAuth, async (req, res) => {
     try {
-      const task = await storage.createMeetingTask(req.body);
+      const { meetingId, description, assignedToId, priority, linkedProjectId, dueDate } = req.body;
+      
+      if (!meetingId || !description || !assignedToId) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: [
+            { field: "meetingId", message: "Meeting ID is required" },
+            { field: "description", message: "Description is required" },
+            { field: "assignedToId", message: "Assigned user is required" }
+          ]
+        });
+      }
+      
+      const taskData = {
+        meetingId: parseInt(meetingId),
+        description,
+        assignedToId,
+        priority: priority || "medium",
+        linkedProjectId: linkedProjectId && linkedProjectId !== "none" ? parseInt(linkedProjectId) : null,
+        dueDate: dueDate || null,
+        status: "pending"
+      };
+      
+      const validatedData = insertMeetingTaskSchema.parse(taskData);
+      const task = await storage.createMeetingTask(validatedData);
 
       // Trigger project sync if meeting task is linked to a project
       if (task.projectId) {

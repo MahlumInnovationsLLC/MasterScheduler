@@ -50,7 +50,7 @@ export default function MeetingView({}: MeetingViewProps) {
     assignedToId: "",
     dueDate: "",
     priority: "medium" as const,
-    projectId: ""
+    linkedProjectId: ""
   });
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [showNoteDialog, setShowNoteDialog] = useState(false);
@@ -151,7 +151,7 @@ export default function MeetingView({}: MeetingViewProps) {
         assignedToId: "",
         dueDate: "",
         priority: "medium",
-        projectId: ""
+        linkedProjectId: ""
       });
       setShowTaskDialog(false);
       toast({ title: "Task created successfully" });
@@ -291,8 +291,11 @@ export default function MeetingView({}: MeetingViewProps) {
     if (!newTask.description.trim() || !newTask.assignedToId) return;
     
     createTaskMutation.mutate({
-      ...newTask,
-      projectId: newTask.projectId || null
+      description: newTask.description,
+      assignedToId: newTask.assignedToId,
+      priority: newTask.priority || "medium",
+      linkedProjectId: newTask.linkedProjectId && newTask.linkedProjectId !== "none" ? newTask.linkedProjectId : null,
+      dueDate: newTask.dueDate || null
     });
   };
 
@@ -601,8 +604,37 @@ export default function MeetingView({}: MeetingViewProps) {
                       <Textarea
                         id="task-description"
                         value={newTask.description}
-                        onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="Describe the task..."
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setNewTask(prev => ({ ...prev, description: value }));
+                          
+                          // Auto-link @ mentions for users
+                          const userMentions = value.match(/@(\w+(?:\.\w+)?)/g);
+                          if (userMentions && Array.isArray(users)) {
+                            const lastMention = userMentions[userMentions.length - 1].replace('@', '');
+                            const matchedUser = users.find((user: any) => 
+                              user.username?.toLowerCase() === lastMention.toLowerCase() ||
+                              user.email?.toLowerCase().includes(lastMention.toLowerCase()) ||
+                              `${user.firstName?.toLowerCase()}.${user.lastName?.toLowerCase()}` === lastMention.toLowerCase()
+                            );
+                            if (matchedUser && !newTask.assignedToId) {
+                              setNewTask(prev => ({ ...prev, assignedToId: matchedUser.id }));
+                            }
+                          }
+                          
+                          // Auto-link project numbers
+                          const projectMentions = value.match(/@(\d{6})/g);
+                          if (projectMentions && Array.isArray(projects)) {
+                            const lastProjectNumber = projectMentions[projectMentions.length - 1].replace('@', '');
+                            const matchedProject = projects.find((project: any) => 
+                              project.projectNumber === lastProjectNumber
+                            );
+                            if (matchedProject && !newTask.linkedProjectId) {
+                              setNewTask(prev => ({ ...prev, linkedProjectId: matchedProject.id.toString() }));
+                            }
+                          }
+                        }}
+                        placeholder="Describe the task... Use @username to auto-assign or @projectnumber to auto-link"
                       />
                     </div>
                     <div>
@@ -644,7 +676,7 @@ export default function MeetingView({}: MeetingViewProps) {
                     </div>
                     <div>
                       <Label htmlFor="project">Link to Project (Optional)</Label>
-                      <Select value={newTask.projectId} onValueChange={(value) => setNewTask(prev => ({ ...prev, projectId: value }))}>
+                      <Select value={newTask.linkedProjectId} onValueChange={(value) => setNewTask(prev => ({ ...prev, linkedProjectId: value }))}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select project" />
                         </SelectTrigger>
