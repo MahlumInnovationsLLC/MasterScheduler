@@ -174,6 +174,13 @@ export default function MeetingView({}: MeetingViewProps) {
     }
   });
 
+  // Debug meeting data - moved before early returns
+  useEffect(() => {
+    if (meeting) {
+      console.log("🔍 Meeting data received:", JSON.stringify(meeting, null, 2));
+    }
+  }, [meeting]);
+
   useEffect(() => {
     if (meeting && !editedMeeting) {
       setEditedMeeting({ ...meeting });
@@ -192,15 +199,8 @@ export default function MeetingView({}: MeetingViewProps) {
     return <div>Meeting not found</div>;
   }
 
-  // Safe access to meeting properties with debugging
+  // Safe access to meeting properties
   const meetingData = meeting as any;
-  
-  // Debug meeting data
-  useEffect(() => {
-    if (meeting) {
-      console.log("🔍 Meeting data received:", JSON.stringify(meeting, null, 2));
-    }
-  }, [meeting]);
 
   const handleSaveMeeting = () => {
     updateMeetingMutation.mutate(editedMeeting);
