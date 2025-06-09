@@ -1367,14 +1367,14 @@ const ProjectDetails = () => {
             <div className="space-y-2">
               <Label htmlFor="taskMilestone" className="text-white">Milestone (optional)</Label>
               <Select
-                value={taskForm.milestoneId?.toString() || ""}
-                onValueChange={(value) => setTaskForm({...taskForm, milestoneId: value ? parseInt(value) : 0})}
+                value={taskForm.milestoneId?.toString() || "0"}
+                onValueChange={(value) => setTaskForm({...taskForm, milestoneId: value === "0" ? 0 : parseInt(value)})}
               >
                 <SelectTrigger className="bg-darkInput border-gray-800 w-full text-white">
                   <SelectValue placeholder="Select a milestone (optional)" />
                 </SelectTrigger>
                 <SelectContent className="bg-darkInput border-gray-800">
-                  <SelectItem value="" className="text-white">No milestone (standalone task)</SelectItem>
+                  <SelectItem value="0" className="text-white">No milestone (standalone task)</SelectItem>
                   {milestones.map((milestone) => (
                     <SelectItem key={milestone.id} value={milestone.id.toString()} className="text-white">
                       {milestone.name}
@@ -1442,7 +1442,7 @@ const ProjectDetails = () => {
                   createTaskMutation.mutate({
                     ...taskForm,
                     projectId,
-                    milestoneId: taskForm.milestoneId || null,
+                    milestoneId: taskForm.milestoneId === 0 ? null : taskForm.milestoneId,
                     dueDate: new Date(taskForm.dueDate).toISOString()
                   });
                 }
