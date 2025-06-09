@@ -3215,8 +3215,14 @@ export class DatabaseStorage implements IStorage {
 
   async updateMeeting(id: number, meeting: Partial<InsertMeeting>): Promise<Meeting | undefined> {
     try {
+      // Convert datetime string to Date object if present
+      const updateData = { ...meeting };
+      if (updateData.datetime && typeof updateData.datetime === 'string') {
+        updateData.datetime = new Date(updateData.datetime);
+      }
+      
       const [updatedMeeting] = await db.update(meetings)
-        .set({ ...meeting, updatedAt: new Date() })
+        .set({ ...updateData, updatedAt: new Date() })
         .where(eq(meetings.id, id))
         .returning();
       return updatedMeeting;
@@ -3500,18 +3506,6 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
-  async updateMeeting(id: number, meeting: Partial<InsertMeeting>): Promise<Meeting | undefined> {
-    try {
-      const [updatedMeeting] = await db.update(meetings)
-        .set({ ...meeting, updatedAt: new Date() })
-        .where(eq(meetings.id, id))
-        .returning();
-      return updatedMeeting;
-    } catch (error) {
-      console.error("Error updating meeting:", error);
-      return undefined;
-    }
-  }
 }
 
 export const storage = new DatabaseStorage();

@@ -42,6 +42,7 @@ export default function MeetingView({}: MeetingViewProps) {
   
   const [isEditing, setIsEditing] = useState(false);
   const [editedMeeting, setEditedMeeting] = useState<any>(null);
+  const [editedAttendees, setEditedAttendees] = useState<string[]>([]);
   const [newNote, setNewNote] = useState("");
   const [selectedAgendaItem, setSelectedAgendaItem] = useState("");
   const [newTask, setNewTask] = useState({
@@ -186,6 +187,12 @@ export default function MeetingView({}: MeetingViewProps) {
       setEditedMeeting({ ...meeting });
     }
   }, [meeting]);
+
+  useEffect(() => {
+    if (attendees && isEditing) {
+      setEditedAttendees(attendees.map((a: any) => a.userId));
+    }
+  }, [attendees, isEditing]);
 
   if (!meetingId) {
     return <div>Invalid meeting ID</div>;
