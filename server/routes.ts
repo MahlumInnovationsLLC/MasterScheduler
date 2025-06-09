@@ -4503,13 +4503,29 @@ Response format:
     }
   });
 
-  app.post("/api/meetings/:id/attendees", simpleAuth, validateRequest(insertMeetingAttendeeSchema), async (req, res) => {
+  app.post("/api/meetings/:id/attendees", simpleAuth, async (req, res) => {
     try {
       const meetingId = parseInt(req.params.id);
-      const attendeeData = { ...req.body, meetingId };
-      const attendee = await storage.addMeetingAttendee(attendeeData);
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "Validation error", errors: [{ field: "userId", message: "User ID is required" }] });
+      }
+      
+      const attendeeData = { 
+        meetingId, 
+        userId,
+        attended: false 
+      };
+      
+      // Validate the complete data now that we have meetingId
+      const validatedData = insertMeetingAttendeeSchema.parse(attendeeData);
+      const attendee = await storage.addMeetingAttendee(validatedData);
       res.status(201).json(attendee);
     } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
       console.error("Error adding meeting attendee:", error);
       res.status(500).json({ message: "Error adding meeting attendee" });
     }
