@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Calendar, Users, FileText, Download, Edit, Trash2, Clock, MapPin } from "lucide-react";
+import { Plus, Calendar, Users, FileText, Download, Edit, Trash2, Clock, MapPin, Settings, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import CreateMeetingDialog from "@/components/meetings/CreateMeetingDialog";
 import { format } from "date-fns";
@@ -40,11 +42,31 @@ interface MeetingTask {
   updatedAt: string;
 }
 
+interface MeetingTemplate {
+  id: number;
+  name: string;
+  description?: string;
+  agenda: string[];
+  defaultDuration: number; // in minutes
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function Meetings() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showTemplatesDialog, setShowTemplatesDialog] = useState(false);
+  const [showCreateTemplateDialog, setShowCreateTemplateDialog] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<MeetingTemplate | null>(null);
+  const [templateForm, setTemplateForm] = useState({
+    name: "",
+    description: "",
+    agenda: [""],
+    defaultDuration: 60
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -56,6 +78,11 @@ export default function Meetings() {
   // Fetch all meeting tasks
   const { data: allTasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['/api/meeting-tasks'],
+  });
+
+  // Fetch meeting templates
+  const { data: templates = [], isLoading: templatesLoading } = useQuery({
+    queryKey: ['/api/meeting-templates'],
   });
 
   // Delete meeting mutation
@@ -97,6 +124,51 @@ export default function Meetings() {
     },
     onError: () => {
       toast({ title: "Failed to export meeting", variant: "destructive" });
+    },
+  });
+
+  // Template mutations
+  const createTemplateMutation = useMutation({
+    mutationFn: (template: Omit<MeetingTemplate, 'id' | 'createdAt' | 'updatedAt'>) =>
+      apiRequest('/api/meeting-templates', {
+        method: 'POST',
+        body: JSON.stringify(template),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/meeting-templates'] });
+      setShowCreateTemplateDialog(false);
+      setTemplateForm({ name: "", description: "", agenda: [""], defaultDuration: 60 });
+      toast({ title: "Template created successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to create template", variant: "destructive" });
+    },
+  });
+
+  const updateTemplateMutation = useMutation({
+    mutationFn: ({ id, template }: { id: number; template: Partial<MeetingTemplate> }) =>
+      apiRequest(`/api/meeting-templates/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(template),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/meeting-templates'] });
+      setEditingTemplate(null);
+      toast({ title: "Template updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update template", variant: "destructive" });
+    },
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: (id: number) => apiRequest(`/api/meeting-templates/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/meeting-templates'] });
+      toast({ title: "Template deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete template", variant: "destructive" });
     },
   });
 
@@ -159,6 +231,76 @@ export default function Meetings() {
     exportMeetingMutation.mutate({ id: meeting.id, format });
   };
 
+  // Template helper functions
+  const handleCreateTemplate = () => {
+    const agendaItems = templateForm.agenda.filter(item => item.trim() !== "");
+    createTemplateMutation.mutate({
+      name: templateForm.name,
+      description: templateForm.description || undefined,
+      agenda: agendaItems,
+      defaultDuration: templateForm.defaultDuration,
+      isActive: true
+    });
+  };
+
+  const handleEditTemplate = (template: MeetingTemplate) => {
+    setEditingTemplate(template);
+    setTemplateForm({
+      name: template.name,
+      description: template.description || "",
+      agenda: template.agenda.length > 0 ? template.agenda : [""],
+      defaultDuration: template.defaultDuration
+    });
+    setShowCreateTemplateDialog(true);
+  };
+
+  const handleUpdateTemplate = () => {
+    if (!editingTemplate) return;
+    const agendaItems = templateForm.agenda.filter(item => item.trim() !== "");
+    updateTemplateMutation.mutate({
+      id: editingTemplate.id,
+      template: {
+        name: templateForm.name,
+        description: templateForm.description || undefined,
+        agenda: agendaItems,
+        defaultDuration: templateForm.defaultDuration
+      }
+    });
+  };
+
+  const handleDeleteTemplate = (template: MeetingTemplate) => {
+    if (confirm(`Are you sure you want to delete the template "${template.name}"?`)) {
+      deleteTemplateMutation.mutate(template.id);
+    }
+  };
+
+  const addAgendaItem = () => {
+    setTemplateForm(prev => ({
+      ...prev,
+      agenda: [...prev.agenda, ""]
+    }));
+  };
+
+  const updateAgendaItem = (index: number, value: string) => {
+    setTemplateForm(prev => ({
+      ...prev,
+      agenda: prev.agenda.map((item, i) => i === index ? value : item)
+    }));
+  };
+
+  const removeAgendaItem = (index: number) => {
+    setTemplateForm(prev => ({
+      ...prev,
+      agenda: prev.agenda.filter((_, i) => i !== index)
+    }));
+  };
+
+  const resetTemplateForm = () => {
+    setTemplateForm({ name: "", description: "", agenda: [""], defaultDuration: 60 });
+    setEditingTemplate(null);
+    setShowCreateTemplateDialog(false);
+  };
+
   if (meetingsLoading || tasksLoading) {
     return (
       <div className="container mx-auto p-6">
@@ -179,10 +321,16 @@ export default function Meetings() {
             Manage meeting minutes, action items, and team collaboration
           </p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Meeting
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowTemplatesDialog(true)}>
+            <Settings className="mr-2 h-4 w-4" />
+            Templates
+          </Button>
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Meeting
+          </Button>
+        </div>
       </div>
 
       {/* Statistics Cards */}
@@ -403,6 +551,165 @@ export default function Meetings() {
         open={showCreateDialog} 
         onOpenChange={setShowCreateDialog} 
       />
+
+      {/* Templates Management Dialog */}
+      <Dialog open={showTemplatesDialog} onOpenChange={setShowTemplatesDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Meeting Templates</DialogTitle>
+            <DialogDescription>
+              Create and manage reusable meeting templates with predefined agendas
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Templates</h3>
+              <Button onClick={() => setShowCreateTemplateDialog(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Template
+              </Button>
+            </div>
+
+            <div className="grid gap-4">
+              {(templates as MeetingTemplate[]).map((template) => (
+                <Card key={template.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">{template.name}</CardTitle>
+                        <CardDescription>{template.description}</CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={template.isActive ? "default" : "secondary"}>
+                          {template.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                        <Button variant="outline" size="sm" onClick={() => handleEditTemplate(template)}>
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDeleteTemplate(template)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Default Duration: {template.defaultDuration} minutes
+                      </p>
+                      <div>
+                        <p className="text-sm font-medium mb-1">Agenda Items:</p>
+                        <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                          {template.agenda.map((item, index) => (
+                            <li key={index}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create/Edit Template Dialog */}
+      <Dialog open={showCreateTemplateDialog} onOpenChange={(open) => {
+        if (!open) resetTemplateForm();
+        setShowCreateTemplateDialog(open);
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingTemplate ? 'Edit Template' : 'Create New Template'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingTemplate ? 'Update template details' : 'Create a reusable meeting template'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="template-name">Template Name</Label>
+              <Input
+                id="template-name"
+                value={templateForm.name}
+                onChange={(e) => setTemplateForm(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter template name"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="template-description">Description (Optional)</Label>
+              <Textarea
+                id="template-description"
+                value={templateForm.description}
+                onChange={(e) => setTemplateForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Enter template description"
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="default-duration">Default Duration (minutes)</Label>
+              <Input
+                id="default-duration"
+                type="number"
+                value={templateForm.defaultDuration}
+                onChange={(e) => setTemplateForm(prev => ({ ...prev, defaultDuration: parseInt(e.target.value) || 60 }))}
+                min="15"
+                max="480"
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <Label>Agenda Items</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addAgendaItem}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Item
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {templateForm.agenda.map((item, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      value={item}
+                      onChange={(e) => updateAgendaItem(index, e.target.value)}
+                      placeholder={`Agenda item ${index + 1}`}
+                    />
+                    {templateForm.agenda.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeAgendaItem(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={resetTemplateForm}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={editingTemplate ? handleUpdateTemplate : handleCreateTemplate}
+              disabled={!templateForm.name.trim() || (editingTemplate ? updateTemplateMutation.isPending : createTemplateMutation.isPending)}
+            >
+              {editingTemplate ? 'Update Template' : 'Create Template'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
