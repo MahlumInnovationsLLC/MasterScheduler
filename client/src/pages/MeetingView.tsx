@@ -116,10 +116,10 @@ export default function MeetingView({}: MeetingViewProps) {
   // Create note mutation
   const createNoteMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await fetch("/api/meeting-notes", {
+      const response = await fetch(`/api/meetings/${meetingId}/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, meetingId })
+        body: JSON.stringify(data)
       });
       if (!response.ok) throw new Error("Failed to create note");
       return response.json();
