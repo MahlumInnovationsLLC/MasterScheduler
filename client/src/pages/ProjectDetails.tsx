@@ -1450,7 +1450,7 @@ const ProjectDetails = () => {
                 id="taskDescription"
                 value={taskForm.description}
                 onChange={(e) => setTaskForm({...taskForm, description: e.target.value})}
-                className="resize-none bg-white border-gray-300 h-24 text-black placeholder:text-gray-500"
+                className="resize-none bg-darkInput border-gray-800 h-24 text-white placeholder:text-gray-400"
                 placeholder="Enter task description"
               />
             </div>
@@ -1669,7 +1669,7 @@ const ProjectDetails = () => {
                 id="projectNotes"
                 value={notesForm.notes}
                 onChange={(e) => setNotesForm({...notesForm, notes: e.target.value})}
-                className="bg-darkInput border-gray-800 text-white min-h-[200px] resize-none"
+                className="bg-darkInput border-gray-800 text-white min-h-[200px] resize-none placeholder:text-gray-400"
                 placeholder="Enter project notes, important details, or updates..."
               />
               <p className="text-xs text-gray-400">
