@@ -49,6 +49,7 @@ import EditableDateField from '@/components/EditableDateField';
 import EditableNotesField from '../components/EditableNotesField';
 import EditableTextField from '@/components/EditableTextField';
 import { EditableStatusField } from '@/components/EditableStatusField';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -85,6 +86,133 @@ interface ProjectWithRawData extends Project {
 interface ProjectRow {
   original: ProjectWithRawData;
 }
+
+// Project Labels Inline Component for table cells
+const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Fetch project labels
+  const { data: labels = [] } = useQuery({
+    queryKey: [`/api/projects/${projectId}/labels`],
+    enabled: !!projectId
+  });
+  
+  // Fetch available labels for assignment
+  const { data: availableLabels = [] } = useQuery({
+    queryKey: ['/api/project-labels']
+  });
+  
+  const [isOpen, setIsOpen] = useState(false);
+  
+  // Assign label mutation
+  const assignMutation = useMutation({
+    mutationFn: async (labelId: number) => {
+      const response = await apiRequest('POST', `/api/projects/${projectId}/labels/${labelId}`);
+      if (!response.ok) throw new Error('Failed to assign label');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/labels`] });
+      toast({ title: "Label assigned successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error assigning label", variant: "destructive" });
+    }
+  });
+  
+  // Remove label mutation
+  const removeMutation = useMutation({
+    mutationFn: async (assignmentId: number) => {
+      const response = await apiRequest('DELETE', `/api/projects/${projectId}/labels/assignments/${assignmentId}`);
+      if (!response.ok) throw new Error('Failed to remove label');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/labels`] });
+      toast({ title: "Label removed successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error removing label", variant: "destructive" });
+    }
+  });
+  
+  const handleAssignLabel = (labelId: number) => {
+    assignMutation.mutate(labelId);
+    setIsOpen(false);
+  };
+  
+  const handleRemoveLabel = (assignmentId: number) => {
+    removeMutation.mutate(assignmentId);
+  };
+  
+  // Get unassigned labels for the dropdown
+  const assignedLabelIds = labels.map((l: any) => l.labelId);
+  const unassignedLabels = availableLabels.filter((label: any) => 
+    !assignedLabelIds.includes(label.id)
+  );
+  
+  return (
+    <div className="flex flex-wrap gap-1 items-center min-w-0">
+      {/* Display assigned labels */}
+      {labels.map((assignment: any) => (
+        <Badge 
+          key={assignment.id}
+          variant="secondary" 
+          className="px-2 py-1 text-xs font-medium border cursor-pointer"
+          style={{ 
+            backgroundColor: assignment.backgroundColor || '#6b7280', 
+            color: assignment.textColor || '#ffffff',
+            borderColor: assignment.backgroundColor || '#6b7280'
+          }}
+          onClick={() => handleRemoveLabel(assignment.id)}
+          title="Click to remove"
+        >
+          {assignment.labelName}
+          <X className="w-3 h-3 ml-1" />
+        </Badge>
+      ))}
+      
+      {/* Add label button */}
+      {unassignedLabels.length > 0 && (
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 px-2 text-xs border-dashed hover:border-solid transition-all"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Add
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-48 p-2" align="start">
+            <div className="space-y-1 max-h-32 overflow-y-auto">
+              {unassignedLabels.map((label: any) => (
+                <button
+                  key={label.id}
+                  onClick={() => handleAssignLabel(label.id)}
+                  className="w-full flex items-center px-2 py-1 rounded text-xs hover:bg-gray-50 transition-colors"
+                >
+                  <Badge 
+                    variant="secondary" 
+                    className="px-2 py-1 text-xs font-medium border"
+                    style={{ 
+                      backgroundColor: label.backgroundColor || '#6b7280', 
+                      color: label.textColor || '#ffffff',
+                      borderColor: label.backgroundColor || '#6b7280'
+                    }}
+                  >
+                    {label.name}
+                  </Badge>
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+    </div>
+  );
+};
 
 
 
@@ -1209,7 +1337,7 @@ const ProjectStatus = () => {
       { size: 120 }),
     createColumn('status', 'status', 'Status', 
       (value, project) => {
-        return <EditableStatusField projectId={project.id} value={value} field="status" />;
+        return <ProjectLabelsInline projectId={project.id} />;
       },
       { size: 200 }),
     createColumn('contractDate', 'contractDate', 'Contract Date', 
