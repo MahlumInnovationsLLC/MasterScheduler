@@ -98,6 +98,7 @@ import { useQuery } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { type ProjectMilestoneIcon } from '@shared/schema';
+import { ProjectBarHighlighter } from './ProjectBarHighlighter';
 
 interface ManufacturingBay {
   id: number;
@@ -4123,21 +4124,25 @@ export default function ResizableBaySchedule({
                           }
                           
                           return bar.bayId === bay.id && (
-                            <div
+                            <ProjectBarHighlighter
                               key={`schedule-bar-${bar.id}`}
-                              className={`schedule-bar absolute p-1 text-white text-xs rounded cursor-grab z-20 row-${bar.row}-bar ${isSalesEstimate ? 'animate-pulse' : ''} ${isDelivered ? 'delivered-project' : ''}`}
+                              projectId={bar.projectId}
+                              className="absolute"
                               style={{
                                 left: `${bar.left}px`,
-                                width: `${Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0))}px`, // Ensure width accommodates all phases
-                                height: (isSalesEstimate || isDelivered) ? '190px' : '72px', // Extended height for sales estimates and delivered projects
-                                backgroundColor: isSalesEstimate ? '#fbbf2460' : isDelivered ? '#22c55e50' : `${bar.color}25`, // Increased opacity for delivered projects
-                                boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : isDelivered ? '0 0 12px rgba(34, 197, 94, 0.8), 0 0 24px rgba(34, 197, 94, 0.4)' : 'none', // Enhanced green glow for delivered
-                                border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : isDelivered ? '3px solid rgba(34, 197, 94, 1.0)' : 'none', // Stronger green border for delivered
-                                // Position at the top of the row - don't move the container
-                                top: '0', // Keep at top of row, just make the overlay taller
-                                // Set data attributes for department phase percentages 
-                                // Store important info for drag/resize operations
+                                width: `${Math.max(bar.width, (bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) + (bar.itWidth || 0) + (bar.ntcWidth || 0) + (bar.qcWidth || 0))}px`,
+                                height: (isSalesEstimate || isDelivered) ? '190px' : '72px',
+                                top: '0',
+                                zIndex: 20
                               }}
+                            >
+                              <div
+                                className={`schedule-bar h-full w-full p-1 text-white text-xs rounded cursor-grab row-${bar.row}-bar ${isSalesEstimate ? 'animate-pulse' : ''} ${isDelivered ? 'delivered-project' : ''}`}
+                                style={{
+                                  backgroundColor: isSalesEstimate ? '#fbbf2460' : isDelivered ? '#22c55e50' : `${bar.color}25`, // Increased opacity for delivered projects
+                                  boxShadow: isSalesEstimate ? '0 0 8px rgba(251, 191, 36, 0.6)' : isDelivered ? '0 0 12px rgba(34, 197, 94, 0.8), 0 0 24px rgba(34, 197, 94, 0.4)' : 'none', // Enhanced green glow for delivered
+                                  border: isSalesEstimate ? '2px solid rgba(251, 191, 36, 0.8)' : isDelivered ? '3px solid rgba(34, 197, 94, 1.0)' : 'none', // Stronger green border for delivered
+                                }}
                               data-schedule-id={bar.id}
                               data-project-id={bar.projectId}
                               data-bay-id={bar.bayId}
@@ -4575,8 +4580,9 @@ export default function ResizableBaySchedule({
                         })}
                       </div>
                     </div>
-                    </React.Fragment>
-                  );
+                              </ProjectBarHighlighter>
+                            </React.Fragment>
+                          );
                 })}
               </div>
             ))}
