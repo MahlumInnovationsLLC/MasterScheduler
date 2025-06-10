@@ -53,7 +53,26 @@ export function EditableStatusField({ projectId, value, field }: EditableStatusF
     if (savedCustomStatuses) {
       try {
         const parsed = JSON.parse(savedCustomStatuses);
-        setCustomStatuses(parsed);
+        
+        // Update any existing "ON TIME" status to "GOOD"
+        const updatedStatuses = parsed.map((status: any) => {
+          if (status.label === 'ON TIME' || status.value === 'on-time') {
+            return {
+              ...status,
+              label: 'GOOD',
+              value: 'good'
+            };
+          }
+          return status;
+        });
+        
+        // Save updated statuses back to localStorage if changes were made
+        const hasChanges = JSON.stringify(parsed) !== JSON.stringify(updatedStatuses);
+        if (hasChanges) {
+          localStorage.setItem('customStatusOptions', JSON.stringify(updatedStatuses));
+        }
+        
+        setCustomStatuses(updatedStatuses);
       } catch (error) {
         console.error('Failed to parse custom statuses:', error);
       }
