@@ -804,6 +804,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update the project first
       const updatedProject = await storage.updateProject(id, updateData);
+
+      // Automatically assign blue DELIVERED label
+      try {
+        const DELIVERED_LABEL_ID = 4; // Blue DELIVERED label
+        
+        // Remove any existing labels first (single label per project constraint)
+        const currentLabels = await storage.getProjectLabelAssignments(id);
+        for (const assignment of currentLabels) {
+          await storage.removeLabelFromProject(id, assignment.labelId);
+        }
+        
+        // Assign the DELIVERED label
+        await storage.assignLabelToProject(id, DELIVERED_LABEL_ID);
+        console.log(`✅ Auto-assigned DELIVERED label to project ${id}`);
+      } catch (labelError) {
+        console.error(`❌ Failed to auto-assign DELIVERED label to project ${id}:`, labelError);
+      }
       
       // Handle delay responsibility separately using the specific method
       if (delayResponsibility && delayResponsibility !== 'not_applicable') {
@@ -872,6 +889,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update the project
       const updatedProject = await storage.updateProject(id, updateData);
+
+      // Automatically remove DELIVERED label when reverting from delivered status
+      try {
+        const DELIVERED_LABEL_ID = 4; // Blue DELIVERED label
+        await storage.removeLabelFromProject(id, DELIVERED_LABEL_ID);
+        console.log(`✅ Auto-removed DELIVERED label from project ${id} during revert`);
+      } catch (labelError) {
+        console.error(`❌ Failed to auto-remove DELIVERED label from project ${id}:`, labelError);
+      }
       
       // Create a notification for the status change
       await storage.createNotification({

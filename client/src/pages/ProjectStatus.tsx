@@ -212,7 +212,7 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
           </PopoverTrigger>
           <PopoverContent className="w-56 p-2" align="start">
             <div className="space-y-1 max-h-40 overflow-y-auto">
-              {availableLabels.map((label: any) => (
+              {availableLabels.filter((label: any) => label.name !== 'DELIVERED').map((label: any) => (
                 <button
                   key={label.id}
                   onClick={() => handleAssignLabel(label.id)}
