@@ -111,7 +111,7 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
       // First remove any existing labels (only one label allowed)
       if (labels.length > 0) {
         for (const assignment of labels) {
-          await apiRequest('DELETE', `/api/projects/${projectId}/labels/assignments/${assignment.id}`);
+          await apiRequest('DELETE', `/api/projects/${projectId}/labels/${assignment.labelId}`);
         }
       }
       
@@ -132,11 +132,11 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
   
   // Remove label mutation - with optimistic update
   const removeMutation = useMutation({
-    mutationFn: async (assignmentId: number) => {
-      const response = await apiRequest('DELETE', `/api/projects/${projectId}/labels/assignments/${assignmentId}`);
+    mutationFn: async (labelId: number) => {
+      const response = await apiRequest('DELETE', `/api/projects/${projectId}/labels/${labelId}`);
       if (!response.ok) throw new Error('Failed to remove label');
     },
-    onMutate: async (assignmentId) => {
+    onMutate: async (labelId) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: [`/api/projects/${projectId}/labels`] });
       
@@ -145,12 +145,12 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
       
       // Optimistically update to the new value
       queryClient.setQueryData([`/api/projects/${projectId}/labels`], (old: any[]) => 
-        old ? old.filter(label => label.id !== assignmentId) : []
+        old ? old.filter(label => label.labelId !== labelId) : []
       );
       
       return { previousLabels };
     },
-    onError: (err, assignmentId, context) => {
+    onError: (err, labelId, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back
       queryClient.setQueryData([`/api/projects/${projectId}/labels`], context?.previousLabels);
       toast({ title: "Error removing label", variant: "destructive" });
@@ -166,8 +166,8 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
     setIsOpen(false);
   };
   
-  const handleRemoveLabel = (assignmentId: number) => {
-    removeMutation.mutate(assignmentId);
+  const handleRemoveLabel = (labelId: number) => {
+    removeMutation.mutate(labelId);
   };
   
   // Current assigned label (should only be one)
@@ -189,7 +189,7 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
             color: currentLabel.textColor || '#ffffff',
             borderColor: currentLabel.backgroundColor || '#6b7280'
           }}
-          onClick={() => handleRemoveLabel(currentLabel.id)}
+          onClick={() => handleRemoveLabel(currentLabel.labelId)}
           title="Click to remove"
         >
           {currentLabel.labelName}
