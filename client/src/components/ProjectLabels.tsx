@@ -13,7 +13,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Edit, Trash2, Tag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 
 // Types
 interface ProjectLabel {
@@ -62,6 +61,23 @@ const colorMappings = {
   pink: { bg: '#ec4899', text: '#ffffff' },
   gray: { bg: '#6b7280', text: '#ffffff' },
 };
+
+// Helper function for API requests
+async function apiRequest(url: string, options?: RequestInit) {
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+    ...options,
+  });
+  
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.statusText}`);
+  }
+  
+  return response.json();
+}
 
 // Label Badge Component
 export function LabelBadge({ label, onRemove }: { 
@@ -124,14 +140,16 @@ function LabelForm({
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: LabelFormData) => apiRequest('/api/project-labels', {
-      method: 'POST',
-      body: JSON.stringify({
-        ...data,
-        backgroundColor: colorMappings[data.color].bg,
-        textColor: colorMappings[data.color].text,
-      }),
-    }),
+    mutationFn: async (data: LabelFormData) => {
+      return apiRequest('/api/project-labels', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...data,
+          backgroundColor: colorMappings[data.color].bg,
+          textColor: colorMappings[data.color].text,
+        }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/project-labels'] });
       toast({ title: "Label created successfully" });
@@ -143,14 +161,16 @@ function LabelForm({
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: LabelFormData) => apiRequest(`/api/project-labels/${label!.id}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        ...data,
-        backgroundColor: colorMappings[data.color].bg,
-        textColor: colorMappings[data.color].text,
-      }),
-    }),
+    mutationFn: async (data: LabelFormData) => {
+      return apiRequest(`/api/project-labels/${label!.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          ...data,
+          backgroundColor: colorMappings[data.color].bg,
+          textColor: colorMappings[data.color].text,
+        }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/project-labels'] });
       toast({ title: "Label updated successfully" });
@@ -301,12 +321,15 @@ export function ProjectLabelsManager() {
 
   const { data: labels = [], isLoading } = useQuery({
     queryKey: ['/api/project-labels'],
+    queryFn: () => apiRequest('/api/project-labels'),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/project-labels/${id}`, {
-      method: 'DELETE',
-    }),
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/project-labels/${id}`, {
+        method: 'DELETE',
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/project-labels'] });
       toast({ title: "Label deleted successfully" });
@@ -418,6 +441,7 @@ export function ProjectLabelsAssignment({ projectId }: { projectId: number }) {
 
   const { data: availableLabels = [] } = useQuery({
     queryKey: ['/api/project-labels'],
+    queryFn: () => apiRequest('/api/project-labels'),
   });
 
   const { data: projectLabels = [], isLoading } = useQuery({
@@ -426,9 +450,11 @@ export function ProjectLabelsAssignment({ projectId }: { projectId: number }) {
   });
 
   const assignMutation = useMutation({
-    mutationFn: (labelId: number) => apiRequest(`/api/projects/${projectId}/labels/${labelId}`, {
-      method: 'POST',
-    }),
+    mutationFn: async (labelId: number) => {
+      return apiRequest(`/api/projects/${projectId}/labels/${labelId}`, {
+        method: 'POST',
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'labels'] });
       toast({ title: "Label assigned successfully" });
@@ -440,9 +466,11 @@ export function ProjectLabelsAssignment({ projectId }: { projectId: number }) {
   });
 
   const removeMutation = useMutation({
-    mutationFn: (labelId: number) => apiRequest(`/api/projects/${projectId}/labels/${labelId}`, {
-      method: 'DELETE',
-    }),
+    mutationFn: async (labelId: number) => {
+      return apiRequest(`/api/projects/${projectId}/labels/${labelId}`, {
+        method: 'DELETE',
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'labels'] });
       toast({ title: "Label removed successfully" });

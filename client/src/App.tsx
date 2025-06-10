@@ -24,6 +24,7 @@ import ExportReports from "@/pages/ExportReports";
 import ImportData from "@/pages/ImportData";
 import SystemSettings from "@/pages/SystemSettings";
 import UserPreferences from "@/pages/UserPreferences";
+import Settings from "@/pages/Settings";
 import SalesForecast from "@/pages/SalesForecast";
 import SalesDealEdit from "@/pages/SalesDealEdit";
 import SupplyChain from "@/pages/SupplyChain";
@@ -184,6 +185,7 @@ function MainContent() {
             <ProtectedRoute path="/supply-chain" component={SupplyChain} />
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
+            <ProtectedRoute path="/settings" component={Settings} />
             <Route path="/auth" component={AuthPage} />
             <Route path="/forgot-password" component={ForgotPasswordPage} />
             <Route path="/reset-password" component={ResetPasswordPage} />
@@ -227,7 +229,7 @@ function MainContent() {
             <ProtectedRoute path="/role-test" component={RoleTestPage} />
             <AdminRoute path="/settings/system" component={SystemSettings} />
             <AdminRoute path="/system-settings" component={SystemSettings} />
-            <AdminRoute path="/settings" component={SystemSettings} />
+            <ProtectedRoute path="/settings" component={Settings} />
             <ProtectedRoute path="/settings/user" component={UserPreferences} />
             <Route path="/auth" component={AuthPage} />
             <Route path="/forgot-password" component={ForgotPasswordPage} />
