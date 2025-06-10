@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import MultiRowBayContent from './MultiRowBayContent';
-import { ProjectBarHighlighter } from './ProjectBarHighlighter';
 import { 
   format, 
   addDays, 
@@ -5852,16 +5851,12 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                       : {}; // Default styling for standard bays
                     
                     return (
-                      <ProjectBarHighlighter
+                      <div
                         key={bar.id}
-                        projectId={bar.projectId}
-                        className="absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all big-project-bar schedule-bar"
-                      >
-                        <div
-                          data-schedule-id={bar.id}
-                          data-bay-id={bar.bayId}
-                          data-row-index={rowIndex}
-                          className={`w-full h-full ${rowClass}`}
+                        data-schedule-id={bar.id}
+                        data-bay-id={bar.bayId}
+                        data-row-index={rowIndex}
+                        className={`absolute rounded-sm z-10 border border-gray-600 shadow-md group hover:brightness-110 transition-all big-project-bar schedule-bar ${rowClass}`}
                         style={{
                           left: bar.left + 'px',
                           width: bar.width + 'px',  // Removed the -4px to ensure chevrons align with full bar width
@@ -6104,7 +6099,6 @@ const ResizableBaySchedule: React.FC<ResizableBayScheduleProps> = ({
                           </a>
                         </div>
                       </div>
-                      </ProjectBarHighlighter>
                     );
                   })
                 }
