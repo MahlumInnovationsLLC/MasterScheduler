@@ -4316,11 +4316,11 @@ export default function ResizableBaySchedule({
                                   </div>
                                 </div>
                                 
-                                {/* Project information display positioned under the PROD phase */}
+                                {/* Project information display positioned ABOVE the PROD phase */}
                                 <div className="project-info absolute flex items-center justify-center"
                                      style={{
-                                       left: `${((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) / 2) - 150}px`, /* Center under PROD phase with wider area */
-                                       top: '120px', /* Position it right under the bottom phases (moved down 50px total) */
+                                       left: `${((bar.fabWidth || 0) + (bar.paintWidth || 0) + (bar.productionWidth || 0) / 2) - 150}px`, /* Center above PROD phase with wider area */
+                                       top: '5px', /* Position it ABOVE the top phases (moved up significantly) */
                                        width: '300px', /* Increased width to accommodate longer names */
                                        pointerEvents: 'auto', /* Enable clicks */
                                        zIndex: 9999 /* Much higher z-index so it appears above all project bars but below popups */
