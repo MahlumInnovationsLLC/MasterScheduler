@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
