@@ -69,6 +69,7 @@ const ProjectDetails = () => {
   const [isTaskDialogOpen, setTaskDialogOpen] = useState(false);
   const [isDeleteTaskDialogOpen, setDeleteTaskDialogOpen] = useState(false);
   const [isMilestoneDialogOpen, setIsMilestoneDialogOpen] = useState(false);
+  const [isEditNotesDialogOpen, setIsEditNotesDialogOpen] = useState(false);
   const [archiveReason, setArchiveReason] = useState<string>('');
   const [selectedBayId, setSelectedBayId] = useState<number | null>(null);
   const [startDate, setStartDate] = useState<string>(
@@ -103,12 +104,26 @@ const ProjectDetails = () => {
     }
   }, [isTaskDialogOpen]);
   
+  // Initialize notes form when dialog opens
+  React.useEffect(() => {
+    if (isEditNotesDialogOpen && project) {
+      setNotesForm({
+        notes: project.notes || ''
+      });
+    }
+  }, [isEditNotesDialogOpen, project]);
+  
   // Milestone editing state
   const [editMilestoneId, setEditMilestoneId] = useState<number | null>(null);
   const [milestoneForm, setMilestoneForm] = useState({
     name: '',
     status: 'In Progress',
     date: new Date().toISOString().split('T')[0]
+  });
+  
+  // Notes editing state
+  const [notesForm, setNotesForm] = useState({
+    notes: ''
   });
   
   const { data: project, isLoading: isLoadingProject } = useQuery({
@@ -295,6 +310,29 @@ const ProjectDetails = () => {
     onError: (error: Error) => {
       toast({
         title: "Failed to save milestone",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Update project notes mutation
+  const updateNotesMutation = useMutation({
+    mutationFn: async (notes: string) => {
+      const response = await apiRequest('PUT', `/api/projects/${projectId}`, { notes });
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Notes updated",
+        description: "Project notes have been successfully updated",
+      });
+      setIsEditNotesDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update notes",
         description: error.message,
         variant: "destructive",
       });
@@ -881,7 +919,14 @@ const ProjectDetails = () => {
               </div>
               <div className="mt-4 flex justify-between">
                 <span className="text-xs text-gray-400">Last updated: {formatDate(project.updatedAt)}</span>
-                <Button variant="link" size="sm" className="text-primary h-auto p-0">Edit Notes</Button>
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  className="text-primary h-auto p-0"
+                  onClick={() => setIsEditNotesDialogOpen(true)}
+                >
+                  Edit Notes
+                </Button>
               </div>
             </div>
           </Card>
@@ -1600,6 +1645,66 @@ const ProjectDetails = () => {
                   {editMilestoneId ? 'Updating...' : 'Creating...'}
                 </>
               ) : (editMilestoneId ? 'Update Milestone' : 'Create Milestone')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Notes Dialog */}
+      <Dialog open={isEditNotesDialogOpen} onOpenChange={setIsEditNotesDialogOpen}>
+        <DialogContent className="bg-darkBg border-gray-800 text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">
+              Edit Project Notes
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Update notes and important details for {project?.projectNumber}: {project?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="projectNotes" className="text-white">Notes</Label>
+              <Textarea
+                id="projectNotes"
+                value={notesForm.notes}
+                onChange={(e) => setNotesForm({...notesForm, notes: e.target.value})}
+                className="bg-darkInput border-gray-800 text-white min-h-[200px] resize-none"
+                placeholder="Enter project notes, important details, or updates..."
+              />
+              <p className="text-xs text-gray-400">
+                Use this space to document important project information, updates, or notes for team members.
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter className="sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsEditNotesDialogOpen(false)}
+              className="border-gray-700 hover:bg-gray-800 hover:text-white"
+            >
+              Cancel
+            </Button>
+            
+            <Button
+              type="button"
+              onClick={() => updateNotesMutation.mutate(notesForm.notes)}
+              disabled={updateNotesMutation.isPending}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {updateNotesMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Update Notes
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
