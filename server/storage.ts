@@ -19,6 +19,8 @@ import {
   rolePermissions,
   userPermissions,
   projectMilestoneIcons,
+  projectLabels,
+  projectLabelAssignments,
   userModuleVisibility,
   projectForensics,
   meetings,
@@ -79,6 +81,10 @@ import {
   type InsertMeetingTemplate,
   type MeetingEmailNotification,
   type InsertMeetingEmailNotification,
+  type ProjectLabel,
+  type InsertProjectLabel,
+  type ProjectLabelAssignment,
+  type InsertProjectLabelAssignment,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, like, sql, desc, asc, count, ilike, SQL, isNull, isNotNull, or, inArray, ne } from "drizzle-orm";
@@ -292,6 +298,18 @@ export interface IStorage {
   createProjectMilestoneIcon(icon: InsertProjectMilestoneIcon): Promise<ProjectMilestoneIcon>;
   updateProjectMilestoneIcon(id: number, icon: Partial<InsertProjectMilestoneIcon>): Promise<ProjectMilestoneIcon | undefined>;
   deleteProjectMilestoneIcon(id: number): Promise<boolean>;
+
+  // Project Labels methods
+  getProjectLabels(): Promise<ProjectLabel[]>;
+  getProjectLabel(id: number): Promise<ProjectLabel | undefined>;
+  createProjectLabel(label: InsertProjectLabel): Promise<ProjectLabel>;
+  updateProjectLabel(id: number, label: Partial<InsertProjectLabel>): Promise<ProjectLabel | undefined>;
+  deleteProjectLabel(id: number): Promise<boolean>;
+
+  // Project Label Assignments methods
+  getProjectLabelAssignments(projectId: number): Promise<ProjectLabelAssignment[]>;
+  assignLabelToProject(projectId: number, labelId: number): Promise<ProjectLabelAssignment>;
+  removeLabelFromProject(projectId: number, labelId: number): Promise<boolean>;
 
   // Data migration methods
   updateDefaultProjectHours(): Promise<number>; // Returns count of updated records
@@ -3620,6 +3638,105 @@ export class DatabaseStorage implements IStorage {
         .where(eq(meetingTasks.syncedTaskId, projectTaskId))
         .orderBy(desc(meetingTasks.createdAt))
     );
+  }
+
+  // Project Labels methods
+  async getProjectLabels(): Promise<ProjectLabel[]> {
+    return await safeQuery<ProjectLabel>(() =>
+      db.select().from(projectLabels)
+        .where(eq(projectLabels.isActive, true))
+        .orderBy(projectLabels.name)
+    );
+  }
+
+  async getProjectLabel(id: number): Promise<ProjectLabel | undefined> {
+    return await safeSingleQuery<ProjectLabel>(() =>
+      db.select().from(projectLabels).where(eq(projectLabels.id, id))
+    );
+  }
+
+  async createProjectLabel(label: InsertProjectLabel): Promise<ProjectLabel> {
+    try {
+      const [newLabel] = await db.insert(projectLabels).values(label).returning();
+      return newLabel;
+    } catch (error) {
+      console.error("Error creating project label:", error);
+      throw error;
+    }
+  }
+
+  async updateProjectLabel(id: number, label: Partial<InsertProjectLabel>): Promise<ProjectLabel | undefined> {
+    try {
+      const [updatedLabel] = await db.update(projectLabels)
+        .set({ ...label, updatedAt: new Date() })
+        .where(eq(projectLabels.id, id))
+        .returning();
+      return updatedLabel;
+    } catch (error) {
+      console.error("Error updating project label:", error);
+      return undefined;
+    }
+  }
+
+  async deleteProjectLabel(id: number): Promise<boolean> {
+    try {
+      // First remove all assignments
+      await db.delete(projectLabelAssignments).where(eq(projectLabelAssignments.labelId, id));
+      // Then delete the label
+      await db.delete(projectLabels).where(eq(projectLabels.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting project label:", error);
+      return false;
+    }
+  }
+
+  // Project Label Assignments methods
+  async getProjectLabelAssignments(projectId: number): Promise<ProjectLabelAssignment[]> {
+    return await safeQuery<ProjectLabelAssignment>(() =>
+      db.select({
+        id: projectLabelAssignments.id,
+        projectId: projectLabelAssignments.projectId,
+        labelId: projectLabelAssignments.labelId,
+        assignedAt: projectLabelAssignments.assignedAt,
+        // Include label details
+        labelName: projectLabels.name,
+        labelType: projectLabels.type,
+        labelColor: projectLabels.color,
+        backgroundColor: projectLabels.backgroundColor,
+        textColor: projectLabels.textColor,
+      })
+      .from(projectLabelAssignments)
+      .leftJoin(projectLabels, eq(projectLabelAssignments.labelId, projectLabels.id))
+      .where(eq(projectLabelAssignments.projectId, projectId))
+      .orderBy(projectLabels.name)
+    );
+  }
+
+  async assignLabelToProject(projectId: number, labelId: number): Promise<ProjectLabelAssignment> {
+    try {
+      const [assignment] = await db.insert(projectLabelAssignments)
+        .values({ projectId, labelId })
+        .returning();
+      return assignment;
+    } catch (error) {
+      console.error("Error assigning label to project:", error);
+      throw error;
+    }
+  }
+
+  async removeLabelFromProject(projectId: number, labelId: number): Promise<boolean> {
+    try {
+      await db.delete(projectLabelAssignments)
+        .where(and(
+          eq(projectLabelAssignments.projectId, projectId),
+          eq(projectLabelAssignments.labelId, labelId)
+        ));
+      return true;
+    } catch (error) {
+      console.error("Error removing label from project:", error);
+      return false;
+    }
   }
 
 }
