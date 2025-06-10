@@ -1010,6 +1010,7 @@ export async function importBillingMilestones(req: Request, res: Response) {
         try {
           // Check if this milestone already exists for this project
           const existingMilestones = await storage.getProjectBillingMilestones(milestoneData.projectId);
+          console.log(`🔍 DUPLICATE CHECK: Found ${existingMilestones.length} existing milestones for project ${normalizedProjectNumber} (ID: ${milestoneData.projectId})`);
           
           // Enhanced duplicate detection with case-insensitive and whitespace-trimmed comparison
           const existingMilestone = existingMilestones.find(m => {
@@ -1022,6 +1023,8 @@ export async function importBillingMilestones(req: Request, res: Response) {
             // Also check if project IDs match
             const projectMatch = m.projectId === billingMilestoneData.projectId;
             
+            console.log(`  📋 Comparing: "${existingName}" vs "${newName}" | Name match: ${nameMatch} | Project match: ${projectMatch}`);
+            
             return nameMatch && projectMatch;
           });
           
@@ -1033,7 +1036,7 @@ export async function importBillingMilestones(req: Request, res: Response) {
             results.details.push(`Updated existing billing milestone: ${billingMilestoneData.name} for project ${normalizedProjectNumber}`);
           } else {
             // Create a new milestone
-            console.log(`✅ CREATING new milestone: "${billingMilestoneData.name}" for project ${normalizedProjectNumber}`);
+            console.log(`✅ CREATING new milestone: "${billingMilestoneData.name}" for project ${normalizedProjectNumber} (No duplicates found)`);
             await storage.createBillingMilestone(billingMilestoneData as any);
             results.imported++;
             results.details.push(`Created new billing milestone: ${billingMilestoneData.name} for project ${normalizedProjectNumber}`);
