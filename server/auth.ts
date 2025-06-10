@@ -282,7 +282,8 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  // Login endpoint
+  // Login endpoint disabled - handled in routes.ts to avoid conflicts
+  /*
   app.post("/api/login", (req, res, next) => {
     const deviceFingerprint = generateDeviceFingerprint(req);
     
@@ -326,6 +327,7 @@ export async function setupAuth(app: Express) {
       });
     })(req, res, next);
   });
+  */
 
   // Logout endpoint
   app.post("/api/logout", (req, res, next) => {
