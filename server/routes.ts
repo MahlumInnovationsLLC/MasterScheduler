@@ -21,6 +21,8 @@ import {
   insertSalesDealSchema,
   insertProjectCostSchema,
   insertProjectMilestoneIconSchema,
+  insertProjectLabelSchema,
+  insertProjectLabelAssignmentSchema,
   insertMeetingSchema,
   insertMeetingAttendeeSchema,
   insertMeetingNoteSchema,
@@ -4262,6 +4264,106 @@ Response format:
     } catch (error) {
       console.error("Error deleting milestone icon:", error);
       res.status(500).json({ message: "Error deleting milestone icon" });
+    }
+  });
+
+  // Project Labels Routes
+  app.get("/api/project-labels", async (req, res) => {
+    try {
+      const labels = await storage.getProjectLabels();
+      res.json(labels);
+    } catch (error) {
+      console.error("Error fetching project labels:", error);
+      res.status(500).json({ message: "Error fetching project labels" });
+    }
+  });
+
+  app.get("/api/project-labels/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const label = await storage.getProjectLabel(id);
+      
+      if (!label) {
+        return res.status(404).json({ message: "Project label not found" });
+      }
+      
+      res.json(label);
+    } catch (error) {
+      console.error("Error fetching project label:", error);
+      res.status(500).json({ message: "Error fetching project label" });
+    }
+  });
+
+  app.post("/api/project-labels", validateRequest(insertProjectLabelSchema), async (req, res) => {
+    try {
+      const label = await storage.createProjectLabel(req.body);
+      res.status(201).json(label);
+    } catch (error) {
+      console.error("Error creating project label:", error);
+      res.status(500).json({ message: "Error creating project label" });
+    }
+  });
+
+  app.put("/api/project-labels/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const label = await storage.updateProjectLabel(id, req.body);
+      
+      if (!label) {
+        return res.status(404).json({ message: "Project label not found" });
+      }
+      
+      res.json(label);
+    } catch (error) {
+      console.error("Error updating project label:", error);
+      res.status(500).json({ message: "Error updating project label" });
+    }
+  });
+
+  app.delete("/api/project-labels/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.deleteProjectLabel(id);
+      res.json({ success: result });
+    } catch (error) {
+      console.error("Error deleting project label:", error);
+      res.status(500).json({ message: "Error deleting project label" });
+    }
+  });
+
+  // Project Label Assignments Routes
+  app.get("/api/projects/:projectId/labels", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const assignments = await storage.getProjectLabelAssignments(projectId);
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching project label assignments:", error);
+      res.status(500).json({ message: "Error fetching project label assignments" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/labels/:labelId", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const labelId = parseInt(req.params.labelId);
+      const assignment = await storage.assignLabelToProject(projectId, labelId);
+      res.status(201).json(assignment);
+    } catch (error) {
+      console.error("Error assigning label to project:", error);
+      res.status(500).json({ message: "Error assigning label to project" });
+    }
+  });
+
+  app.delete("/api/projects/:projectId/labels/:labelId", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const labelId = parseInt(req.params.labelId);
+      const result = await storage.removeLabelFromProject(projectId, labelId);
+      res.json({ success: result });
+    } catch (error) {
+      console.error("Error removing label from project:", error);
+      res.status(500).json({ message: "Error removing label from project" });
     }
   });
 
