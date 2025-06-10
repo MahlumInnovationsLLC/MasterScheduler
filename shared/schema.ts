@@ -484,6 +484,14 @@ export const projectPhaseEnum = pgEnum("project_phase", [
   "fab", "paint", "production", "it", "ntc", "qc"
 ]);
 
+export const labelTypeEnum = pgEnum("label_type", [
+  "status", "priority", "issue", "category", "custom"
+]);
+
+export const labelColorEnum = pgEnum("label_color", [
+  "red", "orange", "yellow", "green", "blue", "purple", "pink", "gray"
+]);
+
 export const projectMilestoneIcons = pgTable("project_milestone_icons", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id")
@@ -497,6 +505,34 @@ export const projectMilestoneIcons = pgTable("project_milestone_icons", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Project Labels Table - for creating reusable labels
+export const projectLabels = pgTable("project_labels", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  type: labelTypeEnum("type").notNull().default("custom"),
+  color: labelColorEnum("color").notNull().default("gray"),
+  backgroundColor: text("background_color").default("bg-gray-100"),
+  textColor: text("text_color").default("text-gray-800"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Project Label Assignment Table - for assigning labels to projects
+export const projectLabelAssignments = pgTable("project_label_assignments", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .references(() => projects.id)
+    .notNull(),
+  labelId: integer("label_id")
+    .references(() => projectLabels.id)
+    .notNull(),
+  assignedAt: timestamp("assigned_at").defaultNow(),
+}, (table) => ({
+  uniqueProjectLabel: unique().on(table.projectId, table.labelId),
+}));
 
 // Tasks Table
 export const tasks = pgTable("tasks", {
@@ -531,6 +567,23 @@ export const projectMilestoneIconsRelations = relations(projectMilestoneIcons, (
   project: one(projects, {
     fields: [projectMilestoneIcons.projectId],
     references: [projects.id],
+  }),
+}));
+
+// Project Labels Relations
+export const projectLabelsRelations = relations(projectLabels, ({ many }) => ({
+  assignments: many(projectLabelAssignments),
+}));
+
+// Project Label Assignments Relations
+export const projectLabelAssignmentsRelations = relations(projectLabelAssignments, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectLabelAssignments.projectId],
+    references: [projects.id],
+  }),
+  label: one(projectLabels, {
+    fields: [projectLabelAssignments.labelId],
+    references: [projectLabels.id],
   }),
 }));
 
@@ -833,6 +886,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   projectCosts: many(projectCosts),
   baySchedules: many(manufacturingSchedules),
   deliveryTracking: many(deliveryTracking),
+  labelAssignments: many(projectLabelAssignments),
 }));
 
 // Notifications Table
@@ -1487,3 +1541,21 @@ export type MeetingTemplate = typeof meetingTemplates.$inferSelect;
 export type InsertMeetingTemplate = z.infer<typeof insertMeetingTemplateSchema>;
 export type MeetingEmailNotification = typeof meetingEmailNotifications.$inferSelect;
 export type InsertMeetingEmailNotification = z.infer<typeof insertMeetingEmailNotificationSchema>;
+
+// Project Labels Schemas
+export const insertProjectLabelSchema = createInsertSchema(projectLabels).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProjectLabelAssignmentSchema = createInsertSchema(projectLabelAssignments).omit({
+  id: true,
+  assignedAt: true,
+});
+
+// Project Labels Types
+export type ProjectLabel = typeof projectLabels.$inferSelect;
+export type InsertProjectLabel = z.infer<typeof insertProjectLabelSchema>;
+export type ProjectLabelAssignment = typeof projectLabelAssignments.$inferSelect;
+export type InsertProjectLabelAssignment = z.infer<typeof insertProjectLabelAssignmentSchema>;
