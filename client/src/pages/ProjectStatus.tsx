@@ -105,9 +105,17 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
   
   const [isOpen, setIsOpen] = useState(false);
   
-  // Assign label mutation
+  // Assign label mutation - remove existing label first if any, then assign new one
   const assignMutation = useMutation({
     mutationFn: async (labelId: number) => {
+      // First remove any existing labels (only one label allowed)
+      if (labels.length > 0) {
+        for (const assignment of labels) {
+          await apiRequest('DELETE', `/api/projects/${projectId}/labels/assignments/${assignment.id}`);
+        }
+      }
+      
+      // Then assign the new label
       const response = await apiRequest('POST', `/api/projects/${projectId}/labels/${labelId}`);
       if (!response.ok) throw new Error('Failed to assign label');
       return response.json();
@@ -116,23 +124,40 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/labels`] });
       toast({ title: "Label assigned successfully" });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Error assigning label:', error);
       toast({ title: "Error assigning label", variant: "destructive" });
     }
   });
   
-  // Remove label mutation
+  // Remove label mutation - with optimistic update
   const removeMutation = useMutation({
     mutationFn: async (assignmentId: number) => {
       const response = await apiRequest('DELETE', `/api/projects/${projectId}/labels/assignments/${assignmentId}`);
       if (!response.ok) throw new Error('Failed to remove label');
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/labels`] });
-      toast({ title: "Label removed successfully" });
+    onMutate: async (assignmentId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [`/api/projects/${projectId}/labels`] });
+      
+      // Snapshot the previous value
+      const previousLabels = queryClient.getQueryData([`/api/projects/${projectId}/labels`]);
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData([`/api/projects/${projectId}/labels`], (old: any[]) => 
+        old ? old.filter(label => label.id !== assignmentId) : []
+      );
+      
+      return { previousLabels };
     },
-    onError: () => {
+    onError: (err, assignmentId, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      queryClient.setQueryData([`/api/projects/${projectId}/labels`], context?.previousLabels);
       toast({ title: "Error removing label", variant: "destructive" });
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/labels`] });
     }
   });
   
@@ -145,35 +170,35 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
     removeMutation.mutate(assignmentId);
   };
   
-  // Get unassigned labels for the dropdown
-  const assignedLabelIds = labels.map((l: any) => l.labelId);
-  const unassignedLabels = availableLabels.filter((label: any) => 
-    !assignedLabelIds.includes(label.id)
-  );
+  // Current assigned label (should only be one)
+  const currentLabel = labels[0];
+  
+  // Show all labels for selection if no label is assigned
+  const showAddButton = !currentLabel;
   
   return (
     <div className="flex flex-wrap gap-1 items-center min-w-0">
-      {/* Display assigned labels */}
-      {labels.map((assignment: any) => (
+      {/* Display current label */}
+      {currentLabel && (
         <Badge 
-          key={assignment.id}
+          key={currentLabel.id}
           variant="secondary" 
-          className="px-2 py-1 text-xs font-medium border cursor-pointer"
+          className="px-2 py-1 text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity"
           style={{ 
-            backgroundColor: assignment.backgroundColor || '#6b7280', 
-            color: assignment.textColor || '#ffffff',
-            borderColor: assignment.backgroundColor || '#6b7280'
+            backgroundColor: currentLabel.backgroundColor || '#6b7280', 
+            color: currentLabel.textColor || '#ffffff',
+            borderColor: currentLabel.backgroundColor || '#6b7280'
           }}
-          onClick={() => handleRemoveLabel(assignment.id)}
+          onClick={() => handleRemoveLabel(currentLabel.id)}
           title="Click to remove"
         >
-          {assignment.labelName}
+          {currentLabel.labelName}
           <X className="w-3 h-3 ml-1" />
         </Badge>
-      ))}
+      )}
       
-      {/* Add label button */}
-      {unassignedLabels.length > 0 && (
+      {/* Add/Change label button */}
+      {(showAddButton || currentLabel) && (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -182,20 +207,21 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
               className="h-6 px-2 text-xs border-dashed hover:border-solid transition-all"
             >
               <Plus className="w-3 h-3 mr-1" />
-              Add
+              {currentLabel ? 'Change' : 'Add'}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-48 p-2" align="start">
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {unassignedLabels.map((label: any) => (
+          <PopoverContent className="w-56 p-2" align="start">
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {availableLabels.map((label: any) => (
                 <button
                   key={label.id}
                   onClick={() => handleAssignLabel(label.id)}
-                  className="w-full flex items-center px-2 py-1 rounded text-xs hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center justify-start px-2 py-1 rounded text-xs hover:bg-gray-50 transition-colors"
+                  disabled={assignMutation.isPending}
                 >
                   <Badge 
                     variant="secondary" 
-                    className="px-2 py-1 text-xs font-medium border"
+                    className="px-2 py-1 text-xs font-medium border mr-2"
                     style={{ 
                       backgroundColor: label.backgroundColor || '#6b7280', 
                       color: label.textColor || '#ffffff',
@@ -204,6 +230,9 @@ const ProjectLabelsInline = ({ projectId }: { projectId: number }) => {
                   >
                     {label.name}
                   </Badge>
+                  {currentLabel?.labelId === label.id && (
+                    <Check className="w-3 h-3 ml-auto text-green-600" />
+                  )}
                 </button>
               ))}
             </div>
