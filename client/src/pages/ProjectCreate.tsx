@@ -377,7 +377,7 @@ export default function ProjectCreate() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="good">GOOD</SelectItem>
                               <SelectItem value="delayed">Delayed</SelectItem>
                               <SelectItem value="critical">Critical</SelectItem>
                               <SelectItem value="completed">Completed</SelectItem>

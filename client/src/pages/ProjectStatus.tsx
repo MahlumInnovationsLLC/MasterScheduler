@@ -1736,7 +1736,8 @@ const ProjectStatus = () => {
 
   const statusOptions = [
     { value: 'all', label: 'All Projects' },
-    { value: 'active', label: 'Active Projects' },
+    { value: 'good', label: 'GOOD Projects' },
+    { value: 'active', label: 'GOOD Projects' },
     { value: 'delayed', label: 'Delayed Projects' },
     { value: 'critical', label: 'Critical Projects' },
     { value: 'completed', label: 'Completed Projects' },
