@@ -91,6 +91,24 @@ const ProjectDetails = () => {
     milestoneId: 0
   });
 
+  // Milestone editing state
+  const [editMilestoneId, setEditMilestoneId] = useState<number | null>(null);
+  const [milestoneForm, setMilestoneForm] = useState({
+    name: '',
+    status: 'In Progress',
+    date: new Date().toISOString().split('T')[0]
+  });
+  
+  // Notes editing state
+  const [notesForm, setNotesForm] = useState({
+    notes: ''
+  });
+  
+  const { data: project, isLoading: isLoadingProject } = useQuery({
+    queryKey: [`/api/projects/${projectId}`],
+    enabled: !isNaN(projectId)
+  });
+  
   // Reset task form when dialog closes
   React.useEffect(() => {
     if (!isTaskDialogOpen) {
@@ -112,24 +130,6 @@ const ProjectDetails = () => {
       });
     }
   }, [isEditNotesDialogOpen, project]);
-  
-  // Milestone editing state
-  const [editMilestoneId, setEditMilestoneId] = useState<number | null>(null);
-  const [milestoneForm, setMilestoneForm] = useState({
-    name: '',
-    status: 'In Progress',
-    date: new Date().toISOString().split('T')[0]
-  });
-  
-  // Notes editing state
-  const [notesForm, setNotesForm] = useState({
-    notes: ''
-  });
-  
-  const { data: project, isLoading: isLoadingProject } = useQuery({
-    queryKey: [`/api/projects/${projectId}`],
-    enabled: !isNaN(projectId)
-  });
   
   const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({
     queryKey: [`/api/projects/${projectId}/tasks`],
