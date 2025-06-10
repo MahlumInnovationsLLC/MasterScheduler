@@ -17,6 +17,7 @@ interface EditableStatusFieldProps {
 
 const defaultStatusOptions = [
   { value: 'active', label: 'Active', color: 'bg-emerald-500 text-white border-emerald-600 shadow-lg shadow-emerald-500/30' },
+  { value: 'good', label: 'GOOD', color: 'bg-emerald-500 text-white border-emerald-600 shadow-lg shadow-emerald-500/30' },
   { value: 'delayed', label: 'Delayed', color: 'bg-amber-500 text-white border-amber-600 shadow-lg shadow-amber-500/30' },
   { value: 'critical', label: 'Critical', color: 'bg-red-500 text-white border-red-600 shadow-lg shadow-red-500/30' },
   { value: 'completed', label: 'Completed', color: 'bg-blue-500 text-white border-blue-600 shadow-lg shadow-blue-500/30' },
