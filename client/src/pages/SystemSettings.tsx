@@ -69,10 +69,10 @@ const SystemSettings = () => {
     message: string;
     totalDeleted?: number;
   } | null>(null);
-  
+
   // User role state (for permission management)
   const [isAdmin, setIsAdmin] = useState(true); // Default to true in development mode
-  
+
   // User sorting state
   const [userSort, setUserSort] = useState<{column: string, direction: 'asc' | 'desc'}>({
     column: 'lastName',
@@ -81,7 +81,7 @@ const SystemSettings = () => {
 
   // User module visibility state
   const [userModuleVisibility, setUserModuleVisibility] = useState<Record<string, Record<string, boolean>>>({});
-  
+
   // Role controls state for editing permissions
   const [rolePermissions, setRolePermissions] = useState({
     admin: {
@@ -163,7 +163,7 @@ const SystemSettings = () => {
       }
     }
   });
-  
+
   // User edit dialog state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -180,7 +180,7 @@ const SystemSettings = () => {
   const [passwordResetUser, setPasswordResetUser] = useState<any>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+
   // In a production environment, we would check the user's role here
   // For now, since we're in development mode, we'll always have admin rights
   // This ensures the permissions UI is editable during development
@@ -210,11 +210,11 @@ const SystemSettings = () => {
   };
 
 
-  
-  // Backup functionality temporarily disabled
-  
 
-  
+  // Backup functionality temporarily disabled
+
+
+
 
 
   // User audit logs query
@@ -229,20 +229,20 @@ const SystemSettings = () => {
 
   const handleDeleteAllProjects = async () => {
     setIsDeleting(true);
-    
+
     try {
       const response = await fetch('/api/reset-all-projects', {
         method: 'DELETE',
       });
-      
+
       const result = await response.json();
-      
+
       setDeleteResult({
         success: result.success,
         message: result.message,
         totalDeleted: result.totalDeleted
       });
-      
+
       toast({
         title: result.success ? "Projects Deleted" : "Deletion Failed",
         description: result.message,
@@ -253,7 +253,7 @@ const SystemSettings = () => {
         success: false,
         message: "Error deleting projects: " + (error as Error).message
       });
-      
+
       toast({
         title: "Error",
         description: "Failed to delete projects: " + (error as Error).message,
@@ -280,11 +280,11 @@ const SystemSettings = () => {
         },
         body: JSON.stringify(notification),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to create notification');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -362,11 +362,11 @@ const SystemSettings = () => {
         },
         body: JSON.stringify(emailPattern),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to create email pattern');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -397,11 +397,11 @@ const SystemSettings = () => {
       const response = await fetch(`/api/allowed-emails/${id}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to delete email pattern');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -431,11 +431,11 @@ const SystemSettings = () => {
         },
         body: JSON.stringify({ role }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to update user role');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -461,11 +461,11 @@ const SystemSettings = () => {
       const response = await fetch(`/api/users/${userId}/approve`, {
         method: 'PATCH',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to approve user');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -484,25 +484,25 @@ const SystemSettings = () => {
       });
     }
   });
-  
+
   // Reject user mutation (also handles revoking access for approved users)
   const rejectUserMutation = useMutation({
     mutationFn: async (userId: string) => {
       const response = await fetch(`/api/users/${userId}/reject`, {
         method: 'PATCH',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to reject user');
       }
-      
+
       return await response.json();
     },
     onSuccess: (data, variables) => {
       // Find the user to determine if they were approved or pending
       const user = users.find(u => u.id === variables);
       const wasApproved = user?.isApproved;
-      
+
       toast({
         title: wasApproved ? "Access Revoked" : "User Rejected",
         description: wasApproved 
@@ -537,7 +537,7 @@ const SystemSettings = () => {
   const handleApproveUser = (userId: string) => {
     approveUserMutation.mutate(userId);
   };
-  
+
   const handleRejectUser = (userId: string) => {
     rejectUserMutation.mutate(userId);
   };
@@ -548,11 +548,11 @@ const SystemSettings = () => {
       const response = await fetch(`/api/users/${userId}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to delete user');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -640,7 +640,7 @@ const SystemSettings = () => {
   // Create permission render function
   const renderPermissionItem = (role: 'admin' | 'editor' | 'viewer', category: 'modules' | 'data' | 'system', permission: string, label: string) => {
     const isEnabled = (rolePermissions[role][category] as any)[permission] || false;
-    
+
     return (
       <div key={permission} className="flex items-center justify-between">
         <span>{label}</span>
@@ -652,7 +652,7 @@ const SystemSettings = () => {
       </div>
     );
   };
-  
+
   // Handle edit user button click
   const handleEditUserClick = (user: any) => {
     setEditingUser(user);
@@ -677,9 +677,9 @@ const SystemSettings = () => {
   // Handle password reset submission
   const handlePasswordResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!passwordResetUser) return;
-    
+
     if (newPassword !== confirmPassword) {
       toast({
         title: "Password Mismatch",
@@ -719,12 +719,12 @@ const SystemSettings = () => {
         title: "Password Reset Successful",
         description: `Password has been reset for ${passwordResetUser.firstName} ${passwordResetUser.lastName}.`
       });
-      
+
       setIsPasswordResetDialogOpen(false);
       setNewPassword('');
       setConfirmPassword('');
       setPasswordResetUser(null);
-      
+
     } catch (error) {
       toast({
         title: "Password Reset Failed",
@@ -733,19 +733,19 @@ const SystemSettings = () => {
       });
     }
   };
-  
+
   // User sorting function
   const handleSort = (column: string) => {
     setUserSort(prev => ({
       column,
-      direction: prev.column === column && prev.direction === 'asc' ? 'desc' : 'asc'
+      direction: prev.column === column && prev.direction === 'asc' ? 'desc' : 'desc'
     }));
   };
 
   // Get sorted users
   const getSortedUsers = () => {
     if (!users || users.length === 0) return [];
-    
+
     return [...users].sort((a, b) => {
       // Handle special cases based on column
       if (userSort.column === 'lastName') {
@@ -755,7 +755,7 @@ const SystemSettings = () => {
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
-      
+
       if (userSort.column === 'department') {
         const aValue = (a.department || 'zzz').toLowerCase(); // 'zzz' to sort empty values last
         const bValue = (b.department || 'zzz').toLowerCase();
@@ -763,7 +763,7 @@ const SystemSettings = () => {
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
-      
+
       if (userSort.column === 'createdAt' || userSort.column === 'lastLogin') {
         const aDate = a[userSort.column] ? new Date(a[userSort.column]) : new Date(0);
         const bDate = b[userSort.column] ? new Date(b[userSort.column]) : new Date(0);
@@ -771,14 +771,14 @@ const SystemSettings = () => {
           ? aDate.getTime() - bDate.getTime()
           : bDate.getTime() - aDate.getTime();
       }
-      
+
       if (userSort.column === 'isApproved') {
         // Sort by approval status (boolean)
         return userSort.direction === 'asc'
           ? (a.isApproved === b.isApproved ? 0 : a.isApproved ? 1 : -1)
           : (a.isApproved === b.isApproved ? 0 : a.isApproved ? -1 : 1);
       }
-      
+
       // Default sort for other columns
       const aValue = (a[userSort.column] || '').toString().toLowerCase();
       const bValue = (b[userSort.column] || '').toString().toLowerCase();
@@ -792,7 +792,7 @@ const SystemSettings = () => {
   const handleEditUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
-    
+
     // Direct fetch call with proper method formatting
     fetch(`/api/users/${editingUser.id}`, {
       method: 'PATCH',
@@ -851,7 +851,7 @@ const SystemSettings = () => {
     queryKey: ['/api/archived-projects'],
     queryFn: getQueryFn({}),
   });
-  
+
   // Get system storage info
   const {
     data: storageInfo = { totalStorageUsed: 0 },
@@ -880,11 +880,11 @@ const SystemSettings = () => {
       const response = await fetch(`/api/projects/${projectId}/restore`, {
         method: 'PATCH',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to restore project');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -910,11 +910,11 @@ const SystemSettings = () => {
       const response = await fetch(`/api/projects/${projectId}/permanent-delete`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to permanently delete project');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -953,7 +953,7 @@ const SystemSettings = () => {
               Update user information and department settings.
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handleEditUserSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
@@ -967,7 +967,7 @@ const SystemSettings = () => {
                   className="col-span-3"
                 />
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="lastName" className="text-right">
                   Last Name
@@ -979,7 +979,7 @@ const SystemSettings = () => {
                   className="col-span-3"
                 />
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="email" className="text-right">
                   Email
@@ -993,7 +993,7 @@ const SystemSettings = () => {
                   disabled
                 />
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="role" className="text-right">
                   Role
@@ -1012,21 +1012,34 @@ const SystemSettings = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="department" className="text-right">
                   Department
                 </Label>
-                <Input
-                  id="department"
+                <Select
                   value={editUserForm.department}
-                  onChange={(e) => setEditUserForm({...editUserForm, department: e.target.value})}
-                  className="col-span-3"
-                  placeholder="e.g. Engineering, Sales, Production"
-                />
+                  onValueChange={(value) => setEditUserForm({...editUserForm, department: value})}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="engineering">Engineering</SelectItem>
+                    <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                    <SelectItem value="finance">Finance</SelectItem>
+                    <SelectItem value="project_management">Project Management</SelectItem>
+                    <SelectItem value="quality_control">Quality Control</SelectItem>
+                    <SelectItem value="it">IT</SelectItem>
+                    <SelectItem value="sales">Sales</SelectItem>
+                    <SelectItem value="executive">Executive</SelectItem>
+                    <SelectItem value="planning_analysis">Planning & Analysis</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            
+
             <DialogFooter>
               <Button type="button" variant="secondary" onClick={() => setIsEditDialogOpen(false)}>
                 Cancel
@@ -1048,7 +1061,7 @@ const SystemSettings = () => {
               Set a new password for {passwordResetUser?.firstName} {passwordResetUser?.lastName} ({passwordResetUser?.email}).
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handlePasswordResetSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
@@ -1065,7 +1078,7 @@ const SystemSettings = () => {
                   required
                 />
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="confirmPassword" className="text-right">
                   Confirm Password
@@ -1085,7 +1098,7 @@ const SystemSettings = () => {
                 Password must be at least 6 characters long.
               </div>
             </div>
-            
+
             <DialogFooter>
               <Button type="button" variant="secondary" onClick={() => setIsPasswordResetDialogOpen(false)}>
                 Cancel
@@ -1097,7 +1110,7 @@ const SystemSettings = () => {
           </form>
         </DialogContent>
       </Dialog>
-      
+
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">System Settings</h1>
@@ -1133,7 +1146,7 @@ const SystemSettings = () => {
                     <p className="text-sm text-gray-500">
                       Add patterns like 'user@example.com' for exact match or '*@example.com' for all emails from a domain.
                     </p>
-                    
+
                     <form onSubmit={handleCreateEmailPattern} className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="md:col-span-2">
                         <Label htmlFor="emailPattern">Email Pattern</Label>
@@ -1183,9 +1196,9 @@ const SystemSettings = () => {
                       </div>
                     </form>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Email Patterns</h3>
                     {allowedEmailsLoading ? (
@@ -1266,7 +1279,7 @@ const SystemSettings = () => {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>User Management</CardTitle>
@@ -1336,8 +1349,11 @@ const SystemSettings = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                                {user.department || 'Not assigned'}
-                              </TableCell>
+                            {user.preferences?.department ? 
+                              user.preferences.department.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 
+                              'Not assigned'
+                            }
+                          </TableCell>
                               <TableCell>
                                 {user.isApproved ? (
                                   <Badge className="bg-green-500">Approved</Badge>
@@ -1347,8 +1363,14 @@ const SystemSettings = () => {
                               </TableCell>
                               <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                               <TableCell>
-                                {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
-                              </TableCell>
+                            {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : 'Never'}
+                          </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end space-x-2">
                                   {!user.isApproved && (
@@ -1363,7 +1385,7 @@ const SystemSettings = () => {
                                       Approve
                                     </Button>
                                   )}
-                                  
+
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                       <Button 
@@ -1399,7 +1421,7 @@ const SystemSettings = () => {
                                       </AlertDialogFooter>
                                     </AlertDialogContent>
                                   </AlertDialog>
-                                  
+
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                       <Button 
@@ -1657,7 +1679,7 @@ const SystemSettings = () => {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pl-11">
                             {[
                               { id: 'dashboard', name: 'Dashboard', description: 'Main dashboard view' },
@@ -1680,7 +1702,7 @@ const SystemSettings = () => {
                                 if (savedVisibility !== undefined) {
                                   return savedVisibility;
                                 }
-                                
+
                                 // Fallback to role-based defaults
                                 if (user.role === 'admin') return true;
                                 if (user.role === 'editor') return !['system-settings', 'import'].includes(module.id);
@@ -1700,7 +1722,7 @@ const SystemSettings = () => {
                                       disabled={!isAdmin}
                                       onCheckedChange={async (checked) => {
                                         console.log(`User ${user.firstName} ${user.lastName} - ${module.name} visibility:`, checked);
-                                        
+
                                         try {
                                           const response = await fetch(`/api/users/${user.id}/module-visibility`, {
                                             method: 'PATCH',
@@ -1776,7 +1798,7 @@ const SystemSettings = () => {
                       {showNotificationForm ? 'Cancel' : 'Create Notification'}
                     </Button>
                   </div>
-                  
+
                   {showNotificationForm && (
                     <Card className="border border-primary/20 bg-primary/5">
                       <CardHeader>
@@ -1835,7 +1857,7 @@ const SystemSettings = () => {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="space-y-2">
                             <Label htmlFor="message">Message</Label>
                             <textarea 
@@ -1847,7 +1869,7 @@ const SystemSettings = () => {
                               required
                             />
                           </div>
-                          
+
                           <div className="flex justify-end space-x-2">
                             <Button type="button" variant="outline" onClick={() => setShowNotificationForm(false)}>
                               Cancel
@@ -1867,10 +1889,10 @@ const SystemSettings = () => {
                       </CardContent>
                     </Card>
                   )}
-                  
+
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">User Activity Logs</h3>
-                    
+
                     {userAuditLogsLoading ? (
                       <div className="flex justify-center p-4">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -1984,17 +2006,17 @@ const SystemSettings = () => {
                                           }
                                         }
                                       }
-                                      
+
                                       // Try extracting from entityType/entityId
                                       if (log.entityType) {
                                         return `${log.entityType}${log.entityId ? ` #${log.entityId}` : ''}`;
                                       }
-                                      
+
                                       // Extract from new_data or previous_data
                                       try {
                                         const newData = log.new_data ? JSON.parse(log.new_data) : null;
                                         const prevData = log.previous_data ? JSON.parse(log.previous_data) : null;
-                                        
+
                                         if (newData?.projectNumber) {
                                           return `Project ${newData.projectNumber}`;
                                         }
@@ -2007,7 +2029,7 @@ const SystemSettings = () => {
                                       } catch (e) {
                                         // Ignore parsing errors
                                       }
-                                      
+
                                       return 'System';
                                     })()}
                                   </div>
@@ -2054,7 +2076,7 @@ const SystemSettings = () => {
                 <div className="space-y-6">
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Archived Projects</h3>
-                    
+
                     {archivedProjectsLoading ? (
                       <div className="flex justify-center p-4">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -2117,7 +2139,7 @@ const SystemSettings = () => {
                                         </AlertDialogFooter>
                                       </AlertDialogContent>
                                     </AlertDialog>
-                                    
+
                                     <AlertDialog>
                                       <AlertDialogTrigger asChild>
                                         <Button 
@@ -2180,7 +2202,7 @@ const SystemSettings = () => {
                       The operations in this section can permanently delete data. Proceed with caution.
                     </AlertDescription>
                   </Alert>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Card className="border border-destructive/40">
                       <CardHeader className="pb-2">
@@ -2222,7 +2244,7 @@ const SystemSettings = () => {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
-                        
+
                         {deleteResult && (
                           <div className="mt-4">
                             <Alert variant={deleteResult.success ? "default" : "destructive"}>
@@ -2247,7 +2269,7 @@ const SystemSettings = () => {
                         )}
                       </CardContent>
                     </Card>
-                    
+
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-lg">Database Backup</CardTitle>
@@ -2261,7 +2283,7 @@ const SystemSettings = () => {
                         </Button>
                       </CardContent>
                     </Card>
-                    
+
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-lg">Database Restore</CardTitle>
@@ -2279,7 +2301,7 @@ const SystemSettings = () => {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>System Information</CardTitle>
@@ -2306,9 +2328,9 @@ const SystemSettings = () => {
                       <p className="text-lg font-semibold">Never</p>
                     </div>
                   </div>
-                  
+
                   <Separator className="my-6" />
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card>
                       <CardContent className="pt-6">

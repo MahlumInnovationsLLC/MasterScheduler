@@ -11,6 +11,7 @@ BEGIN
             'it',
             'sales',
             'executive',
+            'planning_analysis',
             'other'
         );
     END IF;
