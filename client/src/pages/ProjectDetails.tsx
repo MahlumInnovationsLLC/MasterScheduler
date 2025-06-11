@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams, Link, useLocation } from 'wouter';
-import { queryClient } from '@/lib/queryClient';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import { 
   ArrowLeft,
   User,
@@ -53,15 +53,112 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
 import { addDays } from 'date-fns';
 import { Loader2 } from 'lucide-react';
+
+// Interactive Progress Slider Component
+interface InteractiveProgressSliderProps {
+  value: number;
+  onChange: (value: number) => void;
+  className?: string;
+}
+
+const InteractiveProgressSlider: React.FC<InteractiveProgressSliderProps> = ({ 
+  value, 
+  onChange, 
+  className = "" 
+}) => {
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    setIsDragging(true);
+    updateValue(e.clientX);
+    e.preventDefault();
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isDragging) {
+      updateValue(e.clientX);
+    }
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const updateValue = useCallback((clientX: number) => {
+    if (sliderRef.current) {
+      const rect = sliderRef.current.getBoundingClientRect();
+      const percentage = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+      onChange(Math.round(percentage));
+    }
+  }, [onChange]);
+
+  React.useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  return (
+    <div 
+      ref={sliderRef}
+      className={`relative bg-gray-800 rounded-full h-2.5 cursor-pointer ${className}`}
+      onMouseDown={handleMouseDown}
+    >
+      <div 
+        className="bg-success h-2.5 rounded-full transition-all duration-200" 
+        style={{ width: `${value}%` }}
+      />
+      <div 
+        className="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-success rounded-full border-2 border-white shadow-md cursor-grab"
+        style={{ left: `calc(${value}% - 8px)` }}
+      />
+    </div>
+  );
+};
 
 const ProjectDetails = () => {
   const { id } = useParams();
   const projectId = parseInt(id);
   const { toast } = useToast();
   const [, navigate] = useLocation();
+
+  // Mutation for updating project progress
+  const updateProgressMutation = useMutation({
+    mutationFn: async (newProgress: number) => {
+      return apiRequest(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ percentComplete: newProgress.toString() })
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/health`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/metrics`] });
+      toast({
+        title: "Progress Updated",
+        description: "Project progress has been updated successfully."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update project progress.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const updateProjectProgress = useCallback((newValue: number) => {
+    updateProgressMutation.mutate(newValue);
+  }, [updateProgressMutation]);
   
   // Dialog state
   const [isAssignBayDialogOpen, setIsAssignBayDialogOpen] = useState(false);
@@ -667,13 +764,12 @@ const ProjectDetails = () => {
           <div className="col-span-1">
             <div className="text-sm text-gray-400 mb-1">Progress</div>
             <div className="flex items-center gap-3">
-              <div className="w-32 bg-gray-800 rounded-full h-2.5">
-                <div 
-                  className="bg-success h-2.5 rounded-full transition-all duration-300" 
-                  style={{ width: `${projectHealth.breakdown.taskCompletion}%` }}
-                ></div>
-              </div>
-              <span className="text-lg font-bold">{projectHealth.breakdown.taskCompletion}%</span>
+              <InteractiveProgressSlider 
+                value={parseFloat(project?.percentComplete || '0')}
+                onChange={(newValue) => updateProjectProgress(newValue)}
+                className="w-32"
+              />
+              <span className="text-lg font-bold">{parseFloat(project?.percentComplete || '0').toFixed(0)}%</span>
             </div>
             <div className="text-xs text-gray-500 mt-1">
               Timeline: {projectHealth.breakdown.timelineAdherence}%
