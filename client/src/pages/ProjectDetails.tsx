@@ -133,10 +133,17 @@ const ProjectDetails = () => {
   // Mutation for updating project progress
   const updateProgressMutation = useMutation({
     mutationFn: async (newProgress: number) => {
-      return apiRequest(`/api/projects/${projectId}`, {
+      const response = await fetch(`/api/projects/${projectId}`, {
         method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ percentComplete: newProgress.toString() })
       });
+      if (!response.ok) {
+        throw new Error('Failed to update progress');
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
@@ -765,8 +772,8 @@ const ProjectDetails = () => {
             <div className="text-sm text-gray-400 mb-1">Progress</div>
             <div className="flex items-center gap-3">
               <InteractiveProgressSlider 
-                value={parseFloat(project?.percentComplete || '0')}
-                onChange={(newValue) => updateProjectProgress(newValue)}
+                value={parseFloat((project as any)?.percentComplete || '0')}
+                onChange={updateProjectProgress}
                 className="w-32"
               />
               <span className="text-lg font-bold">{parseFloat(project?.percentComplete || '0').toFixed(0)}%</span>
